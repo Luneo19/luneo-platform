@@ -20,6 +20,8 @@ import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { useCohortAnalysis, useFunnelAnalysis } from '@/hooks/admin/use-analytics';
 import { DollarSign, Users, Percent, Target, Activity } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const PLAN_COLORS: Record<string, string> = {
   FREE: '#6b7280',
@@ -33,9 +35,9 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<number>(30);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: overview, isLoading: overviewLoading } = useAdminOverview({ period });
-  const { cohorts, isLoading: cohortLoading } = useCohortAnalysis({ period: 365 });
-  const { funnel, isLoading: funnelLoading } = useFunnelAnalysis({ period });
+  const { data: overview, isLoading: overviewLoading, isError: overviewError, refresh: refreshOverview } = useAdminOverview({ period });
+  const { cohorts, isLoading: cohortLoading, isError: cohortError, refresh: refreshCohort } = useCohortAnalysis({ period: 365 });
+  const { funnel, isLoading: funnelLoading, isError: funnelError, refresh: refreshFunnel } = useFunnelAnalysis({ period });
 
   // Transform revenueChart data for the RevenueChart component
   const revenueChartData = useMemo(() => {
@@ -66,6 +68,34 @@ export default function AnalyticsPage() {
       value: ch.count,
     }));
   }, [overview?.acquisitionChannels]);
+
+  const hasError = overviewError || cohortError || funnelError;
+  const handleRetry = () => {
+    refreshOverview();
+    refreshCohort();
+    refreshFunnel();
+  };
+
+  if (hasError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Analytics</h1>
+            <p className="text-white/60 mt-2">Comprehensive business analytics and insights</p>
+          </div>
+        </div>
+        <Card className="border-red-500/30 bg-red-500/5">
+          <CardContent className="p-6 text-center">
+            <p className="text-red-400 mb-4">Impossible de charger les analytics. Veuillez réessayer.</p>
+            <Button variant="outline" onClick={handleRetry} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+              Réessayer
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

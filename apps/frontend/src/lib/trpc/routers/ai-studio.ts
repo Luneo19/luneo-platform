@@ -93,20 +93,7 @@ export const aiStudioRouter = router({
           costCents: estimatedCost,
         });
 
-        setTimeout(() => {
-          api.patch(`/api/v1/ai-studio/generations/${generation.id}`, { status: 'PROCESSING' }).catch(() => {});
-          setTimeout(() => {
-            api.patch(`/api/v1/ai-studio/generations/${generation.id}`, {
-              status: 'COMPLETED',
-              resultUrl: `https://storage.example.com/generations/${generation.id}.png`,
-              thumbnailUrl: `https://storage.example.com/generations/${generation.id}_thumb.png`,
-              quality: 85 + Math.random() * 15,
-              duration: Math.floor(Math.random() * 10) + 3,
-              completedAt: new Date(),
-            }).catch(() => {});
-          }, 3000 + Math.random() * 5000);
-        }, 100);
-
+        // Return creation response immediately. Frontend should poll status via getGenerations or a dedicated checkStatus procedure until status is COMPLETED or FAILED (no fake completion).
         return {
           success: true,
           generation: {
@@ -163,13 +150,14 @@ export const aiStudioRouter = router({
         const res = await api.get<{ generations?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } }>('/api/v1/ai-studio/generations', {
           params: { type: input?.type, status: input?.status, model: input?.model, limit: input?.limit ?? 50, offset: input?.offset ?? 0 },
         }).catch(() => ({ generations: [], total: 0 }));
-        const generations = res?.generations ?? res?.data ?? [];
-        const total = res?.total ?? res?.pagination?.total ?? (Array.isArray(generations) ? generations.length : 0);
+        const resTyped = res as { generations?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } };
+        const generations = resTyped?.generations ?? resTyped?.data ?? [];
+        const total = resTyped?.total ?? resTyped?.pagination?.total ?? (Array.isArray(generations) ? generations.length : 0);
 
         type GenLike = { id: string; type: string; prompt: string; negativePrompt?: string; model: string; provider?: string; parameters?: Record<string, unknown>; status: string; resultUrl?: string; thumbnailUrl?: string; credits?: number; costCents?: number; duration?: number; quality?: number; error?: string; userId?: string; brandId?: string; parentGenerationId?: string; createdAt?: unknown; completedAt?: unknown; updatedAt?: unknown };
         return {
           success: true,
-          generations: (Array.isArray(generations) ? generations : []).map((gen: GenLike) => ({
+          generations: (Array.isArray(generations) ? (generations as GenLike[]) : []).map((gen) => ({
             id: gen.id,
             type: gen.type,
             prompt: gen.prompt,
@@ -218,6 +206,7 @@ export const aiStudioRouter = router({
         }).catch(() => null);
         const list = res?.models ?? res?.data ?? [];
         type ModelLike = { id: string; name: string; provider?: string; type?: string; costPerGeneration?: number; avgTime?: number; quality?: number; isActive?: boolean };
+        // Graceful degradation: fallback to hardcoded "Stable Diffusion XL" when backend returns empty.
         if (Array.isArray(list) && list.length > 0) {
           return {
             success: true,
@@ -268,7 +257,9 @@ export const aiStudioRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const res = await api.post<{ optimization?: { original?: string; optimized?: string; improvement?: string; before?: number; after?: number }; data?: Record<string, unknown> } | null>('/api/v1/ai-studio/optimize-prompt', { prompt: input.prompt }).catch(() => null);
-        const opt = res?.optimization ?? res?.data ?? res;
+        const optRaw = res?.optimization ?? (res as { data?: { original?: string; optimized?: string; improvement?: string; before?: number; after?: number } })?.data ?? res;
+        const opt = optRaw as { original?: string; optimized?: string; improvement?: string; before?: number; after?: number } | null;
+        // Graceful degradation: fallback to hardcoded optimization when backend fails or returns invalid data.
         if (opt && typeof opt.original === 'string' && typeof opt.optimized === 'string') {
           return {
             success: true,
@@ -315,7 +306,7 @@ export const aiStudioRouter = router({
 
         const collectionsRes = await api.get<unknown[] | { collections?: unknown[]; data?: unknown[] }>('/api/v1/ai-studio/collections').catch(() => []);
         const collectionsRaw = collectionsRes;
-        const collections = Array.isArray(collectionsRes) ? collectionsRes : (collectionsRaw && typeof collectionsRaw === 'object' ? (collectionsRaw.collections ?? collectionsRaw.data ?? []) : []);
+        const collections = Array.isArray(collectionsRes) ? collectionsRes : (collectionsRaw && typeof collectionsRaw === 'object' && !Array.isArray(collectionsRaw) ? ((collectionsRaw as { collections?: unknown[]; data?: unknown[] }).collections ?? (collectionsRaw as { data?: unknown[] }).data ?? []) : []);
 
         type CollLike = { id: string; name: string; description?: string; isShared?: boolean; userId?: string; brandId?: string; generations?: unknown[]; createdAt?: unknown; updatedAt?: unknown };
         return {
@@ -355,9 +346,10 @@ export const aiStudioRouter = router({
       }
 
         const analyticsRes = await api.get<{ totalGenerations?: number; completedGenerations?: number; generations?: { duration?: number | null; costCents?: number }[]; satisfaction?: number }>('/api/v1/ai-studio/analytics').catch(() => ({}));
-        const totalGenerations = analyticsRes?.totalGenerations ?? 0;
-        const completedGenerations = analyticsRes?.completedGenerations ?? 0;
-        const generations = analyticsRes?.generations ?? [];
+        const analytics = analyticsRes as { totalGenerations?: number; completedGenerations?: number; generations?: { duration?: number | null; costCents?: number }[]; satisfaction?: number };
+        const totalGenerations = analytics?.totalGenerations ?? 0;
+        const completedGenerations = analytics?.completedGenerations ?? 0;
+        const generations = analytics?.generations ?? [];
 
         const successRate = totalGenerations > 0 ? (completedGenerations / totalGenerations) * 100 : 0;
         const avgTime = generations.length > 0
@@ -378,17 +370,18 @@ export const aiStudioRouter = router({
         const trendsRes = await api.get<{ currentPeriod?: number; previousPeriod?: number; trends?: { success?: string; cost?: string }; success?: string; cost?: string }>('/api/v1/ai-studio/analytics/trends', {
           params: { last30Days: last30Days.toISOString(), previous30Days: previous30Days.toISOString() },
         }).catch(() => ({}));
-        const currentPeriod = trendsRes?.currentPeriod ?? 0;
-        const previousPeriod = trendsRes?.previousPeriod ?? 0;
+        const trends = trendsRes as { currentPeriod?: number; previousPeriod?: number; trends?: { success?: string; cost?: string }; success?: string; cost?: string };
+        const currentPeriod = trends?.currentPeriod ?? 0;
+        const previousPeriod = trends?.previousPeriod ?? 0;
 
         const generationsTrend = previousPeriod > 0
           ? `${((currentPeriod - previousPeriod) / previousPeriod * 100).toFixed(1)}%`
           : '+0%';
 
-        const trendsPayload = trendsRes?.trends ?? trendsRes;
-        const successTrend = typeof trendsPayload?.success === 'string' ? trendsPayload.success : '+2.3%';
-        const costTrend = typeof trendsPayload?.cost === 'string' ? trendsPayload.cost : '+12%';
-        const satisfaction = typeof analyticsRes?.satisfaction === 'number' ? analyticsRes.satisfaction : 4.7;
+        const trendsPayload = trends?.trends ?? trends;
+        const successTrend = typeof (trendsPayload as { success?: string })?.success === 'string' ? (trendsPayload as { success: string }).success : '+2.3%';
+        const costTrend = typeof (trendsPayload as { cost?: string })?.cost === 'string' ? (trendsPayload as { cost: string }).cost : '+12%';
+        const satisfaction = typeof analytics?.satisfaction === 'number' ? analytics.satisfaction : 4.7;
 
         return {
           success: true,

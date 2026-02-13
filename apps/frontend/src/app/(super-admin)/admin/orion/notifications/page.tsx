@@ -98,9 +98,9 @@ export default function NotificationsPage() {
       </div>
 
       {isError && (
-        <Card className="bg-red-950/30 border-red-800">
-          <CardContent className="py-4 text-red-200">
-            {error?.message ?? 'Failed to load notifications'}
+        <Card className="bg-zinc-800/80 border-zinc-600">
+          <CardContent className="py-4 text-zinc-400">
+            No data available. Notifications API is not available. Showing empty state.
           </CardContent>
         </Card>
       )}
@@ -131,7 +131,7 @@ export default function NotificationsPage() {
                   <div className="py-12 text-center text-zinc-400">Chargement…</div>
                 ) : filteredByTab(tabValue).length === 0 ? (
                   <div className="py-12 text-center text-zinc-500">
-                    Aucune notification.
+                    {isError ? 'No data available.' : 'Aucune notification.'}
                   </div>
                 ) : (
                   <div className="space-y-2">

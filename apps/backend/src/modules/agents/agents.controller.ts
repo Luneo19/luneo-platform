@@ -24,8 +24,9 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { z } from 'zod';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { ChatRequestDto } from './dto/chat-request.dto';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { CurrentUser as CurrentUserType } from '@/common/types/user.types';
@@ -36,26 +37,6 @@ import { ConversationService } from './services/conversation.service';
 import { LunaService } from './luna/luna.service';
 import { AriaService } from './aria/aria.service';
 import { NovaService } from './nova/nova.service';
-
-// ============================================================================
-// DTOs avec Validation Zod
-// ============================================================================
-
-const ChatRequestSchema = z.object({
-  message: z.string().min(1).max(10000),
-  agentType: z.enum(['luna', 'aria', 'nova', 'auto']).default('auto'),
-  conversationId: z.string().uuid().optional(),
-  context: z.object({
-    productId: z.string().uuid().optional(),
-    currentPage: z.string().optional(),
-    userLocale: z.string().default('fr'),
-  }).optional(),
-  options: z.object({
-    stream: z.boolean().default(false),
-    maxTokens: z.number().min(100).max(32000).default(4096),
-    temperature: z.number().min(0).max(2).default(0.7),
-  }).optional(),
-});
 
 // ============================================================================
 // CONTROLLER
@@ -82,69 +63,66 @@ export class AgentsController {
    */
   @Post('chat')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Chat avec un agent IA' })
   @ApiResponse({ status: 200, description: 'Réponse de l\'agent' })
   async chat(
     @CurrentBrand() brand: { id: string; plan?: string } | null,
     @CurrentUser() user: CurrentUserType,
-    @Body() body: unknown,
+    @Body() dto: ChatRequestDto,
   ) {
-    // 1. Validation
-    const validated = ChatRequestSchema.parse(body);
+    const agentType = dto.agentType ?? 'auto';
     const brandId = brand?.id;
     const planId = brand?.plan;
 
-    // 2. Vérifier usage (Usage Guardian)
     const usageCheck = await this.usageGuard.checkUsageBeforeCall(
       brandId,
       user.id,
       planId,
-      validated.options?.maxTokens,
+      dto.options?.maxTokens ?? 4096,
     );
 
     if (!usageCheck.allowed) {
       throw new BadRequestException(usageCheck.reason || 'Usage limit exceeded');
     }
 
-    // 3. Router vers l'agent approprié
-    const agentType = this.orchestrator.routeToAgent(
-      validated.agentType,
+    const routedAgentType = this.orchestrator.routeToAgent(
+      agentType,
       {
-        message: validated.message,
+        message: dto.message,
         brandId,
         userId: user.id,
-        currentPage: validated.context?.currentPage,
-        productId: validated.context?.productId,
+        currentPage: dto.context?.currentPage,
+        productId: dto.context?.productId,
       },
     );
 
     try {
-      // 4. Appeler l'agent approprié
       let response;
 
-      switch (agentType) {
+      switch (routedAgentType) {
         case 'luna':
           response = await this.lunaService.chat({
             brandId: brandId!,
             userId: user.id,
-            message: validated.message,
-            conversationId: validated.conversationId,
-            context: validated.context,
+            message: dto.message,
+            conversationId: dto.conversationId,
+            context: dto.context,
           });
           break;
 
         case 'aria':
-          if (!validated.context?.productId) {
+          if (!dto.context?.productId) {
             throw new BadRequestException('Product ID required for Aria');
           }
           response = await this.ariaService.chat({
             sessionId: `session_${Date.now()}`,
-            productId: validated.context.productId,
+            productId: dto.context.productId,
             brandId,
-            message: validated.message,
-            context: validated.context ? {
-              occasion: validated.context.currentPage,
-              language: validated.context.userLocale || 'fr',
+            message: dto.message,
+            context: dto.context ? {
+              occasion: dto.context.currentPage,
+              language: dto.context.userLocale ?? 'fr',
             } : undefined,
           });
           break;
@@ -152,11 +130,11 @@ export class AgentsController {
         case 'nova':
         default:
           response = await this.novaService.chatWithContext({
-            message: validated.message,
+            message: dto.message,
             brandId,
             userId: user.id,
-            conversationId: validated.conversationId,
-            context: validated.context,
+            conversationId: dto.conversationId,
+            context: dto.context,
           });
           break;
       }

@@ -28,6 +28,7 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { useI18n } from '@/i18n/useI18n';
 
 const defaultCalendar = [
   { id: 1, day: 'Lundi', time: '09:00', platform: 'Instagram', status: 'À préparer', format: 'Story' },
@@ -36,6 +37,7 @@ const defaultCalendar = [
 ];
 
 export default function SocialMediaPage() {
+  const { t } = useI18n();
   const features = [
     {
       icon: <ImageIcon className="w-6 h-6" />,
@@ -164,6 +166,7 @@ export default function SocialMediaPage() {
   const handleGenerateCaption = () => {
     setIsGenerating(true);
     setCopyStatus('idle');
+    // Demo simulation - replace with real API in production
     setTimeout(() => {
       const draft = `✨ ${goal} sur ${selectedPlatform.name}
 
@@ -175,7 +178,7 @@ ${platformGuidelines.hook}
       setCaptionDraft(draft);
       setAssetVariants([
         { id: 'story', title: 'Story 9:16', status: 'généré ✅' },
-        { id: 'post', title: 'Post carré', status: 'mockup appliqué' },
+        { id: 'post', title: 'Post carré', status: t('common.mockupApplied') },
         { id: 'reel', title: 'Reel 30s', status: 'script + cut plan' },
       ]);
       setIsGenerating(false);
@@ -186,7 +189,8 @@ ${platformGuidelines.hook}
     try {
       await navigator.clipboard.writeText(captionDraft || 'Générez le plan pour copier.');
       setCopyStatus('copied');
-      setTimeout(() => setCopyStatus('idle'), 2500);
+      // Demo simulation - replace with real API in production
+      setTimeout(() => setCopyStatus('idle'), 1000);
     } catch (error) {
       logger.error('Copy content failed', {
         error,
@@ -211,14 +215,15 @@ ${platformGuidelines.hook}
         customMessage: captionDraft,
       });
       setApprovalStatus('sent');
-      setTimeout(() => setApprovalStatus('idle'), 4000);
+      // Demo simulation - replace with real API in production
+      setTimeout(() => setApprovalStatus('idle'), 1000);
     } catch (error) {
       logger.error('Send approval failed', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       setApprovalStatus('error');
-      setApprovalError("Impossible d'envoyer la validation.");
+      setApprovalError(t('common.sendError'));
     }
   };
 
@@ -246,7 +251,8 @@ ${platformGuidelines.hook}
         customMessage: calendar.map((slot) => `${slot.day} ${slot.time} - ${slot.platform} (${slot.status})`).join('\n'),
       });
       setCalendarStatus('synced');
-      setTimeout(() => setCalendarStatus('idle'), 4000);
+      // Demo simulation - replace with real API in production
+      setTimeout(() => setCalendarStatus('idle'), 1000);
     } catch (error) {
       logger.error('Sync calendar failed', {
         error,
@@ -312,7 +318,7 @@ ${platformGuidelines.hook}
                   rows={6}
                   value={captionDraft}
                   onChange={(event) => setCaptionDraft(event.target.value)}
-                  placeholder="Cliquez sur générer pour produire un script multi-format."
+                  placeholder={t('common.clickToGenerate')}
                 />
               </div>
             </div>
@@ -331,7 +337,7 @@ ${platformGuidelines.hook}
                 >
                 {copyStatus === 'copied' ? (
                   <span className="flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" /> Copié
+                    <CheckCircle2 className="w-4 h-4" /> {t('common.copied')}
                   </span>
                 ) : copyStatus === 'error' ? (
                   'Erreur copie'
@@ -467,6 +473,7 @@ ${platformGuidelines.hook}
                           ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/40'
                           : 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/30'
                       }`}
+                      aria-label={`Toggle calendar slot: ${slot.platform} ${slot.time}`}
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       {slot.status}

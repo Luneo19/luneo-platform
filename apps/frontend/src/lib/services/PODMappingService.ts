@@ -53,7 +53,7 @@ export class PODMappingService {
    */
   async getProductPODConfig(productId: string): Promise<PODProductConfig> {
     try {
-      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: any } | null;
+      const product = await endpoints.products.get(productId).catch(() => null) as { metadata?: Record<string, unknown> } | null;
 
       if (!product) {
         return {};
@@ -86,6 +86,7 @@ export class PODMappingService {
       const podConfig = metadata.pod || {};
 
       podConfig[provider] = {
+        provider,
         variantId: config.variantId,
         productId: config.productId,
         productUid: config.productUid,
@@ -182,7 +183,7 @@ export class PODMappingService {
       }
 
       return 1; // Default
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting product ID', { error, productId, provider });
       return 1;
     }

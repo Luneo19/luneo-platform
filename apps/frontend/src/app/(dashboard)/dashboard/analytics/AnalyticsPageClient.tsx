@@ -14,24 +14,33 @@ import { AnalyticsKPIs } from './components/AnalyticsKPIs';
 import { MetricSelector } from './components/MetricSelector';
 import { ExportAnalyticsModal } from './components/modals/ExportAnalyticsModal';
 import { ExportButton } from '@/components/analytics/ExportButton';
+import { Button } from '@/components/ui/button';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 import { useAnalyticsData } from './hooks/useAnalyticsData';
 import { useAnalyticsExport } from './hooks/useAnalyticsExport';
-import type { TimeRange } from './types';
+import { useI18n } from '@/i18n/useI18n';
+import type { TimeRange, AnalyticsData } from './types';
 
-// Lazy load AnalyticsCharts (Recharts est lourd ~200KB)
-const AnalyticsCharts = dynamic(() => import('./components/AnalyticsCharts').then(mod => ({ default: mod.AnalyticsCharts })), {
-  ssr: false,
-  loading: () => (
+// Lazy load AnalyticsCharts (Recharts is heavy ~200KB)
+function AnalyticsChartsLoading() {
+  const { t } = useI18n();
+  return (
     <div className="flex items-center justify-center h-96 bg-gray-800/50 rounded-lg">
       <div className="text-center">
         <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-        <p className="text-gray-400 text-sm">Chargement des graphiques...</p>
+        <p className="text-gray-400 text-sm">{t('analytics.loadingCharts')}</p>
       </div>
     </div>
-  ),
+  );
+}
+const AnalyticsCharts = dynamic(() => import('./components/AnalyticsCharts').then(mod => ({ default: mod.AnalyticsCharts })), {
+  ssr: false,
+  loading: () => <AnalyticsChartsLoading />,
 });
 
 export function AnalyticsPageClient() {
+  const { t } = useI18n();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [comparePeriod, setComparePeriod] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(
@@ -106,7 +115,7 @@ export function AnalyticsPageClient() {
 
   const handleExport = useCallback(() => {
     if (!data || !metrics.length) return;
-    exportAnalytics(data as Record<string, unknown>, metrics, exportFormat);
+    exportAnalytics(data as AnalyticsData, metrics, exportFormat);
     setShowExportModal(false);
   }, [data, metrics, exportFormat, exportAnalytics]);
 
@@ -121,26 +130,36 @@ export function AnalyticsPageClient() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <p className="text-red-400 mb-4">Erreur lors du chargement des analytics</p>
-          <button
-            onClick={() => refetch()}
-            className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700"
-          >
-            Réessayer
-          </button>
+          <p className="text-red-400 mb-4">{t('analytics.errorLoading')}</p>
+          <Button onClick={() => refetch()} className="bg-cyan-600 hover:bg-cyan-700">
+            {t('analytics.retry')}
+          </Button>
         </div>
       </div>
     );
   }
 
   const moduleLinks = [
-    { title: 'Designs', href: '/dashboard/analytics/designs', icon: Palette, description: 'Designs créés, taux de complétion' },
-    { title: 'AI Studio', href: '/dashboard/analytics/ai', icon: Sparkles, description: 'Générations, crédits, coûts' },
-    { title: 'Configurateur 3D', href: '/dashboard/analytics/configurator', icon: Box, description: 'Sessions, configurations sauvegardées' },
-    { title: 'Virtual Try-On', href: '/dashboard/analytics/try-on', icon: Camera, description: 'Sessions AR, conversions' },
+    { title: t('analytics.designs'), href: '/dashboard/analytics/designs', icon: Palette, description: t('analytics.designsDescription') },
+    { title: t('analytics.ai'), href: '/dashboard/analytics/ai', icon: Sparkles, description: t('analytics.aiDescription') },
+    { title: t('analytics.configurator'), href: '/dashboard/analytics/configurator', icon: Box, description: t('analytics.configuratorDescription') },
+    { title: t('analytics.tryOn'), href: '/dashboard/analytics/try-on', icon: Camera, description: t('analytics.tryOnDescription') },
   ];
 
   return (
+    <PlanGate
+      minimumPlan="professional"
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <UpgradePrompt
+            requiredPlan="professional"
+            feature="Analytics"
+            description={t('analytics.upgradeDescription')}
+            variant="default"
+          />
+        </div>
+      }
+    >
     <div className="space-y-6 pb-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {moduleLinks.map(({ title, href, icon: Icon, description }) => (
@@ -198,6 +217,7 @@ export function AnalyticsPageClient() {
         onExport={handleExport}
       />
     </div>
+    </PlanGate>
   );
 }
 

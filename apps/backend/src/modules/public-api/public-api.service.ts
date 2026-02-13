@@ -7,7 +7,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { CreateDesignDto, CreateOrderDto, GetAnalyticsDto, WebhookEvent } from './dto';
+import { CreateDesignDto, UpdateDesignDto, CreateOrderDto, GetAnalyticsDto, WebhookEvent } from './dto';
 import { WebhookService } from './webhooks/webhooks.service';
 import { AnalyticsService } from './analytics/analytics.service';
 import * as crypto from 'crypto';
@@ -161,6 +161,46 @@ export class PublicApiService {
     return design;
   }
 
+  async listDesigns(brandId: string, page: number = 1, limit: number = 10, status?: string) {
+    const skip = (page - 1) * limit;
+    const where: { brandId: string; status?: string } = { brandId };
+    if (status) {
+      where.status = status;
+    }
+
+    const [designs, total] = await Promise.all([
+      this.prisma.design.findMany({
+        where: where as Prisma.DesignWhereInput,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          status: true,
+          previewUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          product: {
+            select: { id: true, name: true, price: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.design.count({ where: where as Prisma.DesignWhereInput }),
+    ]);
+
+    return {
+      data: designs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async getDesign(brandId: string, id: string) {
     const design = await this.prisma.design.findFirst({
       where: { 
@@ -193,6 +233,48 @@ export class PublicApiService {
     }
 
     return design;
+  }
+
+  async updateDesign(brandId: string, id: string, dto: UpdateDesignDto) {
+    const design = await this.prisma.design.findFirst({
+      where: { id, brandId },
+    });
+    if (!design) {
+      throw new NotFoundException('Design not found');
+    }
+    const updated = await this.prisma.design.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.customizationData !== undefined && { options: dto.customizationData as Prisma.InputJsonValue }),
+        ...(dto.metadata !== undefined && { metadata: dto.metadata as Prisma.InputJsonValue }),
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        highResUrl: true,
+        previewUrl: true,
+        metadata: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    return updated;
+  }
+
+  async deleteDesign(brandId: string, id: string): Promise<void> {
+    const design = await this.prisma.design.findFirst({
+      where: { id, brandId },
+    });
+    if (!design) {
+      throw new NotFoundException('Design not found');
+    }
+    await this.prisma.design.delete({
+      where: { id },
+    });
   }
 
   async createOrder(brandId: string, createOrderDto: CreateOrderDto) {

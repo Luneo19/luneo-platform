@@ -18,6 +18,7 @@ import { UpdateOrderStatusModal } from './components/modals/UpdateOrderStatusMod
 import { ExportOrdersModal } from './components/modals/ExportOrdersModal';
 import { useOrderActions } from './hooks/useOrderActions';
 import { useOrderExport } from './hooks/useOrderExport';
+import { useI18n } from '@/i18n/useI18n';
 import { trpc } from '@/lib/trpc/client';
 import type { Order, OrderStats, OrderPagination, OrderFilters, OrderStatus, ShippingAddress } from './types';
 
@@ -46,6 +47,7 @@ export function OrdersPageClient({
   const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
   const [filters, setFilters] = useState<OrderFilters>(initialFilters);
 
+  const { t } = useI18n();
   const { handleUpdateStatus, handleCancelOrder, handleBulkUpdateStatus } = useOrderActions();
   const { exportOrders } = useOrderExport();
   const createMutation = trpc.order.create.useMutation();
@@ -91,7 +93,7 @@ export function OrdersPageClient({
         });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         return { success: false };
       }
     },
@@ -190,7 +192,11 @@ export function OrdersPageClient({
             setUpdatingOrderId(selectedOrder.id);
             setShowUpdateStatusModal(true);
           }}
-          onCancel={() => handleCancelOrder(selectedOrder.id)}
+          onCancel={async () => {
+            if (!confirm(t('orders.confirmCancel'))) return;
+            const result: { success: boolean } = await handleCancelOrder(selectedOrder.id);
+            if (result?.success) handleCloseOrderDetail();
+          }}
         />
       )}
 

@@ -17,7 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertTriangle, Trash2 } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { useRouter } from 'next/navigation';
@@ -31,6 +33,7 @@ export function DeleteAccountModal({
   open,
   onOpenChange,
 }: DeleteAccountModalProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const router = useRouter();
   const [confirmText, setConfirmText] = useState('');
@@ -40,8 +43,8 @@ export function DeleteAccountModal({
   const handleDelete = async () => {
     if (confirmText !== 'SUPPRIMER') {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez taper "SUPPRIMER" pour confirmer',
+        title: t('common.error'),
+        description: t('common.confirm'),
         variant: 'destructive',
       });
       return;
@@ -49,8 +52,8 @@ export function DeleteAccountModal({
 
     if (!password) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez entrer votre mot de passe',
+        title: t('common.error'),
+        description: t('forms.required'),
         variant: 'destructive',
       });
       return;
@@ -64,8 +67,8 @@ export function DeleteAccountModal({
       });
 
       toast({
-        title: 'Compte supprimé',
-        description: 'Votre compte a été supprimé avec succès. Vous allez être déconnecté.',
+        title: t('common.success'),
+        description: t('common.success'),
       });
 
       // Clear local storage and redirect to home
@@ -80,12 +83,9 @@ export function DeleteAccountModal({
         error instanceof Error ? error : new Error(String(error)),
         { response: error && typeof error === 'object' && 'response' in error ? (error as { response?: unknown }).response : undefined }
       );
-      const desc =
-        (error && typeof error === 'object' && 'response' in error && (error as { response?: { data?: { message?: string } } }).response?.data?.message) ||
-        (error instanceof Error ? error.message : 'Erreur lors de la suppression du compte');
       toast({
-        title: 'Erreur',
-        description: typeof desc === 'string' ? desc : 'Erreur lors de la suppression du compte',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     } finally {

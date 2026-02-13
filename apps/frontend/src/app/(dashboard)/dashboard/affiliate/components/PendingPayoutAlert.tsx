@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils/formatters';
@@ -12,6 +13,7 @@ interface PendingPayoutAlertProps {
 }
 
 export function PendingPayoutAlert({ pendingCommissions, onRequestPayout, minThreshold }: PendingPayoutAlertProps) {
+  const { t } = useI18n();
   if (pendingCommissions < minThreshold) return null;
 
   return (

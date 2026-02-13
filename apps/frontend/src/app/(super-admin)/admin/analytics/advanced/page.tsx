@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { logger } from '@/lib/logger';
+import { Button } from '@/components/ui/button';
 
 interface HeatmapDataPoint {
   date: string;
@@ -48,14 +49,15 @@ export default function AdvancedAnalyticsPage() {
   const [heatmapData, setHeatmapData] = useState<HeatmapDataPoint[]>([]);
   const [scatterData, setScatterData] = useState<ScatterDataPoint[]>([]);
   const [areaData, setAreaData] = useState<AreaDataPoint[]>([]);
+  const [fetchError, setFetchError] = useState(false);
 
   // Fetch advanced analytics data from backend
   const fetchAdvancedAnalytics = useCallback(async () => {
     setIsLoading(true);
     setUsingPlaceholder(false);
-    
+    setFetchError(false);
     const days = selectedPeriod === '7d' ? 7 : selectedPeriod === '30d' ? 30 : 90;
-    
+
     try {
       // Fetch heatmap data (activity by hour)
       const heatmapResponse = await fetch(
@@ -115,8 +117,9 @@ export default function AdvancedAnalyticsPage() {
         setUsingPlaceholder(true);
       }
 
-    } catch (error) {
-      logger.warn('Failed to fetch advanced analytics, using placeholders', { error });
+    } catch (err) {
+      logger.error('Failed to fetch advanced analytics, using placeholders', { error: err });
+      setFetchError(true);
       setHeatmapData(generateHeatmapPlaceholder(days, overviewData));
       setScatterData(generateScatterPlaceholder(overviewData));
       setAreaData(generateAreaPlaceholder(days, overviewData));
@@ -199,7 +202,17 @@ export default function AdvancedAnalyticsPage() {
           Advanced visualizations and correlation analysis{' '}
         </p>{' '}
       </div>
-      {usingPlaceholder && (
+      {fetchError && (
+        <Card className="border-red-500/30 bg-red-500/5">
+          <CardContent className="p-4 flex items-center justify-between flex-wrap gap-2">
+            <p className="text-red-400 text-sm">Erreur lors du chargement des analytics avancés. Données estimées affichées.</p>
+            <Button variant="outline" size="sm" onClick={() => fetchAdvancedAnalytics()} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+              Réessayer
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {usingPlaceholder && !fetchError && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2 text-amber-300 text-sm">
           Données estimées — Les endpoints analytics avancés ne sont pas encore disponibles.
         </div>

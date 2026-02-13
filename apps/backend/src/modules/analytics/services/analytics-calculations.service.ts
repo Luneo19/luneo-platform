@@ -5,6 +5,7 @@
  */
 
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { FunnelData, CohortAnalysis } from '../interfaces/analytics-advanced.interface';
 
@@ -395,8 +396,8 @@ export class AnalyticsCalculationsService {
    * Calcule la corrélation de Pearson (simplifié)
    */
   private calculatePearsonCorrelation(
-    events1: Array<{ timestamp: Date; properties: any }>,
-    events2: Array<{ timestamp: Date; properties: any }>,
+    events1: Array<{ timestamp: Date; properties: Prisma.JsonValue }>,
+    events2: Array<{ timestamp: Date; properties: Prisma.JsonValue }>,
   ): number {
     // Simplification : compter les événements par jour et calculer la corrélation
     const daily1 = this.groupEventsByDay(events1);

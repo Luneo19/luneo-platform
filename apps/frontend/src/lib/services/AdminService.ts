@@ -132,7 +132,8 @@ export class AdminService {
     offset?: number;
   }): Promise<{ users: User[]; total: number; hasMore: boolean }> {
     try {
-      const res = await api.get<any>('/api/v1/admin/customers', {
+      type ListUsersResponse = { data?: RawUserRecord[]; customers?: RawUserRecord[]; users?: RawUserRecord[]; total?: number; pagination?: { total?: number } };
+      const res = await api.get<ListUsersResponse>('/api/v1/admin/customers', {
         params: {
           page: options?.offset != null ? Math.floor(options.offset / (options?.limit ?? 20)) + 1 : 1,
           limit: options?.limit ?? 20,
@@ -141,7 +142,7 @@ export class AdminService {
         },
       });
       const list = (res?.data ?? res?.customers ?? res?.users ?? []) as RawUserRecord[];
-      const total = res?.total ?? res?.pagination?.total ?? list.length;
+      const total = Number(res?.total ?? res?.pagination?.total ?? list.length);
       const users = list.map((u) => this.mapUser(u));
       return {
         users,
@@ -174,7 +175,7 @@ export class AdminService {
   async createUser(request: CreateUserRequest): Promise<User> {
     try {
       logger.info('Creating user', { email: request.email, role: request.role });
-      const raw = await api.post<any>('/api/v1/admin/users', {
+      const raw = await api.post<RawUserRecord>('/api/v1/admin/users', {
         email: request.email,
         name: request.name,
         role: request.role,
@@ -364,16 +365,17 @@ export class AdminService {
         }
       }
       const data = await endpoints.admin.metrics();
-      const m = (data as RawMetricsRecord | null | undefined) ?? {};
+      type MetricsShape = { totalUsers?: number; totalCustomers?: number; totalBrands?: number; totalProducts?: number; totalOrders?: number; totalRevenue?: number; activeUsers?: number; newUsersToday?: number; newBrandsToday?: number };
+      const m: MetricsShape = (data as MetricsShape | null | undefined) ?? {};
       const stats: SystemStats = {
-        totalUsers: m.totalUsers ?? m.totalCustomers ?? 0,
-        totalBrands: m.totalBrands ?? 0,
-        totalProducts: m.totalProducts ?? 0,
-        totalOrders: m.totalOrders ?? 0,
-        totalRevenue: m.totalRevenue ?? 0,
-        activeUsers: m.activeUsers ?? 0,
-        newUsersToday: m.newUsersToday ?? 0,
-        newBrandsToday: m.newBrandsToday ?? 0,
+        totalUsers: Number(m.totalUsers ?? m.totalCustomers ?? 0),
+        totalBrands: Number(m.totalBrands ?? 0),
+        totalProducts: Number(m.totalProducts ?? 0),
+        totalOrders: Number(m.totalOrders ?? 0),
+        totalRevenue: Number(m.totalRevenue ?? 0),
+        activeUsers: Number(m.activeUsers ?? 0),
+        newUsersToday: Number(m.newUsersToday ?? 0),
+        newBrandsToday: Number(m.newBrandsToday ?? 0),
       };
       cacheService.set(cacheKey, stats, { ttl: 300 * 1000 });
       return stats;

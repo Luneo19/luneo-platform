@@ -1,34 +1,59 @@
 # ============================================
 # CURSORIGNORE - Optimized for memory (16GB Mac)
+# Prevents Cursor from indexing heavy files
 # ============================================
 
-# Build outputs - very large, causes Cursor memory crashes
+# ===================
+# Build outputs (CRITICAL - causes Cursor memory crashes)
+# ===================
 .next/
-apps/frontend/.next/
-apps/backend/dist/
 **/.next/
+apps/frontend/.next/
+apps/frontend/.next/cache/
+apps/frontend/.next/server/
+apps/frontend/.next/standalone/
+apps/frontend/.next/static/
+apps/backend/dist/
 **/dist/
 **/build/
 **/.output/
+**/out/
 
-# Dependencies
+# ===================
+# Dependencies (1.9 GB+)
+# ===================
 node_modules/
 **/node_modules/
 
+# ===================
+# Prisma generated client (49 MB)
+# ===================
+**/.prisma/
+**/generated/
+apps/backend/node_modules/.prisma/
+node_modules/.prisma/
+
+# ===================
 # Package manager caches
+# ===================
 .pnpm-store/
 .turbo/
 **/.turbo/
 **/.cache/
 **/.swc/
 
-# Coverage and test reports
+# ===================
+# Coverage, test reports, playwright
+# ===================
 coverage/
 **/coverage/
 playwright-report/
 test-results/
+**/.nyc_output/
 
-# Large binary files
+# ===================
+# Large binary & media files
+# ===================
 *.tar
 *.tar.gz
 *.woff2
@@ -49,77 +74,136 @@ test-results/
 *.svg
 *.pdf
 *.bmp
+*.mp3
+*.wav
+*.ogg
+*.glb
+*.gltf
+*.obj
+*.fbx
+*.usdz
 
-# Source maps (very large)
+# ===================
+# Source maps (very large, not useful for editing)
+# ===================
 *.map
 **/*.js.map
 **/*.css.map
+**/*.d.ts.map
 
+# ===================
 # OS files
+# ===================
 .DS_Store
 Thumbs.db
 
+# ===================
 # Environment files (security)
+# ===================
 .env
 .env.*
 apps/backend/.env
 apps/backend/.env.*
 apps/frontend/.env.*
 
-# Prisma generated client
-apps/backend/node_modules/.prisma/
-**/generated/
-**/.prisma/
-
+# ===================
 # Git objects
+# ===================
 .git/
 **/.git/
 
+# ===================
 # Lock files (large, not useful for indexing)
+# ===================
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
-# Temporary files
+# ===================
+# Temporary & log files
+# ===================
 *.log
 *.tmp
 *.bak
 *.swp
 *.swo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
+# ===================
 # Large JSON audit/extraction files
+# ===================
 AUDIT_*.json
+AUDIT_*.md
 CRITICAL_TODOS_REPORT.json
 COMPLETE_PROJECT_EXTRACTION.json
 SPECIFIC_FILES_EXTRACTION.json
 bundle-analysis.json
 jsx-analysis-report.json
 
-# Old fix/utility scripts (not needed)
+# ===================
+# Old fix/utility scripts (not needed for editing)
+# ===================
 fix-*.js
 cleanup-*.js
 extract-*.js
 audit-*.js
 consolidate-*.sh
 
+# ===================
 # IDE/Editor files
+# ===================
 **/.idea/
+.vscode/
 
+# ===================
 # Docker
+# ===================
 **/docker-compose*.yml
 
+# ===================
 # Vercel / deployment
+# ===================
 .vercel/
 **/.vercel/
 
+# ===================
 # Storybook
+# ===================
 storybook-static/
 
-# Monitoring & postman (not code)
+# ===================
+# Heavy non-code directories (rarely edited)
+# ===================
 monitoring/
 postman/
-
-# SDK & integration docs (heavy, rarely edited)
 sdk/
 woocommerce-plugin/
 integrations/
+docs/
+tests/
+
+# ===================
+# Worker standalone apps (heavy, separate processes)
+# ===================
+apps/worker-ia/
+apps/ar-viewer/
+apps/shopify/
+apps/mobile/
+apps/widget/
+
+# ===================
+# Next.js generated heavy files (not useful for editing)
+# ===================
+**/.next/standalone/
+**/.next/cache/
+**/.next/server/
+**/.next/trace
+**/.next/diagnostics/
+**/*.nft.json
+
+# ===================
+# Python AI engine (separate service)
+# ===================
+apps/ai-engine/

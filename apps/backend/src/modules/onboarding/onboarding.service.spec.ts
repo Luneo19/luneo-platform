@@ -254,8 +254,8 @@ describe('OnboardingService', () => {
     });
 
     it('should throw when brandId is null', async () => {
-      await expect(service.saveStep(userId, null, 1)).rejects.toThrow(BadRequestException);
-      await expect(service.saveStep(userId, null, 1)).rejects.toThrow('Brand required for onboarding');
+      await expect(service.saveStep(userId, null, 2)).rejects.toThrow(BadRequestException);
+      await expect(service.saveStep(userId, null, 2)).rejects.toThrow('Brand required for onboarding');
     });
 
     it('should throw when step 2 missing industrySlug', async () => {

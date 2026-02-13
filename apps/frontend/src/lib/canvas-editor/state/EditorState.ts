@@ -89,8 +89,8 @@ export interface EditorState {
   
   // Utility actions
   reset: () => void;
-  exportState: () => any;
-  importState: (state: any) => void;
+  exportState: () => Record<string, unknown>;
+  importState: (state: Record<string, unknown>) => void;
 }
 
 const initialState = {
@@ -360,19 +360,19 @@ export const useEditorState = create<EditorState>()(
       };
     },
 
-    importState: (importedState: any) =>
+    importState: (importedState: Record<string, unknown>) =>
       set((state) => ({
         ...state,
-        canvasWidth: importedState.canvasWidth || state.canvasWidth,
-        canvasHeight: importedState.canvasHeight || state.canvasHeight,
-        designName: importedState.designName || state.designName,
-        layers: importedState.layers || state.layers,
-        guides: importedState.guides || state.guides,
-        showGrid: importedState.showGrid !== undefined ? importedState.showGrid : state.showGrid,
-        snapToGrid: importedState.snapToGrid !== undefined ? importedState.snapToGrid : state.snapToGrid,
-        gridSize: importedState.gridSize || state.gridSize,
-        showRulers: importedState.showRulers !== undefined ? importedState.showRulers : state.showRulers,
-        showGuides: importedState.showGuides !== undefined ? importedState.showGuides : state.showGuides,
+        canvasWidth: (typeof importedState.canvasWidth === 'number' ? importedState.canvasWidth : undefined) || state.canvasWidth,
+        canvasHeight: (typeof importedState.canvasHeight === 'number' ? importedState.canvasHeight : undefined) || state.canvasHeight,
+        designName: (typeof importedState.designName === 'string' ? importedState.designName : undefined) || state.designName,
+        layers: (Array.isArray(importedState.layers) ? importedState.layers : undefined) || state.layers,
+        guides: (Array.isArray(importedState.guides) ? importedState.guides : undefined) || state.guides,
+        showGrid: importedState.showGrid !== undefined ? Boolean(importedState.showGrid) : state.showGrid,
+        snapToGrid: importedState.snapToGrid !== undefined ? Boolean(importedState.snapToGrid) : state.snapToGrid,
+        gridSize: (typeof importedState.gridSize === 'number' ? importedState.gridSize : undefined) || state.gridSize,
+        showRulers: importedState.showRulers !== undefined ? Boolean(importedState.showRulers) : state.showRulers,
+        showGuides: importedState.showGuides !== undefined ? Boolean(importedState.showGuides) : state.showGuides,
       })),
   }))
 );

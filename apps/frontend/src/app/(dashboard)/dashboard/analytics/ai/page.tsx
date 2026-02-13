@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +48,7 @@ function downloadCSV(rows: Record<string, unknown>[], filename: string) {
 }
 
 function AiAnalyticsContent() {
+  const { t } = useI18n();
   const [period, setPeriod] = useState<Period>(30);
 
   const { data, isLoading, error } = trpc.ai.listGenerated.useQuery({
@@ -55,7 +57,7 @@ function AiAnalyticsContent() {
   });
 
   const designs = useMemo(() => {
-    const list = data?.designs ?? data?.data ?? [];
+    const list = data?.designs ?? [];
     return Array.isArray(list) ? list : [];
   }, [data]);
 
@@ -91,8 +93,8 @@ function AiAnalyticsContent() {
 
   const pieData = useMemo(() => {
     const types: Record<string, number> = { '2D': 0, '3D': 0, Animation: 0 };
-    filteredByPeriod.forEach((d: { metadata?: { type?: string } }) => {
-      const t = (d.metadata?.type ?? '2D').toLowerCase();
+    filteredByPeriod.forEach((d: Record<string, unknown> & { metadata?: { type?: string } }) => {
+      const t = String((d.metadata?.type ?? '2D')).toLowerCase();
       if (t.includes('3d')) types['3D']++;
       else if (t.includes('anim')) types['Animation']++;
       else types['2D']++;
@@ -102,8 +104,8 @@ function AiAnalyticsContent() {
 
   const barData = useMemo(() => {
     const models: Record<string, number> = { 'DALL-E 3': 0, Meshy: 0, Runway: 0 };
-    filteredByPeriod.forEach((d: { metadata?: { model?: string } }) => {
-      const m = (d.metadata?.model ?? 'DALL-E 3').toLowerCase();
+    filteredByPeriod.forEach((d: Record<string, unknown> & { metadata?: { model?: string } }) => {
+      const m = String((d.metadata?.model ?? 'DALL-E 3')).toLowerCase();
       if (m.includes('meshy')) models['Meshy']++;
       else if (m.includes('runway')) models['Runway']++;
       else models['DALL-E 3']++;
@@ -127,7 +129,10 @@ function AiAnalyticsContent() {
   if (error) {
     return (
       <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center">
-        <p className="text-red-400">Erreur lors du chargement des générations</p>
+        <p className="text-red-400 mb-4">{t('analytics.errorLoadAi')}</p>
+        <Button variant="outline" className="border-gray-600" onClick={() => window.location.reload()}>
+          {t('analytics.retry')}
+        </Button>
       </div>
     );
   }
@@ -173,8 +178,8 @@ function AiAnalyticsContent() {
           <div className="flex items-center gap-2">
             <Sparkles className="w-8 h-8 text-cyan-400" />
             <div>
-              <h1 className="text-2xl font-bold text-white">Analytics AI Studio</h1>
-              <p className="text-sm text-gray-400">Générations, crédits et coûts</p>
+              <h1 className="text-2xl font-bold text-white">{t('analytics.aiPageTitle')}</h1>
+              <p className="text-sm text-gray-400">{t('analytics.aiPageSubtitle')}</p>
             </div>
           </div>
         </div>
@@ -192,7 +197,7 @@ function AiAnalyticsContent() {
           ))}
           <Button variant="outline" size="sm" className="border-gray-600" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            {t('analytics.exportCsv')}
           </Button>
         </div>
       </div>
@@ -200,25 +205,25 @@ function AiAnalyticsContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Total générations</p>
+            <p className="text-sm text-gray-400">{t('analytics.totalGenerations')}</p>
             <p className="text-2xl font-bold text-white">{stats.total}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Crédits utilisés</p>
+            <p className="text-sm text-gray-400">{t('analytics.creditsUsed')}</p>
             <p className="text-2xl font-bold text-white">{stats.totalCredits}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Taux de succès</p>
+            <p className="text-sm text-gray-400">{t('analytics.successRate')}</p>
             <p className="text-2xl font-bold text-white">{stats.successRate}%</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Coût moyen</p>
+            <p className="text-sm text-gray-400">{t('analytics.avgCost')}</p>
             <p className="text-2xl font-bold text-white">{stats.avgCost} cr.</p>
           </CardContent>
         </Card>
@@ -227,11 +232,11 @@ function AiAnalyticsContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Générations dans le temps</CardTitle>
+            <CardTitle className="text-white">{t('analytics.generationsOverTime')}</CardTitle>
           </CardHeader>
           <CardContent>
             {areaData.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée sur la période</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noData')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={areaData}>
@@ -247,11 +252,11 @@ function AiAnalyticsContent() {
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Répartition par type</CardTitle>
+            <CardTitle className="text-white">{t('analytics.byType')}</CardTitle>
           </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -279,11 +284,11 @@ function AiAnalyticsContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Usage par modèle</CardTitle>
+            <CardTitle className="text-white">{t('analytics.usageByModel')}</CardTitle>
           </CardHeader>
           <CardContent>
             {barData.every((d) => d.count === 0) ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={barData}>
@@ -299,11 +304,11 @@ function AiAnalyticsContent() {
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Crédits utilisés (tendance)</CardTitle>
+            <CardTitle className="text-white">{t('analytics.creditsTrend')}</CardTitle>
           </CardHeader>
           <CardContent>
             {areaData.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <ComposedChart data={areaData}>

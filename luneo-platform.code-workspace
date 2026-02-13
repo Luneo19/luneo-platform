@@ -2,9 +2,10 @@
     "folders": [
         {
             "path": "."
-        },
-        {
-            "path": "../Documents/Saas - Luneo/audit.md luneo"
         }
-    ]
+    ],
+    "settings": {
+        "typescript.tsserver.maxTsServerMemory": 512,
+        "typescript.tsserver.experimental.enableProjectDiagnostics": false
+    }
 }

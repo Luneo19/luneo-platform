@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react';
 import { endpoints } from '@/lib/api/client';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 
 interface WebhookLog {
   id: string;
@@ -39,6 +40,7 @@ export function WebhookLogsModal({
 }: WebhookLogsModalProps) {
   const [page, setPage] = useState(1);
   const { toast } = useToast();
+  const { t } = useI18n();
 
   interface WebhookLogsResponse {
     data?: WebhookLog[];
@@ -60,15 +62,15 @@ export function WebhookLogsModal({
     try {
       await endpoints.webhooks.retry(logId);
       toast({
-        title: 'Webhook relancé',
-        description: 'Le webhook a été relancé avec succès.',
+        title: t('webhooks.retried'),
+        description: t('webhooks.retriedDesc'),
       });
     } catch (error: unknown) {
       const message = error && typeof error === 'object' && 'response' in error && typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
         ? (error as { response: { data: { message: string } } }).response.data.message
-        : 'Impossible de relancer le webhook';
+        : t('webhooks.retryError');
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });

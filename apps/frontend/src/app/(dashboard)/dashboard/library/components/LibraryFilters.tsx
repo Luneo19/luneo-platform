@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { Search, Filter } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
@@ -30,6 +31,7 @@ export function LibraryFilters({
   onSortByChange,
   templatesCount,
 }: LibraryFiltersProps) {
+  const { t } = useI18n();
   return (
     <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col md:flex-row gap-4">
@@ -37,7 +39,7 @@ export function LibraryFilters({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
-              placeholder="Rechercher des templates..."
+              placeholder={t('library.searchTemplates')}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className="bg-white border-gray-200 text-gray-900 pl-10"
@@ -48,7 +50,7 @@ export function LibraryFilters({
           <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
             <SelectTrigger className="w-48 bg-white border-gray-200 text-gray-900">
               <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Catégorie" />
+              <SelectValue placeholder={t('library.category')} />
             </SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((category) => {
@@ -66,7 +68,7 @@ export function LibraryFilters({
           </Select>
           <Select value={sortBy} onValueChange={onSortByChange}>
             <SelectTrigger className="w-40 bg-white border-gray-200 text-gray-900">
-              <SelectValue placeholder="Trier" />
+              <SelectValue placeholder={t('library.sortBy')} />
             </SelectTrigger>
             <SelectContent>
               {SORT_OPTIONS.map((option) => (
@@ -79,7 +81,7 @@ export function LibraryFilters({
         </div>
       </div>
       <div className="mt-3 text-sm text-gray-600">
-        {templatesCount} template{templatesCount > 1 ? 's' : ''} trouvé{templatesCount > 1 ? 's' : ''}
+        {t('library.templatesFound', { count: templatesCount })}
       </div>
     </Card>
   );

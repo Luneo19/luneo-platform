@@ -1,7 +1,7 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { saveCustomDesignSchema, updateCustomDesignSchema } from '@/lib/validation/zod-schemas';
 import { z } from 'zod';
 import { getBackendUrl } from '@/lib/api/server-url';
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const createdDesign = await response.json();
 
-    logger.info('Custom design saved', {
+    serverLogger.info('Custom design saved', {
       userId: user.id,
       designId: createdDesign.id,
       designName: validatedData.name,
@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
 
     const updatedDesign = await response.json();
 
-    logger.info('Custom design updated', {
+    serverLogger.info('Custom design updated', {
       designId: idValidation.data,
       userId: user.id,
     });

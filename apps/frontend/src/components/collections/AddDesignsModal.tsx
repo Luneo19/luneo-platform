@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { api, endpoints } from '@/lib/api/client';
 import { Check, Image as ImageIcon, Plus, Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useEffect, useState, useMemo } from 'react';
+import type { CollectionModalCollection } from './CollectionModal';
 
 interface Design {
   id: string;
@@ -22,7 +24,7 @@ interface Design {
 interface AddDesignsModalProps {
   open: boolean;
   onClose: () => void;
-  collection: any;
+  collection: CollectionModalCollection & { id: string };
   onSuccess?: () => void;
 }
 
@@ -32,6 +34,7 @@ function AddDesignsModalContent({
   collection,
   onSuccess,
 }: AddDesignsModalProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,10 +55,10 @@ function AddDesignsModalContent({
       const list = Array.isArray(result) ? result : (result as unknown as { designs?: Design[] })?.designs ?? [];
       setDesigns(list as Design[]);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = error instanceof Error ? error.message : t('collections.unknownError');
       logger.error('Error loading designs for collection', { error, collectionId: collection.id });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -79,8 +82,8 @@ function AddDesignsModalContent({
   const handleAddDesigns = async () => {
     if (selectedDesigns.size === 0) {
       toast({
-        title: 'Aucun design sélectionné',
-        description: 'Veuillez sélectionner au moins un design',
+        title: t('collections.noDesignSelected'),
+        description: t('collections.selectOneDesign'),
         variant: 'destructive',
       });
       return;
@@ -103,24 +106,24 @@ function AddDesignsModalContent({
 
       if (errors.length > 0) {
         toast({
-          title: 'Erreur',
-          description: `${errors.length} design(s) n'ont pas pu être ajoutés`,
+          title: t('common.error'),
+          description: t('collections.designsAddErrorCount', { count: errors.length }),
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Designs ajoutés',
-          description: `${selectedDesigns.size} design(s) ajouté(s) à la collection`,
+          title: t('collections.designsAdded'),
+          description: t('collections.designsAddedCount', { count: selectedDesigns.size }),
         });
         setSelectedDesigns(new Set());
         onSuccess?.();
         onClose();
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = error instanceof Error ? error.message : t('collections.unknownError');
       logger.error('Error adding designs to collection', { error, collectionId: collection.id });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -152,7 +155,7 @@ function AddDesignsModalContent({
                   : 'Sélectionnez les designs à ajouter'}
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0" aria-label="Close">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -162,7 +165,7 @@ function AddDesignsModalContent({
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher un design..."
+              placeholder={t('common.searchDesign')}
               className="pl-10 bg-gray-900 border-gray-700 text-white"
             />
           </div>

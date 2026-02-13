@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye, Users, TrendingUp, Package } from 'lucide-react';
 
@@ -22,46 +23,47 @@ export function ARStats({
   tryOns,
   conversions,
 }: ARStatsProps) {
+  const { t } = useI18n();
   const conversionRate = tryOns > 0 ? ((conversions / tryOns) * 100).toFixed(1) : '0';
 
   const stats = [
     {
-      label: 'Total Modèles',
+      label: t('arStudio.stats.totalModels'),
       value: total,
       icon: Package,
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10',
     },
     {
-      label: 'Actifs',
+      label: t('arStudio.stats.active'),
       value: active,
       icon: TrendingUp,
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',
     },
     {
-      label: 'Vues Total',
+      label: t('arStudio.stats.views'),
       value: views.toLocaleString('fr-FR'),
       icon: Eye,
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10',
     },
     {
-      label: 'Try-Ons',
+      label: t('arStudio.stats.tryOns'),
       value: tryOns.toLocaleString('fr-FR'),
       icon: Users,
       color: 'text-cyan-400',
       bgColor: 'bg-cyan-500/10',
     },
     {
-      label: 'Conversions',
+      label: t('arStudio.stats.conversions'),
       value: conversions.toLocaleString('fr-FR'),
       icon: TrendingUp,
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-500/10',
     },
     {
-      label: 'Taux Conversion',
+      label: t('arStudio.stats.conversionRate'),
       value: `${conversionRate}%`,
       icon: TrendingUp,
       color: 'text-pink-400',

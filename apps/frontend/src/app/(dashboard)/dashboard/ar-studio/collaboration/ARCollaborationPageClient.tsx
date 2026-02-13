@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { CollaborationHeader } from './components/CollaborationHeader';
 import { CollaborationStats } from './components/CollaborationStats';
 import { useCollaboration } from './hooks/useCollaboration';
@@ -43,6 +44,7 @@ import type { CollaborationRole } from './types';
 
 export function ARCollaborationPageClient() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<CollaborationRole>('viewer');
@@ -60,8 +62,8 @@ export function ARCollaborationPageClient() {
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez entrer une adresse email',
+        title: t('common.error'),
+        description: t('arStudio.pleaseEnterEmail'),
         variant: 'destructive',
       });
       return;
@@ -70,15 +72,15 @@ export function ARCollaborationPageClient() {
     const result = await inviteMember(inviteEmail, inviteRole);
     if (result.success) {
       toast({
-        title: 'Succès',
-        description: 'Invitation envoyée',
+        title: t('common.success'),
+        description: t('arStudio.invitationSent'),
       });
       setShowInviteDialog(false);
       setInviteEmail('');
     } else {
       toast({
-        title: 'Erreur',
-        description: result.error || 'Erreur lors de l\'invitation',
+        title: t('common.error'),
+        description: result.error || t('arStudio.invitationError'),
         variant: 'destructive',
       });
     }
@@ -127,7 +129,7 @@ export function ARCollaborationPageClient() {
     <div className="space-y-6 pb-10">
       <CollaborationHeader
         onInviteMember={() => setShowInviteDialog(true)}
-        onCreateProject={() => toast({ title: 'Fonctionnalité à venir' })}
+        onCreateProject={() => toast({ title: t('common.comingSoon') })}
       />
       <CollaborationStats {...stats} />
 
@@ -203,9 +205,9 @@ export function ARCollaborationPageClient() {
                           variant="outline"
                           size="sm"
                           className="w-full border-gray-600"
-                          onClick={() => toast({ title: 'Ouverture du projet' })}
+                          onClick={() => toast({ title: t('arStudio.openingProject') })}
                         >
-                          Ouvrir
+                          {t('arStudio.open')}
                         </Button>
                       </CardContent>
                     </Card>
@@ -214,10 +216,10 @@ export function ARCollaborationPageClient() {
               ) : (
                 <div className="text-center py-12">
                   <Folder className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-4">Aucun projet collaboratif</p>
+                  <p className="text-gray-400 mb-4">{t('arStudio.noCollaborativeProject')}</p>
                   <Button className="bg-cyan-600 hover:bg-cyan-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    Créer un projet
+                    {t('arStudio.createProject')}
                   </Button>
                 </div>
               )}
@@ -354,7 +356,7 @@ export function ARCollaborationPageClient() {
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white">
           <DialogHeader>
-            <DialogTitle>Inviter un membre</DialogTitle>
+            <DialogTitle>{t('common.inviteMember')}</DialogTitle>
             <DialogDescription className="text-gray-400">
               Invitez quelqu'un à collaborer sur vos projets AR
             </DialogDescription>

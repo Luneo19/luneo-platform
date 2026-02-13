@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { endpoints } from '@/lib/api/client';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 
 interface Webhook {
   id: string;
@@ -37,30 +38,33 @@ export function TestWebhookModal({
   const [testUrl, setTestUrl] = useState(webhook.url);
   const [testSecret, setTestSecret] = useState(webhook.secret || '');
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const testMutation = useMutation({
     mutationFn: async () => {
       const response = await endpoints.webhooks.test(testUrl, testSecret || '');
-      return response as { success: boolean; message?: string; error?: string; statusCode?: number; data?: any };
+      return response as { success: boolean; message?: string; error?: string; statusCode?: number; data?: Record<string, unknown> };
     },
     onSuccess: (data) => {
       if (data.success) {
+        const status = String(data.statusCode ?? data.data?.statusCode ?? 'N/A');
         toast({
-          title: 'Test réussi',
-          description: `Le webhook a répondu avec le statut ${data.statusCode || data.data?.statusCode || 'N/A'}`,
+          title: t('webhooks.testSuccess'),
+          description: t('webhooks.testSuccessDesc', { status }),
         });
       } else {
         toast({
-          title: 'Test échoué',
-          description: data.error || 'Le webhook n\'a pas répondu correctement',
+          title: t('webhooks.testFailed'),
+          description: data.error || t('webhooks.testFailedDesc'),
           variant: 'destructive',
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('webhooks.testError');
       toast({
-        title: 'Erreur',
-        description: error.response?.data?.message || 'Impossible de tester le webhook',
+        title: t('common.error'),
+        description: message,
         variant: 'destructive',
       });
     },

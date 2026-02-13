@@ -4,8 +4,10 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 export interface Ticket {
   id: string;
@@ -42,6 +44,7 @@ export interface CreateTicketDto {
 
 export function useSupport() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,16 +60,16 @@ export function useSupport() {
   const openTickets = tickets.filter(t => t.status === 'open');
   const inProgressTickets = tickets.filter(t => t.status === 'pending');
   const resolvedTickets = tickets.filter(t => t.status === 'closed');
-  const knowledgeBase: any[] = [];
-  
+  const [knowledgeBase, setKnowledgeBase] = useState<unknown[]>([]);
+
   const fetchTickets = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await api.get<{ tickets?: Ticket[] }>('/api/v1/support/tickets');
       setTickets(data?.tickets ?? []);
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la récupération des tickets');
+    } catch (err: unknown) {
+      setError(getErrorDisplayMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -78,8 +81,8 @@ export function useSupport() {
     try {
       const data = await api.get<{ ticket?: Ticket }>(`/api/v1/support/tickets/${ticketId}`);
       setSelectedTicket(data?.ticket ?? (data as unknown as Ticket));
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la récupération du ticket');
+    } catch (err: unknown) {
+      setError(getErrorDisplayMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -89,19 +92,19 @@ export function useSupport() {
     setIsLoading(true);
     setError(null);
     try {
-      await api.patch(`/api/v1/support/tickets/${ticketId}`, updates);
+      await api.put(`/api/v1/support/tickets/${ticketId}`, updates);
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
       if (selectedTicket?.id === ticketId) {
         setSelectedTicket({ ...selectedTicket, ...updates });
       }
-      toast({ title: 'Succès', description: 'Ticket mis à jour' });
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la mise à jour du ticket');
+      toast({ title: t('common.success'), description: 'Ticket mis à jour' });
+    } catch (err: unknown) {
+      setError(getErrorDisplayMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTicket, toast]);
-  
+  }, [selectedTicket, toast, t]);
+
   const addMessage = useCallback(async (ticketId: string, message: string) => {
     setIsLoading(true);
     setError(null);
@@ -113,31 +116,43 @@ export function useSupport() {
           messages: [...selectedTicket.messages, data.message],
         });
       }
-      toast({ title: 'Succès', description: 'Message ajouté' });
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'ajout du message');
+      toast({ title: t('common.success'), description: 'Message ajouté' });
+    } catch (err: unknown) {
+      setError(getErrorDisplayMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTicket, toast]);
-  
+  }, [selectedTicket, toast, t]);
+
   const fetchKnowledgeBase = useCallback(async () => {
-    // Placeholder
+    try {
+      setIsLoading(true);
+      const response = await api.get<unknown>('/api/v1/support/knowledge-base/articles');
+      const res = response as { data?: unknown[]; articles?: unknown[] } | undefined;
+      const articles = Array.isArray(response) ? response : res?.data ?? res?.articles ?? [];
+      setKnowledgeBase(articles);
+    } catch (error) {
+      logger.error('Error fetching knowledge base', { error });
+      setKnowledgeBase([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const createTicket = useCallback(
     async (data: CreateTicketDto): Promise<{ success: boolean; ticketId?: string }> => {
       try {
         setIsLoading(true);
-        const result = await api.post<{ ticketId?: string; id?: string }>('/api/v1/support/tickets', data);
-        const ticketId = result?.ticketId ?? result?.id;
-        toast({ title: 'Succès', description: 'Ticket créé avec succès' });
+        type CreateTicketResponse = { ticketId?: string; id?: string };
+        const result = await api.post<CreateTicketResponse>('/api/v1/support/tickets', data);
+        const ticketId: string | undefined = result?.ticketId ?? result?.id;
+        toast({ title: t('common.success'), description: 'Ticket créé avec succès' });
         return { success: true, ticketId };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error creating ticket', { error });
         toast({
-          title: 'Erreur',
-          description: error.message || 'Erreur lors de la création du ticket',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
@@ -145,7 +160,7 @@ export function useSupport() {
         setIsLoading(false);
       }
     },
-    [toast]
+    [toast, t]
   );
 
   return {

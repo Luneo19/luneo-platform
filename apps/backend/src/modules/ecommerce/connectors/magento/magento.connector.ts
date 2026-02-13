@@ -274,7 +274,7 @@ export class MagentoConnector {
    */
   async syncProducts(integrationId: string, options?: SyncOptions): Promise<SyncResult> {
     const startTime = Date.now();
-    const errors: any[] = [];
+    const errors: Array<{ itemId: string; code: string; message: string }> = [];
     let itemsProcessed = 0;
     let itemsFailed = 0;
 
@@ -458,8 +458,10 @@ export class MagentoConnector {
     if (!integration) {
       throw new NotFoundException(`Integration ${integrationId} not found`);
     }
-
-    return integration;
+    if (!integration.accessToken) {
+      throw new NotFoundException(`Integration ${integrationId} has no access token`);
+    }
+    return { ...integration, accessToken: integration.accessToken };
   }
 
   /**

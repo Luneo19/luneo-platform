@@ -38,7 +38,7 @@ export type WebhookEvent =
  */
 export async function triggerWebhook(
   eventType: WebhookEvent,
-  payload: Record<string, any>
+  payload: Record<string, unknown>
 ): Promise<void> {
   try {
     const response = await fetch(`${API_URL}/api/v1/webhooks/trigger`, {

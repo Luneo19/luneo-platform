@@ -1,29 +1,34 @@
 # Luneo AI Engine - Requirements
 
 # FastAPI
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
 
 # Image Processing
-Pillow==10.1.0
-numpy==1.24.3
+Pillow>=10.1.0
+numpy>=1.24.3
 
 # 3D Processing
-trimesh==3.23.5
-pyrender==0.1.45
+trimesh>=3.23.5
+pyrender>=0.1.45
 
 # HTTP Client
-httpx==0.25.1
+httpx>=0.25.1
 
 # Environment
-python-dotenv==1.0.0
+python-dotenv>=1.0.0
 
 # Logging
-python-json-logger==2.0.7
+python-json-logger>=2.0.7
 
-# TODO: Add when implementing
-# boto3==1.29.7  # S3
-# redis==5.0.1   # Cache
-# mediapipe==0.10.8  # Face/Hand detection
+# Storage (S3/R2)
+boto3>=1.29.7
+
+# Cache (Redis)
+redis>=5.0.1
+
+# Face/Hand Detection (for AR pipeline)
+# mediapipe>=0.10.8  # Uncomment when deploying with GPU support
 

@@ -18,10 +18,17 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
 import { TeamService } from './team.service';
 import { UpdateTeamMemberDto } from './dto/team.dto';
 import { InviteTeamMemberDto } from './dto/invite-team-member.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+
+interface AuthUser {
+  id: string;
+  brandId?: string;
+}
 
 @ApiTags('team')
 @Controller('team')
@@ -33,21 +40,21 @@ export class TeamController {
   @Get()
   @ApiOperation({ summary: 'Lister tous les membres de l\'équipe' })
   @ApiResponse({ status: 200, description: 'Liste des membres' })
-  async findAll(@Request() req) {
+  async findAll(@Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.findAll(req.user.brandId || req.user.id);
   }
 
   @Post('invite')
   @ApiOperation({ summary: 'Inviter un nouveau membre' })
   @ApiResponse({ status: 201, description: 'Invitation créée' })
-  async invite(@Body() inviteDto: InviteTeamMemberDto, @Request() req) {
+  async invite(@Body() inviteDto: InviteTeamMemberDto, @Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.invite(inviteDto, req.user.brandId || req.user.id, req.user.id);
   }
 
   @Get('invite')
   @ApiOperation({ summary: 'Lister toutes les invitations' })
   @ApiResponse({ status: 200, description: 'Liste des invitations' })
-  async getInvites(@Request() req) {
+  async getInvites(@Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.getInvites(req.user.brandId || req.user.id);
   }
 
@@ -55,7 +62,7 @@ export class TeamController {
   @ApiOperation({ summary: 'Annuler une invitation' })
   @ApiParam({ name: 'id', description: 'ID de l\'invitation' })
   @ApiResponse({ status: 200, description: 'Invitation annulée' })
-  async cancelInvite(@Param('id') id: string, @Request() req) {
+  async cancelInvite(@Param('id') id: string, @Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.cancelInvite(id, req.user.brandId || req.user.id);
   }
 
@@ -63,7 +70,7 @@ export class TeamController {
   @ApiOperation({ summary: 'Obtenir un membre d\'équipe' })
   @ApiParam({ name: 'id', description: 'ID du membre' })
   @ApiResponse({ status: 200, description: 'Détails du membre' })
-  async findOne(@Param('id') id: string, @Request() req) {
+  async findOne(@Param('id') id: string, @Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.findOne(id, req.user.brandId || req.user.id);
   }
 
@@ -71,7 +78,7 @@ export class TeamController {
   @ApiOperation({ summary: 'Mettre à jour un membre d\'équipe' })
   @ApiParam({ name: 'id', description: 'ID du membre' })
   @ApiResponse({ status: 200, description: 'Membre mis à jour' })
-  async update(@Param('id') id: string, @Body() updateDto: UpdateTeamMemberDto, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateDto: UpdateTeamMemberDto, @Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.update(id, updateDto, req.user.brandId || req.user.id);
   }
 
@@ -79,7 +86,7 @@ export class TeamController {
   @ApiOperation({ summary: 'Supprimer un membre d\'équipe' })
   @ApiParam({ name: 'id', description: 'ID du membre' })
   @ApiResponse({ status: 200, description: 'Membre supprimé' })
-  async delete(@Param('id') id: string, @Request() req) {
+  async delete(@Param('id') id: string, @Request() req: ExpressRequest & { user: AuthUser }) {
     return this.teamService.delete(id, req.user.brandId || req.user.id, req.user.id);
   }
 }

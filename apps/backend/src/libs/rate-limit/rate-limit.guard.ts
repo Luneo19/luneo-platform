@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request, Response } from 'express';
-import { SlidingWindowRateLimitService, RateLimitConfig } from './sliding-window.service';
+import { SlidingWindowRateLimitService, RateLimitConfig, RateLimitResult } from './sliding-window.service';
 import { RATE_LIMIT_METADATA, RATE_LIMIT_SKIP_METADATA } from './rate-limit.decorator';
 
 @Injectable()
@@ -67,7 +67,7 @@ export class RateLimitGuard implements CanActivate {
           ...config,
           keyPrefix: `rl:${this.getKeyPrefix(request)}`,
         }),
-        new Promise<any>((resolve) => setTimeout(() => {
+        new Promise<RateLimitResult>((resolve) => setTimeout(() => {
           this.logger.debug(`Rate limit check timeout for ${identifier}, allowing request`);
           resolve({
             allowed: true,
@@ -84,7 +84,7 @@ export class RateLimitGuard implements CanActivate {
         remaining: config.limit,
         limit: config.limit,
         resetTime: Date.now() + config.window * 1000,
-      };
+      } as RateLimitResult;
     }
 
     // Add rate limit headers
@@ -162,7 +162,7 @@ export class RateLimitGuard implements CanActivate {
   /**
    * Add rate limit headers to response
    */
-  private addRateLimitHeaders(response: Response, result: any): void {
+  private addRateLimitHeaders(response: Response, result: RateLimitResult): void {
     response.setHeader('X-RateLimit-Limit', result.limit);
     response.setHeader('X-RateLimit-Remaining', result.remaining);
     response.setHeader('X-RateLimit-Reset', Math.floor(result.resetTime / 1000));

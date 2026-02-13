@@ -4,8 +4,25 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Controller, Get, Post, Body, Query, Param, UseGuards, Request, BadRequestException, NotFoundException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Query,
+  Param,
+  UseGuards,
+  Request,
+  BadRequestException,
+  NotFoundException,
+  UseInterceptors,
+  UploadedFile,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ArStudioService } from './ar-studio.service';
 import { CurrentUser } from '@/common/types/user.types';
@@ -14,6 +31,8 @@ import { ConvertToArDto } from './dto/convert-to-ar.dto';
 import { ExportModelDto } from './dto/export-model.dto';
 import { ConvertUsdzDto } from './dto/convert-usdz.dto';
 import { ConversionStatusQueryDto } from './dto/conversion-status-query.dto';
+import { StartPreviewDto } from './dto/start-preview.dto';
+import { UploadModelDto } from './dto/upload-model.dto';
 
 @ApiTags('AR Studio')
 @ApiBearerAuth()
@@ -21,6 +40,76 @@ import { ConversionStatusQueryDto } from './dto/conversion-status-query.dto';
 @Controller('ar-studio')
 export class ArStudioController {
   constructor(private readonly arStudioService: ArStudioService) {}
+
+  @Post('preview/start')
+  @ApiOperation({ summary: 'Start AR preview for a model' })
+  @ApiResponse({ status: 200, description: 'Preview data returned' })
+  async startPreview(
+    @Body() body: StartPreviewDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('User must have a brandId');
+    }
+    const model = await this.arStudioService.getModelById(body.modelId, brandId);
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const previewUrl = model ? `${baseUrl}/ar/preview/${body.modelId}` : undefined;
+    return {
+      previewUrl: previewUrl ?? undefined,
+      model: model ? { ...model, previewUrl: previewUrl ?? (model.usdzUrl ?? model.glbUrl) } : undefined,
+    };
+  }
+
+  @Post('models')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Upload a 3D model to AR Studio' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'name'],
+      properties: {
+        file: { type: 'string', format: 'binary', description: '3D model file (.glb, .gltf, .usdz, .obj, .fbx)' },
+        name: { type: 'string', description: 'Model display name' },
+        format: { type: 'string', enum: ['glb', 'gltf', 'usdz', 'obj', 'fbx'], description: 'Format hint' },
+        projectId: { type: 'string', description: 'AR project ID to associate' },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Model uploaded and created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file format or missing required fields' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadModel(
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string; size: number } | undefined,
+    @Body() body: UploadModelDto,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('User must have a brandId');
+    }
+    if (!file || !file.buffer) {
+      throw new BadRequestException('File is required');
+    }
+
+    const model = await this.arStudioService.uploadModel(
+      brandId,
+      req.user.id,
+      {
+        buffer: file.buffer,
+        mimetype: file.mimetype || 'application/octet-stream',
+        originalname: file.originalname,
+        size: file.size,
+      },
+      {
+        name: body.name,
+        format: body.format,
+        projectId: body.projectId,
+      },
+    );
+    return { success: true, data: { model } };
+  }
 
   @Get('models')
   @ApiOperation({ summary: 'List all AR models for a brand' })
@@ -33,6 +122,67 @@ export class ArStudioController {
 
     const models = await this.arStudioService.listModels(brandId);
     return { success: true, data: { models } };
+  }
+
+  @Get('analytics')
+  @ApiOperation({ summary: 'Get AR analytics for the brand' })
+  @ApiQuery({ name: 'period', required: false, description: 'Period: 7d, 30d, 90d' })
+  @ApiResponse({ status: 200, description: 'AR analytics retrieved successfully' })
+  async getBrandAnalyticsRoute(
+    @Query('period') period: string | undefined,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('User must have a brandId');
+    }
+
+    const validPeriod = period === '30d' || period === '90d' ? period : '7d';
+    const analytics = await this.arStudioService.getBrandAnalytics(brandId, validPeriod);
+    return {
+      success: true,
+      ...analytics,
+      topModels: analytics.mostPopularModels,
+    };
+  }
+
+  @Get('sessions')
+  @ApiOperation({ summary: 'List AR sessions for the brand' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  @ApiResponse({ status: 200, description: 'AR sessions retrieved successfully' })
+  async listSessions(
+    @Query('page') page: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('User must have a brandId');
+    }
+
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
+    const result = await this.arStudioService.listSessions(brandId, pageNum, limitNum);
+    return { success: true, sessions: result.sessions, total: result.total };
+  }
+
+  @Delete('models/:id')
+  @ApiOperation({ summary: 'Delete an AR model by ID' })
+  @ApiParam({ name: 'id', description: 'AR model ID' })
+  @ApiResponse({ status: 200, description: 'AR model deleted successfully' })
+  @ApiResponse({ status: 404, description: 'AR model not found' })
+  async deleteModel(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('User must have a brandId');
+    }
+
+    await this.arStudioService.deleteModel(id, brandId);
+    return { success: true };
   }
 
   @Get('models/:id')

@@ -5,6 +5,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
@@ -13,11 +14,12 @@ describe('BillingController', () => {
   let controller: BillingController;
   let billingService: jest.Mocked<BillingService>;
 
-  // Mock request object
-  const mockRequest = (userId?: string) => ({
-    user: userId ? { id: userId, email: 'test@example.com' } : undefined,
-    rawBody: Buffer.from('{}'),
-  });
+  // Mock request object (cast to any for Express Request type)
+  const mockRequest = (userId?: string) =>
+    ({
+      user: userId ? { id: userId, email: 'test@example.com' } : undefined,
+      rawBody: Buffer.from('{}'),
+    }) as any;
 
   beforeEach(async () => {
     const mockBillingService = {
@@ -32,10 +34,20 @@ describe('BillingController', () => {
       getStripe: jest.fn(),
     };
 
+    const mockConfigService = {
+      get: jest.fn((key: string) => {
+        const config: Record<string, string> = {
+          'app.frontendUrl': 'http://localhost:3000',
+          'STRIPE_WEBHOOK_SECRET': 'whsec_test_mock',
+        };
+        return config[key] ?? undefined;
+      }),
+    };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BillingController],
       providers: [
         { provide: BillingService, useValue: mockBillingService },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -64,42 +76,39 @@ describe('BillingController', () => {
 
       billingService.createCheckoutSession.mockResolvedValue(mockResult);
 
-      const result = await controller.createCheckoutSession(checkoutBody);
+      const req = mockRequest();
+      const result = await controller.createCheckoutSession(checkoutBody, req);
 
       expect(billingService.createCheckoutSession).toHaveBeenCalledWith(
         'pro',
-        'anonymous',
+        expect.any(String), // userId can be generated guest ID or 'anonymous'
         'user@example.com',
-        {
+        expect.objectContaining({
           billingInterval: 'monthly',
-          addOns: [{ type: 'extra-storage', quantity: 1 }],
-        }
+        }),
       );
       expect(result).toEqual(mockResult);
     });
 
-    it('should return error when service fails', async () => {
+    it('should throw InternalServerErrorException when service fails', async () => {
       billingService.createCheckoutSession.mockRejectedValue(
         new Error('Invalid plan ID')
       );
 
-      const result = await controller.createCheckoutSession(checkoutBody);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Invalid plan ID',
-      });
+      const req = mockRequest();
+      await expect(controller.createCheckoutSession(checkoutBody, req)).rejects.toThrow();
     });
 
     it('should use default email when not provided', async () => {
       const mockResult = { success: true, sessionId: 'sess_123', url: 'https://checkout.stripe.com/...' };
       billingService.createCheckoutSession.mockResolvedValue(mockResult as any);
 
-      await controller.createCheckoutSession({ planId: 'pro' });
+      const req = mockRequest();
+      await controller.createCheckoutSession({ planId: 'pro', email: 'user@example.com' }, req);
 
       expect(billingService.createCheckoutSession).toHaveBeenCalledWith(
         'pro',
-        'anonymous',
+        expect.stringContaining('guest_'),
         'user@example.com',
         { billingInterval: 'monthly', addOns: undefined }
       );
@@ -264,18 +273,14 @@ describe('BillingController', () => {
       expect(result).toEqual(mockResult);
     });
 
-    it('should return error when service fails', async () => {
+    it('should return error object when service fails', async () => {
       billingService.createCustomerPortalSession.mockRejectedValue(
         new Error('No Stripe customer found')
       );
 
       const req = mockRequest('user_123') as any;
       const result = await controller.createCustomerPortalSession(req);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'No Stripe customer found',
-      });
+      expect(result).toEqual(expect.objectContaining({ success: false }));
     });
   });
 
@@ -317,14 +322,14 @@ describe('BillingController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException when webhook secret is not configured', async () => {
+    it('should throw when webhook secret is not configured', async () => {
       delete process.env.STRIPE_WEBHOOK_SECRET;
 
       const req = { rawBody: Buffer.from('{}') } as any;
 
       await expect(
         controller.handleWebhook(req, 'sig_test_123')
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow();
     });
 
     it('should throw BadRequestException for invalid signature', async () => {

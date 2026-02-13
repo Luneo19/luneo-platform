@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, memo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Activity, AlertTriangle, CheckCircle, Cpu, Radio } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,7 @@ const formatDuration = (seconds: number) => {
 };
 
 function ObservabilityDashboard() {
+  const { t } = useI18n();
   const { data, quotaSummaries, isConnected, lastUpdated } = useRealtimeMetrics();
   const isEnabled = useFeatureFlag('realtime_monitoring', true);
 
@@ -177,7 +179,7 @@ function ObservabilityDashboard() {
               formatValue={(value) => `${value.toFixed(2)} GB`}
             />
             <MetricWithProgress
-              label="Heap utilisé"
+              label={t('common.heapUsed')}
               value={(data?.system.heapUsed ?? 0) / (1024 * 1024)}
               max={2048}
               formatValue={(value) => `${value.toFixed(0)} MB`}

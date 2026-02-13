@@ -1,7 +1,8 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { CurrencyUtils } from '@/config/currency.config';
+import { NotificationDispatcherService } from '@/modules/notifications/notification-dispatcher.service';
 import type Stripe from 'stripe';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class StripeConnectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    @Optional() private readonly notificationDispatcher?: NotificationDispatcherService,
   ) {}
 
   /**
@@ -324,7 +326,7 @@ export class StripeConnectService {
     chargesEnabled?: boolean;
     payoutsEnabled?: boolean;
     detailsSubmitted?: boolean;
-    requirements?: any;
+    requirements?: Stripe.Account.Requirements;
     commissionRate?: number;
     createdAt?: Date;
   }> {
@@ -359,6 +361,109 @@ export class StripeConnectService {
       requirements: account.requirements as Stripe.Account.Requirements,
       createdAt: artisan.createdAt,
     };
+  }
+
+  /**
+   * Process a single marketplace purchase payout: create Stripe Transfer to seller's connected account.
+   * Called by the marketplace payout scheduler for purchases where payoutScheduledAt < now and payoutStatus = PENDING.
+   */
+  async processMarketplacePurchasePayout(purchaseId: string): Promise<{ success: boolean; error?: string }> {
+    const purchase = await this.prisma.marketplacePurchase.findUnique({
+      where: { id: purchaseId },
+      include: {
+        item: { include: { seller: { include: { users: { select: { id: true } } } } } },
+      },
+    });
+
+    if (!purchase || purchase.payoutStatus !== 'PENDING') {
+      return { success: false, error: 'Purchase not found or not pending payout' };
+    }
+
+    const sellerId = purchase.item.sellerId;
+    const artisan = await this.prisma.artisan.findFirst({
+      where: {
+        user: { brandId: sellerId },
+        stripeAccountId: { not: null },
+        stripeAccountStatus: 'active',
+      },
+    });
+
+    if (!artisan?.stripeAccountId) {
+      this.logger.warn(`No active Stripe Connect account for seller brand ${sellerId}, purchase ${purchaseId}`);
+      await this.prisma.marketplacePurchase.update({
+        where: { id: purchaseId },
+        data: { payoutStatus: 'FAILED' },
+      });
+      return { success: false, error: 'Seller has no active Stripe Connect account' };
+    }
+
+    const platformFeePercent = this.configService.get<number>('marketplace.platformFeePercent') ?? 10;
+    const priceAmount = Number(purchase.price);
+    const amountCents = Math.round(priceAmount * 100);
+    const feeCents = Math.round(amountCents * (platformFeePercent / 100));
+    const netAmountCents = amountCents - feeCents;
+
+    if (netAmountCents < 1) {
+      await this.prisma.marketplacePurchase.update({
+        where: { id: purchaseId },
+        data: { payoutStatus: 'COMPLETED', paidOutAt: new Date() },
+      });
+      this.logger.log(`Purchase ${purchaseId}: net amount below 1 cent, marked completed without transfer`);
+      const sellerUserId = purchase.item.seller.users?.[0]?.id;
+      if (sellerUserId) {
+        this.notificationDispatcher?.dispatchPayoutCompleted({
+          purchaseId,
+          sellerUserId,
+          brandId: sellerId,
+          amountCents: netAmountCents,
+        }).catch((err) => this.logger.warn('Non-critical error dispatching payout completed', err instanceof Error ? err.message : String(err)));
+      }
+      return { success: true };
+    }
+
+    const currency = (purchase.currency || 'CHF').toLowerCase();
+    const stripeCurrency = ['chf', 'eur', 'usd', 'gbp'].includes(currency) ? currency : 'chf';
+
+    try {
+      const stripe = await this.getStripe();
+      await stripe.transfers.create({
+        amount: netAmountCents,
+        currency: stripeCurrency,
+        destination: artisan.stripeAccountId,
+        metadata: {
+          marketplacePurchaseId: purchaseId,
+          sellerBrandId: sellerId,
+        },
+      });
+
+      await this.prisma.marketplacePurchase.update({
+        where: { id: purchaseId },
+        data: {
+          payoutStatus: 'COMPLETED',
+          paidOutAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Marketplace purchase ${purchaseId} payout completed, transfer to ${artisan.stripeAccountId}`);
+      const sellerUserId = purchase.item.seller.users?.[0]?.id;
+      if (sellerUserId) {
+        this.notificationDispatcher?.dispatchPayoutCompleted({
+          purchaseId,
+          sellerUserId,
+          brandId: sellerId,
+          amountCents: netAmountCents,
+        }).catch((err) => this.logger.warn('Non-critical error dispatching payout completed', err instanceof Error ? err.message : String(err)));
+      }
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Marketplace purchase payout failed for ${purchaseId}: ${message}`);
+      await this.prisma.marketplacePurchase.update({
+        where: { id: purchaseId },
+        data: { payoutStatus: 'FAILED' },
+      });
+      return { success: false, error: message };
+    }
   }
 
   /**

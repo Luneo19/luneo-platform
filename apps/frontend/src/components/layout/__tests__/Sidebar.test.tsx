@@ -6,6 +6,8 @@ import userEvent from '@testing-library/user-event';
 const mockPathname = '/dashboard';
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
 }));
 
 vi.mock('@/components/Logo', () => ({

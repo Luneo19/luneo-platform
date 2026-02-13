@@ -1,14 +1,7 @@
 'use client';
 
-/**
- * Error Boundary pour l'Admin Super-Admin
- */
-
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, ShieldAlert } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { logger } from '@/lib/logger';
+import { useI18n } from '@/i18n';
 
 export default function Error({
   error,
@@ -17,44 +10,27 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
   useEffect(() => {
-    logger.error('Admin page error', {
-      error,
-      message: error.message,
-      stack: error.stack,
-      digest: error.digest,
-    });
+    // Log to error reporting service
   }, [error]);
 
   return (
-    <div className="container mx-auto py-6">
-      <Card className="bg-zinc-800/50 border-red-500/50">
-        <CardContent className="p-12">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-12 w-12 text-red-400" />
-              <AlertCircle className="h-8 w-8 text-red-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">
-              Erreur dans le panneau d'administration
-            </h2>
-            <p className="text-muted-foreground text-center max-w-md">
-              {error.message || 'Une erreur inattendue s\'est produite'}
-            </p>
-            <div className="flex gap-4 mt-4">
-              <Button onClick={reset} variant="default">
-                Réessayer
-              </Button>
-              <Button
-                onClick={() => window.location.href = '/admin'}
-                variant="outline"
-              >
-                Retour à l'admin
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
+      <div className="text-center">
+        <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
+          {t('common.errorOccurred')}
+        </h2>
+        <p className="mb-8 text-gray-600 dark:text-gray-400">
+          {t('common.somethingWentWrongWithRetry')}
+        </p>
+        <button
+          onClick={() => reset()}
+          className="rounded-lg bg-purple-600 px-6 py-3 text-white transition-colors hover:bg-purple-700"
+        >
+          {t('common.retry')}
+        </button>
+      </div>
     </div>
   );
 }

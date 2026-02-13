@@ -40,7 +40,7 @@ export class CreateSnapshotDto {
   @ApiProperty({ description: 'Asset versions', required: false })
   @IsObject()
   @IsOptional()
-  assetVersions?: any;
+  assetVersions?: Record<string, unknown>;
 
   @ApiProperty({ description: 'Is validated', required: false, default: false })
   @IsBoolean()
@@ -60,7 +60,7 @@ export class CreateSnapshotDto {
   @ApiProperty({ description: 'Provenance metadata', required: false })
   @IsObject()
   @IsOptional()
-  provenance?: Record<string, any>;
+  provenance?: Record<string, unknown>;
 }
 
 

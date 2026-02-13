@@ -31,7 +31,7 @@ export interface UploadOptions {
   publicId?: string;
   resourceType?: 'image' | 'video' | 'raw' | 'auto';
   format?: string;
-  transformation?: any[];
+  transformation?: Array<Record<string, unknown>>;
   overwrite?: boolean;
   invalidate?: boolean;
   tags?: string[];

@@ -12,11 +12,22 @@ import { CurrentUser } from '@/common/types/user.types';
 
 describe('UsersService', () => {
   let service: UsersService;
-  const mockPrisma = {
-    user: { findUnique: jest.fn(), update: jest.fn() },
+  const mockUserUpdate = jest.fn();
+  const mockUserProfileUpsert = jest.fn();
+  const mockTransaction = jest.fn().mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+    const tx = {
+      user: { update: mockUserUpdate },
+      userProfile: { upsert: mockUserProfileUpsert },
+    };
+    return cb(tx);
+  });
+  const mockPrisma: any = {
+    user: { findUnique: jest.fn(), update: mockUserUpdate },
     userQuota: { findUnique: jest.fn(), update: jest.fn() },
+    userProfile: { upsert: mockUserProfileUpsert },
     refreshToken: { findMany: jest.fn(), findUnique: jest.fn(), delete: jest.fn(), deleteMany: jest.fn() },
   };
+  mockPrisma.$transaction = mockTransaction;
   const mockCache = { get: jest.fn(), invalidate: jest.fn() };
   const mockCloudinary = { uploadImage: jest.fn() };
   const adminUser: CurrentUser = { id: 'user-1', email: 'admin@test.com', role: UserRole.PLATFORM_ADMIN };
@@ -65,12 +76,28 @@ describe('UsersService', () => {
 
   describe('updateProfile', () => {
     it('should update profile and invalidate cache', async () => {
-      const updated = { id: 'user-1', email: 'u@t.com', firstName: 'Jane', lastName: 'Doe', avatar: null, role: UserRole.CONSUMER, brandId: null, createdAt: new Date(), updatedAt: new Date(), brand: null, userQuota: null };
-      mockPrisma.user.update.mockResolvedValue(updated);
+      const updated = {
+        id: 'user-1',
+        email: 'u@t.com',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        avatar: null,
+        role: UserRole.CONSUMER,
+        brandId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        brand: null,
+        userQuota: null,
+        userProfile: null,
+      };
+      mockUserUpdate.mockResolvedValue(undefined);
+      mockUserProfileUpsert.mockResolvedValue(undefined);
       mockCache.invalidate.mockResolvedValue(undefined);
+      mockPrisma.user.findUnique.mockResolvedValue(updated);
       const result = await service.updateProfile('user-1', { firstName: 'Jane', lastName: 'Doe' });
       expect(result).toEqual(updated);
       expect(mockCache.invalidate).toHaveBeenCalledWith('user-1', 'user');
+      expect(mockTransaction).toHaveBeenCalled();
     });
   });
 
@@ -114,6 +141,38 @@ describe('UsersService', () => {
       const result = await service.changePassword('user-1', 'currentPass', 'newPass');
       expect(result).toEqual({ success: true, message: 'Password changed successfully' });
       expect(mockPrisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { password: '$2a$13$newHashed' } });
+    });
+  });
+
+  describe('getSessions', () => {
+    it('should return active sessions for user', async () => {
+      const tokens = [
+        { id: 'token-1', createdAt: new Date(), expiresAt: new Date(Date.now() + 86400000) },
+        { id: 'token-2', createdAt: new Date(Date.now() - 3600000), expiresAt: new Date(Date.now() + 86400000) },
+      ];
+      mockPrisma.refreshToken.findMany.mockResolvedValue(tokens);
+
+      const result = await service.getSessions('user-1');
+
+      expect(result.sessions).toHaveLength(2);
+      expect(result.sessions[0].id).toBe('token-1');
+      expect(result.sessions[0].current).toBe(true);
+      expect(result.sessions[1].current).toBe(false);
+      expect(mockPrisma.refreshToken.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-1', expiresAt: { gt: expect.any(Date) } },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }),
+      );
+    });
+
+    it('should return empty sessions when user has none', async () => {
+      mockPrisma.refreshToken.findMany.mockResolvedValue([]);
+
+      const result = await service.getSessions('user-1');
+
+      expect(result.sessions).toEqual([]);
     });
   });
 

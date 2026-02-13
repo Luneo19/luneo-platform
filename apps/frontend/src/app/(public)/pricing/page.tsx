@@ -2,17 +2,17 @@
 
 import React from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { FEATURES, FAQS } from './data';
 import { PricingHero } from './components/PricingHero';
 import { PricingPlanCard } from './components/PricingPlanCard';
 import { PricingFeatureTable } from './components/PricingFeatureTable';
 import { PricingFAQ } from './components/PricingFAQ';
 import { PricingCTA } from './components/PricingCTA';
+import { PricingCommissionInfo } from './components/PricingCommissionInfo';
 import { usePricingPage } from './hooks/usePricingPage';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
 function PricingPageContent() {
-  const { mergedPlans, isYearly, setIsYearly, handleCheckout } = usePricingPage();
+  const { mergedPlans, isYearly, setIsYearly, handleCheckout, translatedFeatures, translatedFaqs, t } = usePricingPage();
 
   return (
     <div className="min-h-screen">
@@ -32,15 +32,22 @@ function PricingPageContent() {
         <ScrollReveal animation="fade-up">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="overflow-hidden rounded-xl sm:rounded-2xl bg-dark-card border border-white/[0.04]">
-              <PricingFeatureTable features={FEATURES} />
+              <PricingFeatureTable features={translatedFeatures} />
             </div>
           </div>
         </ScrollReveal>
       </section>
       <section className="border-t border-white/[0.04] py-12 sm:py-16 md:py-24">
         <ScrollReveal animation="fade-up">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <PricingCommissionInfo />
+          </div>
+        </ScrollReveal>
+      </section>
+      <section className="border-t border-white/[0.04] py-12 sm:py-16 md:py-24">
+        <ScrollReveal animation="fade-up">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-            <PricingFAQ items={FAQS} />
+            <PricingFAQ items={translatedFaqs} title={t('pricing.faq.title')} />
           </div>
         </ScrollReveal>
       </section>

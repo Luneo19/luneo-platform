@@ -31,7 +31,7 @@ export class DownloadsService {
     const sortBy = query.sortBy ?? 'downloadedAt';
     const sortOrder = query.sortOrder ?? 'desc';
 
-    const where: any = { userId };
+    const where: { userId: string; resourceType?: DownloadResourceType; downloadedAt?: { gte?: Date; lte?: Date } } = { userId };
     if (query.type) {
       where.resourceType = query.type;
     }

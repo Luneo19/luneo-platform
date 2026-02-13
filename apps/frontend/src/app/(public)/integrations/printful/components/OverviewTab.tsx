@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Zap, Globe, Award, Star, Users, Play, Settings, BookOpen, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
@@ -15,6 +16,7 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ testConnectionLoading, testConnectionResult, onTestConnection }: OverviewTabProps) {
+  const { t } = useI18n();
   const items = [
     { icon: <TrendingUp className="w-6 h-6 text-green-600" />, title: 'Business sans stock', description: 'Printful produit uniquement ce qui est commandé. 0€ stock initial.', stats: '0€ stock initial' },
     { icon: <Zap className="w-6 h-6 text-blue-600" />, title: 'Fulfillment automatique', description: 'Commandes traitées, produites et expédiées sans intervention.', stats: '100% automatique' },
@@ -80,7 +82,7 @@ export function OverviewTab({ testConnectionLoading, testConnectionResult, onTes
                   <div className="flex items-start gap-3">
                     {testConnectionResult.success ? <CheckCircle2 className="w-6 h-6 text-green-600 mt-0.5" /> : <XCircle className="w-6 h-6 text-red-600 mt-0.5" />}
                     <div className="flex-1">
-                      <AlertTitle className={testConnectionResult.success ? 'text-green-900 text-lg' : 'text-red-900 text-lg'}>{testConnectionResult.success ? 'Connexion réussie' : 'Erreur'}</AlertTitle>
+                      <AlertTitle className={testConnectionResult.success ? 'text-green-900 text-lg' : 'text-red-900 text-lg'}>{testConnectionResult.success ? t('integrations.connectionSuccess') : t('common.error')}</AlertTitle>
                       <AlertDescription className={testConnectionResult.success ? 'text-green-800 mt-2' : 'text-red-800 mt-2'}>{testConnectionResult.message}</AlertDescription>
                     </div>
                   </div>

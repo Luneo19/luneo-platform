@@ -22,8 +22,8 @@ export const libraryRouter = router({
     .query(async ({ input }) => {
       try {
         const response = await api.get<{
-          templates?: any[];
-          data?: any[];
+          templates?: unknown[];
+          data?: unknown[];
           pagination?: { total: number; totalPages: number };
           total?: number;
         }>('/api/v1/marketplace/templates', {
@@ -40,7 +40,9 @@ export const libraryRouter = router({
         const total = response.pagination?.total ?? response.total ?? templates.length;
         const skip = (input.page - 1) * input.limit;
 
-        const formattedTemplates = (Array.isArray(templates) ? templates : []).map((template: any) => ({
+        interface TemplateItem { id?: string; name?: string; category?: string; thumbnailUrl?: string; previewUrl?: string; isPremium?: boolean; usesCount?: number; viewsCount?: number; createdAt?: Date | string; tags?: unknown[] }
+        const templateList = (Array.isArray(templates) ? templates : []) as TemplateItem[];
+        const formattedTemplates = templateList.map((template) => ({
           id: template.id,
           name: template.name,
           category: template.category || 'other',
@@ -50,7 +52,7 @@ export const libraryRouter = router({
           downloads: template.usesCount || 0,
           views: template.viewsCount || 0,
           rating: 0,
-          createdAt: template.createdAt.toISOString(),
+          createdAt: template.createdAt != null ? (template.createdAt instanceof Date ? template.createdAt : new Date(template.createdAt)).toISOString() : new Date(0).toISOString(),
           tags: Array.isArray(template.tags) ? template.tags : [],
         }));
 
@@ -65,7 +67,7 @@ export const libraryRouter = router({
             hasPrev: input.page > 1,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing templates', { error, input });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -78,7 +80,7 @@ export const libraryRouter = router({
     .input(z.object({ id: z.string().cuid() }))
     .query(async ({ input }) => {
       try {
-        const template = await api.get<any>(`/api/v1/marketplace/templates/${input.id}`).catch(() => null);
+        const template = await api.get<Record<string, unknown>>(`/api/v1/marketplace/templates/${input.id}`).catch(() => null);
 
         if (!template) {
           throw new TRPCError({
@@ -104,7 +106,7 @@ export const libraryRouter = router({
           createdAt,
           fileUrl: template.fileUrl,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         logger.error('Error getting template', { error, input });
         throw new TRPCError({

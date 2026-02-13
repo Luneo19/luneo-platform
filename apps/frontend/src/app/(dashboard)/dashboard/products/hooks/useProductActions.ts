@@ -5,13 +5,16 @@
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
 import { ProductService } from '@/lib/services/ProductService';
-import type { Product } from '@/lib/types/product';
+import type { Product, CreateProductRequest, UpdateProductRequest } from '@/lib/types/product';
 import type { BulkAction } from '../types';
 
 export function useProductActions() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const productService = ProductService.getInstance();
@@ -23,65 +26,65 @@ export function useProductActions() {
   const handleCreateProduct = useCallback(
     async (productData: Partial<Product>) => {
       try {
-        await productService.create(productData as Record<string, unknown>);
-        toast({ title: 'Succès', description: 'Produit créé avec succès' });
+        await productService.create(productData as CreateProductRequest);
+        toast({ title: t('common.success'), description: t('products.created') });
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error creating product', { error });
-        const message = error instanceof Error ? error.message : 'Erreur inconnue';
+        const message = getErrorDisplayMessage(error);
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: message,
           variant: 'destructive',
         });
         return { success: false, error: message };
       }
     },
-    [productService, toast]
+    [productService, toast, t]
   );
 
   const handleEditProduct = useCallback(
     async (productId: string, productData: Partial<Product>) => {
       try {
-        await productService.update({ id: productId, ...productData } as Record<string, unknown>);
-        toast({ title: 'Succès', description: 'Produit mis à jour' });
+        await productService.update({ id: productId, ...productData } as UpdateProductRequest);
+        toast({ title: t('common.success'), description: t('products.updated') });
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error updating product', { error });
-        const msg = error instanceof Error ? error.message : 'Erreur inconnue';
+        const msg = getErrorDisplayMessage(error);
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: msg,
           variant: 'destructive',
         });
         return { success: false, error: msg };
       }
     },
-    [productService, toast]
+    [productService, toast, t]
   );
 
   const handleDeleteProduct = useCallback(
     async (productId: string) => {
-      if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+      if (!confirm(t('products.deleteConfirm'))) {
         return { success: false, cancelled: true };
       }
 
       try {
         await deleteMutation.mutateAsync({ id: productId });
-        toast({ title: 'Succès', description: 'Produit supprimé' });
+        toast({ title: t('common.success'), description: t('products.deleted') });
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error deleting product', { error });
-        const msg = error instanceof Error ? error.message : 'Erreur inconnue';
+        const msg = getErrorDisplayMessage(error);
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: msg,
           variant: 'destructive',
         });
         return { success: false, error: msg };
       }
     },
-    [deleteMutation, toast]
+    [deleteMutation, toast, t]
   );
 
   const handleBulkAction = useCallback(
@@ -97,8 +100,8 @@ export function useProductActions() {
               productIds.map((id) => deleteMutation.mutateAsync({ id }))
             );
             toast({
-              title: 'Succès',
-              description: `${productIds.length} produit(s) supprimé(s)`,
+              title: t('common.success'),
+              description: t('products.bulkDeleted', { count: productIds.length }),
             });
             break;
           case 'archive':
@@ -106,13 +109,13 @@ export function useProductActions() {
               productIds.map((id) =>
                 archiveMutation.mutateAsync({
                   id,
-                  status: 'ARCHIVED',
+                  isActive: false,
                 })
               )
             );
             toast({
-              title: 'Succès',
-              description: `${productIds.length} produit(s) archivé(s)`,
+              title: t('common.success'),
+              description: t('products.bulkArchived', { count: productIds.length }),
             });
             break;
           case 'activate':
@@ -125,8 +128,8 @@ export function useProductActions() {
               )
             );
             toast({
-              title: 'Succès',
-              description: `${productIds.length} produit(s) activé(s)`,
+              title: t('common.success'),
+              description: t('products.bulkActivated', { count: productIds.length }),
             });
             break;
           case 'deactivate':
@@ -139,8 +142,8 @@ export function useProductActions() {
               )
             );
             toast({
-              title: 'Succès',
-              description: `${productIds.length} produit(s) désactivé(s)`,
+              title: t('common.success'),
+              description: t('products.bulkDeactivated', { count: productIds.length }),
             });
             break;
         }
@@ -148,16 +151,16 @@ export function useProductActions() {
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error performing bulk action', { error });
-        const msg = error instanceof Error ? error.message : 'Erreur lors de l\'action';
+        const msg = getErrorDisplayMessage(error);
         toast({
-          title: 'Erreur',
-          description: 'Erreur lors de l\'action',
+          title: t('common.error'),
+          description: msg,
           variant: 'destructive',
         });
         return { success: false, error: msg };
       }
     },
-    [deleteMutation, archiveMutation, toast]
+    [deleteMutation, archiveMutation, toast, t]
   );
 
   return {

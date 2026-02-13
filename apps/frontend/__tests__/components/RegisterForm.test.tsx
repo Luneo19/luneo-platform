@@ -32,6 +32,8 @@ vi.mock('next/navigation', () => ({
     prefetch: vi.fn(),
     back: vi.fn(),
   }),
+  usePathname: () => '/register',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Import dynamique pour permettre les mocks

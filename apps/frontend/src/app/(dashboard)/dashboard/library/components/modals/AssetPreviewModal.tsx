@@ -22,7 +22,7 @@ interface AssetPreviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   template: Template | null;
-  onToggleFavorite: (templateId: string, isFavorite: boolean) => Promise<{ success: boolean }>;
+  onToggleFavorite: (templateId: string, isFavorite: boolean, favoriteId?: string) => Promise<{ success: boolean }>;
   onDelete: (templateId: string) => Promise<{ success: boolean }>;
 }
 
@@ -53,7 +53,7 @@ export function AssetPreviewModal({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onToggleFavorite(template.id, template.isFavorite)}
+                onClick={() => onToggleFavorite(template.id, template.isFavorite, template.favoriteId)}
               >
                 <Star
                   className={`w-5 h-5 ${template.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}`}

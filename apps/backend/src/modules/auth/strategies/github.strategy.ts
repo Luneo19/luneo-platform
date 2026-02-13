@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-github2';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Strategy = require('passport-github2');
 import { ConfigService } from '@nestjs/config';
 import { OAuthService, OAuthUser } from '../services/oauth.service';
 import { Logger } from '@nestjs/common';
@@ -38,9 +39,9 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
   async validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
-    done: Function,
-  ): Promise<any> {
+    profile: { id: string; username?: string; displayName?: string; photos?: Array<{ value: string }>; emails?: Array<{ value: string }> },
+    done: (err: Error | null, user: unknown) => void,
+  ): Promise<void> {
     try {
       const { id, username, displayName, photos, emails } = profile;
       

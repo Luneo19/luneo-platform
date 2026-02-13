@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Sparkles, CheckCircle2, AlertCircle, Zap, RotateCcw } from 'lucide-react';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
@@ -149,8 +150,8 @@ function PromptInputContent({
       });
 
       logger.info('Generation started', { customizationId: result.id });
-    } catch (error: any) {
-      const errorMessage = error.message || 'Erreur lors de la génération';
+    } catch (error: unknown) {
+      const errorMessage = getErrorDisplayMessage(error);
       setGenerationStatus({
         status: 'error',
         message: errorMessage,

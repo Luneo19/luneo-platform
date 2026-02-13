@@ -89,7 +89,7 @@ export function calculateShipping(
     });
 
     return Math.round(shippingCost * 100) / 100; // Round to 2 decimals
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error calculating shipping', { error, address, options });
     // Return default shipping cost on error
     return 10.0;

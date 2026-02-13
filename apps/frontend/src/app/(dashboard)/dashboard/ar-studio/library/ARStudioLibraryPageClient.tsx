@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { ARLibraryHeader } from './components/ARLibraryHeader';
 import { ARLibraryStats } from './components/ARLibraryStats';
@@ -18,6 +19,7 @@ import { Search, Filter, SortAsc } from 'lucide-react';
 import type { ARModel } from './types';
 
 export function ARStudioLibraryPageClient() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -35,8 +37,8 @@ export function ARStudioLibraryPageClient() {
   const handleView = (model: ARModel) => {
     setSelectedModel(model);
     toast({
-      title: 'Détails',
-      description: `Ouverture des détails de "${model.name}"`,
+      title: t('aiStudio.details'),
+      description: `"${model.name}"`,
     });
   };
 
@@ -45,7 +47,7 @@ export function ARStudioLibraryPageClient() {
   };
 
   const handleDelete = async (modelId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?')) {
+    if (confirm(t('arStudio.deleteConfirm'))) {
       await deleteModel(modelId);
     }
   };
@@ -65,7 +67,7 @@ export function ARStudioLibraryPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
-      <ARLibraryHeader onUpload={() => toast({ title: 'Fonctionnalité à venir' })} />
+      <ARLibraryHeader onUpload={() => toast({ title: t('common.comingSoon') })} />
       <ARLibraryStats stats={stats} />
 
       <Card className="p-4 bg-gray-800/50 border-gray-700">
@@ -110,7 +112,7 @@ export function ARStudioLibraryPageClient() {
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-48 bg-gray-900 border-gray-600 text-white">
               <SortAsc className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Trier par" />
+              <SelectValue placeholder={t('common.sortBy')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="date">Date</SelectItem>

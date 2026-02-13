@@ -42,7 +42,7 @@ export async function loadHeavyLibrary(libraryName: string) {
 /**
  * Debounce function for performance optimization
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -64,7 +64,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle function for performance optimization
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -82,7 +82,7 @@ export function throttle<T extends (...args: any[]) => any>(
 /**
  * Memoize expensive function calls
  */
-export function memoize<T extends (...args: any[]) => any>(
+export function memoize<T extends (...args: unknown[]) => unknown>(
   fn: T,
   keyGenerator?: (...args: Parameters<T>) => string
 ): T {
@@ -95,7 +95,7 @@ export function memoize<T extends (...args: any[]) => any>(
       return cache.get(key);
     }
     
-    const result = fn(...args);
+    const result = fn(...args) as ReturnType<T>;
     cache.set(key, result);
     return result;
   }) as T;

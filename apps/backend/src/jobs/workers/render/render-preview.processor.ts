@@ -13,7 +13,7 @@ interface RenderPreviewJob {
   designId?: string;
   customizationId?: string;
   type: 'preview';
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 @Processor('render-preview')
@@ -27,7 +27,7 @@ export class RenderPreviewProcessor {
   ) {}
 
   @Process('render')
-  async process(job: Job<RenderPreviewJob>): Promise<any> {
+  async process(job: Job<RenderPreviewJob>): Promise<{ renderId: string; url: string; thumbnailUrl?: string; cached?: boolean; duration?: number }> {
     const { renderId, snapshotId, designId, customizationId, type, options } = job.data;
     const startTime = Date.now();
 
@@ -111,7 +111,7 @@ export class RenderPreviewProcessor {
             url: existingRender.url,
             thumbnailUrl: existingRender.thumbnailUrl,
             metadata: {
-              ...(existingRender.metadata as Record<string, any> || {}),
+              ...(existingRender.metadata as Record<string, unknown> || {}),
               cached: true,
             },
           },
@@ -120,7 +120,7 @@ export class RenderPreviewProcessor {
         return {
           renderId,
           url: existingRender.url,
-          thumbnailUrl: existingRender.thumbnailUrl,
+          thumbnailUrl: existingRender.thumbnailUrl ?? undefined,
           cached: true,
         };
       }
@@ -138,8 +138,8 @@ export class RenderPreviewProcessor {
           options: { width: 800, height: 600, ...(options || {}) },
         };
         const result = await this.render2DService.render2D(renderRequest);
-        previewUrl = result.url;
-        thumbnailUrl = result.thumbnailUrl || previewUrl;
+        previewUrl = result.url ?? '';
+        thumbnailUrl = result.thumbnailUrl ?? previewUrl;
       } catch (renderError) {
         this.logger.warn(`Render2DService failed, using sharp fallback: ${renderError instanceof Error ? renderError.message : 'Unknown'}`);
         const width = 800;
@@ -217,7 +217,7 @@ export class RenderPreviewProcessor {
         data: {
           status: 'failed',
           metadata: {
-            error: error.message,
+            error: 'Render processing failed',
             failedAt: new Date().toISOString(),
           },
         },

@@ -19,6 +19,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo, useCallback } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 
 // ========================================
@@ -28,6 +29,7 @@ import { logger } from '@/lib/logger';
 function ZonesPageContent() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useI18n();
   const { toast } = useToast();
   const productId = params.id as string;
 
@@ -38,12 +40,12 @@ function ZonesPageContent() {
 
   const handleSave = useCallback(() => {
     toast({
-      title: 'Zones sauvegardées',
-      description: 'La configuration des zones a été enregistrée avec succès.',
+      title: t('productsZones.zonesSaved'),
+      description: t('productsZones.zonesSavedDesc'),
       variant: 'default',
     });
     logger.info('Zones saved successfully', { productId });
-  }, [toast, productId]);
+  }, [t, toast, productId]);
 
   if (isLoading) {
     return (
@@ -61,7 +63,7 @@ function ZonesPageContent() {
             <div className="text-center">
               <p className="text-lg font-semibold text-white mb-2">Produit introuvable</p>
               <Button asChild variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]">
-                <Link href="/products">Retour aux produits</Link>
+                <Link href="/dashboard/products">Retour aux produits</Link>
               </Button>
             </div>
           </CardContent>
@@ -70,7 +72,7 @@ function ZonesPageContent() {
     );
   }
 
-  const modelUrl = product.model3dUrl || product.baseAssetUrl || '';
+  const modelUrl = String((product as { model3dUrl?: string; baseAssetUrl?: string }).model3dUrl ?? (product as { baseAssetUrl?: string }).baseAssetUrl ?? '');
 
   if (!modelUrl) {
     return (
@@ -106,7 +108,7 @@ function ZonesPageContent() {
         </div>
         <h1 className="text-3xl font-bold text-white">Configuration des Zones</h1>
         <p className="text-white/60 mt-2">
-          Définissez les zones personnalisables sur le modèle 3D de "{product.name}"
+          Définissez les zones personnalisables sur le modèle 3D de &quot;{(product as { name?: string }).name ?? 'Produit'}&quot;
         </p>
       </div>
 

@@ -66,7 +66,7 @@ export interface TrackedError {
   userAgent?: string;
   timestamp: number;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Rate limit stats
@@ -126,7 +126,7 @@ export interface LogEntry {
   message: string;
   timestamp: number;
   source: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   traceId?: string;
   spanId?: string;
 }

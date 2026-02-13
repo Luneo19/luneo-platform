@@ -1,9 +1,11 @@
 import { Module, Global, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 
+import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CsrfGuard } from './guards/csrf.guard';
+import { BrandScopedGuard } from './guards/brand-scoped.guard';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
 import { AppErrorFilter } from './errors/app-error.filter';
 import { ValidationPipe } from './utils/validation.pipe';
@@ -17,6 +19,7 @@ import { XssSanitizeMiddleware } from '@/common/middleware/xss-sanitize.middlewa
 @Global()
 @Module({
   imports: [
+    PrismaModule,
     RateLimitModule,
     I18nModule,
     TimezoneModule,
@@ -37,6 +40,10 @@ import { XssSanitizeMiddleware } from '@/common/middleware/xss-sanitize.middlewa
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: BrandScopedGuard,
     },
     {
       provide: APP_INTERCEPTOR,

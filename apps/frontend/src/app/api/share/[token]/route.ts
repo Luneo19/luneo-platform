@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -24,11 +24,11 @@ export async function GET(request: NextRequest, { params }: ShareTokenRouteConte
       const msg = (err as { message?: string }).message || 'Erreur lors de la récupération du partage';
       if (res.status === 404) throw { status: 404, message: 'Partage non trouvé ou expiré', code: 'SHARE_NOT_FOUND' };
       if (res.status === 400) throw { status: 410, message: 'Ce partage a expiré', code: 'SHARE_EXPIRED' };
-      logger.dbError('fetch share by token', new Error(msg), { token });
+      serverLogger.dbError('fetch share by token', new Error(`${msg} (token: ${token})`));
       throw { status: res.status, message: msg, code: 'SHARE_ERROR' };
     }
     const data = await res.json();
-    logger.info('Shared design accessed', { token });
+    serverLogger.info('Shared design accessed', { token });
     return { share: data.share ?? data };
   }, '/api/share/[token]', 'GET');
 }
@@ -53,7 +53,7 @@ export async function POST(request: Request, { params }: ShareTokenRouteContext)
       };
     }
 
-    logger.info('Share action', { token, actionType: action_type });
+    serverLogger.info('Share action', { token, actionType: action_type });
     return { message: 'Action enregistrée avec succès' };
   }, '/api/share/[token]/action', 'POST');
 }

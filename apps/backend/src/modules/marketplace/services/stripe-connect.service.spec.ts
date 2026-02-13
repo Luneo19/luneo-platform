@@ -10,6 +10,7 @@ describe('StripeConnectService', () => {
   const mockPrismaService = {
     artisan: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -21,6 +22,10 @@ describe('StripeConnectService', () => {
     payout: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
+    },
+    marketplacePurchase: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
   };
@@ -54,6 +59,7 @@ describe('StripeConnectService', () => {
       if (key === 'app.frontendUrl') return 'https://app.luneo.io';
       if (key === 'marketplace.connectFeesPercent') return 2;
       if (key === 'marketplace.minPayoutCents') return 1000;
+      if (key === 'marketplace.platformFeePercent') return 10;
       return undefined;
     }),
   };
@@ -327,6 +333,46 @@ describe('StripeConnectService', () => {
           data: expect.objectContaining({ status: 'FAILED' }),
         }),
       );
+    });
+  });
+
+  describe('processMarketplacePurchasePayout', () => {
+    it('should create Stripe transfer and update payout status to COMPLETED', async () => {
+      mockPrismaService.marketplacePurchase.findUnique.mockResolvedValue({
+        id: 'mp-1',
+        payoutStatus: 'PENDING',
+        price: 50,
+        currency: 'CHF',
+        item: {
+          sellerId: 'brand-seller',
+          seller: { users: [{ id: 'user-1' }] },
+        },
+      });
+      mockPrismaService.artisan.findFirst.mockResolvedValue({
+        id: 'artisan-1',
+        stripeAccountId: 'acct_seller',
+        stripeAccountStatus: 'active',
+      });
+      mockPrismaService.marketplacePurchase.update.mockResolvedValue({});
+
+      const result = await service.processMarketplacePurchasePayout('mp-1');
+
+      expect(result.success).toBe(true);
+      expect(mockStripe.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 4500, // 50 * 100 - 10% = 4500 cents
+          currency: 'chf',
+          destination: 'acct_seller',
+          metadata: expect.objectContaining({ marketplacePurchaseId: 'mp-1' }),
+        }),
+      );
+      expect(mockPrismaService.marketplacePurchase.update).toHaveBeenCalledWith({
+        where: { id: 'mp-1' },
+        data: {
+          payoutStatus: 'COMPLETED',
+          paidOutAt: expect.any(Date),
+        },
+      });
     });
   });
 });

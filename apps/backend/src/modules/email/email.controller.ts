@@ -1,9 +1,12 @@
-import { Controller, Post, Body, Get, Query, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, InternalServerErrorException, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { EmailService } from './email.service';
 import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Roles } from '@/common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
 import { SendGridTemplateDto } from './dto/sendgrid-template.dto';
 import { SendGridScheduledDto } from './dto/sendgrid-scheduled.dto';
 
@@ -28,11 +31,24 @@ export class TestEmailDto {
 @Controller('email')
 @UseGuards(JwtAuthGuard)
 export class EmailController {
+  private readonly logger = new Logger(EmailController.name);
+
   constructor(
     private readonly emailService: EmailService,
     private readonly mailgunService: MailgunService,
     private readonly sendgridService: SendGridService,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Guard: block test endpoints in production even if RBAC is bypassed
+   */
+  private ensureNotProduction(): void {
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV;
+    if (nodeEnv === 'production') {
+      throw new ForbiddenException('Test email endpoints are disabled in production');
+    }
+  }
 
   @Get('status')
   @ApiOperation({ summary: 'Get email providers status' })
@@ -62,22 +78,19 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send email');
     }
   }
 
   @Post('test/welcome')
-  @ApiOperation({ summary: 'Send welcome test email' })
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Send welcome test email (admin only)' })
   @ApiBody({ type: TestEmailDto })
   @ApiResponse({ status: 200, description: 'Welcome email sent successfully' })
+  @ApiResponse({ status: 403, description: 'Admin access required' })
   async sendWelcomeTest(@Body() testData: TestEmailDto) {
+    this.ensureNotProduction();
     try {
       const result = await this.emailService.sendWelcomeEmail(
         testData.email,
@@ -91,22 +104,19 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send welcome email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send welcome email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send welcome email');
     }
   }
 
   @Post('test/password-reset')
-  @ApiOperation({ summary: 'Send password reset test email' })
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Send password reset test email (admin only)' })
   @ApiBody({ type: TestEmailDto })
   @ApiResponse({ status: 200, description: 'Password reset email sent successfully' })
+  @ApiResponse({ status: 403, description: 'Admin access required' })
   async sendPasswordResetTest(@Body() testData: TestEmailDto) {
+    this.ensureNotProduction();
     try {
       const resetToken = 'test-reset-token-' + Date.now();
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
@@ -126,22 +136,19 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send password reset email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send password reset email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send password reset email');
     }
   }
 
   @Post('test/confirmation')
-  @ApiOperation({ summary: 'Send email confirmation test email' })
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Send email confirmation test email (admin only)' })
   @ApiBody({ type: TestEmailDto })
   @ApiResponse({ status: 200, description: 'Confirmation email sent successfully' })
+  @ApiResponse({ status: 403, description: 'Admin access required' })
   async sendConfirmationTest(@Body() testData: TestEmailDto) {
+    this.ensureNotProduction();
     try {
       const confirmationToken = 'test-confirmation-token-' + Date.now();
       const confirmationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/confirm-email`;
@@ -161,14 +168,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send confirmation email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send confirmation email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send confirmation email');
     }
   }
 
@@ -195,14 +196,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send SendGrid email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send SendGrid email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send SendGrid email');
     }
   }
 
@@ -224,14 +219,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send SendGrid template email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send SendGrid template email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send SendGrid template email');
     }
   }
 
@@ -255,14 +244,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send scheduled email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send scheduled email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send scheduled email');
     }
   }
 
@@ -278,14 +261,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to get SendGrid stats',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to get SendGrid stats', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to get SendGrid stats');
     }
   }
 
@@ -312,14 +289,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to send Mailgun email',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to send Mailgun email', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to send Mailgun email');
     }
   }
 
@@ -335,14 +306,8 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to get Mailgun stats',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Failed to get Mailgun stats', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to get Mailgun stats');
     }
   }
 }

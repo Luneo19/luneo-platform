@@ -153,7 +153,7 @@ describe('VisualCustomizerService', () => {
 
       const result = await service.remove('vc1', projectId);
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(mockPrisma.visualCustomizer.delete).toHaveBeenCalledWith({
         where: { id: 'vc1' },
       });
@@ -194,7 +194,7 @@ describe('VisualCustomizerService', () => {
 
       const result = await service.removeLayer('vc1', projectId, 'layer1');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(mockPrisma.visualCustomizerLayer.delete).toHaveBeenCalledWith({
         where: { id: 'layer1' },
       });

@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import {
   BarChart3,
   Code,
@@ -35,23 +36,24 @@ const SOCIAL_PLATFORMS = [
 ];
 
 export function ToolsTab() {
+  const { t } = useI18n();
   const { toast } = useToast();
 
   const copyHtml = () => {
     navigator.clipboard.writeText(`<a href="${APP_BASE_URL}?ref=REF123" target="_blank">Découvrez Luneo</a>`);
-    toast({ title: 'Code copié', description: 'Le code HTML a été copié' });
+    toast({ title: t('affiliate.tools.codeCopied'), description: t('affiliate.tools.codeCopiedDesc') });
   };
   const copyJs = () => {
     navigator.clipboard.writeText(`const affiliateLink = '${APP_BASE_URL}?ref=REF123';\nwindow.open(affiliateLink, '_blank');`);
-    toast({ title: 'Code copié', description: 'Le code JavaScript a été copié' });
+    toast({ title: t('affiliate.tools.codeCopied'), description: t('affiliate.tools.codeCopiedDesc') });
   };
   const copyReact = () => {
     navigator.clipboard.writeText(`import { Link } from 'react-router-dom';\n\n<Link to="${APP_BASE_URL}?ref=REF123" target="_blank">\n  Découvrez Luneo\n</Link>`);
-    toast({ title: 'Code copié', description: 'Le code React a été copié' });
+    toast({ title: t('affiliate.tools.codeCopied'), description: t('affiliate.tools.codeCopiedDesc') });
   };
   const copyWordpress = () => {
     navigator.clipboard.writeText('[luneo_affiliate code="REF123"]');
-    toast({ title: 'Code copié', description: 'Le shortcode WordPress a été copié' });
+    toast({ title: t('affiliate.tools.codeCopied'), description: t('affiliate.tools.codeCopiedDesc') });
   };
 
   return (
@@ -90,7 +92,7 @@ export function ToolsTab() {
             <div className="space-y-2">
               <Label className="text-gray-700">Générer une bannière personnalisée</Label>
               <div className="flex gap-2">
-                <Input placeholder="Texte personnalisé" className="bg-white border-gray-200 text-gray-900 flex-1" />
+                <Input placeholder={t('common.customText')} className="bg-white border-gray-200 text-gray-900 flex-1" />
                 <Button variant="outline" className="border-gray-200">
                   <Sparkles className="w-4 h-4 mr-2" />
                   Générer

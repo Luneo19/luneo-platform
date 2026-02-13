@@ -135,7 +135,7 @@ export function CustomersTable({
 
       if (action === 'export') {
         // Download CSV
-        const csv = convertToCSV(response?.data?.data || []);
+        const csv = convertToCSV((response?.data?.data || []) as Record<string, unknown>[]);
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -154,7 +154,7 @@ export function CustomersTable({
     }
   };
 
-  const convertToCSV = (data: any[]) => {
+  const convertToCSV = (data: Array<Record<string, unknown>>) => {
     if (!data || data.length === 0) return '';
     
     const headers = Object.keys(data[0]);

@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { InternalServerErrorException } from '@nestjs/common';
 import { CustomizationService } from './customization.service';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 
 const mockFetch = jest.fn();
 
@@ -27,6 +28,7 @@ describe('CustomizationService', () => {
       providers: [
         CustomizationService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 

@@ -87,8 +87,29 @@ export class OnboardingService {
     stepNumber: number,
     data?: Record<string, unknown>,
   ) {
+    // ✅ If user has no brand (OAuth signup), auto-create one at step 1
+    if (!brandId && stepNumber === 1) {
+      const companyName = (data?.companyName ?? data?.name ?? 'My Brand') as string;
+      const slugBase = companyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 50) || 'brand';
+      const slug = `${slugBase}-${crypto.randomBytes(4).toString('hex')}`;
+      const newBrand = await this.prisma.brand.create({
+        data: {
+          name: companyName.trim(),
+          slug,
+          companyName: companyName.trim(),
+          users: { connect: { id: userId } },
+        },
+      });
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { brandId: newBrand.id },
+      });
+      brandId = newBrand.id;
+      this.logger.log(`Auto-created brand for OAuth user during onboarding`, { userId, brandId: newBrand.id });
+    }
+
     if (!brandId) {
-      throw new BadRequestException('Brand required for onboarding');
+      throw new BadRequestException('Brand required for onboarding. Please complete step 1 first.');
     }
     const brand = await this.prisma.brand.findUnique({
       where: { id: brandId },

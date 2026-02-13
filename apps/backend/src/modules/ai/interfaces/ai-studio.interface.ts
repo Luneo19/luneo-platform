@@ -30,7 +30,7 @@ export interface AIGenerationParams {
   aspectRatio?: string;
   quality?: 'standard' | 'high' | 'ultra';
   negativePrompt?: string;
-  [key: string]: any; // Flexible pour différents modèles
+  [key: string]: string | number | boolean | undefined; // Flexible pour différents modèles
 }
 
 export interface AIGeneration {

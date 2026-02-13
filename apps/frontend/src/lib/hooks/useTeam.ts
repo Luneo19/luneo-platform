@@ -28,12 +28,10 @@ export function useTeam() {
       const data = await endpoints.team.members();
       const raw = data as { data?: { members?: TeamMember[] }; members?: TeamMember[] };
       setMembers(raw?.data?.members ?? raw?.members ?? []);
-    } catch (err: any) {
-      logger.error('Erreur chargement team', {
-        error: err,
-        message: err.message,
-      });
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur chargement team', { error: err, message });
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -48,15 +46,11 @@ export function useTeam() {
       await endpoints.team.invite(email, role);
       await loadMembers();
       return { success: true, message: 'Invitation envoyée' };
-    } catch (err: any) {
-      logger.error('Erreur invitation', {
-        error: err,
-        email,
-        role,
-        message: err.message,
-      });
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur invitation', { error: err, email, role, message });
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -71,14 +65,11 @@ export function useTeam() {
       await endpoints.team.remove(memberId);
       await loadMembers();
       return { success: true, message: 'Membre supprimé' };
-    } catch (err: any) {
-      logger.error('Erreur suppression membre', {
-        error: err,
-        memberId,
-        message: err.message,
-      });
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur suppression membre', { error: err, memberId, message });
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -93,15 +84,11 @@ export function useTeam() {
       await endpoints.team.update(memberId, { role });
       await loadMembers();
       return { success: true, message: 'Rôle mis à jour' };
-    } catch (err: any) {
-      logger.error('Erreur mise à jour rôle', {
-        error: err,
-        memberId,
-        role,
-        message: err.message,
-      });
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur mise à jour rôle', { error: err, memberId, role, message });
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }

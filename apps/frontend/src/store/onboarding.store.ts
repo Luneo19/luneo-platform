@@ -45,6 +45,24 @@ export interface OnboardingProgress {
   skippedAt: string | null;
 }
 
+/** API response shape for GET /api/v1/onboarding/progress */
+export interface OnboardingProgressApiResponse {
+  currentStep: number;
+  progress: OnboardingProgress | null;
+}
+
+/** Maps form teamSize string to backend CompanySize enum value */
+function mapTeamSizeToCompanySize(teamSize: string): string | undefined {
+  const map: Record<string, string> = {
+    '1': 'SOLO',
+    '2-10': 'SMALL_2_10',
+    '11-50': 'MEDIUM_11_50',
+    '51-200': 'LARGE_51_200',
+    '200+': 'ENTERPRISE_200_PLUS',
+  };
+  return map[teamSize] ?? undefined;
+}
+
 // ========================================
 // STORE
 // ========================================
@@ -52,7 +70,7 @@ export interface OnboardingProgress {
 interface OnboardingState {
   currentStep: number;
   totalSteps: number;
-  progress: OnboardingProgress | null;
+  progress: OnboardingProgressApiResponse | null;
   selectedIndustry: string | null;
   formData: OnboardingFormData;
   isSubmitting: boolean;
@@ -95,39 +113,33 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
   fetchProgress: async () => {
     set({ isLoading: true, error: null });
     try {
-      const data = await api.get<OnboardingProgress>('/api/v1/onboarding/progress');
-      const progress = data;
+      const data = await api.get<OnboardingProgressApiResponse>('/api/v1/onboarding/progress');
+      // Backend returns currentStep 0–5 (next step to show) or 6 (completed). UI is 1-based; normalize so 0 → 1.
+      const currentStep = data.currentStep >= 6 ? 6 : data.currentStep + 1;
+      const progressData = data.progress;
 
-      // Determine which step the user is on based on progress
-      let currentStep = 1;
-      if (progress.step1CompletedAt) currentStep = 2;
-      if (progress.step2CompletedAt) currentStep = 3;
-      if (progress.step3CompletedAt) currentStep = 4;
-      if (progress.step4CompletedAt) currentStep = 5;
-      if (progress.step5CompletedAt) currentStep = 6;
-
-      // Restore form data from progress
+      // Restore form data from data.progress
       const formData = { ...initialFormData };
-      if (progress.step1Profile) {
-        formData.step1 = progress.step1Profile as OnboardingFormData['step1'];
+      if (progressData?.step1Profile) {
+        formData.step1 = progressData.step1Profile as OnboardingFormData['step1'];
       }
-      if (progress.step2Industry) {
-        formData.step2 = { industrySlug: progress.step2Industry };
+      if (progressData?.step2Industry) {
+        formData.step2 = { industrySlug: progressData.step2Industry };
       }
-      if (progress.step3UseCases) {
-        formData.step3 = progress.step3UseCases as OnboardingFormData['step3'];
+      if (progressData?.step3UseCases) {
+        formData.step3 = progressData.step3UseCases as OnboardingFormData['step3'];
       }
-      if (progress.step4Goals) {
-        formData.step4 = progress.step4Goals as OnboardingFormData['step4'];
+      if (progressData?.step4Goals) {
+        formData.step4 = progressData.step4Goals as OnboardingFormData['step4'];
       }
-      if (progress.step5Integrations) {
-        formData.step5 = progress.step5Integrations as OnboardingFormData['step5'];
+      if (progressData?.step5Integrations) {
+        formData.step5 = progressData.step5Integrations as OnboardingFormData['step5'];
       }
 
       set({
-        progress,
+        progress: data,
         currentStep,
-        selectedIndustry: progress.step2Industry ?? null,
+        selectedIndustry: progressData?.step2Industry ?? null,
         formData,
         isLoading: false,
       });
@@ -142,8 +154,20 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     set({ isSubmitting: true, error: null });
     try {
       const stepKey = `step${stepNumber}` as keyof OnboardingFormData;
+      let payload: Record<string, unknown> = formData[stepKey] as Record<string, unknown>;
+      if (stepNumber === 1) {
+        const step1 = formData.step1;
+        const companySize = mapTeamSizeToCompanySize(step1.teamSize);
+        payload = {
+          name: step1.name,
+          companyName: step1.company,
+          role: step1.role,
+          ...(companySize !== undefined && { companySize }),
+          teamSize: step1.teamSize,
+        };
+      }
       await api.post(`/api/v1/onboarding/step/${stepNumber}`, {
-        data: formData[stepKey],
+        data: payload,
       });
       set({ isSubmitting: false });
     } catch (error) {
@@ -191,6 +215,8 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     set({ isSubmitting: true, error: null });
     try {
       await api.post('/api/v1/onboarding/complete');
+      // Set cookie so middleware knows onboarding is done (avoids redirect loop)
+      document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
       set({ isSubmitting: false });
     } catch (error) {
       logger.error('Failed to complete onboarding', error instanceof Error ? error : new Error(String(error)));
@@ -203,6 +229,8 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     set({ isSubmitting: true, error: null });
     try {
       await api.post('/api/v1/onboarding/skip');
+      // Set cookie so middleware knows onboarding is done (avoids redirect loop)
+      document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
       set({ isSubmitting: false });
     } catch (error) {
       logger.error('Failed to skip onboarding', error instanceof Error ? error : new Error(String(error)));

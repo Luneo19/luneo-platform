@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, RefreshCw } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { useProfileSettings } from '../../hooks/useProfileSettings';
 import type { UserProfile } from '../../types';
 
@@ -63,14 +64,7 @@ export function ProfileTab({ profile, onProfileChange }: ProfileTabProps) {
               value={localProfile.phone || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, phone: e.target.value })}
               className="bg-white border-gray-200 text-gray-900 mt-1"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-700">Entreprise</Label>
-            <Input
-              value={localProfile.company || ''}
-              onChange={(e) => setLocalProfile({ ...localProfile, company: e.target.value })}
-              className="bg-white border-gray-200 text-gray-900 mt-1"
+              placeholder="+33 6 12 34 56 78"
             />
           </div>
           <div>
@@ -78,7 +72,24 @@ export function ProfileTab({ profile, onProfileChange }: ProfileTabProps) {
             <Input
               value={localProfile.website || ''}
               onChange={(e) => setLocalProfile({ ...localProfile, website: e.target.value })}
+              className="bg-white border-gray-200 text-gray-900 mt-1"
               placeholder="https://example.com"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-700">Fuseau horaire</Label>
+            <Input
+              value={localProfile.timezone || 'Europe/Paris'}
+              onChange={(e) => setLocalProfile({ ...localProfile, timezone: e.target.value })}
+              className="bg-white border-gray-200 text-gray-900 mt-1"
+              placeholder="Europe/Paris"
+            />
+          </div>
+          <div>
+            <Label className="text-gray-700">Entreprise</Label>
+            <Input
+              value={localProfile.company || ''}
+              onChange={(e) => setLocalProfile({ ...localProfile, company: e.target.value })}
               className="bg-white border-gray-200 text-gray-900 mt-1"
             />
           </div>

@@ -7,6 +7,7 @@
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { useI18n } from '@/i18n/useI18n';
 import type { OrderStatus } from '../types';
 
 interface BulkActionsBarProps {
@@ -16,8 +17,8 @@ interface BulkActionsBarProps {
 }
 
 const BULK_ACTIONS = [
-  { type: 'updateStatus' as const, label: 'Modifier statut', variant: 'default' as const },
-  { type: 'export' as const, label: 'Exporter', variant: 'outline' as const },
+  { type: 'updateStatus' as const, labelKey: 'orders.bulkUpdateStatus' as const, variant: 'default' as const },
+  { type: 'export' as const, labelKey: 'common.export' as const, variant: 'outline' as const },
 ];
 
 export function BulkActionsBar({
@@ -25,6 +26,7 @@ export function BulkActionsBar({
   onClearSelection,
   onBulkAction,
 }: BulkActionsBarProps) {
+  const { t } = useI18n();
   if (selectedCount === 0) return null;
 
   return (
@@ -35,8 +37,7 @@ export function BulkActionsBar({
     >
       <div className="flex items-center gap-4">
         <span className="text-white font-medium">
-          {selectedCount} commande{selectedCount > 1 ? 's' : ''} sélectionnée
-          {selectedCount > 1 ? 's' : ''}
+          {t('orders.bulkSelected', { count: selectedCount })}
         </span>
         <Button variant="ghost" size="sm" onClick={onClearSelection}>
           <X className="w-4 h-4" />
@@ -50,7 +51,7 @@ export function BulkActionsBar({
             size="sm"
             onClick={() => onBulkAction(action.type)}
           >
-            {action.label}
+            {t(action.labelKey)}
           </Button>
         ))}
       </div>

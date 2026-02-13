@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { NextRequest } from 'next/server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Erreur lors du traitement du webhook Stripe' }));
-      logger.error('Backend webhook processing failed', {
+      serverLogger.error('Backend webhook processing failed', {
         status: response.status,
         error: errorData,
       });
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json();
 
-    logger.info('Stripe webhook forwarded to backend', {
+    serverLogger.info('Stripe webhook forwarded to backend', {
       eventId: result.eventId,
       processed: result.processed,
     });

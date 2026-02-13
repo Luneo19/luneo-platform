@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { api } from '@/lib/api/client';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { useI18n } from '@/i18n/useI18n';
 
 const benefits = [
   {
@@ -44,22 +45,45 @@ const tiers = [
   { min: 30, max: Infinity, label: 'Diamant', commission: 35, icon: '💎' },
 ];
 
-const stats = [
+const STATS_CARDS = [
   { label: 'Affiliés actifs', value: '2,847', icon: Users },
   { label: 'Commissions versées', value: '€487K', icon: Coins },
   { label: 'Commission moyenne', value: '€342/mois', icon: TrendingUp },
 ];
 
 function ReferralPageContent() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [stats, setStats] = useState<{
+    referralCode: string;
+    referralLink: string;
+    totalReferrals: number;
+    activeReferrals: number;
+    totalEarnings: number;
+    pendingEarnings: number;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
-  const referralCode = 'LUNEO-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+  useEffect(() => {
+    let cancelled = false;
+    endpoints.referral.stats()
+      .then((res) => {
+        if (!cancelled && res) setStats(res);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const displayCode = stats?.referralCode ?? 'LUNEO-XXXXXX';
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+  const displayLink = stats?.referralLink ?? (typeof window !== 'undefined' ? `${window.location.origin}/ref/LUNEO-XXXXXX` : `${APP_URL}/ref/LUNEO-XXXXXX`);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`https://luneo.app/ref/${referralCode}`);
+    navigator.clipboard.writeText(displayLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -70,7 +94,7 @@ function ReferralPageContent() {
 
     setIsSubmitting(true);
     try {
-      await api.post('/api/v1/referral/join', { email });
+      await endpoints.referral.join(email);
       setSubmitted(true);
     } catch (error) {
       logger.error('Error joining referral program', error);
@@ -120,7 +144,7 @@ function ReferralPageContent() {
             transition={{ delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-12"
           >
-            {stats.map((stat) => (
+            {STATS_CARDS.map((stat) => (
               <Card key={stat.label} className="p-6 bg-gray-800/50 border-gray-700">
                 <stat.icon className="w-6 h-6 text-purple-400 mx-auto mb-2" />
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
@@ -147,7 +171,7 @@ function ReferralPageContent() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Votre email professionnel"
+                  placeholder={t('common.yourProfessionalEmail')}
                   className="flex-1 bg-gray-800/50 border-gray-600 text-white"
                   required
                 />
@@ -226,7 +250,7 @@ function ReferralPageContent() {
         </div>
       </section>
 
-      {/* Share Section (for logged in users preview) */}
+      {/* Share Section (real stats when logged in) */}
       <section className="py-20 px-4 bg-gray-900/50">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-white text-center mb-8">
@@ -234,10 +258,19 @@ function ReferralPageContent() {
           </h2>
 
           <Card className="p-6 bg-gray-800/50 border-gray-700">
-            <p className="text-sm text-gray-400 mb-3">Votre lien de parrainage :</p>
+            {statsLoading ? (
+              <p className="text-sm text-gray-400 mb-4">Chargement...</p>
+            ) : stats ? (
+              <>
+                <p className="text-sm text-gray-400 mb-2">Vos filleuls : <strong className="text-white">{stats.totalReferrals}</strong> · Gains : <strong className="text-white">{stats.totalEarnings.toFixed(2)}€</strong> (en attente : <strong className="text-purple-400">{stats.pendingEarnings.toFixed(2)}€</strong>)</p>
+                <p className="text-sm text-gray-400 mb-3">Votre lien de parrainage :</p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400 mb-3">Votre lien de parrainage (connectez-vous pour voir le vôtre) :</p>
+            )}
             <div className="flex gap-2 mb-6">
               <div className="flex-1 px-4 py-3 bg-gray-900 rounded-lg text-gray-300 font-mono text-sm truncate">
-                https://luneo.app/ref/{referralCode}
+                {displayLink}
               </div>
               <Button
                 onClick={handleCopy}
@@ -248,7 +281,7 @@ function ReferralPageContent() {
               </Button>
             </div>
 
-            <p className="text-sm text-gray-400 mb-3">Partager sur :</p>
+            <p className="text-sm text-gray-400 mb-3">{t('common.shareOn')}</p>
             <div className="flex gap-3">
               <Button variant="outline" size="sm" className="border-gray-600">
                 <Twitter className="w-4 h-4 mr-2" /> Twitter

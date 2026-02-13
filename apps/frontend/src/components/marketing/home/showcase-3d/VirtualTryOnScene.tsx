@@ -40,8 +40,8 @@ function Glasses() {
           <meshStandardMaterial color="#7c3aed" transparent opacity={0.3} roughness={0} metalness={0.5} side={THREE.DoubleSide} />
         </mesh>
         {/* Bridge */}
-        <mesh position={[0, 0.05, 0]}>
-          <cylinderGeometry args={[0.03, 0.03, 0.3, 8]} rotation={[0, 0, Math.PI / 2]} />
+        <mesh position={[0, 0.05, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.3, 8]} />
           <meshStandardMaterial color="#ec4899" roughness={0.2} metalness={0.8} />
         </mesh>
         {/* Left arm */}
@@ -100,6 +100,7 @@ function FaceMeshDots() {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
+          args={[positions, 3]}
           count={positions.length / 3}
           array={positions}
           itemSize={3}

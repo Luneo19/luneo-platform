@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Globe, Lock } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorderCTA } from '@/components/ui/animated-border';
+import { FireflyCTA } from '@/components/ui/firefly-cta';
 
 export function CTASectionNew() {
   return (
@@ -18,15 +19,15 @@ export function CTASectionNew() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
           <ScrollReveal animation="fade-up" duration={700}>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-5 sm:mb-6">
-              <span className="text-white">Pret a </span>
+            <h2 className="heading-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-5 sm:mb-6">
+              <span className="text-white text-glow-white">Pret a </span>
               <span className="italic text-gradient-purple">transformer</span>
-              <span className="text-white"> votre business ?</span>
+              <span className="text-white text-glow-white"> votre business ?</span>
             </h2>
           </ScrollReveal>
 
           <ScrollReveal animation="fade-up" delay={100}>
-            <p className="text-base sm:text-lg text-slate-400 mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed px-2">
+            <p className="text-base sm:text-lg text-slate-300 mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed px-2">
               Rejoignez des milliers de marques qui utilisent deja Luneo pour creer des experiences produit exceptionnelles.
             </p>
           </ScrollReveal>
@@ -34,15 +35,17 @@ export function CTASectionNew() {
           <ScrollReveal animation="fade-up" delay={200}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-10">
               <Link href="/register" className="w-full sm:w-auto">
-                <AnimatedBorderCTA speed="normal">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-10 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
-                  >
-                    Essai gratuit 14 jours
-                    <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
-                  </Button>
-                </AnimatedBorderCTA>
+                <FireflyCTA color="purple" speed="normal">
+                  <AnimatedBorderCTA speed="normal">
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-10 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
+                    >
+                      Essai gratuit 14 jours
+                      <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                    </Button>
+                  </AnimatedBorderCTA>
+                </FireflyCTA>
               </Link>
               <Link href="/contact" className="w-full sm:w-auto">
                 <Button
@@ -58,7 +61,7 @@ export function CTASectionNew() {
 
           {/* Trust badges */}
           <ScrollReveal animation="fade" delay={400}>
-            <div className="flex items-center justify-center gap-4 sm:gap-6 text-slate-400 text-[10px] sm:text-xs">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 text-slate-300 text-[10px] sm:text-xs">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> SOC 2
               </span>

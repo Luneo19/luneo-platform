@@ -6,6 +6,7 @@
 
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { Package } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { ProductFilters } from '../types';
 
 interface ProductsEmptyStateProps {
@@ -19,6 +20,7 @@ export function ProductsEmptyState({
   onCreate,
   onResetFilters,
 }: ProductsEmptyStateProps) {
+  const { t } = useI18n();
   const hasFilters =
     filters.search ||
     Object.values(filters).some((v) => v !== null && v !== '' && v !== 'all');
@@ -26,14 +28,14 @@ export function ProductsEmptyState({
   return (
     <EmptyState
       icon={<Package className="w-16 h-16" />}
-      title={hasFilters ? 'Aucun produit trouvé' : 'Aucun produit'}
+      title={hasFilters ? t('products.noProductsFound') : t('products.noProducts')}
       description={
         hasFilters
-          ? 'Essayez de modifier vos filtres de recherche'
-          : 'Créez votre premier produit pour commencer'
+          ? t('marketplace.noResultsHint')
+          : t('products.noProductsDesc')
       }
       action={{
-        label: hasFilters ? 'Effacer les filtres' : 'Créer un produit',
+        label: hasFilters ? t('products.clearFilters') : t('products.create'),
         onClick: hasFilters ? onResetFilters : onCreate,
       }}
     />

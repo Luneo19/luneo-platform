@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { adminNavigation, type NavItem } from '@/config/admin-navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 
 export function AdminSidebar() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -50,7 +52,7 @@ export function AdminSidebar() {
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">L</span>
           </div>
-          <span className="text-white font-semibold text-sm">Super Admin</span>
+          <span className="text-white font-semibold text-sm">{t('admin.sidebar.superAdmin')}</span>
         </Link>
       </div>
 

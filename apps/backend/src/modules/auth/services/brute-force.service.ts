@@ -41,15 +41,13 @@ export class BruteForceService {
             setTimeout(() => reject(new Error('Redis timeout')), 2000)
           ),
         ]) as string | null;
-      } catch (redisError: any) {
-        if (redisError?.message?.includes('max requests limit exceeded') || 
-            redisError?.message?.includes('Redis timeout') ||
-            redisError?.message?.includes('timeout')) {
+      } catch (redisError: unknown) {
+        const msg = redisError instanceof Error ? redisError.message : String(redisError ?? '');
+        if (msg.includes('max requests limit exceeded') || msg.includes('Redis timeout') || msg.includes('timeout')) {
           this.logger.warn('Redis limit exceeded or timeout in brute force check, allowing request');
           return true; // Fail open - allow request
         }
-        // Pour les autres erreurs, autoriser aussi (ne pas bloquer les utilisateurs)
-        this.logger.warn('Redis error in brute force check, allowing request', redisError?.message);
+        this.logger.warn('Redis error in brute force check, allowing request', msg);
         return true;
       }
 
@@ -64,9 +62,9 @@ export class BruteForceService {
             redis.ttl(identifier),
             new Promise<number>((resolve) => setTimeout(() => resolve(0), 1000)),
           ]) as number;
-        } catch (ttlError: any) {
-          // Ignore TTL errors (non-critical)
-          this.logger.debug('Error getting TTL (non-critical)', ttlError?.message);
+        } catch (ttlError: unknown) {
+          const ttlMsg = ttlError instanceof Error ? ttlError.message : String(ttlError);
+          this.logger.debug('Error getting TTL (non-critical)', ttlMsg);
         }
         this.logger.warn('Brute force detected', {
           email,
@@ -111,9 +109,9 @@ export class BruteForceService {
               redis.expire(identifier, 900), // 15 minutes
               new Promise<void>((resolve) => setTimeout(() => resolve(), 1000)),
             ]);
-          } catch (expireError: any) {
-            // Ignore expire errors (non-critical)
-            this.logger.debug('Error setting expire (non-critical)', expireError?.message);
+          } catch (expireError: unknown) {
+            const expMsg = expireError instanceof Error ? expireError.message : String(expireError);
+            this.logger.debug('Error setting expire (non-critical)', expMsg);
           }
         }
 
@@ -122,14 +120,13 @@ export class BruteForceService {
           ip,
           attempts,
         });
-      } catch (redisError: any) {
-        if (redisError?.message?.includes('max requests limit exceeded') ||
-            redisError?.message?.includes('timeout')) {
+      } catch (redisError: unknown) {
+        const msg = redisError instanceof Error ? redisError.message : String(redisError ?? '');
+        if (msg.includes('max requests limit exceeded') || msg.includes('timeout')) {
           this.logger.warn('Redis limit exceeded or timeout, skipping brute force tracking');
-          return; // Fail silently - don't block login
+          return;
         }
-        // Pour les autres erreurs, ignorer aussi (ne pas bloquer)
-        this.logger.warn('Redis error in recordFailedAttempt, skipping', redisError?.message);
+        this.logger.warn('Redis error in recordFailedAttempt, skipping', msg);
         return;
       }
     } catch (error) {
@@ -157,14 +154,13 @@ export class BruteForceService {
           new Promise<void>((resolve) => setTimeout(() => resolve(), 1000)),
         ]);
         this.logger.debug('Brute force attempts reset', { email, ip });
-      } catch (redisError: any) {
-        if (redisError?.message?.includes('max requests limit exceeded') ||
-            redisError?.message?.includes('timeout')) {
+      } catch (redisError: unknown) {
+        const msg = redisError instanceof Error ? redisError.message : String(redisError ?? '');
+        if (msg.includes('max requests limit exceeded') || msg.includes('timeout')) {
           this.logger.warn('Redis limit exceeded or timeout, skipping brute force reset');
-          return; // Fail silently - don't block login
+          return;
         }
-        // Pour les autres erreurs, ignorer aussi
-        this.logger.warn('Redis error in resetAttempts, skipping', redisError?.message);
+        this.logger.warn('Redis error in resetAttempts, skipping', msg);
         return;
       }
     } catch (error) {
@@ -192,9 +188,9 @@ export class BruteForceService {
           new Promise<number>((resolve) => setTimeout(() => resolve(0), 1000)),
         ]) as number;
         return Math.max(0, ttl);
-      } catch (ttlError: any) {
-        // En cas d'erreur ou timeout, retourner 0 (pas de blocage)
-        this.logger.debug('Error getting remaining time (non-critical)', ttlError?.message);
+      } catch (ttlError: unknown) {
+        const ttlMsg = ttlError instanceof Error ? ttlError.message : String(ttlError);
+        this.logger.debug('Error getting remaining time (non-critical)', ttlMsg);
         return 0;
       }
     } catch (error) {

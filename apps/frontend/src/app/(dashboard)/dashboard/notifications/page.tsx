@@ -20,10 +20,27 @@ function NotificationsPageContent() {
 
   if (s.loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-zinc-950">
+      <div className="flex items-center justify-center min-h-[60vh] dash-bg">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto" />
-          <p className="mt-4 text-white">Chargement des notifications...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-cyan-400 mx-auto" />
+          <p className="mt-4 text-white/60">Chargement des notifications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (s.error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] dash-bg">
+        <div className="text-center dash-card rounded-2xl p-8 border border-white/[0.06] max-w-md">
+          <p className="text-red-400 mb-4">{s.error}</p>
+          <button
+            type="button"
+            onClick={() => void s.refetch()}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:opacity-90"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );

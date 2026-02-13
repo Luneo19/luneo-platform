@@ -50,7 +50,7 @@ declare global {
 function BraceletARViewerContent({ customization, modelUrl, usdzUrl }: BraceletARViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const modelViewerRef = useRef<any>(null);
+  const modelViewerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     // Load model-viewer script if not already loaded

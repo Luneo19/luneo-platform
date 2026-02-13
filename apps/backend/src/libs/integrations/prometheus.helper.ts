@@ -27,7 +27,7 @@ export class PrometheusHelper {
   /**
    * Query Prometheus
    */
-  async query(query: string): Promise<any> {
+  async query(query: string): Promise<Array<{ value: [string, string] } | undefined>> {
     const response = await fetch(`${this.prometheusUrl}/api/v1/query?query=${encodeURIComponent(query)}`);
     const data = await response.json();
 
@@ -46,7 +46,7 @@ export class PrometheusHelper {
     const result = await this.query(query);
 
     if (result && result.length > 0) {
-      return parseFloat(result[0].value[1]) * 1000; // Convert to ms
+      return parseFloat(result[0]?.value?.[1] ?? "0") * 1000; // Convert to ms
     }
 
     return 0;
@@ -60,7 +60,7 @@ export class PrometheusHelper {
     const result = await this.query(query);
 
     if (result && result.length > 0) {
-      return parseFloat(result[0].value[1]) * 1000; // Convert to ms
+      return parseFloat(result[0]?.value?.[1] ?? "0") * 1000; // Convert to ms
     }
 
     return 0;
@@ -74,7 +74,7 @@ export class PrometheusHelper {
     const result = await this.query(query);
 
     if (result && result.length > 0) {
-      return parseFloat(result[0].value[1]);
+      return parseFloat(result[0]?.value?.[1] ?? "0");
     }
 
     return 0;
@@ -88,7 +88,7 @@ export class PrometheusHelper {
     const result = await this.query(query);
 
     if (result && result.length > 0) {
-      return parseFloat(result[0].value[1]);
+      return parseFloat(result[0]?.value?.[1] ?? "0");
     }
 
     return 100;
@@ -102,7 +102,7 @@ export class PrometheusHelper {
     const result = await this.query(query);
 
     if (result && result.length > 0) {
-      return parseFloat(result[0].value[1]);
+      return parseFloat(result[0]?.value?.[1] ?? "0");
     }
 
     return 0;

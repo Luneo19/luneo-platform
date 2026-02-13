@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Plus, X, Save } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { ShippingAddress } from '../../types';
 
 interface OrderItem {
@@ -44,6 +45,7 @@ export function CreateOrderModal({
   onOpenChange,
   onCreate,
 }: CreateOrderModalProps) {
+  const { t } = useI18n();
   const [items, setItems] = useState<OrderItem[]>([
     { productId: '', productName: '', quantity: 1, price: 0, totalPrice: 0 },
   ]);
@@ -116,16 +118,16 @@ export function CreateOrderModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouvelle commande</DialogTitle>
+          <DialogTitle>{t('orders.createTitle')}</DialogTitle>
           <DialogDescription>
-            Créez une nouvelle commande manuellement
+            {t('orders.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Items */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <Label className="text-gray-700">Articles *</Label>
+              <Label className="text-gray-700">{t('orders.items')} *</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -134,7 +136,7 @@ export function CreateOrderModal({
                 className="border-gray-200"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Ajouter un article
+                {t('orders.addItem')}
               </Button>
             </div>
             <div className="space-y-3">
@@ -145,7 +147,7 @@ export function CreateOrderModal({
                 >
                   <div className="col-span-5">
                     <Input
-                      placeholder="Nom du produit"
+                      placeholder={t('orders.productNamePlaceholder')}
                       value={item.productName}
                       onChange={(e) =>
                         handleItemChange(index, 'productName', e.target.value)
@@ -157,7 +159,7 @@ export function CreateOrderModal({
                   <div className="col-span-2">
                     <Input
                       type="number"
-                      placeholder="Quantité"
+                      placeholder={t('orders.quantityPlaceholder')}
                       value={item.quantity}
                       onChange={(e) =>
                         handleItemChange(
@@ -175,7 +177,7 @@ export function CreateOrderModal({
                     <Input
                       type="number"
                       step="0.01"
-                      placeholder="Prix unitaire"
+                      placeholder={t('orders.unitPrice')}
                       value={item.price}
                       onChange={(e) =>
                         handleItemChange(
@@ -213,10 +215,10 @@ export function CreateOrderModal({
 
           {/* Shipping Address */}
           <div>
-            <Label className="text-gray-700 mb-4 block">Adresse de livraison *</Label>
+            <Label className="text-gray-700 mb-4 block">{t('orders.fullAddress')}</Label>
             <div className="space-y-3">
               <Input
-                placeholder="Nom complet"
+                placeholder={t('orders.fullNamePlaceholder')}
                 value={shippingAddress.name}
                 onChange={(e) =>
                   setShippingAddress({ ...shippingAddress, name: e.target.value })
@@ -225,7 +227,7 @@ export function CreateOrderModal({
                 required
               />
               <Input
-                placeholder="Rue et numéro"
+                placeholder={t('orders.streetPlaceholder')}
                 value={shippingAddress.street}
                 onChange={(e) =>
                   setShippingAddress({
@@ -238,7 +240,7 @@ export function CreateOrderModal({
               />
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  placeholder="Code postal"
+                  placeholder={t('orders.postalCodePlaceholder')}
                   value={shippingAddress.postal_code}
                   onChange={(e) =>
                     setShippingAddress({
@@ -250,7 +252,7 @@ export function CreateOrderModal({
                   required
                 />
                 <Input
-                  placeholder="Ville"
+                  placeholder={t('orders.cityPlaceholder')}
                   value={shippingAddress.city}
                   onChange={(e) =>
                     setShippingAddress({
@@ -264,7 +266,7 @@ export function CreateOrderModal({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  placeholder="Pays"
+                  placeholder={t('orders.countryPlaceholder')}
                   value={shippingAddress.country}
                   onChange={(e) =>
                     setShippingAddress({
@@ -276,7 +278,7 @@ export function CreateOrderModal({
                   required
                 />
                 <Input
-                  placeholder="Téléphone (optionnel)"
+                  placeholder={t('orders.phonePlaceholder')}
                   value={shippingAddress.phone || ''}
                   onChange={(e) =>
                     setShippingAddress({
@@ -292,11 +294,11 @@ export function CreateOrderModal({
 
           {/* Notes */}
           <div>
-            <Label className="text-gray-700">Notes client (optionnel)</Label>
+            <Label className="text-gray-700">{t('orders.notesOptional')}</Label>
             <Textarea
               value={customerNotes}
               onChange={(e) => setCustomerNotes(e.target.value)}
-              placeholder="Notes additionnelles..."
+              placeholder={t('orders.notesPlaceholder')}
               rows={3}
               className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
@@ -309,7 +311,7 @@ export function CreateOrderModal({
               onClick={() => onOpenChange(false)}
               className="border-gray-200"
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -319,12 +321,12 @@ export function CreateOrderModal({
               {saving ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Création...
+                  {t('orders.creating')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Créer la commande
+                  {t('orders.createOrder')}
                 </>
               )}
             </Button>

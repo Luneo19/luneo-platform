@@ -434,12 +434,12 @@ export class RenderPrintReadyService {
       
       return result;
     } catch (error) {
-      this.logger.error(`Print-ready render failed for request ${request.id}:`, error);
+      this.logger.error('Render failed', { error });
       
       return {
         id: request.id,
         status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Render processing failed',
         createdAt: new Date(),
       };
     }

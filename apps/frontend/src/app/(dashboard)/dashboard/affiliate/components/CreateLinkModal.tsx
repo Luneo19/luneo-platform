@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,11 +21,12 @@ interface CreateLinkModalProps {
 }
 
 export function CreateLinkModal({ open, onOpenChange, onCreate }: CreateLinkModalProps) {
+  const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Créer un lien de parrainage</DialogTitle>
+          <DialogTitle>{t('affiliate.createLink')}</DialogTitle>
           <DialogDescription>Créez un nouveau lien de parrainage personnalisé</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">

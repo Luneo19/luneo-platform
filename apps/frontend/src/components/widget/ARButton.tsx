@@ -81,6 +81,11 @@ function ARButtonContent({
       }
 
       const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
+      if (!xr) {
+        setSupportStatus('not-supported');
+        setErrorMessage('WebXR non disponible');
+        return;
+      }
 
       // Check if AR is supported
       try {
@@ -164,20 +169,54 @@ function ARButtonContent({
   }
 
   if (supportStatus === 'not-supported' || supportStatus === 'error') {
+    // Fallback: Use <model-viewer> for non-WebXR browsers (iOS Safari, desktop, etc.)
+    const usdzUrl = modelUrl.replace(/\.glb$/i, '.usdz');
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
     return (
-      <div className={className}>
-        <Alert className="border-amber-200 bg-amber-50">
-          <AlertCircle className="w-4 h-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <div className="space-y-1">
-              <p className="font-medium">AR non disponible</p>
-              <p className="text-sm">
-                {errorMessage ||
-                  'Utilisez un appareil iOS (Safari) ou Android (Chrome) pour essayer en réalité augmentée'}
-              </p>
-            </div>
-          </AlertDescription>
-        </Alert>
+      <div className={`space-y-2 ${className}`}>
+        {/* model-viewer fallback for 3D preview + AR Quick Look on iOS */}
+        {modelUrl && (
+          <div className="rounded-lg overflow-hidden border bg-gray-50">
+            {/* @ts-ignore - model-viewer is a web component */}
+            <model-viewer
+              src={modelUrl}
+              ios-src={usdzUrl}
+              alt="Aperçu 3D du produit"
+              ar
+              ar-modes="webxr scene-viewer quick-look"
+              camera-controls
+              auto-rotate
+              shadow-intensity="1"
+              style={{ width: '100%', height: '300px', display: 'block' }}
+            >
+              <button
+                slot="ar-button"
+                style={{
+                  backgroundColor: '#000',
+                  color: '#fff',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  border: 'none',
+                  position: 'absolute',
+                  bottom: '16px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                <Smartphone className="w-4 h-4 inline mr-1" />
+                {isIOS ? 'Voir en AR (Quick Look)' : 'Voir en 3D'}
+              </button>
+            </model-viewer>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground text-center">
+          {isIOS
+            ? 'Appuyez sur le bouton pour voir en AR avec Quick Look'
+            : 'Aperçu 3D interactif - rotation et zoom disponibles'}
+        </p>
       </div>
     );
   }

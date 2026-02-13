@@ -38,7 +38,7 @@ function getRedis(): RedisType | null {
     redisInstance = instance;
     return instance;
   } catch (error) {
-    logger.warn('Failed to initialize Redis', error instanceof Error ? error : undefined);
+    logger.warn('Failed to initialize Redis', { error: error instanceof Error ? error : undefined });
     redisInstance = null;
     return null;
   }

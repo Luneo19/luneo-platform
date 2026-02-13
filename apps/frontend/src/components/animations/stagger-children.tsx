@@ -54,7 +54,7 @@ export function StaggerChildren({
   );
 }
 
-export const StaggerItem = ({ children, ...props }: any) => {
+export const StaggerItem = ({ children, ...props }: { children: ReactNode } & Record<string, unknown>) => {
   return (
     <motion.div variants={item} {...props}>
       {children}

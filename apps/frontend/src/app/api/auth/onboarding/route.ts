@@ -1,7 +1,7 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { onboardingSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json();
 
-    logger.info('Onboarding step completed', {
+    serverLogger.info('Onboarding step completed', {
       userId: user.id,
       step: validation.data.step,
     });

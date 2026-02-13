@@ -1,6 +1,6 @@
 import { PLAN_CONFIGS, normalizePlanTier, PlanTier } from '@/libs/plans';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { CurrencyUtils } from '@/config/currency.config';
+import { CurrencyUtils, detectCurrency } from '@/config/currency.config';
 import {
   Injectable,
   Logger,
@@ -69,6 +69,8 @@ export class BillingService {
     options?: {
       billingInterval?: 'monthly' | 'yearly';
       addOns?: Array<{ type: string; quantity: number }>;
+      country?: string;
+      locale?: string;
     },
   ) {
     // ✅ Vérifier que Stripe est configuré
@@ -91,6 +93,17 @@ export class BillingService {
     }
 
     const billingInterval = options?.billingInterval || 'monthly';
+
+    // ✅ Multi-currency: detect from country (brand or header) / locale (Accept-Language)
+    let country = options?.country;
+    if (!country && userId && !userId.startsWith('guest_')) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { brand: { select: { country: true } } },
+      });
+      country = user?.brand?.country ?? undefined;
+    }
+    const currency = detectCurrency(country, options?.locale);
 
     // ✅ Utiliser les Price IDs validés en production, sinon fallback pour dev/test
     let planPriceIds: Record<string, { monthly: string | null; yearly: string | null }>;
@@ -139,7 +152,7 @@ export class BillingService {
 
       // ✅ Ajouter les add-ons si fournis (utilise les Price IDs Stripe dédiés)
       if (options?.addOns && options.addOns.length > 0) {
-        const addonsConfig = this.configService.get<Record<string, any>>('stripe.addons') || {};
+        const addonsConfig = this.configService.get<Record<string, Record<string, string>>>('stripe.addons') || {};
         const addonTypeMap: Record<string, string> = {
           'extra_designs': 'extraDesigns',
           'extra_storage': 'extraStorage',
@@ -178,13 +191,16 @@ export class BillingService {
         line_items: lineItems,
         mode: 'subscription',
         customer_email: userEmail,
-        success_url: `${this.configService.get<string>('stripe.successUrl')}?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: this.configService.get<string>('stripe.cancelUrl'),
+        // CRITICAL FIX: Use FRONTEND_URL as base to avoid double-path with successUrl config
+        success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/billing/cancel`,
+        locale: (options?.locale ? this.mapLocaleToStripe(options.locale) : undefined) as Stripe.Checkout.SessionCreateParams.Locale | undefined,
         metadata: {
           userId,
           planId,
           billingInterval,
-          addOns: options?.addOns ? JSON.stringify(options.addOns) : undefined,
+          addOns: options?.addOns ? JSON.stringify(options.addOns) : '',
+          currency,
         },
             // BIL-10: Essai gratuit configurable par plan
         subscription_data: {
@@ -325,9 +341,10 @@ export class BillingService {
         },
         message: 'Méthode de paiement ajoutée avec succès',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error('Error adding payment method', error, { userId, paymentMethodId });
-      throw new InternalServerErrorException(`Erreur lors de l'ajout de la méthode de paiement: ${error.message}`);
+      throw new InternalServerErrorException(`Erreur lors de l'ajout de la méthode de paiement: ${message}`);
     }
   }
 
@@ -343,9 +360,10 @@ export class BillingService {
       );
 
       return { message: 'Méthode de paiement supprimée avec succès' };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error('Error removing payment method', error, { userId, paymentMethodId });
-      throw new InternalServerErrorException(`Erreur lors de la suppression de la méthode de paiement: ${error.message}`);
+      throw new InternalServerErrorException(`Erreur lors de la suppression de la méthode de paiement: ${message}`);
     }
   }
 
@@ -372,11 +390,12 @@ export class BillingService {
       }
 
       // Récupérer les factures depuis Stripe avec résilience
+      const stripeCustomerId = user.brand!.stripeCustomerId!;
       const invoices = await this.executeWithResilience(
         async () => {
           const stripe = await this.getStripe();
           return stripe.invoices.list({
-            customer: user.brand.stripeCustomerId,
+            customer: stripeCustomerId,
             limit,
           });
         },
@@ -431,28 +450,42 @@ export class BillingService {
       });
 
       if (!user?.brandId || !user.brand) {
-        // Pas de brand = plan gratuit par défaut
+        // Pas de brand = plan FREE par défaut (SINGLE SOURCE OF TRUTH: plan-config.ts)
+        const freePlanConfig = PLAN_CONFIGS[PlanTier.FREE];
         return {
-          plan: 'starter' as const,
+          plan: 'free' as const,
+          planName: freePlanConfig.info.name,
           status: 'active' as const,
           limits: {
-            designsPerMonth: 50,
-            teamMembers: 3,
-            storageGB: 5,
-            apiAccess: false,
-            advancedAnalytics: false,
-            prioritySupport: false,
-            customExport: false,
-            whiteLabel: false,
+            ...freePlanConfig.limits,
+            renders2DPerMonth: freePlanConfig.quotas.find(q => q.metric === 'renders_2d')?.limit ?? 10,
+            renders3DPerMonth: freePlanConfig.quotas.find(q => q.metric === 'renders_3d')?.limit ?? 0,
+            aiGenerationsPerMonth: freePlanConfig.quotas.find(q => q.metric === 'ai_generations')?.limit ?? 3,
+            apiCallsPerMonth: freePlanConfig.quotas.find(q => q.metric === 'api_calls')?.limit ?? 0,
+            aiTokensPerMonth: freePlanConfig.agentLimits.monthlyTokens,
           },
           currentUsage: {
             designs: 0,
             renders2D: 0,
             renders3D: 0,
+            aiGenerations: 0,
             storageGB: 0,
             apiCalls: 0,
             teamMembers: 1,
+            aiTokens: 0,
           },
+          // FIX: Also expose as 'usage' for frontend usage page compatibility
+          usage: {
+            designs: 0,
+            renders2D: 0,
+            renders3D: 0,
+            aiGenerations: 0,
+            storageGB: 0,
+            apiCalls: 0,
+            teamMembers: 1,
+            aiTokens: 0,
+          },
+          commissionPercent: freePlanConfig.pricing.commissionPercent,
         };
       }
 
@@ -462,16 +495,16 @@ export class BillingService {
       const planFromDb = brand.plan?.toLowerCase() || brand.subscriptionPlan?.toLowerCase() || 'starter';
       
       // Mapper SubscriptionPlan enum vers PlanTier
-      const planMap: Record<string, 'starter' | 'professional' | 'business' | 'enterprise'> = {
-        'free': 'starter',
+      const planMap: Record<string, 'free' | 'starter' | 'professional' | 'business' | 'enterprise'> = {
+        'free': 'free',
         'starter': 'starter',
         'professional': 'professional',
         'business': 'business',
         'enterprise': 'enterprise',
       };
       
-      const plan: 'starter' | 'professional' | 'business' | 'enterprise' = 
-        planMap[planFromDb] || 'starter';
+      const plan: 'free' | 'starter' | 'professional' | 'business' | 'enterprise' = 
+        planMap[planFromDb] || 'free';
 
       // Déterminer le statut depuis subscriptionStatus ou Stripe
       let status: 'active' | 'trialing' | 'past_due' | 'canceled' = 'active';
@@ -554,20 +587,50 @@ export class BillingService {
         }),
       ]);
 
+      // AI usage from AIQuota table
+      const aiQuota = await this.prisma.aIQuota.findFirst({
+        where: {
+          OR: [
+            { brandId: brand.id },
+            { userId },
+          ],
+        },
+      }).catch(() => null);
+
       const currentUsage = {
         designs: designsCount,
         renders2D: brand.monthlyGenerations || 0,
         renders3D: renders3DCount._sum.count || 0,
+        aiGenerations: aiQuota?.monthlyUsed ?? 0,
         storageGB: Math.round(((storageBytesResult._sum.sizeBytes || 0) / (1024 * 1024 * 1024)) * 100) / 100,
         apiCalls: apiCallsResult._sum.count || 0,
         teamMembers: teamMembersCount,
+        aiTokens: aiQuota?.usedTokens ?? 0,
       };
+
+      // Commission rate from plan-config
+      const commissionPercent = planConfig.pricing.commissionPercent;
 
       return {
         plan,
+        planName: planConfig.info.name,
         status,
-        limits,
+        limits: {
+          ...limits,
+          renders2DPerMonth: planConfig.quotas.find(q => q.metric === 'renders_2d')?.limit ?? 10,
+          renders3DPerMonth: planConfig.quotas.find(q => q.metric === 'renders_3d')?.limit ?? 0,
+          aiGenerationsPerMonth: planConfig.quotas.find(q => q.metric === 'ai_generations')?.limit ?? 3,
+          apiCallsPerMonth: planConfig.quotas.find(q => q.metric === 'api_calls')?.limit ?? 0,
+          aiTokensPerMonth: planConfig.agentLimits.monthlyTokens,
+        },
         currentUsage,
+        // CRITICAL FIX: Also expose as 'usage' for frontend usage page compatibility
+        usage: currentUsage,
+        commissionPercent,
+        currentPeriodEnd: brand.planExpiresAt?.toISOString() || 
+                   (stripeSubscription?.current_period_end 
+                     ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
+                     : undefined),
         expiresAt: brand.planExpiresAt?.toISOString() || 
                    (stripeSubscription?.current_period_end 
                      ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
@@ -758,8 +821,9 @@ export class BillingService {
         );
         
         this.logger.log(`Proration preview: ${prorationAmount} cents (${prorationAmountFormatted})`);
-      } catch (previewError: any) {
-        this.logger.warn(`Failed to preview proration: ${previewError.message}`);
+      } catch (previewError: unknown) {
+        const msg = previewError instanceof Error ? previewError.message : String(previewError);
+        this.logger.warn(`Failed to preview proration: ${msg}`);
         // Continue anyway, Stripe will handle the proration
       }
     }
@@ -874,14 +938,15 @@ export class BillingService {
         previousPlan: currentPlanInfo.planName,
         newPlan: newPlanId,
       };
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
+      const message = stripeError instanceof Error ? stripeError.message : String(stripeError);
       this.logger.error('Failed to change plan', {
         userId,
         newPlanId,
-        error: stripeError.message,
+        error: message,
       });
       throw new InternalServerErrorException(
-        `Failed to change plan: ${stripeError.message}`
+        `Failed to change plan: ${message}`
       );
     }
   }
@@ -894,16 +959,23 @@ export class BillingService {
     const priceIdMappings: Record<string, { planName: string; interval: string }> = {};
     
     // Construire le mapping depuis la configuration
-    const plans = ['Starter', 'Professional', 'Business', 'Enterprise'];
+    // Include both 'Pro' and 'Professional' variants since config uses 'Pro' shorthand
+    const plans: Array<{ configName: string; planName: string }> = [
+      { configName: 'Starter', planName: 'starter' },
+      { configName: 'Pro', planName: 'professional' },
+      { configName: 'Professional', planName: 'professional' },
+      { configName: 'Business', planName: 'business' },
+      { configName: 'Enterprise', planName: 'enterprise' },
+    ];
     const intervals = ['Monthly', 'Yearly'];
     
     for (const plan of plans) {
       for (const interval of intervals) {
-        const configKey = `stripe.price${plan}${interval}`;
+        const configKey = `stripe.price${plan.configName}${interval}`;
         const configuredPriceId = this.configService.get<string>(configKey);
         if (configuredPriceId) {
           priceIdMappings[configuredPriceId] = {
-            planName: plan.toLowerCase(),
+            planName: plan.planName,
             interval: interval.toLowerCase(),
           };
         }
@@ -1010,8 +1082,9 @@ export class BillingService {
         prorationAmount = preview.lines.data
           .filter(line => line.proration)
           .reduce((sum, line) => sum + (line.amount || 0), 0);
-      } catch (error: any) {
-        this.logger.warn(`Preview failed: ${error.message}`);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Preview failed: ${msg}`);
       }
     }
 
@@ -1271,9 +1344,10 @@ export class BillingService {
         message: 'Aucun downgrade programmé trouvé pour cet abonnement.',
         currentPlan: user.brand.plan || 'unknown',
       };
-    } catch (error: any) {
-      this.logger.error('Failed to cancel scheduled downgrade', { userId, error: error.message });
-      throw new InternalServerErrorException(`Failed to cancel downgrade: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error('Failed to cancel scheduled downgrade', { userId, error: message });
+      throw new InternalServerErrorException(`Failed to cancel downgrade: ${message}`);
     }
   }
 
@@ -1339,9 +1413,10 @@ export class BillingService {
           cancelAt,
         };
       }
-    } catch (error: any) {
-      this.logger.error(`Failed to cancel subscription for user ${userId}: ${error.message}`);
-      throw new InternalServerErrorException(`Failed to cancel subscription: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to cancel subscription for user ${userId}: ${message}`);
+      throw new InternalServerErrorException(`Failed to cancel subscription: ${message}`);
     }
   }
 
@@ -1448,8 +1523,9 @@ export class BillingService {
         currentPlan,
         currentStatus,
       };
-    } catch (error: any) {
-      this.logger.warn('Failed to check scheduled changes', { userId, error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn('Failed to check scheduled changes', { userId, error: message });
       return {
         hasScheduledChanges: false,
         currentPlan,
@@ -1472,6 +1548,23 @@ export class BillingService {
    * BIL-10: Get trial period days for a specific plan
    * Each plan can have a different trial period
    */
+  /**
+   * Map Accept-Language or locale string to a Stripe Checkout session locale.
+   * Stripe supports: en, fr, de, es, it, etc. (see Stripe docs). Returns undefined to use Stripe default.
+   */
+  private mapLocaleToStripe(locale: string): string | undefined {
+    const tag = locale.split(/[,;]/)[0]?.trim().slice(0, 5).replace('_', '-') ?? '';
+    const code = tag.slice(0, 2).toLowerCase();
+    const allowed = ['en', 'fr', 'de', 'es', 'it', 'nl', 'pt', 'ja', 'zh', 'ar', 'he', 'pl', 'ru', 'tr', 'sv', 'fi', 'da', 'no'];
+    if (allowed.includes(code)) return code;
+    if (tag.toLowerCase().startsWith('en-gb')) return 'en-GB';
+    if (tag.toLowerCase().startsWith('zh-tw')) return 'zh-TW';
+    if (tag.toLowerCase().startsWith('zh-hk')) return 'zh-HK';
+    if (tag.toLowerCase().startsWith('fr-ca')) return 'fr-CA';
+    if (tag.toLowerCase().startsWith('pt-br')) return 'pt-BR';
+    return undefined;
+  }
+
   private getTrialDaysForPlan(planId: string): number {
     const defaultTrialDays = this.configService.get<number>('stripe.trialPeriodDays') || 14;
     const trialDaysByPlan: Record<string, number> = {

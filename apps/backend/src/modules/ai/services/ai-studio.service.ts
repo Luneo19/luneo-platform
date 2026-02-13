@@ -9,6 +9,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { AIGenerationStatus as PrismaAIGenerationStatus, AIGenerationType as PrismaAIGenerationType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -469,7 +470,11 @@ export class AIStudioService {
 
       // Vérifier si OpenAI est configuré
       if (!this.openaiApiKey || this.openaiApiKey === 'sk-placeholder') {
-        this.logger.warn('OpenAI API key not configured, using fallback optimization');
+        this.logger.warn(
+          this.openaiApiKey === 'sk-placeholder'
+            ? 'OPENAI_API_KEY is a placeholder - returning mock result'
+            : 'OpenAI API key not configured, using fallback optimization',
+        );
         return this.fallbackOptimizePrompt(prompt);
       }
 
@@ -612,7 +617,11 @@ Rules:
 
       // Vérifier si OpenAI est configuré
       if (!this.openaiApiKey || this.openaiApiKey === 'sk-placeholder') {
-        this.logger.warn('OpenAI API key not configured, using fallback suggestions');
+        this.logger.warn(
+          this.openaiApiKey === 'sk-placeholder'
+            ? 'OPENAI_API_KEY is a placeholder - returning mock result'
+            : 'OpenAI API key not configured, using fallback suggestions',
+        );
         return this.fallbackPromptSuggestions(input);
       }
 
@@ -893,10 +902,23 @@ Only return the JSON array, no other text.`;
     }
   }
 
-  /**
-   * Crée un nouveau template
-   */
-  async createTemplate(brandId: string, userId: string, dto: any) {
+  /** DTO for creating an AI template */
+  async createTemplate(
+    brandId: string,
+    userId: string,
+    dto: {
+      prompt: string;
+      name?: string;
+      category?: string;
+      subcategory?: string;
+      style?: string;
+      price?: number;
+      isPremium?: boolean;
+      tags?: string[];
+      thumbnailUrl?: string;
+      previewUrl?: string;
+    },
+  ) {
     try {
       this.logger.log(`Creating template for brand: ${brandId}`);
 
@@ -955,7 +977,22 @@ Only return the JSON array, no other text.`;
   /**
    * Met à jour un template
    */
-  async updateTemplate(id: string, brandId: string, dto: any) {
+  async updateTemplate(
+    id: string,
+    brandId: string,
+    dto: Partial<{
+      prompt: string;
+      name: string;
+      category: string;
+      subcategory: string;
+      style: string;
+      price: number;
+      isPremium: boolean;
+      tags: string[];
+      thumbnailUrl: string;
+      previewUrl: string;
+    }>,
+  ) {
     try {
       this.logger.log(`Updating template: ${id}`);
 
@@ -1058,14 +1095,14 @@ Only return the JSON array, no other text.`;
     try {
       this.logger.log(`Getting animations for brand: ${brandId}, user: ${userId}`);
 
-      const where: any = {
+      const where: Prisma.AIGenerationWhereInput = {
         brandId,
         userId,
         type: 'ANIMATION',
       };
 
       if (filters.status && filters.status !== 'all') {
-        where.status = filters.status.toUpperCase();
+        where.status = filters.status.toUpperCase() as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
       }
 
       const [animations, total] = await Promise.all([
@@ -1159,7 +1196,11 @@ Only return the JSON array, no other text.`;
   /**
    * Génère une nouvelle animation via BullMQ background job
    */
-  async generateAnimation(brandId: string, userId: string, dto: any) {
+  async generateAnimation(
+    brandId: string,
+    userId: string,
+    dto: { prompt: string; style?: string; duration?: number; fps?: number; resolution?: string },
+  ) {
     try {
       this.logger.log(`Generating animation for brand: ${brandId}, user: ${userId}`);
 
@@ -1369,7 +1410,7 @@ Only return the JSON array, no other text.`;
         quality: r.quality ?? undefined,
         credits: r.credits,
         createdAt: r.createdAt,
-      }));
+      })) as AIVersion[];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;

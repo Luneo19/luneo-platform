@@ -22,6 +22,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { endpoints, api } from '@/lib/api/client';
 import { VersionTimeline } from '@/components/versioning/VersionTimeline';
@@ -55,6 +57,7 @@ function DesignDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const designId = params.id as string;
 
   const [design, setDesign] = useState<Design | null>(null);
@@ -77,10 +80,10 @@ function DesignDetailPageContent() {
       setDesign(designData as unknown as Design);
       setCurrentVersionId((designData as unknown as Design).id);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('Error loading design', { error, designId, message: errorMessage });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -92,11 +95,12 @@ function DesignDetailPageContent() {
   const loadVersions = async () => {
     setLoadingVersions(true);
     try {
-      const result = await api.get<{ data?: { versions?: DesignVersion[] }; versions?: DesignVersion[] }>(`/api/v1/designs/${designId}/versions`, { params: { limit: 50 } });
-      const versionsData = result?.data?.versions ?? result?.versions ?? [];
+      type VersionsResponse = { data?: { versions?: DesignVersion[] }; versions?: DesignVersion[] };
+      const result = await api.get<VersionsResponse>(`/api/v1/designs/${designId}/versions`, { params: { limit: 50 } });
+      const versionsData: DesignVersion[] = result?.data?.versions ?? result?.versions ?? [];
       setVersions(versionsData);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('Error loading versions', { error, designId, message: errorMessage });
     } finally {
       setLoadingVersions(false);
@@ -112,17 +116,17 @@ function DesignDetailPageContent() {
     try {
       await api.post(`/api/v1/designs/${designId}/versions/${versionId}/restore`);
       toast({
-        title: 'Version restaurée',
-        description: 'Le design a été restauré à cette version',
+        title: t('designs.versionRestored'),
+        description: t('designs.versionRestoredDesc'),
       });
 
       // Recharger le design et les versions
       await Promise.all([loadDesign(), loadVersions()]);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('Error restoring version', { error, versionId, message: errorMessage });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -140,17 +144,17 @@ function DesignDetailPageContent() {
     try {
       await api.delete(`/api/v1/designs/${designId}/versions/${versionId}`);
       toast({
-        title: 'Version supprimée',
-        description: 'La version a été supprimée avec succès',
+        title: t('designs.versionDeleted'),
+        description: t('designs.versionDeletedDesc'),
       });
 
       // Recharger les versions
       await loadVersions();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('Error deleting version', { error, versionId, message: errorMessage });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -175,10 +179,10 @@ function DesignDetailPageContent() {
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <EmptyState
           icon={<Sparkles className="w-16 h-16" />}
-          title="Design non trouvé"
-          description="Ce design n'existe pas ou a été supprimé"
+          title={t('designs.notFound')}
+          description={t('designs.notFoundDesc')}
           action={{
-            label: 'Retour à la bibliothèque',
+            label: t('designs.backToLibrary'),
             onClick: () => router.push('/dashboard/library'),
           }}
         />
@@ -203,21 +207,21 @@ function DesignDetailPageContent() {
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white">
-              {design.name || design.prompt || 'Design sans titre'}
+              {design.name || design.prompt || t('designs.untitled')}
             </h1>
             <p className="text-sm text-gray-400 mt-1">
-              Créé le {new Date(design.created_at).toLocaleDateString('fr-FR')}
+              {t('designs.createdOn')} {new Date(design.created_at).toLocaleDateString()}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="border-gray-700">
             <Share2 className="w-4 h-4 mr-2" />
-            Partager
+            {t('designs.share')}
           </Button>
           <Button variant="outline" className="border-gray-700">
             <Download className="w-4 h-4 mr-2" />
-            Télécharger
+            {t('designs.download')}
           </Button>
         </div>
       </div>
@@ -249,18 +253,18 @@ function DesignDetailPageContent() {
         {/* Info */}
         <div className="space-y-4">
           <Card className="p-6 bg-gray-800/50 border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Informations</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{t('designs.informations')}</h3>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Statut</p>
+                <p className="text-sm text-gray-400 mb-1">{t('designs.status')}</p>
                 <p className="text-white font-medium">
-                  {design.status === 'completed' ? 'Terminé' : design.status || 'En cours'}
+                  {design.status === 'completed' ? t('designs.completed') : design.status || t('designs.inProgress')}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">Créé le</p>
+                <p className="text-sm text-gray-400 mb-1">{t('designs.createdOnLabel')}</p>
                 <p className="text-white">
-                  {new Date(design.created_at).toLocaleDateString('fr-FR', {
+                  {new Date(design.created_at).toLocaleDateString(undefined, {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -271,9 +275,9 @@ function DesignDetailPageContent() {
               </div>
               {design.updated_at && (
                 <div>
-                  <p className="text-sm text-gray-400 mb-1">Modifié le</p>
+                  <p className="text-sm text-gray-400 mb-1">{t('designs.modifiedOnLabel')}</p>
                   <p className="text-white">
-                    {new Date(design.updated_at).toLocaleDateString('fr-FR', {
+                    {new Date(design.updated_at).toLocaleDateString(undefined, {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
@@ -287,7 +291,7 @@ function DesignDetailPageContent() {
           </Card>
 
           <Card className="p-6 bg-gray-800/50 border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{t('designs.actions')}</h3>
             <div className="space-y-2">
               <Button
                 variant="outline"
@@ -295,7 +299,7 @@ function DesignDetailPageContent() {
                 onClick={() => router.push(`/dashboard/customize/${designId}`)}
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Modifier
+                {t('designs.modify')}
               </Button>
               <Button
                 variant="outline"
@@ -307,7 +311,7 @@ function DesignDetailPageContent() {
                 }}
               >
                 <Eye className="w-4 h-4 mr-2" />
-                Voir en grand
+                {t('designs.viewFullSize')}
               </Button>
               <Button
                 variant="outline"
@@ -316,14 +320,14 @@ function DesignDetailPageContent() {
                   if (imageUrl) {
                     navigator.clipboard.writeText(imageUrl);
                     toast({
-                      title: 'URL copiée',
-                      description: "L'URL de l'image a été copiée dans le presse-papiers",
+                      title: t('designs.urlCopied'),
+                      description: t('designs.urlCopiedDesc'),
                     });
                   }
                 }}
               >
                 <Copy className="w-4 h-4 mr-2" />
-                Copier l'URL
+                {t('designs.copyUrl')}
               </Button>
             </div>
           </Card>
@@ -336,10 +340,10 @@ function DesignDetailPageContent() {
           <div>
             <h2 className="text-xl font-semibold text-white flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Historique des versions
+              {t('designs.versionHistory')}
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              {versions.length} version{versions.length > 1 ? 's' : ''} disponible{versions.length > 1 ? 's' : ''}
+              {t('designs.versionsCount', { count: versions.length })}
             </p>
           </div>
           <Button
@@ -349,7 +353,7 @@ function DesignDetailPageContent() {
             className="border-gray-700"
           >
             <RotateCcw className={`w-4 h-4 mr-2 ${loadingVersions ? 'animate-spin' : ''}`} />
-            Actualiser
+            {t('designs.refresh')}
           </Button>
         </div>
 

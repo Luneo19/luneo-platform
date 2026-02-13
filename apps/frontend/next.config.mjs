@@ -19,14 +19,14 @@ if (process.env.ANALYZE === 'true') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // TECH DEBT: 252 TS errors remain (mostly type-safety, not runtime-crash).
-  // Keep ignoreBuildErrors=true to unblock Vercel deploys.
-  // TODO: Fix TS errors incrementally, then set ignoreBuildErrors to false.
+  // TypeScript errors: 0 as of Feb 2026 - strict mode enabled
   eslint: {
+    // ESLint has some rule definition issues (@typescript-eslint/no-explicit-any not found)
+    // Keep disabled during builds until ESLint config is fixed
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Note: 'standalone' output is not recommended for Vercel deployments
   // Only use standalone for Docker/Railway deployments
@@ -44,7 +44,7 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 60 * 60 * 24, // 24 hours
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // CDN Configuration

@@ -1,17 +1,21 @@
 /**
  * Hook personnalisé pour gérer les tests A/B
  */
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
-import type { Experiment, ExperimentStatus } from '../types';
+import type { Experiment, ExperimentStatus, ExperimentMetric } from '../types';
 
 export function useABTesting(
   searchTerm: string,
   filterStatus: string
 ) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
 
@@ -30,7 +34,7 @@ export function useABTesting(
         name: exp.name || 'Test sans nom',
         description: exp.description || '',
         status: (exp.status || 'draft') as ExperimentStatus,
-        metric: (exp.metric || 'conversion') as 'conversions' | 'revenue' | 'engagement' | 'clicks',
+        metric: (exp.metric === 'conversions' ? 'conversion' : (exp.metric || 'conversion')) as ExperimentMetric,
         confidence: exp.confidence || 0,
         startDate: exp.startDate ? new Date(exp.startDate as string) : new Date(),
         endDate: exp.endDate ? new Date(exp.endDate as string) : undefined,
@@ -128,13 +132,13 @@ export function useABTesting(
         prev.map((e) => (e.id === id ? { ...e, status } : e))
       );
       
-      toast({ title: 'Succès', description: 'Statut mis à jour' });
+      toast({ title: t('common.success'), description: t('common.success') });
       return { success: true };
     } catch (error: unknown) {
       logger.error('Failed to toggle experiment', { error });
-      const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour';
+      const message = getErrorDisplayMessage(error);
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });

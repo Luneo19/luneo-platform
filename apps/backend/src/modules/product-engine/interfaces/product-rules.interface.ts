@@ -10,7 +10,7 @@ export interface ProductZone {
   maxResolution?: { w: number; h: number };
   priceDeltaCents?: number;
   constraints?: ZoneConstraints;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ZoneConstraints {
@@ -25,7 +25,7 @@ export interface ZoneConstraints {
 }
 
 export interface CompatibilityRule {
-  if: Record<string, any>;
+  if: Record<string, unknown>;
   deny?: string[];
   allow?: string[];
   require?: string[];
@@ -37,7 +37,7 @@ export interface ProductRules {
   compatibilityRules?: CompatibilityRule[];
   globalConstraints?: GlobalConstraints;
   pricing?: PricingRules;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface GlobalConstraints {

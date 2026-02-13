@@ -125,7 +125,15 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
     setHoveredItem(href);
   }, []);
 
-  const NavItem = ({ item, showDescription = true }: { item: any; showDescription?: boolean }) => {
+  interface NavItemType {
+    title: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge: string | null;
+    description: string;
+  }
+
+  const NavItem = ({ item, showDescription = true }: { item: NavItemType; showDescription?: boolean }) => {
     const isActive = pathname === item.href;
     const Icon = item.icon;
 

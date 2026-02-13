@@ -10,6 +10,10 @@ export const metadata: Metadata = generateSEOMetadata({
   keywords: ['industries', 'mode', 'joaillerie', 'sport', 'automobile', 'personnalisation', 'Luneo'],
   canonicalUrl: `${SEO_BASE_URL}/industries`,
   ogType: 'website',
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/industries` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/industries` },
+  ],
 });
 
 export default function IndustriesLayout({ children }: { children: ReactNode }) {

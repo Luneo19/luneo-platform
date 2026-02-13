@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsageMeteringService } from './usage-metering.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
 import { UsageMetricType } from '../interfaces/usage.interface';
 
@@ -26,6 +27,7 @@ describe('UsageMeteringService', () => {
     get: jest.fn(),
     set: jest.fn(),
     delSimple: jest.fn(),
+    getSimple: jest.fn(),
   };
 
   const mockQueue = {
@@ -44,6 +46,7 @@ describe('UsageMeteringService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: SmartCacheService, useValue: mockCache },
         { provide: getQueueToken('usage-metering'), useValue: mockQueue },
+        { provide: ConfigService, useValue: { get: jest.fn((k: string) => (k === 'STRIPE_SECRET_KEY' ? 'sk_test_mock' : undefined)) } },
       ],
     }).compile();
 
@@ -116,12 +119,14 @@ describe('UsageMeteringService', () => {
       }
     });
 
-    it('should throw error when queue add fails', async () => {
+    it('should complete when queue add fails (queue errors are non-blocking)', async () => {
       mockQueue.add.mockRejectedValueOnce(new Error('Queue error'));
 
-      await expect(
-        service.recordUsage(mockBrandId, mockMetric, 1)
-      ).rejects.toThrow('Queue error');
+      const result = await service.recordUsage(mockBrandId, mockMetric, 1);
+
+      expect(result).toBeDefined();
+      expect(result.brandId).toBe(mockBrandId);
+      expect(result.metric).toBe(mockMetric);
     });
   });
 
@@ -133,7 +138,7 @@ describe('UsageMeteringService', () => {
 
     it('should return cached usage if available', async () => {
       const cachedUsage = { ai_generations: 50, renders_2d: 100 };
-      mockCache.get.mockResolvedValue(JSON.stringify(cachedUsage));
+      mockCache.getSimple.mockResolvedValue(JSON.stringify(cachedUsage));
 
       const result = await service.getCurrentUsage(mockBrandId);
 
@@ -142,7 +147,7 @@ describe('UsageMeteringService', () => {
     });
 
     it('should fetch from DB and aggregate when cache miss', async () => {
-      mockCache.get.mockResolvedValue(null);
+      mockCache.getSimple.mockResolvedValue(null);
       mockPrisma.usageMetric.findMany.mockResolvedValue([
         { metric: 'ai_generations', value: 10 },
         { metric: 'ai_generations', value: 15 },
@@ -161,7 +166,7 @@ describe('UsageMeteringService', () => {
     });
 
     it('should return empty object when no usage records', async () => {
-      mockCache.get.mockResolvedValue(null);
+      mockCache.getSimple.mockResolvedValue(null);
       mockPrisma.usageMetric.findMany.mockResolvedValue([]);
 
       const result = await service.getCurrentUsage(mockBrandId);
@@ -170,7 +175,7 @@ describe('UsageMeteringService', () => {
     });
 
     it('should query only current month records', async () => {
-      mockCache.get.mockResolvedValue(null);
+      mockCache.getSimple.mockResolvedValue(null);
       mockPrisma.usageMetric.findMany.mockResolvedValue([]);
 
       await service.getCurrentUsage(mockBrandId);
@@ -192,7 +197,7 @@ describe('UsageMeteringService', () => {
     });
 
     it('should throw error when DB query fails', async () => {
-      mockCache.get.mockResolvedValue(null);
+      mockCache.getSimple.mockResolvedValue(null);
       mockPrisma.usageMetric.findMany.mockRejectedValue(new Error('DB error'));
 
       await expect(service.getCurrentUsage(mockBrandId)).rejects.toThrow('DB error');
@@ -229,7 +234,7 @@ describe('UsageMeteringService', () => {
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 
-    it('should throw error if any record fails', async () => {
+    it('should complete even when queue fails (queue errors are non-blocking)', async () => {
       mockQueue.add.mockResolvedValueOnce(undefined);
       mockQueue.add.mockRejectedValueOnce(new Error('Queue error'));
 
@@ -240,7 +245,7 @@ describe('UsageMeteringService', () => {
 
       await expect(
         service.batchRecordUsage(mockBrandId, metrics)
-      ).rejects.toThrow('Queue error');
+      ).resolves.toBeUndefined();
     });
   });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
@@ -23,22 +24,22 @@ import {
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-// Navigation links
+// Navigation links - use labelKey for i18n, label for brand names
 const footerLinks = {
   product: {
-    title: 'Produit',
+    titleKey: 'components.footer.product',
     links: [
-      { label: 'Customizer', href: '/solutions/customizer' },
-      { label: 'Configurateur 3D', href: '/solutions/configurator-3d' },
-      { label: 'Virtual Try-On', href: '/solutions/virtual-try-on' },
-      { label: 'AI Design Hub', href: '/solutions/ai-design-hub' },
-      { label: 'Tarifs', href: '/pricing' },
-      { label: 'Changelog', href: '/changelog' },
-      { label: 'Roadmap', href: '/roadmap', badge: 'Nouveau' },
+      { labelKey: 'components.footer.customizer', href: '/solutions/customizer' },
+      { labelKey: 'components.footer.configurator3d', href: '/solutions/configurator-3d' },
+      { labelKey: 'components.footer.virtualTryOn', href: '/solutions/virtual-try-on' },
+      { labelKey: 'components.footer.aiDesignHub', href: '/solutions/ai-design-hub' },
+      { labelKey: 'components.footer.pricing', href: '/pricing' },
+      { labelKey: 'components.footer.changelog', href: '/changelog' },
+      { labelKey: 'components.footer.roadmap', href: '/roadmap', badgeKey: 'components.footer.new' },
     ],
   },
   integrations: {
-    title: 'Intégrations',
+    titleKey: 'components.footer.integrations',
     links: [
       { label: 'Shopify', href: '/integrations/shopify' },
       { label: 'WooCommerce', href: '/integrations/woocommerce' },
@@ -49,45 +50,47 @@ const footerLinks = {
     ],
   },
   industries: {
-    title: 'Industries',
+    titleKey: 'components.footer.industries',
     links: [
-      { label: 'Mode & Textile', href: '/industries/fashion' },
-      { label: 'Mobilier', href: '/industries/furniture' },
-      { label: 'Automobile', href: '/industries/automotive' },
-      { label: 'Joaillerie', href: '/industries/jewelry' },
-      { label: 'Sports', href: '/industries/sports' },
-      { label: 'Électronique', href: '/industries/electronics' },
+      { labelKey: 'components.footer.fashion', href: '/industries/fashion' },
+      { labelKey: 'components.footer.furniture', href: '/industries/furniture' },
+      { labelKey: 'components.footer.automotive', href: '/industries/automotive' },
+      { labelKey: 'components.footer.jewelry', href: '/industries/jewelry' },
+      { labelKey: 'components.footer.sports', href: '/industries/sports' },
+      { labelKey: 'components.footer.electronics', href: '/industries/electronics' },
     ],
   },
   resources: {
-    title: 'Ressources',
+    titleKey: 'components.footer.resources',
     links: [
-      { label: 'Documentation', href: '/help/documentation' },
-      { label: 'Guides', href: '/docs/guides' },
-      { label: 'Blog', href: '/blog' },
-      { label: 'Webinaires', href: '/webinars' },
-      { label: 'Case Studies', href: '/case-studies' },
-      { label: 'Templates', href: '/templates/t-shirts' },
+      { labelKey: 'components.footer.documentation', href: '/help/documentation' },
+      { labelKey: 'components.footer.guides', href: '/docs/guides' },
+      { labelKey: 'components.footer.blog', href: '/blog' },
+      { labelKey: 'components.footer.webinars', href: '/webinars' },
+      { labelKey: 'components.footer.caseStudies', href: '/case-studies' },
+      { labelKey: 'components.footer.templates', href: '/templates/t-shirts' },
     ],
   },
   company: {
-    title: 'Entreprise',
+    titleKey: 'components.footer.company',
     links: [
-      { label: 'À propos', href: '/about' },
-      { label: 'Carrières', href: '/careers', badge: '3 postes' },
-      { label: 'Presse', href: '/press' },
-      { label: 'Partenaires', href: '/partners' },
-      { label: 'Contact', href: '/contact' },
+      { labelKey: 'components.footer.about', href: '/about' },
+      { labelKey: 'components.footer.careers', href: '/careers', badgeKey: 'components.footer.jobsCount', badgeParams: { count: 3 } },
+      { labelKey: 'components.footer.press', href: '/press' },
+      { labelKey: 'components.footer.partners', href: '/partners' },
+      { labelKey: 'components.footer.contact', href: '/contact' },
     ],
   },
   legal: {
-    title: 'Légal',
+    titleKey: 'components.footer.legal',
     links: [
-      { label: 'CGU', href: '/legal/terms' },
-      { label: 'Confidentialité', href: '/legal/privacy' },
-      { label: 'Cookies', href: '/legal/cookies' },
-      { label: 'RGPD', href: '/legal/gdpr' },
-      { label: 'Sécurité', href: '/security' },
+      { labelKey: 'components.footer.terms', href: '/legal/terms' },
+      { labelKey: 'components.footer.privacy', href: '/legal/privacy' },
+      { labelKey: 'components.footer.cookies', href: '/legal/cookies' },
+      { labelKey: 'components.footer.gdpr', href: '/legal/gdpr' },
+      { label: 'nDSG (Suisse)', href: '/legal/ndsg' },
+      { labelKey: 'components.footer.dpa', href: '/legal/dpa' },
+      { labelKey: 'components.footer.security', href: '/security' },
     ],
   },
 };
@@ -100,17 +103,22 @@ const socialLinks = [
   { name: 'YouTube', icon: <Youtube className="w-5 h-5" />, href: 'https://youtube.com/@luneo' },
 ];
 
-// Trust badges
+// Trust badges - labels use i18n keys
 const trustBadges = [
-  { label: 'RGPD Compliant', icon: <Shield className="w-4 h-4" /> },
-  { label: 'SOC 2 Type II', icon: <Shield className="w-4 h-4" /> },
-  { label: 'CDN Europe', icon: <Globe className="w-4 h-4" /> },
+  { labelKey: 'components.footer.rgpdCompliant', icon: <Shield className="w-4 h-4" /> },
+  { labelKey: 'components.footer.soc2', icon: <Shield className="w-4 h-4" /> },
+  { labelKey: 'components.footer.cdnEurope', icon: <Globe className="w-4 h-4" /> },
 ];
 
 function FooterContent() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+
+  const getLinkLabel = (link: { labelKey?: string; label?: string }) => (link.labelKey ? t(link.labelKey) : link.label!);
+  const getLinkBadge = (link: { badgeKey?: string; badgeParams?: Record<string, number> }) =>
+    link.badgeKey ? t(link.badgeKey, link.badgeParams as Record<string, string | number>) : null;
 
   const handleSubscribe = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,10 +149,10 @@ function FooterContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-2xl font-bold text-white mb-2">
-                Restez informé des dernières nouveautés
+                {t('components.footer.newsletterTitle')}
               </h3>
               <p className="text-slate-400">
-                Recevez nos conseils, tutoriels et mises à jour produit. Pas de spam, promis.
+                {t('components.footer.newsletterDesc')}
               </p>
             </div>
             <div>
@@ -155,7 +163,7 @@ function FooterContent() {
                     type="email"
                     value={email}
                     onChange={handleEmailChange}
-                    placeholder="votre@email.com"
+                    placeholder={t('components.footer.emailPlaceholder')}
                     className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                     disabled={subscribing}
                   />
@@ -170,11 +178,11 @@ function FooterContent() {
                   ) : subscribed ? (
                     <>
                       <Check className="w-5 h-5 mr-1" />
-                      Inscrit !
+                      {t('components.footer.subscribed')}
                     </>
                   ) : (
                     <>
-                      S&apos;inscrire
+                      {t('components.footer.subscribe')}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
@@ -197,7 +205,7 @@ function FooterContent() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
           {/* Product */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{footerLinks.product.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.product.titleKey)}</h4>
             <ul className="space-y-2.5">
               {footerLinks.product.links.map((link) => (
                 <li key={link.href}>
@@ -205,10 +213,10 @@ function FooterContent() {
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
                   >
-                    {link.label}
-                    {link.badge && (
+                    {getLinkLabel(link)}
+                    {'badgeKey' in link && getLinkBadge(link) && (
                       <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-[10px] rounded-full">
-                        {link.badge}
+                        {getLinkBadge(link)}
                       </span>
                     )}
                   </Link>
@@ -219,7 +227,7 @@ function FooterContent() {
 
           {/* Integrations */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{footerLinks.integrations.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.integrations.titleKey)}</h4>
             <ul className="space-y-2.5">
               {footerLinks.integrations.links.map((link) => (
                 <li key={link.href}>
@@ -227,7 +235,7 @@ function FooterContent() {
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
-                    {link.label}
+                    {getLinkLabel(link)}
                   </Link>
                 </li>
               ))}
@@ -236,7 +244,7 @@ function FooterContent() {
 
           {/* Industries */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{footerLinks.industries.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.industries.titleKey)}</h4>
             <ul className="space-y-2.5">
               {footerLinks.industries.links.map((link) => (
                 <li key={link.href}>
@@ -244,7 +252,7 @@ function FooterContent() {
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
-                    {link.label}
+                    {getLinkLabel(link)}
                   </Link>
                 </li>
               ))}
@@ -253,7 +261,7 @@ function FooterContent() {
 
           {/* Resources */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{footerLinks.resources.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.resources.titleKey)}</h4>
             <ul className="space-y-2.5">
               {footerLinks.resources.links.map((link) => (
                 <li key={link.href}>
@@ -261,7 +269,7 @@ function FooterContent() {
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
-                    {link.label}
+                    {getLinkLabel(link)}
                   </Link>
                 </li>
               ))}
@@ -270,7 +278,7 @@ function FooterContent() {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{footerLinks.company.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.company.titleKey)}</h4>
             <ul className="space-y-2.5">
               {footerLinks.company.links.map((link) => (
                 <li key={link.href}>
@@ -278,10 +286,10 @@ function FooterContent() {
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
                   >
-                    {link.label}
-                    {link.badge && (
+                    {getLinkLabel(link)}
+                    {'badgeKey' in link && getLinkBadge(link) && (
                       <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded-full">
-                        {link.badge}
+                        {getLinkBadge(link)}
                       </span>
                     )}
                   </Link>
@@ -292,7 +300,7 @@ function FooterContent() {
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{footerLinks.legal.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.legal.titleKey)}</h4>
             <ul className="space-y-2.5">
               {footerLinks.legal.links.map((link) => (
                 <li key={link.href}>
@@ -300,7 +308,7 @@ function FooterContent() {
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors"
                   >
-                    {link.label}
+                    {getLinkLabel(link)}
                   </Link>
                 </li>
               ))}
@@ -326,11 +334,11 @@ function FooterContent() {
                 </Link>
               </div>
               <p className="text-sm text-slate-400 mb-4 max-w-sm">
-                La plateforme de personnalisation produit n°1 en Europe. Customizer, Configurateur 3D et Virtual Try-On pour e-commerce.
+                {t('components.footer.platformDesc')}
               </p>
               <div className="flex items-center gap-3 text-sm text-slate-500">
                 <MapPin className="w-4 h-4" />
-                <span>Paris, France</span>
+                <span>{t('components.footer.paris')}</span>
               </div>
             </div>
 
@@ -338,11 +346,11 @@ function FooterContent() {
             <div className="flex flex-wrap justify-center gap-4">
               {trustBadges.map((badge) => (
                 <div
-                  key={badge.label}
+                  key={badge.labelKey}
                   className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg"
                 >
                   <div className="text-green-400">{badge.icon}</div>
-                  <span className="text-xs text-slate-400">{badge.label}</span>
+                  <span className="text-xs text-slate-400">{t(badge.labelKey)}</span>
                 </div>
               ))}
             </div>
@@ -371,22 +379,22 @@ function FooterContent() {
         <div className="border-t border-slate-800 pt-6 mt-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-slate-500">
-              © {currentYear} Luneo. Tous droits réservés.
+              © {currentYear} Luneo Tech. {t('components.footer.allRightsReserved')}
             </p>
             <div className="flex items-center gap-6">
               <Link href="/legal/terms" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                Conditions
+                {t('components.footer.termsLink')}
               </Link>
               <Link href="/legal/privacy" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                Confidentialité
+                {t('components.footer.privacyLinkLabel')}
               </Link>
               <Link href="/legal/cookies" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                Cookies
+                {t('components.footer.cookiesLink')}
               </Link>
               <div className="flex items-center gap-1 text-sm text-slate-500">
-                <span>Made with</span>
+                <span>{t('components.footer.madeWith')}</span>
                 <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
-                <span>in Paris</span>
+                <span>{t('components.footer.inParis')}</span>
               </div>
             </div>
           </div>
@@ -399,13 +407,13 @@ function FooterContent() {
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-slate-500">Tous les systèmes opérationnels</span>
+              <span className="text-slate-500">{t('components.footer.allSystemsOperational')}</span>
             </div>
             <Link
               href="/status"
               className="text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors"
             >
-              Page statut
+              {t('components.footer.statusPage')}
               <ExternalLink className="w-3 h-3" />
             </Link>
           </div>

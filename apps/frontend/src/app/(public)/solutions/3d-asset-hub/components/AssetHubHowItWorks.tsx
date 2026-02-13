@@ -26,7 +26,8 @@ export function AssetHubHowItWorks() {
 
   const handleOptimizeDemo = () => {
     setIsOptimizing(true);
-    setTimeout(() => setIsOptimizing(false), 3000);
+    // Demo simulation - replace with real API in production
+    setTimeout(() => setIsOptimizing(false), 1000);
   };
 
   return (

@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
@@ -27,6 +29,7 @@ interface CreditPacksSectionProps {
 }
 
 export function CreditPacksSection({ className }: CreditPacksSectionProps) {
+  const { t } = useI18n();
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -59,8 +62,8 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
   const handleBuy = async (pack: Pack) => {
     if (!pack.stripePriceId && !pack.id) {
       toast({
-        title: 'Erreur',
-        description: 'Pack non configuré. Veuillez contacter le support.',
+        title: t('common.error'),
+        description: t('creditsToast.packNotConfigured'),
         variant: 'destructive',
       });
       return;
@@ -73,16 +76,16 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('URL de paiement non reçue');
+        throw new Error(t('creditsToast.paymentUrlNotReceived'));
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Échec de l\'achat. Veuillez réessayer.';
+      const message = getErrorDisplayMessage(error);
       logger.error('Purchase failed', error instanceof Error ? error : new Error(String(error)), {
         component: 'CreditPacksSection',
         packId: pack.id,
       });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });

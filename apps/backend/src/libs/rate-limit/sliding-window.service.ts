@@ -110,7 +110,7 @@ export class SlidingWindowRateLimitService {
         redisClient.zremrangebyscore(key, 0, windowStart),
         500,
         0
-      ).catch(() => {}); // Ignore errors
+      ).catch((err) => this.logger.debug('Redis cleanup error', err instanceof Error ? err.message : String(err)));
 
       // Count current requests in the window (timeout 500ms)
       const count = await withTimeout(
@@ -151,14 +151,14 @@ export class SlidingWindowRateLimitService {
         redisClient.zadd(key, now, `${now}-${Math.random()}`),
         500,
         0
-      ).catch(() => {}); // Ignore errors
+      ).catch((err) => this.logger.debug('Redis cleanup error', err instanceof Error ? err.message : String(err)));
 
       // Set expiration on the key (timeout 500ms)
       await withTimeout(
         redisClient.expire(key, window + 60),
         500,
         0
-      ).catch(() => {}); // Ignore errors
+      ).catch((err) => this.logger.debug('Redis cleanup error', err instanceof Error ? err.message : String(err)));
 
       // Calculate remaining requests
       const remaining = Math.max(0, limit - count - 1);

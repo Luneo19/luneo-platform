@@ -13,6 +13,9 @@ import { EmailService } from '../email/email.service';
 import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
+import { TokenService } from './services/token.service';
+import { OAuthService } from './services/oauth.service';
+import { ReferralService } from '../referral/referral.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { testFixtures } from '@/common/test/test-setup';
 import { UserRole } from '@prisma/client';
@@ -35,6 +38,8 @@ describe('AuthService', () => {
   let bruteForceService: jest.Mocked<BruteForceService>;
   let twoFactorService: jest.Mocked<TwoFactorService>;
   let captchaService: jest.Mocked<CaptchaService>;
+  let tokenService: jest.Mocked<TokenService>;
+  let oauthService: jest.Mocked<OAuthService>;
 
   beforeEach(async () => {
     const mockEmailService = {
@@ -42,6 +47,7 @@ describe('AuthService', () => {
       sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
       queueConfirmationEmail: jest.fn().mockResolvedValue({ jobId: 'job_1' }),
       queuePasswordResetEmail: jest.fn().mockResolvedValue({ jobId: 'job_1' }),
+      queueWelcomeEmail: jest.fn().mockResolvedValue({ jobId: 'job_1' }),
     };
 
     const mockBruteForceService = {
@@ -64,6 +70,21 @@ describe('AuthService', () => {
     const mockCaptchaService = {
       verifyToken: jest.fn().mockResolvedValue(true),
       isEnabled: jest.fn().mockReturnValue(true),
+    };
+
+    const mockTokenService = {
+      generateTokens: jest.fn().mockResolvedValue({ accessToken: 'access_token', refreshToken: 'refresh_token' }),
+      saveRefreshToken: jest.fn().mockResolvedValue(undefined),
+      refreshToken: jest.fn(),
+      logout: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const mockOAuthService = {
+      revokeProviderTokens: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const mockReferralService = {
+      recordReferral: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -140,6 +161,18 @@ describe('AuthService', () => {
           provide: CaptchaService,
           useValue: mockCaptchaService,
         },
+        {
+          provide: TokenService,
+          useValue: mockTokenService,
+        },
+        {
+          provide: OAuthService,
+          useValue: mockOAuthService,
+        },
+        {
+          provide: ReferralService,
+          useValue: mockReferralService,
+        },
       ],
     }).compile();
 
@@ -151,12 +184,25 @@ describe('AuthService', () => {
     bruteForceService = module.get(BruteForceService);
     twoFactorService = module.get(TwoFactorService);
     captchaService = module.get(CaptchaService);
+    tokenService = module.get(TokenService);
+    oauthService = module.get(OAuthService);
+
+    // Re-apply token service defaults (cleared by clearAllMocks in afterEach)
+    tokenService.generateTokens.mockResolvedValue({ accessToken: 'access_token', refreshToken: 'refresh_token' });
+    tokenService.saveRefreshToken.mockResolvedValue(undefined);
+    tokenService.logout.mockResolvedValue(undefined as any);
+    oauthService.revokeProviderTokens.mockResolvedValue(undefined);
 
     // Setup default mocks
     mockedHashPassword.mockResolvedValue('hashed_password');
     mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
     jwtService.sign.mockReturnValue('mock_token');
     (jwtService.signAsync as jest.Mock).mockResolvedValue('mock_token');
+    (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      sub: testFixtures.user.id,
+      email: testFixtures.user.email,
+      type: 'email-verification',
+    });
   });
 
   afterEach(() => {
@@ -289,7 +335,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should generate tokens after signup', async () => {
+    it('should generate tokens after signup (via TokenService)', async () => {
       // Arrange
       (prismaService.user.findUnique as any).mockResolvedValue(null);
       (prismaService.user.create as any).mockResolvedValue({
@@ -298,25 +344,33 @@ describe('AuthService', () => {
         brand: testFixtures.brand,
       } as any);
       (prismaService.userQuota.create as any).mockResolvedValue({} as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
-      jwtService.sign.mockReturnValue('access_token');
+      tokenService.generateTokens.mockResolvedValue({
+        accessToken: 'signed_access_token',
+        refreshToken: 'signed_refresh_token',
+      });
 
       // Act
       const result = await service.signup(signupDto);
 
       // Assert
-      expect(result.accessToken).toBeDefined();
-      expect(result.refreshToken).toBeDefined();
-      expect(jwtService.signAsync).toHaveBeenCalled();
+      expect(result.accessToken).toBe('signed_access_token');
+      expect(result.refreshToken).toBe('signed_refresh_token');
+      expect(tokenService.generateTokens).toHaveBeenCalledWith(
+        testFixtures.user.id,
+        testFixtures.user.email,
+        expect.any(String),
+      );
+      expect(tokenService.saveRefreshToken).toHaveBeenCalledWith(
+        testFixtures.user.id,
+        'signed_refresh_token',
+      );
     });
 
     it('should queue verification email after signup (when not skipped)', async () => {
-      // Temporarily disable SKIP_EMAIL_VERIFICATION for this test
       const originalSkipEmail = process.env.SKIP_EMAIL_VERIFICATION;
       delete process.env.SKIP_EMAIL_VERIFICATION;
 
       try {
-        // Arrange
         (prismaService.user.findUnique as any).mockResolvedValue(null);
         (prismaService.user.create as any).mockResolvedValue({
           ...testFixtures.user,
@@ -324,16 +378,12 @@ describe('AuthService', () => {
           brand: testFixtures.brand,
         } as any);
         (prismaService.userQuota.create as any).mockResolvedValue({} as any);
-        (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
         (jwtService.signAsync as jest.Mock).mockResolvedValue('verification-token');
 
-        // Act
         await service.signup(signupDto);
 
-        // Assert
         expect(emailService.queueConfirmationEmail).toHaveBeenCalled();
       } finally {
-        // Restore original value
         if (originalSkipEmail !== undefined) {
           process.env.SKIP_EMAIL_VERIFICATION = originalSkipEmail;
         }
@@ -366,7 +416,7 @@ describe('AuthService', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.user.email).toBe(loginDto.email);
+      expect(result.user?.email).toBe(loginDto.email);
       expect(mockedVerifyPassword).toHaveBeenCalledWith(loginDto.password, 'hashed_password');
       expect(bruteForceService.checkAndThrow).toHaveBeenCalledWith(loginDto.email, clientIp);
       expect(bruteForceService.resetAttempts).toHaveBeenCalledWith(loginDto.email, clientIp);
@@ -539,111 +589,61 @@ describe('AuthService', () => {
       refreshToken: 'valid_refresh_token',
     };
 
-    it('should refresh tokens with valid refresh token (rotation)', async () => {
-      const mockTokenRecord = {
-        id: 'token_123',
-        token: 'valid_refresh_token',
-        userId: testFixtures.user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        usedAt: null,
-        revokedAt: null,
-        family: 'family_123',
-        user: {
-          ...testFixtures.user,
-          brand: testFixtures.brand,
-        },
+    it('should refresh tokens with valid refresh token (delegates to TokenService)', async () => {
+      const expectedResult = {
+        accessToken: 'new_access_token',
+        refreshToken: 'new_refresh_token',
+        user: { ...testFixtures.user, role: testFixtures.user.role as UserRole, brand: testFixtures.brand },
       };
-
-      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
-        sub: testFixtures.user.id,
-        email: testFixtures.user.email,
-      });
-      (prismaService.refreshToken.findUnique as any).mockResolvedValue(mockTokenRecord);
-      (jwtService.signAsync as jest.Mock)
-        .mockResolvedValueOnce('new_access_token')
-        .mockResolvedValueOnce('new_refresh_token');
-      (prismaService.refreshToken.update as any).mockResolvedValue({});
-      (prismaService.refreshToken.create as any).mockResolvedValue({});
+      tokenService.refreshToken.mockResolvedValue(expectedResult as any);
 
       const result = await service.refreshToken(refreshTokenDto);
 
       expect(result).toBeDefined();
-      expect(result.accessToken).toBeDefined();
-      expect(result.refreshToken).toBeDefined();
+      expect(result.accessToken).toBe('new_access_token');
+      expect(result.refreshToken).toBe('new_refresh_token');
       expect(result.user.email).toBe(testFixtures.user.email);
-      expect(jwtService.verifyAsync).toHaveBeenCalledWith(
-        refreshTokenDto.refreshToken,
-        expect.objectContaining({ secret: 'test-refresh-secret' }),
-      );
-      expect(prismaService.refreshToken.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'token_123' },
-          data: expect.objectContaining({ usedAt: expect.any(Date) }),
-        }),
-      );
-      expect(prismaService.refreshToken.create).toHaveBeenCalled();
+      expect(tokenService.refreshToken).toHaveBeenCalledWith(refreshTokenDto);
     });
 
     it('should throw UnauthorizedException if refresh token is invalid', async () => {
-      // Arrange
-      jwtService.verifyAsync = jest.fn().mockRejectedValue(new Error('Invalid token'));
+      tokenService.refreshToken.mockRejectedValue(new UnauthorizedException('Invalid refresh token'));
 
-      // Act & Assert
       await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
+      expect(tokenService.refreshToken).toHaveBeenCalledWith(refreshTokenDto);
     });
 
     it('should throw UnauthorizedException if token record not found', async () => {
-      // Arrange
-      jwtService.verifyAsync = jest.fn().mockResolvedValue({ 
-        sub: testFixtures.user.id 
-      });
-      (prismaService.refreshToken.findUnique as any).mockResolvedValue(null);
+      tokenService.refreshToken.mockRejectedValue(new UnauthorizedException('Invalid refresh token'));
 
-      // Act & Assert
       await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if token is expired', async () => {
-      const expiredTokenRecord = {
-        id: 'token_123',
-        token: 'expired_refresh_token',
-        userId: testFixtures.user.id,
-        expiresAt: new Date(Date.now() - 1000),
-        user: testFixtures.user,
-      };
-
-      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({ sub: testFixtures.user.id });
-      (prismaService.refreshToken.findUnique as any).mockResolvedValue(expiredTokenRecord);
+      tokenService.refreshToken.mockRejectedValue(new UnauthorizedException('Token expired'));
 
       await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should revoke token family and throw when refresh token reuse detected', async () => {
-      const reusedTokenRecord = {
-        id: 'token_123',
-        token: 'valid_refresh_token',
-        userId: testFixtures.user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        usedAt: new Date(), // Already used
-        revokedAt: null,
-        family: 'family_123',
-        user: { ...testFixtures.user, brand: testFixtures.brand },
-      };
-
-      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
-        sub: testFixtures.user.id,
-        email: testFixtures.user.email,
-      });
-      (prismaService.refreshToken.findUnique as any).mockResolvedValue(reusedTokenRecord);
-      (prismaService.refreshToken.updateMany as any).mockResolvedValue({ count: 1 });
+    it('should throw when refresh token reuse detected (TokenService revokes family)', async () => {
+      tokenService.refreshToken.mockRejectedValue(
+        new UnauthorizedException('Refresh token has been revoked. Please login again.'),
+      );
 
       await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
-      expect(prismaService.refreshToken.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.anything(),
-          data: expect.objectContaining({ revokedAt: expect.any(Date) }),
-        }),
-      );
+    });
+  });
+
+  describe('logout', () => {
+    it('should invalidate refresh token and revoke OAuth provider tokens', async () => {
+      const userId = testFixtures.user.id;
+      tokenService.logout.mockResolvedValue(undefined as any);
+      oauthService.revokeProviderTokens.mockResolvedValue(undefined);
+
+      await service.logout(userId);
+
+      expect(oauthService.revokeProviderTokens).toHaveBeenCalledWith(userId);
+      expect(tokenService.logout).toHaveBeenCalledWith(userId);
     });
   });
 
@@ -776,8 +776,7 @@ describe('AuthService', () => {
     });
 
     it('should delete all refresh tokens after password reset', async () => {
-      // Arrange
-      jwtService.verifyAsync = jest.fn().mockResolvedValue({
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
         sub: testFixtures.user.id,
         email: testFixtures.user.email,
         type: 'password-reset',
@@ -791,13 +790,21 @@ describe('AuthService', () => {
       (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
       (prismaService.refreshToken.deleteMany as any).mockResolvedValue({} as any);
 
-      // Act
       await service.resetPassword(resetPasswordDto);
 
-      // Assert
       expect(prismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
         where: { userId: testFixtures.user.id },
       });
+    });
+
+    it('should throw BadRequestException when reset token is expired or invalid', async () => {
+      (jwtService.verifyAsync as jest.Mock).mockRejectedValue(new Error('jwt expired'));
+
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(BadRequestException);
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(
+        'Invalid or expired reset token',
+      );
+      expect(prismaService.user.update).not.toHaveBeenCalled();
     });
   });
 

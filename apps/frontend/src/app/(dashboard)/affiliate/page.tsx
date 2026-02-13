@@ -40,10 +40,13 @@ const tiers = [
   { min: 30, max: Infinity, label: 'Diamant', rate: 35, icon: '💎' },
 ];
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 function ReferralDashboardContent() {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
@@ -53,6 +56,7 @@ function ReferralDashboardContent() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<{ success?: boolean; data?: { stats?: ReferralStats; referrals?: Referral[] } }>('/api/v1/referral/stats');
 
@@ -60,7 +64,6 @@ function ReferralDashboardContent() {
         setStats(data.data.stats ?? null);
         setReferrals(data.data.referrals ?? []);
       } else {
-        // Empty state - no data yet
         setStats({
           totalReferrals: 0,
           activeReferrals: 0,
@@ -72,8 +75,9 @@ function ReferralDashboardContent() {
         });
         setReferrals([]);
       }
-    } catch (error) {
-      logger.error('Error loading referral data', { error });
+    } catch (err) {
+      logger.error('Error loading referral data', { error: err });
+      setError('Erreur lors du chargement des données parrainage.');
     } finally {
       setLoading(false);
     }
@@ -81,7 +85,7 @@ function ReferralDashboardContent() {
 
   const handleCopy = () => {
     if (!stats) return;
-    navigator.clipboard.writeText(`https://luneo.app/ref/${stats.referralCode}`);
+    navigator.clipboard.writeText(`${APP_URL}/ref/${stats.referralCode}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -91,7 +95,6 @@ function ReferralDashboardContent() {
     setWithdrawing(true);
     try {
       await api.post('/api/v1/referral/withdraw');
-      // Simuler le retrait
       setStats((prev) => prev ? { ...prev, pendingCommissions: 0, paidCommissions: prev.paidCommissions + prev.pendingCommissions } : null);
     } catch (error) {
       logger.error('Error withdrawing', { error });
@@ -101,15 +104,26 @@ function ReferralDashboardContent() {
   };
 
   const shareLinks = stats ? {
-    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent('Découvrez Luneo, la plateforme de personnalisation 3D ! Utilisez mon code pour 20% de réduction : ')}&url=${encodeURIComponent(`https://luneo.app/ref/${stats.referralCode}`)}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://luneo.app/ref/${stats.referralCode}`)}`,
-    email: `mailto:?subject=${encodeURIComponent('Découvrez Luneo')}&body=${encodeURIComponent(`Salut ! Je te recommande Luneo pour la personnalisation 3D. Utilise mon lien pour 20% de réduction : https://luneo.app/ref/${stats.referralCode}`)}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent('Découvrez Luneo, la plateforme de personnalisation 3D ! Utilisez mon code pour 20% de réduction : ')}&url=${encodeURIComponent(`${APP_URL}/ref/${stats.referralCode}`)}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${APP_URL}/ref/${stats.referralCode}`)}`,
+    email: `mailto:?subject=${encodeURIComponent('Découvrez Luneo')}&body=${encodeURIComponent(`Salut ! Je te recommande Luneo pour la personnalisation 3D. Utilise mon lien pour 20% de réduction : ${APP_URL}/ref/${stats.referralCode}`)}`,
   } : {};
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-red-400 mb-4">{error}</p>
+        <Button variant="outline" onClick={loadData} className="border-cyan-500/50">
+          Réessayer
+        </Button>
       </div>
     );
   }
@@ -228,7 +242,7 @@ function ReferralDashboardContent() {
         <h3 className="text-white font-semibold mb-4">Votre lien de parrainage</h3>
         <div className="flex gap-2 mb-4">
           <Input
-            value={`https://luneo.app/ref/${stats.referralCode}`}
+            value={`${APP_URL}/ref/${stats.referralCode}`}
             readOnly
             className="flex-1 bg-gray-900 border-gray-600 text-gray-300 font-mono text-sm"
           />

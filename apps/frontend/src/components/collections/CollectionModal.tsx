@@ -6,6 +6,16 @@ import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Input } from '@/components/ui/input';
 import { X, Palette, Globe, Lock } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
+
+export interface CollectionModalCollection {
+  id?: string;
+  name?: string;
+  description?: string;
+  color?: string;
+  is_public?: boolean;
+  tags?: string[];
+}
 
 interface CollectionModalProps {
   open: boolean;
@@ -17,7 +27,7 @@ interface CollectionModalProps {
     is_public?: boolean;
     tags?: string[];
   }) => Promise<void>;
-  collection?: any;
+  collection?: CollectionModalCollection;
   mode?: 'create' | 'edit';
 }
 
@@ -45,6 +55,7 @@ export const CollectionModal = memo(function CollectionModal({
   collection,
   mode = 'create',
 }: CollectionModalProps) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('#6366f1');
@@ -119,7 +130,7 @@ export const CollectionModal = memo(function CollectionModal({
               size="sm"
               onClick={onClose}
               className="h-8 w-8 p-0"
-              aria-label="Fermer la modal"
+              aria-label={t('common.closeModal')}
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </Button>
@@ -134,7 +145,7 @@ export const CollectionModal = memo(function CollectionModal({
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Designs Printemps 2025"
+                placeholder={t('common.collectionExample')}
                 className="bg-gray-900 border-gray-700 text-white"
                 required
               />
@@ -148,7 +159,7 @@ export const CollectionModal = memo(function CollectionModal({
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Décrivez cette collection..."
+                placeholder={t('common.describeCollection')}
                 rows={3}
                 className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -230,7 +241,7 @@ export const CollectionModal = memo(function CollectionModal({
                       handleAddTag();
                     }
                   }}
-                  placeholder="Ajouter un tag..."
+                  placeholder={t('common.addTag')}
                   className="bg-gray-900 border-gray-700 text-white"
                 />
                 <Button
@@ -239,7 +250,7 @@ export const CollectionModal = memo(function CollectionModal({
                   variant="outline"
                   className="border-gray-700"
                 >
-                  Ajouter
+                  {t('common.add')}
                 </Button>
               </div>
               {tags.length > 0 && (
@@ -254,6 +265,7 @@ export const CollectionModal = memo(function CollectionModal({
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
                         className="hover:text-blue-300"
+                        aria-label="Remove tag"
                       >
                         <X className="w-3 h-3" />
                       </button>

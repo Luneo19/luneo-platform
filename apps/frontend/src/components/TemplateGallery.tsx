@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
 
@@ -57,6 +58,7 @@ interface TemplateGalleryProps {
 }
 
 function TemplateGallery({ className, onTemplateSelect, showCreateButton = true }: TemplateGalleryProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,8 +122,8 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
     } catch (error) {
       logger.error('Failed to load templates', { error });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les templates',
+        title: t('common.error'),
+        description: t('templateGallery.loadError'),
         variant: 'destructive',
       });
     } finally {
@@ -132,8 +134,8 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
   const handleUseTemplate = (template: Template) => {
     onTemplateSelect?.(template);
     toast({
-      title: 'Template sélectionné',
-      description: `Template "${template.name}" prêt à être utilisé`,
+      title: t('templateGallery.templateSelected'),
+      description: t('templateGallery.templateSelectedDesc', { name: template.name }),
     });
   };
 

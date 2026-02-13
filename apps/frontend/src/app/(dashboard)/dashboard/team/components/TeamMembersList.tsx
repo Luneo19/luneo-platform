@@ -20,6 +20,7 @@ import { formatDate, formatRelativeDate } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
 import { ROLES } from '../constants/team';
 import type { TeamMember } from '../types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TeamMembersListProps {
   members: TeamMember[];
@@ -28,6 +29,7 @@ interface TeamMembersListProps {
 }
 
 export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersListProps) {
+  const { t } = useI18n();
   const getRoleInfo = (role: string) => {
     return ROLES.find((r) => r.id === role) || ROLES[2];
   };
@@ -35,7 +37,7 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
   if (members.length === 0) {
     return (
       <Card className="p-12 bg-gray-50 border-gray-200 text-center">
-        <p className="text-gray-600">Aucun membre dans l'équipe</p>
+        <p className="text-gray-600">{t('dashboard.team.noMembers')}</p>
       </Card>
     );
   }
@@ -75,17 +77,17 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                       )}
                     >
                       {RoleIcon && React.createElement(RoleIcon as React.ElementType, { className: 'w-3 h-3 mr-1' })}
-                      {String(roleInfo.name)}
+                      {t(`dashboard.team.roles.${(member.role || 'member').toLowerCase()}`)}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600">{member.email}</p>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      Membre depuis {formatDate(member.joinedAt)}
+                      {t('dashboard.team.memberSince')} {formatDate(member.joinedAt)}
                     </span>
                     {member.lastActive && (
-                      <span>Dernier accès {formatRelativeDate(member.lastActive.toISOString())}</span>
+                      <span>{t('dashboard.team.lastActive')} {formatRelativeDate(member.lastActive.toISOString())}</span>
                     )}
                   </div>
                 </div>
@@ -102,7 +104,7 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                     className="text-gray-700 cursor-pointer"
                   >
                     <Edit className="w-4 h-4 mr-2" />
-                    Modifier le rôle
+                    {t('dashboard.team.editRoleMenu')}
                   </DropdownMenuItem>
                   {member.role !== 'OWNER' && (
                     <DropdownMenuItem
@@ -110,7 +112,7 @@ export function TeamMembersList({ members, onEditRole, onRemove }: TeamMembersLi
                       className="text-red-400 cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Retirer de l'équipe
+                      {t('dashboard.team.removeFromTeamMenu')}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

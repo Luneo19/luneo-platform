@@ -17,7 +17,11 @@ export class OpenAIProvider implements AIProvider {
     const isValidApiKey = this.isValidOpenAIKey(apiKey);
     
     if (!isValidApiKey) {
-      this.logger.warn('OpenAI API key not configured or invalid - provider will be disabled');
+      this.logger.warn(
+        apiKey === 'sk-placeholder'
+          ? 'OPENAI_API_KEY is a placeholder - returning mock result'
+          : 'OpenAI API key not configured or invalid - provider will be disabled',
+      );
     }
 
     // Only initialize client if we have a valid key

@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { z } from 'zod';
 import { productionService } from '@/lib/services/ProductionService';
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Validation
     const validated = GenerateProductionSchema.parse(body);
 
-    logger.info('Generating production files', {
+    serverLogger.info('Generating production files', {
       orderId: validated.orderId,
       itemsCount: validated.items.length,
     });
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       validated.options
     );
 
-    logger.info('Production files generation started', {
+    serverLogger.info('Production files generation started', {
       orderId: validated.orderId,
       jobId: result.jobId,
     });

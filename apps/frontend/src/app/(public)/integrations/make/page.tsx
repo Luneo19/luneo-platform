@@ -119,6 +119,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { endpoints } from '@/lib/api/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -126,7 +128,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 function MakeIntegrationPageContent() {
   const [activeTab, setActiveTab] = useState<'overview' | 'setup' | 'scenarios' | 'modules' | 'troubleshooting' | 'faq' | 'pricing'>('overview');
   const [testConnectionLoading, setTestConnectionLoading] = useState(false);
-  const [testConnectionResult, setTestConnectionResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
+  const [testConnectionResult, setTestConnectionResult] = useState<{ success: boolean; message: string; details?: Array<{ name: string; status: string; message?: string }> } | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
@@ -146,8 +148,8 @@ function MakeIntegrationPageContent() {
     setTestConnectionResult(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2500));
-      
+      const res = await endpoints.integrations.test('make', {});
+      const data = res as { success?: boolean; message?: string };
       const checks = [
         { name: 'Clé API Make', status: 'success', message: 'Clé API valide et active' },
         { name: 'Connexion API', status: 'success', message: 'Connexion API Make réussie' },
@@ -155,16 +157,15 @@ function MakeIntegrationPageContent() {
         { name: 'Modules disponibles', status: 'success', message: 'Modules opérationnels' },
         { name: 'Webhooks configurés', status: 'success', message: 'Webhooks opérationnels' },
       ];
-
       setTestConnectionResult({
-        success: true,
-        message: 'Connexion Make réussie ! Votre intégration est opérationnelle.',
+        success: data?.success !== false,
+        message: data?.message ?? 'Connexion Make réussie ! Votre intégration est opérationnelle.',
         details: checks,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setTestConnectionResult({
         success: false,
-        message: error.message || 'Erreur lors de la connexion. Vérifiez vos clés API.',
+        message: getErrorDisplayMessage(error),
         details: [
           { name: 'Connexion API', status: 'error', message: 'Impossible de se connecter' },
         ],
@@ -820,7 +821,7 @@ Pour améliorer:
       {/* Main Content Tabs */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)} className="w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "modules" | "overview" | "faq" | "troubleshooting" | "setup" | "pricing" | "scenarios")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-12 h-auto p-1 bg-gray-100 rounded-lg">
               <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-white">
                 <Globe className="w-4 h-4" />
@@ -972,7 +973,7 @@ Pour améliorer:
                         </Alert>
                         {testConnectionResult.details && (
                           <div className="space-y-2">
-                            {testConnectionResult.details.map((check: any, idx: number) => (
+                            {testConnectionResult.details.map((check: { name: string; status: string; message?: string }, idx: number) => (
                               <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg border">
                                 {check.status === 'success' ? (
                                   <CheckCircle2 className="w-5 h-5 text-green-600" />

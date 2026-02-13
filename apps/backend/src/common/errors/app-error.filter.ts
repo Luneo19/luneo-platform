@@ -31,7 +31,7 @@ export class AppErrorFilter implements ExceptionFilter {
 
     let appError: AppError;
     let status: number;
-    let errorResponse: any;
+    let errorResponse: Record<string, unknown> | string | object;
 
     // Handle AppError instances
     if (exception instanceof AppError) {
@@ -142,10 +142,9 @@ export class AppErrorFilter implements ExceptionFilter {
     }
 
     // Add path to error response
-    const finalResponse = {
-      ...errorResponse,
-      path: request.url,
-    };
+    const finalResponse = typeof errorResponse === 'object' && errorResponse !== null
+      ? { ...errorResponse, path: request.url }
+      : { message: errorResponse, path: request.url };
 
     response.status(status).json(finalResponse);
   }

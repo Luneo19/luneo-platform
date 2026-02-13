@@ -8,8 +8,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, Trash2 } from 'lucide-react';
+import { Shield, Trash2, Download, Fingerprint } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { useSecuritySettings } from '../../hooks/useSecuritySettings';
@@ -22,6 +24,7 @@ interface SecurityTabProps {
 }
 
 export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
+  const { t } = useI18n();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { toast } = useToast();
@@ -38,12 +41,12 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
     mutationFn: (sessionId: string) => endpoints.security.revokeSession(sessionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['security', 'sessions'] });
-      toast({ title: 'Session révoquée', description: 'La session a été déconnectée.' });
+      toast({ title: t('settings.security.revokeSuccess'), description: t('settings.security.revokeSuccessDesc') });
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Impossible de révoquer la session';
+      const message = getErrorDisplayMessage(error);
       logger.error('Session revoke failed', error instanceof Error ? error : new Error(String(error)));
-      toast({ title: 'Erreur', description: message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
     },
   });
 
@@ -127,6 +130,68 @@ export function SecurityTab({ sessions: sessionsProp = [] }: SecurityTabProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Two-Factor Authentication */}
+      <Card className="bg-white border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-900">Authentification à deux facteurs (2FA)</CardTitle>
+          <CardDescription className="text-gray-600">
+            Ajoutez une couche de sécurité supplémentaire à votre compte
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            onClick={() => window.location.href = '/dashboard/security'}
+            className="border-gray-200"
+          >
+            <Fingerprint className="w-4 h-4 mr-2" />
+            Gérer la 2FA
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* GDPR Data Export */}
+      <Card className="bg-white border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-900">Export de données (RGPD)</CardTitle>
+          <CardDescription className="text-gray-600">
+            Téléchargez une copie de toutes vos données personnelles
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                toast({ title: t('security.exportInProgress'), description: t('security.pleaseWait') });
+                const result = await endpoints.security.exportData();
+                if (result && typeof result === 'object' && 'url' in result && result.url) {
+                  window.open(result.url as string, '_blank');
+                } else {
+                  // Download as JSON file
+                  const data = result && typeof result === 'object' && 'data' in result ? result.data : result;
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `luneo-data-export-${new Date().toISOString().split('T')[0]}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }
+                toast({ title: t('common.success'), description: t('settings.security.exportSuccess') });
+              } catch (error) {
+                logger.error('GDPR export failed', error instanceof Error ? error : new Error(String(error)));
+                toast({ title: t('common.error'), description: t('common.somethingWentWrong'), variant: 'destructive' });
+              }
+            }}
+            className="border-gray-200"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {t('common.exportMyData')}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Delete Account */}
       <Card className="bg-white border-gray-200 border-red-500/30">

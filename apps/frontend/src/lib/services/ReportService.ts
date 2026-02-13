@@ -88,7 +88,7 @@ export class ReportService {
         reportId,
         status: 'pending',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating report', { error, brandId, options });
       throw error;
     }
@@ -119,7 +119,7 @@ export class ReportService {
       }
 
       // Fetch data based on type
-      let data: any;
+      let data: unknown;
 
       switch (options.type) {
         case 'products':
@@ -168,14 +168,15 @@ export class ReportService {
       cacheService.set(`report:${reportId}`, updatedReport, { ttl: 3600 * 1000 });
 
       logger.info('Report generated', { reportId, downloadUrl: fileUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error processing report', { error, reportId });
 
       // Update status to failed
+      const errorMessage = error instanceof Error ? error.message : String(error);
       const failedReport: ReportJob = {
         ...(reportJob || { id: reportId, brandId, type: 'full', format: 'json', status: 'failed', createdAt: new Date() }),
         status: 'failed',
-        error: error.message,
+        error: errorMessage,
       };
       cacheService.set(`report:${reportId}`, failedReport, { ttl: 3600 * 1000 });
     }
@@ -184,16 +185,16 @@ export class ReportService {
   /**
    * Convert data to CSV format
    */
-  private convertToCSV(data: any): string {
+  private convertToCSV(data: unknown): string {
     // Simple CSV conversion
     // For complex nested data, use a library like papaparse
     if (Array.isArray(data)) {
       if (data.length === 0) return '';
-      
-      const headers = Object.keys(data[0]);
+      const first = data[0];
+      const headers = typeof first === 'object' && first !== null ? Object.keys(first as Record<string, unknown>) : [];
       const rows = data.map((item) =>
         headers.map((header) => {
-          const value = item[header];
+          const value = typeof item === 'object' && item !== null ? (item as Record<string, unknown>)[header] : undefined;
           return typeof value === 'object' ? JSON.stringify(value) : String(value);
         })
       );
@@ -202,9 +203,12 @@ export class ReportService {
     }
 
     // For objects, convert to key-value pairs
-    return Object.entries(data)
-      .map(([key, value]) => `${key},${typeof value === 'object' ? JSON.stringify(value) : value}`)
-      .join('\n');
+    if (typeof data === 'object' && data !== null) {
+      return Object.entries(data as Record<string, unknown>)
+        .map(([key, value]) => `${key},${typeof value === 'object' ? JSON.stringify(value) : value}`)
+        .join('\n');
+    }
+    return String(data);
   }
 
   /**
@@ -227,7 +231,7 @@ export class ReportService {
         downloadUrl: report.downloadUrl,
         error: report.error,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking report status', { error, reportId });
       throw error;
     }
@@ -269,7 +273,7 @@ export class ReportService {
       });
 
       return uploadData.url;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error uploading report to storage', { error, reportId, contentType });
       // Don't throw - return fallback URL so report generation can continue
       // In production, you might want to retry or use a different storage provider
@@ -280,7 +284,7 @@ export class ReportService {
   /**
    * Génère un PDF à partir des données
    */
-  private async generatePDF(data: any, options: { includeCharts?: boolean }): Promise<Buffer> {
+  private async generatePDF(data: unknown, options: { includeCharts?: boolean }): Promise<Buffer> {
     try {
       // Use pdfkit for PDF generation
       const PDFDocument = require('pdfkit');
@@ -312,7 +316,8 @@ export class ReportService {
           doc.moveDown();
           
           if (data.length > 0) {
-            const headers = Object.keys(data[0]);
+            const first = data[0];
+            const headers = typeof first === 'object' && first !== null ? Object.keys(first as Record<string, unknown>) : [];
             doc.fontSize(10).font('Helvetica-Bold');
             headers.forEach((header, i) => {
               doc.text(header, { continued: i < headers.length - 1 });
@@ -320,21 +325,22 @@ export class ReportService {
             doc.moveDown(0.5);
 
             doc.font('Helvetica');
-            data.slice(0, 50).forEach((row: any) => {
+            data.slice(0, 50).forEach((row: unknown) => {
+              const rowObj = typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {};
               headers.forEach((header, i) => {
-                const value = String(row[header] || '');
+                const value = String(rowObj[header] ?? '');
                 doc.text(value.substring(0, 30), { continued: i < headers.length - 1 });
               });
               doc.moveDown(0.3);
             });
           }
-        } else {
+        } else if (typeof data === 'object' && data !== null) {
           // Object format
           doc.fontSize(14).font('Helvetica-Bold').text('Report Data', { underline: true });
           doc.moveDown();
           doc.fontSize(10).font('Helvetica');
           
-          Object.entries(data).forEach(([key, value]) => {
+          Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
             const valueStr = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
             doc.text(`${key}: ${valueStr}`, { indent: 20 });
             doc.moveDown(0.3);
@@ -346,7 +352,7 @@ export class ReportService {
 
         doc.end();
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating PDF', { error });
       // Fallback: return empty buffer
       return Buffer.from('');

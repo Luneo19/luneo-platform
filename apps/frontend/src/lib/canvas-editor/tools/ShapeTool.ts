@@ -2,6 +2,27 @@ import Konva from 'konva';
 import { Stage } from 'konva/lib/Stage';
 import { Layer } from 'konva/lib/Layer';
 
+type KonvaShapeNode = {
+  stroke(color?: string): string | void;
+  strokeWidth(width?: number): number | void;
+  fill(color?: string): string | void;
+  opacity(val?: number): number | void;
+  rotation(angle?: number): number | void;
+  scaleX(val?: number): number | void;
+  scaleY(val?: number): number | void;
+  x(val?: number): number | void;
+  y(val?: number): number | void;
+  width(): number;
+  height(): number;
+  id(val?: string): string | void;
+  clone(): KonvaShapeNode;
+  moveToTop(): void;
+  moveToBottom(): void;
+  getClientRect(): { x: number; y: number; width: number; height: number };
+  destroy(): void;
+  filters(): unknown[];
+};
+
 export interface ShapeOptions {
   type: 'rectangle' | 'circle' | 'star' | 'polygon' | 'line' | 'arrow' | 'heart' | 'diamond';
   x?: number;
@@ -53,7 +74,7 @@ export interface ShapeElement {
   shadowOffsetX(): number;
   shadowOffsetY(): number;
   shadowOpacity(): number;
-  filters(): any[];
+  filters(): unknown[];
   cache(): void;
   destroy(): void;
   clone(): ShapeElement;
@@ -82,7 +103,7 @@ export class ShapeTool {
     });
   }
 
-  private isShapeElement(node: any): boolean {
+  private isShapeElement(node: unknown): boolean {
     return node instanceof Konva.Rect ||
            node instanceof Konva.Circle ||
            node instanceof Konva.Star ||
@@ -235,9 +256,10 @@ export class ShapeTool {
     }
 
     // Add ID and type
-    (shape as unknown as ShapeElement).id = `shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    (shape as unknown as ShapeElement).type = 'shape';
-    (shape as unknown as ShapeElement).shapeType = options.type;
+    const shapeElement = shape as unknown as ShapeElement;
+    shapeElement.id = `shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    shapeElement.type = 'shape';
+    shapeElement.shapeType = options.type;
 
     // Add shadow if specified
     if (options.shadowColor) {
@@ -252,9 +274,9 @@ export class ShapeTool {
     this.designLayer.batchDraw();
 
     // Select the new shape
-    this.selectShape(shape as unknown as ShapeElement);
+    this.selectShape(shapeElement);
 
-    return shape as unknown as ShapeElement;
+    return shapeElement;
   }
 
   /**
@@ -265,8 +287,9 @@ export class ShapeTool {
     this.selectedShape = shapeElement;
     
     // Add selection visual feedback
-    (shapeElement as any).stroke('#007bff');
-    (shapeElement as any).strokeWidth(3);
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    konvaShape.stroke('#007bff');
+    konvaShape.strokeWidth(3);
     this.designLayer.batchDraw();
   }
 
@@ -276,8 +299,9 @@ export class ShapeTool {
   deselectShape() {
     if (this.selectedShape) {
       // Restore original stroke
-      (this.selectedShape as any).stroke('#000000');
-      (this.selectedShape as any).strokeWidth(2);
+      const konvaShape = this.selectedShape as unknown as KonvaShapeNode;
+      konvaShape.stroke('#000000');
+      konvaShape.strokeWidth(2);
       this.selectedShape = null;
       this.designLayer.batchDraw();
     }
@@ -307,13 +331,14 @@ export class ShapeTool {
       }
     }
 
-    if (properties.fill !== undefined) (shapeElement as any).fill(properties.fill);
-    if (properties.stroke !== undefined) (shapeElement as any).stroke(properties.stroke);
-    if (properties.strokeWidth !== undefined) (shapeElement as any).strokeWidth(properties.strokeWidth);
-    if (properties.opacity !== undefined) (shapeElement as any).opacity(properties.opacity);
-    if (properties.rotation !== undefined) (shapeElement as any).rotation(properties.rotation);
-    if (properties.scaleX !== undefined) (shapeElement as any).scaleX(properties.scaleX);
-    if (properties.scaleY !== undefined) (shapeElement as any).scaleY(properties.scaleY);
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    if (properties.fill !== undefined) konvaShape.fill(properties.fill);
+    if (properties.stroke !== undefined) konvaShape.stroke(properties.stroke);
+    if (properties.strokeWidth !== undefined) konvaShape.strokeWidth(properties.strokeWidth);
+    if (properties.opacity !== undefined) konvaShape.opacity(properties.opacity);
+    if (properties.rotation !== undefined) konvaShape.rotation(properties.rotation);
+    if (properties.scaleX !== undefined) konvaShape.scaleX(properties.scaleX);
+    if (properties.scaleY !== undefined) konvaShape.scaleY(properties.scaleY);
 
     // Update corner radius for rectangles
     if (properties.cornerRadius !== undefined && shapeElement instanceof Konva.Rect) {
@@ -360,11 +385,17 @@ export class ShapeTool {
    * Duplicate shape element
    */
   duplicateShape(shapeElement: ShapeElement): ShapeElement {
-    const cloned = (shapeElement as any).clone() as ShapeElement;
-    (cloned as any).x((shapeElement as any).x() + 20);
-    (cloned as any).y((shapeElement as any).y() + 20);
-    (cloned as any).id(`shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-    this.designLayer.add(cloned as any);
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    const cloned = konvaShape.clone() as unknown as ShapeElement;
+    const clonedKonva = cloned as unknown as KonvaShapeNode;
+    const _dupX = konvaShape.x();
+    const _dupY = konvaShape.y();
+    const currentX = typeof _dupX === 'number' ? _dupX : 0;
+    const currentY = typeof _dupY === 'number' ? _dupY : 0;
+    clonedKonva.x(currentX + 20);
+    clonedKonva.y(currentY + 20);
+    clonedKonva.id(`shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    this.designLayer.add(cloned as unknown as Konva.Shape);
     this.designLayer.batchDraw();
     return cloned;
   }
@@ -389,7 +420,10 @@ export class ShapeTool {
    * Rotate shape by angle
    */
   rotateShape(shapeElement: ShapeElement, angle: number) {
-    (shapeElement as any).rotation((shapeElement as any).rotation() + angle);
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    const _rot = konvaShape.rotation();
+    const currentRotation = typeof _rot === 'number' ? _rot : 0;
+    konvaShape.rotation(currentRotation + angle);
     this.designLayer.batchDraw();
   }
 
@@ -397,8 +431,9 @@ export class ShapeTool {
    * Scale shape
    */
   scaleShape(shapeElement: ShapeElement, scaleX: number, scaleY?: number) {
-    (shapeElement as any).scaleX(scaleX);
-    (shapeElement as any).scaleY(scaleY || scaleX);
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    konvaShape.scaleX(scaleX);
+    konvaShape.scaleY(scaleY || scaleX);
     this.designLayer.batchDraw();
   }
 
@@ -406,7 +441,10 @@ export class ShapeTool {
    * Flip shape horizontally
    */
   flipHorizontal(shapeElement: ShapeElement) {
-    (shapeElement as any).scaleX(-(shapeElement as any).scaleX());
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    const _sx = konvaShape.scaleX();
+    const currentScaleX = typeof _sx === 'number' ? _sx : 1;
+    konvaShape.scaleX(-currentScaleX);
     this.designLayer.batchDraw();
   }
 
@@ -414,7 +452,10 @@ export class ShapeTool {
    * Flip shape vertically
    */
   flipVertical(shapeElement: ShapeElement) {
-    (shapeElement as any).scaleY(-(shapeElement as any).scaleY());
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    const _sy = konvaShape.scaleY();
+    const currentScaleY = typeof _sy === 'number' ? _sy : 1;
+    konvaShape.scaleY(-currentScaleY);
     this.designLayer.batchDraw();
   }
 
@@ -422,7 +463,8 @@ export class ShapeTool {
    * Bring shape to front
    */
   bringToFront(shapeElement: ShapeElement) {
-    (shapeElement as any).moveToTop();
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    konvaShape.moveToTop();
     this.designLayer.batchDraw();
   }
 
@@ -430,7 +472,8 @@ export class ShapeTool {
    * Send shape to back
    */
   sendToBack(shapeElement: ShapeElement) {
-    (shapeElement as any).moveToBottom();
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    konvaShape.moveToBottom();
     this.designLayer.batchDraw();
   }
 
@@ -438,7 +481,8 @@ export class ShapeTool {
    * Get shape bounds
    */
   getShapeBounds(shapeElement: ShapeElement) {
-    return (shapeElement as any).getClientRect();
+    const konvaShape = shapeElement as unknown as KonvaShapeNode;
+    return konvaShape.getClientRect();
   }
 
   /**
@@ -447,33 +491,54 @@ export class ShapeTool {
   alignShapes(shapes: ShapeElement[], alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') {
     if (shapes.length < 2) return;
 
-    const bounds = shapes.map(shape => (shape as any).getClientRect());
+    const bounds = shapes.map(shape => {
+      const konvaShape = shape as unknown as KonvaShapeNode;
+      return konvaShape.getClientRect();
+    });
     let targetValue: number;
 
     switch (alignment) {
       case 'left':
         targetValue = Math.min(...bounds.map(b => b.x));
-        shapes.forEach(shape => (shape as any).x(targetValue));
+        shapes.forEach(shape => {
+          const konvaShape = shape as unknown as KonvaShapeNode;
+          konvaShape.x(targetValue);
+        });
         break;
       case 'right':
         targetValue = Math.max(...bounds.map(b => b.x + b.width));
-        shapes.forEach(shape => (shape as any).x(targetValue - (shape as any).width()));
+        shapes.forEach(shape => {
+          const konvaShape = shape as unknown as KonvaShapeNode;
+          konvaShape.x(targetValue - (Number(konvaShape.width()) || 0));
+        });
         break;
       case 'center':
         targetValue = bounds.reduce((sum, b) => sum + b.x + b.width / 2, 0) / bounds.length;
-        shapes.forEach(shape => (shape as any).x(targetValue - (shape as any).width() / 2));
+        shapes.forEach(shape => {
+          const konvaShape = shape as unknown as KonvaShapeNode;
+          konvaShape.x(targetValue - (Number(konvaShape.width()) || 0) / 2);
+        });
         break;
       case 'top':
         targetValue = Math.min(...bounds.map(b => b.y));
-        shapes.forEach(shape => (shape as any).y(targetValue));
+        shapes.forEach(shape => {
+          const konvaShape = shape as unknown as KonvaShapeNode;
+          konvaShape.y(targetValue);
+        });
         break;
       case 'bottom':
         targetValue = Math.max(...bounds.map(b => b.y + b.height));
-        shapes.forEach(shape => (shape as any).y(targetValue - (shape as any).height()));
+        shapes.forEach(shape => {
+          const konvaShape = shape as unknown as KonvaShapeNode;
+          konvaShape.y(targetValue - (Number(konvaShape.height()) || 0));
+        });
         break;
       case 'middle':
         targetValue = bounds.reduce((sum, b) => sum + b.y + b.height / 2, 0) / bounds.length;
-        shapes.forEach(shape => (shape as any).y(targetValue - (shape as any).height() / 2));
+        shapes.forEach(shape => {
+          const konvaShape = shape as unknown as KonvaShapeNode;
+          konvaShape.y(targetValue - (Number(konvaShape.height()) || 0) / 2);
+        });
         break;
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import { 
@@ -57,6 +58,7 @@ const GitHubIcon = () => (
 );
 
 function LoginPageContent() {
+  const { t } = useI18n();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
@@ -75,13 +77,13 @@ function LoginPageContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('session') === 'expired') {
-      setError('Votre session a expiré. Veuillez vous reconnecter.');
+      setError(t('auth.login.sessionExpired'));
       // Clean up the URL without navigating
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('session');
       window.history.replaceState({}, '', newUrl.toString());
     }
-  }, []);
+  }, [t]);
 
   // Email validation
   const isValidEmail = (email: string) => {
@@ -97,13 +99,13 @@ function LoginPageContent() {
 
     // Validation
     if (!isValidEmail(formData.email)) {
-      setError('Veuillez entrer une adresse email valide');
+      setError(t('auth.login.errors.invalidEmail'));
       setIsLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setError(t('auth.login.errors.passwordMin'));
       setIsLoading(false);
       return;
     }
@@ -119,6 +121,7 @@ function LoginPageContent() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
+          rememberMe,
         }),
       });
 
@@ -135,20 +138,13 @@ function LoginPageContent() {
       if (response.requires2FA && response.tempToken) {
         setRequires2FA(true);
         setTempToken(response.tempToken);
-        setSuccess('Veuillez entrer votre code 2FA');
+        setSuccess(t('auth.login.enter2FA'));
         return;
       }
 
       // Success: user in body; tokens are in httpOnly cookies (set by backend via Set-Cookie)
       if (response.user) {
-        if (rememberMe) {
-          localStorage.setItem('rememberMe', 'true'); // Keep rememberMe preference
-        }
-        if (response.user) {
-          localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
-        }
-        
-        setSuccess('Connexion reussie ! Verification de la session...');
+        setSuccess(t('auth.login.successVerifying'));
         
         // Verify cookies were actually stored by the browser before navigating.
         // Without this check, if the browser blocks cookies (extensions, settings),
@@ -164,7 +160,7 @@ function LoginPageContent() {
         try {
           const verifyResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
           if (verifyResp.ok) {
-            setSuccess('Session verifiee ! Redirection...');
+            setSuccess(t('auth.login.sessionVerified'));
             window.location.href = targetUrl;
           } else {
             // Cookies were not stored — navigate anyway but warn
@@ -177,7 +173,7 @@ function LoginPageContent() {
           window.location.href = targetUrl;
         }
       } else {
-        setError('Réponse invalide du serveur');
+        setError(t('auth.login.invalidResponse'));
       }
     } catch (err: unknown) {
       logger.error('Login error', {
@@ -196,18 +192,18 @@ function LoginPageContent() {
       if (backendMessage.includes('Invalid credentials') || 
           backendMessage.includes('401') ||
           (statusCode === 401 && !backendMessage.includes('not verified') && !backendMessage.includes('locked'))) {
-        setError('Email ou mot de passe incorrect');
+        setError(t('auth.login.errors.invalidCredentials'));
       } else if (backendMessage.includes('not verified') || backendMessage.includes('Email not confirmed') || 
                  errorMessage.includes('not verified')) {
-        setError("Veuillez vérifier votre email avant de vous connecter. Vérifiez votre boîte de réception.");
+        setError(t('auth.login.errors.emailNotVerified'));
       } else if (backendMessage.includes('locked') || backendMessage.includes('too many failed')) {
-        setError('Compte temporairement verrouillé suite à trop de tentatives échouées. Veuillez réessayer plus tard.');
+        setError(t('auth.login.errors.accountLocked'));
       } else if (backendMessage) {
         setError(backendMessage);
       } else if (errorMessage) {
         setError(errorMessage);
       } else {
-        setError('Une erreur est survenue. Veuillez réessayer.');
+        setError(t('auth.login.errors.generic'));
       }
     } finally {
       setIsLoading(false);
@@ -232,7 +228,7 @@ function LoginPageContent() {
         provider,
         message: err instanceof Error ? err.message : 'Unknown error',
       });
-      setError(`Erreur de connexion ${provider}. Veuillez réessayer.`);
+      setError(t('auth.login.oauthError'));
       setOauthLoading(null);
     }
   }, []);
@@ -255,10 +251,10 @@ function LoginPageContent() {
           <span className="text-white font-bold text-2xl">L</span>
         </motion>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display" data-testid="login-title">
-          Bon retour !
+          {t('auth.login.welcomeBack')}
             </h1>
         <p className="text-slate-500" data-testid="login-subtitle">
-          Connectez-vous a votre espace Luneo
+          {t('auth.login.subtitleLuneo')}
             </p>
           </div>
 
@@ -288,7 +284,7 @@ function LoginPageContent() {
           tempToken={tempToken}
           email={formData.email}
           onSuccess={() => {
-            setSuccess('Connexion réussie ! Redirection...');
+            setSuccess(t('auth.login.successRedirect'));
             const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
             const user = userJson ? (JSON.parse(userJson) as { role?: string }) : undefined;
             const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -308,14 +304,14 @@ function LoginPageContent() {
         <SlideUp delay={0.4}>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-300">
-            Adresse email
+            {t('auth.login.email')}
               </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="votre@email.com"
+                  placeholder={t('auth.login.emailPlaceholder')}
               className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -335,14 +331,14 @@ function LoginPageContent() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-sm font-medium text-slate-300">
-                Mot de passe
+                {t('auth.login.password')}
               </Label>
             <Link 
               href="/forgot-password" 
               className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
               tabIndex={-1}
             >
-              Mot de passe oublié ?
+              {t('auth.login.forgotPassword')}
             </Link>
           </div>
           <div className="relative">
@@ -384,12 +380,12 @@ function LoginPageContent() {
                   data-testid="login-remember"
                 />
             <Label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
-              Rester connecte
+              {t('auth.login.rememberMe')}
                 </Label>
               </div>
           <div className="flex items-center gap-1 text-xs text-slate-600">
             <Shield className="w-3 h-3" />
-            <span>Connexion sécurisée</span>
+            <span>{t('auth.login.secureConnection')}</span>
           </div>
             </div>
         </SlideUp>
@@ -405,11 +401,11 @@ function LoginPageContent() {
               {isLoading ? (
                 <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Connexion...
+                  {t('auth.login.submitting')}
                 </>
               ) : (
                 <>
-                  Se connecter
+                  {t('auth.login.submit')}
               <ArrowRight className="w-5 h-5 ml-2" />
                 </>
               )}
@@ -424,7 +420,7 @@ function LoginPageContent() {
           <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-dark-bg text-slate-600">ou continuer avec</span>
+          <span className="px-4 bg-dark-bg text-slate-600">{t('auth.login.orContinueWith')}</span>
             </div>
           </div>
         </FadeIn>
@@ -472,13 +468,13 @@ function LoginPageContent() {
         <FadeIn delay={1.0}>
       <div className="mt-8 text-center">
         <p className="text-sm text-slate-500">
-              Pas encore de compte ?{' '}
+              {t('auth.login.noAccount')}{' '}
               <Link
                 href="/register"
             className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 data-testid="login-switch-register"
               >
-            Créer un compte gratuitement
+            {t('auth.login.createAccount')}
               </Link>
             </p>
       </div>
@@ -486,19 +482,19 @@ function LoginPageContent() {
 
       {/* Security indicators */}
         <FadeIn delay={1.1}>
-      <div className="mt-8 pt-6 border-t border-white/[0.06]">
+        <div className="mt-8 pt-6 border-t border-white/[0.06]">
         <div className="flex items-center justify-center gap-6 text-xs text-slate-600">
           <div className="flex items-center gap-1">
             <Shield className="w-3 h-3" />
-            <span>SSL/TLS</span>
+            <span>{t('auth.login.securityIndicators.ssl')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Fingerprint className="w-3 h-3" />
-            <span>2FA disponible</span>
+            <span>{t('auth.login.securityIndicators.twoFA')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Lock className="w-3 h-3" />
-            <span>RGPD</span>
+            <span>{t('auth.login.securityIndicators.gdpr')}</span>
           </div>
         </div>
       </div>

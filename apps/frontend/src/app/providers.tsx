@@ -9,6 +9,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { I18nProvider } from '@/i18n/provider';
 import type { TranslationMessages, SupportedLocale } from '@/i18n/server';
 import { FeatureFlagProvider } from '@/contexts/FeatureFlagContext';
+import { BrandThemeProvider } from '@/components/theme/BrandThemeProvider';
 import { registerServiceWorker } from '@/lib/pwa/register-service-worker';
 import { trpc, getTRPCClient } from '@/lib/trpc/client';
 
@@ -88,7 +89,9 @@ export function Providers({
                   flags={featureFlags}
                   updatedAt={featureFlagsUpdatedAt}
                 >
-                  {children}
+                  <BrandThemeProvider>
+                    {children}
+                  </BrandThemeProvider>
                 </FeatureFlagProvider>
               </AuthProvider>
             </I18nProvider>

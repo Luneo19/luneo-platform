@@ -8,6 +8,7 @@ import { RetentionModule } from './retention/retention.module';
 import { RevenueModule } from './revenue/revenue.module';
 import { AdminToolsModule } from './admin-tools/admin-tools.module';
 import { QuickWinsModule } from './quick-wins/quick-wins.module';
+import { AutomationsModule } from './automations/automations.module';
 
 @Module({
   imports: [
@@ -18,9 +19,10 @@ import { QuickWinsModule } from './quick-wins/quick-wins.module';
     RevenueModule,
     AdminToolsModule,
     QuickWinsModule,
+    AutomationsModule,
   ],
   controllers: [OrionController],
   providers: [OrionService],
-  exports: [OrionService, SegmentsModule, RetentionModule, RevenueModule, QuickWinsModule],
+  exports: [OrionService, SegmentsModule, RetentionModule, RevenueModule, QuickWinsModule, AutomationsModule],
 })
 export class OrionModule {}

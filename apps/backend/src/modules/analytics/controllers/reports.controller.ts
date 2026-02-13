@@ -28,24 +28,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { z } from 'zod';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
 import { ReportsService } from '../services/reports.service';
-
-// ============================================================================
-// SCHEMAS
-// ============================================================================
-
-const GenerateReportSchema = z.object({
-  type: z.enum(['sales', 'products', 'customers', 'custom']),
-  dateRange: z.object({
-    start: z.coerce.date(),
-    end: z.coerce.date(),
-  }),
-  format: z.enum(['pdf', 'csv', 'json']).default('pdf'),
-  includeCharts: z.boolean().default(true),
-});
+import { GenerateReportDto } from '../dto/generate-report.dto';
 
 // ============================================================================
 // CONTROLLER
@@ -89,24 +75,22 @@ export class ReportsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Générer un rapport' })
   async generateReport(
-    @Body() body: unknown,
+    @Body() dto: GenerateReportDto,
     @CurrentBrand() brand: { id: string } | null,
   ) {
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
 
-    const validated = GenerateReportSchema.parse(body);
-
-    if (!validated.dateRange.start || !validated.dateRange.end) {
+    if (!dto.dateRange?.start || !dto.dateRange?.end) {
       throw new BadRequestException('Date range start and end are required');
     }
 
     const report = await this.reportsService.generatePDFReport(
       brand.id,
       {
-        start: new Date(validated.dateRange.start),
-        end: new Date(validated.dateRange.end),
+        start: new Date(dto.dateRange.start),
+        end: new Date(dto.dateRange.end),
       },
     );
 

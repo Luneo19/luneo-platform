@@ -1,6 +1,6 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { v2 as cloudinary } from 'cloudinary';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
       if (designResponse.status === 404) {
         throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
       }
-      logger.error('Failed to fetch design for mask', {
+      serverLogger.error('Failed to fetch design for mask', {
         designId,
         userId: user.id,
         status: designResponse.status,
@@ -47,7 +47,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
 
     const design = await designResponse.json();
     if (design.user_id !== user.id) {
-      logger.warn('Unauthorized mask upload attempt', {
+      serverLogger.warn('Unauthorized mask upload attempt', {
         designId,
         userId: user.id,
         designOwnerId: design.user_id,
@@ -93,7 +93,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
       try {
         metadata = JSON.parse(metadataJson);
       } catch (parseError) {
-        logger.warn('Failed to parse metadata JSON', {
+        serverLogger.warn('Failed to parse metadata JSON', {
           designId,
           userId: user.id,
           error: parseError,
@@ -120,7 +120,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
             },
             (error, result) => {
               if (error) reject(error);
-              else resolve(result);
+              else resolve(result?.secure_url ? { secure_url: result.secure_url } : { secure_url: '' });
             }
           )
           .end(buffer);
@@ -128,7 +128,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
 
       maskUrl = uploadResult.secure_url;
     } catch (uploadError: unknown) {
-      logger.error('Cloudinary mask upload error', uploadError, {
+      serverLogger.error('Cloudinary mask upload error', uploadError, {
         designId,
         userId: user.id,
       });
@@ -162,7 +162,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
     });
 
     if (!updateResponse.ok) {
-      logger.error('Failed to update design with mask', {
+      serverLogger.error('Failed to update design with mask', {
         designId,
         userId: user.id,
         status: updateResponse.status,
@@ -170,7 +170,7 @@ export async function POST(request: Request, { params }: DesignMaskRouteContext)
       throw { status: 500, message: 'Erreur lors de la sauvegarde des métadonnées du masque' };
     }
 
-    logger.info('Design mask uploaded', {
+    serverLogger.info('Design mask uploaded', {
       designId,
       userId: user.id,
       maskUrl,

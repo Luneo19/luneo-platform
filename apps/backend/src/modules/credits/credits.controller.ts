@@ -23,7 +23,7 @@ import { CreateCreditPackDto } from './dto/create-credit-pack.dto';
 import { UpdateCreditPackDto } from './dto/update-credit-pack.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
-import { Prisma, UserRole } from '@prisma/client';
+import { CreditPack, Prisma, UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BillingService } from '@/modules/billing/billing.service';
@@ -70,9 +70,12 @@ export class CreditsController {
   }
 
   @Post('add')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Add credits to user account (admin/webhook)' })
+  @ApiOperation({ summary: 'Add credits to user account (admin only)' })
   @ApiResponse({ status: 200, description: 'Credits added successfully' })
+  @ApiResponse({ status: 403, description: 'Admin access required' })
   async addCredits(@Body() dto: AddCreditsDto) {
     return this.creditsService.addCredits(
       dto.userId,
@@ -124,14 +127,14 @@ export class CreditsController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const packs = await this.creditsService.getAvailablePacks();
-    const pack = packs.find((p: any) => p.credits === dto.packSize);
+    const pack = packs.find((p: CreditPack) => p.credits === dto.packSize);
 
     if (!pack) {
       throw new BadRequestException(`Pack with ${dto.packSize} credits not found`);
     }
 
     // Get Stripe Price ID from pack or env vars
-    let priceId = pack.stripePriceId || pack.stripe_price_id;
+    let priceId = pack.stripePriceId || (pack as { stripe_price_id?: string }).stripe_price_id;
 
     if (!priceId) {
       // Fallback to env vars

@@ -8,6 +8,8 @@ import {
   Query,
   Request,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,6 +25,7 @@ import { AddTicketMessageDto } from './dto/add-message.dto';
 import { GetTicketsQueryDto } from './dto/get-tickets-query.dto';
 import { GetKnowledgeBaseArticlesQueryDto } from './dto/get-knowledge-base-articles-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('support')
 @Controller('support')
@@ -39,10 +42,10 @@ export class SupportController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Liste des tickets' })
   async getTickets(
-    @Request() req,
+    @Request() req: ExpressRequest,
     @Query() query: GetTicketsQueryDto,
   ) {
-    return this.supportService.getTickets(req.user.id, {
+    return this.supportService.getTickets((req.user as { id: string }).id, {
       status: query.status,
       category: query.category,
       page: query.page,
@@ -54,18 +57,18 @@ export class SupportController {
   @ApiOperation({ summary: 'Obtenir un ticket spécifique' })
   @ApiParam({ name: 'id', description: 'ID du ticket' })
   @ApiResponse({ status: 200, description: 'Détails du ticket' })
-  async getTicket(@Param('id') id: string, @Request() req) {
-    return this.supportService.getTicket(id, req.user.id);
+  async getTicket(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.supportService.getTicket(id, (req.user as { id: string }).id);
   }
 
   @Post('tickets')
   @ApiOperation({ summary: 'Créer un nouveau ticket de support' })
   @ApiResponse({ status: 201, description: 'Ticket créé' })
-  async createTicket(@Body() createDto: CreateSupportTicketDto, @Request() req) {
+  async createTicket(@Body() createDto: CreateSupportTicketDto, @Request() req: ExpressRequest) {
     return this.supportService.createTicket({
       ...createDto,
       description: createDto.message,
-      userId: req.user.id,
+      userId: (req.user as { id: string }).id,
     });
   }
 
@@ -73,8 +76,8 @@ export class SupportController {
   @ApiOperation({ summary: 'Mettre à jour un ticket' })
   @ApiParam({ name: 'id', description: 'ID du ticket' })
   @ApiResponse({ status: 200, description: 'Ticket mis à jour' })
-  async updateTicket(@Param('id') id: string, @Body() updateDto: UpdateSupportTicketDto, @Request() req) {
-    return this.supportService.updateTicket(id, updateDto, req.user.id);
+  async updateTicket(@Param('id') id: string, @Body() updateDto: UpdateSupportTicketDto, @Request() req: ExpressRequest) {
+    return this.supportService.updateTicket(id, updateDto, (req.user as { id: string }).id);
   }
 
   @Post('tickets/:id/messages')
@@ -84,9 +87,9 @@ export class SupportController {
   async addMessageToTicket(
     @Param('id') ticketId: string,
     @Body() dto: AddTicketMessageDto,
-    @Request() req,
+    @Request() req: ExpressRequest,
   ) {
-    return this.supportService.addMessageToTicket(ticketId, req.user.id, dto.content);
+    return this.supportService.addMessageToTicket(ticketId, (req.user as { id: string }).id, dto.content);
   }
 
   @Get('knowledge-base/articles')
@@ -113,5 +116,18 @@ export class SupportController {
   @ApiResponse({ status: 200, description: 'Détails de l\'article' })
   async getKnowledgeBaseArticle(@Param('slug') slug: string) {
     return this.supportService.getKnowledgeBaseArticle(slug);
+  }
+
+  @Post('tickets/:id/csat')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soumettre une note de satisfaction (CSAT) pour un ticket' })
+  @ApiParam({ name: 'id', description: 'ID du ticket' })
+  @ApiResponse({ status: 200, description: 'CSAT soumis' })
+  async submitCSAT(
+    @Param('id') ticketId: string,
+    @Body() body: { rating: number; comment?: string },
+    @Request() req: ExpressRequest,
+  ) {
+    return this.supportService.submitCSAT(ticketId, (req.user as { id: string }).id, body);
   }
 }

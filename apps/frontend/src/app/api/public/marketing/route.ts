@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const backendResponse = await fetch(url.toString());
 
     if (!backendResponse.ok) {
-      logger.error('Failed to fetch marketing data', {
+      serverLogger.error('Failed to fetch marketing data', {
         status: backendResponse.status,
         type,
         industry,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
     return response;
   } catch (error) {
-    logger.error('Error fetching marketing data', { error });
+    serverLogger.error('Error fetching marketing data', { error });
     return NextResponse.json(
       { 
         success: false, 

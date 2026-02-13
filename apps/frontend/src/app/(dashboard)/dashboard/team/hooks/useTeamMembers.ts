@@ -4,30 +4,32 @@
 
 import { useMemo } from 'react';
 import { trpc } from '@/lib/trpc/client';
-import type { TeamMember, PendingInvite, TeamStats } from '../types';
+import type { TeamMember, PendingInvite, TeamStats, TeamRole } from '../types';
 
 export function useTeamMembers() {
   const teamQuery = trpc.team.listMembers.useQuery();
 
   type MemberLike = { id: string; name?: string; email: string; role?: string; avatar?: string; joinedAt?: string | Date; lastActive?: string | Date; permissions?: string[]; metadata?: unknown };
   const members: TeamMember[] = useMemo(() => {
-    return (teamQuery.data?.members || []).map((m: MemberLike) => ({
+    const list = (teamQuery.data?.members ?? []) as MemberLike[];
+    return list.map((m) => ({
       id: m.id,
       name: m.name || m.email,
       email: m.email,
-      role: m.role || 'MEMBER',
+      role: (m.role || 'MEMBER') as TeamRole,
       status: 'active' as const,
       avatar: m.avatar,
-      joinedAt: m.joinedAt ? new Date(m.joinedAt) : new Date(),
-      lastActive: m.lastActive ? new Date(m.lastActive) : undefined,
+      joinedAt: m.joinedAt ? new Date(m.joinedAt as string | Date) : new Date(),
+      lastActive: m.lastActive ? new Date(m.lastActive as string | Date) : undefined,
       permissions: m.permissions || [],
-      metadata: m.metadata,
+      metadata: (m.metadata as Record<string, unknown>) ?? {},
     }));
   }, [teamQuery.data]);
 
   type InviteLike = { id: string; email: string; role?: string; invitedBy?: string; invitedAt?: string | Date; expiresAt?: string | Date; status?: string };
   const pendingInvites: PendingInvite[] = useMemo(() => {
-    return (teamQuery.data?.pendingInvites || []).map((i: InviteLike) => ({
+    const invites = (teamQuery.data?.pendingInvites ?? []) as InviteLike[];
+    return invites.map((i) => ({
       id: i.id,
       email: i.email,
       role: (i.role || 'MEMBER') as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER',

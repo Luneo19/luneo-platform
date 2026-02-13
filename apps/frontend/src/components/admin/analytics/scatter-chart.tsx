@@ -70,9 +70,10 @@ export function ScatterChart({
     '#ec4899', // pink
   ];
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload?: ScatterDataPoint }> }) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const data = payload[0]?.payload;
+      if (!data) return null;
       return (
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
           {data.name && (

@@ -5,7 +5,32 @@
 import { useMemo } from 'react';
 import { trpc } from '@/lib/trpc/client';
 import type { ProductFilters, SortOption, ProductDisplay } from '../types';
-import type { ProductCategory } from '@/lib/types/product';
+import type { ProductCategory, ProductStatus } from '@/lib/types/product';
+
+/** Raw product shape from trpc product.list */
+interface RawProductFromApi {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  imageUrl?: string;
+  images?: string[];
+  price?: number;
+  currency?: string;
+  isActive?: boolean;
+  status?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  views?: number;
+  orders?: number;
+  sku?: string;
+  tags?: string[];
+  model3dUrl?: string;
+  baseAssetUrl?: string;
+  metadata?: Record<string, unknown>;
+  brandId?: string;
+  createdBy?: string;
+}
 
 export function useProducts(
   filters: ProductFilters,
@@ -23,16 +48,17 @@ export function useProducts(
 
   // Transform products
   const products: ProductDisplay[] = useMemo(() => {
-    return (productsQuery.data?.products || []).map((p: any) => ({
+    const rawList = (productsQuery.data?.products || []) as unknown as RawProductFromApi[];
+    return rawList.map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
-      category: p.category || 'OTHER',
-      image_url: p.imageUrl || p.images?.[0] || `https://picsum.photos/seed/${p.id}/400/400`,
+      category: (p.category || 'OTHER') as ProductCategory,
+      image_url: p.imageUrl || p.images?.[0] || '/placeholder-design.svg',
       price: p.price || 0,
       currency: p.currency || 'EUR',
       isActive: p.isActive ?? true,
-      status: p.status || 'ACTIVE',
+      status: (p.status || 'ACTIVE') as ProductStatus,
       createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
       updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
       views: p.views || 0,
@@ -79,17 +105,19 @@ export function useProducts(
 
     // Sort
     filtered.sort((a, b) => {
-      let aValue: any = a[sortOption.field];
-      let bValue: any = b[sortOption.field];
+      const defaultVal =
+        sortOption.field === 'createdAt' || sortOption.field === 'updatedAt' ? new Date(0) : '';
+      let aValue: string | number | Date = (a[sortOption.field] ?? defaultVal) as string | number | Date;
+      let bValue: string | number | Date = (b[sortOption.field] ?? defaultVal) as string | number | Date;
 
       if (sortOption.field === 'createdAt' || sortOption.field === 'updatedAt') {
-        aValue = aValue.getTime();
-        bValue = bValue.getTime();
+        aValue = aValue instanceof Date ? aValue.getTime() : new Date(String(aValue)).getTime();
+        bValue = bValue instanceof Date ? bValue.getTime() : new Date(String(bValue)).getTime();
       }
 
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
+        bValue = (typeof bValue === 'string' ? bValue : String(bValue)).toLowerCase();
       }
 
       if (sortOption.direction === 'asc') {

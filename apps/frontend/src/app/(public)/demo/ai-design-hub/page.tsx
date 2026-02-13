@@ -11,8 +11,10 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { logger } from '@/lib/logger';
+import { useI18n } from '@/i18n/useI18n';
 
 function AIDesignHubDemoPageContent() {
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState('T-shirt avec logo lion moderne, couleurs vives');
   const [style, setStyle] = useState('photorealistic');
   const [variations, setVariations] = useState(4);
@@ -37,20 +39,14 @@ function AIDesignHubDemoPageContent() {
     setError(null);
     setIsGenerating(true);
     try {
-      // Simulate API call (in production, this would call /api/ai/generate)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      // Mock results for demo
-      const mockResults = Array.from({ length: variations }, (_, i) => 
-        `https://picsum.photos/seed/${prompt}-${i}/512/512`
-      );
-      
+      // Demo: show static placeholder design (no live API on public demo page)
+      const mockResults = Array.from({ length: variations }, () => '/placeholder-design.svg');
       setResults(mockResults);
       setSelectedImage(mockResults[0]);
       logger.info('AI designs generated (demo mode)', { prompt, variations });
     } catch (err) {
       logger.error('AI generation error', { error: err });
-      setError('Erreur lors de la génération. Veuillez réessayer.');
+      setError(t('common.generationError'));
     } finally {
       setIsGenerating(false);
     }
@@ -86,10 +82,13 @@ function AIDesignHubDemoPageContent() {
                 <Sparkles className="w-6 h-6 text-pink-400" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold">
+                <h1 className="text-3xl sm:text-4xl font-bold flex items-center gap-2">
                   AI Design Hub
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-300 border border-amber-500/50">
+                    Demo
+                  </span>
                 </h1>
-                <p className="text-gray-400">Démo Interactive - Génération IA</p>
+                <p className="text-gray-400">Démo Interactive - Génération IA (aperçu statique)</p>
               </div>
             </div>
 
@@ -114,7 +113,7 @@ function AIDesignHubDemoPageContent() {
                 <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Décrivez votre design..."
+                  placeholder={t('common.describeDesign')}
                   className="bg-gray-800 border-gray-700 text-white min-h-[100px]"
                 />
               </div>
@@ -181,6 +180,7 @@ function AIDesignHubDemoPageContent() {
                     key={i}
                     onClick={() => setPrompt(example)}
                     className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-300 hover:text-white transition-colors"
+                    aria-label={`Use example: ${example}`}
                   >
                     {example}
                   </button>
@@ -208,7 +208,7 @@ function AIDesignHubDemoPageContent() {
                 <div className="text-center">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-300 mb-2">Aucun design généré</p>
-                  <p className="text-sm text-gray-400">Remplissez le formulaire et cliquez sur "Générer"</p>
+                  <p className="text-sm text-gray-400">{t('common.fillFormAndGenerate')}</p>
                 </div>
               </div>
             ) : (
@@ -254,7 +254,7 @@ function AIDesignHubDemoPageContent() {
                     className="bg-pink-600 hover:bg-pink-700"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Exporter
+                    {t('common.export')}
                   </Button>
                 </div>
               </div>

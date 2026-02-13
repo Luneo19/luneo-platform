@@ -295,8 +295,8 @@ export class CollaborationService {
       updatedAt: record.updatedAt,
     };
 
-    if (record.replies?.length > 0) {
-      comment.replies = record.replies.map((r) => this.mapToComment(r));
+    if ((record.replies?.length ?? 0) > 0) {
+      comment.replies = (record.replies ?? []).map((r) => this.mapToComment(r));
     }
 
     return comment;

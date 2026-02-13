@@ -9,11 +9,13 @@
 
 'use client';
 
+import Script from 'next/script';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { trpc } from '@/lib/trpc/client';
 import {
     AlertCircle,
@@ -99,7 +101,7 @@ function ARViewerContent() {
       setIsInitializing(false);
     } catch (error: unknown) {
       logger.error('Error initializing AR', { error });
-      setError(error instanceof Error ? error.message : 'Erreur lors de l\'initialisation AR');
+      setError(getErrorDisplayMessage(error));
       setIsInitializing(false);
     }
   }, [modelUrl, productId, customizationId, productType, createSession, trackInteraction]);
@@ -114,6 +116,9 @@ function ARViewerContent() {
     }
 
     const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
+    if (!xr) {
+      throw new Error('WebXR non disponible sur cet appareil');
+    }
 
     // Check AR support
     const supported = await xr.isSessionSupported('immersive-ar');
@@ -131,7 +136,7 @@ function ARViewerContent() {
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.xr.enabled = true;
+    if (renderer.xr) renderer.xr.enabled = true;
 
     // Load 3D model
     const loader = new GLTFLoader();
@@ -149,25 +154,25 @@ function ARViewerContent() {
         type: 'model_loaded',
         metadata: { modelUrl: modelUrl! },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error loading 3D model', { error, modelUrl });
       await trackInteraction.mutateAsync({
         sessionId: sessionId!,
         type: 'model_error',
-        metadata: { error: error.message },
+        metadata: { error: getErrorDisplayMessage(error) },
       });
       throw error;
     }
 
     // Request AR session
-    const session = await xr.requestSession('immersive-ar', {
+    const session = await xr!.requestSession('immersive-ar', {
       requiredFeatures: ['hit-test'],
       optionalFeatures: ['dom-overlay'],
     });
 
     // Setup hit testing for placement
     const hitTestSource = await session.requestReferenceSpace('viewer').then((space: XRReferenceSpace) =>
-      session.requestHitTestSource({ space })
+      session.requestHitTestSource?.({ space })
     );
 
     const hitTestSourceRequested = false;
@@ -303,6 +308,56 @@ function ARViewerContent() {
   }
 
   if (error) {
+    // If WebXR not supported, show model-viewer fallback
+    const isWebXRError = error.includes('WebXR') || error.includes('AR non supportée');
+    if (isWebXRError && modelUrl) {
+      return (
+        <div className="min-h-screen bg-gray-950 flex flex-col">
+          <div className="p-4 flex items-center justify-between bg-gray-900">
+            <Button variant="ghost" onClick={() => router.back()} className="text-white">
+              <X className="w-4 h-4 mr-2" />
+              Retour
+            </Button>
+            <p className="text-white/60 text-sm">Aperçu 3D (WebXR non disponible)</p>
+          </div>
+          <div className="flex-1 relative">
+            {/* @ts-ignore - model-viewer is a web component */}
+            <model-viewer
+              src={decodeURIComponent(modelUrl)}
+              alt="Aperçu 3D du produit"
+              ar
+              ar-modes="webxr scene-viewer quick-look"
+              camera-controls
+              auto-rotate
+              shadow-intensity="1"
+              environment-image="neutral"
+              style={{ width: '100%', height: '100%', display: 'block', minHeight: '80vh' }}
+            >
+              <button
+                slot="ar-button"
+                style={{
+                  backgroundColor: '#7c3aed',
+                  color: '#fff',
+                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  border: 'none',
+                  position: 'absolute',
+                  bottom: '24px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                }}
+              >
+                Voir en AR
+              </button>
+            </model-viewer>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <Card>
@@ -359,6 +414,7 @@ function ARViewerContent() {
               size="sm"
               onClick={handleScreenshot}
               className="bg-black/50 backdrop-blur text-white border-white/20"
+              aria-label="Take screenshot"
             >
               <Camera className="w-4 h-4" />
             </Button>
@@ -366,6 +422,7 @@ function ARViewerContent() {
               variant="outline"
               size="sm"
               className="bg-black/50 backdrop-blur text-white border-white/20"
+              aria-label="Share"
             >
               <Share2 className="w-4 h-4" />
             </Button>
@@ -399,6 +456,12 @@ const ARViewer = memo(ARViewerContent);
 export default function Page() {
   return (
     <ErrorBoundary>
+      {/* Google model-viewer for AR fallback */}
+      <Script
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"
+        type="module"
+        strategy="lazyOnload"
+      />
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-screen">

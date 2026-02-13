@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Sse,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,13 +20,21 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { SubscribePushDto, UnsubscribePushDto, SendPushNotificationDto, SendPushToUserDto, CreateNotificationDto } from './dto/notifications.dto';
+import { Request as ExpressRequest } from 'express';
+
+interface MessageEvent {
+  data: string | object;
+}
 
 @ApiTags('notifications')
 @Controller('notifications')
+@UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -50,9 +59,9 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Successfully subscribed' })
   async subscribeToPush(
     @Body() body: SubscribePushDto,
-    @Request() req,
+    @Request() req: ExpressRequest,
   ) {
-    const userId = body.userId || req.user.id;
+    const userId = body.userId || (req.user as { id: string }).id;
     return this.notificationsService.subscribeToPush(userId, body.subscription);
   }
 
@@ -64,9 +73,9 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Successfully unsubscribed' })
   async unsubscribeFromPush(
     @Body() body: UnsubscribePushDto,
-    @Request() req,
+    @Request() req: ExpressRequest,
   ) {
-    const userId = body.userId || req.user.id;
+    const userId = body.userId || (req.user as { id: string }).id;
     return this.notificationsService.unsubscribeFromPush(userId, body.endpoint);
   }
 
@@ -95,8 +104,20 @@ export class NotificationsController {
   }
 
   // ========================================
-  // IN-APP NOTIFICATIONS
+  // IN-APP NOTIFICATIONS & SSE
   // ========================================
+
+  @Sse('stream')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'SSE stream for real-time notifications' })
+  @ApiResponse({ status: 200, description: 'Server-Sent Events stream' })
+  streamNotifications(@Request() req: ExpressRequest): Observable<MessageEvent> {
+    const userId = (req.user as { id: string }).id;
+    return this.notificationsService.getStream(userId).pipe(
+      map((ev) => ({ data: ev.data } as MessageEvent)),
+    );
+  }
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -107,12 +128,12 @@ export class NotificationsController {
   @ApiQuery({ name: 'unreadOnly', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'Liste des notifications' })
   async findAll(
-    @Request() req,
+    @Request() req: ExpressRequest,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('unreadOnly') unreadOnly?: string,
   ) {
-    return this.notificationsService.findAll(req.user.id, {
+    return this.notificationsService.findAll((req.user as { id: string }).id, {
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       unreadOnly: unreadOnly === 'true',
@@ -125,8 +146,8 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Obtenir une notification spécifique' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
   @ApiResponse({ status: 200, description: 'Détails de la notification' })
-  async findOne(@Param('id') id: string, @Request() req) {
-    return this.notificationsService.findOne(id, req.user.id);
+  async findOne(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.notificationsService.findOne(id, (req.user as { id: string }).id);
   }
 
   @Post()
@@ -134,9 +155,9 @@ export class NotificationsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Créer une nouvelle notification' })
   @ApiResponse({ status: 201, description: 'Notification créée' })
-  async create(@Body() createNotificationDto: CreateNotificationDto, @Request() req) {
+  async create(@Body() createNotificationDto: CreateNotificationDto, @Request() req: ExpressRequest) {
     return this.notificationsService.create({
-      userId: req.user.id,
+      userId: (req.user as { id: string }).id,
       type: createNotificationDto.type ?? 'info',
       title: createNotificationDto.title,
       message: createNotificationDto.message,
@@ -150,8 +171,8 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Marquer une notification comme lue' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
   @ApiResponse({ status: 200, description: 'Notification marquée comme lue' })
-  async markAsRead(@Param('id') id: string, @Request() req) {
-    return this.notificationsService.markAsRead(id, req.user.id);
+  async markAsRead(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.notificationsService.markAsRead(id, (req.user as { id: string }).id);
   }
 
   @Post('read-all')
@@ -159,8 +180,8 @@ export class NotificationsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Marquer toutes les notifications comme lues' })
   @ApiResponse({ status: 200, description: 'Toutes les notifications marquées comme lues' })
-  async markAllAsRead(@Request() req) {
-    return this.notificationsService.markAllAsRead(req.user.id);
+  async markAllAsRead(@Request() req: ExpressRequest) {
+    return this.notificationsService.markAllAsRead((req.user as { id: string }).id);
   }
 
   @Delete(':id')
@@ -169,7 +190,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Supprimer une notification' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
   @ApiResponse({ status: 200, description: 'Notification supprimée' })
-  async delete(@Param('id') id: string, @Request() req) {
-    return this.notificationsService.delete(id, req.user.id);
+  async delete(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.notificationsService.delete(id, (req.user as { id: string }).id);
   }
 }

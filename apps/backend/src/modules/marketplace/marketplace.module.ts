@@ -12,13 +12,15 @@ import { CreatorProfileService } from './services/creator-profile.service'; // �
 import { MarketplaceTemplateService } from './services/marketplace-template.service'; // ✅ PHASE 7
 import { RevenueSharingService } from './services/revenue-sharing.service'; // ✅ PHASE 7
 import { EngagementService } from './services/engagement.service'; // ✅ PHASE 7
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { CloudinaryModule } from '@/libs/storage/cloudinary.module';
+import { CreditsModule } from '@/libs/credits/credits.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [PrismaModule, SmartCacheModule, ConfigModule, CloudinaryModule, ScheduleModule],
+  imports: [PrismaModule, SmartCacheModule, ConfigModule, CloudinaryModule, CreditsModule, ScheduleModule, NotificationsModule],
   controllers: [MarketplaceController],
   providers: [
     MarketplaceService, // ✅ PHASE 8 - Brand-to-brand marketplace

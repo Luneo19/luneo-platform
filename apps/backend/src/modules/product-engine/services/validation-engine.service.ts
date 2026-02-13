@@ -258,8 +258,8 @@ export class ValidationEngine {
    * Valide une zone couleur
    */
   private validateColorZone(
-    zone: any,
-    options: any,
+    zone: ProductZone,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -316,7 +316,7 @@ export class ValidationEngine {
     }
 
     // Vérifier les options autorisées
-    const allowedOptions = zone.metadata?.options || [];
+    const allowedOptions = (Array.isArray(zone.metadata?.options) ? zone.metadata.options : []) as string[];
     if (allowedOptions.length > 0 && !allowedOptions.includes(options.value as string)) {
       errors.push({
         code: 'INVALID_SELECTION',

@@ -8,11 +8,11 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -29,7 +29,7 @@ import { formatRelativeTime } from '@/lib/utils';
 interface Event {
   id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   customerId?: string | null;
   createdAt: Date | string;
 }
@@ -37,6 +37,7 @@ interface Event {
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('30');
@@ -48,6 +49,7 @@ export default function EventsPage() {
   const loadEvents = async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const params: Record<string, string> = {};
       if (dateFilter) params.days = dateFilter;
       if (typeFilter !== 'all') params.type = typeFilter;
@@ -56,6 +58,8 @@ export default function EventsPage() {
       setEvents(data?.events ?? []);
     } catch (error) {
       logger.error('Error loading events:', error);
+      setEvents([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +161,16 @@ export default function EventsPage() {
           ) : filteredEvents.length === 0 ? (
             <div className="text-center py-12 text-zinc-400">
               <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No events found</p>
+              {loadError ? (
+                <>
+                  <p className="mb-4">Unable to load events.</p>
+                  <Button variant="outline" onClick={() => loadEvents()} className="border-zinc-700">
+                    Retry
+                  </Button>
+                </>
+              ) : (
+                <p>No events found</p>
+              )}
             </div>
           ) : (
             <ScrollArea className="h-[600px]">

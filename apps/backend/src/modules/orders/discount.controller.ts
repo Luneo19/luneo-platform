@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Request,
   UseGuards,
   NotFoundException,
   ConflictException,
@@ -20,21 +21,56 @@ import {
   ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { DiscountService } from './services/discount.service';
 import { CreateDiscountDto } from './dto/create-discount.dto';
 import { UpdateDiscountDto } from './dto/update-discount.dto';
+import { ValidateDiscountCodeDto } from './dto/validate-discount-code.dto';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
+/**
+ * Public controller for discount code validation
+ */
+@ApiTags('discount-codes')
+@Controller('discount-codes')
+@UseGuards(JwtAuthGuard)
+export class DiscountCodesPublicController {
+  constructor(private readonly discountService: DiscountService) {}
+
+  @Post('validate')
+  @Public()
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({ summary: 'Validate a discount code' })
+  @ApiResponse({ status: 200, description: 'Discount code validation result' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired discount code' })
+  async validateDiscountCode(
+    @Body() dto: ValidateDiscountCodeDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    const subtotal = dto.subtotalCents ?? 0;
+    return this.discountService.validateAndApplyDiscount(
+      dto.code,
+      subtotal,
+      dto.brandId,
+      req.user.id,
+    );
+  }
+}
+
 @ApiTags('admin-discounts')
 @ApiBearerAuth()
 @Controller('admin/discounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error NestJS decorator typing
 @Roles(UserRole.PLATFORM_ADMIN)
 export class DiscountController {
   constructor(private readonly prisma: PrismaService) {}
@@ -114,6 +150,7 @@ export class DiscountController {
   }
 
   @Post()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a new discount code' })
   @ApiResponse({ status: 201, description: 'Discount created' })
   @ApiResponse({ status: 409, description: 'Code already exists' })
@@ -159,6 +196,7 @@ export class DiscountController {
   }
 
   @Put(':id')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Update a discount code' })
   @ApiParam({ name: 'id', description: 'Discount ID' })
   @ApiResponse({ status: 200, description: 'Discount updated' })
@@ -215,6 +253,7 @@ export class DiscountController {
   }
 
   @Delete(':id')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Delete a discount code' })
   @ApiParam({ name: 'id', description: 'Discount ID' })
   @ApiResponse({ status: 200, description: 'Discount deleted' })

@@ -1,15 +1,30 @@
-import { Controller, Get, Query, UseGuards, Request, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Request, Res, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { AnalyticsExportService } from '../services/export.service';
+import { PlansService } from '@/modules/plans/plans.service';
+import { RequestWithOptionalUser } from '@/common/types/user.types';
 
 @ApiTags('Analytics Export')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('analytics/export')
 export class AnalyticsExportController {
-  constructor(private readonly exportService: AnalyticsExportService) {}
+  constructor(
+    private readonly exportService: AnalyticsExportService,
+    private readonly plansService: PlansService,
+  ) {}
+
+  private async requireBusinessPlanForExport(userId: string): Promise<void> {
+    const plan = await this.plansService.getUserPlan(userId);
+    const limits = this.plansService.getPlanLimits(plan);
+    if (!limits.customExport) {
+      throw new ForbiddenException(
+        'Analytics export requires Business plan or higher',
+      );
+    }
+  }
 
   @Get('pdf')
   @ApiOperation({
@@ -24,17 +39,18 @@ export class AnalyticsExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('includeCharts') includeCharts?: boolean,
-    @Request() req?: any,
+    @Request() req?: RequestWithOptionalUser,
     @Res() res?: Response,
   ) {
     if (!res) {
       throw new BadRequestException('Response object required');
     }
 
-    const brandId = req.user.brandId;
+    const brandId = req?.user?.brandId;
     if (!brandId) {
       throw new BadRequestException('Brand ID required');
     }
+    await this.requireBusinessPlanForExport(req!.user!.id);
 
     await this.exportService.exportToPDF(
       {
@@ -59,17 +75,18 @@ export class AnalyticsExportController {
   async exportExcel(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req?: any,
+    @Request() req?: RequestWithOptionalUser,
     @Res() res?: Response,
   ) {
     if (!res) {
       throw new BadRequestException('Response object required');
     }
 
-    const brandId = req.user.brandId;
+    const brandId = req?.user?.brandId;
     if (!brandId) {
       throw new BadRequestException('Brand ID required');
     }
+    await this.requireBusinessPlanForExport(req!.user!.id);
 
     await this.exportService.exportToExcel(
       {
@@ -93,17 +110,18 @@ export class AnalyticsExportController {
   async exportCSV(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req?: any,
+    @Request() req?: RequestWithOptionalUser,
     @Res() res?: Response,
   ) {
     if (!res) {
       throw new BadRequestException('Response object required');
     }
 
-    const brandId = req.user.brandId;
+    const brandId = req?.user?.brandId;
     if (!brandId) {
       throw new BadRequestException('Brand ID required');
     }
+    await this.requireBusinessPlanForExport(req!.user!.id);
 
     await this.exportService.exportToCSV(
       {

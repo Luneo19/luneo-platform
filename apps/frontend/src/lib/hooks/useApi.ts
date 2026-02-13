@@ -20,7 +20,7 @@ interface UseApiResult<T> {
   data: T | null;
   loading: boolean;
   error: Error | null;
-  execute: (...args: any[]) => Promise<T | null>;
+  execute: (...args: unknown[]) => Promise<T | null>;
   reset: () => void;
   refetch: () => Promise<T | null>;
 }
@@ -29,8 +29,8 @@ interface UseApiResult<T> {
  * Hook pour exécuter une fonction API de manière asynchrone
  * Gère automatiquement les états de chargement, erreurs, et données
  */
-export function useApi<T = any>(
-  apiFunction: (...args: any[]) => Promise<T>,
+export function useApi<T = unknown>(
+  apiFunction: (...args: unknown[]) => Promise<T>,
   options: UseApiOptions<T> = {}
 ): UseApiResult<T> {
   const { immediate = false, onSuccess, onError, retry } = options;
@@ -42,7 +42,7 @@ export function useApi<T = any>(
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const execute = useCallback(
-    async (...args: any[]): Promise<T | null> => {
+    async (...args: unknown[]): Promise<T | null> => {
       // Annuler la requête précédente si elle existe
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -73,13 +73,14 @@ export function useApi<T = any>(
           }
 
           return result;
-        } catch (err: any) {
+        } catch (err: unknown) {
           // Ignorer les erreurs d'annulation
-          if (signal.aborted || err.name === 'AbortError') {
+          const errObj = err instanceof Error ? err : new Error(String(err));
+          if (signal.aborted || errObj.name === 'AbortError') {
             return null;
           }
 
-          const apiError = err instanceof Error ? err : new Error(err.message || 'Erreur API');
+          const apiError = err instanceof Error ? err : new Error(String(err));
 
           // Retry si configuré
           if (retry && attempt < retry.attempts) {
@@ -149,11 +150,15 @@ export function useApi<T = any>(
 /**
  * Hook pour les mutations API (POST, PUT, DELETE)
  */
-export function useMutation<T = any, V = any>(
+export function useMutation<T = unknown, V = unknown>(
   mutationFunction: (variables: V) => Promise<T>,
   options: UseApiOptions<T> = {}
 ) {
-  const apiResult = useApi<T>(mutationFunction, { ...options, immediate: false });
+  const wrappedFn = useCallback(
+    (...args: unknown[]) => mutationFunction(args[0] as V),
+    [mutationFunction]
+  );
+  const apiResult = useApi<T>(wrappedFn, { ...options, immediate: false });
 
   const mutate = useCallback(
     async (variables: V) => {
@@ -172,7 +177,7 @@ export function useMutation<T = any, V = any>(
 /**
  * Hook pour les requêtes API GET avec cache
  */
-export function useQuery<T = any>(
+export function useQuery<T = unknown>(
   queryFunction: () => Promise<T>,
   options: UseApiOptions<T> & { enabled?: boolean } = {}
 ) {
@@ -220,7 +225,7 @@ export interface PaginatedResponse<T> {
 /**
  * Hook pour les requêtes paginées
  */
-export function usePaginatedQuery<T = any>(
+export function usePaginatedQuery<T = unknown>(
   queryFunction: (params: PaginationParams) => Promise<PaginatedResponse<T>>,
   options: {
     initialPage?: number;

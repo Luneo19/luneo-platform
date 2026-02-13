@@ -613,7 +613,7 @@ export class MarketingRenderService {
   /**
    * Récupère le modèle 3D
    */
-  private async getModel3D(designId: string, productId: string): Promise<any> {
+  private async getModel3D(designId: string, productId: string): Promise<{ url: string; format?: string } | null> {
     // Récupérer depuis Asset ou Product
     const asset = await this.prisma.asset.findFirst({
       where: {

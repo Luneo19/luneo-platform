@@ -38,7 +38,7 @@ export interface CADValidationRequest {
     }>;
     setting?: {
       type: 'claw' | 'pave' | 'channel' | 'bezel';
-      parameters?: any;
+      parameters?: Record<string, unknown>;
     };
   };
   constraints: {

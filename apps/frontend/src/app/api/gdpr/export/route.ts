@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
 
-    logger.info('GDPR export requested', {
+    serverLogger.info('GDPR export requested', {
       userId: user.id,
     });
 
     // Forward to backend API
-    const backendResponse = await fetch(`${API_URL}/api/v1/gdpr/export`, {
+    const backendResponse = await fetch(`${API_URL}/api/v1/security/gdpr/export`, {
       headers: {
         Cookie: request.headers.get('cookie') || '',
       },
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Failed to export GDPR data', {
+      serverLogger.error('Failed to export GDPR data', {
         userId: user.id,
         status: backendResponse.status,
         error: errorText,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('GDPR export completed', {
+    serverLogger.info('GDPR export completed', {
       userId: user.id,
       dataSize: JSON.stringify(result.data).length,
     });

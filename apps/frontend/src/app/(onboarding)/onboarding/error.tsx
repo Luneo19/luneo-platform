@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function Error({
   error,
@@ -17,6 +18,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
+
   useEffect(() => {
     logger.error('Onboarding page error', {
       error,
@@ -33,21 +36,21 @@ export default function Error({
           <div className="flex flex-col items-center justify-center gap-4">
             <AlertCircle className="h-12 w-12 text-orange-400" />
             <h2 className="text-xl font-semibold text-white">
-              Erreur lors de l'inscription
+              {t('onboardingError.title')}
             </h2>
             <p className="text-muted-foreground text-center max-w-md">
-              {error.message || 'Une erreur inattendue s\'est produite durant votre inscription.'}
+              {error.message || t('onboardingError.unexpected')}
             </p>
             <div className="flex gap-4 mt-4">
               <Button onClick={reset} variant="default">
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Réessayer
+                {t('onboardingError.retry')}
               </Button>
               <Button
                 onClick={() => window.location.href = '/'}
                 variant="outline"
               >
-                Retour à l'accueil
+                {t('onboardingError.backHome')}
               </Button>
             </div>
           </div>

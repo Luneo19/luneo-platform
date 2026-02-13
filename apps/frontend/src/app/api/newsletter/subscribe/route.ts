@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { z } from 'zod';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     const { email, source } = validation.data;
 
-    logger.info('Newsletter subscription request', {
+    serverLogger.info('Newsletter subscription request', {
       email: email.replace(/(.{2}).*@/, '$1***@'), // Masquer l'email dans les logs
       source,
     });
@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
           const errorText = await response.text();
-          logger.warn('SendGrid contact add failed', { status: response.status, error: errorText });
+          serverLogger.warn('SendGrid contact add failed', { status: response.status, error: errorText });
         } else {
-          logger.info('Contact added to SendGrid', { email: email.replace(/(.{2}).*@/, '$1***@') });
+          serverLogger.info('Contact added to SendGrid', { email: email.replace(/(.{2}).*@/, '$1***@') });
         }
       } catch (sendgridError) {
-        logger.error('SendGrid API error', { error: sendgridError });
+        serverLogger.error('SendGrid API error', { error: sendgridError });
       }
     }
 
@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source }),
       });
-      logger.info('Subscriber stored via backend', { email: email.replace(/(.{2}).*@/, '$1***@') });
+      serverLogger.info('Subscriber stored via backend', { email: email.replace(/(.{2}).*@/, '$1***@') });
     } catch (dbError) {
-      logger.warn('Backend newsletter storage failed', { error: dbError });
+      serverLogger.warn('Backend newsletter storage failed', { error: dbError });
     }
 
     // Envoyer email de confirmation
@@ -145,9 +145,9 @@ export async function POST(request: NextRequest) {
             }],
           }),
         });
-        logger.info('Welcome newsletter email sent', { email: email.replace(/(.{2}).*@/, '$1***@') });
+        serverLogger.info('Welcome newsletter email sent', { email: email.replace(/(.{2}).*@/, '$1***@') });
       } catch (emailError) {
-        logger.error('Newsletter welcome email failed', { error: emailError });
+        serverLogger.error('Newsletter welcome email failed', { error: emailError });
       }
     }
 

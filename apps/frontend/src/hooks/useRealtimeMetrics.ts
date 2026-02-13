@@ -104,18 +104,21 @@ export function useRealtimeMetrics(): UseRealtimeMetricsResult {
       setIsDegraded(true);
     });
 
-    socket.on('metrics:update', (payload: RealtimeMetricsPayload) => {
-      setData(payload);
-      lastUpdatedRef.current = payload.timestamp;
-      markHeartbeat(payload.timestamp);
+    socket.on('metrics:update', (payload: unknown) => {
+      const p = payload as RealtimeMetricsPayload;
+      setData(p);
+      lastUpdatedRef.current = p.timestamp;
+      markHeartbeat(p.timestamp);
     });
 
-    socket.on('quota:bootstrap', (entries: QuotaRealtimePayload[]) => {
+    socket.on('quota:bootstrap', (...args: unknown[]) => {
+      const entries = args[0] as QuotaRealtimePayload[];
       setQuotaSnapshots(new Map(entries.map((entry) => [entry.brandId, entry])));
       markHeartbeat();
     });
 
-    socket.on('quota:update', (entry: QuotaRealtimePayload) => {
+    socket.on('quota:update', (...args: unknown[]) => {
+      const entry = args[0] as QuotaRealtimePayload;
       setQuotaSnapshots((prev) => {
         const next = new Map(prev);
         next.set(entry.brandId, entry);

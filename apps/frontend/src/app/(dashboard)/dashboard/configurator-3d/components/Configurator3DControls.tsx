@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RotateCcw } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { MATERIALS, COLORS } from '../constants/materials';
 import type { Configuration3D } from '../types';
 
@@ -24,16 +25,17 @@ export function Configurator3DControls({
   onUpdate,
   onReset,
 }: Configurator3DControlsProps) {
+  const { t } = useI18n();
   if (!configuration) return null;
 
   return (
     <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
-        <CardTitle className="text-gray-900">Contrôles</CardTitle>
+        <CardTitle className="text-gray-900">{t('configurator3d.controls')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label className="text-gray-700">Matériau</Label>
+          <Label className="text-gray-700">{t('configurator3d.material')}</Label>
           <Select
             value={configuration.material}
             onValueChange={(value) => onUpdate({ material: value })}
@@ -44,7 +46,7 @@ export function Configurator3DControls({
             <SelectContent>
               {MATERIALS.map((material) => (
                 <SelectItem key={material.id} value={material.id}>
-                  {material.name}
+                  {t(`configurator3d.materialNames.${material.id}` as 'configurator3d.materialNames.leather') || material.id}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -52,7 +54,7 @@ export function Configurator3DControls({
         </div>
 
         <div>
-          <Label className="text-gray-700">Couleur</Label>
+          <Label className="text-gray-700">{t('configurator3d.color')}</Label>
           <div className="grid grid-cols-4 gap-2 mt-2">
             {COLORS.map((color) => (
               <button
@@ -77,18 +79,18 @@ export function Configurator3DControls({
         </div>
 
         <div>
-          <Label className="text-gray-700">Gravure</Label>
+          <Label className="text-gray-700">{t('configurator3d.engraving')}</Label>
           <Input
             value={configuration.engraving || ''}
             onChange={(e) => onUpdate({ engraving: e.target.value })}
-            placeholder="Texte à graver"
+            placeholder={t('configurator3d.engravingPlaceholder')}
             className="bg-white border-gray-200 text-gray-900"
           />
         </div>
 
         <Button variant="outline" onClick={onReset} className="w-full border-gray-200">
           <RotateCcw className="w-4 h-4 mr-2" />
-          Réinitialiser
+          {t('configurator3d.reset')}
         </Button>
       </CardContent>
     </Card>

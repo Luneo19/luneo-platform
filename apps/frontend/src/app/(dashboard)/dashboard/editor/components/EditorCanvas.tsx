@@ -5,7 +5,17 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback, memo } from 'react';
-import type { CanvasObject } from '../types';
+import type Konva from 'konva';
+import type { CanvasObject, Layer } from '../types';
+
+/** Konva transformer bound box (x, y, width, height, rotation) */
+interface KonvaBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
@@ -31,22 +41,23 @@ function EditorCanvasInner({
   onObjectChange,
   stageRef,
 }: EditorCanvasProps) {
-  const nodeRefsMap = useRef<Record<string, any>>({});
-  const trRef = useRef<any>(null);
+  const nodeRefsMap = useRef<Record<string, Konva.Node>>({});
+  const trRef = useRef<Konva.Transformer | null>(null);
 
-  const [Konva, setKonva] = useState<{
-    Stage: React.ComponentType<any>;
-    Layer: React.ComponentType<any>;
-    Rect: React.ComponentType<any>;
-    Circle: React.ComponentType<any>;
-    Text: React.ComponentType<any>;
-    Image: React.ComponentType<any>;
-    Line: React.ComponentType<any>;
-    Arrow: React.ComponentType<any>;
-    Star: React.ComponentType<any>;
-    Transformer: React.ComponentType<any>;
-    Group: React.ComponentType<any>;
-  } | null>(null);
+  type KonvaComponents = {
+    Stage: React.ComponentType<Record<string, unknown>>;
+    Layer: React.ComponentType<Record<string, unknown>>;
+    Rect: React.ComponentType<Record<string, unknown>>;
+    Circle: React.ComponentType<Record<string, unknown>>;
+    Text: React.ComponentType<Record<string, unknown>>;
+    Image: React.ComponentType<Record<string, unknown>>;
+    Line: React.ComponentType<Record<string, unknown>>;
+    Arrow: React.ComponentType<Record<string, unknown>>;
+    Star: React.ComponentType<Record<string, unknown>>;
+    Transformer: React.ComponentType<Record<string, unknown>>;
+    Group: React.ComponentType<Record<string, unknown>>;
+  };
+  const [Konva, setKonva] = useState<KonvaComponents | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -62,7 +73,19 @@ function EditorCanvasInner({
       import('react-konva').then((m) => m.Transformer),
       import('react-konva').then((m) => m.Group),
     ]).then(([Stage, Layer, Rect, Circle, Text, Image, Line, Arrow, Star, Transformer, Group]) => {
-      setKonva({ Stage, Layer, Rect, Circle, Text, Image, Line, Arrow, Star, Transformer, Group });
+      setKonva({
+        Stage: Stage as KonvaComponents['Stage'],
+        Layer: Layer as KonvaComponents['Layer'],
+        Rect: Rect as KonvaComponents['Rect'],
+        Circle: Circle as KonvaComponents['Circle'],
+        Text: Text as KonvaComponents['Text'],
+        Image: Image as unknown as KonvaComponents['Image'],
+        Line: Line as unknown as KonvaComponents['Line'],
+        Arrow: Arrow as unknown as KonvaComponents['Arrow'],
+        Star: Star as unknown as KonvaComponents['Star'],
+        Transformer: Transformer as KonvaComponents['Transformer'],
+        Group: Group as KonvaComponents['Group'],
+      });
     });
   }, []);
 
@@ -119,10 +142,10 @@ function EditorCanvasInner({
           }}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          onClick={(e: { target: { getStage: () => unknown } }) => {
+          onClick={(e: Konva.KonvaEventObject<MouseEvent>) => {
             if (e.target === e.target.getStage()) onSelect(null);
           }}
-          onTap={(e: { target: { getStage: () => unknown } }) => {
+          onTap={(e: Konva.KonvaEventObject<MouseEvent>) => {
             if (e.target === e.target.getStage()) onSelect(null);
           }}
         >
@@ -135,7 +158,7 @@ function EditorCanvasInner({
                   {obj.type === 'shape' && (
                     <ShapeNode
                       obj={obj}
-                      nodeRef={(n: any) => { nodeRefsMap.current[obj.id] = n; }}
+                      nodeRef={(n: Konva.Node) => { nodeRefsMap.current[obj.id] = n; }}
                       isSelected={selectedId === obj.id}
                       onSelect={() => onSelect(obj.id)}
                       onChange={(attrs) => onObjectChange(obj.id, attrs)}
@@ -149,7 +172,7 @@ function EditorCanvasInner({
                   {obj.type === 'text' && (
                     <TextNode
                       obj={obj}
-                      nodeRef={(n: any) => { nodeRefsMap.current[obj.id] = n; }}
+                      nodeRef={(n: Konva.Node) => { nodeRefsMap.current[obj.id] = n; }}
                       isSelected={selectedId === obj.id}
                       onSelect={() => onSelect(obj.id)}
                       onChange={(attrs) => onObjectChange(obj.id, attrs)}
@@ -159,7 +182,7 @@ function EditorCanvasInner({
                   {obj.type === 'image' && obj.src && (
                     <ImageNode
                       obj={obj}
-                      nodeRef={(n: any) => { nodeRefsMap.current[obj.id] = n; }}
+                      nodeRef={(n: Konva.Node) => { nodeRefsMap.current[obj.id] = n; }}
                       isSelected={selectedId === obj.id}
                       onSelect={() => onSelect(obj.id)}
                       onChange={(attrs) => onObjectChange(obj.id, attrs)}
@@ -181,7 +204,7 @@ function EditorCanvasInner({
             {selectedId && (
               <Transformer
                 ref={trRef}
-                boundBoxFunc={(oldBox: any, newBox: any) => {
+                boundBoxFunc={(oldBox: KonvaBox, newBox: KonvaBox) => {
                   const min = 20;
                   if (Math.abs(newBox.width) < min || Math.abs(newBox.height) < min) return oldBox;
                   return newBox;
@@ -208,17 +231,17 @@ const ShapeNode = memo(function ShapeNode({
   Star,
 }: {
   obj: CanvasObject;
-  nodeRef: (n: any) => void;
+  nodeRef: (n: Konva.Node) => void;
   isSelected: boolean;
   onSelect: () => void;
   onChange: (attrs: Partial<CanvasObject>) => void;
-  Rect: React.ComponentType<any>;
-  Circle: React.ComponentType<any>;
-  Line: React.ComponentType<any>;
-  Arrow: React.ComponentType<any>;
-  Star: React.ComponentType<any>;
+  Rect: React.ComponentType<Record<string, unknown>>;
+  Circle: React.ComponentType<Record<string, unknown>>;
+  Line: React.ComponentType<Record<string, unknown>>;
+  Arrow: React.ComponentType<Record<string, unknown>>;
+  Star: React.ComponentType<Record<string, unknown>>;
 }) {
-  const shapeRef = useRef<any>(null);
+  const shapeRef = useRef<Konva.Rect | Konva.Circle | Konva.Line | Konva.Arrow | Konva.Star>(null);
   useEffect(() => { if (shapeRef.current) nodeRef(shapeRef.current); }, [nodeRef]);
   const kind = obj.shapeKind ?? 'rect';
 
@@ -234,8 +257,8 @@ const ShapeNode = memo(function ShapeNode({
     onClick: onSelect,
     onTap: onSelect,
     draggable: !obj.locked,
-    onDragEnd: (e: any) => onChange({ x: e.target.x(), y: e.target.y() }),
-    onTransformEnd: (e: any) => {
+    onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => onChange({ x: e.target.x(), y: e.target.y() }),
+    onTransformEnd: (_e: Konva.KonvaEventObject<Event>) => {
       const node = shapeRef.current;
       if (!node) return;
       const scaleX = node.scaleX();
@@ -259,7 +282,7 @@ const ShapeNode = memo(function ShapeNode({
         {...common}
         width={obj.width}
         height={obj.height}
-        cornerRadius={(obj as any).data?.borderRadius ?? 0}
+        cornerRadius={((obj as Layer).data as { borderRadius?: number } | undefined)?.borderRadius ?? 0}
       />
     );
   }
@@ -318,13 +341,13 @@ const TextNode = memo(function TextNode({
   Text,
 }: {
   obj: CanvasObject;
-  nodeRef: (n: any) => void;
+  nodeRef: (n: Konva.Node) => void;
   isSelected: boolean;
   onSelect: () => void;
   onChange: (attrs: Partial<CanvasObject>) => void;
-  Text: React.ComponentType<any>;
+  Text: React.ComponentType<Record<string, unknown>>;
 }) {
-  const textRef = useRef<any>(null);
+  const textRef = useRef<Konva.Text>(null);
   useEffect(() => { if (textRef.current) nodeRef(textRef.current); }, [nodeRef]);
   return (
     <Text
@@ -345,8 +368,8 @@ const TextNode = memo(function TextNode({
       draggable={!obj.locked}
       onClick={onSelect}
       onTap={onSelect}
-      onDragEnd={(e: any) => onChange({ x: e.target.x(), y: e.target.y() })}
-      onTransformEnd={(e: any) => {
+      onDragEnd={(e: Konva.KonvaEventObject<DragEvent>) => onChange({ x: e.target.x(), y: e.target.y() })}
+      onTransformEnd={(_e: Konva.KonvaEventObject<Event>) => {
         const node = textRef.current;
         if (!node) return;
         const scaleX = node.scaleX();
@@ -374,14 +397,14 @@ const ImageNode = memo(function ImageNode({
   Image,
 }: {
   obj: CanvasObject;
-  nodeRef: (n: any) => void;
+  nodeRef: (n: Konva.Node) => void;
   isSelected: boolean;
   onSelect: () => void;
   onChange: (attrs: Partial<CanvasObject>) => void;
-  Image: React.ComponentType<any>;
+  Image: React.ComponentType<Record<string, unknown>>;
 }) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
-  const imageRef = useRef<any>(null);
+  const imageRef = useRef<Konva.Image>(null);
   useEffect(() => { if (imageRef.current) nodeRef(imageRef.current); }, [nodeRef]);
 
   useEffect(() => {
@@ -408,8 +431,8 @@ const ImageNode = memo(function ImageNode({
       draggable={!obj.locked}
       onClick={onSelect}
       onTap={onSelect}
-      onDragEnd={(e: any) => onChange({ x: e.target.x(), y: e.target.y() })}
-      onTransformEnd={(e: any) => {
+      onDragEnd={(e: Konva.KonvaEventObject<DragEvent>) => onChange({ x: e.target.x(), y: e.target.y() })}
+      onTransformEnd={(_e: Konva.KonvaEventObject<Event>) => {
         const node = imageRef.current;
         if (!node) return;
         const scaleX = node.scaleX();

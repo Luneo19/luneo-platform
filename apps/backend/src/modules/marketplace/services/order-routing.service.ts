@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Artisan, ArtisanCapability } from '@prisma/client';
 
 export interface RoutingCriteria {
   orderId: string;
@@ -15,12 +16,12 @@ export interface RoutingCriteria {
 
 export interface ArtisanMatch {
   artisanId: string;
-  artisan: any;
+  artisan: Artisan & { capabilities: ArtisanCapability[] };
   score: number;
   quote: {
     priceCents: number;
     leadTime: number;
-    breakdown: any;
+    breakdown: Record<string, unknown>;
   };
   reasons: string[];
 }
@@ -99,7 +100,7 @@ export class OrderRoutingService {
   /**
    * Calcule un devis pour un artisan
    */
-  private async calculateQuote(artisan: any, criteria: RoutingCriteria) {
+  private async calculateQuote(artisan: Artisan & { capabilities: ArtisanCapability[] }, criteria: RoutingCriteria) {
     // Récupérer le produit pour avoir le coût de base
     const product = await this.prisma.product.findUnique({
       where: { id: criteria.productId },
@@ -111,7 +112,7 @@ export class OrderRoutingService {
 
     // Appliquer le multiplier de capacité si applicable
     const capability = artisan.capabilities.find(
-      (cap: any) =>
+      (cap: ArtisanCapability) =>
         cap.material === criteria.material && cap.technique === criteria.technique,
     );
 
@@ -138,7 +139,7 @@ export class OrderRoutingService {
    * Calcule un score pour un artisan
    */
   private async calculateScore(
-    artisan: any,
+    artisan: Artisan,
     quote: { priceCents: number; leadTime: number },
     criteria: RoutingCriteria,
   ): Promise<number> {
@@ -182,7 +183,7 @@ export class OrderRoutingService {
    * Génère les raisons du matching
    */
   private generateReasons(
-    artisan: any,
+    artisan: Artisan,
     quote: { priceCents: number; leadTime: number },
     criteria: RoutingCriteria,
   ): string[] {
@@ -217,7 +218,7 @@ export class OrderRoutingService {
   async routeOrder(orderId: string, artisanId: string, quote: {
     priceCents: number;
     leadTime: number;
-    breakdown: any;
+    breakdown: Record<string, unknown>;
   }) {
     // Récupérer l'ordre
     const order = await this.prisma.order.findUnique({
@@ -241,7 +242,7 @@ export class OrderRoutingService {
     const routingScore = await this.calculateScore(
       artisan,
       quote,
-      { orderId, productId: order.productId },
+      { orderId, productId: order.productId ?? '' },
     );
 
     // Créer le Quote

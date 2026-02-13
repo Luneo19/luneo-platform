@@ -10,6 +10,7 @@ import { DLQController } from './dlq.controller';
       { name: 'design-generation' },
       { name: 'render-processing' },
       { name: 'production-processing' },
+      { name: 'email' },
     ),
   ],
   providers: [DLQService],

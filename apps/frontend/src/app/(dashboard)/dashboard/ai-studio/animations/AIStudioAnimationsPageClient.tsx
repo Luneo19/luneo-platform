@@ -6,12 +6,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { AnimationsHeader } from './components/AnimationsHeader';
 import { AnimationsStats } from './components/AnimationsStats';
 import { AnimationsGrid } from './components/AnimationsGrid';
 import { GenerateModal } from './components/modals/GenerateModal';
 import { useAnimations } from './hooks/useAnimations';
+import type { AnimationStyle } from './types';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +21,7 @@ import { Search, Filter, Video } from 'lucide-react';
 import type { GeneratedAnimation } from './types';
 
 export function AIStudioAnimationsPageClient() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStyle, setFilterStyle] = useState<string>('all');
@@ -40,7 +43,7 @@ export function AIStudioAnimationsPageClient() {
   const handleGenerate = async (
     prompt: string,
     duration: number,
-    style: any,
+    style: AnimationStyle,
     fps: number,
     resolution: string
   ) => {
@@ -53,8 +56,8 @@ export function AIStudioAnimationsPageClient() {
   const handleView = (animation: GeneratedAnimation) => {
     setSelectedAnimation(animation);
     toast({
-      title: 'Détails',
-      description: `Ouverture des détails de "${animation.prompt}"`,
+      title: t('aiStudio.details'),
+      description: `"${animation.prompt}"`,
     });
   };
 
@@ -63,8 +66,8 @@ export function AIStudioAnimationsPageClient() {
       window.open(animation.url, '_blank');
     } else {
       toast({
-        title: 'Erreur',
-        description: 'URL de l\'animation non disponible',
+        title: t('common.error'),
+        description: t('aiStudio.generationError'),
         variant: 'destructive',
       });
     }
@@ -75,7 +78,7 @@ export function AIStudioAnimationsPageClient() {
   };
 
   const handleDelete = async (animationId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette animation ?')) {
+    if (confirm(t('aiStudio.deleteConfirmGeneration'))) {
       await deleteAnimation(animationId);
     }
   };

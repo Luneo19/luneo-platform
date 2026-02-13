@@ -13,6 +13,7 @@ import { cookies } from 'next/headers';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TemplatesPageClient } from './TemplatesPageClient';
+import { NotAuthenticatedMessage } from '../dashboard/components/NotAuthenticatedMessage';
 import { Loader2 } from 'lucide-react';
 
 export const metadata = {
@@ -50,7 +51,7 @@ export default async function TemplatesPage() {
     return (
       <ErrorBoundary level="page" componentName="TemplatesPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

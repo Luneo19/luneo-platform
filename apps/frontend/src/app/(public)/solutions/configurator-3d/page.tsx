@@ -18,7 +18,7 @@ export default function Configurator3DPage() {
               description: 'Configure and customize products in 3D with real-time preview and AR integration',
               applicationCategory: 'DesignApplication',
               operatingSystem: 'Web',
-              url: 'https://luneo.app/solutions/configurator-3d',
+              url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app'}/solutions/configurator-3d`,
               offers: {
                 '@type': 'Offer',
                 price: '0',
@@ -28,7 +28,7 @@ export default function Configurator3DPage() {
               provider: {
                 '@type': 'Organization',
                 name: 'Luneo',
-                url: 'https://luneo.app',
+                url: process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app',
               },
             }),
           }}

@@ -10,6 +10,10 @@ export const metadata: Metadata = generateSEOMetadata({
   keywords: ['statut', 'status', 'disponibilité', 'uptime', 'Luneo', 'SaaS'],
   canonicalUrl: `${SEO_BASE_URL}/status`,
   ogType: 'website',
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/status` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/status` },
+  ],
 });
 
 export default function StatusLayout({ children }: { children: ReactNode }) {

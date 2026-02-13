@@ -8,6 +8,7 @@
 'use client';
 
 import React from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { KPICard } from '@/components/admin/widgets/kpi-card';
 import { ActivityFeed } from '@/components/admin/widgets/activity-feed';
 import { QuickActions } from '@/components/admin/widgets/quick-actions';
@@ -17,17 +18,22 @@ import { PieChartWidget } from '@/components/admin/analytics/pie-chart';
 import { BarChartWidget } from '@/components/admin/analytics/bar-chart';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { DollarSign, Users, TrendingDown, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function AdminOverviewPage() {
-  const { data, isLoading, error } = useAdminOverview({ period: 30 });
+  const { t } = useI18n();
+  const { data, isLoading, error, refresh } = useAdminOverview({ period: 30 });
 
   if (error) {
     return (
       <div className="space-y-6">
         <div className="dash-card rounded-lg border border-red-500/30 bg-red-500/5 backdrop-blur-sm p-4">
           <p className="text-red-400 text-sm">
-            <strong>Erreur :</strong> Impossible de charger les données du dashboard. Veuillez réessayer.
+            <strong>Erreur :</strong> {t('common.loadError')}. {t('common.pleaseTryAgain')}
           </p>
+          <Button variant="outline" onClick={() => refresh()} className="mt-4 border-red-500/30 text-red-400 hover:bg-red-500/10">
+            {t('common.retry')}
+          </Button>
         </div>
       </div>
     );
@@ -39,7 +45,7 @@ export default function AdminOverviewPage() {
       <div>
         <h1 className="text-3xl font-bold text-white">Super Admin Dashboard</h1>
         <p className="text-white/60 mt-2">
-          Bienvenue ! Voici un aperçu de votre activité.
+          {t('common.welcome')} ! Voici un aperçu de votre activité.
         </p>
       </div>
 

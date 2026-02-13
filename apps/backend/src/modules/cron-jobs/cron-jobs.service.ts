@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { EmailService } from '@/modules/email/email.service';
 
 @Injectable()
 export class CronJobsService {
@@ -9,15 +11,17 @@ export class CronJobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
    * Génère un résumé analytique hebdomadaire
    * Runs weekly on Monday at 8:00 AM
    */
+  @Cron(CronExpression.EVERY_WEEK, { name: 'analytics-digest', timeZone: 'Europe/Zurich' })
   async generateAnalyticsDigest(): Promise<{
     success: boolean;
-    digest: any;
+    digest: { period: { startDate: string; endDate: string; week: number }; metrics: Record<string, unknown>; generatedAt: string };
     timestamp: string;
   }> {
     try {
@@ -111,13 +115,27 @@ export class CronJobsService {
         metrics: digest.metrics,
       });
 
-      // Send digest email to admins (if configured)
-      const adminEmails = this.configService.get<string>('admin.emails')?.split(',') || [];
-      if (adminEmails.length > 0) {
-        // Email sending would be handled by EmailService
-        this.logger.log('Analytics digest: emails should be sent', {
-          count: adminEmails.length,
+      // Send digest email to platform admins
+      try {
+        const adminUsers = await this.prisma.user.findMany({
+          where: { role: 'PLATFORM_ADMIN', isActive: true },
+          select: { email: true },
         });
+
+        if (adminUsers.length > 0) {
+          const digestHtml = this.buildDigestEmailHtml(digest);
+          for (const admin of adminUsers) {
+            await this.emailService.queueEmail({
+              to: admin.email,
+              subject: `📊 Luneo - Résumé hebdomadaire (Semaine ${digest.period.week})`,
+              html: digestHtml,
+            });
+          }
+          this.logger.log(`Analytics digest emails queued for ${adminUsers.length} admins`);
+        }
+      } catch (emailError: unknown) {
+        const msg = emailError instanceof Error ? emailError.message : String(emailError);
+        this.logger.warn(`Failed to queue digest emails: ${msg}`);
       }
 
       this.logger.log('Cron job: analytics-digest completed', {
@@ -140,6 +158,7 @@ export class CronJobsService {
    * Nettoie les anciennes données
    * Runs daily at 3:00 AM
    */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: 'cleanup', timeZone: 'Europe/Zurich' })
   async cleanupOldData(): Promise<{
     success: boolean;
     results: {
@@ -182,36 +201,43 @@ export class CronJobsService {
 
       // 2. Clean up old design versions (keep only last 10 per design)
       try {
-        // Get all designs
-        const designs = await this.prisma.design.findMany({
-          select: { id: true },
+        const versionCounts = await this.prisma.designVersion.groupBy({
+          by: ['designId'],
+          where: {},
+          _count: true,
         });
 
+        const designIdsWithExcess = versionCounts
+          .filter((v) => v._count > 10)
+          .map((v) => v.designId);
+
         let totalDeleted = 0;
-        for (const design of designs) {
-          // Get versions count for this design
-          const versionsCount = await this.prisma.designVersion.count({
-            where: { designId: design.id },
+        if (designIdsWithExcess.length > 0) {
+          const allVersions = await this.prisma.designVersion.findMany({
+            where: { designId: { in: designIdsWithExcess } },
+            orderBy: [{ designId: 'asc' }, { versionNumber: 'desc' }],
+            select: { id: true, designId: true, versionNumber: true },
           });
 
-          if (versionsCount > 10) {
-            // Get versions ordered by versionNumber desc, skip first 10
-            const versionsToDelete = await this.prisma.designVersion.findMany({
-              where: { designId: design.id },
-              orderBy: { versionNumber: 'desc' },
-              skip: 10,
-              select: { id: true },
-            });
+          const idsToDelete: string[] = [];
+          let currentDesignId: string | null = null;
+          let keptInDesign = 0;
+          for (const v of allVersions) {
+            if (v.designId !== currentDesignId) {
+              currentDesignId = v.designId;
+              keptInDesign = 0;
+            }
+            keptInDesign++;
+            if (keptInDesign > 10) {
+              idsToDelete.push(v.id);
+            }
+          }
 
+          if (idsToDelete.length > 0) {
             const { count } = await this.prisma.designVersion.deleteMany({
-              where: {
-                id: {
-                  in: versionsToDelete.map((v) => v.id),
-                },
-              },
+              where: { id: { in: idsToDelete } },
             });
-
-            totalDeleted += count;
+            totalDeleted = count;
           }
         }
 
@@ -261,9 +287,9 @@ export class CronJobsService {
 
         cleanupResults.oldLogs = count;
         this.logger.log('Cleanup: old logs archived', { count });
-      } catch (error: any) {
-        // Table might not exist or field might be different
-        if (error?.code !== 'P2001' && error?.code !== 'P2025') {
+      } catch (error: unknown) {
+        const err = error as { code?: string };
+        if (err?.code !== 'P2001' && err?.code !== 'P2025') {
           this.logger.error('Cleanup: failed to archive logs', error);
         } else {
           this.logger.debug('Cleanup: audit logs table might not exist or has different structure');
@@ -292,5 +318,59 @@ export class CronJobsService {
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  }
+
+  /**
+   * Build HTML for the weekly analytics digest email
+   */
+  private buildDigestEmailHtml(digest: {
+    period: { startDate: string; endDate: string; week: number };
+    metrics: {
+      designs: { count: number };
+      orders: { count: number; revenue: number };
+      activeUsers: { count: number };
+    };
+  }): string {
+    const start = new Date(digest.period.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    const end = new Date(digest.period.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    return `
+      <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0f; color: #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #a855f7, #ec4899); padding: 32px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px; color: white; font-weight: 800;">Luneo - Rapport Hebdomadaire</h1>
+          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">Semaine ${digest.period.week} | ${start} - ${end}</p>
+        </div>
+        <div style="padding: 32px;">
+          <table style="width: 100%; border-collapse: separate; border-spacing: 12px;">
+            <tr>
+              <td style="background: #1a1a2e; border-radius: 8px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: 800; color: #a855f7;">${digest.metrics.designs.count}</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Designs créés</div>
+              </td>
+              <td style="background: #1a1a2e; border-radius: 8px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: 800; color: #22c55e;">${digest.metrics.orders.count}</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Commandes</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background: #1a1a2e; border-radius: 8px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: 800; color: #eab308;">${digest.metrics.orders.revenue.toFixed(2)} €</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Revenu</div>
+              </td>
+              <td style="background: #1a1a2e; border-radius: 8px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: 800; color: #06b6d4;">${digest.metrics.activeUsers.count}</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Utilisateurs actifs</div>
+              </td>
+            </tr>
+          </table>
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="${this.configService.get('FRONTEND_URL') || 'https://luneo.app'}/dashboard/analytics" style="display: inline-block; background: linear-gradient(135deg, #a855f7, #ec4899); color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Voir le dashboard complet</a>
+          </div>
+        </div>
+        <div style="padding: 16px 32px; background: #111827; text-align: center; font-size: 12px; color: #64748b;">
+          <p style="margin: 0;">Ce rapport est généré automatiquement par Luneo Platform.</p>
+        </div>
+      </div>
+    `;
   }
 }

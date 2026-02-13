@@ -1,7 +1,7 @@
 export const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'es', 'it'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
-export const DEFAULT_LOCALE: SupportedLocale = 'en';
+export const DEFAULT_LOCALE: SupportedLocale = 'fr';
 export const LOCALE_COOKIE = 'luneo_locale';
 
 export const LOCALE_METADATA: Record<

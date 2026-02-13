@@ -51,7 +51,7 @@ export interface ProductionResult {
     format: string;
     url: string;
     size: number;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   error?: string;
 }
@@ -123,7 +123,7 @@ export class ProductionService {
         renderUrl: string | null;
         metadata?: Record<string, unknown>;
       }
-      const design = await endpoints.designs.get(designId) as DesignWithUrls | null;
+      const design = await endpoints.designs.get(designId) as unknown as DesignWithUrls | null;
 
       if (!design) {
         throw new Error('Design not found');
@@ -256,7 +256,7 @@ export class ProductionService {
       }, { ttl: 3600 * 1000 });
 
       logger.info('Production job completed', { jobId, fileUrl, fileSize });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Production job processing failed', { error, jobId });
 
       // Update job status to failed

@@ -9,7 +9,7 @@
 
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { v2 as cloudinary } from 'cloudinary';
 import { getBackendUrl } from '@/lib/api/server-url';
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    logger.info('Upload fichier contextuel', {
+    serverLogger.info('Upload fichier contextuel', {
       fileName,
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
       fileType,
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       publicUrl = uploadResult.secure_url;
       uploadPath = uploadResult.public_id;
     } catch (uploadError) {
-      logger.error('Error uploading context file', {
+      serverLogger.error('Error uploading context file', {
         error: uploadError,
         userId: user.id,
         fileName,
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    logger.info('Fichier contextuel uploadé avec succès', {
+    serverLogger.info('Fichier contextuel uploadé avec succès', {
       fileName: uploadPath,
       userId: user.id,
       publicUrl,
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      logger.error('Failed to fetch context files', {
+      serverLogger.error('Failed to fetch context files', {
         userId: user.id,
         contextId,
         status: backendResponse.status,
@@ -313,7 +313,7 @@ export async function DELETE(request: NextRequest) {
           code: 'FILE_NOT_FOUND',
         };
       }
-      logger.error('Failed to delete context file', {
+      serverLogger.error('Failed to delete context file', {
         userId: user.id,
         fileId,
         fileUrl,
@@ -327,7 +327,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Fichier contextuel supprimé avec succès', {
+    serverLogger.info('Fichier contextuel supprimé avec succès', {
       userId: user.id,
       fileId,
     });

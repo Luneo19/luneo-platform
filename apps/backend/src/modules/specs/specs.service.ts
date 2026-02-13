@@ -19,7 +19,7 @@ export class SpecsService {
    * Créer ou récupérer un DesignSpec (idempotent via specHash)
    */
   @CacheInvalidate({ type: 'spec', tags: () => ['specs:list'] })
-  async createOrGet(dto: CreateSpecDto, brandId: string): Promise<any> {
+  async createOrGet(dto: CreateSpecDto, brandId: string): Promise<import('@prisma/client').DesignSpec> {
     // 1. Builder le spec depuis zone inputs
     const spec = await this.specBuilder.build(dto.productId, dto.zoneInputs);
 
@@ -66,7 +66,7 @@ export class SpecsService {
       data: {
         specVersion: dto.specVersion || '1.0.0',
         specHash,
-        spec: canonicalSpec,
+        spec: canonicalSpec as import('@prisma/client').Prisma.InputJsonValue,
         productId: dto.productId,
         zoneInputs: dto.zoneInputs,
         metadata: dto.metadata || {},
@@ -91,7 +91,7 @@ export class SpecsService {
     ttl: 3600,
     keyGenerator: (args) => `spec:hash:${args[0]}`,
   })
-  async findByHash(specHash: string, brandId: string): Promise<any> {
+  async findByHash(specHash: string, brandId: string): Promise<import('@prisma/client').DesignSpec> {
     const spec = await this.prisma.designSpec.findUnique({
       where: { specHash },
       include: {
@@ -120,14 +120,15 @@ export class SpecsService {
   /**
    * Valider un spec JSON contre le schema
    */
-  async validate(spec: any): Promise<{ valid: boolean; errors?: string[] }> {
+  async validate(spec: unknown): Promise<{ valid: boolean; errors?: string[] }> {
     // Validation JSON Schema (à implémenter si nécessaire)
     // Pour l'instant, validation basique
     if (!spec || typeof spec !== 'object') {
       return { valid: false, errors: ['Spec must be an object'] };
     }
 
-    if (!spec.productId || !spec.zones) {
+    const specObj = spec as { productId?: string; zones?: unknown };
+    if (!specObj.productId || !specObj.zones) {
       return { valid: false, errors: ['Spec must have productId and zones'] };
     }
 

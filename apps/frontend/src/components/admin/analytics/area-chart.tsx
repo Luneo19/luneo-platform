@@ -62,14 +62,14 @@ export function AreaChart({
     date: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
   }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name?: string; value?: number; color?: string; payload?: { date?: string } }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
-          <p className="text-sm text-zinc-400 mb-2">{payload[0].payload.date}</p>
-          {payload.map((entry: any, index: number) => (
+          <p className="text-sm text-zinc-400 mb-2">{payload[0]?.payload?.date}</p>
+          {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
+              {entry.name}: {formatCurrency(entry.value ?? 0)}
             </p>
           ))}
         </div>

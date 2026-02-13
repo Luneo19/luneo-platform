@@ -122,9 +122,11 @@ export function MarketplacePageClient() {
   const [detail, setDetail] = useState<MarketplaceItem | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
+    setListError(null);
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (category && category !== 'all') params.set('category', category);
@@ -153,6 +155,7 @@ export function MarketplacePageClient() {
       setData(json);
     } catch (e) {
       logger.error('Marketplace list error', e);
+      setListError('Impossible de charger le marketplace. Réessayez.');
       setData({ items: [], total: 0, page: 1, limit: 20, pages: 0 });
     } finally {
       setLoading(false);
@@ -303,6 +306,18 @@ export function MarketplacePageClient() {
           </div>
         </CardContent>
       </Card>
+
+      {/* List error */}
+      {listError && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="py-4 flex items-center justify-between">
+            <p className="text-amber-200">{listError}</p>
+            <Button variant="outline" size="sm" onClick={() => fetchList()} className="border-amber-500/50">
+              Réessayer
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Grid */}
       {loading ? (

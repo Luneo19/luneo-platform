@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,7 @@ export function NotificationCard({
   onDelete,
   index,
 }: NotificationCardProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const config = typeConfig[notification.type] ?? typeConfig.info;
   const Icon = config.icon;
@@ -73,10 +75,10 @@ export function NotificationCard({
                     {notification.title}
                   </h3>
                   <Badge variant="outline" className={cn('text-xs', config.bg, config.color)}>
-                    {config.label}
+                    {t(config.labelKey)}
                   </Badge>
                   <Badge variant="outline" className={cn('text-xs', priority.bg, priority.color)}>
-                    {priority.label}
+                    {t(priority.labelKey)}
                   </Badge>
                 </div>
                 <p className="text-sm text-zinc-400 mt-1">{notification.message}</p>
@@ -96,16 +98,16 @@ export function NotificationCard({
                     }}
                     className="text-cyan-400 hover:text-cyan-300"
                   >
-                    {notification.action_label || 'Voir'}
+                    {notification.action_label || t('common.view')}
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 )}
                 {!notification.read && (
-                  <Button size="sm" variant="ghost" onClick={() => onMarkAsRead(notification.id)} className="text-zinc-400 hover:text-white" title="Marquer comme lu">
+                  <Button size="sm" variant="ghost" onClick={() => onMarkAsRead(notification.id)} className="text-zinc-400 hover:text-white" title={t('common.markAsRead')}>
                     <CheckCheck className="w-4 h-4" />
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => onDelete(notification.id)} className="text-zinc-400 hover:text-red-400" title="Supprimer">
+                <Button size="sm" variant="ghost" onClick={() => onDelete(notification.id)} className="text-zinc-400 hover:text-red-400" title={t('common.delete')}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
                 <DropdownMenu>
@@ -117,16 +119,16 @@ export function NotificationCard({
                   <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
                     <DropdownMenuItem onClick={() => onMarkAsRead(notification.id)} className="text-white">
                       <CheckCheck className="w-4 h-4 mr-2" />
-                      Marquer comme lu
+                      {t('common.markAsRead')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-white">
                       <Archive className="w-4 h-4 mr-2" />
-                      Archiver
+                      {t('common.archive')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-zinc-700" />
                     <DropdownMenuItem onClick={() => onDelete(notification.id)} className="text-red-400">
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Supprimer
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

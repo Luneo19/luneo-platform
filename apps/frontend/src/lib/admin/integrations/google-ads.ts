@@ -12,14 +12,45 @@
 import { logger } from '@/lib/logger';
 
 // Conditional import - google-ads-api is optional
-let GoogleAdsApi: any;
-let Customer: any;
+let GoogleAdsApi: { new(config: Record<string, string>): { Customer(config: Record<string, string>): GoogleAdsCustomer } } | undefined;
+let Customer: Record<string, unknown> | undefined;
 try {
   const googleAdsApi = require('google-ads-api');
   GoogleAdsApi = googleAdsApi.GoogleAdsApi;
   Customer = googleAdsApi.Customer;
 } catch {
   // google-ads-api not installed
+}
+
+
+// Internal types for the optional google-ads-api SDK
+interface GoogleAdsCustomer {
+  query(gaql: string): Promise<GoogleAdsRow[]>;
+}
+
+interface GoogleAdsRow {
+  campaign: {
+    id: { toString(): string };
+    name: string;
+    status: string;
+    advertising_channel_type: string;
+    start_date?: string;
+    end_date?: string;
+  };
+  campaign_budget?: {
+    amount_micros?: number;
+  };
+  metrics: {
+    impressions: number;
+    clicks: number;
+    cost_micros: number;
+    average_cpc: number;
+    ctr: number;
+    conversions: number;
+    cost_per_conversion: number;
+    conversion_rate: number;
+    value_per_conversion: number;
+  };
 }
 
 export interface GoogleCampaign {
@@ -46,8 +77,8 @@ export interface GoogleInsights {
 }
 
 export class GoogleAdsClient {
-  private client: any = null;
-  private customer: any = null;
+  private client: { Customer(config: Record<string, string>): GoogleAdsCustomer } | null = null;
+  private customer: GoogleAdsCustomer | null = null;
   private accessToken: string;
   private customerId: string;
   private developerToken: string;
@@ -125,7 +156,7 @@ export class GoogleAdsClient {
 
       const results = await this.customer.query(query);
 
-      return results.map((row: any) => ({
+      return results.map((row: GoogleAdsRow) => ({
         id: row.campaign.id.toString(),
         name: row.campaign.name,
         status: row.campaign.status,
@@ -182,11 +213,11 @@ export class GoogleAdsClient {
 
       // Aggregate results
       const aggregated = results.reduce(
-        (acc: any, row: any) => {
-          acc.impressions += row.metrics.impressions || 0;
-          acc.clicks += row.metrics.clicks || 0;
-          acc.cost += (row.metrics.cost_micros || 0) / 1_000_000;
-          acc.conversions += row.metrics.conversions || 0;
+        (acc: Record<string, number>, row: GoogleAdsRow) => {
+          acc.impressions += (row.metrics.impressions || 0);
+          acc.clicks += (row.metrics.clicks || 0);
+          acc.cost += ((row.metrics.cost_micros || 0) / 1_000_000);
+          acc.conversions += (row.metrics.conversions || 0);
           return acc;
         },
         { impressions: 0, clicks: 0, cost: 0, conversions: 0 },

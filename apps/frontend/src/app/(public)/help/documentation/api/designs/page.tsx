@@ -68,6 +68,7 @@ const { url } = await exported.json();`, []);
         <button
           onClick={() => copyCode(code, id)}
           className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600"
+          aria-label={copied === id ? 'Copied' : 'Copy code'}
         >
           {copied === id ? (
             <CheckCircle className="w-4 h-4 text-green-400" />

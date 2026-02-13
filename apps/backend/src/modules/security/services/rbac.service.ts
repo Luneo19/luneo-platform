@@ -48,7 +48,7 @@ export class RBACService {
     try {
       // Check cache
       const cacheKey = `rbac:user:${userId}:${permission}`;
-      const cached = await this.cache.get(cacheKey, null, null);
+      const cached = await this.cache.get<string | null>(cacheKey, 'rbac', async () => null);
       if (cached !== null) {
         return cached === 'true';
       }

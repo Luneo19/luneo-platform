@@ -1,7 +1,7 @@
 export interface WorkerJobData {
   id: string;
   type: string;
-  data: any;
+  data: unknown;
   options?: {
     attempts?: number;
     backoff?: {
@@ -15,9 +15,9 @@ export interface WorkerJobData {
 
 export interface WorkerResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DesignJobData extends WorkerJobData {
@@ -27,7 +27,7 @@ export interface DesignJobData extends WorkerJobData {
     productId: string;
     userId: string;
     brandId: string;
-    options: any;
+    options: Record<string, unknown>;
   };
 }
 
@@ -38,7 +38,7 @@ export interface ProductionJobData extends WorkerJobData {
     designId: string;
     productId: string;
     quantity: number;
-    options: any;
+    options: Record<string, unknown>;
   };
 }
 
@@ -48,7 +48,7 @@ export interface RenderJobData extends WorkerJobData {
     renderId: string;
     designId: string;
     productId: string;
-    options: any;
+    options: Record<string, unknown>;
   };
 }
 

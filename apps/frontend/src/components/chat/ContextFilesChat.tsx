@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import {
   Send,
@@ -28,9 +29,10 @@ import {
 import {
   getContextFiles,
   getContextFileContent,
-  getAllContextFilesContent,
   type ContextFile,
+  type ContextFileContent,
 } from '@/lib/utils/context-files';
+import { endpoints } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -55,6 +57,7 @@ export function ContextFilesChat({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [contextFiles, setContextFiles] = useState<ContextFile[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -62,6 +65,7 @@ export function ContextFilesChat({
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // Charger les fichiers contextuels
   useEffect(() => {
@@ -76,8 +80,8 @@ export function ContextFilesChat({
           contextId,
         });
         toast({
-          title: 'Erreur',
-          description: 'Impossible de charger les fichiers contextuels',
+          title: t('common.error'),
+          description: t('common.somethingWentWrong'),
           variant: 'destructive',
         });
       } finally {
@@ -132,7 +136,7 @@ export function ContextFilesChat({
         );
 
         contextContent = contents
-          .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+          .filter((result): result is PromiseFulfilledResult<ContextFileContent> => result.status === 'fulfilled')
           .map((result, index) => {
             const file = filesToUse[index];
             return `[Fichier: ${file.fileName}]\n${result.value.content}`;
@@ -140,11 +144,24 @@ export function ContextFilesChat({
           .join('\n\n---\n\n');
       }
 
-      // Simuler une réponse de l'agent (à remplacer par un vrai appel API)
+      const response = await endpoints.agents.luna.chat({
+        message: userMessage.content,
+        conversationId,
+        context: contextContent ? { contextFiles: contextContent } : undefined,
+      });
+
+      const replyText =
+        (response?.data?.message as string) ||
+        'Désolé, je n’ai pas pu générer une réponse. Réessayez.';
+
+      if (response?.data?.conversationId) {
+        setConversationId(response.data.conversationId as string);
+      }
+
       const assistantMessage: Message = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
-        content: await generateResponse(userMessage.content, contextContent),
+        content: replyText,
         timestamp: Date.now() + 1,
         contextFiles: filesToUse.map((f) => f.id),
       };
@@ -152,26 +169,13 @@ export function ContextFilesChat({
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de l\'envoi du message',
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Générer une réponse (simulation - à remplacer par un vrai appel API)
-  const generateResponse = async (
-    userMessage: string,
-    contextContent: string
-  ): Promise<string> => {
-    // Simulation d'une réponse basée sur le contexte
-    if (contextContent) {
-      return `Basé sur les fichiers contextuels fournis, voici ma réponse à votre question : "${userMessage}"\n\nJ'ai analysé ${contextContent.split('---').length} fichier(s) pour vous fournir cette réponse contextuelle.`;
-    }
-
-    return `Je comprends votre question : "${userMessage}". Pour vous fournir une réponse plus précise, veuillez uploader des fichiers contextuels ou sélectionner des fichiers existants.`;
   };
 
   const toggleFileSelection = (fileId: string) => {

@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Public } from '@/common/decorators/public.decorator';
 import { WidgetService, DesignData } from './widget.service';
 import { ApiKeyGuard } from '../public-api/guards/api-key.guard';
@@ -8,6 +9,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @ApiTags('Widget API')
 @Controller('widget')
+@UseGuards(JwtAuthGuard)
 export class WidgetController {
   constructor(private readonly widgetService: WidgetService) {}
 
@@ -23,6 +25,7 @@ export class WidgetController {
   }
 
   @Post('designs')
+  @Public()
   @ApiOperation({ summary: 'Save design from widget' })
   @ApiResponse({ status: 201, description: 'Design saved successfully' })
   @UseGuards(ApiKeyGuard)
@@ -37,6 +40,7 @@ export class WidgetController {
 
   @Get('designs/:id')
   @Public() // Public: Called from embedded product widgets
+  @Throttle({ default: { limit: 100, ttl: 60000 } })
   @ApiOperation({ summary: 'Load design with layers' })
   @ApiResponse({ status: 200, description: 'Design loaded successfully' })
   @ApiResponse({ status: 404, description: 'Design not found' })

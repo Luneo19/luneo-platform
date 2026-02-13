@@ -53,7 +53,8 @@ export const collaborationRouter = router({
           });
         }
 
-        const sharedResource = await api.post<any>('/api/v1/collaboration/share', {
+        type ShareResourceResponse = { id: string; resourceType?: string; resourceId?: string; sharedWith?: string[]; permissions?: Record<string, string[]>; isPublic?: boolean; publicToken?: string; createdBy?: string; brandId?: string; createdAt?: unknown; updatedAt?: unknown };
+        const sharedResource = await api.post<ShareResourceResponse>('/api/v1/collaboration/share', {
           resourceType: input.resourceType,
           resourceId: input.resourceId,
           sharedWith: input.sharedWith,
@@ -151,7 +152,8 @@ export const collaborationRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const author = await endpoints.auth.me() as { id?: string; name?: string; firstName?: string; lastName?: string; email?: string } | null;
-        const comment = await api.post<any>('/api/v1/collaboration/comments', {
+        type CommentResponse = { id: string; resourceType?: string; resourceId?: string; content?: string; parentId?: string; authorId?: string; sharedResourceId?: string; createdAt?: unknown; updatedAt?: unknown };
+        const comment = await api.post<CommentResponse>('/api/v1/collaboration/comments', {
           resourceType: input.resourceType,
           resourceId: input.resourceId,
           content: input.content,
@@ -203,7 +205,7 @@ export const collaborationRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const response = await api.get<any>('/api/v1/collaboration/comments', {
+        const response = await api.get<Record<string, unknown>>('/api/v1/collaboration/comments', {
           params: {
             resourceType: input.resourceType,
             resourceId: input.resourceId,
@@ -216,8 +218,10 @@ export const collaborationRouter = router({
         return {
           success: true,
           comments: (Array.isArray(comments) ? comments : [])
-            .filter((c: any) => !c.parentId) // Seulement les commentaires racine
-            .map((comment: any) => ({
+            .filter((c: Record<string, unknown>) => !c.parentId) // Seulement les commentaires racine
+            .map((comment: Record<string, unknown>) => {
+              const cAuthor = comment.author as { id?: string; firstName?: string; lastName?: string; email?: string; avatar?: string } | null | undefined;
+              return {
               id: comment.id,
               resourceType: comment.resourceType,
               resourceId: comment.resourceId,
@@ -225,15 +229,17 @@ export const collaborationRouter = router({
               parentId: comment.parentId,
               authorId: comment.authorId,
               author: {
-                id: comment.author?.id ?? comment.authorId,
-                name: comment.author ? `${comment.author.firstName || ''} ${comment.author.lastName || ''}`.trim() || comment.author.email : '',
-                email: comment.author?.email ?? '',
-                avatar: comment.author?.avatar,
+                id: cAuthor?.id ?? comment.authorId,
+                name: cAuthor ? `${cAuthor.firstName || ''} ${cAuthor.lastName || ''}`.trim() || cAuthor.email : '',
+                email: cAuthor?.email ?? '',
+                avatar: cAuthor?.avatar,
               },
               sharedResourceId: comment.sharedResourceId,
               createdAt: comment.createdAt,
               updatedAt: comment.updatedAt,
-              replies: (Array.isArray(comment.replies) ? comment.replies : []).map((reply: Record<string, unknown>) => ({
+              replies: (Array.isArray(comment.replies) ? comment.replies : []).map((reply: Record<string, unknown>) => {
+                const rAuthor = reply.author as { id?: string; firstName?: string; lastName?: string; email?: string; avatar?: string } | null | undefined;
+                return {
                 id: reply.id,
                 resourceType: reply.resourceType,
                 resourceId: reply.resourceId,
@@ -241,16 +247,18 @@ export const collaborationRouter = router({
                 parentId: reply.parentId,
                 authorId: reply.authorId,
                 author: {
-                  id: reply.author?.id ?? reply.authorId,
-                  name: reply.author ? `${reply.author.firstName || ''} ${reply.author.lastName || ''}`.trim() || reply.author.email : '',
-                  email: reply.author?.email ?? '',
-                  avatar: reply.author?.avatar,
-                },
+                    id: rAuthor?.id ?? reply.authorId,
+                    name: rAuthor ? (`${rAuthor.firstName || ''} ${rAuthor.lastName || ''}`.trim() || (rAuthor.email ?? '')) : '',
+                    email: rAuthor?.email ?? '',
+                    avatar: rAuthor?.avatar,
+                  },
                 sharedResourceId: reply.sharedResourceId,
                 createdAt: reply.createdAt,
                 updatedAt: reply.updatedAt,
-              })),
-            })),
+              };
+            }),
+              };
+            }),
         };
       } catch (error) {
         logger.error('Failed to get comments', { error, userId: ctx.user.id });

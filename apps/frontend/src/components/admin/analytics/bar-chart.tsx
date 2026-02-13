@@ -61,12 +61,13 @@ export function BarChartWidget({
     );
   }
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string; payload: Record<string, unknown> }> }) => {
     if (active && payload && payload.length) {
+      const firstPayload = payload[0].payload as { name?: string };
       return (
         <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
-          <p className="text-sm text-white/60 mb-2">{payload[0].payload.name}</p>
-          {payload.map((entry: any, index: number) => (
+          <p className="text-sm text-white/60 mb-2">{firstPayload.name}</p>
+          {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {typeof entry.value === 'number' ? formatCurrency(entry.value) : entry.value}
             </p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { logger } from '@/lib/logger';
 
 // WidgetConfig type definition
@@ -10,7 +11,7 @@ interface WidgetConfig {
   productId: string;
   locale: string;
   theme: 'light' | 'dark';
-  onSave?: (designData: any) => void;
+  onSave?: (designData: Record<string, unknown>) => void;
   onError?: (error: { message: string }) => void;
   onReady?: () => void;
 }
@@ -35,6 +36,10 @@ declare global {
 }
 
 export default function WidgetEditorPage() {
+  const searchParams = useSearchParams();
+  const productId = searchParams.get('productId') ?? 'demo-product';
+  const apiKey = searchParams.get('apiKey') ?? process.env.NEXT_PUBLIC_API_KEY ?? '';
+
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetInitialized = useRef(false);
 
@@ -49,8 +54,8 @@ export default function WidgetEditorPage() {
       if (window.LuneoWidget && containerRef.current) {
         const config: WidgetConfig = {
           container: containerRef.current as HTMLElement,
-          apiKey: process.env.NEXT_PUBLIC_API_KEY || '',
-          productId: 'demo-product',
+          apiKey,
+          productId,
           locale: 'fr',
           theme: 'light',
           onSave: (designData) => {

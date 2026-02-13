@@ -10,6 +10,8 @@ import {
   Smartphone, Package, Zap
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
@@ -29,8 +31,17 @@ interface ARModel {
   createdAt: string;
 }
 
+/** API response shape for GET /api/v1/ar-studio/models */
+interface ARModelsApiResponse {
+  data?: { models?: unknown[] };
+  models?: unknown[];
+  error?: string;
+  message?: string;
+}
+
 function ARStudioPageContent() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,8 +66,8 @@ function ARStudioPageContent() {
   const loadModels = React.useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.get<{ data?: { models?: unknown[] }; models?: unknown[]; error?: string; message?: string }>('/api/v1/ar-studio/models');
-      const apiModels = result?.data?.models ?? result?.models ?? [];
+      const result = await api.get<ARModelsApiResponse>('/api/v1/ar-studio/models');
+      const apiModels: unknown[] = result?.data?.models ?? result?.models ?? [];
       interface ApiARModel {
         id: string;
         name?: string;
@@ -95,20 +106,20 @@ function ARStudioPageContent() {
       
       setModels(transformedModels);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('Error loading AR models', {
         error,
         message: errorMessage,
       });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     loadModels();
@@ -131,8 +142,8 @@ function ARStudioPageContent() {
       }
 
       toast({
-        title: "Modèle uploadé",
-        description: `Votre modèle "${file.name}" a été uploadé avec succès`,
+        title: t('arStudio.uploadSuccess'),
+        description: t('arStudio.modelUploadedDesc', { name: file.name }),
       });
 
       // Recharger les modèles
@@ -140,14 +151,14 @@ function ARStudioPageContent() {
       setShowUploadModal(false);
 
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('Error uploading AR model', {
         error,
         fileName: file.name,
         message: errorMessage,
       });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -166,37 +177,31 @@ function ARStudioPageContent() {
       setModels(models.filter(m => m.id !== modelId));
       
       toast({
-        title: "Modèle supprimé",
-        description: "Le modèle a été supprimé avec succès",
+        title: t('arStudio.modelDeleted'),
+        description: t('arStudio.modelDeletedDesc'),
       });
     } catch (error: unknown) {
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de supprimer le modèle",
-        variant: "destructive",
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
       });
     }
   };
 
-  const handleExport = async (model: ARModel) => {
+  const handleExport = async (modelId: string, format: string) => {
     try {
-      toast({
-        title: "Export en cours",
-        description: `Export de ${model.name} au format ${model.format}`,
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast({
-        title: "Export réussi",
-        description: "Le fichier a été téléchargé",
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'exporter le modèle",
-        variant: "destructive",
-      });
+      const response = await api.post('/api/v1/render/export', { modelId, format });
+      const raw = response as Record<string, unknown>;
+      const downloadUrl = String(raw.downloadUrl ?? raw.url ?? raw.fileUrl ?? '');
+
+      if (downloadUrl) {
+        window.open(downloadUrl, '_blank');
+      }
+
+      toast({ title: t('common.success'), description: t('arStudio.exportSuccessTitle') });
+    } catch (error: unknown) {
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     }
   };
 
@@ -205,8 +210,8 @@ function ARStudioPageContent() {
     navigator.clipboard.writeText(embedCode);
     
     toast({
-      title: "Code copié",
-      description: "Le code d'intégration a été copié dans le presse-papier",
+      title: t('arStudio.copyCodeTitle'),
+      description: t('arStudio.copyCodeDesc'),
     });
   };
 
@@ -232,7 +237,7 @@ function ARStudioPageContent() {
       case 'processing':
         return <span className="px-2 py-1 bg-yellow-500/10 text-yellow-400 text-xs rounded-full">En traitement</span>;
       case 'error':
-        return <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded-full">Erreur</span>;
+        return <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded-full">{t('common.error')}</span>;
       default:
         return null;
     }
@@ -403,7 +408,7 @@ function ARStudioPageContent() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleExport(model)}
+                  onClick={() => handleExport(model.id, model.format)}
                   className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Download className="w-4 h-4" />

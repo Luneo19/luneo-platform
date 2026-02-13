@@ -3,6 +3,4 @@
 import itJson from './it.json';
 import enJson from './en.json';
 
-const messages = itJson as Record<string, string>;
-
-export default messages;
+export default itJson as unknown as typeof import('./en').default;

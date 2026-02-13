@@ -13,9 +13,12 @@ import { CommunicationsService } from './communications.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import { CreateTemplateDto } from './dto/create-template.dto';
+import { UpdateTemplateDto } from './dto/update-template.dto';
 
 @Controller('orion/communications')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error NestJS decorator typing
 @Roles(UserRole.PLATFORM_ADMIN)
 export class CommunicationsController {
   constructor(private readonly communicationsService: CommunicationsService) {}
@@ -39,12 +42,12 @@ export class CommunicationsController {
   }
 
   @Post('templates')
-  createTemplate(@Body() body: { name: string; subject: string; htmlContent: string; textContent?: string; category?: string; variables?: string[] }) {
+  createTemplate(@Body() body: CreateTemplateDto) {
     return this.communicationsService.createTemplate(body);
   }
 
   @Put('templates/:id')
-  updateTemplate(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  updateTemplate(@Param('id') id: string, @Body() body: UpdateTemplateDto) {
     return this.communicationsService.updateTemplate(id, body);
   }
 

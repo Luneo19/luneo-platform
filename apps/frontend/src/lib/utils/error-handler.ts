@@ -33,7 +33,7 @@ export interface AppError {
   statusCode?: number;
   severity?: 'low' | 'medium' | 'high' | 'critical';
   originalError?: unknown;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   retryable?: boolean;
   retryAfter?: number;
 }
@@ -216,8 +216,10 @@ export function handleError(error: unknown, context?: string): AppError {
   // Report to error tracking service (Sentry, etc.)
   if (process.env.NODE_ENV === 'production') {
     // Integrate with Sentry if available
-    if (typeof window !== 'undefined' && (window as Window & { Sentry?: { captureException: (error: unknown, options?: object) => void } }).Sentry) {
-      const Sentry = (window as Window & { Sentry: { captureException: (error: unknown, options?: object) => void } }).Sentry;
+    if (typeof window !== 'undefined') {
+      const win = window as unknown as Window & { Sentry?: { captureException: (error: unknown, options?: object) => void } };
+      if (win.Sentry) {
+      const Sentry = win.Sentry;
       Sentry.captureException(error, {
         level: appError.severity === 'critical' ? 'fatal' : appError.severity === 'high' ? 'error' : 'warning',
         tags: {
@@ -230,6 +232,7 @@ export function handleError(error: unknown, context?: string): AppError {
           metadata: appError.metadata,
         },
       });
+      }
     } else if (typeof process !== 'undefined' && (process as NodeJS.Process).env?.SENTRY_DSN) {
       // Server-side Sentry
       try {
@@ -323,53 +326,59 @@ export function isRecoverableError(error: AppError): boolean {
 
 /**
  * Crée un message d'erreur pour l'UI
+ * @param error - The app error
+ * @param options - Optional title override (e.g. from i18n t('common.error'))
  */
-export function createErrorMessage(error: AppError): {
+export function createErrorMessage(
+  error: AppError,
+  options?: { title?: string }
+): {
   title: string;
   message: string;
   action?: string;
 } {
+  const defaultTitle = options?.title ?? 'Error';
   const messages: Record<ErrorType, { title: string; message: string; action?: string }> = {
     [ErrorType.VALIDATION]: {
-      title: 'Erreur de validation',
+      title: 'Validation error',
       message: getUserFriendlyMessage(error),
     },
     [ErrorType.NETWORK]: {
-      title: 'Problème de connexion',
+      title: 'Connection problem',
       message: getUserFriendlyMessage(error),
-      action: 'Réessayer',
+      action: 'Retry',
     },
     [ErrorType.AUTHENTICATION]: {
-      title: 'Authentification requise',
+      title: 'Authentication required',
       message: getUserFriendlyMessage(error),
-      action: 'Se connecter',
+      action: 'Sign in',
     },
     [ErrorType.AUTHORIZATION]: {
-      title: 'Accès refusé',
+      title: 'Access denied',
       message: getUserFriendlyMessage(error),
     },
     [ErrorType.NOT_FOUND]: {
-      title: 'Introuvable',
+      title: 'Not found',
       message: getUserFriendlyMessage(error),
     },
     [ErrorType.RATE_LIMIT]: {
-      title: 'Trop de requêtes',
+      title: 'Too many requests',
       message: getUserFriendlyMessage(error),
-      action: 'Réessayer plus tard',
+      action: 'Retry later',
     },
     [ErrorType.SERVER]: {
-      title: 'Erreur serveur',
+      title: 'Server error',
       message: getUserFriendlyMessage(error),
-      action: 'Réessayer',
+      action: 'Retry',
     },
     [ErrorType.CLIENT]: {
-      title: 'Erreur',
+      title: defaultTitle,
       message: getUserFriendlyMessage(error),
     },
     [ErrorType.UNKNOWN]: {
-      title: 'Erreur inattendue',
+      title: 'Unexpected error',
       message: getUserFriendlyMessage(error),
-      action: 'Réessayer',
+      action: 'Retry',
     },
   };
 

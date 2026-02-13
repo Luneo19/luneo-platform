@@ -26,7 +26,7 @@ export class DxfGeneratorService {
    * Générer un DXF ASCII depuis un snapshot en utilisant les coordonnées réelles de specData.
    * Construit le fichier par chaîne (sans librairie externe) avec HEADER, TABLES, ENTITIES, EOF.
    */
-  async generate(snapshot: any): Promise<Buffer> {
+  async generate(snapshot: { specData?: DxfSpecData; id?: string }): Promise<Buffer> {
     const specData = (snapshot?.specData ?? {}) as DxfSpecData;
     const zones = specData.zones ?? [];
     const width = Math.max(1, Number(specData.width) || 800);

@@ -120,3 +120,7 @@ export function useI18nContext(): I18nContextValue {
   return context;
 }
 
+/** Returns context or null when not inside I18nProvider (for useI18n unification). */
+export function useI18nContextOptional(): I18nContextValue | null {
+  return useContext(I18nContext);
+}

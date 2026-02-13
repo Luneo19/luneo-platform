@@ -26,17 +26,24 @@ function RecentActivityContent({ period }: RecentActivityProps) {
 
   const isLoading = productsQuery.isLoading;
   const recentProducts = productsQuery.data?.products || [];
-  
+
+  interface OrderItem {
+    id?: string;
+    order_number?: string;
+    orderNumber?: string;
+    created_at?: string;
+    createdAt?: string;
+  }
   // Fetch recent orders via backend API
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   useEffect(() => {
     async function fetchOrders() {
       try {
         const result = await endpoints.orders.list({ limit: 5 });
-        const raw = result as { data?: { orders?: any[] }; orders?: any[] };
-        setRecentOrders(raw?.data?.orders || raw?.orders || []);
+        const raw = result as { data?: { orders?: OrderItem[] }; orders?: OrderItem[] };
+        setRecentOrders(raw?.data?.orders ?? raw?.orders ?? []);
       } catch (error) {
         logger.error('[RecentActivity] Error fetching orders', {
           error: error instanceof Error ? error.message : String(error),
@@ -106,7 +113,7 @@ function RecentActivityContent({ period }: RecentActivityProps) {
                 Produits récents
               </h4>
               <div className="space-y-2">
-                {recentProducts.slice(0, 3).map((product: any) => (
+                {recentProducts.slice(0, 3).map((product: { id: string; name?: string; createdAt?: string }) => (
                   <div
                     key={product.id}
                     className="p-3 rounded-lg bg-gray-50 border border-gray-200"
@@ -133,7 +140,7 @@ function RecentActivityContent({ period }: RecentActivityProps) {
                 Commandes récentes
               </h4>
               <div className="space-y-2">
-                {recentOrders.slice(0, 3).map((order: any) => (
+                {recentOrders.slice(0, 3).map((order: OrderItem) => (
                   <div
                     key={order.id}
                     className="p-3 rounded-lg bg-gray-50 border border-gray-200"
@@ -143,7 +150,7 @@ function RecentActivityContent({ period }: RecentActivityProps) {
                     </p>
                     <p className="text-xs text-gray-600 mt-1">
                       {order.created_at || order.createdAt
-                        ? formatRelativeDate(new Date(order.created_at || order.createdAt))
+                        ? formatRelativeDate(new Date((order.created_at || order.createdAt) ?? ''))
                         : 'Date inconnue'}
                     </p>
                   </div>

@@ -11,13 +11,13 @@ export interface ProductConfig {
     description?: string;
     position: { x: number; y: number };
     size: { width: number; height: number };
-    constraints: any;
+    constraints: Record<string, unknown>;
     isRequired: boolean;
   }>;
   options: {
-    colors?: any[];
-    sizes?: any[];
-    materials?: any[];
+    colors?: unknown[];
+    sizes?: unknown[];
+    materials?: unknown[];
   };
 }
 
@@ -38,7 +38,7 @@ export interface DesignData {
     opacity: number;
     visible: boolean;
     locked: boolean;
-    data: any;
+    data: unknown;
   }>;
   metadata: {
     createdAt: string;
@@ -76,29 +76,29 @@ export class WidgetService {
     const areas = product.customizableAreas.map((area) => ({
       id: area.id,
       name: area.name,
-      description: area.description,
+      description: area.description ?? undefined,
       position: { x: area.x, y: area.y },
       size: { width: area.width, height: area.height },
       constraints: {
-        minWidth: area.minWidth,
-        maxWidth: area.maxWidth,
-        minHeight: area.minHeight,
-        maxHeight: area.maxHeight,
-        aspectRatio: area.aspectRatio,
+        minWidth: area.minWidth ?? undefined,
+        maxWidth: area.maxWidth ?? undefined,
+        minHeight: area.minHeight ?? undefined,
+        maxHeight: area.maxHeight ?? undefined,
+        aspectRatio: area.aspectRatio ?? undefined,
         allowedLayerTypes: (area.allowedLayerTypes as string[]) ?? [],
-        maxTextLength: area.maxTextLength,
-        allowedFonts: area.allowedFonts,
-        defaultFont: area.defaultFont,
-        allowedFontSizes: area.allowedFontSizes,
-        maxImageSize: area.maxImageSize,
-        allowedFormats: area.allowedFormats,
-        minImageWidth: area.minImageWidth,
-        minImageHeight: area.minImageHeight,
-        maxImageWidth: area.maxImageWidth,
-        maxImageHeight: area.maxImageHeight,
-        allowedShapes: area.allowedShapes,
-        allowedColors: area.allowedColors,
-        defaultColor: area.defaultColor,
+        maxTextLength: area.maxTextLength ?? undefined,
+        allowedFonts: area.allowedFonts ?? undefined,
+        defaultFont: area.defaultFont ?? undefined,
+        allowedFontSizes: area.allowedFontSizes ?? undefined,
+        maxImageSize: area.maxImageSize ?? undefined,
+        allowedFormats: area.allowedFormats ?? undefined,
+        minImageWidth: area.minImageWidth ?? undefined,
+        minImageHeight: area.minImageHeight ?? undefined,
+        maxImageWidth: area.maxImageWidth ?? undefined,
+        maxImageHeight: area.maxImageHeight ?? undefined,
+        allowedShapes: area.allowedShapes ?? undefined,
+        allowedColors: area.allowedColors ?? undefined,
+        defaultColor: area.defaultColor ?? undefined,
       },
       isRequired: area.isRequired,
     }));
@@ -141,7 +141,7 @@ export class WidgetService {
         designData: designData as unknown as Prisma.InputJsonValue,
         productId,
         userId: userId || null,
-        brandId: (await this.prisma.product.findUnique({ where: { id: productId }, select: { brandId: true } }))?.brandId || null,
+        brandId: (await this.prisma.product.findUnique({ where: { id: productId }, select: { brandId: true } }))?.brandId ?? '',
       },
       update: {
         canvasWidth: designData.canvas.width,

@@ -21,6 +21,7 @@ import { TokenService } from './services/token.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { TokenCleanupScheduler } from './schedulers/token-cleanup.scheduler';
 import { RbacModule } from '@/modules/security/rbac.module';
+import { ReferralModule } from '@/modules/referral/referral.module';
 
 // Helper function to check if OAuth is configured
 function isOAuthConfigured(provider: 'google' | 'github'): boolean {
@@ -42,11 +43,12 @@ function isOAuthConfigured(provider: 'google' | 'github'): boolean {
   return false;
 }
 
-// OAuth strategies are optional - only load if configured
-let GoogleStrategy: any = null;
-let GitHubStrategy: any = null;
-let SamlStrategy: any = null;
-let OidcStrategy: any = null;
+// OAuth strategies are optional - only load if configured (typed as Provider for Nest providers array)
+import type { Type } from '@nestjs/common';
+let GoogleStrategy: Type | null = null;
+let GitHubStrategy: Type | null = null;
+let SamlStrategy: Type | null = null;
+let OidcStrategy: Type | null = null;
 
 // Check if Google OAuth is configured
 if (isOAuthConfigured('google')) {
@@ -98,6 +100,7 @@ try {
 @Module({
   imports: [
     RbacModule,
+    ReferralModule,
     PrismaModule,
     PassportModule,
     EmailModule,
@@ -118,10 +121,10 @@ try {
   providers: [
     AuthService,
     JwtStrategy,
-    ...(GoogleStrategy ? [GoogleStrategy] : []),
-    ...(GitHubStrategy ? [GitHubStrategy] : []),
-    ...(SamlStrategy ? [SamlStrategy] : []),
-    ...(OidcStrategy ? [OidcStrategy] : []),
+    ...(GoogleStrategy ? [GoogleStrategy as Type] : []),
+    ...(GitHubStrategy ? [GitHubStrategy as Type] : []),
+    ...(SamlStrategy ? [SamlStrategy as Type] : []),
+    ...(OidcStrategy ? [OidcStrategy as Type] : []),
     BruteForceService,
     TwoFactorService,
     CaptchaService,

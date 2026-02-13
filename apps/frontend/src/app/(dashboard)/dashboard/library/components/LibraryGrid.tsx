@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/useI18n';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Download, Star, Trash2, MoreVertical } from 'lucide-react';
 import {
@@ -22,15 +23,16 @@ import type { Template } from '../types';
 interface LibraryGridProps {
   templates: Template[];
   onPreview: (template: Template) => void;
-  onToggleFavorite: (templateId: string, isFavorite: boolean) => Promise<{ success: boolean }>;
+  onToggleFavorite: (templateId: string, isFavorite: boolean, favoriteId?: string) => Promise<{ success: boolean }>;
   onDelete: (templateId: string) => Promise<{ success: boolean }>;
 }
 
 export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }: LibraryGridProps) {
+  const { t } = useI18n();
   if (templates.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Aucun template trouvé</p>
+        <p className="text-gray-600">{t('library.noTemplatesFound')}</p>
       </div>
     );
   }
@@ -66,7 +68,7 @@ export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => onToggleFavorite(template.id, template.isFavorite)}
+                onClick={() => onToggleFavorite(template.id, template.isFavorite, template.favoriteId)}
                 className="bg-white/90 hover:bg-white"
               >
                 <Star className={`w-4 h-4 ${template.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
@@ -91,33 +93,33 @@ export function LibraryGrid({ templates, onPreview, onToggleFavorite, onDelete }
                     className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    Prévisualiser
+                    {t('library.preview')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => onToggleFavorite(template.id, template.isFavorite)}
+                    onClick={() => onToggleFavorite(template.id, template.isFavorite, template.favoriteId)}
                     className="text-gray-700 cursor-pointer"
                   >
                     <Star className="w-4 h-4 mr-2" />
-                    {template.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    {template.isFavorite ? t('library.unfavorite') : t('library.addToFavorites')}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-gray-700 cursor-pointer">
                     <Download className="w-4 h-4 mr-2" />
-                    Télécharger
+                    {t('library.download')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDelete(template.id)}
                     className="text-red-400 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Supprimer
+                    {t('library.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>{template.downloads} téléchargements</span>
+              <span>{template.downloads} {t('library.downloads')}</span>
               <span>•</span>
-              <span>{template.views} vues</span>
+              <span>{template.views} {t('library.views')}</span>
             </div>
           </CardContent>
         </Card>

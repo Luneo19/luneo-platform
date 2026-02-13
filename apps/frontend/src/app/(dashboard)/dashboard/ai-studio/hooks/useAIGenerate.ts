@@ -4,17 +4,19 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { AISettings } from '../types';
 
 interface GenerateOptions extends AISettings {
   prompt: string;
-  type: '2d' | '3d' | 'animation';
+  type: '2d' | '3d' | 'animation' | 'template';
 }
 
 export function useAIGenerate() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -41,8 +43,8 @@ export function useAIGenerate() {
         setTimeout(() => setProgress(0), 500);
 
         toast({
-          title: 'Succès',
-          description: 'Génération en cours...',
+          title: t('common.success'),
+          description: t('aiStudio.generationInProgress'),
         });
 
         const generationId = (data as { designId?: string; data?: { id?: string }; generationId?: string; id?: string }).designId
@@ -56,9 +58,9 @@ export function useAIGenerate() {
       } catch (error: unknown) {
         logger.error('AI generation error', { error, options });
         const errorMessage =
-          error instanceof Error ? error.message : 'Erreur lors de la génération. Réessayez.';
+          error instanceof Error ? error.message : t('aiStudio.generationFailed');
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: errorMessage,
           variant: 'destructive',
         });
@@ -67,7 +69,7 @@ export function useAIGenerate() {
         setIsGenerating(false);
       }
     },
-    [toast]
+    [toast, t]
   );
 
   return {

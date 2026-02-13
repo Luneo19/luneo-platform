@@ -13,8 +13,10 @@ import { useBilling } from '../hooks/useBilling';
 import { useState } from 'react';
 import { ChangePlanModal } from './modals/ChangePlanModal';
 import type { SubscriptionTier } from '../types';
+import { useI18n } from '@/i18n/useI18n';
 
 export function PlansComparison() {
+  const { t } = useI18n();
   const { subscription, isLoading } = useBilling();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -23,10 +25,10 @@ export function PlansComparison() {
     return (
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Plans disponibles</CardTitle>
+          <CardTitle className="text-gray-900">{t('dashboard.billing.plansAvailable')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-gray-600">{t('dashboard.common.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -41,10 +43,10 @@ export function PlansComparison() {
   return (
     <>
       <Card className="bg-white border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-gray-900">Plans disponibles</CardTitle>
-          <CardDescription className="text-gray-600">
-            Choisissez le plan qui correspond à vos besoins
+<CardHeader>
+        <CardTitle className="text-gray-900">{t('dashboard.billing.plansAvailable')}</CardTitle>
+        <CardDescription className="text-gray-600">
+            {t('dashboard.billing.choosePlan')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,7 +64,7 @@ export function PlansComparison() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-gray-900">{plan.name}</CardTitle>
                       {plan.popular && (
-                        <Badge className="bg-cyan-500/20 text-cyan-400">Populaire</Badge>
+                        <Badge className="bg-cyan-500/20 text-cyan-400">{t('dashboard.billing.popular')}</Badge>
                       )}
                     </div>
                     <CardDescription className="text-gray-600">{plan.description}</CardDescription>
@@ -70,10 +72,10 @@ export function PlansComparison() {
                       <span className="text-3xl font-bold text-gray-900">
                         {plan.price.monthly}€
                       </span>
-                      <span className="text-gray-600">/mois</span>
+                      <span className="text-gray-600">{t('dashboard.billing.perMonth')}</span>
                     </div>
                     <div className="text-sm text-gray-500">
-                      ou {plan.price.yearly}€/an
+                      {t('dashboard.billing.orPerYear')} {plan.price.yearly}€{t('dashboard.billing.perYear')}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -96,7 +98,7 @@ export function PlansComparison() {
                           : 'bg-gray-100 hover:bg-gray-200'
                       }`}
                     >
-                      {isCurrentPlan ? 'Plan actuel' : 'Choisir ce plan'}
+                      {isCurrentPlan ? t('dashboard.billing.currentPlan') : t('dashboard.billing.selectPlan')}
                     </Button>
                   </CardContent>
                 </Card>

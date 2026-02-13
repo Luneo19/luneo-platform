@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,20 +47,21 @@ export function ARModelsGrid({
   onGenerateQR,
   onCopyEmbedCode,
 }: ARModelsGridProps) {
+  const { t } = useI18n();
   if (models.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Aucun modèle trouvé</p>
+        <p className="text-gray-600">{t('arStudio.noModelsFound')}</p>
       </div>
     );
   }
 
   const getStatusBadge = (status: ARModel['status']) => {
     const statusConfig = {
-      active: { label: 'Actif', className: 'bg-green-500' },
-      processing: { label: 'Traitement', className: 'bg-blue-500' },
-      error: { label: 'Erreur', className: 'bg-red-500' },
-      draft: { label: 'Brouillon', className: 'bg-gray-600' },
+      active: { label: t('arStudio.status.active'), className: 'bg-green-500' },
+      processing: { label: t('arStudio.status.processing'), className: 'bg-blue-500' },
+      error: { label: t('arStudio.status.error'), className: 'bg-red-500' },
+      draft: { label: t('arStudio.status.draft'), className: 'bg-gray-600' },
     };
     const config = statusConfig[status] || statusConfig.draft;
     return <Badge className={config.className}>{config.label}</Badge>;
@@ -124,39 +126,39 @@ export function ARModelsGrid({
                     className="text-gray-700 cursor-pointer"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    Prévisualiser
+                    {t('arStudio.preview')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onViewAR(model)}
                     className="text-gray-300 cursor-pointer"
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    Voir en AR
+                    {t('arStudio.viewAR')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onGenerateQR(model)}
                     className="text-gray-300 cursor-pointer"
                   >
                     <QrCode className="w-4 h-4 mr-2" />
-                    Générer QR Code
+                    {t('arStudio.generateQR')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onCopyEmbedCode(model)}
                     className="text-gray-300 cursor-pointer"
                   >
                     <Copy className="w-4 h-4 mr-2" />
-                    Copier Code Embed
+                    {t('arStudio.copyEmbed')}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-gray-300 cursor-pointer">
                     <Download className="w-4 h-4 mr-2" />
-                    Télécharger
+                    {t('aiStudio.download')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDelete(model.id)}
                     className="text-red-400 cursor-pointer"
                   >
                     <MoreVertical className="w-4 h-4 mr-2" />
-                    Supprimer
+                    {t('aiStudio.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -164,9 +166,9 @@ export function ARModelsGrid({
             <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
               <span>{formatBytes(model.fileSize)}</span>
               <span>•</span>
-              <span>{model.views} vues</span>
+              <span>{model.views} {t('arStudio.views')}</span>
               <span>•</span>
-              <span>{model.tryOns} try-ons</span>
+              <span>{model.tryOns} {t('arStudio.tryOns').toLowerCase()}</span>
             </div>
             {model.tags && model.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">

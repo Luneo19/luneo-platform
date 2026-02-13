@@ -5,9 +5,10 @@
  * The frontend re-exports from this package with a fallback in apps/frontend/src/lib/billing-plans/.
  *
  * IMPORTANT: Prices (basePriceCents) must match backend plan-config.ts -- source of truth is GET /pricing/plans
+ * ALL values in this file MUST be kept in sync with apps/backend/src/libs/plans/plan-config.ts
  */
 
-export type PlanTier = 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
 export type UsageMetricType =
   | 'designs_created'
   | 'renders_2d'
@@ -49,6 +50,7 @@ export interface PlanDefinition {
   id: PlanTier;
   name: string;
   basePriceCents: number;
+  yearlyPriceCents: number;
   headline?: string;
   quotas: PlanQuotaDefinition[];
   features: PlanFeatureDefinition[];
@@ -59,10 +61,17 @@ export interface PlanDefinition {
     priceCents?: number;
     meteredMetric?: UsageMetricType;
   }>;
-  limits?: {
-    teamMembers?: number;
-    storageGb?: number;
-    designsPerMonth?: number;
+  limits: {
+    teamMembers: number;
+    storageGb: number;
+    designsPerMonth: number;
+    maxProducts: number;
+    apiAccess: boolean;
+    arEnabled: boolean;
+    whiteLabel: boolean;
+    advancedAnalytics: boolean;
+    customExport: boolean;
+    prioritySupport: boolean;
   };
   metadata?: Record<string, unknown>;
 }
@@ -73,49 +82,240 @@ export interface PlanCatalog {
   availableTiers: PlanTier[];
 }
 
+/**
+ * Plan definitions synchronized with backend plan-config.ts (SINGLE SOURCE OF TRUTH)
+ */
 const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
+  free: {
+    id: 'free',
+    name: 'Free',
+    basePriceCents: 0,
+    yearlyPriceCents: 0,
+    headline: 'Découvrez Luneo gratuitement',
+    limits: {
+      teamMembers: 1,
+      storageGb: 0.5,
+      designsPerMonth: 5,
+      maxProducts: 2,
+      apiAccess: false,
+      arEnabled: false,
+      whiteLabel: false,
+      advancedAnalytics: false,
+      customExport: false,
+      prioritySupport: false,
+    },
+    quotas: [
+      { metric: 'designs_created', label: 'Designs', description: 'Designs créés par mois', limit: 5, period: 'month', overage: 'block', unit: 'designs' },
+      { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 10, period: 'month', overage: 'block', unit: 'rendus' },
+      { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 0, period: 'month', overage: 'block', unit: 'rendus' },
+      { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 3, period: 'month', overage: 'block', unit: 'générations' },
+      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 0.5, period: 'month', overage: 'block', unit: 'GB' },
+      { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 0, period: 'month', overage: 'block', unit: 'appels' },
+      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 1, period: 'month', overage: 'block', unit: 'membres' },
+    ],
+    features: [
+      { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
+      { id: 'configurator_3d', label: 'Configurateur 3D', enabled: false },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: false },
+      { id: 'ar_export', label: 'AR/VR Export', enabled: false },
+      { id: 'api_access', label: 'Accès API', enabled: false },
+      { id: 'white_label', label: 'White Label', enabled: false },
+      { id: 'advanced_analytics', label: 'Analytics avancés', enabled: false },
+      { id: 'custom_export', label: 'Export personnalisé', enabled: false },
+      { id: 'priority_support', label: 'Support prioritaire', enabled: false },
+      { id: 'sso_saml', label: 'SSO/SAML', enabled: false },
+    ],
+  },
   starter: {
     id: 'starter',
     name: 'Starter',
-    basePriceCents: 1900, // €19/month — must match backend plan-config.ts
-    quotas: [],
-    features: [],
+    basePriceCents: 1900, // €19/month — matches backend plan-config.ts
+    yearlyPriceCents: 19000, // €190/year
+    headline: 'Parfait pour démarrer',
+    limits: {
+      teamMembers: 3,
+      storageGb: 5,
+      designsPerMonth: 50,
+      maxProducts: 10,
+      apiAccess: false,
+      arEnabled: false,
+      whiteLabel: false,
+      advancedAnalytics: false,
+      customExport: false,
+      prioritySupport: false,
+    },
+    quotas: [
+      { metric: 'designs_created', label: 'Designs', description: 'Designs créés par mois', limit: 50, period: 'month', overage: 'charge', overageRate: 50, unit: 'designs' },
+      { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 20, unit: 'rendus' },
+      { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 10, period: 'month', overage: 'charge', overageRate: 100, unit: 'rendus' },
+      { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 20, period: 'month', overage: 'charge', overageRate: 75, unit: 'générations' },
+      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 5, period: 'month', overage: 'charge', overageRate: 50, unit: 'GB' },
+      { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 10000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 3, period: 'month', overage: 'block', unit: 'membres' },
+    ],
+    features: [
+      { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
+      { id: 'configurator_3d', label: 'Configurateur 3D', enabled: false },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: false },
+      { id: 'ar_export', label: 'AR/VR Export', enabled: false },
+      { id: 'api_access', label: 'Accès API', enabled: false },
+      { id: 'white_label', label: 'White Label', enabled: false },
+      { id: 'advanced_analytics', label: 'Analytics avancés', enabled: false },
+      { id: 'custom_export', label: 'Export personnalisé', enabled: false },
+      { id: 'priority_support', label: 'Support prioritaire', enabled: false },
+      { id: 'sso_saml', label: 'SSO/SAML', enabled: false },
+    ],
   },
   professional: {
     id: 'professional',
     name: 'Professional',
-    basePriceCents: 4900, // €49/month — must match backend plan-config.ts
-    quotas: [],
-    features: [],
+    basePriceCents: 4900, // €49/month — matches backend plan-config.ts
+    yearlyPriceCents: 49000, // €490/year
+    headline: 'Pour les créateurs professionnels',
+    limits: {
+      teamMembers: 10,
+      storageGb: 25,
+      designsPerMonth: 200,
+      maxProducts: 50,
+      apiAccess: true,
+      arEnabled: true,
+      whiteLabel: true,
+      advancedAnalytics: false,
+      customExport: false,
+      prioritySupport: true,
+    },
+    quotas: [
+      { metric: 'designs_created', label: 'Designs', description: 'Designs créés par mois', limit: 200, period: 'month', overage: 'charge', overageRate: 40, unit: 'designs' },
+      { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 500, period: 'month', overage: 'charge', overageRate: 15, unit: 'rendus' },
+      { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 50, period: 'month', overage: 'charge', overageRate: 80, unit: 'rendus' },
+      { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 60, unit: 'générations' },
+      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 25, period: 'month', overage: 'charge', overageRate: 40, unit: 'GB' },
+      { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 50000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 10, period: 'month', overage: 'block', unit: 'membres' },
+    ],
+    features: [
+      { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
+      { id: 'configurator_3d', label: 'Configurateur 3D', enabled: true },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Partiel' },
+      { id: 'ar_export', label: 'AR/VR Export', enabled: true },
+      { id: 'api_access', label: 'Accès API', enabled: true },
+      { id: 'white_label', label: 'White Label', enabled: true },
+      { id: 'advanced_analytics', label: 'Analytics avancés', enabled: false },
+      { id: 'custom_export', label: 'Export personnalisé', enabled: false },
+      { id: 'priority_support', label: 'Support prioritaire', enabled: true },
+      { id: 'sso_saml', label: 'SSO/SAML', enabled: false },
+    ],
   },
   business: {
     id: 'business',
     name: 'Business',
-    basePriceCents: 9900, // €99/month — must match backend plan-config.ts
-    quotas: [],
-    features: [],
+    basePriceCents: 9900, // €99/month — matches backend plan-config.ts
+    yearlyPriceCents: 99000, // €990/year
+    headline: 'Pour les équipes en croissance',
+    limits: {
+      teamMembers: 50,
+      storageGb: 100,
+      designsPerMonth: 1000,
+      maxProducts: 500,
+      apiAccess: true,
+      arEnabled: true,
+      whiteLabel: true,
+      advancedAnalytics: true,
+      customExport: true,
+      prioritySupport: true,
+    },
+    quotas: [
+      { metric: 'designs_created', label: 'Designs', description: 'Designs créés par mois', limit: 1000, period: 'month', overage: 'charge', overageRate: 30, unit: 'designs' },
+      { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 2000, period: 'month', overage: 'charge', overageRate: 10, unit: 'rendus' },
+      { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 200, period: 'month', overage: 'charge', overageRate: 60, unit: 'rendus' },
+      { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 500, period: 'month', overage: 'charge', overageRate: 50, unit: 'générations' },
+      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 100, period: 'month', overage: 'charge', overageRate: 30, unit: 'GB' },
+      { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 200000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 50, period: 'month', overage: 'block', unit: 'membres' },
+    ],
+    features: [
+      { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
+      { id: 'configurator_3d', label: 'Configurateur 3D', enabled: true },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Complet' },
+      { id: 'ar_export', label: 'AR/VR Export', enabled: true },
+      { id: 'api_access', label: 'Accès API', enabled: true },
+      { id: 'white_label', label: 'White Label', enabled: true },
+      { id: 'advanced_analytics', label: 'Analytics avancés', enabled: true },
+      { id: 'custom_export', label: 'Export personnalisé', enabled: true },
+      { id: 'priority_support', label: 'Support prioritaire', enabled: true },
+      { id: 'sso_saml', label: 'SSO/SAML', enabled: false },
+    ],
   },
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
-    basePriceCents: 29900, // €299/month — must match backend plan-config.ts
-    quotas: [],
-    features: [],
+    basePriceCents: 29900, // €299/month — matches backend plan-config.ts
+    yearlyPriceCents: 299000, // €2990/year
+    headline: 'Solutions sur mesure',
+    limits: {
+      teamMembers: -1, // unlimited
+      storageGb: -1,
+      designsPerMonth: -1,
+      maxProducts: -1,
+      apiAccess: true,
+      arEnabled: true,
+      whiteLabel: true,
+      advancedAnalytics: true,
+      customExport: true,
+      prioritySupport: true,
+    },
+    quotas: [
+      { metric: 'designs_created', label: 'Designs', description: 'Designs créés par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 20, unit: 'designs' },
+      { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 5, unit: 'rendus' },
+      { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 40, unit: 'rendus' },
+      { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 40, unit: 'générations' },
+      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 500, period: 'month', overage: 'charge', overageRate: 20, unit: 'GB' },
+      { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 9999999, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 999, period: 'month', overage: 'block', unit: 'membres' },
+    ],
+    features: [
+      { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
+      { id: 'configurator_3d', label: 'Configurateur 3D', enabled: true },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Complet' },
+      { id: 'ar_export', label: 'AR/VR Export', enabled: true },
+      { id: 'api_access', label: 'Accès API', enabled: true },
+      { id: 'white_label', label: 'White Label', enabled: true },
+      { id: 'advanced_analytics', label: 'Analytics avancés', enabled: true },
+      { id: 'custom_export', label: 'Export personnalisé', enabled: true },
+      { id: 'priority_support', label: 'Support prioritaire', enabled: true },
+      { id: 'sso_saml', label: 'SSO/SAML', enabled: true },
+    ],
   },
 };
 
 export const PLAN_CATALOG: PlanCatalog = {
   plans: PLAN_DEFINITIONS,
-  defaultPlan: 'starter',
-  availableTiers: ['starter', 'professional', 'business', 'enterprise'],
+  defaultPlan: 'free',
+  availableTiers: ['free', 'starter', 'professional', 'business', 'enterprise'],
 };
 
 export { PLAN_DEFINITIONS };
 
 export function getPlanDefinition(plan: PlanTier): PlanDefinition {
-  return PLAN_DEFINITIONS[plan] ?? PLAN_DEFINITIONS.starter;
+  return PLAN_DEFINITIONS[plan] ?? PLAN_DEFINITIONS.free;
 }
 
 export function listPlans(): PlanDefinition[] {
   return Object.values(PLAN_DEFINITIONS);
+}
+
+/**
+ * Check if a limit value represents "unlimited"
+ */
+export function isUnlimited(value: number): boolean {
+  return value === -1;
+}
+
+/**
+ * Format a limit value for display
+ */
+export function formatLimit(value: number): string {
+  if (value === -1) return 'Illimité';
+  if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
+  return value.toString();
 }

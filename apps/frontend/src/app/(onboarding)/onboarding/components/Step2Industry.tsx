@@ -4,6 +4,7 @@ import React from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { useIndustryStore } from '@/store/industry.store';
 import { IndustryCard } from './IndustryCard';
+import { useI18n } from '@/i18n/useI18n';
 
 interface Step2IndustryProps {
   selectedIndustry: string | null;
@@ -14,6 +15,7 @@ export function Step2Industry({
   selectedIndustry,
   onSelectIndustry,
 }: Step2IndustryProps) {
+  const { t } = useI18n();
   const { allIndustries, isLoading } = useIndustryStore();
 
   if (isLoading) {
@@ -33,9 +35,9 @@ export function Step2Industry({
       className="space-y-6"
     >
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-white">Quel est votre secteur ? 🏢</h1>
+        <h1 className="text-3xl font-bold mb-2 text-white">{t('onboarding.step2.title')}</h1>
         <p className="text-white/60">
-          Nous adapterons votre expérience selon votre industrie
+          {t('onboarding.step2.subtitle')}
         </p>
       </div>
 

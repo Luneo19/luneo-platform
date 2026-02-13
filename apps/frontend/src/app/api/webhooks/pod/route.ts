@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Failed to process POD webhook', {
+      serverLogger.error('Failed to process POD webhook', {
         status: backendResponse.status,
         error: errorText,
       });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('POD webhook processed', {
+    serverLogger.info('POD webhook processed', {
       provider: headers.get('x-pod-provider'),
       processed: result.processed,
     });

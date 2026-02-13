@@ -84,7 +84,7 @@ function AssetHubDemo({
       input.onchange = (e) => {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
-          handleFileUpload(e as React.ChangeEvent<HTMLInputElement>);
+          handleFileUpload(e as unknown as React.ChangeEvent<HTMLInputElement>);
         }
       };
       input.click();
@@ -127,6 +127,7 @@ function AssetHubDemo({
       );
     }, 200);
 
+    // Demo simulation - replace with real API in production
     // After upload, start processing
     setTimeout(() => {
       clearInterval(uploadInterval);
@@ -183,8 +184,8 @@ function AssetHubDemo({
 
           return updatedAssets;
         });
-      }, 6000);
-    }, 2000);
+      }, 1000);
+    }, 1000);
   }, [supportedFormats, maxFileSize, optimizationLevel, onAssetProcessed]);
 
   // Handle click to trigger file input

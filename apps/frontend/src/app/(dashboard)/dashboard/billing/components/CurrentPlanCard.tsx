@@ -12,8 +12,10 @@ import { useBilling } from '../hooks/useBilling';
 import { formatDate } from '@/lib/utils/formatters';
 import { CancelSubscriptionModal } from './modals/CancelSubscriptionModal';
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 
 export function CurrentPlanCard() {
+  const { t } = useI18n();
   const { subscription, isLoading } = useBilling();
   const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -21,10 +23,10 @@ export function CurrentPlanCard() {
     return (
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Plan actuel</CardTitle>
+          <CardTitle className="text-gray-900">{t('dashboard.billing.currentPlan')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-gray-600">{t('dashboard.common.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -36,7 +38,7 @@ export function CurrentPlanCard() {
 
   const planName = subscription.tier === 'free' ? 'Gratuit' :
                    subscription.tier === 'starter' ? 'Starter' :
-                   subscription.tier === 'professional' || subscription.tier === 'pro' ? 'Professional' :
+                   subscription.tier === 'professional' || (subscription.tier as string) === 'pro' ? 'Professional' :
                    subscription.tier === 'business' ? 'Business' :
                    'Enterprise';
 
@@ -51,10 +53,10 @@ export function CurrentPlanCard() {
             <div>
               <CardTitle className="text-gray-900 flex items-center gap-2">
                 <Package className="w-5 h-5 text-cyan-400" />
-                Plan actuel
+                {t('dashboard.billing.currentPlan')}
               </CardTitle>
               <CardDescription className="text-gray-600 mt-1">
-                {planName} • {subscription.period === 'yearly' ? 'Annuel' : 'Mensuel'}
+                {planName} • {subscription.period === 'yearly' ? t('dashboard.billing.yearly') : t('dashboard.billing.monthly')}
               </CardDescription>
             </div>
             <Badge
@@ -65,7 +67,7 @@ export function CurrentPlanCard() {
                   : 'border-red-500/50 text-red-400'
               }
             >
-              {isActive && !isCancelled ? 'Actif' : 'Annulé'}
+              {isActive && !isCancelled ? t('dashboard.billing.active') : t('dashboard.billing.cancelled')}
             </Badge>
           </div>
         </CardHeader>
@@ -74,7 +76,7 @@ export function CurrentPlanCard() {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4" />
               <span>
-                Renouvellement le {formatDate(new Date(subscription.stripe.currentPeriodEnd))}
+                {t('dashboard.billing.renewalOn')} {formatDate(new Date(subscription.stripe.currentPeriodEnd))}
               </span>
             </div>
           )}
@@ -82,7 +84,7 @@ export function CurrentPlanCard() {
             <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
               <AlertCircle className="w-4 h-4 text-red-400" />
               <span className="text-sm text-red-400">
-                Votre abonnement sera annulé à la fin de la période actuelle
+                {t('dashboard.billing.cancelAtPeriodEnd')}
               </span>
             </div>
           )}
@@ -92,7 +94,7 @@ export function CurrentPlanCard() {
               onClick={() => setShowCancelModal(true)}
               className="border-red-500/50 text-red-400 hover:bg-red-500/10"
             >
-              Annuler l'abonnement
+              {t('dashboard.billing.cancelSubscription')}
             </Button>
           )}
         </CardContent>

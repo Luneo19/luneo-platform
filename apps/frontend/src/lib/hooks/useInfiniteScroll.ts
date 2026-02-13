@@ -101,14 +101,14 @@ export function useInfinitePagination<T>(
       setItems((prev) => [...prev, ...result.data]);
       setHasMore(result.hasMore);
       setPage((prev) => prev + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Error loading more items', {
         error: err,
         page,
         limit,
-        message: err.message,
+        message: err instanceof Error ? err.message : 'Unknown error',
       });
-      setError(err.message || 'Failed to load more items');
+      setError(err instanceof Error ? err.message : 'Failed to load more items');
     } finally {
       setLoading(false);
     }

@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Zap, ArrowLeft, Mail, AlertTriangle, Users, Clock } from 'lucide-react';
-import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 type QuickWinStatus = {
@@ -19,19 +18,29 @@ type QuickWinStatus = {
   trialReminder: { trialEnding: number };
 } | null;
 
+const DEFAULT_QUICKWIN_STATUS: NonNullable<QuickWinStatus> = {
+  welcomeEmail: { configured: false, templateId: null, lastSentCount: 0 },
+  lowCreditsAlert: { usersAtRisk: 0 },
+  churnAlert: { inactiveUsers: 0 },
+  trialReminder: { trialEnding: 0 },
+};
+
 export default function OrionQuickWinsPage() {
   const [status, setStatus] = useState<QuickWinStatus>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [noDataAvailable, setNoDataAvailable] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await endpoints.orion.quickWins.status();
-      setStatus(res.data);
+      setNoDataAvailable(false);
+      const res = await fetch('/api/admin/orion/quick-wins/status', { credentials: 'include' }).then((r) => r.json());
+      setStatus(res?.data ?? res ?? DEFAULT_QUICKWIN_STATUS);
     } catch (e) {
       logger.error('Quick wins status failed', e);
-      setStatus(null);
+      setStatus(DEFAULT_QUICKWIN_STATUS);
+      setNoDataAvailable(true);
     } finally {
       setLoading(false);
     }
@@ -44,7 +53,7 @@ export default function OrionQuickWinsPage() {
   const onWelcomeSetup = async () => {
     setActionLoading('welcome');
     try {
-      await endpoints.orion.quickWins.welcomeSetup();
+      await fetch('/api/admin/orion/quick-wins/welcome-setup', { method: 'POST', credentials: 'include' }).then((r) => r.json());
       await fetchStatus();
     } catch (e) {
       logger.error('Welcome setup failed', e);
@@ -56,8 +65,7 @@ export default function OrionQuickWinsPage() {
   const onSendAlerts = async () => {
     setActionLoading('lowCredits');
     try {
-      await endpoints.orion.quickWins.lowCredits();
-      // TODO: wire to actual send-alerts flow when implemented
+      await fetch('/api/admin/orion/quick-wins/low-credits', { credentials: 'include' }).then((r) => r.json());
       await fetchStatus();
     } catch (e) {
       logger.error('Low credits alerts failed', e);
@@ -69,8 +77,7 @@ export default function OrionQuickWinsPage() {
   const onLaunchCampaign = async () => {
     setActionLoading('churn');
     try {
-      await endpoints.orion.quickWins.inactive();
-      // TODO: wire to campaign launch when implemented
+      await fetch('/api/admin/orion/quick-wins/inactive', { credentials: 'include' }).then((r) => r.json());
       await fetchStatus();
     } catch (e) {
       logger.error('Churn campaign failed', e);
@@ -82,8 +89,7 @@ export default function OrionQuickWinsPage() {
   const onSendReminders = async () => {
     setActionLoading('trial');
     try {
-      await endpoints.orion.quickWins.trialEnding();
-      // TODO: wire to send reminders when implemented
+      await fetch('/api/admin/orion/quick-wins/trial-ending', { credentials: 'include' }).then((r) => r.json());
       await fetchStatus();
     } catch (e) {
       logger.error('Trial reminders failed', e);
@@ -111,6 +117,14 @@ export default function OrionQuickWinsPage() {
         </div>
       </div>
 
+      {noDataAvailable && (
+        <Card className="bg-zinc-800/80 border-zinc-600">
+          <CardContent className="py-4 text-zinc-400">
+            No data available. Quick wins API is not available. Showing placeholder data.
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
@@ -137,12 +151,12 @@ export default function OrionQuickWinsPage() {
               <Badge
                 variant="secondary"
                 className={
-                  status?.welcomeEmail.configured
+                  (status ?? DEFAULT_QUICKWIN_STATUS).welcomeEmail.configured
                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                     : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                 }
               >
-                {status?.welcomeEmail.configured ? 'Active' : 'Needs Setup'}
+                {(status ?? DEFAULT_QUICKWIN_STATUS).welcomeEmail.configured ? 'Active' : 'Needs Setup'}
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -150,7 +164,7 @@ export default function OrionQuickWinsPage() {
                 Email de bienvenue apres inscription. Template pret pour l&apos;automation.
               </p>
               <div className="text-2xl font-bold text-white">
-                {status?.welcomeEmail.lastSentCount ?? 0} <span className="text-sm font-normal text-zinc-500">sent</span>
+                {(status ?? DEFAULT_QUICKWIN_STATUS).welcomeEmail.lastSentCount} <span className="text-sm font-normal text-zinc-500">sent</span>
               </div>
               <Button
                 variant="outline"
@@ -159,7 +173,7 @@ export default function OrionQuickWinsPage() {
                 onClick={onWelcomeSetup}
                 disabled={actionLoading === 'welcome'}
               >
-                {status?.welcomeEmail.configured ? 'Re-setup' : 'Setup'}
+                {(status ?? DEFAULT_QUICKWIN_STATUS).welcomeEmail.configured ? 'Re-setup' : 'Setup'}
               </Button>
             </CardContent>
           </Card>
@@ -175,7 +189,7 @@ export default function OrionQuickWinsPage() {
                 variant="secondary"
                 className="bg-zinc-600/50 text-zinc-300 border-zinc-500/50"
               >
-                {status?.lowCreditsAlert.usersAtRisk ?? 0} at risk
+                {(status ?? DEFAULT_QUICKWIN_STATUS).lowCreditsAlert.usersAtRisk} at risk
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -183,7 +197,7 @@ export default function OrionQuickWinsPage() {
                 Utilisateurs avec credits IA &le; 10. Envoyer des rappels pour recharger.
               </p>
               <div className="text-2xl font-bold text-white">
-                {status?.lowCreditsAlert.usersAtRisk ?? 0}{' '}
+                {(status ?? DEFAULT_QUICKWIN_STATUS).lowCreditsAlert.usersAtRisk}{' '}
                 <span className="text-sm font-normal text-zinc-500">users</span>
               </div>
               <Button
@@ -191,7 +205,7 @@ export default function OrionQuickWinsPage() {
                 size="sm"
                 className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
                 onClick={onSendAlerts}
-                disabled={actionLoading === 'lowCredits' || (status?.lowCreditsAlert.usersAtRisk ?? 0) === 0}
+                disabled={actionLoading === 'lowCredits' || (status ?? DEFAULT_QUICKWIN_STATUS).lowCreditsAlert.usersAtRisk === 0}
               >
                 Send Alerts
               </Button>
@@ -217,7 +231,7 @@ export default function OrionQuickWinsPage() {
                 Utilisateurs inactifs depuis 14 jours ou plus. Lancer une campagne win-back.
               </p>
               <div className="text-2xl font-bold text-white">
-                {status?.churnAlert.inactiveUsers ?? 0}{' '}
+                {(status ?? DEFAULT_QUICKWIN_STATUS).churnAlert.inactiveUsers}{' '}
                 <span className="text-sm font-normal text-zinc-500">inactive</span>
               </div>
               <Button
@@ -225,7 +239,7 @@ export default function OrionQuickWinsPage() {
                 size="sm"
                 className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
                 onClick={onLaunchCampaign}
-                disabled={actionLoading === 'churn' || (status?.churnAlert.inactiveUsers ?? 0) === 0}
+                disabled={actionLoading === 'churn' || (status ?? DEFAULT_QUICKWIN_STATUS).churnAlert.inactiveUsers === 0}
               >
                 Launch Campaign
               </Button>
@@ -251,7 +265,7 @@ export default function OrionQuickWinsPage() {
                 Marques / utilisateurs dont l&apos;essai se termine sous 3 jours.
               </p>
               <div className="text-2xl font-bold text-white">
-                {status?.trialReminder.trialEnding ?? 0}{' '}
+                {(status ?? DEFAULT_QUICKWIN_STATUS).trialReminder.trialEnding}{' '}
                 <span className="text-sm font-normal text-zinc-500">ending</span>
               </div>
               <Button
@@ -259,7 +273,7 @@ export default function OrionQuickWinsPage() {
                 size="sm"
                 className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
                 onClick={onSendReminders}
-                disabled={actionLoading === 'trial' || (status?.trialReminder.trialEnding ?? 0) === 0}
+                disabled={actionLoading === 'trial' || (status ?? DEFAULT_QUICKWIN_STATUS).trialReminder.trialEnding === 0}
               >
                 Send Reminders
               </Button>

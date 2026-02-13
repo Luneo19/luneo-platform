@@ -10,6 +10,10 @@ export const metadata: Metadata = generateSEOMetadata({
   keywords: ['sécurité', 'RGPD', 'données', 'conformité', 'infrastructure', 'Luneo'],
   canonicalUrl: `${SEO_BASE_URL}/security`,
   ogType: 'website',
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/security` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/security` },
+  ],
 });
 
 export default function SecurityLayout({ children }: { children: ReactNode }) {

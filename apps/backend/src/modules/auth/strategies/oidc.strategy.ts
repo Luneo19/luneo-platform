@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy as OidcPassportStrategy } from 'passport-openidconnect';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const OidcPassportStrategy = require('passport-openidconnect');
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 
@@ -48,23 +49,23 @@ export class OidcStrategy extends PassportStrategy(OidcPassportStrategy, 'oidc')
   async validate(
     issuer: string,
     sub: string,
-    profile: any,
+    profile: Record<string, unknown>,
     accessToken: string,
     refreshToken: string,
-    params: any,
-  ): Promise<any> {
+    params: Record<string, unknown>,
+  ): Promise<{ id: string; email: string; role: string; brandId: string | null }> {
     try {
       if (!profile) {
         throw new UnauthorizedException('OIDC authentication failed');
       }
 
       // Extract user information from OIDC profile
-      const email = profile.email || profile.emails?.[0]?.value || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
+      const profileEmail = profile.email ?? (Array.isArray(profile.emails) ? (profile.emails[0] as { value?: string })?.value : undefined) ?? profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
       const firstName = profile.given_name || profile.firstName || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'];
       const lastName = profile.family_name || profile.lastName || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'];
-      const name = profile.name || profile.displayName || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+      const name = (profile.name || profile.displayName || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']) as string | undefined;
 
-      if (!email && !sub) {
+      if (!profileEmail && !sub) {
         throw new UnauthorizedException('OIDC profile missing required fields (email or sub)');
       }
 
@@ -72,9 +73,9 @@ export class OidcStrategy extends PassportStrategy(OidcPassportStrategy, 'oidc')
       const oauthData = {
         provider: 'oidc',
         providerId: sub,
-        email: email || sub,
-        firstName: firstName || name?.split(' ')[0] || '',
-        lastName: lastName || name?.split(' ').slice(1).join(' ') || '',
+        email: (profileEmail as string) || sub,
+        firstName: (firstName as string) || (typeof name === 'string' ? name.split(' ')[0] : '') || '',
+        lastName: (lastName as string) || (typeof name === 'string' ? name.split(' ').slice(1).join(' ') : '') || '',
         accessToken: accessToken || '',
         refreshToken: refreshToken,
       };

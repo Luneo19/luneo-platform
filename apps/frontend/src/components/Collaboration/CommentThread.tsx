@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Comment } from '@/lib/collaboration/types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface CommentThreadProps {
   comments: Comment[];
@@ -56,6 +57,7 @@ function CommentThreadComponent({
   onClose,
   isFloating = false,
 }: CommentThreadProps) {
+  const { t } = useI18n();
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,7 +148,7 @@ function CommentThreadComponent({
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Comment options">
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -305,7 +307,7 @@ function CommentThreadComponent({
             <span className="text-slate-400">
               Réponse à {comments.find((c) => c.id === replyingTo)?.author.name}
             </span>
-            <button onClick={() => setReplyingTo(null)}>
+            <button onClick={() => setReplyingTo(null)} aria-label="Cancel reply">
               <X className="w-3 h-3" />
             </button>
           </div>
@@ -316,7 +318,7 @@ function CommentThreadComponent({
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Ajouter un commentaire..."
+            placeholder={t('common.addComment')}
             className="flex-1 min-h-[36px] max-h-24 px-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             rows={1}
           />

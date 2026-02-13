@@ -67,6 +67,7 @@ import {
 } from '@/hooks/use-analytics';
 import { KPISkeleton, ChartSkeleton } from '@/components/ui/skeleton';
 import { ErrorDisplay } from '@/components/ui/error-display';
+import { useI18n } from '@/i18n/useI18n';
 
 // Chart palette (dark theme)
 const CHART_COLORS = [
@@ -92,6 +93,7 @@ const TOOLTIP_STYLE = {
 // COMPONENT
 // ========================================
 function AnalyticsLuxuryPageContent() {
+  const { t } = useI18n();
   const [period, setPeriod] = useState<TimeRange>('30d');
 
   const {
@@ -222,10 +224,10 @@ function AnalyticsLuxuryPageContent() {
                 className="border-white/[0.06] bg-white/[0.03] font-semibold text-white backdrop-blur-sm hover:bg-white/[0.06]"
                 onClick={handleExport}
                 disabled={isExporting}
-                aria-label="Exporter les données analytics"
+                aria-label={t('common.exportData')}
               >
                 <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                {isExporting ? 'Export...' : 'Exporter'}
+                {isExporting ? t('common.exportInProgress') : t('common.export')}
               </Button>
             </div>
           </div>
@@ -238,14 +240,14 @@ function AnalyticsLuxuryPageContent() {
                 metricsError ||
                 timeSeriesError ||
                 topEventsError ||
-                new Error('Erreur inconnue')
+                new Error(t('common.unknownError'))
               }
               onRetry={() => {
                 refetchMetrics();
                 refetchTimeSeries();
                 refetchTopEvents();
               }}
-              title="Erreur de chargement des analytics"
+              title={t('common.analyticsLoadError')}
             />
           </div>
         )}
@@ -426,7 +428,7 @@ function AnalyticsLuxuryPageContent() {
             <ErrorDisplay
               error={timeSeriesError}
               onRetry={refetchTimeSeries}
-              title="Erreur de chargement du graphique"
+              title={t('common.loadingChartError')}
             />
           ) : (
             <Card className="dash-card border-white/[0.06] bg-transparent shadow-none transition-[border-color,background] hover:border-white/[0.1] hover:bg-white/[0.05]">
@@ -499,7 +501,7 @@ function AnalyticsLuxuryPageContent() {
             <ErrorDisplay
               error={topEventsError}
               onRetry={refetchTopEvents}
-              title="Erreur de chargement du graphique"
+              title={t('common.loadingChartError')}
             />
           ) : (
             <Card className="dash-card border-white/[0.06] bg-transparent shadow-none transition-[border-color,background] hover:border-white/[0.1] hover:bg-white/[0.05]">

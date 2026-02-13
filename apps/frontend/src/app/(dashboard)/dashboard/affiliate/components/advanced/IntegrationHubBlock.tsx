@@ -1,11 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link as LinkIcon } from 'lucide-react';
-
-const CATEGORIES = ['Analytics', 'CRM', 'Marketing', 'E-commerce', 'Payment', 'Communication'];
+import { api } from '@/lib/api/client';
 
 interface IntegrationHubBlockProps {
   title: string;
@@ -13,18 +13,49 @@ interface IntegrationHubBlockProps {
   count?: number;
 }
 
+interface IntegrationItem {
+  id: string | number;
+  name: string;
+  category?: string;
+  status: string;
+  description?: string;
+}
+
 export function IntegrationHubBlock({
   title,
   namePrefix = 'Intégration ',
   count = 120,
 }: IntegrationHubBlockProps) {
-  const integrations = Array.from({ length: count }, (_, i) => ({
-    id: i + 1,
-    name: `${namePrefix}${i + 1}`,
-    category: CATEGORIES[i % 6],
-    status: Math.random() > 0.3 ? 'connected' : 'available',
-    description: `Description de l'intégration ${i + 1} avec toutes les fonctionnalités`,
-  }));
+  const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const response = await api.get('/api/v1/integrations');
+        const raw = response as Record<string, unknown>;
+        const list = Array.isArray(raw) ? raw : (raw?.integrations ?? raw?.data ?? []) as unknown[];
+        setIntegrations(
+          (list as Array<Record<string, unknown>>).map((item, i) => {
+            const rawId = item.id;
+            const id = typeof rawId === 'string' || typeof rawId === 'number' ? rawId : i + 1;
+            return {
+              id,
+              name: String(item.name ?? `${namePrefix}${i + 1}`),
+              category: String(item.category ?? ''),
+              status: String(item.status ?? 'available'),
+              description: String(item.description ?? ''),
+            };
+          })
+        );
+      } catch {
+        setIntegrations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [namePrefix]);
 
   return (
     <Card className="bg-gray-50 border-gray-200 mt-6">
@@ -35,8 +66,11 @@ export function IntegrationHubBlock({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Chargement des intégrations...</div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {integrations.map((integration) => (
+          {integrations.slice(0, count).map((integration) => (
             <Card key={integration.id} className="bg-gray-100 border-gray-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -64,6 +98,7 @@ export function IntegrationHubBlock({
             </Card>
           ))}
         </div>
+        )}
       </CardContent>
     </Card>
   );

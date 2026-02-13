@@ -72,11 +72,18 @@ export class TokenService {
    */
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     const { refreshToken } = refreshTokenDto;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
 
     try {
       // Verify refresh token JWT signature
+      const secret = this.configService.get<string>('jwt.refreshSecret');
+      if (!secret) {
+        throw new UnauthorizedException('Refresh token configuration missing');
+      }
       const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get('jwt.refreshSecret'),
+        secret,
       });
 
       // Check if token exists in database

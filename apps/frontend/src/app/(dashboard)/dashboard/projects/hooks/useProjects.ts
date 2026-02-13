@@ -52,7 +52,7 @@ export function useProjects(filters: ProjectsFilters, page: number) {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateProjectPayload }) =>
-      endpoints.projects.update(id, data),
+      endpoints.projects.update(id, data as Record<string, unknown>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },

@@ -22,7 +22,7 @@ export interface FeatureFlag {
   rolloutPercentage?: number;
   targetUsers?: string[];
   targetBrands?: string[];
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
 }
 
 export interface ABTest {
@@ -106,7 +106,7 @@ export class FeatureFlagsService {
       });
 
       logger.info('Feature flags loaded (defaults)', { count: this.flags.size });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error loading feature flags', { error });
     }
   }
@@ -204,7 +204,7 @@ export class FeatureFlagsService {
       await cacheService.delete('feature-flags:all');
 
       logger.info('Feature flag updated', { key: flag.key });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating feature flag', { error, flag });
       throw error;
     }

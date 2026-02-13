@@ -9,7 +9,7 @@ export class SpecHasherService {
   /**
    * Hasher un spec (SHA256)
    */
-  hash(spec: any): string {
+  hash(spec: unknown): string {
     const canonical = this.canonicalizer.toCanonicalString(spec);
     return createHash('sha256').update(canonical).digest('hex');
   }
@@ -17,7 +17,7 @@ export class SpecHasherService {
   /**
    * Vérifier si un spec correspond à un hash
    */
-  verify(spec: any, expectedHash: string): boolean {
+  verify(spec: unknown, expectedHash: string): boolean {
     return this.hash(spec) === expectedHash;
   }
 }

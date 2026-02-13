@@ -10,6 +10,7 @@ import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from 
 import { WifiOff, RefreshCw, AlertCircle, Clock, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useI18n } from '@/i18n/useI18n';
 
 interface ApiError {
   status?: number;
@@ -36,6 +37,7 @@ export function ApiErrorBoundary({
   maxRetries = 3,
   fallback,
 }: ApiErrorBoundaryProps) {
+  const { t } = useI18n();
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -97,8 +99,8 @@ export function ApiErrorBoundary({
     if (isNetworkError) {
       return {
         icon: WifiOff,
-        title: 'Connexion perdue',
-        description: 'Vérifiez votre connexion internet et réessayez.',
+        title: t('errors.connectionLost'),
+        description: t('errors.connectionLostDesc'),
         color: 'text-amber-400',
         bgColor: 'bg-amber-500/20',
         canRetry: true,
@@ -107,8 +109,8 @@ export function ApiErrorBoundary({
     if (isServerError) {
       return {
         icon: Server,
-        title: 'Erreur serveur',
-        description: 'Nos serveurs rencontrent un problème. Réessayez dans quelques instants.',
+        title: t('common.serverError'),
+        description: t('errors.serverErrorDesc'),
         color: 'text-red-400',
         bgColor: 'bg-red-500/20',
         canRetry: true,
@@ -117,8 +119,8 @@ export function ApiErrorBoundary({
     if (isRateLimit) {
       return {
         icon: Clock,
-        title: 'Trop de requêtes',
-        description: 'Veuillez patienter quelques secondes avant de réessayer.',
+        title: t('errors.rateLimit'),
+        description: t('errors.rateLimitDesc'),
         color: 'text-amber-400',
         bgColor: 'bg-amber-500/20',
         canRetry: true,
@@ -127,8 +129,8 @@ export function ApiErrorBoundary({
     if (isAuthError) {
       return {
         icon: AlertCircle,
-        title: 'Accès refusé',
-        description: 'Vous n\'avez pas les permissions nécessaires.',
+        title: t('common.forbidden'),
+        description: t('errors.forbiddenDesc'),
         color: 'text-red-400',
         bgColor: 'bg-red-500/20',
         canRetry: false,
@@ -137,8 +139,8 @@ export function ApiErrorBoundary({
     if (isNotFound) {
       return {
         icon: AlertCircle,
-        title: 'Ressource introuvable',
-        description: 'La ressource demandée n\'existe pas ou a été déplacée.',
+        title: t('errors.resourceNotFound'),
+        description: t('errors.resourceNotFoundDesc'),
         color: 'text-slate-400',
         bgColor: 'bg-slate-500/20',
         canRetry: false,
@@ -146,8 +148,8 @@ export function ApiErrorBoundary({
     }
     return {
       icon: AlertCircle,
-      title: 'Erreur',
-      description: error.message || 'Une erreur inattendue s\'est produite.',
+      title: t('common.error'),
+      description: error.message || t('errors.unexpectedError'),
       color: 'text-red-400',
       bgColor: 'bg-red-500/20',
       canRetry: true,

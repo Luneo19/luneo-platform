@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useDashboardStore } from '@/store/dashboard.store';
+import { useI18n } from '@/i18n/useI18n';
 import { WidgetWrapper } from './WidgetWrapper';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export function RecentOrdersWidget() {
+  const { t } = useI18n();
   const { widgetData, fetchWidgetData } = useDashboardStore();
   const data = widgetData[WIDGET_SLUG] as RecentOrdersData | undefined;
   const isLoading = data === undefined && !Object.prototype.hasOwnProperty.call(widgetData, WIDGET_SLUG);
@@ -45,8 +47,8 @@ export function RecentOrdersWidget() {
 
   return (
     <WidgetWrapper
-      title="Commandes récentes"
-      subtitle="Dernières commandes"
+      title={t('common.recentOrders')}
+      subtitle={t('common.latestOrders')}
       isLoading={isLoading}
       error={data === null ? 'Impossible de charger les données' : undefined}
     >

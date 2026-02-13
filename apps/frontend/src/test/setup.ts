@@ -23,6 +23,7 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
     prefetch: vi.fn(),
     back: vi.fn(),
+    refresh: vi.fn(),
   }),
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
@@ -138,6 +139,36 @@ vi.mock('@/lib/trpc/client', () => ({
   },
 }));
 
+// Mock IntersectionObserver (not available in jsdom)
+class MockIntersectionObserver {
+  readonly root: Element | null = null;
+  readonly rootMargin: string = '';
+  readonly thresholds: ReadonlyArray<number> = [];
+  constructor(private callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
+  observe(_target: Element): void {
+    // Immediately trigger with isIntersecting: true for test convenience
+    this.callback(
+      [{ isIntersecting: true, intersectionRatio: 1, target: _target, boundingClientRect: {} as DOMRectReadOnly, intersectionRect: {} as DOMRectReadOnly, rootBounds: null, time: Date.now() }] as IntersectionObserverEntry[],
+      this as unknown as IntersectionObserver,
+    );
+  }
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+}
+Object.defineProperty(window, 'IntersectionObserver', { writable: true, value: MockIntersectionObserver });
+Object.defineProperty(global, 'IntersectionObserver', { writable: true, value: MockIntersectionObserver });
+
+// Mock ResizeObserver (not available in jsdom)
+class MockResizeObserver {
+  constructor(private _callback: ResizeObserverCallback) {}
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+Object.defineProperty(window, 'ResizeObserver', { writable: true, value: MockResizeObserver });
+Object.defineProperty(global, 'ResizeObserver', { writable: true, value: MockResizeObserver });
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -154,24 +185,5 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Supabase has been fully removed. Auth is now cookie-based via NestJS backend.
-// Mock the API client for tests
-vi.mock('@/lib/api/client', () => ({
-  api: {
-    get: vi.fn().mockResolvedValue({}),
-    post: vi.fn().mockResolvedValue({}),
-    put: vi.fn().mockResolvedValue({}),
-    patch: vi.fn().mockResolvedValue({}),
-    delete: vi.fn().mockResolvedValue({}),
-  },
-  endpoints: {
-    auth: {
-      login: vi.fn().mockResolvedValue({ user: null }),
-      signup: vi.fn().mockResolvedValue({ user: null }),
-      logout: vi.fn().mockResolvedValue(undefined),
-      me: vi.fn().mockResolvedValue(null),
-    },
-    credits: {
-      balance: vi.fn().mockResolvedValue({ balance: 0 }),
-    },
-  },
-}));
+// API client is mocked per test file (auth.store.test, dashboard.store.test, industry.store.test, onboarding.store.test)
+// so that client.test.ts can test the real client.

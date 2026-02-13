@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpStatus, HttpCode, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpStatus, HttpCode, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ApiKeysService, CreateApiKeyDto, UpdateApiKeyDto } from './api-keys.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
@@ -31,6 +31,23 @@ export class ApiKeysController {
   async getApiKeys(@CurrentUser() user: CurrentUserType) {
     const brandId = this.extractBrandId(user);
     return this.apiKeysService.listApiKeys(brandId);
+  }
+
+  @Get(':id/usage')
+  @ApiOperation({ summary: 'Get API key usage statistics' })
+  @ApiParam({ name: 'id', description: 'API key ID' })
+  @ApiQuery({ name: 'period', required: false, description: 'Period: 24h, 7d, 30d' })
+  @ApiResponse({ status: 200, description: 'Usage statistics retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'API key not found' })
+  async getUsageStats(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Query('period') period?: string,
+  ) {
+    const brandId = this.extractBrandId(user);
+    await this.apiKeysService.getApiKey(id, brandId);
+    const periodMap = period === '24h' ? 'day' : period === '30d' ? 'month' : 'week';
+    return this.apiKeysService.getUsageStats(id, periodMap);
   }
 
   @Get(':id')

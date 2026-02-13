@@ -36,6 +36,15 @@ interface DashboardData {
   period: string;
 }
 
+// Raw JSON from fetch - may be ApiResponseBuilder shape or direct ApiResponse
+interface DashboardJsonResult {
+  success?: boolean;
+  data?: ApiResponse;
+  overview?: ApiResponse['overview'];
+  period?: ApiResponse['period'];
+  recent?: ApiResponse['recent'];
+}
+
 // Format de réponse de l'API /api/dashboard/stats
 interface ApiResponse {
   overview: {
@@ -118,9 +127,9 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       }
       
       // Parser la réponse JSON
-      let result: any;
+      let result: DashboardJsonResult;
       try {
-        result = await response.json();
+        result = (await response.json()) as DashboardJsonResult;
       } catch (parseError) {
         logger.error('Erreur parsing JSON dashboard', {
           error: parseError,
@@ -143,7 +152,7 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
         apiData = result.data;
       } else if (result.overview || result.recent) {
         // Format direct: { overview, period, recent } (retour direct de NextResponse.json)
-        apiData = result;
+        apiData = result as unknown as ApiResponse;
       } else {
         // Log pour debug
         logger.error('Format de réponse API inattendu', {
@@ -229,7 +238,7 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       const topDesigns: TopDesign[] = apiData.recent.designs.slice(0, 5).map((design) => ({
         id: design.id,
         title: design.prompt || 'Design sans titre',
-        image: design.preview_url || '/placeholder-design.jpg',
+        image: design.preview_url || '/placeholder-design.svg',
         views: 0, // À récupérer depuis usage_tracking si disponible
         likes: 0, // À récupérer depuis usage_tracking si disponible
         created_at: design.created_at,

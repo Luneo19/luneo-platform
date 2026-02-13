@@ -11,6 +11,7 @@ export class DLQService {
     @InjectQueue('design-generation') private readonly designQueue: Queue,
     @InjectQueue('render-processing') private readonly renderQueue: Queue,
     @InjectQueue('production-processing') private readonly productionQueue: Queue,
+    @InjectQueue('email') private readonly emailQueue: Queue,
   ) {}
 
   /**
@@ -22,6 +23,7 @@ export class DLQService {
       ['design-generation', this.designQueue],
       ['render-processing', this.renderQueue],
       ['production-processing', this.productionQueue],
+      ['email', this.emailQueue],
     ]);
   }
 

@@ -38,6 +38,7 @@ import { LazyResponsiveLine as ResponsiveLine, LazyResponsiveBar as ResponsiveBa
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -57,10 +58,11 @@ interface AnalyticsDashboardProps {
 }
 
 function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '30d' }: AnalyticsDashboardProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | '1y'>(initialDateRange);
   const [isLoading, setIsLoading] = useState(true);
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const loadAnalytics = useCallback(async () => {
@@ -73,15 +75,15 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
     } catch (error) {
       logger.error('Failed to load analytics', { error });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les analytics',
+        title: t('common.error'),
+        description: t('analytics.loadError'),
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
       setLastRefresh(new Date());
     }
-  }, [dateRange, toast]);
+  }, [dateRange, toast, t]);
 
   useEffect(() => {
     loadAnalytics();
@@ -94,54 +96,54 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
       {
         id: 'users',
         title: 'Utilisateurs Actifs',
-        value: metrics.activeUsers || 0,
-        change: metrics.usersChange || 0,
-        trend: (metrics.usersChange || 0) >= 0 ? 'up' : 'down',
+        value: Number(metrics.activeUsers) || 0,
+        change: Number(metrics.usersChange) || 0,
+        trend: (Number(metrics.usersChange) || 0) >= 0 ? 'up' : 'down',
         icon: Users,
         description: 'Utilisateurs actifs sur la période',
       },
       {
         id: 'views',
         title: 'Vues',
-        value: metrics.totalViews || 0,
-        change: metrics.viewsChange || 0,
-        trend: (metrics.viewsChange || 0) >= 0 ? 'up' : 'down',
+        value: Number(metrics.totalViews) || 0,
+        change: Number(metrics.viewsChange) || 0,
+        trend: (Number(metrics.viewsChange) || 0) >= 0 ? 'up' : 'down',
         icon: Eye,
         description: 'Nombre total de vues',
       },
       {
         id: 'designs',
         title: 'Designs Créés',
-        value: metrics.totalDesigns || 0,
-        change: metrics.designsChange || 0,
-        trend: (metrics.designsChange || 0) >= 0 ? 'up' : 'down',
+        value: Number(metrics.totalDesigns) || 0,
+        change: Number(metrics.designsChange) || 0,
+        trend: (Number(metrics.designsChange) || 0) >= 0 ? 'up' : 'down',
         icon: Palette,
         description: 'Designs générés',
       },
       {
         id: 'revenue',
         title: 'Revenus',
-        value: `€${(metrics.totalRevenue || 0).toLocaleString()}`,
-        change: metrics.revenueChange || 0,
-        trend: (metrics.revenueChange || 0) >= 0 ? 'up' : 'down',
+        value: `€${(Number(metrics.totalRevenue) || 0).toLocaleString()}`,
+        change: Number(metrics.revenueChange) || 0,
+        trend: (Number(metrics.revenueChange) || 0) >= 0 ? 'up' : 'down',
         icon: DollarSign,
         description: 'Revenus totaux',
       },
       {
         id: 'orders',
         title: 'Commandes',
-        value: metrics.totalOrders || 0,
-        change: metrics.ordersChange || 0,
-        trend: (metrics.ordersChange || 0) >= 0 ? 'up' : 'down',
+        value: Number(metrics.totalOrders) || 0,
+        change: Number(metrics.ordersChange) || 0,
+        trend: (Number(metrics.ordersChange) || 0) >= 0 ? 'up' : 'down',
         icon: ShoppingCart,
         description: 'Commandes passées',
       },
       {
         id: 'downloads',
         title: 'Téléchargements',
-        value: metrics.totalDownloads || 0,
-        change: metrics.downloadsChange || 0,
-        trend: (metrics.downloadsChange || 0) >= 0 ? 'up' : 'down',
+        value: Number(metrics.totalDownloads) || 0,
+        change: Number(metrics.downloadsChange) || 0,
+        trend: (Number(metrics.downloadsChange) || 0) >= 0 ? 'up' : 'down',
         icon: Download,
         description: 'Fichiers téléchargés',
       },
@@ -150,39 +152,37 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
 
   const timeSeriesData = useMemo(() => {
     if (!metrics?.timeSeries) return [];
-
+    interface TimeSeriesPoint {
+      date: string;
+      designs?: number;
+      views?: number;
+      revenue?: number;
+    }
+    const series = metrics.timeSeries as TimeSeriesPoint[];
     return [
       {
         id: 'Designs',
-        data: metrics.timeSeries.map((point: any) => ({
-          x: point.date,
-          y: point.designs || 0,
-        })),
+        data: series.map((point) => ({ x: point.date, y: point.designs ?? 0 })),
       },
       {
         id: 'Vues',
-        data: metrics.timeSeries.map((point: any) => ({
-          x: point.date,
-          y: point.views || 0,
-        })),
+        data: series.map((point) => ({ x: point.date, y: point.views ?? 0 })),
       },
       {
         id: 'Revenus',
-        data: metrics.timeSeries.map((point: any) => ({
-          x: point.date,
-          y: point.revenue || 0,
-        })),
+        data: series.map((point) => ({ x: point.date, y: point.revenue ?? 0 })),
       },
     ];
   }, [metrics]);
 
   const deviceData = useMemo(() => {
     if (!metrics?.devices) return [];
-
+    type DevicesBreakdown = { desktop?: number; mobile?: number; tablet?: number };
+    const devices = metrics.devices as DevicesBreakdown;
     return [
-      { id: 'desktop', label: 'Desktop', value: metrics.devices.desktop || 0, color: '#3b82f6' },
-      { id: 'mobile', label: 'Mobile', value: metrics.devices.mobile || 0, color: '#10b981' },
-      { id: 'tablet', label: 'Tablet', value: metrics.devices.tablet || 0, color: '#f59e0b' },
+      { id: 'desktop', label: 'Desktop', value: Number(devices?.desktop) || 0, color: '#3b82f6' },
+      { id: 'mobile', label: 'Mobile', value: Number(devices?.mobile) || 0, color: '#10b981' },
+      { id: 'tablet', label: 'Tablet', value: Number(devices?.tablet) || 0, color: '#f59e0b' },
     ];
   }, [metrics]);
 
@@ -488,7 +488,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
                       <p className="text-xs text-gray-500">API & Services</p>
                     </div>
                   </div>
-                  <p className="text-lg font-bold text-white">{metrics?.avgResponseTime || '0'}ms</p>
+                  <p className="text-lg font-bold text-white">{Number(metrics?.avgResponseTime) || 0}ms</p>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg">
                   <div className="flex items-center gap-3">
@@ -498,7 +498,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
                       <p className="text-xs text-gray-500">Requêtes réussies</p>
                     </div>
                   </div>
-                  <p className="text-lg font-bold text-white">{metrics?.successRate || '0'}%</p>
+                  <p className="text-lg font-bold text-white">{Number(metrics?.successRate) || 0}%</p>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg">
                   <div className="flex items-center gap-3">
@@ -508,7 +508,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
                       <p className="text-xs text-gray-500">Disponibilité système</p>
                     </div>
                   </div>
-                  <p className="text-lg font-bold text-white">{metrics?.uptime || '99.9'}%</p>
+                  <p className="text-lg font-bold text-white">{Number(metrics?.uptime) || 99.9}%</p>
                 </div>
               </div>
             </CardContent>

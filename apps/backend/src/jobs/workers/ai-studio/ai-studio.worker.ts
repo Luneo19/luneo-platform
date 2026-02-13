@@ -14,6 +14,18 @@ import { MeshyProviderService } from '@/modules/ai/services/meshy-provider.servi
 import { RunwayProviderService } from '@/modules/ai/services/runway-provider.service';
 import { AIGenerationStatus, AIGenerationType } from '@prisma/client';
 
+/** Job parameters for AI generation (quality, style, aspectRatio, duration, etc.) */
+export interface AIStudioJobParameters {
+  quality?: string;
+  style?: string;
+  aspectRatio?: string;
+  duration?: number;
+  referenceImageUrl?: string;
+  meshyTaskId?: string;
+  runwayTaskId?: string;
+  [key: string]: unknown;
+}
+
 export interface AIGenerationJob {
   generationId: string;
   type: AIGenerationType;
@@ -21,9 +33,17 @@ export interface AIGenerationJob {
   negativePrompt?: string;
   model: string;
   provider: string;
-  parameters: any;
+  parameters: AIStudioJobParameters;
   userId: string;
   brandId: string;
+}
+
+/** Base URL for generation result assets. Uses Cloudinary when configured, else STORAGE_BASE_URL or fallback. */
+function getStorageBaseUrl(): string {
+  if (process.env.CLOUDINARY_CLOUD_NAME) {
+    return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}`;
+  }
+  return process.env.STORAGE_BASE_URL || 'https://storage.luneo.app';
 }
 
 @Injectable()
@@ -142,12 +162,12 @@ export class AIStudioWorker {
 
       const duration = Math.floor((Date.now() - startTime) / 1000);
 
-      // Mettre à jour le statut à FAILED
+      // Mettre à jour le statut à FAILED (generic message to avoid leaking internal errors)
       await this.prisma.aIGeneration.update({
         where: { id: generationId },
         data: {
           status: AIGenerationStatus.FAILED,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: 'Generation processing failed',
           duration,
         },
       });
@@ -163,7 +183,7 @@ export class AIStudioWorker {
     prompt: string,
     negativePrompt: string | undefined,
     model: string,
-    parameters: any,
+    parameters: AIStudioJobParameters,
     brandId: string,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number; tokens?: number }> {
     // Utiliser l'orchestrator pour router vers le bon provider
@@ -175,8 +195,8 @@ export class AIStudioWorker {
     const result = await this.aiOrchestrator.generateImage(
       {
         prompt,
-        size: parameters.aspectRatio || '1024x1024',
-        style: parameters.style || 'vivid',
+        size: (parameters.aspectRatio as '1024x1024' | '1792x1024' | '1024x1792') || '1024x1024',
+        style: (parameters.style as 'vivid' | 'natural') || 'vivid',
       },
       strategy,
       brandId,
@@ -200,7 +220,7 @@ export class AIStudioWorker {
     prompt: string,
     _negativePrompt: string | undefined,
     _model: string,
-    parameters: any,
+    _parameters: AIStudioJobParameters,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
     const generation = await this.prisma.aIGeneration.findUnique({
       where: { id: generationId },
@@ -222,13 +242,11 @@ export class AIStudioWorker {
       };
     }
 
-    await this.simulateGeneration(5000);
-    const id = Date.now();
-    return {
-      resultUrl: `https://storage.example.com/generations/3d/${id}.glb`,
-      thumbnailUrl: `https://storage.example.com/generations/3d/${id}_thumb.png`,
-      quality: 90,
-    };
+    // PRODUCTION FIX: No silent stub - throw explicit error when provider is not configured
+    throw new Error(
+      'Meshy 3D provider is not configured or no taskId provided. ' +
+      'Set MESHY_API_KEY environment variable and ensure a Meshy task was created before processing.',
+    );
   }
 
   /**
@@ -239,7 +257,7 @@ export class AIStudioWorker {
     _prompt: string,
     _negativePrompt: string | undefined,
     _model: string,
-    parameters: any,
+    _parameters: AIStudioJobParameters,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
     const generation = await this.prisma.aIGeneration.findUnique({
       where: { id: generationId },
@@ -256,31 +274,78 @@ export class AIStudioWorker {
       };
     }
 
-    await this.simulateGeneration(8000);
-    const id = Date.now();
-    return {
-      resultUrl: `https://storage.example.com/generations/animations/${id}.mp4`,
-      thumbnailUrl: `https://storage.example.com/generations/animations/${id}_thumb.png`,
-      quality: 88,
-    };
+    // PRODUCTION FIX: No silent stub - throw explicit error when provider is not configured
+    throw new Error(
+      'Runway animation provider is not configured or no taskId provided. ' +
+      'Set RUNWAY_API_KEY environment variable and ensure a Runway task was created before processing.',
+    );
   }
 
   /**
-   * Génère un template — stub: placeholder pour traitement externe
+   * Génère un template design via OpenAI (image from prompt) ou mock si API key non configurée.
    */
   private async generateTemplate(
-    _prompt: string,
+    prompt: string,
     _negativePrompt: string | undefined,
     _model: string,
-    _parameters: any,
+    _parameters: AIStudioJobParameters,
   ): Promise<{ resultUrl: string; thumbnailUrl: string; quality: number }> {
-    await this.simulateGeneration(3000);
-    const id = Date.now();
-    return {
-      resultUrl: `https://storage.example.com/generations/templates/${id}.json`,
-      thumbnailUrl: `https://storage.example.com/generations/templates/${id}_thumb.png`,
-      quality: 85,
-    };
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+
+    if (!openaiApiKey || openaiApiKey === 'sk-placeholder') {
+      this.logger.warn('OPENAI_API_KEY is a placeholder - returning mock result');
+      const baseUrl = getStorageBaseUrl();
+      return {
+        resultUrl: `${baseUrl}/templates/placeholder.png`,
+        thumbnailUrl: `${baseUrl}/templates/placeholder.png`,
+        quality: 75,
+      };
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: prompt.slice(0, 4000),
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+          response_format: 'url',
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenAI template image failed: ${response.status} ${errText}`);
+      }
+
+      const data = (await response.json()) as { data?: Array<{ url?: string }> };
+      const url = data?.data?.[0]?.url;
+      if (!url) {
+        throw new Error('OpenAI did not return an image URL');
+      }
+
+      return {
+        resultUrl: url,
+        thumbnailUrl: url,
+        quality: 85,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Template generation via OpenAI failed, returning mock: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      const baseUrl = getStorageBaseUrl();
+      return {
+        resultUrl: `${baseUrl}/templates/placeholder.png`,
+        thumbnailUrl: `${baseUrl}/templates/placeholder.png`,
+        quality: 75,
+      };
+    }
   }
 
   /**
@@ -288,8 +353,8 @@ export class AIStudioWorker {
    */
   private async calculateActualCost(
     type: AIGenerationType,
-    model: string,
-    parameters: any,
+    _model: string,
+    parameters: AIStudioJobParameters,
     duration: number,
   ): Promise<number> {
     // Coût de base selon le type

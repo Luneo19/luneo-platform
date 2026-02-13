@@ -52,6 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import Link from 'next/link';
@@ -134,6 +135,7 @@ const DEFAULT_CUSTOMIZATION: BraceletCustomization = {
 };
 
 function BraceletCustomizePageContent() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [customization, setCustomization] = useState<BraceletCustomization>(DEFAULT_CUSTOMIZATION);
   const [isSaving, setIsSaving] = useState(false);
@@ -158,8 +160,8 @@ function BraceletCustomizePageContent() {
         model: 'bracelet.glb',
       });
       toast({
-        title: 'Sauvegardé',
-        description: 'Votre personnalisation a été enregistrée avec succès.',
+        title: t('bracelet.configSaved'),
+        description: t('bracelet.configSavedDesc'),
       });
       logger.info('Bracelet customization saved', { id: data.id });
     } catch (error) {
@@ -168,8 +170,8 @@ function BraceletCustomizePageContent() {
         customization,
       });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de sauvegarder la personnalisation.',
+        title: t('common.error'),
+        description: t('bracelet.saveError'),
         variant: 'destructive',
       });
     } finally {
@@ -201,14 +203,14 @@ function BraceletCustomizePageContent() {
       document.body.removeChild(a);
 
       toast({
-        title: 'Export réussi',
-        description: 'L\'image haute résolution a été téléchargée.',
+        title: t('bracelet.exportSuccess'),
+        description: t('bracelet.exportSuccessDesc'),
       });
     } catch (error) {
       logger.error('Error exporting PNG', { error });
       toast({
-        title: 'Erreur',
-        description: 'Impossible d\'exporter l\'image.',
+        title: t('common.error'),
+        description: t('bracelet.exportError'),
         variant: 'destructive',
       });
     } finally {
@@ -220,10 +222,10 @@ function BraceletCustomizePageContent() {
   const handleReset = useCallback(() => {
     setCustomization(DEFAULT_CUSTOMIZATION);
     toast({
-      title: 'Réinitialisé',
-      description: 'Les paramètres ont été réinitialisés.',
+      title: t('bracelet.resetDone'),
+      description: t('bracelet.resetDoneDesc'),
     });
-  }, [toast]);
+  }, [t, toast]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">

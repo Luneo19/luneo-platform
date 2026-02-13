@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   LineChart,
   Line,
@@ -42,6 +43,7 @@ export function AdvancedCharts({
   comparison,
   colors = DEFAULT_COLORS,
 }: AdvancedChartsProps) {
+  const { t } = useI18n();
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     
@@ -99,7 +101,7 @@ export function AdvancedCharts({
                   dataKey={`${metric}_current`}
                   stroke={colors[0]}
                   strokeWidth={2}
-                  name="Période actuelle"
+                  name={t('common.currentPeriod')}
                   dot={{ r: 4 }}
                 />
                 <Line
@@ -108,7 +110,7 @@ export function AdvancedCharts({
                   stroke={colors[1]}
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  name="Période précédente"
+                  name={t('common.previousPeriod')}
                   dot={{ r: 4 }}
                 />
               </>
@@ -150,12 +152,12 @@ export function AdvancedCharts({
                 <Bar
                   dataKey={`${metric}_current`}
                   fill={colors[0]}
-                  name="Période actuelle"
+                  name={t('common.currentPeriod')}
                 />
                 <Bar
                   dataKey={`${metric}_previous`}
                   fill={colors[1]}
-                  name="Période précédente"
+                  name={t('common.previousPeriod')}
                 />
               </>
             ) : (
@@ -199,7 +201,7 @@ export function AdvancedCharts({
                   stroke={colors[0]}
                   fillOpacity={0.6}
                   fill={`url(#color${metric})`}
-                  name="Période actuelle"
+                  name={t('common.currentPeriod')}
                 />
                 <Area
                   type="monotone"
@@ -207,7 +209,7 @@ export function AdvancedCharts({
                   stroke={colors[1]}
                   fillOpacity={0.3}
                   fill={colors[1]}
-                  name="Période précédente"
+                  name={t('common.previousPeriod')}
                 />
               </>
             ) : (

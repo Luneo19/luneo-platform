@@ -42,13 +42,15 @@ export async function exportKonvaStage(
       case 'jpg':
         dataURL = stage.toDataURL({ pixelRatio: 2, quality, mimeType: 'image/jpeg' });
         break;
-      case 'svg':
-        dataURL = (stage as Konva.Stage & { toSVG?: () => string }).toSVG?.();
+      case 'svg': {
+        const svgStr = (stage as Konva.Stage & { toSVG?: () => string }).toSVG?.();
+        dataURL = svgStr ?? '';
         if (!dataURL) {
           const fallback = stage.toDataURL({ pixelRatio: 2, quality });
           return new Blob([fallback], { type: 'image/png' });
         }
         return new Blob([dataURL], { type: 'image/svg+xml' });
+      }
       default:
         throw new Error(`Unsupported format: ${format}`);
     }

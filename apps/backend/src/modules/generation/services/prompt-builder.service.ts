@@ -12,7 +12,7 @@ interface PromptBuildParams {
       renderStyle?: string;
     }>;
   };
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
   userPrompt?: string;
 }
 
@@ -29,24 +29,24 @@ export class PromptBuilderService {
     const { product, customizations, userPrompt } = params;
 
     // Template de base du produit
-    let basePrompt = product.promptTemplate || this.getDefaultTemplate(product);
+    let basePrompt = product.promptTemplate || this.getDefaultTemplate(product as { name?: string });
 
     // Remplacer les variables par les valeurs de personnalisation
     for (const zone of product.customizationZones) {
-      const customization = customizations[zone.id];
+      const customization = customizations[zone.id] as Record<string, unknown> | undefined;
       if (customization) {
         basePrompt = this.replaceVariable(basePrompt, zone, customization);
       }
     }
 
     // Construire le prompt final
-    const finalPrompt = this.buildFinalPrompt(basePrompt, product, userPrompt);
+    const finalPrompt = this.buildFinalPrompt(basePrompt, product as { name?: string; category?: string }, userPrompt);
     const negativePrompt = this.buildNegativePrompt(product);
 
     return { finalPrompt, negativePrompt };
   }
 
-  private getDefaultTemplate(product: any): string {
+  private getDefaultTemplate(product: { name?: string }): string {
     return `
       A photorealistic image of a ${product.name || 'product'}.
       The product is displayed elegantly with professional studio lighting.
@@ -55,7 +55,7 @@ export class PromptBuilderService {
     `.trim();
   }
 
-  private replaceVariable(template: string, zone: any, customization: any): string {
+  private replaceVariable(template: string, zone: { name: string; type: string; renderStyle?: string }, customization: Record<string, unknown>): string {
     const placeholder = `{{${zone.name.toLowerCase().replace(/\s+/g, '_')}}}`;
     
     if (zone.type === 'TEXT') {
@@ -64,14 +64,14 @@ export class PromptBuilderService {
     }
 
     if (zone.type === 'COLOR') {
-      return template.replace(placeholder, `with ${customization.color} color`);
+      return template.replace(placeholder, `with ${(customization as { color?: string }).color ?? ''} color`);
     }
 
     return template.replace(placeholder, '');
   }
 
-  private describeTextCustomization(zone: any, customization: any): string {
-    const { text, font, color } = customization;
+  private describeTextCustomization(zone: { name?: string; renderStyle?: string }, customization: Record<string, unknown>): string {
+    const { text, font, color } = customization as { text?: string; font?: string; color?: string };
     
     if (!text) return '';
 
@@ -91,7 +91,7 @@ export class PromptBuilderService {
     return description;
   }
 
-  private buildFinalPrompt(basePrompt: string, product: any, userPrompt?: string): string {
+  private buildFinalPrompt(basePrompt: string, product: { name?: string; category?: string }, userPrompt?: string): string {
     let finalPrompt = basePrompt;
 
     finalPrompt = `${finalPrompt}
@@ -108,7 +108,7 @@ export class PromptBuilderService {
     return finalPrompt.replace(/\s+/g, ' ').trim();
   }
 
-  private buildNegativePrompt(product: any): string {
+  private buildNegativePrompt(product: { negativePrompt?: string | null }): string {
     const defaultNegative = `
       blurry, low quality, distorted, deformed, ugly, 
       bad anatomy, bad proportions, extra limbs, 

@@ -30,13 +30,13 @@ export interface CacheableOptions {
    * Cache key generator function
    * Default: uses method name + serialized arguments
    */
-  keyGenerator?: (args: any[], target: any, methodName: string) => string;
+  keyGenerator?: (args: unknown[], target: object, methodName: string) => string;
   
   /**
    * Tags for cache invalidation
    * Can be static or dynamic based on method arguments
    */
-  tags?: string[] | ((args: any[], target: any, methodName: string) => string[]);
+  tags?: string[] | ((args: unknown[], target: object, methodName: string) => string[]);
   
   /**
    * Whether to skip caching if result is null/undefined
@@ -58,12 +58,12 @@ export interface CacheInvalidateOptions {
   /**
    * Pattern or key generator for invalidation
    */
-  pattern?: string | ((args: any[], target: any, methodName: string) => string);
+  pattern?: string | ((args: unknown[], target: object, methodName: string) => string);
   
   /**
    * Tags to invalidate
    */
-  tags?: string[] | ((args: any[], target: any, methodName: string) => string[]);
+  tags?: string[] | ((args: unknown[], target: object, methodName: string) => string[]);
 }
 
 /**
@@ -94,7 +94,7 @@ export function Cacheable(options: CacheableOptions = {}) {
  * @example
  * ```typescript
  * @CacheInvalidate({ type: 'product', pattern: 'product:*' })
- * async update(id: string, data: any) {
+ * async update(id: string, data: unknown) {
  *   return this.prisma.product.update({ where: { id }, data });
  * }
  * ```
@@ -111,8 +111,8 @@ export function CacheInvalidate(options: CacheInvalidateOptions = {}) {
  * Default key generator: methodName:arg1:arg2:...
  */
 export function defaultKeyGenerator(
-  args: any[],
-  target: any,
+  args: unknown[],
+  target: object,
   methodName: string
 ): string {
   const className = target.constructor.name;
@@ -137,10 +137,10 @@ export function defaultKeyGenerator(
  * Helper to generate cache key from method arguments
  */
 export function generateCacheKey(
-  args: any[],
-  target: any,
+  args: unknown[],
+  target: object,
   methodName: string,
-  customGenerator?: (args: any[], target: any, methodName: string) => string
+  customGenerator?: (args: unknown[], target: object, methodName: string) => string
 ): string {
   if (customGenerator) {
     return customGenerator(args, target, methodName);

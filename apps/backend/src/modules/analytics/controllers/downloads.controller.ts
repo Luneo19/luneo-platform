@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { RequestWithUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { DownloadsService, CreateDownloadInput, DownloadResourceType } from '../services/downloads.service';
 
@@ -14,7 +15,7 @@ export class DownloadsController {
   @ApiOperation({ summary: 'List download history for the authenticated user' })
   @ApiResponse({ status: 200, description: 'Paginated list of downloads' })
   async list(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sortBy') sortBy?: string,
@@ -37,7 +38,7 @@ export class DownloadsController {
   @Post()
   @ApiOperation({ summary: 'Record a download event' })
   @ApiResponse({ status: 201, description: 'Download recorded' })
-  async record(@Request() req: any, @Body() body: CreateDownloadInput) {
+  async record(@Request() req: RequestWithUser, @Body() body: CreateDownloadInput) {
     return this.downloadsService.record(req.user.id, body);
   }
 }

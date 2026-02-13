@@ -61,11 +61,13 @@ export function useSolutionData(solutionId: string) {
       setLoading(true);
       setError(null);
 
-      const result = await api.get<{ success?: boolean; data?: SolutionData; error?: string }>(`/api/v1/public/solutions`, { params: { id: solutionId } });
-      if (result && (result as { success?: boolean }).success === false) {
-        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des données');
+      type SolutionApiResponse = { success?: boolean; data?: SolutionData; error?: string };
+      const result = await api.get<SolutionApiResponse>(`/api/v1/public/solutions`, { params: { id: solutionId } });
+      if (result?.success === false) {
+        throw new Error(result?.error || 'Erreur lors du chargement des données');
       }
-      setData((result as { data?: SolutionData })?.data ?? (result as unknown as SolutionData));
+      const payload: SolutionData | null = result?.data ?? (result as unknown as SolutionData) ?? null;
+      setData(payload);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       logger.error('Erreur chargement données solution', {

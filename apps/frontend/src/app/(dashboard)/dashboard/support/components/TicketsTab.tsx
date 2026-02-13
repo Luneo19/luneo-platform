@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, List, Grid, Plus, Archive, CheckCircle, User, Trash2, X } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -64,6 +65,7 @@ export function TicketsTab({
   onBulkAction,
   onNewTicket,
 }: TicketsTabProps) {
+  const { t } = useI18n();
   const hasFilters =
     searchTerm || filterStatus !== 'all' || filterPriority !== 'all' || filterCategory !== 'all';
 
@@ -75,41 +77,41 @@ export function TicketsTab({
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher un ticket..."
+            placeholder={t('support.searchTicket')}
             className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Statut" />
+            <SelectValue placeholder={t('support.status')} />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-gray-900">
-            <SelectItem value="all">Tous les statuts</SelectItem>
-            <SelectItem value="OPEN">Ouverts</SelectItem>
-            <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-            <SelectItem value="WAITING_CUSTOMER">En attente</SelectItem>
-            <SelectItem value="RESOLVED">Résolus</SelectItem>
-            <SelectItem value="CLOSED">Fermés</SelectItem>
+            <SelectItem value="all">{t('support.allStatuses')}</SelectItem>
+            <SelectItem value="OPEN">{t('support.statuses.open')}</SelectItem>
+            <SelectItem value="IN_PROGRESS">{t('support.statuses.inProgress')}</SelectItem>
+            <SelectItem value="WAITING_CUSTOMER">{t('support.statuses.waiting')}</SelectItem>
+            <SelectItem value="RESOLVED">{t('support.statuses.resolved')}</SelectItem>
+            <SelectItem value="CLOSED">{t('support.statuses.closed')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
           <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Priorité" />
+            <SelectValue placeholder={t('support.priority')} />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-gray-900">
-            <SelectItem value="all">Toutes les priorités</SelectItem>
-            <SelectItem value="LOW">Basse</SelectItem>
-            <SelectItem value="MEDIUM">Moyenne</SelectItem>
-            <SelectItem value="HIGH">Haute</SelectItem>
-            <SelectItem value="URGENT">Urgente</SelectItem>
+            <SelectItem value="all">{t('support.allPriorities')}</SelectItem>
+            <SelectItem value="LOW">{t('support.priorities.low')}</SelectItem>
+            <SelectItem value="MEDIUM">{t('support.priorities.medium')}</SelectItem>
+            <SelectItem value="HIGH">{t('support.priorities.high')}</SelectItem>
+            <SelectItem value="URGENT">{t('support.priorities.urgent')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
           <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Catégorie" />
+            <SelectValue placeholder={t('support.category')} />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-gray-900">
-            <SelectItem value="all">Toutes les catégories</SelectItem>
+            <SelectItem value="all">{t('support.allCategories')}</SelectItem>
             <SelectItem value="BILLING">Facturation</SelectItem>
             <SelectItem value="TECHNICAL">Technique</SelectItem>
             <SelectItem value="ACCOUNT">Compte</SelectItem>
@@ -150,24 +152,24 @@ export function TicketsTab({
                   else setSelectedTickets(new Set());
                 }}
               />
-              <span className="text-sm text-gray-700">{selectedTickets.size} ticket(s) sélectionné(s)</span>
+              <span className="text-sm text-gray-700">{t('support.selectedCount', { count: selectedTickets.size })}</span>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => onBulkAction('archive')} className="border-gray-200">
                 <Archive className="w-4 h-4 mr-2" />
-                Archiver
+                {t('support.archive')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => onBulkAction('close')} className="border-gray-200">
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Fermer
+                {t('support.close')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => onBulkAction('assign')} className="border-gray-200">
                 <User className="w-4 h-4 mr-2" />
-                Assigner
+                {t('support.assign')}
               </Button>
               <Button variant="destructive" size="sm" onClick={() => onBulkAction('delete')}>
                 <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer
+                {t('common.delete')}
               </Button>
               <Button variant="outline" size="icon" onClick={() => setSelectedTickets(new Set())} className="border-gray-200">
                 <X className="w-4 h-4" />
@@ -180,16 +182,16 @@ export function TicketsTab({
       {filteredTickets.length === 0 ? (
         <Card className="p-12 bg-white border-gray-200 text-center">
           <TicketIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun ticket</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('support.noTickets')}</h3>
           <p className="text-gray-600 mb-4">
             {hasFilters
-              ? 'Aucun résultat pour votre recherche'
-              : "Vous n'avez pas encore créé de ticket"}
+              ? t('support.noResultsSearch')
+              : t('support.noTicketsYet')}
           </p>
           {!hasFilters && (
             <Button onClick={onNewTicket} variant="outline" className="border-gray-200">
               <Plus className="w-4 h-4 mr-2" />
-              Créer un ticket
+              {t('support.createTicket')}
             </Button>
           )}
         </Card>

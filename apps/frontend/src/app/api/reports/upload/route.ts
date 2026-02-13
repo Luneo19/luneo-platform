@@ -8,7 +8,7 @@
 
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return ApiResponseBuilder.badRequest('Fichier trop volumineux (max 10MB)');
     }
 
-    logger.info('Upload rapport', {
+    serverLogger.info('Upload rapport', {
       fileName: file.name,
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
       fileType,
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Error uploading report', {
+      serverLogger.error('Error uploading report', {
         error: errorText,
         userId: user.id,
         fileName: file.name,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Rapport uploadé avec succès', {
+    serverLogger.info('Rapport uploadé avec succès', {
       fileName: result.fileName,
       userId: user.id,
       url: result.url,
@@ -117,7 +117,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Error deleting report', {
+      serverLogger.error('Error deleting report', {
         error: errorText,
         userId: user.id,
         fileUrl,
@@ -127,7 +127,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Rapport supprimé avec succès', {
+    serverLogger.info('Rapport supprimé avec succès', {
       userId: user.id,
       fileUrl,
     });

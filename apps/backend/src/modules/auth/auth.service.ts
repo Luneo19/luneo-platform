@@ -20,6 +20,7 @@ import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { TokenService } from './services/token.service';
 import { OAuthService } from './services/oauth.service';
+import { ReferralService } from '../referral/referral.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -37,6 +38,7 @@ export class AuthService {
     private captchaService: CaptchaService,
     private tokenService: TokenService,
     private oauthService: OAuthService,
+    private referralService: ReferralService,
   ) {}
 
   /**
@@ -53,7 +55,7 @@ export class AuthService {
   }
 
   async signup(signupDto: SignupDto) {
-    const { email, password, firstName, lastName, role, captchaToken } = signupDto;
+    const { email, password, firstName, lastName, role, captchaToken, company, referralCode } = signupDto;
 
     // ✅ Verify CAPTCHA (if provided)
     if (captchaToken) {
@@ -105,6 +107,44 @@ export class AuthService {
       },
     });
 
+    // If company name provided at registration, create a brand for the user
+    if (company && company.trim()) {
+      try {
+        const slugBase = company.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 50) || 'brand';
+        const slug = `${slugBase}-${crypto.randomBytes(4).toString('hex')}`;
+        const brand = await this.prisma.brand.create({
+          data: {
+            name: company.trim(),
+            slug,
+            companyName: company.trim(),
+            users: { connect: { id: user.id } },
+          },
+        });
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { brandId: brand.id },
+        });
+      } catch (err) {
+        // Non-blocking: brand creation failure should not block signup
+        this.logger.warn('Failed to create brand from company at signup', { userId: user.id, company, error: err });
+      }
+    }
+
+    // ✅ Record referral if referralCode provided
+    if (referralCode && referralCode.trim()) {
+      try {
+        await this.referralService.recordReferral(user.id, referralCode.trim());
+        this.logger.log('Referral recorded successfully', { userId: user.id, referralCode });
+      } catch (referralError) {
+        // Non-blocking: referral recording failure should not block signup
+        this.logger.warn('Failed to record referral during signup', {
+          error: referralError instanceof Error ? referralError.message : 'Unknown error',
+          userId: user.id,
+          referralCode,
+        });
+      }
+    }
+
     // Generate tokens
     const tokens = await this.tokenService.generateTokens(user.id, user.email, user.role);
 
@@ -113,7 +153,7 @@ export class AuthService {
 
     // ✅ Generate email verification token and send email
     // Skip email in test mode to avoid BullMQ blocking
-    if (process.env.SKIP_EMAIL_VERIFICATION !== 'true') {
+    if (this.configService.get<string>('SKIP_EMAIL_VERIFICATION') !== 'true') {
       try {
         const verificationToken = await this.jwtService.signAsync(
           { sub: user.id, email: user.email, type: 'email-verification' },
@@ -123,7 +163,7 @@ export class AuthService {
           },
         );
 
-        const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
+        const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
         const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
         // Queue email asynchronously - don't await to not block signup response
@@ -240,6 +280,27 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
         },
+      };
+    }
+
+    // Admin roles: 2FA obligatoire — si non activé, forcer la configuration
+    const ADMIN_ROLES_REQUIRING_2FA: UserRole[] = [UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN];
+    if (ADMIN_ROLES_REQUIRING_2FA.includes(user.role) && !user.is2FAEnabled) {
+      const tempToken = await this.jwtService.signAsync(
+        { sub: user.id, email: user.email, type: 'temp-2fa-setup' },
+        {
+          secret: this.configService.get('jwt.secret'),
+          expiresIn: '5m', // 5 minutes pour configurer 2FA
+        },
+      );
+
+      // Réinitialiser tentatives brute force après succès (fail-safe)
+      await this.bruteForceService.resetAttempts(email, clientIp);
+
+      return {
+        requires2FASetup: true,
+        tempToken,
+        message: '2FA setup required for admin accounts',
       };
     }
 
@@ -510,7 +571,7 @@ export class AuthService {
 
     let brandId = user.brandId;
     let settings: Record<string, unknown> = (user.brand?.settings as Record<string, unknown>) || {};
-    let onboardingStatus: Record<string, unknown> = (settings.onboardingStatus as Record<string, unknown>) || {};
+    let onboardingStatus: Record<string, unknown> = (typeof settings.onboardingStatus === 'object' && settings.onboardingStatus !== null ? settings.onboardingStatus : {}) as Record<string, unknown>;
 
     switch (step) {
       case 'welcome':
@@ -551,22 +612,22 @@ export class AuthService {
             data: {
               name: company,
               companyName: company,
-              ...(data?.phone && { phone: String(data.phone) }),
+              ...(data?.phone ? { phone: String(data.phone) } : {}),
             },
           });
         }
-        onboardingStatus = { ...onboardingStatus, profile_completed: true };
+        onboardingStatus = { ...(onboardingStatus as Record<string, unknown>), profile_completed: true };
         break;
       }
       case 'preferences':
-        onboardingStatus = { ...onboardingStatus, preferences_completed: true };
+        onboardingStatus = { ...(onboardingStatus as Record<string, unknown>), preferences_completed: true };
         if (data && Object.keys(data).length > 0) {
           settings = { ...settings, preferences: data };
         }
         break;
       case 'complete':
         onboardingStatus = {
-          ...onboardingStatus,
+          ...(onboardingStatus as Record<string, unknown>),
           completed: true,
           completed_at: new Date().toISOString(),
         };
@@ -599,7 +660,12 @@ export class AuthService {
     return this.tokenService.refreshToken(refreshTokenDto);
   }
 
+  /**
+   * SEC-09: Logout — revoke OAuth provider tokens, then clear refresh tokens.
+   */
   async logout(userId: string) {
+    // SEC-09: Best-effort revocation of OAuth provider tokens
+    await this.oauthService.revokeProviderTokens(userId);
     return this.tokenService.logout(userId);
   }
 
@@ -650,7 +716,7 @@ export class AuthService {
     );
 
     // Get app URL from config
-    const appUrl = this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
+    const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || this.configService.get<string>('NEXT_PUBLIC_APP_URL') || (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
     const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
     // Queue reset email asynchronously - don't await to not block response
@@ -709,7 +775,7 @@ export class AuthService {
       }
 
       // Prevent reusing old password (supports both bcrypt and Argon2id)
-      const { isValid: isSamePassword } = await verifyPassword(password, user.password);
+      const { isValid: isSamePassword } = await verifyPassword(password, user.password ?? '');
       if (isSamePassword) {
         throw new BadRequestException('New password must be different from the current password');
       }
@@ -807,6 +873,13 @@ export class AuthService {
 
       this.logger.log('Email verified successfully', { userId: user.id, email: user.email });
 
+      // Send welcome email after successful verification (non-blocking)
+      const userName = user.firstName || user.email.split('@')[0];
+      this.emailService.queueWelcomeEmail(user.email, userName).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Failed to queue welcome email for ${user.email}: ${msg}`);
+      });
+
       return { message: 'Email verified successfully', verified: true };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
@@ -818,6 +891,58 @@ export class AuthService {
       });
       throw new BadRequestException('Invalid or expired verification token');
     }
+  }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // Always return success for security (don't leak user existence)
+    if (!user) {
+      return { message: 'If the email exists, a verification link has been sent.' };
+    }
+
+    if (user.emailVerified) {
+      return { message: 'Email already verified.' };
+    }
+
+    try {
+      const verificationToken = await this.jwtService.signAsync(
+        { sub: user.id, email: user.email, type: 'email-verification' },
+        {
+          secret: this.configService.get('jwt.secret'),
+          expiresIn: '24h',
+        },
+      );
+
+      const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+
+      this.emailService.queueConfirmationEmail(
+        user.email,
+        verificationToken,
+        verificationUrl,
+        { userId: user.id, priority: 'high' },
+      ).catch((err: unknown) => {
+        this.logger.error('Failed to queue resend verification email', {
+          userId: user.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+
+      this.logger.log('Verification email resent', { userId: user.id, email: user.email });
+    } catch (error) {
+      this.logger.error('Failed to resend verification email', {
+        email,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return { message: 'If the email exists, a verification link has been sent.' };
   }
 
   /**
@@ -862,6 +987,9 @@ export class AuthService {
             },
           },
         },
+        userProfile: {
+          select: { phone: true, website: true, timezone: true },
+        },
       },
     });
     if (!user) {
@@ -870,13 +998,19 @@ export class AuthService {
     const org = user.brand?.organization;
     const industry = org?.industry ?? null;
     const onboardingCompleted = org?.onboardingCompletedAt != null;
+    const profile = user.userProfile;
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      avatar: user.avatar ?? undefined,
       role: user.role,
       brandId: user.brandId,
+      notificationPreferences: user.notificationPreferences ?? undefined,
+      phone: profile?.phone ?? undefined,
+      website: profile?.website ?? undefined,
+      timezone: profile?.timezone ?? 'Europe/Paris',
       brand: user.brand
         ? {
             id: user.brand.id,

@@ -4,14 +4,20 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, ForbiddenException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, forwardRef } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, Optional, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DesignStatus, Prisma, UserRole } from '@prisma/client';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import * as sharp from 'sharp';
-import * as PDFDocument from 'pdfkit';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PDFDocument = require('pdfkit');
 import { firstValueFrom } from 'rxjs';
 import { PlansService } from '@/modules/plans/plans.service';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
+import { CreditsService } from '@/libs/credits/credits.service';
+import { ZapierService } from '@/modules/integrations/zapier/zapier.service';
 
 @Injectable()
 export class DesignsService {
@@ -23,12 +29,17 @@ export class DesignsService {
     private readonly storageService: StorageService,
     private readonly httpService: HttpService,
     @Inject(forwardRef(() => PlansService)) private plansService: PlansService,
+    private readonly quotasService: QuotasService,
+    private readonly usageTrackingService: UsageTrackingService,
+    private readonly configService: ConfigService,
+    @Inject(forwardRef(() => CreditsService)) private readonly creditsService: CreditsService,
+    @Optional() private readonly zapierService?: ZapierService,
   ) {}
 
   @CacheInvalidate({ 
     type: 'design',
     tags: (args) => {
-      const user = args[1];
+      const user = args[1] as { id: string; brandId?: string | null };
       return ['designs:list', user.brandId ? `brand:${user.brandId}` : null].filter(Boolean) as string[];
     },
   })
@@ -62,6 +73,8 @@ export class DesignsService {
 
     // Enforce design limit based on plan
     await this.plansService.enforceDesignLimit(currentUser.id);
+    // Enforce usage-billing quota (designs_created)
+    await this.quotasService.enforceQuota(product.brandId, 'designs_created');
 
     // Optimisé: select au lieu de include
     // Create design record (cache invalidé automatiquement)
@@ -99,6 +112,10 @@ export class DesignsService {
       },
     });
 
+    await this.usageTrackingService.trackDesignCreated(product.brandId, design.id);
+
+    this.zapierService?.triggerEvent(product.brandId, 'new_design', design as unknown as Record<string, unknown>).catch((err) => this.logger.warn('Non-critical error triggering Zapier new_design', err instanceof Error ? err.message : String(err)));
+
     // Add to AI generation queue
     await this.aiQueue.add('generate-design', {
       designId: design.id,
@@ -128,6 +145,7 @@ export class DesignsService {
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: 50,
     });
     return { data: orders };
   }
@@ -136,13 +154,13 @@ export class DesignsService {
     type: 'design', 
     ttl: 300, // 5 minutes
     keyGenerator: (args) => {
-      const user = args[0];
-      const options = args[1] || {};
+      const user = args[0] as { id: string; brandId?: string | null };
+      const options = (args[1] || {}) as { page?: number; limit?: number; status?: string; search?: string };
       const key = `designs:list:${user.id}:${user.brandId || 'all'}:${options.page || 1}:${options.limit || 50}:${options.status || 'all'}:${options.search || ''}`;
       return key;
     },
     tags: (args) => {
-      const user = args[0];
+      const user = args[0] as { id: string; brandId?: string | null };
       return ['designs:list', user.brandId ? `brand:${user.brandId}` : null].filter(Boolean) as string[];
     },
   })
@@ -155,7 +173,7 @@ export class DesignsService {
 
     // Filter by brand if user is not platform admin
     if (currentUser.role !== UserRole.PLATFORM_ADMIN) {
-      where.brandId = currentUser.brandId;
+      where.brandId = currentUser.brandId ?? undefined;
     }
 
     // Filter by status if provided
@@ -315,6 +333,26 @@ export class DesignsService {
       throw new ForbiddenException('Design must be completed to upgrade to high-res');
     }
 
+    // CRITICAL: Check credits before queueing high-res generation (10 credits for HD)
+    if (this.creditsService) {
+      const check = await this.creditsService.checkCredits(currentUser.id, '/api/ai/generate/hd');
+      if (!check.sufficient) {
+        const packs = await this.creditsService.getAvailablePacks();
+        throw new ForbiddenException({
+          message: `Crédits insuffisants pour la génération HD. Requis: ${check.required}, Disponible: ${check.balance}`,
+          code: 'INSUFFICIENT_CREDITS',
+          balance: check.balance,
+          required: check.required,
+          missing: check.missing,
+          upsell: { packs },
+        });
+      }
+      await this.creditsService.deductCredits(currentUser.id, '/api/ai/generate/hd', {
+        designId: design.id,
+        action: 'upgrade_to_highres',
+      });
+    }
+
     // Add to high-res generation queue
     await this.aiQueue.add('generate-high-res', {
       designId: design.id,
@@ -331,7 +369,7 @@ export class DesignsService {
     ttl: 600, // 10 minutes
     keyGenerator: (args) => {
       const designId = args[0];
-      const options = args[2] || {};
+      const options = (args[2] || {}) as { page?: number; limit?: number; autoOnly?: boolean };
       return `design:versions:${designId}:${options.page || 1}:${options.limit || 50}:${options.autoOnly || false}`;
     },
     tags: (args) => [`design:${args[0]}`, 'designs:versions'],
@@ -509,7 +547,7 @@ export class DesignsService {
     const design = await this.findOne(id, currentUser);
     this.assertDesignNotBlocked(design);
 
-    return this.prisma.design.update({
+    const updated = await this.prisma.design.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -531,6 +569,8 @@ export class DesignsService {
         updatedAt: true,
       },
     });
+    this.zapierService?.triggerEvent(updated.brandId, 'design_updated', updated as unknown as Record<string, unknown>).catch((err) => this.logger.warn('Non-critical error triggering Zapier design_updated', err instanceof Error ? err.message : String(err)));
+    return updated;
   }
 
   /**
@@ -645,6 +685,7 @@ export class DesignsService {
       orderBy: { createdAt: 'desc' },
       select: { id: true },
       skip: 10, // Garder les 10 premières, supprimer le reste
+      take: 100,
     });
 
     if (autosaveVersions.length > 0) {
@@ -828,9 +869,8 @@ export class DesignsService {
         fileSize,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error exporting design for print:`, error);
-      throw new InternalServerErrorException(`Failed to export design: ${errorMessage}`);
+      this.logger.error('Error exporting design for print', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Failed to export design');
     }
   }
 
@@ -874,7 +914,7 @@ export class DesignsService {
         } else {
           // Créer un placeholder avec le nom du design
           doc.rect(0, 0, dimensions.width, dimensions.height).fill('#f5f5f5');
-          doc.fillColor('#333333')
+          (doc as { fillColor: (c: string) => { fontSize: (n: number) => { text: (s: string, x?: number, y?: number, opts?: Record<string, unknown>) => void } } }).fillColor('#333333')
             .fontSize(24)
             .text(design.name || 'Design', 0, dimensions.height / 2 - 12, {
               width: dimensions.width,
@@ -952,6 +992,9 @@ export class DesignsService {
    * Duplique un design existant
    */
   async duplicate(designId: string, currentUser: CurrentUser) {
+    // CRITICAL: Enforce design limit before creating a duplicate (counts as a new design)
+    await this.plansService.enforceDesignLimit(currentUser.id);
+
     const originalDesign = await this.findOne(designId, currentUser);
     this.assertDesignNotBlocked(originalDesign);
 
@@ -1057,7 +1100,10 @@ export class DesignsService {
       },
     });
 
-    const appUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+    const appUrl = this.configService.get<string>('app.frontendUrl')
+      ?? this.configService.get<string>('FRONTEND_URL')
+      ?? this.configService.get<string>('APP_URL')
+      ?? 'http://localhost:3000';
     const shareUrl = `${appUrl}/designs/shared/${shareToken}`;
 
     this.logger.log(`Design shared: ${designId} with token ${shareToken}`);
@@ -1083,7 +1129,7 @@ export class DesignsService {
     const allDesigns = await this.prisma.design.findMany({
       where: {
         metadata: {
-          not: null,
+          not: Prisma.JsonNull,
         },
       },
       select: {
@@ -1132,16 +1178,17 @@ export class DesignsService {
       }
     }
 
+    const d = design as typeof design & { product: { id: string; name: string | null; price: number | null; description: string | null } | null; brand: { id: string; name: string; logo: string | null } | null };
     return {
-      id: design.id,
-      name: design.name,
-      description: design.description,
-      previewUrl: design.previewUrl,
-      highResUrl: design.highResUrl,
-      imageUrl: design.imageUrl,
-      product: design.product,
-      brand: design.brand,
-      createdAt: design.createdAt,
+      id: d.id,
+      name: d.name,
+      description: d.description,
+      previewUrl: d.previewUrl,
+      highResUrl: d.highResUrl,
+      imageUrl: d.imageUrl,
+      product: d.product,
+      brand: d.brand,
+      createdAt: d.createdAt,
       isShared: true,
     };
   }
@@ -1154,7 +1201,11 @@ export class DesignsService {
     const meta = (design.metadata as Record<string, unknown>) || {};
     const shareToken = meta.shareToken as string | undefined;
     const expiresAt = meta.shareTokenExpiresAt as string | undefined;
-    const appUrl = process.env.FRONTEND_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = this.configService.get<string>('app.frontendUrl')
+      ?? this.configService.get<string>('FRONTEND_URL')
+      ?? this.configService.get<string>('APP_URL')
+      ?? this.configService.get<string>('NEXT_PUBLIC_APP_URL')
+      ?? 'http://localhost:3000';
     const shares = shareToken
       ? [
           {

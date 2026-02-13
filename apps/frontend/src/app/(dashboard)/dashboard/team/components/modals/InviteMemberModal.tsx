@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Send, RefreshCw } from 'lucide-react';
 import { ROLE_OPTIONS } from '../../constants/team';
 import type { TeamRole } from '../../types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface InviteMemberModalProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function InviteMemberModal({
   onInvite,
   isInviting = false,
 }: InviteMemberModalProps) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<TeamRole>('MEMBER');
 
@@ -51,14 +53,14 @@ export function InviteMemberModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>Inviter un membre</DialogTitle>
+          <DialogTitle>{t('dashboard.team.inviteModalTitle')}</DialogTitle>
           <DialogDescription>
-            Envoyez une invitation par email pour rejoindre votre équipe
+            {t('dashboard.team.inviteDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <Label className="text-gray-700">Adresse email</Label>
+            <Label className="text-gray-700">{t('dashboard.team.emailLabel')}</Label>
             <Input
               type="email"
               placeholder="email@example.com"
@@ -69,7 +71,7 @@ export function InviteMemberModal({
             />
           </div>
           <div>
-            <Label className="text-gray-700">Rôle</Label>
+            <Label className="text-gray-700">{t('dashboard.team.role')}</Label>
             <Select value={role} onValueChange={(value) => setRole(value as TeamRole)}>
               <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                 <SelectValue />
@@ -77,7 +79,7 @@ export function InviteMemberModal({
               <SelectContent>
                 {ROLE_OPTIONS.map((roleOption) => (
                   <SelectItem key={roleOption.id} value={roleOption.id}>
-                    {roleOption.name}
+                    {t(`dashboard.team.roles.${roleOption.id.toLowerCase()}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -94,7 +96,7 @@ export function InviteMemberModal({
               }}
               className="border-gray-200"
             >
-              Annuler
+              {t('dashboard.common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -104,12 +106,12 @@ export function InviteMemberModal({
               {isInviting ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Envoi...
+                  {t('dashboard.team.sending')}
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  Envoyer l'invitation
+                  {t('dashboard.team.sendInvitation')}
                 </>
               )}
             </Button>

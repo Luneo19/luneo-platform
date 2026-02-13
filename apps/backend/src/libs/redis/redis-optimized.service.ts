@@ -158,13 +158,14 @@ export class RedisOptimizedService {
       }
 
       return JSON.parse(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Gérer gracieusement les erreurs Redis (limite dépassée, connexion échouée, etc.)
-      if (error.message?.includes('max requests limit exceeded')) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message?.includes('max requests limit exceeded')) {
         this.logger.warn(`Redis request limit exceeded for key ${key}, returning null`);
         return null;
       }
-      this.logger.error(`Failed to get cache key ${key}:`, error.message || error);
+      this.logger.error(`Failed to get cache key ${key}:`, message || error);
       return null;
     }
   }
@@ -174,7 +175,7 @@ export class RedisOptimizedService {
    */
   async set(
     key: string, 
-    data: any, 
+    data: unknown, 
     type: string = 'api', 
     options: CacheOptions = {}
   ): Promise<boolean> {
@@ -213,13 +214,14 @@ export class RedisOptimizedService {
       }
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Gérer gracieusement les erreurs Redis (limite dépassée, connexion échouée, etc.)
-      if (error.message?.includes('max requests limit exceeded')) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message?.includes('max requests limit exceeded')) {
         this.logger.warn(`Redis request limit exceeded for key ${key}, skipping cache`);
         return false;
       }
-      this.logger.error(`Failed to set cache key ${key}:`, error.message || error);
+      this.logger.error(`Failed to set cache key ${key}:`, message || error);
       return false;
     }
   }
@@ -229,6 +231,7 @@ export class RedisOptimizedService {
    */
   async del(key: string, type: string = 'api'): Promise<boolean> {
     try {
+      if (!this.redis) return false;
       const fullKey = this.buildKey(key, type);
       const result = await this.redis.del(fullKey);
       return result > 0;
@@ -243,6 +246,7 @@ export class RedisOptimizedService {
    */
   async invalidateByTags(tags: string[]): Promise<number> {
     try {
+      if (!this.redis) return 0;
       let totalDeleted = 0;
       
       for (const tag of tags) {
@@ -266,6 +270,7 @@ export class RedisOptimizedService {
    */
   async mget<T>(keys: string[], type: string = 'api'): Promise<(T | null)[]> {
     try {
+      if (!this.redis) return keys.map(() => null);
       const fullKeys = keys.map(key => this.buildKey(key, type));
       const values = await this.redis.mget(...fullKeys);
       
@@ -291,10 +296,11 @@ export class RedisOptimizedService {
    * Set multiple cached items
    */
   async mset(
-    items: Array<{ key: string; data: any; ttl?: number }>, 
+    items: Array<{ key: string; data: unknown; ttl?: number }>, 
     type: string = 'api'
   ): Promise<boolean> {
     try {
+      if (!this.redis) return false;
       const pipeline = this.redis.pipeline();
       
       for (const item of items) {
@@ -352,6 +358,7 @@ export class RedisOptimizedService {
    */
   async clearAll(): Promise<boolean> {
     try {
+      if (!this.redis) return true;
       await this.redis.flushall();
       return true;
     } catch (error) {
@@ -365,6 +372,7 @@ export class RedisOptimizedService {
    */
   async healthCheck(): Promise<boolean> {
     try {
+      if (!this.redis) return false;
       const result = await this.redis.ping();
       return result === 'PONG';
     } catch (error) {
@@ -384,6 +392,7 @@ export class RedisOptimizedService {
    * Add tags to cache key
    */
   private async addTags(key: string, tags: string[]): Promise<void> {
+    if (!this.redis) return;
     const pipeline = this.redis.pipeline();
     
     for (const tag of tags) {

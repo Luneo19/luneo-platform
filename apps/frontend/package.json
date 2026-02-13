@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "clean": "rm -rf .next/standalone .next/trace .next/diagnostics .next/cache",
+    "dev:clean": "npm run clean && next dev",
     "setup:packages": "bash scripts/setup-local-packages.sh",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",

@@ -17,9 +17,18 @@ class FetcherError extends Error {
 
 async function fetcher(url: string) {
   const response = await fetch(url, { credentials: 'include' });
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
+    let info: unknown;
+    try {
+      info = await response.json();
+    } catch {
+      info = null;
+    }
     throw new FetcherError('An error occurred while fetching the data.', {
-      info: await response.json(),
+      info,
       status: response.status,
     });
   }

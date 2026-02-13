@@ -1,33 +1,15 @@
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { api, endpoints } from '@/lib/api/client';
 import type {
     AIStudioStats,
     AIStudioTab,
     GeneratedModel,
     GenerationTemplate,
 } from '../types';
-
-// ========================================
-// API HELPERS
-// ========================================
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-
-async function fetchWithAuth<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-  
-  return response.json();
-}
 
 /**
  * Hook principal pour la gestion de l'état et de la logique métier
@@ -37,6 +19,7 @@ async function fetchWithAuth<T>(endpoint: string): Promise<T> {
  */
 export function useAIStudio3D() {
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // State - Génération
   const [prompt, setPrompt] = useState('');
@@ -124,14 +107,8 @@ export function useAIStudio3D() {
   const fetchTemplates = useCallback(async (options?: { category?: string }) => {
     setTemplatesLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (options?.category) params.append('category', options.category);
-      params.append('type', '3d'); // Filter for 3D templates
-      params.append('limit', '50');
-      
-      const queryString = params.toString() ? `?${params.toString()}` : '';
-      const data = await fetchWithAuth<{
-        templates: Array<{
+      const data = await endpoints.aiStudio.templates() as {
+        templates?: Array<{
           id: string;
           name: string;
           promptTemplate: string;
@@ -141,7 +118,7 @@ export function useAIStudio3D() {
           downloads?: number;
           description?: string;
         }>;
-      }>(`/ai/templates${queryString}`);
+      };
       
       const mappedTemplates: GenerationTemplate[] = (data.templates || []).map(t => ({
         id: t.id,
@@ -238,8 +215,8 @@ export function useAIStudio3D() {
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez entrer une description',
+        title: t('common.error'),
+        description: t('aiStudio.enterDescription'),
         variant: 'destructive',
       });
       return;
@@ -247,9 +224,8 @@ export function useAIStudio3D() {
 
     if (credits < 25) {
       toast({
-        title: 'Crédits insuffisants',
-        description:
-          "Vous n'avez pas assez de crédits pour générer un modèle 3D",
+        title: t('aiStudio.insufficientCredits'),
+        description: t('aiStudio.insufficientCredits3d'),
         variant: 'destructive',
       });
       return;
@@ -262,84 +238,67 @@ export function useAIStudio3D() {
     let progressInterval: NodeJS.Timeout | null = null;
 
     try {
-      // Call the real backend API for 3D generation
-      const response = await fetch(`${API_BASE}/api/v1/ai/generate-3d`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          prompt,
-          category,
-          complexity,
-          resolution,
-          polyCount: polyCount[0],
-          textureQuality: textureQuality[0],
-        }),
+      const result = await api.post<{ jobId?: string; id?: string; name?: string; thumbnailUrl?: string; previewUrl?: string; modelUrl?: string; polyCount?: number; creditsUsed?: number; format?: string; fileSize?: number; vertices?: number; faces?: number; textureCount?: number; materialCount?: number; aiModel?: string; seed?: number }>('/api/v1/ai/generate-3d', {
+        prompt,
+        category,
+        complexity,
+        resolution,
+        polyCount: polyCount[0],
+        textureQuality: textureQuality[0],
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Generation failed: ${response.status}`);
-      }
-
-      const result = await response.json();
       
       // If the backend returns a job ID, poll for progress
       if (result.jobId) {
         progressInterval = setInterval(async () => {
           try {
-            const statusResponse = await fetch(
-              `${API_BASE}/api/v1/ai/generation-status/${result.jobId}`,
-              { credentials: 'include' }
+            const statusData = await api.get<{ progress?: number; status?: string; result?: Record<string, unknown>; error?: string }>(
+              `/api/v1/ai/generation-status/${result.jobId}`
             );
-            if (statusResponse.ok) {
-              const statusData = await statusResponse.json();
-              setGenerationProgress(statusData.progress || 0);
-              
-              if (statusData.status === 'completed' && statusData.result) {
+            if (statusData) {
+              setGenerationProgress(statusData.progress ?? 0);
+              const res = statusData.result as Record<string, unknown> | undefined;
+              if (statusData.status === 'completed' && res) {
                 if (progressInterval) clearInterval(progressInterval);
                 setGenerationProgress(100);
                 
                 const newModel: GeneratedModel = {
-                  id: statusData.result.id || `model-${Date.now()}`,
-                  name: statusData.result.name || prompt.substring(0, 30),
-                  thumbnail: statusData.result.thumbnailUrl || statusData.result.previewUrl || '/images/placeholder-3d.png',
-                  modelUrl: statusData.result.modelUrl,
+                  id: (res.id as string) || `model-${Date.now()}`,
+                  name: (res.name as string) || prompt.substring(0, 30),
+                  thumbnail: (res.thumbnailUrl as string) || (res.previewUrl as string) || '/images/placeholder-3d.png',
+                  modelUrl: res.modelUrl as string | undefined,
                   prompt,
                   category,
                   complexity,
                   resolution,
-                  polyCount: statusData.result.polyCount || polyCount[0],
+                  polyCount: (res.polyCount as number) || polyCount[0],
                   createdAt: Date.now(),
-                  credits: statusData.result.creditsUsed || 25,
+                  credits: (res.creditsUsed as number) || 25,
                   metadata: {
-                    format: statusData.result.format || 'GLB',
-                    size: statusData.result.fileSize || 0,
-                    vertices: statusData.result.vertices || Math.floor(polyCount[0] * 0.5),
-                    faces: statusData.result.faces || Math.floor(polyCount[0] * 0.33),
-                    textures: statusData.result.textureCount || 3,
-                    materials: statusData.result.materialCount || 2,
-                    model: statusData.result.aiModel || 'replicate-3d',
-                    seed: statusData.result.seed || 0,
+                    format: (res.format as string) || 'GLB',
+                    size: (res.fileSize as number) || 0,
+                    vertices: (res.vertices as number) || Math.floor(polyCount[0] * 0.5),
+                    faces: (res.faces as number) || Math.floor(polyCount[0] * 0.33),
+                    textures: (res.textureCount as number) || 3,
+                    materials: (res.materialCount as number) || 2,
+                    model: (res.aiModel as string) || 'replicate-3d',
+                    seed: (res.seed as number) || 0,
                   },
                 };
                 
                 setGeneratedModels(prev => [newModel, ...prev]);
-                setCredits(prev => prev - (statusData.result.creditsUsed || 25));
+                setCredits(prev => prev - ((res.creditsUsed as number) || 25));
                 toast({
-                  title: 'Succès',
-                  description: 'Modèle 3D généré avec succès',
+                  title: t('common.success'),
+                  description: t('aiStudio.model3dGenerated'),
                 });
                 setIsGenerating(false);
                 setGenerationProgress(0);
               } else if (statusData.status === 'failed') {
-                throw new Error(statusData.error || 'Generation failed');
+                throw new Error((statusData.error as string) || 'Generation failed');
               }
             }
-          } catch {
-            // Silent fail on progress check
+          } catch (err) {
+            logger.warn('3D generation status poll error', { error: err });
           }
         }, 2000);
         
@@ -350,8 +309,8 @@ export function useAIStudio3D() {
             setIsGenerating(false);
             setGenerationProgress(0);
             toast({
-              title: 'Timeout',
-              description: 'La génération a pris trop de temps',
+              title: t('common.error'),
+              description: t('aiStudio.generationTimeout'),
               variant: 'destructive',
             });
           }
@@ -387,8 +346,8 @@ export function useAIStudio3D() {
         setGeneratedModels(prev => [newModel, ...prev]);
         setCredits(prev => prev - (result.creditsUsed || 25));
         toast({
-          title: 'Succès',
-          description: 'Modèle 3D généré avec succès',
+          title: t('common.success'),
+          description: t('aiStudio.model3dGenerated'),
         });
         setIsGenerating(false);
         setGenerationProgress(0);
@@ -397,14 +356,14 @@ export function useAIStudio3D() {
       if (progressInterval) clearInterval(progressInterval);
       logger.error('Error generating 3D model', { error });
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la génération',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
       setIsGenerating(false);
       setGenerationProgress(0);
     }
-  }, [prompt, category, complexity, resolution, polyCount, textureQuality, credits, toast]);
+  }, [prompt, category, complexity, resolution, polyCount, textureQuality, credits, toast, t]);
 
   // Handler - Utiliser un template
   const handleUseTemplate = useCallback(
@@ -413,8 +372,8 @@ export function useAIStudio3D() {
       setCategory(template.category);
       setComplexity(template.complexity);
       toast({
-        title: 'Template appliqué',
-        description: `Le template "${template.name}" a été chargé`,
+        title: t('aiStudio.templateApplied'),
+        description: t('aiStudio.templateLoaded', { name: template.name }),
       });
     },
     [toast]
@@ -447,52 +406,127 @@ export function useAIStudio3D() {
   const handleExportBatch = useCallback(
     async (modelIds: string[], format: string) => {
       toast({
-        title: 'Export en cours',
-        description: `Export de ${modelIds.length} modèles au format ${format}`,
+        title: t('aiStudio.exportInProgress'),
+        description: t('aiStudio.exportModelsFormat', { count: modelIds.length, format }),
       });
     },
-    [toast]
+    [toast, t]
   );
 
   // Handler - Partager collection
   const handleShareCollection = useCallback(
     async (modelIds: string[]) => {
-      const shareUrl = `https://luneo.app/share/collection-${Date.now()}`;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+      const shareUrl = `${appUrl}/share/collection-${Date.now()}`;
       await navigator.clipboard.writeText(shareUrl);
       toast({
-        title: 'Lien copié',
-        description: 'Le lien de partage a été copié dans le presse-papiers',
+        title: t('common.copied'),
+        description: t('aiStudio.shareLinkCopied'),
       });
     },
     [toast]
   );
 
-  // Handler - Génération batch
+  // Helper to poll until a 3D generation job completes
+  const pollGenerationStatus = useCallback(
+    async (jobId: string): Promise<Record<string, unknown>> => {
+      const maxAttempts = 150; // 5 min at 2s interval
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const statusData = await api.get<{ progress?: number; status?: string; result?: Record<string, unknown>; error?: string }>(
+          `/api/v1/ai/generation-status/${jobId}`
+        );
+        if (statusData.status === 'completed' && statusData.result) {
+          return statusData.result as Record<string, unknown>;
+        }
+        if (statusData.status === 'failed') {
+          throw new Error((statusData.error as string) || 'Generation failed');
+        }
+        setGenerationProgress((prev) => Math.min(prev + 1, 99));
+      }
+      throw new Error('Generation timeout');
+    },
+    []
+  );
+
+  // Handler - Génération batch (real API: one generate-3d call per prompt)
   const handleBatchGeneration = useCallback(
     async (prompts: string[]) => {
       if (credits < prompts.length * 25) {
         toast({
-          title: 'Crédits insuffisants',
-          description: `Vous avez besoin de ${prompts.length * 25} crédits pour cette génération batch`,
+          title: t('aiStudio.insufficientCredits'),
+          description: t('aiStudio.creditsRequired', { count: prompts.length * 25 }),
           variant: 'destructive',
         });
         return;
       }
       setIsGenerating(true);
       setGenerationProgress(0);
-      for (let i = 0; i < prompts.length; i++) {
-        setGenerationProgress((i / prompts.length) * 100);
-        // Simulate generation for each prompt
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        for (let i = 0; i < prompts.length; i++) {
+          const p = prompts[i];
+          const progressBase = (i / prompts.length) * 100;
+          setGenerationProgress(progressBase);
+
+          const result = await api.post<{ jobId?: string; id?: string; name?: string; thumbnailUrl?: string; previewUrl?: string; modelUrl?: string; polyCount?: number; creditsUsed?: number; format?: string; fileSize?: number; vertices?: number; faces?: number; textureCount?: number; materialCount?: number; aiModel?: string; seed?: number }>('/api/v1/ai/generate-3d', {
+            prompt: p,
+            category,
+            complexity,
+            resolution,
+            polyCount: polyCount[0],
+            textureQuality: textureQuality[0],
+          });
+
+          let res: Record<string, unknown>;
+          if (result.jobId) {
+            res = await pollGenerationStatus(result.jobId);
+          } else {
+            res = result as unknown as Record<string, unknown>;
+          }
+
+          const newModel: GeneratedModel = {
+            id: (res.id as string) || `model-${Date.now()}-${i}`,
+            name: (res.name as string) || p.substring(0, 30),
+            thumbnail: (res.thumbnailUrl as string) || (res.previewUrl as string) || '/images/placeholder-3d.png',
+            modelUrl: res.modelUrl as string | undefined,
+            prompt: p,
+            category,
+            complexity,
+            resolution,
+            polyCount: (res.polyCount as number) || polyCount[0],
+            createdAt: Date.now(),
+            credits: (res.creditsUsed as number) || 25,
+            metadata: {
+              format: (res.format as string) || 'GLB',
+              size: (res.fileSize as number) || 0,
+              vertices: (res.vertices as number) || Math.floor(polyCount[0] * 0.5),
+              faces: (res.faces as number) || Math.floor(polyCount[0] * 0.33),
+              textures: (res.textureCount as number) || 3,
+              materials: (res.materialCount as number) || 2,
+              model: (res.aiModel as string) || 'replicate-3d',
+              seed: (res.seed as number) || 0,
+            },
+          };
+          setGeneratedModels((prev) => [newModel, ...prev]);
+          setCredits((prev) => prev - ((res.creditsUsed as number) || 25));
+        }
+        setGenerationProgress(100);
+        toast({
+          title: t('common.success'),
+          description: t('aiStudio.batchModelsSuccess', { count: prompts.length }),
+        });
+      } catch (error) {
+        logger.error('Error in batch 3D generation', { error });
+        toast({
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
+          variant: 'destructive',
+        });
+      } finally {
+        setIsGenerating(false);
+        setGenerationProgress(0);
       }
-      setGenerationProgress(100);
-      setIsGenerating(false);
-      toast({
-        title: 'Succès',
-        description: `${prompts.length} modèles générés avec succès`,
-      });
     },
-    [credits, toast]
+    [credits, toast, t, category, complexity, resolution, polyCount, textureQuality, pollGenerationStatus]
   );
 
   // Keyboard shortcuts

@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,7 @@ import { Disable2FAModal } from './modals/Disable2FAModal';
 import { BackupCodesModal } from './modals/BackupCodesModal';
 
 export function TwoFactorSection() {
+  const { t } = useI18n();
   const { status, isLoading, isEnabling, isDisabling, enable2FA, disable2FA } = useTwoFactor();
   const [showEnableModal, setShowEnableModal] = useState(false);
   const [showDisableModal, setShowDisableModal] = useState(false);
@@ -24,10 +26,10 @@ export function TwoFactorSection() {
     return (
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Authentification à deux facteurs</CardTitle>
+          <CardTitle className="text-white">{t('security.twoFactor')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-white/60">Chargement...</p>
+          <p className="text-white/60">{t('monitoring.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -41,7 +43,7 @@ export function TwoFactorSection() {
             <div>
               <CardTitle className="text-white flex items-center gap-2">
                 <Shield className="w-5 h-5 text-purple-400" />
-                Authentification à deux facteurs
+                {t('security.twoFactor')}
               </CardTitle>
               <CardDescription className="text-white/60 mt-1">
                 Ajoutez une couche supplémentaire de sécurité à votre compte
@@ -67,7 +69,7 @@ export function TwoFactorSection() {
                     className="border-red-500/50 text-red-400 hover:bg-red-500/10"
                   >
                     <ShieldOff className="w-4 h-4 mr-2" />
-                    Désactiver
+                    {t('security.disable2FA')}
                   </Button>
                 </>
               ) : (
@@ -76,7 +78,7 @@ export function TwoFactorSection() {
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
                 >
                   <Shield className="w-4 h-4 mr-2" />
-                  Activer 2FA
+                  {t('security.enable2FA')}
                 </Button>
               )}
             </div>

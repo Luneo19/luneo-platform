@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Download, History } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatRelativeDate } from '@/lib/utils/formatters';
 import { TRANSACTION_TYPE_CONFIG, type TransactionTypeConfig } from './constants';
@@ -28,65 +29,67 @@ export function CreditsHistoryTab({
   onFilterDateRangeChange,
   onExport,
 }: CreditsHistoryTabProps) {
+  const { t } = useI18n();
+  const getTypeLabel = (type: CreditTransaction['type']) => t(`credits.history.${type}` as 'credits.history.purchase');
   return (
     <div className="space-y-6">
       <Card className="p-4 bg-white border-gray-200">
         <div className="flex flex-col lg:flex-row gap-4">
           <Select value={filterType} onValueChange={onFilterTypeChange}>
             <SelectTrigger className="w-[180px] bg-white border-gray-300 text-gray-900">
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder={t('credits.history.type')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous les types</SelectItem>
-              {Object.entries(TRANSACTION_TYPE_CONFIG).map(([key, config]: [string, TransactionTypeConfig]) => (
-                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+              <SelectItem value="all">{t('credits.history.allTypes')}</SelectItem>
+              {Object.entries(TRANSACTION_TYPE_CONFIG).map(([key]) => (
+                <SelectItem key={key} value={key}>{getTypeLabel(key as CreditTransaction['type'])}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={filterDateRange} onValueChange={onFilterDateRangeChange}>
             <SelectTrigger className="w-[180px] bg-white border-gray-300 text-gray-900">
-              <SelectValue placeholder="Période" />
+              <SelectValue placeholder={t('credits.history.period')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toutes les périodes</SelectItem>
-              <SelectItem value="7d">7 derniers jours</SelectItem>
-              <SelectItem value="30d">30 derniers jours</SelectItem>
-              <SelectItem value="90d">90 derniers jours</SelectItem>
-              <SelectItem value="1y">1 an</SelectItem>
+              <SelectItem value="all">{t('credits.history.allPeriods')}</SelectItem>
+              <SelectItem value="7d">{t('credits.history.last7Days')}</SelectItem>
+              <SelectItem value="30d">{t('credits.history.last30Days')}</SelectItem>
+              <SelectItem value="90d">{t('credits.history.last90Days')}</SelectItem>
+              <SelectItem value="1y">{t('credits.history.oneYear')}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={onExport} className="border-gray-300">
             <Download className="w-4 h-4 mr-2" />
-            Exporter
+            {t('credits.export')}
           </Button>
         </div>
       </Card>
 
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Historique des transactions</CardTitle>
-          <CardDescription className="text-gray-600">Toutes vos transactions de crédits</CardDescription>
+          <CardTitle className="text-gray-900">{t('credits.history.transactionHistory')}</CardTitle>
+          <CardDescription className="text-gray-600">{t('credits.history.transactionHistoryDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-12">
               <History className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune transaction</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('credits.history.noTransactions')}</h3>
               <p className="text-gray-600">
                 {filterType !== 'all' || filterDateRange !== 'all'
-                  ? 'Aucune transaction ne correspond à vos filtres'
-                  : 'Votre historique de transactions apparaîtra ici'}
+                  ? t('credits.history.noMatchingFilters')
+                  : t('credits.history.emptyHistory')}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200">
-                  <TableHead className="text-gray-700">Type</TableHead>
-                  <TableHead className="text-gray-700">Description</TableHead>
-                  <TableHead className="text-gray-700">Montant</TableHead>
-                  <TableHead className="text-gray-700">Solde après</TableHead>
-                  <TableHead className="text-gray-700">Date</TableHead>
+                  <TableHead className="text-gray-700">{t('credits.history.type')}</TableHead>
+                  <TableHead className="text-gray-700">{t('credits.history.description')}</TableHead>
+                  <TableHead className="text-gray-700">{t('credits.history.amount')}</TableHead>
+                  <TableHead className="text-gray-700">{t('credits.history.balanceAfter')}</TableHead>
+                  <TableHead className="text-gray-700">{t('credits.history.date')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,7 +104,7 @@ export function CreditsHistoryTab({
                             <Icon className={`w-4 h-4 ${config.color}`} />
                           </div>
                           <Badge variant="outline" className={cn('text-xs', config.bg, config.color)}>
-                            {config.label}
+                            {getTypeLabel(transaction.type)}
                           </Badge>
                         </div>
                       </TableCell>
@@ -109,13 +112,13 @@ export function CreditsHistoryTab({
                         <div>
                           <p className="text-sm font-medium text-gray-900">
                             {transaction.type === 'purchase' && transaction.packName
-                              ? `Achat ${transaction.packName}`
+                              ? t('credits.history.purchasePack', { packName: transaction.packName })
                               : transaction.type === 'usage' && transaction.source
-                                ? `Utilisation: ${transaction.source}`
-                                : config.label}
+                                ? t('credits.history.usageSource', { source: transaction.source })
+                                : getTypeLabel(transaction.type)}
                           </p>
                           {transaction.metadata && typeof transaction.metadata === 'object' && 'model' in transaction.metadata && (
-                            <p className="text-xs text-gray-600">Modèle: {String((transaction.metadata as { model?: string }).model)}</p>
+                            <p className="text-xs text-gray-600">{t('credits.history.model')}: {String((transaction.metadata as { model?: string }).model)}</p>
                           )}
                         </div>
                       </TableCell>

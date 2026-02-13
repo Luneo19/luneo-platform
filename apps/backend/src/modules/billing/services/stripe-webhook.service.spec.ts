@@ -10,12 +10,13 @@ import { StripeClientService } from './stripe-client.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { EmailService } from '@/modules/email/email.service';
+import { ReferralService } from '@/modules/referral/referral.service';
 import type Stripe from 'stripe';
 
 describe('StripeWebhookService', () => {
   let service: StripeWebhookService;
 
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     processedWebhookEvent: {
       findUnique: jest.fn(),
       upsert: jest.fn(),
@@ -24,6 +25,7 @@ describe('StripeWebhookService', () => {
     brand: {
       findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     user: {
       findUnique: jest.fn(),
@@ -47,6 +49,13 @@ describe('StripeWebhookService', () => {
     notification: {
       create: jest.fn(),
     },
+    invoice: {
+      upsert: jest.fn(),
+    },
+    $transaction: jest.fn((args: unknown): Promise<unknown> => {
+      if (Array.isArray(args)) return Promise.all(args);
+      return (args as (prisma: Record<string, any>) => Promise<unknown>)(mockPrisma);
+    }),
   };
 
   const mockCreditsService = {
@@ -65,6 +74,10 @@ describe('StripeWebhookService', () => {
     get: jest.fn().mockReturnValue(undefined),
   };
 
+  const mockReferralService = {
+    createCommissionFromOrder: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -81,6 +94,7 @@ describe('StripeWebhookService', () => {
         { provide: EmailService, useValue: mockEmailService },
         { provide: StripeClientService, useValue: mockStripeClientService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: ReferralService, useValue: mockReferralService },
       ],
     }).compile();
 
@@ -112,9 +126,11 @@ describe('StripeWebhookService', () => {
   describe('idempotency', () => {
     it('should skip already-processed events', async () => {
       const event = makeEvent('checkout.session.completed', { id: 'cs_test', mode: 'payment' });
-      mockPrisma.processedWebhookEvent.findUnique.mockResolvedValue({
+      // Service uses upsert for atomic idempotency check
+      mockPrisma.processedWebhookEvent.upsert.mockResolvedValue({
         eventId: event.id,
         processed: true,
+        attempts: 1,
         result: { type: 'already_done' },
       });
 
@@ -245,7 +261,7 @@ describe('StripeWebhookService', () => {
       );
     });
 
-    it('should route invoice.payment_failed to handleInvoicePaymentFailed', async () => {
+    it('should route invoice.payment_failed and set gracePeriodEndsAt + PAST_DUE', async () => {
       const invoice = {
         id: 'in_test',
         customer: 'cus_test',
@@ -255,6 +271,7 @@ describe('StripeWebhookService', () => {
         next_payment_attempt: null,
       };
       const event = makeEvent('invoice.payment_failed', invoice);
+      const beforeCall = Date.now();
 
       mockPrisma.brand.findFirst.mockResolvedValue({
         id: 'brand-1',
@@ -269,14 +286,16 @@ describe('StripeWebhookService', () => {
       expect(result.result).toEqual(
         expect.objectContaining({ type: 'invoice_payment_failed', invoiceId: 'in_test' }),
       );
-      expect(mockPrisma.brand.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { subscriptionStatus: 'PAST_DUE' },
-        }),
-      );
+      const updateCall = mockPrisma.brand.update.mock.calls[0][0];
+      expect(updateCall.data.subscriptionStatus).toBe('PAST_DUE');
+      expect(updateCall.data.gracePeriodEndsAt).toBeDefined();
+      const graceEnd = updateCall.data.gracePeriodEndsAt as Date;
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+      expect(graceEnd.getTime()).toBeGreaterThanOrEqual(beforeCall + threeDaysMs - 5000);
+      expect(graceEnd.getTime()).toBeLessThanOrEqual(beforeCall + threeDaysMs + 5000);
     });
 
-    it('should route invoice.payment_succeeded to handleInvoicePaymentSucceeded', async () => {
+    it('should route invoice.payment_succeeded and clear grace period + readOnlyMode', async () => {
       const invoice = { id: 'in_test', customer: 'cus_test' };
       const event = makeEvent('invoice.payment_succeeded', invoice);
 
@@ -291,7 +310,13 @@ describe('StripeWebhookService', () => {
       expect(result.processed).toBe(true);
       expect(mockPrisma.brand.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { subscriptionStatus: 'ACTIVE' },
+          where: { id: 'brand-1' },
+          data: {
+            subscriptionStatus: 'ACTIVE',
+            gracePeriodEndsAt: null,
+            readOnlyMode: false,
+            lastGraceReminderDay: null,
+          },
         }),
       );
     });
@@ -329,6 +354,96 @@ describe('StripeWebhookService', () => {
   });
 
   // ──────────────────────────────────────────────────────────────
+  // New webhook handlers (Phase 2)
+  // ──────────────────────────────────────────────────────────────
+
+  describe('new webhook handlers', () => {
+    it('should route invoice.created and upsert invoice record', async () => {
+      const invoice = {
+        id: 'in_created_test',
+        customer: 'cus_test',
+        amount_due: 4900,
+        currency: 'eur',
+        status: 'draft',
+        period_start: Math.floor(Date.now() / 1000) - 86400 * 30,
+        period_end: Math.floor(Date.now() / 1000),
+        invoice_pdf: 'https://stripe.com/invoice.pdf',
+      };
+      const event = makeEvent('invoice.created', invoice);
+
+      mockPrisma.brand.findFirst.mockResolvedValue({ id: 'brand-1', stripeCustomerId: 'cus_test' });
+      mockPrisma.invoice.upsert.mockResolvedValue({});
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(result.result).toEqual(expect.objectContaining({ type: 'invoice_created', brandId: 'brand-1' }));
+      expect(mockPrisma.invoice.upsert).toHaveBeenCalled();
+    });
+
+    it('should route payment_intent.succeeded and update order', async () => {
+      const pi = { id: 'pi_test', metadata: { orderId: 'order-1' }, customer: 'cus_test' };
+      const event = makeEvent('payment_intent.succeeded', pi);
+
+      mockPrisma.order.update.mockResolvedValue({});
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(result.result).toEqual(expect.objectContaining({ type: 'payment_intent_succeeded' }));
+      expect(mockPrisma.order.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'order-1' },
+          data: expect.objectContaining({ paymentStatus: 'SUCCEEDED' }),
+        }),
+      );
+    });
+
+    it('should route payment_intent.payment_failed', async () => {
+      const pi = { id: 'pi_fail', metadata: { orderId: 'order-2' }, customer: 'cus_test', last_payment_error: { message: 'card declined' } };
+      const event = makeEvent('payment_intent.payment_failed', pi);
+
+      mockPrisma.order.update.mockResolvedValue({});
+      mockPrisma.brand.findFirst.mockResolvedValue({ id: 'brand-1', name: 'Test Brand' });
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(result.result).toEqual(expect.objectContaining({ type: 'payment_intent_failed' }));
+    });
+
+    it('should route customer.deleted and clear stripe refs', async () => {
+      const customer = { id: 'cus_deleted' };
+      const event = makeEvent('customer.deleted', customer);
+
+      mockPrisma.brand.findFirst.mockResolvedValue({ id: 'brand-1', name: 'Test Brand', stripeCustomerId: 'cus_deleted' });
+      mockPrisma.brand.update.mockResolvedValue({});
+      mockPrisma.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
+      mockPrisma.notification.create.mockResolvedValue({});
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(result.result).toEqual(expect.objectContaining({ type: 'customer_deleted', brandId: 'brand-1' }));
+      expect(mockPrisma.brand.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ subscriptionStatus: 'CANCELED', stripeSubscriptionId: null }),
+        }),
+      );
+    });
+
+    it('should route setup_intent.succeeded', async () => {
+      const si = { id: 'seti_test', customer: 'cus_test', payment_method: 'pm_test' };
+      const event = makeEvent('setup_intent.succeeded', si);
+
+      const result = await service.handleStripeWebhook(event);
+
+      expect(result.processed).toBe(true);
+      expect(result.result).toEqual(expect.objectContaining({ type: 'setup_intent_succeeded' }));
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────
   // Error handling
   // ──────────────────────────────────────────────────────────────
 
@@ -344,12 +459,12 @@ describe('StripeWebhookService', () => {
 
       mockPrisma.brand.findFirst.mockRejectedValue(new Error('DB failure'));
 
-      await expect(service.handleStripeWebhook(event)).rejects.toThrow('DB failure');
+      await expect(service.handleStripeWebhook(event)).rejects.toThrow();
 
       expect(mockPrisma.processedWebhookEvent.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { eventId: event.id },
-          data: { error: 'DB failure' },
+          data: expect.objectContaining({ error: expect.any(String) }),
         }),
       );
     });

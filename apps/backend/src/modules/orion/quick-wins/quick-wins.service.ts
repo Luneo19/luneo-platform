@@ -119,22 +119,29 @@ export class QuickWinsService {
    * Status of all quick wins
    */
   async getStatus() {
-    const [welcomeTemplate, lowCredits, inactive, trialEnding] =
+    const [welcomeTemplate, welcomeSentCount, lowCredits, inactive, trialEnding] =
       await Promise.all([
         this.prisma.emailTemplate.findFirst({
           where: { slug: 'welcome-email' },
+        }),
+        this.prisma.emailLog.count({
+          where: {
+            OR: [
+              { template: 'welcome-email' },
+              { subject: { contains: 'Bienvenue', mode: 'insensitive' } },
+            ],
+          },
         }),
         this.checkLowCredits(),
         this.checkInactiveUsers(),
         this.checkTrialEnding(),
       ]);
 
-    // EmailLog (Customer) has no templateId; total sent for welcome not available from schema
     return {
       welcomeEmail: {
         configured: !!welcomeTemplate,
         templateId: welcomeTemplate?.id ?? null,
-        lastSentCount: 0,
+        lastSentCount: welcomeSentCount,
       },
       lowCreditsAlert: { usersAtRisk: lowCredits.usersAtRisk },
       churnAlert: { inactiveUsers: inactive.inactiveUsers },

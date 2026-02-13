@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!LIVEBLOCKS_SECRET_KEY) {
-      logger.error('LIVEBLOCKS_SECRET_KEY not configured', new Error('Missing Liveblocks configuration'));
+      serverLogger.error('LIVEBLOCKS_SECRET_KEY not configured', new Error('Missing Liveblocks configuration'));
       return NextResponse.json(
         { error: 'Collaboration service not configured' },
         { status: 500 }
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      logger.error('Liveblocks authorization failed', new Error(error));
+      serverLogger.error('Liveblocks authorization failed', new Error(error));
       return NextResponse.json(
         { error: 'Failed to authorize collaboration session' },
         { status: 500 }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     const authData = await response.json();
 
-    logger.info('Liveblocks session created', {
+    serverLogger.info('Liveblocks session created', {
       userId: user.id,
       room,
     });
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(authData);
 
   } catch (error) {
-    logger.error('Liveblocks auth error', error instanceof Error ? error : new Error('Unknown error'));
+    serverLogger.error('Liveblocks auth error', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -2,10 +2,10 @@
 
 /**
  * Admin Settings - Configuration générale de la plateforme
- * TODO: Connect to GET/PUT /api/v1/admin/settings when endpoint is available.
- * Settings are currently stored in local state only; Save shows a success toast but does not persist.
+ * Connected to GET/PUT /api/admin/settings (proxied to backend /api/v1/admin/settings)
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Card,
   CardContent,
@@ -27,27 +27,103 @@ import {
   Languages,
   CheckCircle,
   Save,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function AdminSettingsPage() {
-  const { toast } = useToast();
-  const [enforce2FA, setEnforce2FA] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState('30');
-  const [ipWhitelist, setIpWhitelist] = useState('');
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [webhookAlerts, setWebhookAlerts] = useState(true);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [saving, setSaving] = useState(false);
+interface PlatformSettings {
+  enforce2FA: boolean;
+  sessionTimeout: number;
+  ipWhitelist: string;
+  emailNotifications: boolean;
+  webhookAlerts: boolean;
+  maintenanceMode: boolean;
+  platformName: string;
+  defaultLanguage: string;
+  timezone: string;
+}
 
-  const handleSave = () => {
-    setSaving(true);
-    // TODO: Connect to GET/PUT /api/v1/admin/settings when endpoint is available
-    setTimeout(() => {
+const DEFAULT_SETTINGS: PlatformSettings = {
+  enforce2FA: false,
+  sessionTimeout: 30,
+  ipWhitelist: '',
+  emailNotifications: true,
+  webhookAlerts: true,
+  maintenanceMode: false,
+  platformName: 'Luneo',
+  defaultLanguage: 'Français',
+  timezone: 'Europe/Paris',
+};
+
+export default function AdminSettingsPage() {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<PlatformSettings>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // SECURITY FIX: Use httpOnly cookies instead of localStorage token
+      const res = await fetch('/api/admin/settings', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`Failed to load settings (${res.status})`);
+      const data = await res.json();
+      if (data.settings) {
+        setSettings({
+          ...DEFAULT_SETTINGS,
+          ...data.settings,
+          sessionTimeout: Number(data.settings.sessionTimeout) || 30,
+        });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load settings';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      // SECURITY FIX: Use httpOnly cookies instead of localStorage token
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+
+      if (!res.ok) throw new Error(`Failed to save settings (${res.status})`);
+
+      toast({ title: t('admin.settingsSaved'), description: t('admin.settingsSavedDesc') });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save settings';
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
+    } finally {
       setSaving(false);
-      toast({ title: 'Paramètres enregistrés', description: 'Les modifications ont été enregistrées (mode démo).' });
-    }, 400);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-zinc-900">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 min-h-screen bg-zinc-900 text-zinc-100 p-6">
@@ -56,10 +132,10 @@ export default function AdminSettingsPage() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Settings className="h-8 w-8 text-zinc-400" />
-            Paramètres
+            {t('common.settings')}
           </h1>
           <p className="mt-2 text-zinc-400">
-            Configuration générale de la plateforme (non persistée — API à connecter)
+            {t('admin.settingsPageSubtitle')}
           </p>
         </div>
         <Button
@@ -67,9 +143,23 @@ export default function AdminSettingsPage() {
           disabled={saving}
           className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
         >
-          {saving ? 'Enregistrement…' : <><Save className="h-4 w-4 mr-2" />Enregistrer</>}
+          {saving ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t('admin.saving')}</>
+          ) : (
+            <><Save className="h-4 w-4 mr-2" />{t('common.save')}</>
+          )}
         </Button>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" onClick={fetchSettings} className="ml-auto text-red-300 hover:text-red-200">
+            {t('common.retry')}
+          </Button>
+        </div>
+      )}
 
       {/* Settings grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -78,22 +168,22 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Globe className="h-5 w-5 text-cyan-400" />
-              Général
+              {t('admin.general')}
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Paramètres généraux de la plateforme
+              {t('admin.generalDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-zinc-300 flex items-center gap-2">
                 <Globe className="h-4 w-4 text-zinc-500" />
-                Nom de la plateforme
+                {t('admin.platformName')}
               </Label>
               <Input
-                value="Luneo"
-                readOnly
-                className="bg-zinc-900 border-zinc-600 text-white cursor-default"
+                value={settings.platformName}
+                onChange={(e) => setSettings({ ...settings, platformName: e.target.value })}
+                className="bg-zinc-900 border-zinc-600 text-white"
               />
             </div>
             <div className="space-y-2">
@@ -102,20 +192,20 @@ export default function AdminSettingsPage() {
                 Langue par défaut
               </Label>
               <Input
-                value="Français"
-                readOnly
-                className="bg-zinc-900 border-zinc-600 text-white cursor-default"
+                value={settings.defaultLanguage}
+                onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
+                className="bg-zinc-900 border-zinc-600 text-white"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-zinc-300 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-zinc-500" />
-                Fuseau horaire
+                {t('admin.timezone')}
               </Label>
               <Input
-                value="Europe/Paris"
-                readOnly
-                className="bg-zinc-900 border-zinc-600 text-white cursor-default"
+                value={settings.timezone}
+                onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                className="bg-zinc-900 border-zinc-600 text-white"
               />
             </div>
           </CardContent>
@@ -126,39 +216,42 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-5 w-5 text-amber-400" />
-              Sécurité
+              {t('admin.securityTitle')}
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Configuration de la sécurité plateforme
+              {t('admin.securityDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg bg-zinc-900/50 p-3">
               <div>
-                <p className="text-sm font-medium text-zinc-300">Imposer le 2FA</p>
+                <p className="text-sm font-medium text-zinc-300">{t('admin.enforce2FA')}</p>
                 <p className="text-xs text-zinc-500">
-                  Forcer l&apos;authentification à deux facteurs pour tous les utilisateurs
+                  {t('admin.enforce2FADesc')}
                 </p>
               </div>
-              <Switch checked={enforce2FA} onCheckedChange={setEnforce2FA} />
+              <Switch
+                checked={settings.enforce2FA}
+                onCheckedChange={(v) => setSettings({ ...settings, enforce2FA: v })}
+              />
             </div>
             <div className="space-y-2">
-              <Label className="text-zinc-300">Timeout de session (minutes)</Label>
+              <Label className="text-zinc-300">{t('admin.sessionTimeout')}</Label>
               <Input
                 type="number"
-                value={sessionTimeout}
-                onChange={(e) => setSessionTimeout(e.target.value)}
+                value={settings.sessionTimeout}
+                onChange={(e) => setSettings({ ...settings, sessionTimeout: parseInt(e.target.value) || 30 })}
                 className="bg-zinc-900 border-zinc-600 text-white"
                 min="5"
                 max="1440"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-zinc-300">Whitelist IP (séparées par des virgules)</Label>
+              <Label className="text-zinc-300">{t('admin.ipWhitelist')}</Label>
               <Input
-                value={ipWhitelist}
-                onChange={(e) => setIpWhitelist(e.target.value)}
-                placeholder="ex: 192.168.1.1, 10.0.0.0/24"
+                value={settings.ipWhitelist}
+                onChange={(e) => setSettings({ ...settings, ipWhitelist: e.target.value })}
+                placeholder={t('admin.ipWhitelistPlaceholder')}
                 className="bg-zinc-900 border-zinc-600 text-white placeholder:text-zinc-600"
               />
             </div>
@@ -170,30 +263,36 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Bell className="h-5 w-5 text-purple-400" />
-              Notifications
+              {t('admin.notificationsTitle')}
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Gestion des alertes et notifications système
+              {t('admin.notificationsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg bg-zinc-900/50 p-3">
               <div>
-                <p className="text-sm font-medium text-zinc-300">Notifications email</p>
+                <p className="text-sm font-medium text-zinc-300">{t('admin.emailNotifications')}</p>
                 <p className="text-xs text-zinc-500">
-                  Recevoir les alertes système par email
+                  {t('admin.emailNotificationsDesc')}
                 </p>
               </div>
-              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+              <Switch
+                checked={settings.emailNotifications}
+                onCheckedChange={(v) => setSettings({ ...settings, emailNotifications: v })}
+              />
             </div>
             <div className="flex items-center justify-between rounded-lg bg-zinc-900/50 p-3">
               <div>
-                <p className="text-sm font-medium text-zinc-300">Alertes webhook</p>
+                <p className="text-sm font-medium text-zinc-300">{t('admin.webhookAlerts')}</p>
                 <p className="text-xs text-zinc-500">
-                  Envoyer les événements critiques via webhooks
+                  {t('admin.webhookAlertsDesc')}
                 </p>
               </div>
-              <Switch checked={webhookAlerts} onCheckedChange={setWebhookAlerts} />
+              <Switch
+                checked={settings.webhookAlerts}
+                onCheckedChange={(v) => setSettings({ ...settings, webhookAlerts: v })}
+              />
             </div>
           </CardContent>
         </Card>
@@ -203,29 +302,32 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Wrench className="h-5 w-5 text-green-400" />
-              Maintenance
+              {t('admin.maintenanceTitle')}
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Mode maintenance et état du système
+              {t('admin.maintenanceDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg bg-zinc-900/50 p-3">
               <div>
-                <p className="text-sm font-medium text-zinc-300">Mode maintenance</p>
+                <p className="text-sm font-medium text-zinc-300">{t('admin.maintenanceMode')}</p>
                 <p className="text-xs text-zinc-500">
-                  Activer le mode maintenance pour bloquer l&apos;accès public
+                  {t('admin.maintenanceModeDesc')}
                 </p>
               </div>
-              <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
+              <Switch
+                checked={settings.maintenanceMode}
+                onCheckedChange={(v) => setSettings({ ...settings, maintenanceMode: v })}
+              />
             </div>
             <div className="rounded-lg bg-zinc-900/50 p-3">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-400" />
-                <p className="text-sm font-medium text-zinc-300">État du système</p>
+                <p className="text-sm font-medium text-zinc-300">{t('admin.systemStatus')}</p>
               </div>
               <p className="text-xs text-green-400/80 mt-1 ml-6">
-                Tous les services opérationnels
+                {t('admin.allServicesOperational')}
               </p>
             </div>
           </CardContent>

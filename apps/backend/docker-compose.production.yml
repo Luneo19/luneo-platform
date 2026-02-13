@@ -3,6 +3,7 @@
 # SaaS de niveau mondial #1
 # ==============================================
 
+# Backend image: use root Dockerfile when building from repo root. Frontend: apps/frontend/Dockerfile.production
 version: '3.8'
 
 services:

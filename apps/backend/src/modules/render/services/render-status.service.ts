@@ -27,7 +27,7 @@ export class RenderStatusService {
     url?: string;
     thumbnailUrl?: string;
     error?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }> {
     // Récupérer depuis DB
     const renderResult = await this.prisma.renderResult.findUnique({
@@ -56,7 +56,7 @@ export class RenderStatusService {
           url: renderResult.url || undefined,
           thumbnailUrl: renderResult.thumbnailUrl || undefined,
           error: state === 'failed' ? job.failedReason : undefined,
-          metadata: renderResult.metadata,
+          metadata: renderResult.metadata as Record<string, unknown> | undefined,
         };
       }
     }
@@ -66,7 +66,7 @@ export class RenderStatusService {
       status: renderResult.status,
       url: renderResult.url || undefined,
       thumbnailUrl: renderResult.thumbnailUrl || undefined,
-      metadata: renderResult.metadata,
+      metadata: renderResult.metadata as Record<string, unknown> | undefined,
     };
   }
 

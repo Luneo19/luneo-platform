@@ -38,6 +38,7 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { useI18n } from '@/i18n/useI18n';
 
 // Types
 interface Product {
@@ -130,6 +131,7 @@ const faqItems = [
 ];
 
 function VirtualTryOnPageContent() {
+  const { t } = useI18n();
   const { data: solutionData } = useSolutionData('virtual-try-on');
 
   // Demo states
@@ -210,8 +212,9 @@ function VirtualTryOnPageContent() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     if (!faceDetected && cameraActive) {
-      setTimeout(() => setFaceDetected(true), 1500);
-      setTimeout(() => setTrackingActive(true), 2000);
+      // Demo simulation - replace with real API in production
+      setTimeout(() => setFaceDetected(true), 1000);
+      setTimeout(() => setTrackingActive(true), 1000);
     }
 
     if (trackingActive && selectedProduct) {
@@ -260,7 +263,7 @@ function VirtualTryOnPageContent() {
       setTrackingActive(false);
 
       if (!navigator.mediaDevices?.getUserMedia) {
-        setStreamError("Votre navigateur ne supporte pas l'accès caméra.");
+        setStreamError(t('common.cameraNotSupported'));
         return;
       }
 
@@ -286,7 +289,7 @@ function VirtualTryOnPageContent() {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
-      setStreamError("Impossible d'accéder à votre caméra. Vérifiez les permissions.");
+      setStreamError(t('common.cameraAccessError'));
       setCameraActive(false);
     }
   }, []);

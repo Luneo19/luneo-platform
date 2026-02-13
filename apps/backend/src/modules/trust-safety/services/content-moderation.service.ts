@@ -115,7 +115,7 @@ export class ContentModerationService {
         action: 'auto_reject',
         reason: error instanceof Error ? error.message : 'Moderation failed',
       };
-      await this.saveModerationResult(request, fallback).catch(() => {});
+      await this.saveModerationResult(request, fallback).catch((err) => this.logger.warn('Non-critical error saving moderation fallback result', err instanceof Error ? err.message : String(err)));
       return fallback;
     }
   }
@@ -308,7 +308,7 @@ export class ContentModerationService {
     type?: 'text' | 'image' | 'ai_generation',
     approved?: boolean,
     action?: 'allow' | 'review' | 'block',
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     return this.prisma.moderationRecord.findMany({
       where: {
         ...(userId && { userId }),

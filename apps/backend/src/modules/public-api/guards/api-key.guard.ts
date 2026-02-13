@@ -34,8 +34,8 @@ export class ApiKeyGuard implements CanActivate {
       
       // API-04: Store brand context in request object
       // Use @BrandId() decorator or request['brandId'] to access
-      request['brandId'] = validatedKey.brandId;
-      request['apiKey'] = validatedKey;
+      request.brandId = validatedKey.brandId;
+      (request as { apiKey?: unknown }).apiKey = validatedKey as unknown as { id: string; brandId: string; [key: string]: unknown };
 
       return true;
     } catch (error) {

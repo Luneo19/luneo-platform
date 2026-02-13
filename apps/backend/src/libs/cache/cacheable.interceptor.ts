@@ -35,7 +35,7 @@ export class CacheableInterceptor implements NestInterceptor {
   async intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Promise<Observable<any>> {
+  ): Promise<Observable<unknown>> {
     const handler = context.getHandler();
     const target = context.getClass();
     const args = context.getArgs();
@@ -68,8 +68,8 @@ export class CacheableInterceptor implements NestInterceptor {
 
   private async handleInvalidation(
     options: CacheInvalidateOptions,
-    args: any[],
-    target: any,
+    args: unknown[],
+    target: object,
     methodName: string,
   ): Promise<void> {
     try {
@@ -112,11 +112,11 @@ export class CacheableInterceptor implements NestInterceptor {
 
   private handleCache(
     options: CacheableOptions,
-    args: any[],
-    target: any,
+    args: unknown[],
+    target: object,
     methodName: string,
     next: CallHandler,
-  ): Observable<any> {
+  ): Observable<unknown> {
     const cacheType = options.type || 'api';
     const cacheKey = generateCacheKey(args, target, methodName, options.keyGenerator);
 
@@ -171,7 +171,7 @@ export class CacheableInterceptor implements NestInterceptor {
                           .set(cacheKey, cacheType, { error: error.message }, {
                             ttl: options.ttl || 60,
                           })
-                          .catch(() => {});
+                          .catch((err) => this.logger.warn('Non-critical error caching error result', err instanceof Error ? err.message : String(err)));
                       }
                       reject(error);
                     },

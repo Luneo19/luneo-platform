@@ -7,6 +7,7 @@ import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useDensity } from '@/providers/DensityProvider';
 import { sidebarConfig } from '@/styles/dashboard-tokens';
+import { useI18n } from '@/i18n/useI18n';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -94,7 +95,7 @@ function planBadgeLabel(plan: PlanTier): string {
 interface NavItem {
   name: string;
   href: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   description: string;
   badge?: string;
   children?: NavItem[];
@@ -169,7 +170,7 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         children: [
           { name: 'Bibliothèque', href: '/dashboard/library', icon: Library, description: 'Tous les assets' },
           { name: 'Import', href: '/dashboard/library/import', icon: Upload, description: 'Importer des fichiers' },
-          { name: 'Templates', href: '/dashboard/templates', icon: LayoutTemplate, description: 'Modèles prêts' }
+          { name: 'Templates', href: '/dashboard/ai-studio/templates', icon: LayoutTemplate, description: 'Modèles prêts' }
         ]
       }
     ]
@@ -403,8 +404,70 @@ function SidebarIndustryBadge({ isCollapsed }: { isCollapsed: boolean }) {
   );
 }
 
-function Sidebar() {
+const SIDEBAR_SECTION_KEYS: Record<string, string> = {
+  'Création': 'dashboard.sidebar.sections.creation',
+  'Gestion': 'dashboard.sidebar.sections.management',
+  'Entreprise': 'dashboard.sidebar.sections.enterprise',
+  'Plus': 'dashboard.sidebar.sections.more',
+};
+
+const SIDEBAR_ITEM_KEYS: Record<string, string> = {
+  '/dashboard': 'dashboard.sidebar.dashboard',
+  '/dashboard/ai-studio': 'dashboard.sidebar.aiStudio',
+  '/dashboard/ar-studio': 'dashboard.sidebar.arStudio',
+  '/dashboard/editor': 'dashboard.sidebar.editor',
+  '/dashboard/configurator-3d': 'dashboard.sidebar.configurator3d',
+  '/dashboard/library': 'dashboard.sidebar.library',
+  '/dashboard/products': 'dashboard.sidebar.products',
+  '/dashboard/orders': 'dashboard.sidebar.orders',
+  '/dashboard/analytics': 'dashboard.sidebar.analytics',
+  '/dashboard/webhooks': 'dashboard.sidebar.webhooks',
+  '/dashboard/marketplace': 'dashboard.sidebar.marketplace',
+  '/dashboard/team': 'dashboard.sidebar.team',
+  '/dashboard/billing': 'dashboard.sidebar.billing',
+  '/dashboard/credits': 'dashboard.sidebar.credits',
+  '/dashboard/settings': 'dashboard.sidebar.settings',
+  '/dashboard/integrations-dashboard': 'dashboard.sidebar.integrations',
+  '/dashboard/security': 'dashboard.sidebar.security',
+  '/dashboard/notifications': 'dashboard.sidebar.notifications',
+  '/dashboard/affiliate': 'dashboard.sidebar.affiliate',
+  '/dashboard/support': 'dashboard.sidebar.support',
+  '/help/documentation': 'dashboard.sidebar.documentation',
+  '/dashboard/monitoring': 'dashboard.sidebar.monitoring',
+};
+
+const SIDEBAR_CHILD_KEYS: Record<string, { nameKey: string; descKey: string }> = {
+  '/dashboard/ai-studio/2d': { nameKey: 'dashboard.sidebar.aiStudio2d', descKey: 'dashboard.sidebar.aiStudio2dDesc' },
+  '/dashboard/ai-studio/3d': { nameKey: 'dashboard.sidebar.aiStudio3d', descKey: 'dashboard.sidebar.aiStudio3dDesc' },
+  '/dashboard/ai-studio/animations': { nameKey: 'dashboard.sidebar.aiStudioAnimations', descKey: 'dashboard.sidebar.aiStudioAnimationsDesc' },
+  '/dashboard/ai-studio/templates': { nameKey: 'dashboard.sidebar.aiStudioTemplates', descKey: 'dashboard.sidebar.aiStudioTemplatesDesc' },
+  '/dashboard/ar-studio/preview': { nameKey: 'dashboard.sidebar.arPreview', descKey: 'dashboard.sidebar.arPreviewDesc' },
+  '/dashboard/ar-studio/collaboration': { nameKey: 'dashboard.sidebar.arCollaboration', descKey: 'dashboard.sidebar.arCollaborationDesc' },
+  '/dashboard/ar-studio/library': { nameKey: 'dashboard.sidebar.arLibrary', descKey: 'dashboard.sidebar.arLibraryDesc' },
+  '/dashboard/ar-studio/integrations': { nameKey: 'dashboard.sidebar.arIntegrations', descKey: 'dashboard.sidebar.arIntegrationsDesc' },
+  '/dashboard/library': { nameKey: 'dashboard.sidebar.libraryAll', descKey: 'dashboard.sidebar.libraryAllDesc' },
+  '/dashboard/library/import': { nameKey: 'dashboard.sidebar.libraryImport', descKey: 'common.importFiles' },
+  '/dashboard/analytics': { nameKey: 'dashboard.sidebar.analyticsMain', descKey: 'dashboard.sidebar.analyticsMainDesc' },
+  '/dashboard/analytics/designs': { nameKey: 'dashboard.sidebar.analyticsDesigns', descKey: 'dashboard.sidebar.analyticsDesignsDesc' },
+  '/dashboard/analytics/ai': { nameKey: 'dashboard.sidebar.analyticsAI', descKey: 'dashboard.sidebar.analyticsAIDesc' },
+  '/dashboard/analytics/configurator': { nameKey: 'dashboard.sidebar.analyticsConfigurator', descKey: 'dashboard.sidebar.analyticsConfiguratorDesc' },
+  '/dashboard/analytics/try-on': { nameKey: 'dashboard.sidebar.analyticsTryOn', descKey: 'dashboard.sidebar.analyticsTryOnDesc' },
+  '/dashboard/analytics-advanced': { nameKey: 'dashboard.sidebar.analyticsAdvanced', descKey: 'dashboard.sidebar.analyticsAdvancedDesc' },
+  '/dashboard/ab-testing': { nameKey: 'dashboard.sidebar.analyticsABTesting', descKey: 'dashboard.sidebar.analyticsABTestingDesc' },
+  '/dashboard/billing': { nameKey: 'dashboard.sidebar.billingMain', descKey: 'dashboard.sidebar.billingMainDesc' },
+  '/dashboard/billing/portal': { nameKey: 'dashboard.sidebar.billingPortal', descKey: 'dashboard.sidebar.billingPortalDesc' },
+  '/dashboard/marketplace': { nameKey: 'dashboard.sidebar.marketplaceBrowse', descKey: 'dashboard.sidebar.marketplaceBrowseDesc' },
+  '/dashboard/marketplace/seller': { nameKey: 'dashboard.sidebar.marketplaceSeller', descKey: 'dashboard.sidebar.marketplaceSellerDesc' },
+};
+
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+function Sidebar({ onClose }: SidebarProps = {}) {
+  const { t } = useI18n();
   const { sidebarCollapsed, setSidebarCollapsed } = useDensity();
+  const isMobileOverlay = Boolean(onClose);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
   const monitoringEnabled = useFeatureFlag('realtime_monitoring', true);
@@ -427,8 +490,12 @@ function Sidebar() {
   }, []);
 
   const handleToggleCollapse = useCallback(() => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  }, [sidebarCollapsed, setSidebarCollapsed]);
+    if (onClose) {
+      onClose();
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  }, [sidebarCollapsed, setSidebarCollapsed, onClose]);
 
   const isItemActive = (item: NavItem) => {
     if (item.href === pathname) return true;
@@ -438,18 +505,24 @@ function Sidebar() {
     return false;
   };
 
+  const handleNavClick = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
+
+  const effectiveCollapsed = isMobileOverlay ? false : sidebarCollapsed;
+
   return (
     <motion
       initial={false}
-      animate={{ width: sidebarCollapsed ? sidebarConfig.collapsedWidth : sidebarConfig.expandedWidth }}
+      animate={{ width: effectiveCollapsed ? sidebarConfig.collapsedWidth : sidebarConfig.expandedWidth }}
       transition={{ duration: sidebarConfig.transitionDuration / 1000 }}
       className="dash-sidebar dash-scroll flex flex-col h-screen sticky top-0"
     >
       {/* Header */}
       <div className="p-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
-          {!sidebarCollapsed && (
-            <Link href="/dashboard" className="flex items-center space-x-3">
+          {!effectiveCollapsed && (
+            <Link href="/dashboard" className="flex items-center space-x-3" onClick={handleNavClick}>
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
@@ -459,8 +532,8 @@ function Sidebar() {
               </div>
             </Link>
           )}
-          {sidebarCollapsed && (
-            <Link href="/dashboard" className="flex items-center justify-center">
+          {effectiveCollapsed && (
+            <Link href="/dashboard" className="flex items-center justify-center" onClick={handleNavClick}>
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
@@ -470,20 +543,21 @@ function Sidebar() {
           <button
             onClick={handleToggleCollapse}
             className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
+            aria-label={isMobileOverlay ? 'Fermer le menu' : (effectiveCollapsed ? 'Ouvrir la barre latérale' : 'Réduire la barre latérale')}
           >
-            {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <X className="w-5 h-5" />}
+            {isMobileOverlay || !effectiveCollapsed ? <X className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {/* Search */}
-      {!sidebarCollapsed && (
+      {!effectiveCollapsed && (
         <div className="p-4 border-b border-white/[0.06]">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder={t('dashboard.sidebar.searchPlaceholder')}
               className="dash-input w-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-transparent"
             />
           </div>
@@ -491,15 +565,15 @@ function Sidebar() {
       )}
 
       {/* Industry Badge */}
-      <SidebarIndustryBadge isCollapsed={sidebarCollapsed} />
+      <SidebarIndustryBadge isCollapsed={effectiveCollapsed} />
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
         {adaptiveSections.map((section) => (
           <div key={section.title} className="mb-6">
-            {!sidebarCollapsed && (
+            {!effectiveCollapsed && (
               <h3 className="px-4 text-xs font-semibold text-white/30 uppercase tracking-wider mb-2">
-                {section.title}
+                {SIDEBAR_SECTION_KEYS[section.title] ? t(SIDEBAR_SECTION_KEYS[section.title]) : section.title}
               </h3>
             )}
 
@@ -514,7 +588,7 @@ function Sidebar() {
                 const Icon = item.icon;
                 const requiredPlan = item.minimumPlan;
                 const hasAccess = requiredPlan ? hasMinimumPlan(requiredPlan) : true;
-                const showPlanBadge = requiredPlan && !sidebarCollapsed;
+                const showPlanBadge = requiredPlan && !effectiveCollapsed;
                 const planBadge = showPlanBadge ? planBadgeLabel(requiredPlan) : null;
 
                 return (
@@ -529,6 +603,7 @@ function Sidebar() {
                         <Link
                           href={item.href}
                           className="flex-1 flex items-center px-3 py-3 text-sm font-medium transition-colors text-white"
+                          onClick={handleNavClick}
                         >
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
                             isActive
@@ -537,11 +612,11 @@ function Sidebar() {
                           }`}>
                             <Icon className="w-4 h-4" />
                           </div>
-                          {!sidebarCollapsed && (
+                          {!effectiveCollapsed && (
                             <>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span>{item.name}</span>
+                                  <span>{SIDEBAR_ITEM_KEYS[item.href] ? t(SIDEBAR_ITEM_KEYS[item.href]) : item.name}</span>
                                   {planBadge ? (
                                     <span className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
                                       requiredPlan === 'professional'
@@ -569,10 +644,11 @@ function Sidebar() {
                           )}
                         </Link>
 
-                        {!sidebarCollapsed && item.children && (
+                        {!effectiveCollapsed && item.children && (
                           <button
                             onClick={() => toggleExpanded(item.name)}
                             className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
+                            aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
                           >
                             {isExpanded ? (
                               <ChevronDown className="w-4 h-4" />
@@ -585,7 +661,7 @@ function Sidebar() {
                     </div>
 
                     {/* Sub Items */}
-                    {!sidebarCollapsed && item.children && (
+                    {!effectiveCollapsed && item.children && (
                       <AnimatePresence>
                         {isExpanded && (
                           <motion
@@ -602,6 +678,7 @@ function Sidebar() {
                                 <Link
                                   key={child.name}
                                   href={child.href}
+                                  onClick={handleNavClick}
                                   className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                                     isChildActive
                                       ? 'bg-white/[0.06] text-white border border-purple-500/20'
@@ -610,8 +687,8 @@ function Sidebar() {
                                 >
                                   <ChildIcon className="w-4 h-4 mr-3" />
                                   <div>
-                                    <div>{child.name}</div>
-                                    <p className="text-xs text-white/30">{child.description}</p>
+                                    <div>{SIDEBAR_CHILD_KEYS[child.href] ? t(SIDEBAR_CHILD_KEYS[child.href].nameKey) : child.name}</div>
+                                    <p className="text-xs text-white/30">{SIDEBAR_CHILD_KEYS[child.href] ? t(SIDEBAR_CHILD_KEYS[child.href].descKey) : child.description}</p>
                                   </div>
                                 </Link>
                               );
@@ -630,7 +707,7 @@ function Sidebar() {
 
       {/* User Section */}
       <div className="border-t border-white/[0.06] p-4">
-        {!sidebarCollapsed ? (
+        {!effectiveCollapsed ? (
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">EA</span>
@@ -664,10 +741,10 @@ function Sidebar() {
 // Optimisation avec React.memo pour éviter les re-renders inutiles
 const SidebarMemo = memo(Sidebar);
 
-export default function SidebarWithErrorBoundary() {
+export default function SidebarWithErrorBoundary(props: SidebarProps) {
   return (
     <ErrorBoundary componentName="Sidebar">
-      <SidebarMemo />
+      <SidebarMemo {...props} />
     </ErrorBoundary>
   );
 }

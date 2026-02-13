@@ -13,6 +13,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import { trpc } from '@/lib/trpc/client';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { formatDate, formatPrice, formatBytes } from '@/lib/utils/formatters';
 import { Button } from '@/components/ui/button';
@@ -214,22 +215,38 @@ function BillingPageContent() {
                     )}
                   </CardDescription>
                 </div>
-                {subscription && (
-                  <div className="flex gap-2">
-                    {subscription.cancelAtPeriodEnd ? (
-                      <Button
-                        onClick={handleReactivateSubscription}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
-                      >
-                        Réactiver
-                      </Button>
-                    ) : (
-                      <Button variant="destructive" onClick={handleCancelSubscription} className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30">
-                        Annuler
-                      </Button>
-                    )}
-                  </div>
-                )}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    className="border-white/20 text-white/90 hover:bg-white/10"
+                    onClick={async () => {
+                      try {
+                        const result = await endpoints.billing.portal() as { url?: string };
+                        if (result?.url) window.location.href = result.url;
+                      } catch (e) {
+                        logger.error('Billing portal error', { error: e });
+                      }
+                    }}
+                  >
+                    Gérer les paiements (Stripe)
+                  </Button>
+                  {subscription && (
+                    <>
+                      {subscription.cancelAtPeriodEnd ? (
+                        <Button
+                          onClick={handleReactivateSubscription}
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
+                        >
+                          Réactiver
+                        </Button>
+                      ) : (
+                        <Button variant="destructive" onClick={handleCancelSubscription} className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30">
+                          Annuler
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </CardHeader>
             {subscription && (

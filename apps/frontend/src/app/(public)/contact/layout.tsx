@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 export const metadata: Metadata = {
   title: 'Contact | Luneo - Support & Équipe Commerciale',
   description: 'Contactez l\'équipe Luneo pour toute question, demande de démo ou support technique. Nous sommes là pour vous aider.',
@@ -8,11 +10,15 @@ export const metadata: Metadata = {
     title: 'Contact | Luneo',
     description: 'Contactez l\'équipe Luneo pour toute question, demande de démo ou support technique.',
     type: 'website',
-    url: 'https://luneo.app/contact',
+    url: `${APP_URL}/contact`,
     siteName: 'Luneo',
   },
   alternates: {
-    canonical: 'https://luneo.app/contact',
+    canonical: `${APP_URL}/contact`,
+    languages: {
+      fr: `${APP_URL}/contact`,
+      en: `${APP_URL}/en/contact`,
+    },
   },
 };
 

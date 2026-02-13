@@ -3,7 +3,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useSupport, type Ticket, type CreateTicketDto } from '@/lib/hooks/useSupport';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 import type { ResponseTemplate, SLA, SupportTab, ViewMode } from './types';
 import { formatSupportDate, formatSupportRelativeTime } from './formatUtils';
 
@@ -27,6 +29,7 @@ export function useSupportPage() {
     setSelectedTicket,
   } = useSupport();
 
+  const { t } = useI18n();
   const { toast } = useToast();
 
   const [showNewTicket, setShowNewTicket] = useState(false);
@@ -68,13 +71,13 @@ export function useSupportPage() {
   }, [tickets, searchTerm, filterStatus, filterPriority, filterCategory]);
 
   const filteredKB = useMemo(() => {
-    if (!kbSearch) return knowledgeBase;
-    return knowledgeBase.filter(
-      (article: { title: string; content: string; tags: string[] }) =>
-        article.title.toLowerCase().includes(kbSearch.toLowerCase()) ||
-        article.content.toLowerCase().includes(kbSearch.toLowerCase()) ||
-        article.tags.some((tag: string) => tag.toLowerCase().includes(kbSearch.toLowerCase()))
-    );
+    if (!kbSearch) return knowledgeBase as import('./KnowledgeTab').KBArticle[];
+    return (knowledgeBase as Array<{ title?: string; content?: string; tags?: string[] }>).filter(
+      (article) =>
+        article.title?.toLowerCase().includes(kbSearch.toLowerCase()) ||
+        article.content?.toLowerCase().includes(kbSearch.toLowerCase()) ||
+        article.tags?.some((tag: string) => tag.toLowerCase().includes(kbSearch.toLowerCase()))
+    ) as import('./KnowledgeTab').KBArticle[];
   }, [knowledgeBase, kbSearch]);
 
   const calculateSLA = useCallback((ticket: Ticket): SLA => {
@@ -115,14 +118,14 @@ export function useSupportPage() {
           priority: 'medium',
         });
         toast({
-          title: 'Ticket créé',
-          description: `Le ticket ${ticket.ticketId || 'a été créé'} avec succès`,
+          title: t('support.ticketCreated'),
+          description: t('support.ticketCreatedDesc'),
         });
       } catch (err) {
         logger.error('Error creating ticket', { error: err });
         toast({
-          title: 'Erreur',
-          description: 'Impossible de créer le ticket',
+          title: t('common.error'),
+          description: t('support.createTicketError'),
           variant: 'destructive',
         });
       }
@@ -149,12 +152,12 @@ export function useSupportPage() {
       try {
         await addMessage(ticketId, newMessage);
         setNewMessage('');
-        toast({ title: 'Message envoyé', description: 'Votre message a été ajouté au ticket' });
+        toast({ title: t('support.messageSent'), description: t('support.messageSentDesc') });
       } catch (err) {
         logger.error('Error sending message', { error: err });
         toast({
-          title: 'Erreur',
-          description: "Impossible d'envoyer le message",
+          title: t('common.error'),
+          description: t('support.sendMessageError'),
           variant: 'destructive',
         });
       } finally {
@@ -168,24 +171,24 @@ export function useSupportPage() {
     async (ticketId: string, status: string) => {
       try {
         await updateTicket(ticketId, { status: status as 'open' | 'closed' | 'pending' });
-        toast({ title: 'Statut mis à jour', description: 'Le statut du ticket a été modifié' });
+        toast({ title: t('support.statusUpdated'), description: t('support.statusUpdatedDesc') });
       } catch (err) {
         logger.error('Error updating ticket status', { error: err });
       }
     },
-    [updateTicket, toast]
+    [updateTicket, toast, t]
   );
 
   const handleUpdatePriority = useCallback(
     async (ticketId: string, priority: string) => {
       try {
         await updateTicket(ticketId, { priority: priority as 'low' | 'medium' | 'high' });
-        toast({ title: 'Priorité mise à jour', description: 'La priorité du ticket a été modifiée' });
+        toast({ title: t('support.priorityUpdated'), description: t('support.priorityUpdatedDesc') });
       } catch (err) {
         logger.error('Error updating ticket priority', { error: err });
       }
     },
-    [updateTicket, toast]
+    [updateTicket, toast, t]
   );
 
   const handleUseTemplate = useCallback(
@@ -194,26 +197,31 @@ export function useSupportPage() {
       setSelectedTemplate(template);
       setShowTemplateDialog(false);
       toast({
-        title: 'Template appliqué',
-        description: `Le template "${template.name}" a été inséré`,
+        title: t('support.templateApplied'),
+        description: t('support.templateAppliedDesc', { name: template.name }),
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const handleSubmitCSAT = useCallback(
     async (ticketId: string) => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        toast({ title: 'Merci pour votre avis', description: 'Votre évaluation a été enregistrée' });
+        await endpoints.support.submitCSAT(ticketId, { rating: csatRating, comment: csatComment });
+        toast({ title: t('support.thankYouFeedback'), description: t('support.feedbackRecorded') });
         setShowCSATDialog(false);
         setCsatRating(0);
         setCsatComment('');
       } catch (err) {
         logger.error('Error submitting CSAT', { error: err });
+        toast({
+          title: t('common.error'),
+          description: t('support.submitCSATError', { defaultValue: 'Unable to submit feedback' }),
+          variant: 'destructive',
+        });
       }
     },
-    [toast]
+    [csatRating, csatComment, toast, t]
   );
 
   const handleSelectTicket = useCallback((ticketId: string) => {
@@ -231,17 +239,17 @@ export function useSupportPage() {
       try {
         switch (action) {
           case 'archive':
-            toast({ title: 'Archivage', description: `${selectedTickets.size} ticket(s) archivé(s)` });
+            toast({ title: t('support.bulkArchiveTitle'), description: t('support.bulkArchiveDesc', { count: selectedTickets.size }) });
             break;
           case 'close':
-            toast({ title: 'Fermeture', description: `${selectedTickets.size} ticket(s) fermé(s)` });
+            toast({ title: t('support.bulkCloseTitle'), description: t('support.bulkCloseDesc', { count: selectedTickets.size }) });
             break;
           case 'assign':
-            toast({ title: 'Assignation', description: `${selectedTickets.size} ticket(s) assigné(s)` });
+            toast({ title: t('support.bulkAssignTitle'), description: t('support.bulkAssignDesc', { count: selectedTickets.size }) });
             break;
           case 'delete':
-            if (confirm(`Êtes-vous sûr de vouloir supprimer ${selectedTickets.size} ticket(s) ?`)) {
-              toast({ title: 'Suppression', description: `${selectedTickets.size} ticket(s) supprimé(s)` });
+            if (confirm(t('support.bulkDeleteConfirm', { count: selectedTickets.size }))) {
+              toast({ title: t('support.bulkDeleteTitle'), description: t('support.bulkDeleteDesc', { count: selectedTickets.size }) });
             }
             break;
         }
@@ -250,7 +258,7 @@ export function useSupportPage() {
         logger.error('Error performing bulk action', { error: err });
       }
     },
-    [selectedTickets, toast]
+    [selectedTickets, toast, t]
   );
 
   return {

@@ -1,0 +1,51 @@
+groups:
+  - name: luneo-critical
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate (> 1%)"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 latency (> 2s)"
+
+      - alert: BullMQQueueBacklog
+        expr: bullmq_queue_waiting > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "BullMQ queue backlog > 100 jobs"
+
+      - alert: ActiveGracePeriods
+        expr: luneo_brands_read_only_mode > 0
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "{{ $value }} brands in read-only mode (payment failed)"
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: prisma_pool_connections_busy / prisma_pool_connections_total > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool > 90% utilized"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory > 85%"

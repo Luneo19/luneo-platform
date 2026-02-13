@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 
 /**
  * Types d'événements auditables
@@ -84,7 +85,7 @@ export interface AuditLog {
   resourceType?: string;
   resourceId?: string;
   action: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   success: boolean;
@@ -110,15 +111,15 @@ export class AuditLogsService {
       await this.prisma.auditLog.create({
         data: {
           eventType: log.eventType,
-          userId: log.userId,
+          userId: log.userId ?? '',
           // userEmail: log.userEmail, // Commenté car pas dans AuditLogCreateInput
           // brandId: log.brandId, // Commenté car pas dans AuditLogCreateInput
-          resourceType: log.resourceType,
-          resourceId: log.resourceId,
+          resourceType: log.resourceType ?? '',
+          resourceId: log.resourceId ?? '',
           action: log.action,
-          metadata: log.metadata || {},
-          ipAddress: log.ipAddress,
-          userAgent: log.userAgent,
+          metadata: (log.metadata || {}) as import('@prisma/client').Prisma.InputJsonValue,
+          ipAddress: log.ipAddress ?? '',
+          userAgent: log.userAgent ?? '',
           success: log.success,
           // errorMessage: log.errorMessage, // Commenté car pas dans AuditLogCreateInput
           timestamp: log.timestamp || new Date(),
@@ -151,7 +152,7 @@ export class AuditLogsService {
       brandId?: string;
       resourceType?: string;
       resourceId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
       ipAddress?: string;
       userAgent?: string;
     },
@@ -178,7 +179,7 @@ export class AuditLogsService {
       brandId?: string;
       resourceType?: string;
       resourceId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
       ipAddress?: string;
       userAgent?: string;
     },
@@ -207,9 +208,9 @@ export class AuditLogsService {
     endDate?: Date;
     limit?: number;
     offset?: number;
-  }): Promise<{ logs: any[]; total: number }> {
+  }): Promise<{ logs: import('@prisma/client').AuditLog[]; total: number }> {
     try {
-      const where: any = {};
+      const where: Prisma.AuditLogWhereInput = {};
 
       if (filters.userId) where.userId = filters.userId;
       if (filters.brandId) where.brandId = filters.brandId;
@@ -220,8 +221,8 @@ export class AuditLogsService {
 
       if (filters.startDate || filters.endDate) {
         where.timestamp = {};
-        if (filters.startDate) where.timestamp.gte = filters.startDate;
-        if (filters.endDate) where.timestamp.lte = filters.endDate;
+        if (filters.startDate) (where.timestamp as Prisma.DateTimeFilter).gte = filters.startDate;
+        if (filters.endDate) (where.timestamp as Prisma.DateTimeFilter).lte = filters.endDate;
       }
 
       const [logs, total] = await Promise.all([
@@ -290,12 +291,19 @@ export class AuditLogsService {
   /**
    * Statistiques d'audit
    */
-  async getStats(brandId?: string, days: number = 30): Promise<any> {
+  async getStats(brandId?: string, days: number = 30): Promise<{
+    period: { days: number; startDate: Date; endDate: Date };
+    total: number;
+    success: number;
+    failures: number;
+    successRate: number;
+    topEvents: Array<{ eventType: string; count: number }>;
+  } | null> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const where: any = {
+      const where: Record<string, unknown> = {
         timestamp: { gte: startDate },
       };
       if (brandId) where.brandId = brandId;
@@ -333,7 +341,7 @@ export class AuditLogsService {
   /**
    * Exporter des logs en CSV
    */
-  async exportToCSV(filters: any): Promise<string> {
+  async exportToCSV(filters: Parameters<AuditLogsService['search']>[0]): Promise<string> {
     try {
       const { logs } = await this.search({ ...filters, limit: 10000 });
 
@@ -342,7 +350,7 @@ export class AuditLogsService {
       for (const log of logs) {
         const timestamp = log.timestamp.toISOString();
         const eventType = log.eventType;
-        const user = log.userEmail || log.userId || 'N/A';
+        const user = log.userId || 'N/A';
         const brand = log.brandId || 'N/A';
         const action = log.action;
         const resource = log.resourceId
@@ -350,7 +358,8 @@ export class AuditLogsService {
           : 'N/A';
         const success = log.success ? 'Yes' : 'No';
         const ip = log.ipAddress || 'N/A';
-        const error = log.errorMessage || '';
+        const metadata = log.metadata as Record<string, unknown> | null;
+        const error = (metadata?.errorMessage as string) || '';
 
         csv += `${timestamp},${eventType},${user},${brand},${action},${resource},${success},${ip},"${error}"\n`;
       }
@@ -365,7 +374,7 @@ export class AuditLogsService {
   /**
    * Détecter des activités suspectes
    */
-  async detectSuspiciousActivity(userId: string): Promise<any[]> {
+  async detectSuspiciousActivity(userId: string): Promise<Array<{ type: string; severity: string; message: string; count: number }>> {
     try {
       const oneHourAgo = new Date();
       oneHourAgo.setHours(oneHourAgo.getHours() - 1);

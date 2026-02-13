@@ -33,6 +33,7 @@ import { User } from '@/common/decorators/user.decorator';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { GenerateAnimationDto } from '../dto/generate-animation.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
+import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
 
 @ApiTags('AI Templates & Animations')
 @ApiBearerAuth()
@@ -46,6 +47,7 @@ export class AITemplatesController {
   // ========================================
 
   @Get('templates')
+  @CacheTTL(600)
   @ApiOperation({ summary: 'Get all AI templates' })
   @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
   @ApiQuery({ name: 'search', required: false, description: 'Search query' })

@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,19 +22,20 @@ interface LinksTabProps {
 }
 
 export function LinksTab({ links, onCreateLink, onCopyLink }: LinksTabProps) {
+  const { t } = useI18n();
   return (
     <Card className="bg-gray-50 border-gray-200">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-gray-900">Liens de parrainage</CardTitle>
+            <CardTitle className="text-gray-900">{t('affiliate.links')}</CardTitle>
             <CardDescription className="text-gray-600">
               Gérez vos liens de parrainage et suivez leurs performances
             </CardDescription>
           </div>
           <Button onClick={onCreateLink} className="bg-purple-600 hover:bg-purple-700">
             <Plus className="w-4 h-4 mr-2" />
-            Créer un lien
+            {t('affiliate.createLink')}
           </Button>
         </div>
       </CardHeader>

@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader, Font } from 'three/examples/jsm/loaders/FontLoader.js';
 import { logger } from '@/lib/logger';
 
 export interface Material3D {
@@ -49,6 +51,8 @@ export class Configurator3D {
   private loader: GLTFLoader;
   private textureLoader: THREE.TextureLoader;
   private rgbeLoader: RGBELoader;
+  private fontLoader: FontLoader;
+  private loadedFonts: Map<string, Font> = new Map();
   private model: THREE.Group | null = null;
   private configuration: Configuration3D;
   private animationFrameId: number | null = null;
@@ -89,6 +93,7 @@ export class Configurator3D {
     this.loader = new GLTFLoader();
     this.textureLoader = new THREE.TextureLoader();
     this.rgbeLoader = new RGBELoader();
+    this.fontLoader = new FontLoader();
 
     // Initialize configuration
     this.configuration = {
@@ -322,34 +327,117 @@ export class Configurator3D {
       this.model.remove(oldText);
     }
 
-    // Create text geometry (simplified - in production use THREE.TextGeometry)
-    const textMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.1, options.depth || 0.01),
-      new THREE.MeshStandardMaterial({
-        color: options.color || '#000000',
-        roughness: 0.5,
-        metalness: 0.5,
-      })
-    );
+    const fontName = options.font || 'helvetiker';
+    const fontSize = options.size || 0.1;
+    const depth = options.depth || 0.01;
+    const color = options.color || '#000000';
 
-    textMesh.name = 'engraved-text';
-    
-    if (options.position) textMesh.position.copy(options.position);
-    if (options.rotation) textMesh.rotation.copy(options.rotation);
+    // Resolve font URL - Three.js ships several built-in JSON fonts
+    const fontUrl = this.resolveFontUrl(fontName);
 
-    textMesh.castShadow = true;
-    textMesh.receiveShadow = true;
+    const createTextMesh = (font: Font) => {
+      const geometry = new TextGeometry(text, {
+        font,
+        size: fontSize,
+        depth,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: depth * 0.1,
+        bevelSize: depth * 0.05,
+        bevelOffset: 0,
+        bevelSegments: 3,
+      });
 
-    this.model.add(textMesh);
+      // Center the text geometry
+      geometry.computeBoundingBox();
+      if (geometry.boundingBox) {
+        const centerX = -(geometry.boundingBox.max.x - geometry.boundingBox.min.x) / 2;
+        const centerY = -(geometry.boundingBox.max.y - geometry.boundingBox.min.y) / 2;
+        geometry.translate(centerX, centerY, 0);
+      }
+
+      const material = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.3,
+        metalness: 0.7,
+      });
+
+      const textMesh = new THREE.Mesh(geometry, material);
+      textMesh.name = 'engraved-text';
+
+      if (options.position) textMesh.position.copy(options.position);
+      if (options.rotation) textMesh.rotation.copy(options.rotation);
+
+      textMesh.castShadow = true;
+      textMesh.receiveShadow = true;
+
+      this.model!.add(textMesh);
+    };
+
+    // Check font cache first
+    const cachedFont = this.loadedFonts.get(fontName);
+    if (cachedFont) {
+      createTextMesh(cachedFont);
+    } else {
+      this.fontLoader.load(
+        fontUrl,
+        (font) => {
+          this.loadedFonts.set(fontName, font);
+          createTextMesh(font);
+        },
+        undefined,
+        (err) => {
+          logger.error('Failed to load font, using fallback box', { error: err, fontName });
+          // Fallback: use a simple box if font loading fails
+          const fallbackMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(text.length * fontSize * 0.6, fontSize, depth),
+            new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7 })
+          );
+          fallbackMesh.name = 'engraved-text';
+          if (options.position) fallbackMesh.position.copy(options.position);
+          if (options.rotation) fallbackMesh.rotation.copy(options.rotation);
+          this.model!.add(fallbackMesh);
+        }
+      );
+    }
 
     this.configuration.text = {
       content: text,
-      font: options.font || 'Arial',
-      size: options.size || 0.1,
-      depth: options.depth || 0.01,
+      font: fontName,
+      size: fontSize,
+      depth,
       position: options.position || new THREE.Vector3(0, 0, 0),
       rotation: options.rotation || new THREE.Euler(0, 0, 0),
     };
+  }
+
+  /**
+   * Resolve font URL for TextGeometry
+   * Three.js uses JSON font files from typeface.js format
+   */
+  private resolveFontUrl(fontName: string): string {
+    const fontMap: Record<string, string> = {
+      helvetiker: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/helvetiker_regular.typeface.json',
+      helvetiker_bold: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/helvetiker_bold.typeface.json',
+      optimer: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/optimer_regular.typeface.json',
+      optimer_bold: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/optimer_bold.typeface.json',
+      gentilis: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/gentilis_regular.typeface.json',
+      gentilis_bold: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/gentilis_bold.typeface.json',
+      droid_sans: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/droid/droid_sans_regular.typeface.json',
+      droid_sans_bold: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/droid/droid_sans_bold.typeface.json',
+      droid_serif: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/droid/droid_serif_regular.typeface.json',
+      droid_serif_bold: 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/droid/droid_serif_bold.typeface.json',
+    };
+
+    const key = fontName.toLowerCase().replace(/\s+/g, '_');
+    return fontMap[key] || fontMap['helvetiker'];
+  }
+
+  /**
+   * Get the WebGL canvas for screenshots
+   */
+  getCanvas(): HTMLCanvasElement {
+    return this.renderer.domElement;
   }
 
   renderHighRes(width: number = 2000, height: number = 2000): string {

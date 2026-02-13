@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EnterpriseController } from './enterprise.controller';
+import { WhiteLabelController } from './white-label.controller';
 import { WhiteLabelService } from './services/white-label.service';
 import { SSOService } from './services/sso.service';
 import { SLASupportService } from './services/sla-support.service';
@@ -9,7 +10,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 
 @Module({
   imports: [PrismaModule, SmartCacheModule, ConfigModule],
-  controllers: [EnterpriseController],
+  controllers: [EnterpriseController, WhiteLabelController],
   providers: [
     WhiteLabelService, // ✅ PHASE 8 - White-label
     SSOService, // ✅ PHASE 8 - SSO/SAML

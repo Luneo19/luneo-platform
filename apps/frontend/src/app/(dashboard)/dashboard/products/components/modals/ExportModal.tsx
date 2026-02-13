@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Download, FileSpreadsheet, FileJson, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import type { ProductDisplay } from '../../types';
 
 interface ExportModalProps {
@@ -34,6 +35,7 @@ export function ExportModal({
   onExport,
   productCount,
 }: ExportModalProps) {
+  const { t } = useI18n();
   const formats = [
     { value: 'csv' as const, label: 'CSV', icon: FileSpreadsheet },
     { value: 'json' as const, label: 'JSON', icon: FileJson },
@@ -44,9 +46,9 @@ export function ExportModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>Exporter les produits</DialogTitle>
+          <DialogTitle>{t('products.exportTitle')}</DialogTitle>
           <DialogDescription>
-            Choisissez le format d'export pour {productCount} produit(s)
+            {t('products.exportDescription', { count: productCount })}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -77,14 +79,14 @@ export function ExportModal({
             onClick={() => onOpenChange(false)}
             className="border-gray-200"
           >
-            Annuler
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={onExport}
             className="bg-cyan-600 hover:bg-cyan-700"
           >
             <Download className="w-4 h-4 mr-2" />
-            Exporter
+            {t('common.export')}
           </Button>
         </DialogFooter>
       </DialogContent>

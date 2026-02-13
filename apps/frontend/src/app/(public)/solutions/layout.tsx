@@ -4,8 +4,15 @@
  */
 
 import { generateMetadata as generateSEOMetadata } from '@/lib/seo/metadata';
+import { generateBreadcrumbSchema } from '@/lib/seo/structured-data';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 import type { Metadata } from 'next';
 import { ReactNode } from 'react';
+
+const solutionsBreadcrumbJsonLd = generateBreadcrumbSchema([
+  { name: 'Home', url: SEO_BASE_URL },
+  { name: 'Solutions', url: `${SEO_BASE_URL}/solutions` },
+]);
 
 export const metadata: Metadata = generateSEOMetadata({
   title: 'Solutions - Personnalisation par Industrie',
@@ -21,8 +28,20 @@ export const metadata: Metadata = generateSEOMetadata({
   ],
   canonicalUrl: '/solutions',
   ogType: 'website',
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/fr/solutions` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/solutions` },
+  ],
 });
 
 export default function SolutionsLayout({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(solutionsBreadcrumbJsonLd) }}
+      />
+      {children}
+    </>
+  );
 }

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -37,14 +37,14 @@ export async function GET(_request: NextRequest) {
       cache: 'no-store',
     });
     if (!tenantsRes.ok) {
-      logger.warn('Backend admin/tenants fetch failed', { status: tenantsRes.status, userId: user.id });
+      serverLogger.warn('Backend admin/tenants fetch failed', { status: tenantsRes.status, userId: user.id });
       throw { status: 500, message: 'Erreur lors de la récupération des tenants' };
     }
     const raw = await tenantsRes.json();
     const data = raw.data ?? raw;
     const tenants = data.tenants ?? [];
 
-    logger.info('Tenants fetched', { userId: user.id, count: tenants.length });
+    serverLogger.info('Tenants fetched', { userId: user.id, count: tenants.length });
     return { tenants };
   }, '/api/admin/tenants', 'GET');
 }

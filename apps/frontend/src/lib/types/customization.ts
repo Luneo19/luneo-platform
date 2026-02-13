@@ -70,7 +70,7 @@ export interface Zone {
   isRequired: boolean;
   isActive: boolean;
   order: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   productId: string;
@@ -89,7 +89,7 @@ export interface Customization {
   size?: number;
   effect: CustomizationEffect;
   orientation?: CustomizationOrientation;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
   status: CustomizationStatus;
   jobId?: string;
   textureUrl?: string;
@@ -97,7 +97,7 @@ export interface Customization {
   previewUrl?: string;
   highResUrl?: string;
   arModelUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   errorMessage?: string;
   retryCount: number;
   costCents: number;
@@ -142,7 +142,7 @@ export interface CreateZoneRequest {
   allowedPatterns?: string[];
   isRequired?: boolean;
   order?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateZoneRequest extends Partial<CreateZoneRequest> {
@@ -158,7 +158,7 @@ export interface GenerateCustomizationRequest {
   size?: number;
   effect?: CustomizationEffect;
   orientation?: CustomizationOrientation;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface GenerateCustomizationResponse {
@@ -248,7 +248,7 @@ export interface CustomizationEvent {
   type: 'generation_start' | 'generation_complete' | 'generation_error' | 'preview_loaded';
   customizationId: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ========================================

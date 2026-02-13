@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { getBackendUrl } from '@/lib/api/server-url';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 
 // Store active connections (in production, use Redis pub/sub)
 const connections = new Map<string, ReadableStreamDefaultController>();
@@ -44,9 +44,9 @@ async function fetchRealEvents(channels: string[], since?: number): Promise<Real
       const data = await response.json();
       return data.events || [];
     }
-    logger.warn('Backend events stream returned non-OK', { status: response.status, channels });
+    serverLogger.warn('Backend events stream returned non-OK', { status: response.status, channels });
   } catch (error) {
-    logger.error('Failed to fetch events from backend', { error, channels });
+    serverLogger.error('Failed to fetch events from backend', { error, channels });
   }
 
   return [];
@@ -83,7 +83,7 @@ async function fetchRealtimeMetrics(): Promise<RealtimeEvent | null> {
       };
     }
   } catch (error) {
-    logger.warn('Failed to fetch realtime metrics from backend (optional)', { error });
+    serverLogger.warn('Failed to fetch realtime metrics from backend (optional)', { error });
   }
 
   return null;
@@ -188,14 +188,14 @@ async function fetchRecentActivity(channels: string[]): Promise<RealtimeEvent[]>
       }
     }
   } catch (error) {
-    logger.warn('Failed to fetch recent activity from backend', { error, channels });
+    serverLogger.warn('Failed to fetch recent activity from backend', { error, channels });
   }
 
   return events;
 }
 
 // Encode SSE message
-function encodeSSE(event: Record<string, any>): string {
+function encodeSSE(event: Record<string, unknown>): string {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
 
@@ -208,7 +208,7 @@ export async function GET(request: NextRequest) {
   const channels = searchParams.get('channels')?.split(',') || ['default'];
   const connectionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  logger.info('SSE connection opened', { connectionId, channels });
+  serverLogger.info('SSE connection opened', { connectionId, channels });
 
   // Create readable stream
   const stream = new ReadableStream({
@@ -230,24 +230,24 @@ export async function GET(request: NextRequest) {
           // Fetch real events from backend
           const backendEvents = await fetchRealEvents(channels);
           for (const event of backendEvents) {
-            controller.enqueue(new TextEncoder().encode(encodeSSE(event)));
+            controller.enqueue(new TextEncoder().encode(encodeSSE(event as unknown as Record<string, unknown>)));
           }
 
           // Fetch recent activity (designs, orders, notifications)
           const activityEvents = await fetchRecentActivity(channels);
           for (const event of activityEvents) {
-            controller.enqueue(new TextEncoder().encode(encodeSSE(event)));
+            controller.enqueue(new TextEncoder().encode(encodeSSE(event as unknown as Record<string, unknown>)));
           }
 
           // Fetch and send metrics if subscribed
           if (channels.includes('metrics') || channels.includes('default')) {
             const metricsEvent = await fetchRealtimeMetrics();
             if (metricsEvent) {
-              controller.enqueue(new TextEncoder().encode(encodeSSE(metricsEvent)));
+              controller.enqueue(new TextEncoder().encode(encodeSSE(metricsEvent as unknown as Record<string, unknown>)));
             }
           }
         } catch (error) {
-          logger.warn('Error fetching real events during SSE poll', { error });
+          serverLogger.warn('Error fetching real events during SSE poll', { error });
         }
       };
 
@@ -257,7 +257,7 @@ export async function GET(request: NextRequest) {
       // Poll for real events every 10 seconds
       const interval = setInterval(() => {
         fetchAndSendEvents().catch((err) => {
-          logger.warn('SSE polling error', { error: err, connectionId });
+          serverLogger.warn('SSE polling error', { error: err, connectionId });
         });
       }, 10000);
 
@@ -281,7 +281,7 @@ export async function GET(request: NextRequest) {
         clearInterval(interval);
         clearInterval(heartbeat);
         connections.delete(connectionId);
-        logger.info('SSE connection closed', { connectionId });
+        serverLogger.info('SSE connection closed', { connectionId });
 
         try {
           controller.close();
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
     },
     cancel() {
       connections.delete(connectionId);
-      logger.info('SSE connection cancelled', { connectionId });
+      serverLogger.info('SSE connection cancelled', { connectionId });
     },
   });
 
@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
 
 // Broadcast event to all connections (for use by other API routes)
 export function broadcastEvent(
-  event: Record<string, any>,
+  event: Record<string, unknown>,
   channelFilter?: string[]
 ) {
   const encoded = encodeSSE(event);

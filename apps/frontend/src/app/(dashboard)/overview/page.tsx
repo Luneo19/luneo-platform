@@ -2,6 +2,9 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useOverviewData } from './hooks/useOverviewData';
 import { OverviewHeader } from './components/OverviewHeader';
@@ -13,56 +16,81 @@ import { OverviewHelpCard } from './components/OverviewHelpCard';
 import { OverviewErrorBanner } from './components/OverviewErrorBanner';
 import { OverviewLoadingState } from './components/OverviewLoadingState';
 import { OverviewErrorState } from './components/OverviewErrorState';
-import { Sparkles, Layers, TrendingUp, Store, Zap, ChevronRight } from 'lucide-react';
+import { Sparkles, Layers, TrendingUp, Store, Zap, ChevronRight, Palette } from 'lucide-react';
 
-// TODO: Replace with personalized suggestions from /api/v1/ai/suggestions
-// based on user behavior and current plan usage
-const AI_SUGGESTIONS = [
-  {
-    id: 'batch',
-    icon: Layers,
-    title: 'Génération par lot',
-    description: 'Créez plusieurs designs en une fois pour gagner du temps.',
-    href: '/dashboard/ai-studio',
-  },
-  {
-    id: 'optimize',
-    icon: TrendingUp,
-    title: 'Optimisez vos designs populaires',
-    description: 'Identifiez et améliorez vos créations les plus vues.',
-    href: '/dashboard/analytics',
-  },
-  {
-    id: 'shopify',
-    icon: Store,
-    title: 'Intégration Shopify',
-    description: 'Connectez votre boutique et synchronisez vos produits.',
-    href: '/dashboard/integrations-dashboard',
-  },
-  {
-    id: 'templates',
-    icon: Zap,
-    title: 'Templates personnalisables',
-    description: 'Démarrez à partir de modèles prêts à l\'emploi.',
-    href: '/dashboard/templates',
-  },
-] as const;
+type SuggestionItem = {
+  id: string;
+  icon: typeof Layers;
+  title: string;
+  description: string;
+  href: string;
+};
+
+type TFunction = (key: string, params?: Record<string, string | number>) => string;
+
+/**
+ * Client-side AI suggestions based on user activity.
+ * Uses designCount and orderCount from overview data until GET /api/v1/ai/suggestions is implemented.
+ * Logic: no designs → first AI design; has designs, no orders → first product; has orders → analytics.
+ */
+function getAISuggestions(designCount: number, orderCount: number, t: TFunction): SuggestionItem[] {
+  const base: SuggestionItem[] = [];
+  if (designCount === 0) {
+    base.push({
+      id: 'first-design',
+      icon: Palette,
+      title: t('overview.createFirstAiDesign'),
+      description: t('overview.createFirstAiDesignDesc'),
+      href: '/dashboard/ai-studio',
+    });
+  }
+  if (designCount > 0 && orderCount === 0) {
+    base.push({
+      id: 'first-product',
+      icon: Store,
+      title: t('overview.configureFirstProduct'),
+      description: t('overview.configureFirstProductDesc'),
+      href: '/dashboard/products',
+    });
+  }
+  if (orderCount > 0) {
+    base.push({
+      id: 'analytics',
+      icon: TrendingUp,
+      title: t('overview.exploreAnalytics'),
+      description: t('overview.exploreAnalyticsDesc'),
+      href: '/dashboard/analytics',
+    });
+  }
+  base.push(
+    {
+      id: 'batch',
+      icon: Layers,
+      title: t('overview.batchGeneration'),
+      description: t('overview.batchGenerationDesc'),
+      href: '/dashboard/ai-studio',
+    },
+    {
+      id: 'shopify',
+      icon: Store,
+      title: t('overview.shopifyIntegration'),
+      description: t('overview.shopifyIntegrationDesc'),
+      href: '/dashboard/integrations-dashboard',
+    },
+    {
+      id: 'templates',
+      icon: Zap,
+      title: t('overview.customizableTemplates'),
+      description: t('overview.customizableTemplatesDesc'),
+      href: '/dashboard/templates',
+    }
+  );
+  return base.slice(0, 4);
+}
 
 export default function DashboardPage() {
-  useEffect(() => {
-    fetch('/api/onboarding/progress', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const progress = data?.data ?? data;
-        if (progress && progress.completed === false) {
-          window.location.href = '/onboarding';
-        } else if (progress && progress.organization && !progress.organization.onboardingCompletedAt && (progress.currentStep ?? 0) < 6) {
-          window.location.href = '/onboarding';
-        }
-      })
-      .catch(() => {});
-  }, []);
-
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const {
     loading,
     error,
@@ -74,7 +102,24 @@ export default function DashboardPage() {
     recentActivity,
     topDesigns,
     quickActions,
+    designCount,
+    orderCount,
   } = useOverviewData();
+
+  const { t } = useI18n();
+  const aiSuggestions = getAISuggestions(designCount, orderCount, t);
+  useEffect(() => {
+    if (searchParams.get('credits_purchase') === 'success') {
+      toast({
+        title: t('creditsToast.creditsPurchased'),
+        description: t('creditsToast.creditsPurchasedDesc'),
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete('credits_purchase');
+      url.searchParams.delete('session_id');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams, toast, t]);
 
   if (loading) return <OverviewLoadingState />;
   if (error && !displayStats.length && !recentActivity.length) {
@@ -105,7 +150,7 @@ export default function DashboardPage() {
                 Suggestions IA
               </h2>
               <div className="space-y-3">
-                {AI_SUGGESTIONS.map((item) => {
+                {aiSuggestions.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link key={item.id} href={item.href}>

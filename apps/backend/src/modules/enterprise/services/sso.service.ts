@@ -359,10 +359,28 @@ export class SSOService {
   }
 
   /**
+   * Returns encryption key; required in production.
+   */
+  private getEncryptionKey(): string {
+    const encryptionKey =
+      this.configService?.get<string>('app.encryptionKey') ||
+      this.configService?.get<string>('ENCRYPTION_KEY') ||
+      process.env.ENCRYPTION_KEY;
+    if (!encryptionKey) {
+      const nodeEnv = process.env.NODE_ENV;
+      if (nodeEnv === 'production') {
+        throw new Error('ENCRYPTION_KEY is required in production');
+      }
+      return 'dev-only-encryption-key-not-for-production';
+    }
+    return encryptionKey;
+  }
+
+  /**
    * Encrypte un secret (clé privée, client secret, etc.)
    */
   private encryptSecret(secret: string): string {
-    const encryptionKey = this.configService.get<string>('app.encryptionKey') || process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+    const encryptionKey = this.getEncryptionKey();
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
 
@@ -380,7 +398,7 @@ export class SSOService {
    * Décrypte un secret
    */
   private decryptSecret(encrypted: string): string {
-    const encryptionKey = this.configService.get<string>('app.encryptionKey') || process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+    const encryptionKey = this.getEncryptionKey();
     const algorithm = 'aes-256-gcm';
 
     const [ivHex, authTagHex, encryptedData] = encrypted.split(':');

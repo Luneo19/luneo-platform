@@ -8,37 +8,106 @@
  */
 
 export const PRICING = {
+  free: {
+    monthly: 0,
+    yearly: 0,
+    yearlyMonthly: 0,
+    name: 'Free',
+  },
   starter: {
     monthly: 19,
     yearly: 190, // From plan-config.ts yearlyPrice
     yearlyMonthly: 15.83, // 190 / 12
     name: 'Starter',
-    stripePriceId: 'price_1SY2bqKG9MsM6fdSlgkR5hNX',
-    stripePriceIdYearly: 'price_1SY2bxKG9MsM6fdSe78TX8fZ',
   },
   professional: {
     monthly: 49,
     yearly: 490, // From plan-config.ts yearlyPrice
     yearlyMonthly: 40.83, // 490 / 12
     name: 'Professional',
-    stripePriceId: 'price_1SY2cEKG9MsM6fdSTKND31Ti',
-    stripePriceIdYearly: 'price_1SY2cEKG9MsM6fdSDKL1gPye',
   },
   business: {
     monthly: 99,
     yearly: 990, // From plan-config.ts yearlyPrice
     yearlyMonthly: 82.50, // 990 / 12
     name: 'Business',
-    stripePriceId: 'price_1SY2cTKG9MsM6fdSwoQu1S5I',
-    stripePriceIdYearly: 'price_1SY2cUKG9MsM6fdShCcJvXO7',
   },
   enterprise: {
     monthly: 299,
     yearly: 2990, // From plan-config.ts yearlyPrice
     yearlyMonthly: 249.17, // 2990 / 12
     name: 'Enterprise',
-    stripePriceId: null, // Custom pricing via sales
-    stripePriceIdYearly: null,
+  },
+} as const;
+
+/**
+ * Plan limits - MUST match backend plan-config.ts (SINGLE SOURCE OF TRUTH)
+ */
+export const PLAN_LIMITS = {
+  free: {
+    designsPerMonth: 5,
+    teamMembers: 1,
+    storageGB: 0.5,
+    maxProducts: 2,
+    aiGenerations: 3,
+    apiAccess: false,
+    arEnabled: false,
+    whiteLabel: false,
+    advancedAnalytics: false,
+    customExport: false,
+    prioritySupport: false,
+  },
+  starter: {
+    designsPerMonth: 50,
+    teamMembers: 3,
+    storageGB: 5,
+    maxProducts: 10,
+    aiGenerations: 20,
+    apiAccess: false,
+    arEnabled: false,
+    whiteLabel: false,
+    advancedAnalytics: false,
+    customExport: false,
+    prioritySupport: false,
+  },
+  professional: {
+    designsPerMonth: 200,
+    teamMembers: 10,
+    storageGB: 25,
+    maxProducts: 50,
+    aiGenerations: 100,
+    apiAccess: true,
+    arEnabled: true,
+    whiteLabel: true,
+    advancedAnalytics: false,
+    customExport: false,
+    prioritySupport: true,
+  },
+  business: {
+    designsPerMonth: 1000,
+    teamMembers: 50,
+    storageGB: 100,
+    maxProducts: 500,
+    aiGenerations: 500,
+    apiAccess: true,
+    arEnabled: true,
+    whiteLabel: true,
+    advancedAnalytics: true,
+    customExport: true,
+    prioritySupport: true,
+  },
+  enterprise: {
+    designsPerMonth: -1, // unlimited
+    teamMembers: -1,
+    storageGB: -1,
+    maxProducts: -1,
+    aiGenerations: -1,
+    apiAccess: true,
+    arEnabled: true,
+    whiteLabel: true,
+    advancedAnalytics: true,
+    customExport: true,
+    prioritySupport: true,
   },
 } as const;
 

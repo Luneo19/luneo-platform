@@ -10,7 +10,7 @@ export class RateLimitGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     
     // Get API key from request (set by ApiKeyGuard)
-    const apiKey = request['apiKey'];
+    const apiKey = request.apiKey;
     if (!apiKey) {
       return true; // Let ApiKeyGuard handle authentication
     }

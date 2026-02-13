@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { RBACService } from '@/modules/security/services/rbac.service';
 import { Response } from 'express';
 
 describe('AuthController', () => {
@@ -29,13 +30,14 @@ describe('AuthController', () => {
     return res as Response;
   };
 
-  // Mock request object
-  const mockRequest = (userId?: string, ip?: string) => ({
-    user: userId ? { id: userId, email: 'test@example.com' } : undefined,
-    ip: ip || '127.0.0.1',
-    headers: { 'x-forwarded-for': ip || '127.0.0.1' },
-    cookies: {},
-  });
+  // Mock request object (partial - cast to AuthRequest in tests)
+  const mockRequest = (userId?: string, ip?: string) =>
+    ({
+      user: userId ? { id: userId, email: 'test@example.com' } : undefined,
+      ip: ip || '127.0.0.1',
+      headers: { 'x-forwarded-for': ip || '127.0.0.1' },
+      cookies: {},
+    }) as any;
 
   beforeEach(async () => {
     const mockAuthService = {
@@ -50,6 +52,7 @@ describe('AuthController', () => {
       forgotPassword: jest.fn(),
       resetPassword: jest.fn(),
       verifyEmail: jest.fn(),
+      getMe: jest.fn(),
     };
 
     const mockConfigService = {
@@ -64,11 +67,17 @@ describe('AuthController', () => {
       }),
     };
 
+    const mockRBACService = {
+      userHasPermission: jest.fn().mockResolvedValue(true),
+      getUserPermissions: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: RBACService, useValue: mockRBACService },
       ],
     }).compile();
 
@@ -437,19 +446,18 @@ describe('AuthController', () => {
         twoFactorEnabled: false,
       };
 
-      // Le contrôleur retourne directement req.user
-      const req = { user: mockUser, ip: '127.0.0.1', headers: {}, cookies: {} };
+      authService.getMe.mockResolvedValue(mockUser as any);
+      const req = { user: mockUser, ip: '127.0.0.1', headers: {}, cookies: {} } as any;
       const result = await controller.getProfile(req);
 
+      expect(authService.getMe).toHaveBeenCalledWith('user_123');
       expect(result).toEqual(mockUser);
     });
 
-    it('should return undefined if not authenticated', async () => {
-      // Si pas d'utilisateur dans la requête
-      const req = { user: undefined, ip: '127.0.0.1', headers: {}, cookies: {} };
-      const result = await controller.getProfile(req);
-
-      expect(result).toBeUndefined();
+    it('should throw when not authenticated (req.user missing)', async () => {
+      // Controller accesses req.user.id, so missing user causes throw
+      const req = { user: undefined, ip: '127.0.0.1', headers: {}, cookies: {} } as any;
+      await expect(controller.getProfile(req)).rejects.toThrow();
     });
   });
 });

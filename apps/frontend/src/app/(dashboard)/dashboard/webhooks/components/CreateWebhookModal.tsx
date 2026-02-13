@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useI18n } from '@/i18n/useI18n';
 
 const WEBHOOK_EVENTS = [
   { value: 'design.created', label: 'Design créé' },
@@ -45,6 +46,7 @@ export function CreateWebhookModal({
   onSubmit,
   isLoading = false,
 }: CreateWebhookModalProps) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [secret, setSecret] = useState('');
@@ -96,7 +98,7 @@ export function CreateWebhookModal({
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Mon webhook"
+              placeholder={t('common.myWebhook')}
               required
               className="bg-white/[0.04] border-white/[0.06] text-white"
             />

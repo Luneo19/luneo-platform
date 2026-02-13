@@ -57,7 +57,7 @@ export interface AuditLogData {
   action: AuditAction;
   resourceType?: string;
   resourceId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   success: boolean;
@@ -123,9 +123,9 @@ export class AuditLogService {
     endDate?: Date;
     limit?: number;
     offset?: number;
-  }): Promise<any[]> {
+  }): Promise<import('@prisma/client').AuditLog[]> {
     try {
-      const where: any = {};
+      const where: import('@prisma/client').Prisma.AuditLogWhereInput = {};
 
       if (filters.userId) {
         where.userId = filters.userId;
@@ -178,7 +178,7 @@ export class AuditLogService {
   /**
    * Get audit log by ID
    */
-  async getAuditLogById(id: string): Promise<any | null> {
+  async getAuditLogById(id: string): Promise<import('@prisma/client').AuditLog | null> {
     try {
       const log = await this.prisma.auditLog.findUnique({
         where: { id },

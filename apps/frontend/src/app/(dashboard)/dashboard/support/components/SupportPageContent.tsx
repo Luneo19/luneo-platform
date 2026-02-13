@@ -3,6 +3,7 @@
 import React, { memo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useI18n } from '@/i18n/useI18n';
 import { useSupportPage } from './useSupportPage';
 import { RESPONSE_TEMPLATES } from './constants';
 import {
@@ -23,6 +24,7 @@ import {
 } from './index';
 
 function SupportPageContentInner() {
+  const { t } = useI18n();
   const support = useSupportPage();
   const {
     tickets,
@@ -73,7 +75,7 @@ function SupportPageContentInner() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Chargement des tickets...</p>
+          <p className="text-white/60">{t('support.loadingTickets')}</p>
         </div>
       </div>
     );
@@ -99,10 +101,10 @@ function SupportPageContentInner() {
 
       <Tabs value={activeTab} onValueChange={(v) => support.setActiveTab(v as 'tickets' | 'knowledge' | 'templates' | 'analytics')} className="space-y-6">
         <TabsList className="bg-gray-50 border-gray-200">
-          <TabsTrigger value="tickets" className="data-[state=active]:bg-cyan-600">Tickets ({tickets.length})</TabsTrigger>
-          <TabsTrigger value="knowledge" className="data-[state=active]:bg-cyan-600">Base de connaissances ({support.knowledgeBase.length})</TabsTrigger>
-          <TabsTrigger value="templates" className="data-[state=active]:bg-cyan-600">Templates ({RESPONSE_TEMPLATES.length})</TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-cyan-600">Analytics</TabsTrigger>
+          <TabsTrigger value="tickets" className="data-[state=active]:bg-cyan-600">{t('support.tabs.tickets')} ({tickets.length})</TabsTrigger>
+          <TabsTrigger value="knowledge" className="data-[state=active]:bg-cyan-600">{t('support.tabs.knowledgeBase')} ({support.knowledgeBase.length})</TabsTrigger>
+          <TabsTrigger value="templates" className="data-[state=active]:bg-cyan-600">{t('support.tabs.templates')} ({RESPONSE_TEMPLATES.length})</TabsTrigger>
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-cyan-600">{t('support.tabs.analytics')}</TabsTrigger>
         </TabsList>
         <TabsContent value="tickets" className="space-y-6">
           <TicketsTab
@@ -160,7 +162,7 @@ function SupportPageContentInner() {
       />
       <TemplateDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} onUseTemplate={handleUseTemplate} />
       <CsatDialog open={showCSATDialog} onOpenChange={setShowCSATDialog} rating={csatRating} setRating={setCsatRating} comment={csatComment} setComment={setCsatComment} onSubmit={handleSubmitCSAT} ticketId={selectedTicket?.id ?? null} />
-      <ExportDialog open={showExportDialog} onOpenChange={support.setShowExportDialog} filterStatus={support.filterStatus} filterPriority={support.filterPriority} filterCategory={support.filterCategory} onExport={() => { support.toast({ title: 'Export', description: 'Export en cours...' }); support.setShowExportDialog(false); }} />
+      <ExportDialog open={showExportDialog} onOpenChange={support.setShowExportDialog} filterStatus={support.filterStatus} filterPriority={support.filterPriority} filterCategory={support.filterCategory} onExport={() => { support.toast({ title: t('common.export'), description: t('support.loading') }); support.setShowExportDialog(false); }} />
 
       <SupportFeatureSections />
       <SupportFeatureSectionsExtended />

@@ -22,7 +22,7 @@ import Image from 'next/image';
 interface Enable2FAModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEnable: (token?: string) => Promise<{ success: boolean; data?: any }>;
+  onEnable: (token?: string) => Promise<{ success: boolean; data?: unknown }>;
   isEnabling?: boolean;
   qrCode?: string;
   backupCodes?: string[];

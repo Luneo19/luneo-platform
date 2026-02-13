@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { useI18n } from '@/i18n/useI18n';
 import type { Plan } from '../data';
 
 export interface PricingPlanCardProps {
@@ -17,17 +18,18 @@ export interface PricingPlanCardProps {
 
 export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useI18n();
   const price = isYearly ? plan.priceYearlyMonthly : plan.priceMonthly;
   const displayPrice =
     price === null || price === undefined
-      ? 'Sur demande'
+      ? t('pricing.card.onRequest')
       : price === 0
-        ? 'Gratuit'
+        ? t('pricing.card.free')
         : `${Math.round(price)}€`;
   const period =
-    price === null || price === undefined || price === 0 ? '' : '/mois';
+    price === null || price === undefined || price === 0 ? '' : t('pricing.card.perMonth');
   const yearlyNote =
-    isYearly && price && price > 0 ? `Facturé ${plan.priceYearly}€/an` : null;
+    isYearly && price && price > 0 ? t('pricing.card.billedYearly', { amount: String(plan.priceYearly) }) : null;
 
   const handleClick = async () => {
     if (plan.id === 'free' || plan.id === 'starter') {
@@ -42,17 +44,17 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
     try {
       await onCheckout(plan.id);
     } catch (error: unknown) {
-      logger.error('Erreur lors de la création de la session checkout', error);
+      logger.error(t('pricing.card.checkoutError'), error);
       const err = error as { message?: string; error?: string };
       const errorMessage =
-        err?.message || err?.error || 'Une erreur est survenue. Veuillez réessayer.';
+        err?.message || err?.error || t('errors.generic');
       if (
         errorMessage.includes('rate limit') ||
         errorMessage.includes('max requests')
       ) {
         toast({
-          title: 'Trop de requêtes',
-          description: 'Veuillez patienter quelques instants avant de réessayer.',
+          title: t('pricing.card.rateLimit'),
+          description: t('pricing.card.rateLimitDesc'),
           variant: 'destructive',
         });
       } else if (
@@ -60,13 +62,13 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
         errorMessage.includes('Stripe')
       ) {
         toast({
-          title: 'Erreur de configuration',
-          description: 'Veuillez contacter le support.',
+          title: t('pricing.card.configError'),
+          description: t('pricing.card.configErrorDesc'),
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Erreur',
+          title: t('pricing.card.error'),
           description: errorMessage,
           variant: 'destructive',
         });
@@ -88,23 +90,23 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
 
       <div className="mb-6">
         <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-        <p className="mt-2 text-sm text-slate-400">{plan.description}</p>
+        <p className="mt-2 text-sm text-slate-300">{plan.description}</p>
       </div>
 
       <div className="mb-6">
         <div className="flex items-baseline">
           <span className="text-4xl font-bold text-white font-display">{displayPrice}</span>
-          {period && <span className="ml-2 text-lg text-slate-400">{period}</span>}
+          {period && <span className="ml-2 text-lg text-slate-300">{period}</span>}
         </div>
         {yearlyNote && (
-          <p className="mt-1 text-sm text-slate-500">{yearlyNote}</p>
+          <p className="mt-1 text-sm text-slate-300">{yearlyNote}</p>
         )}
         {isYearly &&
           price !== null &&
           price !== undefined &&
           price > 0 && (
             <p className="mt-1 text-sm font-medium text-green-400">
-              Économisez 20% avec l&apos;abonnement annuel
+              {t('pricing.card.save20')}
             </p>
           )}
       </div>
@@ -122,7 +124,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Chargement...
+            {t('pricing.card.loading')}
           </>
         ) : (
           plan.cta

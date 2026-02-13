@@ -14,6 +14,7 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TeamPageClient } from './TeamPageClient';
 import { TeamSkeleton } from './components/TeamSkeleton';
+import { NotAuthenticatedMessage } from '../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'Équipe | Luneo',
@@ -31,7 +32,7 @@ export default async function TeamPage() {
     return (
       <ErrorBoundary level="page" componentName="TeamPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

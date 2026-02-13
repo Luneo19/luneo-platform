@@ -1,25 +1,30 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Card } from '@/components/ui/card';
 import { formatNumber, formatPrice } from '@/lib/utils/formatters';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Activity, DollarSign, Gift, Target, TrendingUp, Users } from 'lucide-react';
 import type { AffiliateStats } from './types';
 
-const STATS = [
-  { label: 'Référents', key: 'totalReferrals' as const, icon: Users, color: 'blue', format: (v: number) => formatNumber(v) },
-  { label: 'Actifs', key: 'activeReferrals' as const, icon: Activity, color: 'green', format: (v: number) => formatNumber(v) },
-  { label: 'Conversions', key: 'totalConversions' as const, icon: Target, color: 'purple', format: (v: number) => formatNumber(v) },
-  { label: 'Revenus', key: 'totalRevenue' as const, icon: DollarSign, color: 'green', format: (v: number) => formatPrice(v) },
-  { label: 'Commissions', key: 'totalCommissions' as const, icon: Gift, color: 'yellow', format: (v: number) => formatPrice(v) },
-  { label: 'Taux conversion', key: 'conversionRate' as const, icon: TrendingUp, color: 'cyan', format: (v: number) => `${v.toFixed(1)}%` },
-];
+function getStatsLabels(t: (key: string) => string) {
+  return [
+    { label: t('affiliate.stats.referrals'), key: 'totalReferrals' as const, icon: Users, color: 'blue', format: (v: number) => formatNumber(v) },
+    { label: 'Actifs', key: 'activeReferrals' as const, icon: Activity, color: 'green', format: (v: number) => formatNumber(v) },
+    { label: 'Conversions', key: 'totalConversions' as const, icon: Target, color: 'purple', format: (v: number) => formatNumber(v) },
+    { label: t('affiliate.stats.earnings'), key: 'totalRevenue' as const, icon: DollarSign, color: 'green', format: (v: number) => formatPrice(v) },
+    { label: t('affiliate.stats.commissions'), key: 'totalCommissions' as const, icon: Gift, color: 'yellow', format: (v: number) => formatPrice(v) },
+    { label: t('affiliate.stats.conversionRate'), key: 'conversionRate' as const, icon: TrendingUp, color: 'cyan', format: (v: number) => `${v.toFixed(1)}%` },
+  ];
+}
 
 interface AffiliateStatsCardsProps {
   stats: AffiliateStats;
 }
 
 export function AffiliateStatsCards({ stats }: AffiliateStatsCardsProps) {
+  const { t } = useI18n();
+  const STATS = getStatsLabels(t);
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
       {STATS.map((stat, index) => {

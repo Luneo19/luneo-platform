@@ -8,18 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { CreditCard, Plus, Trash2 } from 'lucide-react';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
+import { useI18n } from '@/i18n/useI18n';
 
 export function PaymentMethodsSection() {
+  const { t } = useI18n();
   const { paymentMethods, isLoading, addPaymentMethod, deletePaymentMethod } = usePaymentMethods();
 
   if (isLoading) {
     return (
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Méthodes de paiement</CardTitle>
+          <CardTitle className="text-gray-900">{t('dashboard.billing.paymentMethods')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-gray-600">{t('dashboard.common.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -32,21 +34,21 @@ export function PaymentMethodsSection() {
           <div>
             <CardTitle className="text-gray-900 flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-cyan-400" />
-              Méthodes de paiement
+              {t('dashboard.billing.paymentMethods')}
             </CardTitle>
             <CardDescription className="text-gray-600 mt-1">
-              Gérez vos cartes de crédit et méthodes de paiement
+              {t('dashboard.billing.paymentMethodsDescription')}
             </CardDescription>
           </div>
           <Button onClick={() => addPaymentMethod()} className="bg-cyan-600 hover:bg-cyan-700">
             <Plus className="w-4 h-4 mr-2" />
-            Ajouter une carte
+            {t('dashboard.billing.addCard')}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {paymentMethods.length === 0 ? (
-          <p className="text-gray-600">Aucune méthode de paiement enregistrée</p>
+          <p className="text-gray-600">{t('dashboard.billing.noPaymentMethods')}</p>
         ) : (
           <div className="space-y-3">
             {paymentMethods.map((method) => (
@@ -63,12 +65,12 @@ export function PaymentMethodsSection() {
                       </p>
                       {method.isDefault && (
                         <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded">
-                          Par défaut
+                          {t('dashboard.billing.default')}
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-600">
-                      Expire {String(method.card.expMonth).padStart(2, '0')}/{method.card.expYear}
+                      {t('dashboard.billing.expire')} {String(method.card.expMonth).padStart(2, '0')}/{method.card.expYear}
                     </p>
                   </div>
                 </div>

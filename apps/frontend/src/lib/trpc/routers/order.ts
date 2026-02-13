@@ -27,7 +27,7 @@ const OrderItemSchema = z.object({
   quantity: z.number().int().positive(),
   price: z.number().nonnegative(),
   totalPrice: z.number().nonnegative(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const ShippingAddressSchema = z.object({
@@ -46,7 +46,7 @@ const CreateOrderSchema = z.object({
   billingAddress: ShippingAddressSchema.optional(),
   paymentMethodId: z.string().optional(),
   customerNotes: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const UpdateOrderSchema = z.object({
@@ -55,7 +55,7 @@ const UpdateOrderSchema = z.object({
   trackingNumber: z.string().optional(),
   shippingProvider: z.string().optional(),
   notes: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 // ========================================
@@ -113,14 +113,14 @@ export const orderRouter = router({
         },
       };
 
-      const order = await api.post<{
+      interface OrderApiResponse {
         id: string;
         orderNumber?: string;
         status: string;
         customerEmail?: string;
         customerName?: string;
         customerPhone?: string;
-        shippingAddress?: any;
+        shippingAddress?: Record<string, unknown>;
         subtotalCents?: number;
         taxCents?: number;
         shippingCents?: number;
@@ -128,15 +128,16 @@ export const orderRouter = router({
         currency?: string;
         paymentStatus?: string;
         notes?: string;
-        metadata?: any;
+        metadata?: Record<string, unknown>;
         userId?: string;
         brandId?: string;
         designId?: string;
         productId?: string;
-        items?: any[];
+        items?: Array<Record<string, unknown>>;
         createdAt?: string;
         updatedAt?: string;
-      }>('/api/v1/orders', createBody);
+      }
+      const order = await api.post<OrderApiResponse>('/api/v1/orders', createBody);
 
       logger.info('Order created', { orderId: order.id, orderNumber: order.orderNumber });
 
@@ -248,7 +249,7 @@ export const orderRouter = router({
         throw new Error('Cannot cancel delivered order');
       }
 
-      const order = await endpoints.orders.cancel(input.id);
+      const order = await endpoints.orders.cancel(input.id, input.reason);
 
       logger.info('Order cancelled', { orderId: input.id, reason: input.reason });
 

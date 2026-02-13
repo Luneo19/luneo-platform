@@ -75,7 +75,7 @@ export class MetaAdsClient {
       throw new Error(`Meta API Error: ${data.error.message}`);
     }
 
-    return (data.data || []).map((campaign: any) => ({
+    return (data.data || []).map((campaign: Record<string, unknown>) => ({
       id: campaign.id,
       name: campaign.name,
       status: campaign.status,
@@ -122,8 +122,8 @@ export class MetaAdsClient {
     const actionValues = insights.action_values || [];
 
     // Extraire les conversions
-    const purchaseAction = actions.find((a: any) => a.action_type === 'purchase') || {};
-    const purchaseValue = actionValues.find((a: any) => a.action_type === 'purchase') || {};
+    const purchaseAction = actions.find((a: Record<string, unknown>) => a.action_type === 'purchase') || {};
+    const purchaseValue = actionValues.find((a: Record<string, unknown>) => a.action_type === 'purchase') || {};
 
     return {
       impressions: parseInt(insights.impressions || 0),

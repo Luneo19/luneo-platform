@@ -134,10 +134,11 @@ export function useDashboardUsage(
       const designLikes: Record<string, number> = {};
 
       try {
-        const usageRes = await api.get<{ views?: number; totalViews?: number; viewsChange?: string; data?: unknown }>('/api/v1/analytics/usage', {
+        type UsageApiResponse = { views?: number; totalViews?: number; viewsChange?: string; data?: unknown };
+        const usageRes = await api.get<UsageApiResponse>('/api/v1/analytics/usage', {
           params: { startDate, endDate },
         }).catch(() => ({}));
-        const usageRaw = usageRes && typeof usageRes === 'object' && 'data' in usageRes ? (usageRes as { data?: unknown }).data : usageRes;
+        const usageRaw = usageRes && typeof usageRes === 'object' && 'data' in usageRes ? usageRes.data : usageRes;
         const usage = usageRaw as Record<string, unknown> | undefined;
         views = Number(usage?.views ?? usage?.totalViews ?? 0);
         viewsChange = typeof usage?.viewsChange === 'string' ? (usage.viewsChange as string) : '+0%';
@@ -146,10 +147,11 @@ export function useDashboardUsage(
       }
 
       try {
-        const downloadsRes = await api.get<{ total?: number; pagination?: { total: number }; data?: { total?: number; pagination?: { total: number } } }>('/api/v1/downloads', {
+        type DownloadsApiResponse = { total?: number; pagination?: { total: number }; data?: { total?: number; pagination?: { total: number } } };
+        const downloadsRes = await api.get<DownloadsApiResponse>('/api/v1/downloads', {
           params: { limit: 1, startDate, endDate },
         }).catch(() => ({}));
-        const dlRaw = downloadsRes && typeof downloadsRes === 'object' && 'data' in downloadsRes ? (downloadsRes as { data?: unknown }).data : downloadsRes;
+        const dlRaw = downloadsRes && typeof downloadsRes === 'object' && 'data' in downloadsRes ? downloadsRes.data : downloadsRes;
         const dlData = dlRaw as Record<string, unknown> | undefined;
         downloads = Number((dlData?.pagination as { total?: number } | undefined)?.total ?? dlData?.total ?? 0);
         downloadsChange = '+0%';

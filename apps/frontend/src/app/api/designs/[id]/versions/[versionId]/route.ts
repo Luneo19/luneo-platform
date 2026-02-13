@@ -1,7 +1,7 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { idSchema } from '@/lib/validation/zod-schemas';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { apiRateLimit } from '@/lib/rate-limit';
@@ -47,7 +47,7 @@ export async function GET(
       if (backendResponse.status === 404) {
         throw { status: 404, message: 'Version non trouvée', code: 'VERSION_NOT_FOUND' };
       }
-      logger.error('Failed to fetch design version', {
+      serverLogger.error('Failed to fetch design version', {
         designId,
         versionId,
         userId: user.id,
@@ -57,7 +57,7 @@ export async function GET(
     }
 
     const { version } = await backendResponse.json();
-    logger.info('Design version fetched', {
+    serverLogger.info('Design version fetched', {
       designId,
       versionId,
       userId: user.id,
@@ -122,7 +122,7 @@ export async function POST(
       if (backendResponse.status === 404) {
         throw { status: 404, message: 'Version non trouvée', code: 'VERSION_NOT_FOUND' };
       }
-      logger.error('Failed to restore design version', {
+      serverLogger.error('Failed to restore design version', {
         designId,
         versionId,
         userId: user.id,
@@ -132,7 +132,7 @@ export async function POST(
     }
 
     const result = await backendResponse.json();
-    logger.info('Design version restored', {
+    serverLogger.info('Design version restored', {
       designId,
       versionId,
       restoredVersionId: result.version?.id,
@@ -198,7 +198,7 @@ export async function DELETE(
       if (backendResponse.status === 404) {
         throw { status: 404, message: 'Version non trouvée', code: 'VERSION_NOT_FOUND' };
       }
-      logger.error('Failed to delete design version', {
+      serverLogger.error('Failed to delete design version', {
         designId,
         versionId,
         userId: user.id,
@@ -208,7 +208,7 @@ export async function DELETE(
     }
 
     const result = await backendResponse.json();
-    logger.info('Design version deleted', {
+    serverLogger.info('Design version deleted', {
       designId,
       versionId,
       userId: user.id,

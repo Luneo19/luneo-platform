@@ -160,23 +160,23 @@ export class QCSystemService {
   /**
    * Génère la raison de quarantaine
    */
-  private generateQuarantineReason(artisan: any): string {
+  private generateQuarantineReason(artisan: { defectRate?: number; returnRate?: number; onTimeDeliveryRate?: number; qualityScore?: number }): string {
     const reasons: string[] = [];
 
-    if (artisan.defectRate >= this.QUARANTINE_THRESHOLDS.defectRate) {
-      reasons.push(`High defect rate: ${(artisan.defectRate * 100).toFixed(1)}%`);
+    if ((artisan.defectRate ?? 0) >= this.QUARANTINE_THRESHOLDS.defectRate) {
+      reasons.push(`High defect rate: ${((artisan.defectRate ?? 0) * 100).toFixed(1)}%`);
     }
 
-    if (artisan.returnRate >= this.QUARANTINE_THRESHOLDS.returnRate) {
-      reasons.push(`High return rate: ${(artisan.returnRate * 100).toFixed(1)}%`);
+    if ((artisan.returnRate ?? 0) >= this.QUARANTINE_THRESHOLDS.returnRate) {
+      reasons.push(`High return rate: ${((artisan.returnRate ?? 0) * 100).toFixed(1)}%`);
     }
 
-    if (artisan.onTimeDeliveryRate < this.QUARANTINE_THRESHOLDS.onTimeRate) {
-      reasons.push(`Low on-time rate: ${(artisan.onTimeDeliveryRate * 100).toFixed(1)}%`);
+    if ((artisan.onTimeDeliveryRate ?? 0) < this.QUARANTINE_THRESHOLDS.onTimeRate) {
+      reasons.push(`Low on-time rate: ${((artisan.onTimeDeliveryRate ?? 0) * 100).toFixed(1)}%`);
     }
 
-    if (artisan.qualityScore < this.QUARANTINE_THRESHOLDS.qualityScore) {
-      reasons.push(`Low quality score: ${artisan.qualityScore.toFixed(1)}/5`);
+    if ((artisan.qualityScore ?? 0) < this.QUARANTINE_THRESHOLDS.qualityScore) {
+      reasons.push(`Low quality score: ${(artisan.qualityScore ?? 0).toFixed(1)}/5`);
     }
 
     return reasons.join(', ');

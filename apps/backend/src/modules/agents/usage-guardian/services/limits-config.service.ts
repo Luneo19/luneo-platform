@@ -20,7 +20,7 @@ import {
 
 // Re-export AgentLimits as PlanLimits for backward compatibility
 export type PlanLimits = AgentLimits;
-export type PlanId = 'free' | 'starter' | 'professional' | 'enterprise';
+export type PlanId = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
 
 /**
  * Agent limits derived from the centralized plan config.
@@ -30,6 +30,7 @@ const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
   free: PLAN_CONFIGS[PlanTier.FREE].agentLimits,
   starter: PLAN_CONFIGS[PlanTier.STARTER].agentLimits,
   professional: PLAN_CONFIGS[PlanTier.PROFESSIONAL].agentLimits,
+  business: PLAN_CONFIGS[PlanTier.BUSINESS].agentLimits,
   enterprise: PLAN_CONFIGS[PlanTier.ENTERPRISE].agentLimits,
 };
 
@@ -73,12 +74,11 @@ export class LimitsConfigService {
    */
   private normalizePlanId(planId: string | null | undefined): PlanId {
     const tier = normalizePlanTier(planId);
-    // Map PlanTier -> PlanId (PlanId n'a pas 'business', on fallback sur 'professional')
     const tierToPlanId: Record<string, PlanId> = {
       [PlanTier.FREE]: 'free',
       [PlanTier.STARTER]: 'starter',
       [PlanTier.PROFESSIONAL]: 'professional',
-      [PlanTier.BUSINESS]: 'professional',
+      [PlanTier.BUSINESS]: 'business',
       [PlanTier.ENTERPRISE]: 'enterprise',
     };
     return tierToPlanId[tier] ?? 'free';

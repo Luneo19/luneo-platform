@@ -70,14 +70,14 @@ export async function uploadContextFile(
  */
 export async function getContextFiles(contextId?: string): Promise<ContextFile[]> {
   try {
-    const data = await api.get<{ success?: boolean; error?: string; message?: string; data?: { files?: any[] } }>(
+    const data = await api.get<{ success?: boolean; error?: string; message?: string; data?: { files?: Record<string, unknown>[] } }>(
       '/api/v1/chat/other-files-context',
       contextId ? { params: { contextId } } : undefined
     );
     if (data && (data as { success?: boolean }).success === false) {
       throw new Error((data as { error?: string }).error || (data as { message?: string }).message || 'Erreur lors de la récupération');
     }
-    const files = (data as { data?: { files?: any[] } })?.data?.files ?? [];
+    const files = (data as { data?: { files?: Record<string, unknown>[] } })?.data?.files ?? [];
     return files.map((file: Record<string, unknown>) => ({
       id: String(file.id ?? `file-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`),
       fileName: String(file.file_name ?? file.fileName ?? ''),

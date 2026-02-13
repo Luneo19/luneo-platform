@@ -3,6 +3,8 @@
  * Schema.org markup for better search engine understanding
  */
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 export interface OrganizationSchema {
   '@context': string;
   '@type': string;
@@ -71,8 +73,8 @@ export function generateOrganizationSchema(): OrganizationSchema {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'Luneo',
-    url: 'https://luneo.app',
-    logo: 'https://luneo.app/logo.png',
+    url: APP_URL,
+    logo: `${APP_URL}/logo.png`,
     description: 'Plateforme de personnalisation produits avec éditeur 2D/3D, Virtual Try-On AR, et export print-ready',
     sameAs: [
       'https://twitter.com/luneo_app',
@@ -82,7 +84,7 @@ export function generateOrganizationSchema(): OrganizationSchema {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',
       email: 'contact@luneo.app',
-      url: 'https://luneo.app/contact',
+      url: `${APP_URL}/contact`,
     },
   };
 }
@@ -95,12 +97,12 @@ export function generateWebSiteSchema(): WebSiteSchema {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Luneo Platform',
-    url: 'https://luneo.app',
+    url: APP_URL,
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://luneo.app/search?q={search_term_string}',
+        urlTemplate: `${APP_URL}/search?q={search_term_string}`,
       },
       'query-input': 'required name=search_term_string',
     },
@@ -120,7 +122,7 @@ export function generateProductSchema(
     '@type': 'SoftwareApplication',
     name,
     description,
-    image: image || 'https://luneo.app/og-image.png',
+    image: image || `${APP_URL}/og-image.png`,
     brand: {
       '@type': 'Brand',
       name: 'Luneo',

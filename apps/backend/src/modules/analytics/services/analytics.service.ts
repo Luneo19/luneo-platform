@@ -176,7 +176,7 @@ export class AnalyticsService {
       by: ['productId'],
       where: {
         brandId,
-        productId: { not: null },
+        productId: { not: null } as unknown as Prisma.DesignWhereInput['productId'],
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -198,6 +198,7 @@ export class AnalyticsService {
       ? await this.prisma.product.findMany({
           where: { id: { in: productIds } },
           select: { id: true, name: true },
+          take: 100,
         })
       : [];
     const productMap = new Map(products.map(product => [product.id, product.name]));
@@ -205,7 +206,7 @@ export class AnalyticsService {
     return results.map(item => ({
       productId: item.productId as string,
       name: productMap.get(item.productId as string) || 'Produit',
-      designs: item._count.id,
+      designs: (item._count && 'id' in item._count ? item._count.id : 0) as number,
     }));
   }
 
@@ -328,7 +329,7 @@ export class AnalyticsService {
       ? `totalDesigns:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `totalDesigns:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<number>(
+    return (await this.cache.get<number>(
       cacheKey,
       'analytics',
       async () => {
@@ -343,7 +344,7 @@ export class AnalyticsService {
         });
       },
       { ttl: this.CACHE_TTL },
-    ) || 0;
+    )) ?? 0;
   }
 
   /**
@@ -359,7 +360,7 @@ export class AnalyticsService {
       ? `totalRenders:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `totalRenders:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<number>(
+    return (await this.cache.get<number>(
       cacheKey,
       'analytics',
       async () => {
@@ -392,7 +393,7 @@ export class AnalyticsService {
         });
       },
       { ttl: this.CACHE_TTL },
-    ) || 0;
+    )) ?? 0;
   }
 
   /**
@@ -408,7 +409,7 @@ export class AnalyticsService {
       ? `activeUsers:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `activeUsers:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<number>(
+    return (await this.cache.get<number>(
       cacheKey,
       'analytics',
       async () => {
@@ -428,7 +429,7 @@ export class AnalyticsService {
         return uniqueUsers.length;
       },
       { ttl: this.CACHE_TTL },
-    ) || 0;
+    )) ?? 0;
   }
 
   /**
@@ -444,7 +445,7 @@ export class AnalyticsService {
       ? `revenue:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `revenue:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<number>(
+    return (await this.cache.get<number>(
       cacheKey,
       'analytics',
       async () => {
@@ -467,7 +468,7 @@ export class AnalyticsService {
         return totalCents / 100; // Convertir en euros
       },
       { ttl: this.CACHE_TTL },
-    ) || 0;
+    )) ?? 0;
   }
 
   /**
@@ -483,7 +484,7 @@ export class AnalyticsService {
       ? `orders:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `orders:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<number>(
+    return (await this.cache.get<number>(
       cacheKey,
       'analytics',
       async () => {
@@ -499,7 +500,7 @@ export class AnalyticsService {
         });
       },
       { ttl: this.CACHE_TTL },
-    ) || 0;
+    )) ?? 0;
   }
 
   /**
@@ -515,7 +516,7 @@ export class AnalyticsService {
       ? `designsOverTime:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `designsOverTime:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<Array<{ date: string; count: number }>>(
+    return (await this.cache.get<Array<{ date: string; count: number }>>(
       cacheKey,
       'analytics',
       async () => {
@@ -549,7 +550,7 @@ export class AnalyticsService {
         }));
       },
       { ttl: this.CACHE_TTL },
-    ) || [];
+    )) ?? [];
   }
 
   /**
@@ -565,7 +566,7 @@ export class AnalyticsService {
       ? `revenueOverTime:${brandId}:${startDate.toISOString()}:${endDate.toISOString()}`
       : `revenueOverTime:${startDate.toISOString()}:${endDate.toISOString()}`;
     
-    return this.cache.get<Array<{ date: string; amount: number }>>(
+    return (await this.cache.get<Array<{ date: string; amount: number }>>(
       cacheKey,
       'analytics',
       async () => {
@@ -601,7 +602,7 @@ export class AnalyticsService {
         }));
       },
       { ttl: this.CACHE_TTL },
-    ) || [];
+    )) ?? [];
   }
 
   /**
@@ -629,6 +630,7 @@ export class AnalyticsService {
       orderBy: {
         timestamp: 'asc',
       },
+      take: 1000,
     });
 
     if (viewsMetrics.length > 0) {
@@ -660,6 +662,7 @@ export class AnalyticsService {
       orderBy: {
         createdAt: 'asc',
       },
+      take: 1000,
     });
 
     // ✅ Grouper avec typage strict
@@ -946,7 +949,7 @@ export class AnalyticsService {
       const { startDate, endDate } = this.getPeriodDates(period);
       const cacheKey = `topPages:${period}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
-      return this.cache.get<{ pages: PageStats[] }>(
+      return (await this.cache.get<{ pages: PageStats[] }>(
         cacheKey,
         'analytics',
         async () => {
@@ -985,9 +988,9 @@ export class AnalyticsService {
           return { pages };
         },
         { ttl: this.CACHE_TTL },
-      ) || { pages: [] };
+      )) ?? { pages: [] };
     } catch (error) {
-      this.logger.error(`Failed to get top pages: ${error.message}`);
+      this.logger.error(`Failed to get top pages: ${error instanceof Error ? error.message : 'Unknown'}`);
       return { pages: [] };
     }
   }
@@ -1006,7 +1009,7 @@ export class AnalyticsService {
       const { startDate, endDate } = this.getPeriodDates(period);
       const cacheKey = `topCountries:${period}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
-      return this.cache.get<{ countries: CountryStats[] }>(
+      return (await this.cache.get<{ countries: CountryStats[] }>(
         cacheKey,
         'analytics',
         async () => {
@@ -1021,6 +1024,7 @@ export class AnalyticsService {
             select: {
               location: true,
             },
+            take: 1000,
           });
 
           // ✅ Extraire les pays depuis location JSON avec typage strict
@@ -1095,9 +1099,9 @@ export class AnalyticsService {
           return { countries };
         },
         { ttl: this.CACHE_TTL },
-      ) || { countries: [] };
+      )) ?? { countries: [] };
     } catch (error) {
-      this.logger.error(`Failed to get top countries: ${error.message}`);
+      this.logger.error(`Failed to get top countries: ${error instanceof Error ? error.message : 'Unknown'}`);
       return { countries: [] };
     }
   }
@@ -1129,6 +1133,7 @@ export class AnalyticsService {
           timestamp: true,
         },
         distinct: ['sessionId'],
+        take: 1000,
       });
 
       // ✅ Grouper par tranches de 5 minutes avec typage strict
@@ -1145,7 +1150,7 @@ export class AnalyticsService {
         if (!timeSlots[slotKey]) {
           timeSlots[slotKey] = new Set();
         }
-        timeSlots[slotKey].add(session.sessionId);
+        timeSlots[slotKey].add(session.sessionId ?? '');
       });
 
       // Convertir en array et formater
@@ -1310,6 +1315,7 @@ export class AnalyticsService {
         orderBy: {
           timestamp: 'asc',
         },
+        take: 1000,
       });
 
       if (sessions.length === 0) {

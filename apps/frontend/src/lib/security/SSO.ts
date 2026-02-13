@@ -69,10 +69,10 @@ export class SSOService {
     try {
       const { api } = await import('@/lib/api/client');
       const response = await api.get<{ data?: { settings?: BrandSettings } }>(`/api/v1/brands/${brandId}`).catch(() => null);
-      const brand = response?.data;
+      const settings = response?.data?.settings;
 
-      if (brand?.data?.settings?.sso) {
-        return brand.data.settings.sso as SSOConfig;
+      if (settings?.sso) {
+        return settings.sso as SSOConfig;
       }
 
       return null;
@@ -90,7 +90,7 @@ export class SSOService {
       logger.info('Updating SSO config', { brandId, provider: config.provider });
 
       const { api } = await import('@/lib/api/client');
-      const response = await api.get<{ settings?: BrandSettings }>(`/api/v1/brands/${brandId}`).catch(() => null);
+      const response = await api.get<{ data?: { settings?: BrandSettings } }>(`/api/v1/brands/${brandId}`).catch(() => null);
       const body = response?.data;
       const currentSettings: BrandSettings = { ...(body?.settings ?? {}), sso: config };
 
@@ -140,7 +140,7 @@ export class SSOService {
     // In production, use a library like saml2-js or xmlbuilder
     const requestId = `_${crypto.randomBytes(16).toString('hex')}`;
     const issueInstant = new Date().toISOString();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:3000');
     const entityId = config.entityId || appUrl;
     const acsUrl = `${appUrl}/api/auth/saml/callback`;
 

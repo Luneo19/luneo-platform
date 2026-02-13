@@ -50,7 +50,7 @@ export function FAQSection() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
             Questions fréquentes
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Tout ce que vous devez savoir sur Luneo
           </p>
         </FadeIn>
@@ -74,7 +74,7 @@ export function FAQSection() {
                     {openIndex === index ? (
                       <ChevronUp className="w-5 h-5 text-purple-400 flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <ChevronDown className="w-5 h-5 text-gray-300 flex-shrink-0" />
                     )}
                   </button>
                   <AnimatePresence initial={false}>

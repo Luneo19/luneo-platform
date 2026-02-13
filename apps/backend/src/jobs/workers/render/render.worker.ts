@@ -4,16 +4,18 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ExportService } from '@/modules/render/services/export.service';
 import { Render2DService } from '@/modules/render/services/render-2d.service';
 import { Render3DService } from '@/modules/render/services/render-3d.service';
+import { RenderRequest, RenderOptions, ExportSettings } from '@/modules/render/interfaces/render.interface';
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { Prisma } from '@prisma/client';
 
 interface RenderJobData {
   renderId: string;
   type: '2d' | '3d' | 'preview' | 'export';
   productId: string;
   designId?: string;
-  options: any;
+  options: Record<string, unknown>;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   userId?: string;
   brandId: string;
@@ -63,12 +65,12 @@ export class RenderWorker {
       });
 
       // Créer la requête de rendu
-      const renderRequest = {
+      const renderRequest: RenderRequest = {
         id: renderId,
-        type: '2d' as const,
+        type: '2d',
         productId,
         designId,
-        options,
+        options: options as unknown as RenderOptions,
         priority,
       };
 
@@ -128,16 +130,16 @@ export class RenderWorker {
 
     } catch (error) {
       clearTimeout(timeout);
-      this.logger.error(`2D render failed for ${renderId}:`, error);
+      this.logger.error('Render failed', { error });
       
       await this.updateRenderProgress(job, {
         stage: 'error',
         percentage: 0,
-        message: `Erreur: ${error.message}`,
+        message: 'Render processing failed',
         timestamp: new Date(),
       });
 
-      await this.saveRenderError(renderId, error.message);
+      await this.saveRenderError(renderId, 'Render processing failed');
 
       // Publier événement d'erreur via Outbox
       await this.outboxService.publish('render.failed', {
@@ -147,7 +149,7 @@ export class RenderWorker {
         userId,
         productId,
         designId,
-        error: error.message,
+        error: 'Render processing failed',
         failedAt: new Date(),
       });
 
@@ -172,12 +174,12 @@ export class RenderWorker {
       });
 
       // Créer la requête de rendu
-      const renderRequest = {
+      const renderRequest: RenderRequest = {
         id: renderId,
-        type: '3d' as const,
+        type: '3d',
         productId,
         designId,
-        options,
+        options: options as unknown as RenderOptions,
         priority,
       };
 
@@ -229,16 +231,16 @@ export class RenderWorker {
       };
 
     } catch (error) {
-      this.logger.error(`3D render failed for ${renderId}:`, error);
+      this.logger.error('Render failed', { error });
       
       await this.updateRenderProgress(job, {
         stage: 'error',
         percentage: 0,
-        message: `Erreur: ${error.message}`,
+        message: 'Render processing failed',
         timestamp: new Date(),
       });
 
-      await this.saveRenderError(renderId, error.message);
+      await this.saveRenderError(renderId, 'Render processing failed');
       throw error;
     }
   }
@@ -252,11 +254,13 @@ export class RenderWorker {
       this.logger.log(`Starting preview render for ${renderId}`);
 
       // Optimiser les options pour la prévisualisation
-      const previewOptions = {
-        ...options,
+      const width = typeof options.width === 'number' ? options.width : 800;
+      const height = typeof options.height === 'number' ? options.height : 600;
+      const previewOptions: RenderOptions = {
+        ...(options as Partial<RenderOptions>),
         quality: 'draft',
-        width: Math.min(options.width || 800, 800),
-        height: Math.min(options.height || 600, 600),
+        width: Math.min(width, 800),
+        height: Math.min(height, 600),
         antialiasing: false,
         shadows: false,
       };
@@ -266,9 +270,9 @@ export class RenderWorker {
       const renderType = product?.model3dUrl ? '3d' : '2d';
 
       // Créer la requête de rendu (renderType is '2d' | '3d', compatible with RenderRequest.type)
-      const renderRequest = {
+      const renderRequest: RenderRequest = {
         id: renderId,
-        type: renderType as '2d' | '3d',
+        type: renderType,
         productId,
         designId,
         options: previewOptions,
@@ -298,8 +302,8 @@ export class RenderWorker {
       };
 
     } catch (error) {
-      this.logger.error(`Preview render failed for ${renderId}:`, error);
-      await this.saveRenderError(renderId, error.message);
+      this.logger.error('Render failed', { error });
+      await this.saveRenderError(renderId, 'Render processing failed');
       throw error;
     }
   }
@@ -339,7 +343,7 @@ export class RenderWorker {
         timestamp: new Date(),
       });
 
-      const exportResult = await this.exportService.exportAssets(assets, options);
+      const exportResult = await this.exportService.exportAssets(assets, options as unknown as ExportSettings);
 
       // Finaliser l'export
       await this.updateRenderProgress(job, {
@@ -371,16 +375,16 @@ export class RenderWorker {
       };
 
     } catch (error) {
-      this.logger.error(`Asset export failed for ${renderId}:`, error);
+      this.logger.error('Render failed', { error });
       
       await this.updateRenderProgress(job, {
         stage: 'error',
         percentage: 0,
-        message: `Erreur: ${error.message}`,
+        message: 'Render processing failed',
         timestamp: new Date(),
       });
 
-      await this.saveRenderError(renderId, error.message);
+      await this.saveRenderError(renderId, 'Render processing failed');
       throw error;
     }
   }
@@ -425,12 +429,12 @@ export class RenderWorker {
             completed++;
             return result;
           } catch (error) {
-            this.logger.error(`Batch render failed for ${renderData.renderId}:`, error);
+            this.logger.error('Render failed', { error });
             completed++;
             return {
               renderId: renderData.renderId,
               status: 'failed',
-              error: error instanceof Error ? error.message : String(error),
+              error: 'Render processing failed',
             };
           }
         });
@@ -490,13 +494,19 @@ export class RenderWorker {
   /**
    * Met à jour le progrès du batch
    */
-  private async updateBatchProgress(batchId: string, progress: any): Promise<void> {
+  private async updateBatchProgress(batchId: string, progress: Record<string, unknown>): Promise<void> {
+    const completed = (progress.completed as number) ?? 0;
+    const total = (progress.total as number) ?? 0;
+    const percentage = (progress.percentage as number) ?? 0;
     await this.prisma.batchRenderProgress.upsert({
       where: { batchId },
-      update: progress,
+      update: progress as Prisma.BatchRenderProgressUpdateInput,
       create: {
         batchId,
-        ...progress,
+        completed,
+        total,
+        percentage,
+        ...(progress.results !== undefined && { results: progress.results as Prisma.InputJsonValue }),
       },
     });
   }
@@ -504,7 +514,7 @@ export class RenderWorker {
   /**
    * Sauvegarde les résultats du rendu
    */
-  private async saveRenderResults(renderId: string, result: any, type: string): Promise<void> {
+  private async saveRenderResults(renderId: string, result: { status: string; url?: string; thumbnailUrl?: string; metadata?: Record<string, unknown> }, type: string): Promise<void> {
     await this.prisma.renderResult.create({
       data: {
         renderId,
@@ -512,7 +522,7 @@ export class RenderWorker {
         status: result.status,
         url: result.url,
         thumbnailUrl: result.thumbnailUrl,
-        metadata: result.metadata,
+        metadata: result.metadata as Prisma.InputJsonValue | undefined,
         createdAt: new Date(),
       },
     });
@@ -521,14 +531,14 @@ export class RenderWorker {
   /**
    * Sauvegarde les résultats de l'export
    */
-  private async saveExportResults(renderId: string, result: any): Promise<void> {
+  private async saveExportResults(renderId: string, result: { format: string; url: string; size: number; metadata?: Record<string, unknown> }): Promise<void> {
     await this.prisma.exportResult.create({
       data: {
         renderId,
         format: result.format,
         url: result.url,
         size: result.size,
-        metadata: result.metadata,
+        metadata: result.metadata as Prisma.InputJsonValue | undefined,
         createdAt: new Date(),
       },
     });
@@ -550,7 +560,7 @@ export class RenderWorker {
   /**
    * Récupère un produit
    */
-  private async getProduct(productId: string): Promise<any> {
+  private async getProduct(productId: string): Promise<{ id: string; name: string; model3dUrl: string | null; baseAssetUrl: string | null; images: unknown } | null> {
     return this.prisma.product.findUnique({
       where: { id: productId },
       select: {
@@ -581,6 +591,7 @@ export class RenderWorker {
 
     if (productId) {
       const product = await this.getProduct(productId);
+      if (!product) return [];
       return [{
         id: product.id,
         url: product.baseAssetUrl,
@@ -606,7 +617,7 @@ export class RenderWorker {
   /**
    * Obtient les métriques de rendu
    */
-  async getRenderMetrics(): Promise<any> {
+  async getRenderMetrics(): Promise<Record<string, unknown>> {
     const cacheKey = 'render_worker_metrics';
     
     const cached = await this.cache.getSimple<string>(cacheKey);

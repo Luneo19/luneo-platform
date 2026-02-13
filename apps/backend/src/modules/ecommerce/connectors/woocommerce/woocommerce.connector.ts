@@ -502,8 +502,8 @@ export class WooCommerceConnector {
         metadata: {
           woocommerceOrderId: wooOrder.id,
           lineItemId: lineItem.id,
-          customMeta: lineItem.meta_data || [],
-        },
+          customMeta: (lineItem.meta_data || []).map((m) => ({ key: m.key, value: m.value })),
+        } as import('@prisma/client').Prisma.InputJsonValue,
       },
     });
 
@@ -532,7 +532,7 @@ export class WooCommerceConnector {
    */
   async syncProducts(integrationId: string, options?: SyncOptions): Promise<SyncResult> {
     const startTime = Date.now();
-    const errors: any[] = [];
+    const errors: Array<{ itemId: string; code: string; message: string }> = [];
     let itemsProcessed = 0;
     let itemsFailed = 0;
 
@@ -549,7 +549,7 @@ export class WooCommerceConnector {
           errors.push({
             itemId: product.id.toString(),
             code: 'SYNC_ERROR',
-            message: error.message,
+            message: error instanceof Error ? error.message : 'Unknown error',
           });
           itemsFailed++;
         }
@@ -616,10 +616,11 @@ export class WooCommerceConnector {
   /**
    * Récupère les credentials décryptés
    */
-  private getCredentials(integration: any): { consumerKey: string; consumerSecret: string } {
+  private getCredentials(integration: { config: unknown }): { consumerKey: string; consumerSecret: string } {
+    const config = (integration.config as Record<string, unknown>) ?? {};
     return {
-      consumerKey: this.decryptToken(integration.config.consumerKey),
-      consumerSecret: this.decryptToken(integration.config.consumerSecret),
+      consumerKey: this.decryptToken((config.consumerKey as string) ?? ''),
+      consumerSecret: this.decryptToken((config.consumerSecret as string) ?? ''),
     };
   }
 

@@ -8,6 +8,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { RequestWithUserAndBrand } from '@/common/types/user.types';
 import { SnapshotsService } from './snapshots.service';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -33,7 +34,7 @@ export class SnapshotsController {
   @ApiResponse({ status: 201, description: 'Snapshot créé' })
   async create(
     @Body() dto: CreateSnapshotDto,
-    @Request() req: any,
+    @Request() req: RequestWithUserAndBrand,
   ) {
     return this.snapshotsService.create(dto, req.brandId, req.user?.id);
   }
@@ -43,7 +44,7 @@ export class SnapshotsController {
   @ApiResponse({ status: 200, description: 'Snapshot trouvé' })
   async findOne(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: RequestWithUserAndBrand,
   ) {
     return this.snapshotsService.findOne(id, req.brandId);
   }
@@ -53,7 +54,7 @@ export class SnapshotsController {
   @ApiResponse({ status: 200, description: 'Snapshot verrouillé' })
   async lock(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: RequestWithUserAndBrand,
   ) {
     return this.snapshotsService.lock(id, req.brandId, req.user.id);
   }

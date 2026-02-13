@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, Search, Users, Package, TrendingUp } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ const planColors: Record<string, string> = {
 };
 
 export default function BrandsPage() {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const { brands, pagination, isLoading, isError, filters, updateFilters, goToPage, refresh } = useBrands();
 
@@ -112,7 +114,7 @@ export default function BrandsPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-amber-500/10"><Package className="w-5 h-5 text-amber-400" /></div>
             <div>
-              <p className="text-sm text-zinc-400">Enterprise</p>
+              <p className="text-sm text-zinc-400">{t('admin.brands.enterprise')}</p>
               <p className="text-2xl font-bold text-white">{isLoading ? '...' : enterpriseBrands}</p>
             </div>
           </CardContent>
@@ -125,7 +127,7 @@ export default function BrandsPage() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input
-              placeholder="Rechercher une marque..."
+              placeholder={t('admin.brands.searchPlaceholder')}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 bg-zinc-900 border-zinc-700 text-white"
@@ -133,10 +135,10 @@ export default function BrandsPage() {
           </div>
           <Select value={filters.plan || 'all'} onValueChange={(v) => updateFilters({ plan: v === 'all' ? '' : v })}>
             <SelectTrigger className="w-[160px] bg-zinc-900 border-zinc-700 text-white">
-              <SelectValue placeholder="Plan" />
+              <SelectValue placeholder={t('admin.brands.plan')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous les plans</SelectItem>
+              <SelectItem value="all">{t('admin.brands.allPlans')}</SelectItem>
               <SelectItem value="free">Free</SelectItem>
               <SelectItem value="starter">Starter</SelectItem>
               <SelectItem value="professional">Professional</SelectItem>
@@ -146,10 +148,10 @@ export default function BrandsPage() {
           </Select>
           <Select value={filters.status || 'all'} onValueChange={(v) => updateFilters({ status: v === 'all' ? '' : v })}>
             <SelectTrigger className="w-[160px] bg-zinc-900 border-zinc-700 text-white">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('admin.brands.status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
+              <SelectItem value="all">{t('admin.brands.allStatuses')}</SelectItem>
               <SelectItem value="ACTIVE">Active</SelectItem>
               <SelectItem value="SUSPENDED">Suspended</SelectItem>
               <SelectItem value="TRIALING">Trial</SelectItem>
@@ -163,13 +165,13 @@ export default function BrandsPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-700 hover:bg-transparent">
-              <TableHead className="text-zinc-400">Marque</TableHead>
-              <TableHead className="text-zinc-400">Plan</TableHead>
-              <TableHead className="text-zinc-400">Statut</TableHead>
-              <TableHead className="text-zinc-400 text-center">Users</TableHead>
-              <TableHead className="text-zinc-400 text-center">Produits</TableHead>
-              <TableHead className="text-zinc-400">Usage AI</TableHead>
-              <TableHead className="text-zinc-400">Créé le</TableHead>
+              <TableHead className="text-zinc-400">{t('admin.brands.brand')}</TableHead>
+              <TableHead className="text-zinc-400">{t('admin.brands.plan')}</TableHead>
+              <TableHead className="text-zinc-400">{t('admin.brands.status')}</TableHead>
+              <TableHead className="text-zinc-400 text-center">{t('admin.brands.users')}</TableHead>
+              <TableHead className="text-zinc-400 text-center">{t('admin.brands.products')}</TableHead>
+              <TableHead className="text-zinc-400">{t('admin.brands.usageAI')}</TableHead>
+              <TableHead className="text-zinc-400">{t('admin.brands.createdAt')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -184,7 +186,7 @@ export default function BrandsPage() {
             ) : brands.length === 0 ? (
               <TableRow className="border-zinc-700">
                 <TableCell colSpan={7} className="text-center text-zinc-500 py-8">
-                  Aucune marque trouvée
+                  {t('admin.brands.noBrandsFound')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -239,7 +241,7 @@ export default function BrandsPage() {
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-700">
             <p className="text-sm text-zinc-400">
-              Page {pagination.page} sur {pagination.totalPages} ({pagination.total} marques)
+              {t('admin.brands.pageOf', { page: pagination.page, total: pagination.totalPages, count: pagination.total })}
             </p>
             <div className="flex gap-2">
               <Button
@@ -249,7 +251,7 @@ export default function BrandsPage() {
                 onClick={() => goToPage(pagination.page - 1)}
                 className="border-zinc-700"
               >
-                Précédent
+                {t('admin.brands.previous')}
               </Button>
               <Button
                 variant="outline"
@@ -258,7 +260,7 @@ export default function BrandsPage() {
                 onClick={() => goToPage(pagination.page + 1)}
                 className="border-zinc-700"
               >
-                Suivant
+                {t('admin.brands.next')}
               </Button>
             </div>
           </div>

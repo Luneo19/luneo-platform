@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { Activity, AlertTriangle, RefreshCw, Server, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +43,7 @@ export function MonitoringDashboardClient({
   initialError,
   initialTab = 'overview',
 }: MonitoringDashboardClientProps) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<MonitoringTab>(initialTab as MonitoringTab);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(initialMetrics);
@@ -118,10 +120,10 @@ export function MonitoringDashboardClient({
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Activity className="w-8 h-8 text-green-400" />
-            Monitoring
+            {t('monitoring.title')}
           </h1>
           <p className="text-gray-600 mt-1">
-            Surveillance en temps réel de la plateforme
+            {t('monitoring.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -138,10 +140,10 @@ export function MonitoringDashboardClient({
             />
             <span className="text-sm text-gray-600">
               {overallHealth === 'healthy'
-                ? 'Système opérationnel'
+                ? t('monitoring.healthy')
                 : overallHealth === 'degraded'
-                ? 'Système dégradé'
-                : 'Système en panne'}
+                ? t('monitoring.degraded')
+                : t('monitoring.down')}
             </span>
           </div>
           <Button
@@ -152,7 +154,7 @@ export function MonitoringDashboardClient({
             className="border-gray-200"
           >
             <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
-            Actualiser
+            {t('monitoring.refresh')}
           </Button>
         </div>
       </div>

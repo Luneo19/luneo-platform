@@ -84,9 +84,9 @@ const INTEGRATIONS: Integration[] = [
 ];
 
 function ARIntegrationsContent() {
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<'all' | 'ecommerce' | 'social' | 'web' | 'mobile'>('all');
 
-  const filtered =
+  const filtered: Integration[] =
     filter === 'all' ? INTEGRATIONS : INTEGRATIONS.filter((i) => i.category === filter);
 
   const statusColor = (s: string) => {
@@ -122,25 +122,25 @@ function ARIntegrationsContent() {
               key={f.value}
               variant={filter === f.value ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilter(f.value)}
+              onClick={() => setFilter(f.value as 'all' | 'ecommerce' | 'social' | 'web' | 'mobile')}
             >
               {f.label}
             </Button>
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((integration) => (
+          {filtered.map((integration: Integration) => (
             <Card key={integration.id} className="hover:border-primary/50 transition-colors">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10">
-                      <integration.icon className="w-5 h-5 text-primary" />
+                      {React.createElement(integration.icon, { className: 'w-5 h-5 text-primary' })}
                     </div>
                     <CardTitle className="text-lg">{integration.name}</CardTitle>
                   </div>
                   <Badge variant="outline" className={statusColor(integration.status)}>
-                    {statusLabel(integration.status)}
+                    {String(statusLabel(integration.status))}
                   </Badge>
                 </div>
               </CardHeader>

@@ -33,7 +33,7 @@ export const aiRouter = router({
         });
 
         // Appel à l'AI Engine (FastAPI)
-        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000';
+        const aiEngineUrl = process.env.NEXT_PUBLIC_AI_ENGINE_URL || process.env.AI_ENGINE_URL || 'http://localhost:8000';
         const response = await fetch(`${aiEngineUrl}/api/generate`, {
           method: 'POST',
           headers: {
@@ -49,15 +49,16 @@ export const aiRouter = router({
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          const errorData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+          const message = typeof errorData?.message === 'string' ? errorData.message : 'Erreur lors de la génération IA';
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
-            message: errorData.message || 'Erreur lors de la génération IA',
+            message,
           });
         }
 
-        const result = await response.json();
-        const imageUrl = result.image_url || result.url || result.data?.url;
+        const result = (await response.json()) as Record<string, unknown>;
+        const imageUrl = (result.image_url as string) || (result.url as string) || (result.data && typeof result.data === 'object' && result.data !== null && 'url' in result.data ? String((result.data as { url?: unknown }).url) : undefined);
 
         if (!imageUrl) {
           throw new TRPCError({
@@ -158,7 +159,7 @@ export const aiRouter = router({
           designs: filtered.map((d) => ({
             id: d.id,
             name: d.name,
-            url: d.previewUrl || d.renderUrl || `https://picsum.photos/seed/${d.id}/800/600`,
+            url: d.previewUrl || d.renderUrl || '/placeholder-design.svg',
             prompt: (d.metadata && typeof d.metadata === 'object' && 'prompt' in d.metadata ? String(d.metadata.prompt) : '') || '',
             style: (d.metadata && typeof d.metadata === 'object' && 'style' in d.metadata ? String(d.metadata.style) : 'photorealistic') || 'photorealistic',
             createdAt: d.createdAt ? (d.createdAt instanceof Date ? d.createdAt.toISOString() : String(d.createdAt)) : '',

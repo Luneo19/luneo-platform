@@ -9,13 +9,15 @@ import { DensityProvider, useDensity } from '@/providers/DensityProvider';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 import { sidebarConfig } from '@/styles/dashboard-tokens';
+import { useI18n } from '@/i18n/useI18n';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { sidebarCollapsed } = useDensity();
+  const { t } = useI18n();
 
   return (
-    <div className="min-h-screen dash-bg flex">
+    <div className="min-h-screen dash-bg flex overflow-x-hidden">
       {/* Subtle gradient mesh background */}
       <div className="fixed inset-0 dash-gradient-mesh pointer-events-none" />
 
@@ -31,8 +33,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-[280px] z-50">
-            <Sidebar />
+          <div className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50">
+            <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
           </div>
         </div>
       )}
@@ -41,17 +43,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Header */}
         <Header
-          title="Dashboard"
-          subtitle="Tableau de bord principal"
+          title={t('dashboard.title')}
+          subtitle={t('dashboard.sidebar.dashboardDescription')}
           onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           isMobileMenuOpen={isMobileMenuOpen}
         />
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 overflow-y-auto dash-scroll">
+        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden dash-scroll min-w-0">
           <div
-            className="transition-all duration-200"
-            style={{ padding: 'var(--dash-padding)' }}
+            className="transition-all duration-200 px-4 sm:px-6"
+            style={{ paddingTop: 'var(--dash-padding)', paddingBottom: 'var(--dash-padding)' }}
           >
             {children}
           </div>
@@ -68,6 +70,7 @@ export default function DashboardLayoutGroup({
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
+  const { t } = useI18n();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -79,7 +82,8 @@ export default function DashboardLayoutGroup({
         // Skip if user is already on the onboarding page
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
         const isOnboardingPage = currentPath.startsWith('/onboarding');
-        const isAdmin = (user as any)?.role === 'PLATFORM_ADMIN' || (user as any)?.role === 'SUPER_ADMIN';
+        const userWithRole = user as { role?: string } | null;
+        const isAdmin = userWithRole?.role === 'PLATFORM_ADMIN' || userWithRole?.role === 'SUPER_ADMIN';
 
         if (!isOnboardingPage && !isAdmin) {
           try {
@@ -88,8 +92,12 @@ export default function DashboardLayoutGroup({
               const progress = await progressRes.json();
               const completed = progress.organization?.onboardingCompletedAt;
               if (!completed && progress.currentStep < 6) {
+                document.cookie = 'onboarding_completed=false; path=/; max-age=31536000; SameSite=Lax';
                 router.push('/onboarding');
                 return;
+              } else {
+                // Onboarding is done — set cookie for middleware
+                document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
               }
             }
           } catch {
@@ -120,7 +128,7 @@ export default function DashboardLayoutGroup({
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" />
             <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-pink-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
           </div>
-          <p className="text-white/40 text-sm font-medium">Chargement...</p>
+          <p className="text-white/40 text-sm font-medium">{t('dashboard.common.loading')}</p>
         </div>
       </div>
     );

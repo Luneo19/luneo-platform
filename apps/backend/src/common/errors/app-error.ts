@@ -84,12 +84,12 @@ export enum ErrorCategory {
  * Interface pour les métadonnées d'erreur
  */
 export interface ErrorMetadata {
-  [key: string]: any;
+  [key: string]: unknown;
   resourceId?: string;
   resourceType?: string;
   userId?: string;
   operation?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 /**

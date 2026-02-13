@@ -4,12 +4,12 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { GetAnalyticsDto, AnalyticsMetric, AnalyticsPeriod } from '../dto';
 
 export interface AnalyticsData {
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   timeSeries: Array<{
     date: string;
     values: Record<string, number>;
   }>;
-  summary: Record<string, any>;
+  summary: Record<string, unknown>;
 }
 
 @Injectable()
@@ -86,8 +86,8 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date,
     metrics: AnalyticsMetric[],
-  ): Promise<Record<string, any>> {
-    const summary: Record<string, any> = {};
+  ): Promise<Record<string, unknown>> {
+    const summary: Record<string, unknown> = {};
 
     for (const metric of metrics) {
       const currentValue = await this.getMetricValue(brandId, metric, startDate, endDate);
@@ -117,8 +117,8 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date,
     metrics: AnalyticsMetric[],
-  ): Promise<Record<string, any>> {
-    const metricsData: Record<string, any> = {};
+  ): Promise<Record<string, unknown>> {
+    const metricsData: Record<string, unknown> = {};
 
     for (const metric of metrics) {
       switch (metric) {
@@ -189,7 +189,7 @@ export class AnalyticsService {
   /**
    * Get design-specific metrics
    */
-  private async getDesignMetrics(brandId: string, startDate: Date, endDate: Date): Promise<any> {
+  private async getDesignMetrics(brandId: string, startDate: Date, endDate: Date): Promise<{ total: number; completed: number; failed: number; processing: number; successRate: number }> {
     const [total, completed, failed, processing] = await Promise.all([
       this.prisma.design.count({
         where: { brandId, createdAt: { gte: startDate, lte: endDate } },
@@ -217,7 +217,7 @@ export class AnalyticsService {
   /**
    * Get order-specific metrics
    */
-  private async getOrderMetrics(brandId: string, startDate: Date, endDate: Date): Promise<any> {
+  private async getOrderMetrics(brandId: string, startDate: Date, endDate: Date): Promise<{ total: number; paid: number; shipped: number; delivered: number; cancelled: number; completionRate: number }> {
     const [total, paid, shipped, delivered, cancelled] = await Promise.all([
       this.prisma.order.count({
         where: { brandId, createdAt: { gte: startDate, lte: endDate } },
@@ -249,7 +249,7 @@ export class AnalyticsService {
   /**
    * Get revenue-specific metrics
    */
-  private async getRevenueMetrics(brandId: string, startDate: Date, endDate: Date): Promise<any> {
+  private async getRevenueMetrics(brandId: string, startDate: Date, endDate: Date): Promise<{ total: number; averageOrderValue: number; orderCount: number }> {
     const [totalRevenue, averageOrderValue, orderCount] = await Promise.all([
       this.prisma.order.aggregate({
         where: {
@@ -286,7 +286,7 @@ export class AnalyticsService {
   /**
    * Get user-specific metrics
    */
-  private async getUserMetrics(brandId: string, startDate: Date, endDate: Date): Promise<any> {
+  private async getUserMetrics(brandId: string, startDate: Date, endDate: Date): Promise<{ total: number; active: number }> {
     const [totalUsers, activeUsers] = await Promise.all([
       this.prisma.user.count({
         where: { brandId, createdAt: { gte: startDate, lte: endDate } },

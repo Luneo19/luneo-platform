@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
 import { ReferralService } from './referral.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { EmailService } from '@/modules/email/email.service';
 
 describe('ReferralService', () => {
   let service: ReferralService;
@@ -48,6 +49,7 @@ describe('ReferralService', () => {
         ReferralService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: EmailService, useValue: { send: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

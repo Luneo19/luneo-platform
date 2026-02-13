@@ -52,14 +52,14 @@ export function PageHero({
           )}
 
           <ScrollReveal animation="fade-up" delay={100} duration={700}>
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 sm:mb-6 tracking-tight text-white px-2">
+            <h1 className="heading-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-4 sm:mb-6 text-white text-glow-white px-2">
               {title}
             </h1>
           </ScrollReveal>
 
           {description && (
             <ScrollReveal animation="fade-up" delay={200}>
-              <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
+              <p className="text-base sm:text-lg md:text-xl text-slate-300 body-text mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
                 {description}
               </p>
             </ScrollReveal>

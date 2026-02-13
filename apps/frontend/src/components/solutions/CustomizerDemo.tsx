@@ -600,7 +600,7 @@ function CustomizerDemo({
                 width={width}
                 height={height}
                 onClick={handleStageClick}
-                onTap={(e) => handleStageClick(e as Konva.KonvaEventObject<MouseEvent>)}
+                onTap={(e) => handleStageClick(e as unknown as Konva.KonvaEventObject<MouseEvent>)}
                 scaleX={canvasZoom}
                 scaleY={canvasZoom}
               >

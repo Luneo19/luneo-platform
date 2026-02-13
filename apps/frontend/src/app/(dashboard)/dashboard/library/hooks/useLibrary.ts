@@ -1,14 +1,23 @@
 /**
  * Hook personnalisé pour gérer la bibliothèque
  */
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentUser } from '@/lib/hooks/useAuth';
 import { trpc } from '@/lib/trpc/client';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import type { Template, SortOption } from '../types';
+import type { Template, TemplateCategory, SortOption } from '../types';
+
+interface FavoriteRecord {
+  id: string;
+  resourceId: string;
+  resourceType: string;
+}
 
 export function useLibrary(
   page: number,
@@ -16,8 +25,10 @@ export function useLibrary(
   searchTerm: string,
   sortBy: SortOption
 ) {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
+  const { data: user } = useCurrentUser();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [hasMore, setHasMore] = useState(true);
 
@@ -29,29 +40,53 @@ export function useLibrary(
     sortBy: sortBy === 'size' ? 'name' : sortBy,
   });
 
+  const [favorites, setFavorites] = useState<FavoriteRecord[]>([]);
+  const fetchFavorites = useCallback(() => {
+    if (!user?.id) {
+      setFavorites([]);
+      return;
+    }
+    api
+      .get<{ favorites?: FavoriteRecord[] }>('/api/v1/library/favorites', {
+        params: { type: 'template' },
+      })
+      .then((res) => setFavorites(res?.favorites ?? []))
+      .catch(() => setFavorites([]));
+  }, [user?.id]);
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
+
   useEffect(() => {
     if (templatesQuery.data) {
-      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template: any) => ({
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        category: template.category,
-        thumbnail: template.thumbnail,
-        isPremium: template.isPremium,
-        isFavorite: template.isFavorite,
-        downloads: template.downloads,
-        views: template.views,
-        rating: template.rating,
-        createdAt: template.createdAt,
-        updatedAt: template.updatedAt,
-        tags: template.tags || [],
-        size: template.size,
-        format: template.format,
-        author: template.author,
-        version: template.version,
-        collectionId: template.collectionId,
-        metadata: template.metadata,
-      }));
+      const favoriteByResource = new Map(
+        favorites.map((f) => [f.resourceId, f])
+      );
+      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template: Record<string, unknown>) => {
+        const fav = favoriteByResource.get(template.id as string);
+        return {
+          id: template.id as string,
+          name: template.name as string,
+          description: template.description as string,
+          category: (template.category as string) as TemplateCategory,
+          thumbnail: template.thumbnail as string,
+          isPremium: template.isPremium as boolean,
+          isFavorite: !!fav,
+          favoriteId: fav?.id,
+          downloads: template.downloads as number,
+          views: template.views as number,
+          rating: template.rating as number,
+          createdAt: template.createdAt as string,
+          updatedAt: template.updatedAt as string,
+          tags: (template.tags as string[]) || [],
+          size: typeof template.size === 'number' ? template.size : Number(template.size) || undefined,
+          format: template.format as string,
+          author: template.author as string,
+          version: typeof template.version === 'number' ? template.version : undefined,
+          collectionId: typeof template.collectionId === 'string' ? template.collectionId : undefined,
+          metadata: template.metadata as Template['metadata'],
+        };
+      });
 
       if (page === 1) {
         setTemplates(formattedTemplates);
@@ -61,62 +96,74 @@ export function useLibrary(
 
       setHasMore(templatesQuery.data.pagination.hasNext);
     }
-  }, [templatesQuery.data, page]);
+  }, [templatesQuery.data, page, favorites]);
 
   const toggleFavorite = useCallback(
-    async (templateId: string, isFavorite: boolean): Promise<{ success: boolean }> => {
+    async (
+      templateId: string,
+      isFavorite: boolean,
+      favoriteId?: string
+    ): Promise<{ success: boolean }> => {
       try {
         if (isFavorite) {
-          await api.delete('/api/v1/library/favorites', { params: { templateId } });
+          if (!favoriteId) {
+            logger.error('Cannot remove favorite: missing favoriteId');
+            return { success: false };
+          }
+          await api.delete(`/api/v1/library/favorites/${favoriteId}`);
         } else {
-          await api.post('/api/v1/library/favorites', { templateId });
+          await api.post('/api/v1/library/favorites', {
+            resourceId: templateId,
+            resourceType: 'template',
+          });
         }
 
         setTemplates((prev) =>
           prev.map((t) => (t.id === templateId ? { ...t, isFavorite: !isFavorite } : t))
         );
+        fetchFavorites();
 
         toast({
-          title: 'Succès',
-          description: isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris',
+          title: t('common.success'),
+          description: isFavorite ? t('library.unfavorite') : t('library.addToFavorites'),
         });
 
         return { success: true };
       } catch (error: unknown) {
-        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error as Error)?.message || 'Erreur lors de la mise à jour des favoris';
+        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error as Error)?.message || t('common.somethingWentWrong');
         logger.error('Error toggling favorite', { error });
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: message,
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [toast]
+    [toast, fetchFavorites, t]
   );
 
   const deleteTemplate = useCallback(
     async (templateId: string): Promise<{ success: boolean }> => {
       try {
-        await api.delete('/api/v1/library/templates', { params: { id: templateId } });
+        await api.delete(`/api/v1/marketplace/${templateId}`);
 
         setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-        toast({ title: 'Succès', description: 'Template supprimé' });
+        toast({ title: t('common.success'), description: t('common.success') });
         router.refresh();
         return { success: true };
       } catch (error: unknown) {
-        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error as Error)?.message || 'Erreur lors de la suppression';
+        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error as Error)?.message || t('common.somethingWentWrong');
         logger.error('Error deleting template', { error });
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: message,
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [toast, router]
+    [toast, router, t]
   );
 
   return {

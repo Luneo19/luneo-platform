@@ -16,9 +16,11 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RequestWithUser } from '@/common/types/user.types';
 import { CollaborationService } from './services/collaboration.service';
 import { ResourceType, Permission } from './interfaces/collaboration.interface';
 import { ShareResourceDto, UpdatePermissionsDto, AddCommentDto } from './dto';
@@ -35,11 +37,14 @@ export class CollaborationController {
   @ApiOperation({ summary: 'Share a resource with other users' })
   @ApiResponse({ status: 201, description: 'Resource shared successfully' })
   async shareResource(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Body() body: ShareResourceDto,
   ) {
     const userId = req.user.id;
     const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('Brand ID required. Please complete your brand setup first.');
+    }
     return this.collaborationService.shareResource(
       userId,
       brandId,
@@ -54,22 +59,30 @@ export class CollaborationController {
   @Get('shared')
   @ApiOperation({ summary: 'Get resources shared with the current user' })
   @ApiResponse({ status: 200, description: 'List of shared resources' })
-  async getSharedResources(@Request() req: any) {
-    return this.collaborationService.getSharedResources(req.user.id, req.user.brandId);
+  async getSharedResources(@Request() req: RequestWithUser) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('Brand ID required. Please complete your brand setup first.');
+    }
+    return this.collaborationService.getSharedResources(req.user.id, brandId);
   }
 
   @Put('share/:id/permissions')
   @ApiOperation({ summary: 'Update permissions on a shared resource' })
   @ApiResponse({ status: 200, description: 'Permissions updated' })
   async updatePermissions(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Param('id') resourceId: string,
     @Body() body: UpdatePermissionsDto,
   ) {
+    const brandId = req.user.brandId;
+    if (!brandId) {
+      throw new BadRequestException('Brand ID required. Please complete your brand setup first.');
+    }
     return this.collaborationService.updatePermissions(
       resourceId,
       req.user.id,
-      req.user.brandId,
+      brandId,
       body.permissions,
     );
   }
@@ -78,7 +91,7 @@ export class CollaborationController {
   @ApiOperation({ summary: 'Check if current user has access to a resource' })
   @ApiResponse({ status: 200, description: 'Access check result' })
   async checkAccess(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Query('resourceType') resourceType: ResourceType,
     @Query('resourceId') resourceId: string,
     @Query('permission') permission: Permission,
@@ -97,7 +110,7 @@ export class CollaborationController {
   @ApiOperation({ summary: 'Add a comment on a resource' })
   @ApiResponse({ status: 201, description: 'Comment created' })
   async addComment(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Body() body: AddCommentDto,
   ) {
     return this.collaborationService.addComment(
@@ -125,7 +138,7 @@ export class CollaborationController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a comment' })
   @ApiResponse({ status: 204, description: 'Comment deleted' })
-  async deleteComment(@Request() req: any, @Param('id') commentId: string) {
+  async deleteComment(@Request() req: RequestWithUser, @Param('id') commentId: string) {
     await this.collaborationService.deleteComment(commentId, req.user.id);
   }
 }

@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
           code: 'FILE_NOT_FOUND',
         };
       }
-      logger.error('Failed to fetch context file content', {
+      serverLogger.error('Failed to fetch context file content', {
         userId: user.id,
         fileId,
         fileUrl,
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Context file content retrieved', {
+    serverLogger.info('Context file content retrieved', {
       userId: user.id,
       fileId,
       fileUrl,

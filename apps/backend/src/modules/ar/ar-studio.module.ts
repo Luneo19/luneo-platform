@@ -11,17 +11,20 @@ import { ArStudioController } from './ar-studio.controller';
 import { ArStudioService } from './ar-studio.service';
 import { ArIntegrationsController } from './controllers/ar-integrations.controller';
 import { ArCollaborationController } from './controllers/ar-collaboration.controller';
+import { ArProjectsController } from './controllers/ar-projects.controller';
 import { ArIntegrationsService } from './services/ar-integrations.service';
 import { ArCollaborationService } from './services/ar-collaboration.service';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, StorageModule, HttpModule],
+  imports: [PrismaModule, ConfigModule, StorageModule, HttpModule, NotificationsModule],
   controllers: [
     ArStudioController,
     ArIntegrationsController,
     ArCollaborationController,
+    ArProjectsController,
   ],
   providers: [
     ArStudioService,

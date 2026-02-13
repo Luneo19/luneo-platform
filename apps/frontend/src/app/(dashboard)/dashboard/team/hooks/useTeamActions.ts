@@ -1,55 +1,59 @@
 /**
  * Hook personnalisé pour les actions sur l'équipe
  */
+'use client';
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { trpc } from '@/lib/trpc/client';
 import type { TeamRole } from '../types';
 
 export function useTeamActions() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
 
   const inviteMutation = trpc.team.inviteMember.useMutation({
     onSuccess: () => {
-      toast({ title: 'Succès', description: 'Invitation envoyée' });
+      toast({ title: t('common.success'), description: t('common.success') });
       router.refresh();
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
   const updateRoleMutation = trpc.team.updateMemberRole.useMutation({
     onSuccess: () => {
-      toast({ title: 'Succès', description: 'Rôle mis à jour' });
+      toast({ title: t('common.success'), description: t('common.success') });
       router.refresh();
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
   const removeMemberMutation = trpc.team.removeMember.useMutation({
     onSuccess: () => {
-      toast({ title: 'Succès', description: 'Membre retiré' });
+      toast({ title: t('common.success'), description: t('dashboard.team.removeFromTeamMenu') });
       router.refresh();
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
   const cancelInviteMutation = trpc.team.cancelInvite.useMutation({
     onSuccess: () => {
-      toast({ title: 'Succès', description: 'Invitation annulée' });
+      toast({ title: t('common.success'), description: t('common.success') });
       router.refresh();
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
@@ -58,13 +62,14 @@ export function useTeamActions() {
       try {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-          toast({ title: 'Erreur', description: 'Adresse email invalide', variant: 'destructive' });
+          toast({ title: t('common.error'), description: t('forms.invalidEmail'), variant: 'destructive' });
           return { success: false };
         }
 
         await inviteMutation.mutateAsync({ email, role });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('Error inviting member', { error });
         return { success: false };
       }
@@ -77,7 +82,8 @@ export function useTeamActions() {
       try {
         await updateRoleMutation.mutateAsync({ memberId, role: newRole });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('Error updating role', { error });
         return { success: false };
       }
@@ -90,7 +96,8 @@ export function useTeamActions() {
       try {
         await removeMemberMutation.mutateAsync({ memberId });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('Error removing member', { error });
         return { success: false };
       }
@@ -103,7 +110,8 @@ export function useTeamActions() {
       try {
         await cancelInviteMutation.mutateAsync({ inviteId });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('Error cancelling invite', { error });
         return { success: false };
       }

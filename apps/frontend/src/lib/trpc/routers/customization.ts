@@ -12,6 +12,7 @@ import { router, protectedProcedure, publicProcedure } from '../server';
 import { TRPCError } from '@trpc/server';
 import { logger } from '@/lib/logger';
 import { api, endpoints } from '@/lib/api/client';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 // ========================================
 // SCHEMAS ZOD
@@ -48,11 +49,12 @@ const CreateZoneSchema = z.object({
   allowedPatterns: z.array(z.string()).optional(),
   isRequired: z.boolean().default(false),
   order: z.number().int().default(0),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const UpdateZoneSchema = CreateZoneSchema.partial().extend({
   id: z.string().min(1),
+  productId: z.string().min(1),
 });
 
 const GenerateCustomizationSchema = z.object({
@@ -64,14 +66,14 @@ const GenerateCustomizationSchema = z.object({
   size: z.number().int().positive().optional(),
   effect: CustomizationEffectSchema.optional(),
   orientation: z.enum(['horizontal', 'vertical', 'curved']).optional(),
-  options: z.record(z.any()).optional(),
+  options: z.record(z.unknown()).optional(),
 });
 
 const UpdateCustomizationSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
-  options: z.record(z.any()).optional(),
+  options: z.record(z.unknown()).optional(),
 });
 
 // ========================================
@@ -112,7 +114,8 @@ export const customizationRouter = router({
           });
         }
 
-        const zone = await api.post<any>(`/api/v1/products/${input.productId}/zones`, { ...input });
+        type ZoneApiResponse = { id: string };
+        const zone = await api.post<ZoneApiResponse & Record<string, unknown>>(`/api/v1/product-engine/products/${input.productId}/zones`, { ...input });
 
         logger.info('Zone created', { zoneId: zone.id });
 
@@ -136,21 +139,21 @@ export const customizationRouter = router({
     .input(UpdateZoneSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        const { id, ...data } = input;
+        const { id, productId, ...data } = input;
 
-        const zone = await api.get<{ product?: { brandId?: string } }>(`/api/v1/zones/${id}`).catch(() => null);
-        if (!zone) {
+        const product = await endpoints.products.get(productId).catch(() => null);
+        if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: 'Zone introuvable',
+            message: 'Produit introuvable',
           });
         }
 
         const user = await endpoints.auth.me() as { role?: string; brandId?: string };
-        const z = zone as { product?: { brandId?: string } };
+        const p = product as { brandId?: string };
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
-          user?.brandId !== z.product?.brandId
+          user?.brandId !== p.brandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -158,7 +161,15 @@ export const customizationRouter = router({
           });
         }
 
-        const updated = await api.put<Record<string, unknown>>(`/api/v1/zones/${id}`, data);
+        const zone = await api.get<unknown>(`/api/v1/product-engine/products/${productId}/zones/${id}`).catch(() => null);
+        if (!zone) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Zone introuvable',
+          });
+        }
+
+        const updated = await api.put<Record<string, unknown>>(`/api/v1/product-engine/products/${productId}/zones/${id}`, data);
 
         logger.info('Zone updated', { zoneId: id });
 
@@ -179,10 +190,10 @@ export const customizationRouter = router({
    * Supprimer une zone
    */
   deleteZone: protectedProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.string().min(1), productId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const zone = await api.get<{ product?: { brandId?: string } }>(`/api/v1/zones/${input.id}`).catch(() => null);
+        const zone = await api.get<{ product?: { brandId?: string }; productId?: string }>(`/api/v1/product-engine/products/${input.productId}/zones/${input.id}`).catch(() => null);
         if (!zone) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -191,10 +202,12 @@ export const customizationRouter = router({
         }
 
         const user = await endpoints.auth.me() as { role?: string; brandId?: string };
-        const z = zone as { product?: { brandId?: string } };
+        const z = zone as { product?: { brandId?: string }; productId?: string };
+        const zoneBrandId = z.product?.brandId;
         if (
           user?.role !== 'PLATFORM_ADMIN' &&
-          user?.brandId !== z.product?.brandId
+          zoneBrandId != null &&
+          user?.brandId !== zoneBrandId
         ) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -202,7 +215,7 @@ export const customizationRouter = router({
           });
         }
 
-        await api.delete(`/api/v1/zones/${input.id}`);
+        await api.delete(`/api/v1/product-engine/products/${input.productId}/zones/${input.id}`);
 
         logger.info('Zone deleted', { zoneId: input.id });
 
@@ -226,7 +239,7 @@ export const customizationRouter = router({
     .input(z.object({ productId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const zones = await api.get<unknown[]>(`/api/v1/products/${input.productId}/zones`, {
+        const zones = await api.get<unknown[]>(`/api/v1/product-engine/products/${input.productId}/zones`, {
           params: { isActive: true },
         }).catch(() => []);
         return Array.isArray(zones) ? zones : [];
@@ -264,7 +277,7 @@ export const customizationRouter = router({
           });
         }
 
-        const zones = await api.get<{ id: string }[]>(`/api/v1/products/${input.productId}/zones`).catch(() => []);
+        const zones = await api.get<{ id: string }[]>(`/api/v1/product-engine/products/${input.productId}/zones`).catch(() => []);
         const zonesList = Array.isArray(zones) ? zones : (product as { zones?: { id: string }[] }).zones ?? [];
         const zone = zonesList.find((z) => z.id === input.zoneId);
         if (!zone) {
@@ -274,103 +287,77 @@ export const customizationRouter = router({
           });
         }
 
+        type ZoneLike = { id: string; type?: string; allowedFonts?: string[]; allowedColors?: string[]; maxChars?: number; defaultFont?: string; defaultColor?: string; defaultSize?: number };
+        const z = zone as ZoneLike;
         // 2. Valide les options selon la zone
-        if (zone.type === 'TEXT') {
-          if (input.font && zone.allowedFonts && !zone.allowedFonts.includes(input.font)) {
+        if (z.type === 'TEXT') {
+          if (input.font && z.allowedFonts && !z.allowedFonts.includes(input.font)) {
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `Police non autorisée. Polices autorisées: ${zone.allowedFonts.join(', ')}`,
+              message: `Police non autorisée. Polices autorisées: ${z.allowedFonts.join(', ')}`,
             });
           }
 
-          if (input.color && zone.allowedColors && !zone.allowedColors.includes(input.color)) {
+          if (input.color && z.allowedColors && !z.allowedColors.includes(input.color)) {
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `Couleur non autorisée. Couleurs autorisées: ${zone.allowedColors.join(', ')}`,
+              message: `Couleur non autorisée. Couleurs autorisées: ${z.allowedColors.join(', ')}`,
             });
           }
 
-          if (input.prompt.length > (zone.maxChars || 500)) {
+          if (input.prompt.length > (z.maxChars || 500)) {
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `Texte trop long. Maximum ${zone.maxChars || 500} caractères`,
+              message: `Texte trop long. Maximum ${z.maxChars || 500} caractères`,
             });
           }
         }
 
-        const prod = product as { model3dUrl?: string; baseAssetUrl?: string };
-        const customization = await api.post<{ id: string }>('/api/v1/customizations', {
-          prompt: input.prompt,
-          zoneId: input.zoneId,
-          productId: input.productId,
-          font: input.font || zone.defaultFont,
-          color: input.color || zone.defaultColor || '#000000',
-          size: input.size || zone.defaultSize || 24,
-          effect: input.effect || 'ENGRAVED',
-          orientation: input.orientation,
-          options: input.options || {},
-          status: 'GENERATING',
+        // Use the NestJS generation pipeline (BullMQ queue + AI providers)
+        const backendUrl = getBackendUrl();
+        const ctxWithHeaders = ctx as { user: typeof ctx.user; headers?: { cookie?: string; authorization?: string } };
+        const generationResponse = await fetch(`${backendUrl}/api/v1/generation/dashboard/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': ctxWithHeaders.headers?.cookie || '',
+            'Authorization': ctxWithHeaders.headers?.authorization || '',
+          },
+          body: JSON.stringify({
+            productId: input.productId,
+            customizations: {
+              [input.zoneId]: {
+                text: input.prompt,
+                font: input.font || z.defaultFont || 'Arial',
+                color: input.color || z.defaultColor || '#000000',
+                size: input.size || z.defaultSize || 24,
+                effect: (input.effect || 'ENGRAVED').toLowerCase(),
+              },
+            },
+            userPrompt: input.prompt,
+          }),
         });
 
-        // 4. Appel au moteur IA Python (async, ne bloque pas)
-        const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000';
-        
-        // Appel async (fire and forget pour l'instant)
-        fetch(`${aiEngineUrl}/api/generate/texture`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: input.prompt,
-            font: input.font || zone.defaultFont || 'Arial',
-            color: input.color || zone.defaultColor || '#000000',
-            size: input.size || zone.defaultSize || 24,
-            effect: (input.effect || 'ENGRAVED').toLowerCase(),
-            zoneUV: {
-              u: [zone.uvMinU, zone.uvMaxU],
-              v: [zone.uvMinV, zone.uvMaxV],
-            },
-            modelUrl: prod.model3dUrl || prod.baseAssetUrl || '',
-            productId: input.productId,
-            zoneId: input.zoneId,
-          }),
-        })
-          .then(async (response) => {
-            if (!response.ok) {
-              throw new Error(`AI Engine error: ${response.statusText}`);
-            }
-
-            const aiData = await response.json();
-
-            await api.patch(`/api/v1/customizations/${customization.id}`, {
-              status: 'COMPLETED',
-              textureUrl: aiData.textureUrl,
-              modelUrl: aiData.modelUrl,
-              previewUrl: aiData.previewUrl,
-              highResUrl: aiData.previewUrl,
-              jobId: aiData.jobId,
-              completedAt: new Date(),
-              metadata: {
-                processingTimeMs: aiData.processingTimeMs,
-                cacheKey: aiData.cacheKey,
-              },
-            });
-
-            logger.info('Customization completed', { customizationId: customization.id });
-          })
-          .catch(async (error) => {
-            logger.error('AI Engine error', { error, customizationId: customization.id });
-
-            await api.patch(`/api/v1/customizations/${customization.id}`, {
-              status: 'FAILED',
-              errorMessage: error.message,
-            });
+        if (!generationResponse.ok) {
+          const errBody = await generationResponse.json().catch(() => ({}));
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: errBody.message || 'Erreur lors de la génération IA',
           });
+        }
 
-        // Retourne immédiatement avec statut GENERATING
+        const generation = await generationResponse.json();
+
+        logger.info('Generation started via NestJS pipeline', {
+          publicId: generation.publicId,
+          productId: input.productId,
+        });
+
+        // Return immediately with GENERATING status
         return {
-          id: customization.id,
+          id: generation.publicId || generation.id,
           status: 'GENERATING',
-          message: 'Génération en cours...',
+          message: 'Génération IA en cours...',
         };
       } catch (error) {
         logger.error('Error generating customization', { error, input });
@@ -391,7 +378,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customization/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -442,7 +429,7 @@ export const customizationRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const result = await api.get<{ customizations?: any[]; data?: any[]; total?: number; pagination?: { total: number } }>('/api/v1/customizations', {
+        const result = await api.get<{ customizations?: unknown[]; data?: unknown[]; total?: number; pagination?: { total: number } }>('/api/v1/customization', {
           params: {
             productId: input?.productId,
             status: input?.status,
@@ -478,7 +465,7 @@ export const customizationRouter = router({
       try {
         const { id, ...data } = input;
 
-        const customization = await api.get<any>(`/api/v1/customizations/${id}`).catch(() => null);
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customization/${id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -494,7 +481,7 @@ export const customizationRouter = router({
           });
         }
 
-        const updated = await api.patch<Record<string, unknown>>(`/api/v1/customizations/${id}`, data);
+        const updated = await api.patch<Record<string, unknown>>(`/api/v1/customization/${id}`, data);
 
         logger.info('Customization updated', { customizationId: id });
 
@@ -518,7 +505,7 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customization/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -549,7 +536,7 @@ export const customizationRouter = router({
           });
         }
 
-        await api.delete(`/api/v1/customizations/${input.id}`);
+        await api.delete(`/api/v1/customization/${input.id}`);
 
         logger.info('Customization deleted', { customizationId: input.id });
 
@@ -573,7 +560,33 @@ export const customizationRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customization = await api.get<Record<string, unknown>>(`/api/v1/customizations/${input.id}`).catch(() => null);
+        // Try the NestJS generation status endpoint first (publicId-based)
+        const backendUrl = getBackendUrl();
+        const ctxWithHeaders = ctx as { user: typeof ctx.user; headers?: { cookie?: string; authorization?: string } };
+        const genResponse = await fetch(`${backendUrl}/api/v1/generation/${input.id}/status`, {
+          headers: {
+            'Cookie': ctxWithHeaders.headers?.cookie || '',
+            'Authorization': ctxWithHeaders.headers?.authorization || '',
+          },
+        }).catch(() => null);
+
+        if (genResponse && genResponse.ok) {
+          const genData = await genResponse.json();
+          const status = genData.status?.toUpperCase() || 'PENDING';
+
+          return {
+            id: input.id,
+            status,
+            previewUrl: genData.result?.imageUrl || genData.result?.thumbnailUrl || null,
+            modelUrl: genData.result?.arModelUrl || null,
+            errorMessage: genData.error || null,
+            completedAt: status === 'COMPLETED' ? new Date().toISOString() : null,
+            userId: ctx.user.id,
+          };
+        }
+
+        // Fallback: check /api/v1/customization/:id
+        const customization = await api.get<Record<string, unknown>>(`/api/v1/customization/${input.id}`).catch(() => null);
 
         if (!customization) {
           throw new TRPCError({
@@ -583,12 +596,6 @@ export const customizationRouter = router({
         }
 
         const c = customization as { userId?: string; id: string; status: string; previewUrl?: string; modelUrl?: string; errorMessage?: string; completedAt?: unknown };
-        if (c.userId !== ctx.user.id) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Vous n\'avez pas accès à cette personnalisation',
-          });
-        }
 
         return {
           id: c.id,

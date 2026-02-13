@@ -1,29 +1,81 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsObject, ValidateNested } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
 
-export class UpdateNotificationPreferencesDto {
-  @ApiPropertyOptional({ description: 'Enable or disable general email notifications' })
+class EmailPreferencesDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
-  emailNotifications?: boolean;
+  orders?: boolean;
 
-  @ApiPropertyOptional({ description: 'Enable or disable marketing/promotional emails' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
-  marketingEmails?: boolean;
+  designs?: boolean;
 
-  @ApiPropertyOptional({ description: 'Enable or disable order status update notifications' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
-  orderUpdates?: boolean;
+  marketing?: boolean;
 
-  @ApiPropertyOptional({ description: 'Enable or disable security-related alerts' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
   securityAlerts?: boolean;
+}
+
+class PushPreferencesDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  orders?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  designs?: boolean;
+}
+
+class InAppPreferencesDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  orders?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  designs?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  system?: boolean;
+}
+
+/**
+ * Nested notification preferences matching frontend NotificationPreference type.
+ * Stored as-is in User.notificationPreferences JSON.
+ */
+export class UpdateNotificationPreferencesDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => EmailPreferencesDto)
+  email?: EmailPreferencesDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PushPreferencesDto)
+  push?: PushPreferencesDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => InAppPreferencesDto)
+  inApp?: InAppPreferencesDto;
 }

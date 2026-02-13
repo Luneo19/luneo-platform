@@ -44,6 +44,7 @@ interface Webhook {
 export default function WebhooksPage() {
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   React.useEffect(() => {
     loadWebhooks();
@@ -52,10 +53,13 @@ export default function WebhooksPage() {
   const loadWebhooks = async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const data = await api.get<{ webhooks?: unknown[] }>('/api/v1/admin/webhooks');
       setWebhooks((data?.webhooks ?? []) as Webhook[]);
     } catch (error) {
       logger.error('Error loading webhooks:', error);
+      setWebhooks([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +88,7 @@ export default function WebhooksPage() {
       loadWebhooks();
     } catch (error) {
       logger.error('Error deleting webhook:', error);
+      alert('Failed to delete webhook. Please try again.');
     }
   };
 
@@ -132,7 +137,16 @@ export default function WebhooksPage() {
           ) : webhooks.length === 0 ? (
             <div className="text-center py-12 text-zinc-400">
               <Webhook className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="mb-4">No webhooks configured</p>
+              {loadError ? (
+                <>
+                  <p className="mb-4">Unable to load webhooks.</p>
+                  <Button variant="outline" onClick={() => loadWebhooks()} className="mb-4 border-zinc-700">
+                    Retry
+                  </Button>
+                </>
+              ) : (
+                <p className="mb-4">No webhooks configured</p>
+              )}
               <Link href="/admin/webhooks/new">
                 <Button>Create First Webhook</Button>
               </Link>

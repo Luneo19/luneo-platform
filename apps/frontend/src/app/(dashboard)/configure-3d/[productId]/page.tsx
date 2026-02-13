@@ -5,11 +5,23 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+/** API response shape for GET /api/v1/products/:id */
+interface ProductApiResponse {
+  data?: Record<string, unknown>;
+}
+
+/** API response shape for GET /api/v1/3d/config */
+interface Config3DApiResponse {
+  data?: ({ id?: string; model_glb_url?: string } & Record<string, unknown>) | null;
+}
 
 // Lazy load 3D Configurator
 const ProductConfigurator3D = dynamic(
@@ -30,10 +42,11 @@ const ProductConfigurator3D = dynamic(
 function Configure3DPageContent() {
   const params = useParams();
   const productId = params.productId as string;
+  const { t } = useI18n();
   const { toast } = useToast();
 
-  const [product, setProduct] = useState<any>(null);
-  const [config3D, setConfig3D] = useState<any>(null);
+  const [product, setProduct] = useState<Record<string, unknown> | null>(null);
+  const [config3D, setConfig3D] = useState<({ id?: string; model_glb_url?: string } & Record<string, unknown>) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,11 +54,11 @@ function Configure3DPageContent() {
     async function loadProductAndConfig() {
       try {
         const [productData, configData] = await Promise.all([
-          api.get<{ data?: unknown }>(`/api/v1/products/${productId}`),
-          api.get<{ data?: unknown }>('/api/v1/3d/config', { params: { productId } }).catch(() => ({ data: null })),
+          api.get<ProductApiResponse>(`/api/v1/products/${productId}`),
+          api.get<Config3DApiResponse>('/api/v1/3d/config', { params: { productId } }).catch((): Config3DApiResponse => ({ data: null })),
         ]);
-        setProduct((productData as { data?: unknown })?.data ?? null);
-        setConfig3D((configData as { data?: unknown })?.data ?? null);
+        setProduct(productData?.data ?? null);
+        setConfig3D(configData?.data ?? null);
         setLoading(false);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load product');
@@ -56,7 +69,7 @@ function Configure3DPageContent() {
     loadProductAndConfig();
   }, [productId]);
 
-  const handleSaveConfiguration = async (configuration: any) => {
+  const handleSaveConfiguration = async (configuration: Record<string, unknown>) => {
     try {
       await api.post('/api/v1/3d-configurations/save', {
         productId,
@@ -77,16 +90,16 @@ function Configure3DPageContent() {
     try {
       if (!config3D?.id) {
         toast({
-          title: 'Configuration requise',
-          description: 'Sauvegardez la configuration 3D avant d’exporter en AR.',
+          title: t('configurator3d.exportConfigRequired'),
+          description: t('configurator3d.saveBeforeARExport'),
           variant: 'destructive'
         });
         return;
       }
 
       toast({
-        title: 'Export AR en cours',
-        description: `Préparation du package ${platform === 'ios' ? 'USDZ' : 'GLB'}...`
+        title: t('configurator3d.arExportInProgress'),
+        description: t('configurator3d.arExportPreparing', { format: platform === 'ios' ? 'USDZ' : 'GLB' })
       });
 
       const result = await api.post<{ success?: boolean; error?: string; data?: { exportUrl?: string } }>('/api/v1/3d/export-ar', {
@@ -100,23 +113,23 @@ function Configure3DPageContent() {
       }
 
       toast({
-        title: 'Export terminé',
-        description: `Téléchargement disponible pour ${platform.toUpperCase()}.`
+        title: t('configurator3d.exportComplete'),
+        description: t('configurator3d.downloadAvailableFor', { platform: platform.toUpperCase() })
       });
 
       if (result.data?.exportUrl) {
         window.open(result.data.exportUrl, '_blank', 'noopener,noreferrer');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error exporting AR', {
         error,
         productId,
         platform,
-        message: error.message || 'Unknown error',
+        message: getErrorDisplayMessage(error),
       });
       toast({
-        title: 'Erreur export AR',
-        description: error.message || `Impossible d'exporter pour ${platform.toUpperCase()}`,
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive'
       });
     }
@@ -178,7 +191,7 @@ function Configure3DPageContent() {
             </Link>
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-white">
-                3D Configurator: {product.name}
+                3D Configurator: {String(product?.name ?? '')}
               </h1>
               <p className="text-sm text-gray-300">
                 Customize your product in 3D and view in AR
@@ -206,7 +219,7 @@ function Configure3DPageContent() {
       <div className="flex-1">
         <ProductConfigurator3D
           productId={productId}
-          modelUrl={config3D.model_glb_url}
+          modelUrl={String((config3D as Record<string, unknown>).model_glb_url ?? '')}
           onSave={handleSaveConfiguration}
         />
       </div>

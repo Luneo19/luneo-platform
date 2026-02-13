@@ -234,7 +234,7 @@ function SocialMediaPageContent() {
                     {postTypes.map((type) => (
                       <Card
                         key={type.id}
-                        onClick={() => setPostType(type.id as string)}
+                        onClick={() => setPostType(type.id as 'post' | 'story' | 'reel')}
                         className={`p-3 text-center cursor-pointer transition-all ${
                           postType === type.id
                             ? 'bg-pink-500/20 border-pink-500'

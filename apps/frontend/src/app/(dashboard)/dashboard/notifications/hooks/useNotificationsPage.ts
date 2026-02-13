@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { trpc } from '@/lib/trpc/client';
 import type { Notification, NotificationStats, NotificationPreferences, NotificationsTab } from '../components/types';
 
@@ -17,6 +18,7 @@ const DEFAULT_PREFS: NotificationPreferences = {
 export function useNotificationsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -32,10 +34,10 @@ export function useNotificationsPage() {
 
   const notificationsQuery = trpc.notification.list.useQuery({ unreadOnly: activeTab === 'unread', limit: 100, offset: 0 });
   const preferencesQuery = trpc.notification.getPreferences.useQuery();
-  const markAsReadMutation = trpc.notification.markAsRead.useMutation({ onSuccess: () => { notificationsQuery.refetch(); toast({ title: 'Succès', description: 'Notification marquée comme lue' }); } });
-  const markAllAsReadMutation = trpc.notification.markAllAsRead.useMutation({ onSuccess: () => { notificationsQuery.refetch(); toast({ title: 'Succès', description: 'Toutes les notifications marquées comme lues' }); } });
-  const deleteMutation = trpc.notification.delete.useMutation({ onSuccess: () => { notificationsQuery.refetch(); toast({ title: 'Succès', description: 'Notification supprimée' }); } });
-  const updatePreferencesMutation = trpc.notification.updatePreferences.useMutation({ onSuccess: () => { preferencesQuery.refetch(); toast({ title: 'Succès', description: 'Préférences mises à jour' }); } });
+  const markAsReadMutation = trpc.notification.markAsRead.useMutation({ onSuccess: () => { notificationsQuery.refetch(); toast({ title: t('common.success'), description: t('notifications.markedAsRead') }); } });
+  const markAllAsReadMutation = trpc.notification.markAllAsRead.useMutation({ onSuccess: () => { notificationsQuery.refetch(); toast({ title: t('common.success'), description: t('notifications.allMarkedAsRead') }); } });
+  const deleteMutation = trpc.notification.delete.useMutation({ onSuccess: () => { notificationsQuery.refetch(); toast({ title: t('common.success'), description: t('notifications.notificationDeleted') }); } });
+  const updatePreferencesMutation = trpc.notification.updatePreferences.useMutation({ onSuccess: () => { preferencesQuery.refetch(); toast({ title: t('common.success'), description: t('notifications.preferencesUpdated') }); } });
 
   const allNotifications: Notification[] = useMemo(() => {
     return (notificationsQuery.data?.notifications || []).map((n: Record<string, unknown>) => {
@@ -124,10 +126,10 @@ export function useNotificationsPage() {
   const handleMarkAllAsRead = useCallback(() => markAllAsReadMutation.mutate(), [markAllAsReadMutation]);
   const handleDelete = useCallback((id: string) => deleteMutation.mutate({ id }), [deleteMutation]);
   const handleBulkAction = useCallback((action: 'read' | 'delete') => {
-    if (selectedNotifications.size === 0) { toast({ title: 'Erreur', description: 'Aucune notification sélectionnée', variant: 'destructive' }); return; }
+    if (selectedNotifications.size === 0) { toast({ title: t('common.error'), description: t('notifications.noNotificationSelected'), variant: 'destructive' }); return; }
     selectedNotifications.forEach((id) => action === 'read' ? handleMarkAsRead(id) : handleDelete(id));
     setSelectedNotifications(new Set());
-  }, [selectedNotifications, handleMarkAsRead, handleDelete, toast]);
+  }, [selectedNotifications, handleMarkAsRead, handleDelete, toast, t]);
   const handleToggleSelect = useCallback((id: string) => {
     setSelectedNotifications((prev) => {
       const next = new Set(prev);
@@ -145,9 +147,13 @@ export function useNotificationsPage() {
   }, [preferences, updatePreferencesMutation]);
 
   const loading = notificationsQuery.isLoading || preferencesQuery.isLoading;
+  const error = notificationsQuery.isError ? (notificationsQuery.error?.message ?? t('notifications.loadError')) : null;
+  const refetch = notificationsQuery.refetch;
 
   return {
     loading,
+    error,
+    refetch,
     stats,
     activeTab,
     setActiveTab,

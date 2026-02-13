@@ -33,6 +33,11 @@ export class CreateCheckoutSessionDto {
   @ValidateNested({ each: true })
   @Type(() => AddOnItem)
   addOns?: AddOnItem[];
+
+  @ApiPropertyOptional({ description: 'Country code for currency detection (e.g. CH, DE)' })
+  @IsOptional()
+  @IsString()
+  country?: string;
 }
 
 export class AddPaymentMethodDto {

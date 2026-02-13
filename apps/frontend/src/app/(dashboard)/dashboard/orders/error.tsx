@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, ShoppingCart, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 
 export default function OrdersError({
@@ -18,6 +19,7 @@ export default function OrdersError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     logger.error('Orders page error', {
       error,
@@ -37,21 +39,21 @@ export default function OrdersError({
               <AlertCircle className="h-5 w-5 text-red-400 absolute -top-1 -right-1" />
             </div>
             <h2 className="text-xl font-semibold text-white">
-              Erreur lors du chargement des commandes
+              {t('orders.errorLoading')}
             </h2>
             <p className="text-muted-foreground text-center max-w-md">
-              {error.message || 'Nous n\'avons pas pu charger vos commandes. Veuillez réessayer.'}
+              {error.message || t('orders.errorRetryMessage')}
             </p>
             <div className="flex gap-4 mt-4">
               <Button onClick={reset} variant="default">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Réessayer
+                {t('common.retry')}
               </Button>
               <Button
                 onClick={() => window.location.href = '/dashboard'}
                 variant="outline"
               >
-                Retour au dashboard
+                {t('orders.backToDashboard')}
               </Button>
             </div>
           </div>

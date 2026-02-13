@@ -32,12 +32,12 @@ export function groupBy<T>(array: T[], key: keyof T | ((item: T) => string)): Re
 /**
  * Trie un tableau par une clé
  */
-export function sortBy<T>(array: T[], key: keyof T | ((item: T) => any), order: 'asc' | 'desc' = 'asc'): T[] {
+export function sortBy<T>(array: T[], key: keyof T | ((item: T) => unknown), order: 'asc' | 'desc' = 'asc'): T[] {
   const getValue = typeof key === 'function' ? key : (item: T) => item[key];
   
   return [...array].sort((a, b) => {
-    const aVal = getValue(a);
-    const bVal = getValue(b);
+    const aVal = getValue(a) as string | number;
+    const bVal = getValue(b) as string | number;
     
     if (aVal < bVal) return order === 'asc' ? -1 : 1;
     if (aVal > bVal) return order === 'asc' ? 1 : -1;
@@ -48,7 +48,7 @@ export function sortBy<T>(array: T[], key: keyof T | ((item: T) => any), order: 
 /**
  * Supprime les doublons d'un tableau
  */
-export function unique<T>(array: T[], key?: keyof T | ((item: T) => any)): T[] {
+export function unique<T>(array: T[], key?: keyof T | ((item: T) => unknown)): T[] {
   if (!key) {
     return Array.from(new Set(array));
   }
@@ -98,19 +98,19 @@ export function flatten<T>(array: (T | T[])[]): T[] {
 /**
  * Deep merge deux objets
  */
-export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
-  const output: Record<string, any> = { ...target };
+export function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
+  const output: Record<string, unknown> = { ...target };
   
   if (isObject(target) && isObject(source)) {
     Object.keys(source).forEach((key) => {
-      const sourceValue = (source as Record<string, any>)[key];
-      const targetValue = (target as Record<string, any>)[key];
+      const sourceValue = (source as Record<string, unknown>)[key];
+      const targetValue = (target as Record<string, unknown>)[key];
 
       if (isObject(sourceValue)) {
         if (!targetValue) {
           output[key] = sourceValue;
         } else {
-          output[key] = deepMerge(targetValue, sourceValue);
+          output[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Partial<Record<string, unknown>>);
         }
         return;
       }
@@ -154,7 +154,7 @@ export function deepClone<T>(obj: T): T {
 /**
  * Omet des clés d'un objet
  */
-export function omit<T extends Record<string, any>, K extends keyof T>(
+export function omit<T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
   keys: K[]
 ): Omit<T, K> {
@@ -168,7 +168,7 @@ export function omit<T extends Record<string, any>, K extends keyof T>(
 /**
  * Sélectionne des clés d'un objet
  */
-export function pick<T extends Record<string, any>, K extends keyof T>(
+export function pick<T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
   keys: K[]
 ): Pick<T, K> {
@@ -184,7 +184,7 @@ export function pick<T extends Record<string, any>, K extends keyof T>(
 /**
  * Vérifie si une valeur est un objet
  */
-export function isObject(value: unknown): value is Record<string, any> {
+export function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -261,7 +261,7 @@ export async function retry<T>(
 /**
  * Debounce une fonction
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -283,7 +283,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle une fonction
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {

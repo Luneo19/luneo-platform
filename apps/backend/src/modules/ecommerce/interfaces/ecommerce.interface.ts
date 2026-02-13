@@ -18,7 +18,7 @@ export interface EcommerceConfig {
   webhookSecret?: string;
   scopes?: string[];
   features?: string[];
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
 }
 
 export interface ProductMapping {
@@ -29,7 +29,7 @@ export interface ProductMapping {
   externalSku: string;
   syncStatus: 'synced' | 'pending' | 'failed' | 'conflict';
   lastSyncedAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SyncLog {
@@ -49,7 +49,7 @@ export interface SyncError {
   itemId: string;
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface ShopifyProduct {
@@ -219,7 +219,7 @@ export interface WooCommerceLineItem {
   price: string;
   total: string;
   sku: string;
-  meta_data: Array<{ key: string; value: any }>;
+  meta_data: Array<{ key: string; value: unknown }>;
 }
 
 export interface WooCommerceAddress {
@@ -245,14 +245,14 @@ export interface MagentoProduct {
   type_id: string;
   price: number;
   attribute_set_id: number;
-  extension_attributes?: any;
+  extension_attributes?: Record<string, unknown>;
   custom_attributes: MagentoAttribute[];
   media_gallery_entries: MagentoMediaEntry[];
 }
 
 export interface MagentoAttribute {
   attribute_code: string;
-  value: any;
+  value: unknown;
 }
 
 export interface MagentoMediaEntry {
@@ -339,7 +339,7 @@ export interface WebhookPayload {
   id: string;
   topic: string;
   shop_domain?: string;
-  payload: any;
+  payload: Record<string, unknown>;
   created_at: string;
 }
 

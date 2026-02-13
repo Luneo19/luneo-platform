@@ -3,6 +3,8 @@
  * Centralised security settings for the application
  */
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 export const securityConfig = {
   // Session settings
   session: {
@@ -66,7 +68,7 @@ export const securityConfig = {
   // CORS settings
   cors: {
     allowedOrigins: [
-      'https://luneo.app',
+      APP_URL,
       'https://www.luneo.app',
       'https://app.luneo.app',
     ],

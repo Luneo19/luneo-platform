@@ -8,7 +8,7 @@ import { ApiProperty } from '@nestjs/swagger';
  * Validation that the payload is an object is handled by NestJS ValidationPipe
  * configured to accept any object structure for this flexible endpoint.
  */
-export class TestWebhookDto implements Record<string, any> {
+export class TestWebhookDto implements Record<string, unknown> {
   // Flexible payload structure - accepts any object properties
-  [key: string]: any;
+  [key: string]: unknown;
 }

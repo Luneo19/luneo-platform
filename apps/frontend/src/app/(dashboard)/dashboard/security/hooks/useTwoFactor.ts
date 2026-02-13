@@ -1,15 +1,19 @@
 /**
  * Hook personnalisé pour gérer la 2FA
  */
+'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { TwoFactorStatus } from '../types';
 
 export function useTwoFactor() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const [status, setStatus] = useState<TwoFactorStatus>({ enabled: false });
@@ -29,15 +33,15 @@ export function useTwoFactor() {
     } catch (error: unknown) {
       logger.error('Error fetching 2FA status', { error });
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la récupération du statut 2FA',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
       setStatus({ enabled: false });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchStatus();
@@ -60,14 +64,14 @@ export function useTwoFactor() {
 
         await endpoints.auth.verify2FA(token);
         setStatus({ enabled: true });
-        toast({ title: 'Succès', description: '2FA activée avec succès' });
+        toast({ title: t('common.success'), description: t('common.success') });
         router.refresh();
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error enabling 2FA', { error });
         toast({
-          title: 'Erreur',
-          description: error instanceof Error ? error.message : "Erreur lors de l'activation de la 2FA",
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
@@ -75,7 +79,7 @@ export function useTwoFactor() {
         setIsEnabling(false);
       }
     },
-    [toast, router]
+    [toast, router, t]
   );
 
   const disable2FA = useCallback(async (): Promise<{ success: boolean }> => {
@@ -85,22 +89,21 @@ export function useTwoFactor() {
       await endpoints.auth.disable2FA();
 
       setStatus({ enabled: false });
-      toast({ title: 'Succès', description: '2FA désactivée avec succès' });
+      toast({ title: t('common.success'), description: t('common.success') });
       router.refresh();
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erreur lors de la désactivation de la 2FA";
       logger.error('Error disabling 2FA', { error });
       toast({
-        title: 'Erreur',
-        description: message,
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
       return { success: false };
     } finally {
       setIsDisabling(false);
     }
-  }, [toast, router]);
+  }, [toast, router, t]);
 
   return {
     status,

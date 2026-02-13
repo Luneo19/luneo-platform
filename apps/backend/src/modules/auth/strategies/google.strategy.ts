@@ -1,6 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PassportGoogle = require('passport-google-oauth20');
+const Strategy = PassportGoogle.Strategy;
+type VerifyCallback = (error: Error | null, user?: unknown) => void;
 import { ConfigService } from '@nestjs/config';
 import { OAuthService, OAuthUser } from '../services/oauth.service';
 import { Logger } from '@nestjs/common';
@@ -38,19 +41,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   async validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: { id: string; name?: { givenName?: string; familyName?: string }; emails?: Array<{ value: string }>; photos?: Array<{ value: string }> },
     done: VerifyCallback,
-  ): Promise<any> {
+  ): Promise<void> {
     try {
       const { id, name, emails, photos } = profile;
       
       const user: OAuthUser = {
         provider: 'google' as const,
         providerId: id,
-        email: emails[0].value,
-        firstName: name.givenName,
-        lastName: name.familyName,
-        picture: photos[0].value,
+        email: emails?.[0]?.value ?? '',
+        firstName: name?.givenName,
+        lastName: name?.familyName,
+        picture: photos?.[0]?.value,
         accessToken,
         refreshToken,
       };

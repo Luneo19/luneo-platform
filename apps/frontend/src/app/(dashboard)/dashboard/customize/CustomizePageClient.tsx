@@ -10,6 +10,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { trpc } from '@/lib/trpc/client';
 import type { Product, ProductCategory, ProductStatus } from '@/lib/types/product';
 import { CustomizeStats } from './components/CustomizeStats';
@@ -23,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 type ActiveTab = 'products' | 'templates' | 'analytics' | 'history';
 
 export function CustomizePageClient() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ActiveTab>('products');
@@ -37,16 +39,16 @@ export function CustomizePageClient() {
   });
 
   const products = useMemo(() => {
-    return (productsQuery.data?.products || []) as Product[];
+    return (productsQuery.data?.products ?? []) as unknown as Product[];
   }, [productsQuery.data]);
 
   const handleRefresh = useCallback(() => {
     productsQuery.refetch();
     toast({
-      title: 'Actualisation',
-      description: 'Les produits ont été actualisés',
+      title: t('customize.productsRefreshed'),
+      description: t('customize.productsRefreshedDesc'),
     });
-  }, [productsQuery, toast]);
+  }, [productsQuery, toast, t]);
 
   return (
     <div className="space-y-6 pb-10">

@@ -14,6 +14,7 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BillingPageClient } from './BillingPageClient';
 import { BillingSkeleton } from './components/BillingSkeleton';
+import { NotAuthenticatedMessage } from '../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'Facturation | Luneo',
@@ -31,7 +32,7 @@ export default async function BillingPage() {
     return (
       <ErrorBoundary level="page" componentName="BillingPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

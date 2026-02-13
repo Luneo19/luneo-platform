@@ -5,10 +5,12 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 export function useSecuritySettings() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -21,14 +23,14 @@ export function useSecuritySettings() {
           currentPassword,
           newPassword,
         });
-        toast({ title: 'Succès', description: 'Mot de passe mis à jour avec succès' });
+        toast({ title: t('common.success'), description: t('settings.security.passwordChanged') });
         router.refresh();
         return { success: true };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Erreur lors du changement de mot de passe';
+        const message = error instanceof Error ? error.message : t('settings.security.passwordChangeError');
         logger.error('Error changing password', { error });
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: message,
           variant: 'destructive',
         });
@@ -37,7 +39,7 @@ export function useSecuritySettings() {
         setIsChangingPassword(false);
       }
     },
-    [toast, router]
+    [toast, router, t]
   );
 
   return {

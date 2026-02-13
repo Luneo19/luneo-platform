@@ -73,18 +73,18 @@ export class PersonalizationService {
     if (dto.type === 'text') {
       return this.autoFit.calculateFontSize(
         dto.text || '',
-        dto.maxWidth,
-        dto.maxHeight,
-        dto.fontFamily,
-        dto.minFontSize,
-        dto.maxFontSize,
+        dto.maxWidth ?? 0,
+        dto.maxHeight ?? 0,
+        dto.fontFamily ?? '',
+        dto.minFontSize ?? 0,
+        dto.maxFontSize ?? 0,
       );
     } else if (dto.type === 'image' || dto.type === 'pattern') {
       return this.autoFit.calculateScale(
-        dto.elementWidth || 100,
-        dto.elementHeight || 100,
-        dto.maxWidth,
-        dto.maxHeight,
+        dto.elementWidth ?? 100,
+        dto.elementHeight ?? 100,
+        dto.maxWidth ?? 0,
+        dto.maxHeight ?? 0,
         dto.maintainAspectRatio !== false,
       );
     }

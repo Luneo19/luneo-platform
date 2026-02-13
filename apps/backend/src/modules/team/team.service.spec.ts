@@ -10,10 +10,11 @@ import {
 } from '@nestjs/common';
 import { TeamService } from './team.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { PlansService } from '@/modules/plans/plans.service';
 
 describe('TeamService', () => {
   let service: TeamService;
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     teamMember: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -37,6 +38,7 @@ describe('TeamService', () => {
       providers: [
         TeamService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: PlansService, useValue: { enforceTeamLimit: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

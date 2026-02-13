@@ -3,6 +3,7 @@
 import { Palette, Box, Glasses, Sparkles, BarChart3, Puzzle } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { TiltCard } from '@/components/ui/tilt-card';
 
 const FEATURES = [
   {
@@ -65,7 +66,7 @@ export function FeaturesSectionNew() {
               <span className="text-white">Tout pour creer des </span>
               <span className="italic text-gradient-purple">produits exceptionnels</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-400 leading-relaxed px-2">
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed px-2">
               6 modules puissants qui couvrent l&apos;integralite du cycle de vie de vos produits personnalises.
             </p>
           </div>
@@ -83,30 +84,37 @@ export function FeaturesSectionNew() {
                 staggerDelay={80}
                 delay={100}
               >
-                <AnimatedBorder hoverOnly speed="slow" className="h-full">
-                  <div className="group relative backdrop-blur-sm p-5 sm:p-7 rounded-2xl transition-all duration-300 hover:-translate-y-1 h-full">
-                    {/* Hover glow */}
-                    <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
+                <TiltCard
+                  maxTilt={6}
+                  hoverScale={1.02}
+                  glowColor="rgba(168, 85, 247, 0.08)"
+                  className="h-full rounded-2xl"
+                >
+                  <AnimatedBorder hoverOnly speed="slow" className="h-full">
+                    <div className="group relative backdrop-blur-sm p-5 sm:p-7 rounded-2xl transition-all duration-300 h-full">
+                      {/* Hover glow */}
+                      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
 
-                    <div className="relative z-10">
-                      {/* Label */}
-                      <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.15em] bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent mb-3 sm:mb-4`}>
-                        {feature.label}
-                      </span>
+                      <div className="relative z-10">
+                        {/* Label */}
+                        <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.15em] bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent mb-3 sm:mb-4`}>
+                          {feature.label}
+                        </span>
 
-                      {/* Icon */}
-                      <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center mb-4 sm:mb-5" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))' }}>
-                        <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/70" />
+                        {/* Icon */}
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center mb-4 sm:mb-5" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))' }}>
+                          <Icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/70" />
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">{feature.title}</h3>
+
+                        {/* Description */}
+                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">{feature.description}</p>
                       </div>
-
-                      {/* Title */}
-                      <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">{feature.title}</h3>
-
-                      {/* Description */}
-                      <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">{feature.description}</p>
                     </div>
-                  </div>
-                </AnimatedBorder>
+                  </AnimatedBorder>
+                </TiltCard>
               </ScrollReveal>
             );
           })}

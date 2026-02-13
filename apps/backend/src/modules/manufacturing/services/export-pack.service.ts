@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
-import { SvgGeneratorService } from './svg-generator.service';
+import { SvgGeneratorService, SpecData } from './svg-generator.service';
 import { DxfGeneratorService } from './dxf-generator.service';
 import { PdfGeneratorService } from './pdf-generator.service';
 import * as archiver from 'archiver'; // ✅ archiver package installed
@@ -59,13 +59,13 @@ export class ExportPackService {
 
         switch (format) {
           case 'svg':
-            content = await this.svgGenerator.generate(snapshot);
+            content = await this.svgGenerator.generate({ specData: snapshot.specData as SpecData });
             break;
           case 'dxf':
-            content = await this.dxfGenerator.generate(snapshot);
+            content = await this.dxfGenerator.generate({ specData: snapshot.specData as SpecData, id: snapshot.id });
             break;
           case 'pdf':
-            content = await this.pdfGenerator.generate(snapshot);
+            content = await this.pdfGenerator.generate({ specData: snapshot.specData as Record<string, unknown>, id: snapshot.id });
             break;
           default:
             this.logger.warn(`Unsupported format: ${format}`);

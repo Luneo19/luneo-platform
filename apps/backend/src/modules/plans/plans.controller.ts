@@ -1,8 +1,11 @@
-import { Controller, Get, UseGuards, Request, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Post, Body, Param, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PlansService, type PlanLimits } from './plans.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UpgradePlanDto } from './dto/upgrade-plan.dto';
+import { Request as ExpressRequest } from 'express';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Plans')
 @Controller('plans')
@@ -12,27 +15,36 @@ export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 
   @Get('current')
-  @ApiOperation({ summary: 'Récupérer le plan actuel de l\'utilisateur' })
+  @ApiOperation({ summary: 'Récupérer le plan actuel de l\'utilisateur avec usage' })
   @ApiResponse({ status: 200, description: 'Plan actuel récupéré avec succès' })
-  async getCurrentPlan(@Request() req) {
-    const plan = await this.plansService.getUserPlan(req.user.id);
-    const limits = await this.plansService.getUserLimits(req.user.id);
+  async getCurrentPlan(@Request() req: ExpressRequest) {
+    const u = req.user as { id: string };
+    const plan = await this.plansService.getUserPlan(u.id);
+    const limits = await this.plansService.getUserLimits(u.id);
     const planInfo = this.plansService.getPlanInfo(plan);
+    // CRITICAL FIX: Include usage data so PlanLimits component works
+    const designLimit = await this.plansService.checkDesignLimit(u.id);
+    const teamLimit = await this.plansService.checkTeamLimit(u.id);
 
     return {
       plan,
       limits,
-      info: planInfo
+      info: planInfo,
+      usage: {
+        designs: designLimit,
+        team: teamLimit,
+      },
     };
   }
 
   @Get('limits')
   @ApiOperation({ summary: 'Récupérer les limites du plan actuel' })
   @ApiResponse({ status: 200, description: 'Limites récupérées avec succès' })
-  async getLimits(@Request() req) {
-    const limits = await this.plansService.getUserLimits(req.user.id);
-    const designLimit = await this.plansService.checkDesignLimit(req.user.id);
-    const teamLimit = await this.plansService.checkTeamLimit(req.user.id);
+  async getLimits(@Request() req: ExpressRequest) {
+    const u = req.user as { id: string };
+    const limits = await this.plansService.getUserLimits(u.id);
+    const designLimit = await this.plansService.checkDesignLimit(u.id);
+    const teamLimit = await this.plansService.checkTeamLimit(u.id);
 
     return {
       limits,
@@ -46,26 +58,31 @@ export class PlansController {
   @Get('designs/check')
   @ApiOperation({ summary: 'Vérifier si l\'utilisateur peut créer un design' })
   @ApiResponse({ status: 200, description: 'Vérification effectuée avec succès' })
-  async checkDesignLimit(@Request() req) {
-    return await this.plansService.checkDesignLimit(req.user.id);
+  async checkDesignLimit(@Request() req: ExpressRequest) {
+    return await this.plansService.checkDesignLimit((req.user as { id: string }).id);
   }
 
   @Get('team/check')
   @ApiOperation({ summary: 'Vérifier si l\'utilisateur peut inviter un membre' })
   @ApiResponse({ status: 200, description: 'Vérification effectuée avec succès' })
-  async checkTeamLimit(@Request() req) {
-    return await this.plansService.checkTeamLimit(req.user.id);
+  async checkTeamLimit(@Request() req: ExpressRequest) {
+    return await this.plansService.checkTeamLimit((req.user as { id: string }).id);
   }
 
   @Post('upgrade')
-  @ApiOperation({ summary: 'Upgrader le plan de l\'utilisateur' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({ summary: 'Upgrader le plan d\'un utilisateur (admin uniquement)' })
   @ApiResponse({ status: 200, description: 'Plan upgradé avec succès' })
-  async upgradePlan(@Request() req, @Body() body: UpgradePlanDto) {
-    await this.plansService.upgradeUserPlan(req.user.id, body.plan);
+  @ApiResponse({ status: 403, description: 'Accès réservé aux administrateurs' })
+  async upgradePlan(@Request() req: ExpressRequest, @Body() body: UpgradePlanDto) {
+    // CRITICAL FIX: Admin upgrades TARGET user's plan, not their own
+    await this.plansService.upgradeUserPlan(body.userId, body.plan);
 
     return {
       success: true,
       message: 'Plan upgradé avec succès',
+      userId: body.userId,
       newPlan: body.plan,
     };
   }
@@ -73,8 +90,8 @@ export class PlansController {
   @Get('features/:feature')
   @ApiOperation({ summary: 'Vérifier si l\'utilisateur a accès à une fonctionnalité' })
   @ApiResponse({ status: 200, description: 'Vérification effectuée avec succès' })
-  async hasFeature(@Request() req, @Param('feature') feature: string) {
-    const hasAccess = await this.plansService.hasFeature(req.user.id, feature as keyof PlanLimits);
+  async hasFeature(@Request() req: ExpressRequest, @Param('feature') feature: string) {
+    const hasAccess = await this.plansService.hasFeature((req.user as { id: string }).id, feature as keyof PlanLimits);
     
     return {
       feature,

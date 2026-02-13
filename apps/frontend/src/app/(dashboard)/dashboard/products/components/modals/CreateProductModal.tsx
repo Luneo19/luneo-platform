@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RefreshCw, Save } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { CATEGORIES, STATUS_OPTIONS } from '../../constants/products';
 import type { Product, ProductCategory, ProductStatus } from '@/lib/types/product';
 
@@ -40,6 +41,7 @@ export function CreateProductModal({
   onOpenChange,
   onCreate,
 }: CreateProductModalProps) {
+  const { t } = useI18n();
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     description: '',
@@ -77,39 +79,39 @@ export function CreateProductModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouveau produit</DialogTitle>
+          <DialogTitle>{t('products.createTitle')}</DialogTitle>
           <DialogDescription>
-            Créez un nouveau produit pour votre catalogue
+            {t('products.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label className="text-gray-700">Nom du produit *</Label>
+            <Label className="text-gray-700">{t('products.name')} *</Label>
             <Input
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              placeholder="Ex: Bague en or avec diamant"
+              placeholder={t('products.productNamePlaceholder')}
               className="bg-white border-gray-200 text-gray-900 mt-1"
               required
             />
           </div>
           <div>
-            <Label className="text-gray-700">Description</Label>
+            <Label className="text-gray-700">{t('products.description')}</Label>
             <Textarea
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              placeholder="Décrivez votre produit..."
+              placeholder={t('products.descriptionPlaceholder')}
               rows={4}
               className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-700">Catégorie *</Label>
+              <Label className="text-gray-700">{t('products.category')} *</Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) =>
@@ -125,11 +127,12 @@ export function CreateProductModal({
                 <SelectContent>
                   {CATEGORIES.filter((c) => c.value !== 'all').map((cat) => {
                     const Icon = cat.icon;
+                    const labelKey = `products.categories.${cat.value}` as keyof typeof t;
                     return (
                       <SelectItem key={cat.value} value={cat.value}>
                         <div className="flex items-center gap-2">
                           <Icon className="w-4 h-4" />
-                          {cat.label}
+                          {t(labelKey as string)}
                         </div>
                       </SelectItem>
                     );
@@ -138,7 +141,7 @@ export function CreateProductModal({
               </Select>
             </div>
             <div>
-              <Label className="text-gray-700">Prix</Label>
+              <Label className="text-gray-700">{t('products.price')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -156,7 +159,7 @@ export function CreateProductModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-700">Statut</Label>
+              <Label className="text-gray-700">{t('products.status')}</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value) =>
@@ -170,7 +173,7 @@ export function CreateProductModal({
                   {STATUS_OPTIONS.filter((s) => s.value !== 'all').map(
                     (status) => (
                       <SelectItem key={status.value} value={status.value}>
-                        {status.label}
+                        {t(`products.${status.value.toLowerCase()}` as string)}
                       </SelectItem>
                     )
                   )}
@@ -190,7 +193,7 @@ export function CreateProductModal({
                   }
                 />
                 <Label htmlFor="is-active" className="text-gray-700 cursor-pointer">
-                  Produit actif
+                  {t('products.productActive')}
                 </Label>
               </div>
             </div>
@@ -202,7 +205,7 @@ export function CreateProductModal({
               onClick={() => onOpenChange(false)}
               className="border-gray-200"
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -212,12 +215,12 @@ export function CreateProductModal({
               {saving ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Création...
+                  {t('products.creating')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Créer
+                  {t('common.create')}
                 </>
               )}
             </Button>

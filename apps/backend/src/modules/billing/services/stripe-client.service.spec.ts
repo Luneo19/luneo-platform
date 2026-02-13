@@ -203,12 +203,12 @@ describe('StripeClientService', () => {
         state: 'CLOSED',
         failures: 0,
         successes: 5,
-        lastFailure: null,
-        lastSuccess: new Date(),
-        openedAt: null,
+        lastFailure: null as Date | null,
+        lastSuccess: new Date() as Date | null,
+        openedAt: null as Date | null,
       };
 
-      mockCircuitBreakerService.getStatus.mockReturnValue(mockStatus);
+      mockCircuitBreakerService.getStatus.mockReturnValue(mockStatus as any);
 
       const result = service.getCircuitStatus();
 
@@ -221,12 +221,12 @@ describe('StripeClientService', () => {
         state: 'OPEN',
         failures: 5,
         successes: 0,
-        lastFailure: new Date(),
-        lastSuccess: null,
-        openedAt: new Date(),
+        lastFailure: new Date() as Date | null,
+        lastSuccess: null as Date | null,
+        openedAt: new Date() as Date | null,
       };
 
-      mockCircuitBreakerService.getStatus.mockReturnValue(openStatus);
+      mockCircuitBreakerService.getStatus.mockReturnValue(openStatus as any);
 
       const result = service.getCircuitStatus();
 
@@ -374,15 +374,16 @@ describe('StripeClientService', () => {
       expect(service.stripeConfigValid).toBe(false);
     });
 
-    it('should throw InternalServerErrorException when secret key is missing in production', async () => {
+    it('should handle missing secret key in production gracefully (degrades instead of throwing)', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'app.nodeEnv') return 'production';
         if (key === 'stripe.secretKey') return undefined;
         return 'some-value';
       });
 
-      await expect(service.onModuleInit()).rejects.toThrow(InternalServerErrorException);
-      await expect(service.onModuleInit()).rejects.toThrow('STRIPE_SECRET_KEY is required');
+      await service.onModuleInit();
+
+      expect(service.stripeConfigValid).toBe(false);
     });
 
     it('should handle missing price IDs in development mode', async () => {
@@ -398,7 +399,7 @@ describe('StripeClientService', () => {
       expect(service.stripeConfigValid).toBe(true);
     });
 
-    it('should throw InternalServerErrorException when price IDs are missing in production', async () => {
+    it('should handle missing price IDs in production gracefully (degrades instead of throwing)', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'app.nodeEnv') return 'production';
         if (key === 'stripe.secretKey') return 'sk_test_xxx';
@@ -406,8 +407,9 @@ describe('StripeClientService', () => {
         return 'some-value';
       });
 
-      await expect(service.onModuleInit()).rejects.toThrow(InternalServerErrorException);
-      await expect(service.onModuleInit()).rejects.toThrow('Missing Stripe Price IDs');
+      await service.onModuleInit();
+
+      expect(service.stripeConfigValid).toBe(false);
     });
 
     it('should validate price IDs in production mode', async () => {
@@ -556,8 +558,11 @@ describe('StripeClientService', () => {
     });
 
     it('should handle general configuration errors gracefully', async () => {
-      mockConfigService.get.mockImplementation(() => {
-        throw new Error('Config error');
+      // Throw only when accessing stripe config (inside try block) so the error is caught
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'app.nodeEnv') return 'production';
+        if (key === 'stripe.secretKey') throw new Error('Config error');
+        return undefined;
       });
 
       await service.onModuleInit();

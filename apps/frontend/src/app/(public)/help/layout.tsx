@@ -5,6 +5,7 @@
 
 import type { Metadata } from 'next';
 import { generateMetadata as generateSEOMetadata } from '@/lib/seo/metadata';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 
 export const metadata: Metadata = generateSEOMetadata({
   title: 'Centre d\'Aide - Luneo',
@@ -21,6 +22,11 @@ export const metadata: Metadata = generateSEOMetadata({
   ],
   noindex: false,
   ogType: 'website',
+  canonicalUrl: `${SEO_BASE_URL}/help`,
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/help` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/help` },
+  ],
 });
 
 export default function HelpLayout({

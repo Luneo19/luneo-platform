@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { QuotaWarningBanner } from '@/components/shared/QuotaWarningBanner';
 import { TeamHeader } from './components/TeamHeader';
 import { TeamStats } from './components/TeamStats';
@@ -14,11 +15,13 @@ import { PendingInvitesList } from './components/PendingInvitesList';
 import { InviteMemberModal } from './components/modals/InviteMemberModal';
 import { EditRoleModal } from './components/modals/EditRoleModal';
 import { RemoveMemberModal } from './components/modals/RemoveMemberModal';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { useTeamMembers } from './hooks/useTeamMembers';
 import { useTeamActions } from './hooks/useTeamActions';
 import type { TeamMember, TeamRole } from './types';
 
 export function TeamPageClient() {
+  const { t } = useI18n();
   const { members, pendingInvites, stats, isLoading, error, refetch } = useTeamMembers();
   const {
     handleInvite,
@@ -104,10 +107,10 @@ export function TeamPageClient() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-[60vh] dash-bg">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement de l'équipe...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-purple-500 mx-auto" />
+          <p className="mt-4 text-white/60">{t('dashboard.team.loadingTeam')}</p>
         </div>
       </div>
     );
@@ -115,14 +118,15 @@ export function TeamPageClient() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Erreur lors du chargement de l'équipe</p>
+      <div className="flex items-center justify-center min-h-[60vh] dash-bg">
+        <div className="text-center dash-card rounded-2xl p-8 border border-white/[0.06] max-w-md">
+          <p className="text-red-400 mb-4">{getErrorDisplayMessage(error)}</p>
           <button
+            type="button"
             onClick={() => refetch()}
-            className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700"
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90"
           >
-            Réessayer
+            {t('dashboard.common.retry')}
           </button>
         </div>
       </div>

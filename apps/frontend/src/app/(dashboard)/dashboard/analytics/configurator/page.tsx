@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +19,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { ArrowLeft, Download, Box, Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 const PERIODS = [
   { value: 7, label: '7j' },
@@ -42,6 +44,7 @@ function downloadCSV(rows: Record<string, unknown>[], filename: string) {
 }
 
 function ConfiguratorAnalyticsContent() {
+  const { t } = useI18n();
   const [period, setPeriod] = useState<Period>(30);
   const [loading, setLoading] = useState(true);
   const [sessionsOverTime, setSessionsOverTime] = useState<Array<{ date: string; count: number }>>([]);
@@ -51,10 +54,11 @@ function ConfiguratorAnalyticsContent() {
   const [savedConfigs, setSavedConfigs] = useState(0);
   const [avgSessionSec, setAvgSessionSec] = useState(0);
   const [productsConfigured, setProductsConfigured] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    // Backend has no dedicated configurator analytics endpoint yet; use empty/mock until GET /api/v1/configurator-3d/analytics exists
+    setError(null);
     fetch(`/api/configurator-3d/analytics?days=${period}`)
       .then((res) => (res.ok ? res.json() : { sessionsOverTime: [], categoryBreakdown: [], topProducts: [], totalSessions: 0, savedConfigs: 0, avgSessionDuration: 0, productsConfigured: 0 }))
       .then((data) => {
@@ -70,7 +74,9 @@ function ConfiguratorAnalyticsContent() {
         setAvgSessionSec(data.avgSessionDuration ?? 0);
         setProductsConfigured(data.productsConfigured ?? 0);
       })
-      .catch(() => {
+      .catch((err) => {
+        logger.error('Configurator analytics load error', { error: err });
+        setError(t('analytics.errorLoadConfigurator'));
         setSessionsOverTime([]);
         setCategoryBreakdown([]);
         setTopProducts([]);
@@ -87,6 +93,17 @@ function ConfiguratorAnalyticsContent() {
     if (rows.length === 0) rows.push({ date: '', sessions: 0 });
     downloadCSV(rows, `configurator-analytics-${period}d.csv`);
   }, [sessionsOverTime, period]);
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center">
+        <p className="text-red-400 mb-4">{error}</p>
+        <Button variant="outline" className="border-gray-600" onClick={() => setError(null)}>
+          {t('analytics.retry')}
+        </Button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -129,8 +146,8 @@ function ConfiguratorAnalyticsContent() {
           <div className="flex items-center gap-2">
             <Box className="w-8 h-8 text-cyan-400" />
             <div>
-              <h1 className="text-2xl font-bold text-white">Analytics Configurateur 3D</h1>
-              <p className="text-sm text-gray-400">Sessions et configurations sauvegardées</p>
+              <h1 className="text-2xl font-bold text-white">{t('analytics.configuratorPageTitle')}</h1>
+              <p className="text-sm text-gray-400">{t('analytics.configuratorPageSubtitle')}</p>
             </div>
           </div>
         </div>
@@ -148,7 +165,7 @@ function ConfiguratorAnalyticsContent() {
           ))}
           <Button variant="outline" size="sm" className="border-gray-600" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            {t('analytics.exportCsv')}
           </Button>
         </div>
       </div>
@@ -156,25 +173,25 @@ function ConfiguratorAnalyticsContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Total sessions</p>
+            <p className="text-sm text-gray-400">{t('analytics.totalSessions')}</p>
             <p className="text-2xl font-bold text-white">{totalSessions}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Configs sauvegardées</p>
+            <p className="text-sm text-gray-400">{t('analytics.savedConfigs')}</p>
             <p className="text-2xl font-bold text-white">{savedConfigs}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Temps moyen session</p>
+            <p className="text-sm text-gray-400">{t('analytics.avgSessionTime')}</p>
             <p className="text-2xl font-bold text-white">{avgSessionSec > 0 ? `${Math.round(avgSessionSec / 60)} min` : '—'}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Produits configurés</p>
+            <p className="text-sm text-gray-400">{t('analytics.productsConfigured')}</p>
             <p className="text-2xl font-bold text-white">{productsConfigured}</p>
           </CardContent>
         </Card>
@@ -183,12 +200,12 @@ function ConfiguratorAnalyticsContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Sessions dans le temps</CardTitle>
+            <CardTitle className="text-white">{t('analytics.sessionsOverTime')}</CardTitle>
           </CardHeader>
           <CardContent>
             {sessionsOverTime.length === 0 ? (
               <p className="text-gray-400 text-sm py-8 text-center">
-                Aucune session sur la période. Les données apparaîtront lorsque l’API analytics configurateur sera disponible.
+                {t('analytics.noSessionData')}
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
@@ -205,11 +222,11 @@ function ConfiguratorAnalyticsContent() {
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Répartition par catégorie</CardTitle>
+            <CardTitle className="text-white">{t('analytics.byCategory')}</CardTitle>
           </CardHeader>
           <CardContent>
             {categoryBreakdown.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -236,17 +253,17 @@ function ConfiguratorAnalyticsContent() {
 
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Produits les plus configurés</CardTitle>
+          <CardTitle className="text-white">{t('analytics.topConfigured')}</CardTitle>
         </CardHeader>
         <CardContent>
           {topProducts.length === 0 ? (
-            <p className="text-gray-400 text-sm py-8 text-center">Aucun produit pour l’instant</p>
+            <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noProductsYet')}</p>
           ) : (
             <ul className="space-y-2">
               {topProducts.map((p, i) => (
                 <li key={i} className="flex justify-between text-sm">
                   <span className="text-white">{p.name}</span>
-                  <span className="text-gray-400">{p.sessions} sessions</span>
+                  <span className="text-gray-400">{p.sessions} {t('analytics.metrics.sessions').toLowerCase()}</span>
                 </li>
               ))}
             </ul>

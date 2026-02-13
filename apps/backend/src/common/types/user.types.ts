@@ -5,6 +5,15 @@
 
 import { UserRole } from '@prisma/client';
 
+/** Express request with optional user (e.g. public or authenticated routes) */
+export type RequestWithOptionalUser = import('express').Request & { user?: CurrentUser };
+
+/** Express request with required user (use after JwtAuthGuard) */
+export type RequestWithUser = import('express').Request & { user: CurrentUser };
+
+/** Express request with user and brandId (set by BrandScopedGuard) */
+export type RequestWithUserAndBrand = RequestWithUser & { brandId: string };
+
 /**
  * Utilisateur actuel authentifié
  * Retourné par JWT Strategy et utilisé dans les guards

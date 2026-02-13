@@ -14,17 +14,27 @@ describe('OrdersService', () => {
   let service: OrdersService;
   let prisma: PrismaService;
 
+  const mockOrderDelegate = {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+    updateMany: jest.fn(),
+  };
+  const mockDiscountUsage = {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    delete: jest.fn(),
+  };
+  const mockDiscount = {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  };
   const mockPrisma = {
-    order: {
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-      updateMany: jest.fn(),
-    },
+    order: mockOrderDelegate,
     product: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -33,17 +43,13 @@ describe('OrdersService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
     },
-    discountUsage: {
-      findFirst: jest.fn(),
-      delete: jest.fn(),
-    },
-    discount: {
-      update: jest.fn(),
-    },
+    discountUsage: mockDiscountUsage,
+    discount: mockDiscount,
     commission: {
       findMany: jest.fn(),
       updateMany: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   const mockConfigService = {
@@ -95,6 +101,14 @@ describe('OrdersService', () => {
   };
 
   beforeEach(async () => {
+    mockPrisma.$transaction.mockImplementation((fn: (tx: any) => Promise<any>) => {
+      const tx = {
+        order: mockOrderDelegate,
+        discountUsage: mockDiscountUsage,
+        discount: mockDiscount,
+      };
+      return fn(tx);
+    });
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
@@ -577,7 +591,7 @@ describe('OrdersService', () => {
       expect(result.paymentStatus).toBe(PaymentStatus.CANCELLED);
     });
 
-    it('should throw ForbiddenException when order cannot be cancelled', async () => {
+    it('should throw BadRequestException when order cannot be cancelled', async () => {
       const existingOrder = {
         id: 'ord-1',
         status: OrderStatus.SHIPPED,
@@ -591,7 +605,7 @@ describe('OrdersService', () => {
 
       mockPrisma.order.findUnique.mockResolvedValue(existingOrder);
 
-      await expect(service.cancel('ord-1', brandUser)).rejects.toThrow(ForbiddenException);
+      await expect(service.cancel('ord-1', brandUser)).rejects.toThrow(BadRequestException);
     });
   });
 });

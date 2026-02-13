@@ -9,6 +9,7 @@ import { OrderRow } from './order-row';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import type { Order, OrderPagination } from '../types';
 
 interface OrdersListProps {
@@ -34,6 +35,7 @@ export function OrdersList({
   selectedOrders,
   onSelectOrder,
 }: OrdersListProps) {
+  const { t } = useI18n();
   const router = useRouter();
 
   const handlePageChange = (newPage: number) => {
@@ -45,7 +47,7 @@ export function OrdersList({
   if (orders.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucune commande trouvée</p>
+        <p className="text-gray-400">{t('orders.noOrdersFound')}</p>
       </div>
     );
   }
@@ -67,8 +69,7 @@ export function OrdersList({
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-gray-400">
-            Page {pagination.page} sur {pagination.totalPages} ({pagination.total}{' '}
-            commandes)
+            {t('orders.pageOf', { page: pagination.page, total: pagination.totalPages, count: pagination.total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -79,7 +80,7 @@ export function OrdersList({
               className="border-gray-600"
             >
               <ChevronLeft className="w-4 h-4" />
-              Précédent
+              {t('orders.previous')}
             </Button>
             <Button
               variant="outline"
@@ -88,7 +89,7 @@ export function OrdersList({
               disabled={!pagination.hasNext}
               className="border-gray-600"
             >
-              Suivant
+              {t('orders.next')}
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>

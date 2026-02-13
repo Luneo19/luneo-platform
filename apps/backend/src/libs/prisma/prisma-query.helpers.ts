@@ -65,11 +65,11 @@ export class PrismaQueryHelper {
    *   { take: 20, cursor: lastCursor }
    * );
    */
-  async cursorPaginate<T extends Record<string, any>>(
+  async cursorPaginate<T extends Record<string, unknown>>(
     model: {
-      findMany: (args: any) => Promise<T[]>;
+      findMany: (args: unknown) => Promise<T[]>;
     },
-    queryArgs: any,
+    queryArgs: unknown,
     options: CursorPaginationOptions<string>,
   ): Promise<CursorPaginatedResult<T>> {
     const { take, cursor, orderBy } = options;
@@ -77,10 +77,11 @@ export class PrismaQueryHelper {
     // Prendre un élément de plus pour déterminer hasMore
     const actualTake = take + 1;
 
-    const findManyArgs = {
-      ...queryArgs,
+    const queryArgsObj = queryArgs as Record<string, unknown>;
+    const findManyArgs: Record<string, unknown> = {
+      ...queryArgsObj,
       take: actualTake,
-      orderBy: orderBy || queryArgs.orderBy,
+      orderBy: orderBy || queryArgsObj.orderBy,
     };
 
     // Ajouter le cursor si fourni
@@ -97,7 +98,7 @@ export class PrismaQueryHelper {
 
     // Calculer le prochain cursor
     const nextCursor = hasMore && data.length > 0 
-      ? data[data.length - 1].id 
+      ? (data[data.length - 1] as unknown as { id: string }).id 
       : undefined;
 
     return {
@@ -113,25 +114,26 @@ export class PrismaQueryHelper {
    */
   async offsetPaginate<T>(
     model: {
-      findMany: (args: any) => Promise<T[]>;
-      count: (args: any) => Promise<number>;
+      findMany: (args: unknown) => Promise<T[]>;
+      count: (args: unknown) => Promise<number>;
     },
-    queryArgs: any,
+    queryArgs: unknown,
     options: OffsetPaginationOptions,
   ): Promise<OffsetPaginatedResult<T>> {
     const { page, limit, orderBy } = options;
     const skip = (page - 1) * limit;
+    const queryArgsObj = queryArgs as Record<string, unknown>;
 
     // Exécuter les deux requêtes en parallèle
     const [data, total] = await Promise.all([
       model.findMany({
-        ...queryArgs,
+        ...queryArgsObj,
         skip,
         take: limit,
-        orderBy: orderBy || queryArgs.orderBy,
+        orderBy: orderBy || queryArgsObj.orderBy,
       }),
       model.count({
-        where: queryArgs.where,
+        where: queryArgsObj.where,
       }),
     ]);
 
@@ -168,9 +170,9 @@ export class PrismaQueryHelper {
    */
   async batchProcess<T extends { id: string }>(
     model: {
-      findMany: (args: any) => Promise<T[]>;
+      findMany: (args: unknown) => Promise<T[]>;
     },
-    queryArgs: any,
+    queryArgs: unknown,
     processFn: (items: T[]) => Promise<void>,
     options: { batchSize?: number; onProgress?: (processed: number) => void } = {},
   ): Promise<{ processed: number; batches: number }> {
@@ -179,11 +181,12 @@ export class PrismaQueryHelper {
     let processed = 0;
     let batches = 0;
 
+    const queryArgsObj = queryArgs as Record<string, unknown>;
     while (true) {
-      const findManyArgs = {
-        ...queryArgs,
+      const findManyArgs: Record<string, unknown> = {
+        ...queryArgsObj,
         take: batchSize,
-        orderBy: queryArgs.orderBy || { id: 'asc' },
+        orderBy: queryArgsObj.orderBy || { id: 'asc' },
       };
 
       if (cursor) {
@@ -217,10 +220,10 @@ export class PrismaQueryHelper {
    */
   async batchUpsert<T, CreateInput, UpdateInput>(
     model: {
-      upsert: (args: { where: any; create: CreateInput; update: UpdateInput }) => Promise<T>;
+      upsert: (args: { where: Record<string, unknown>; create: CreateInput; update: UpdateInput }) => Promise<T>;
     },
     items: Array<{
-      where: Record<string, any>;
+      where: Record<string, unknown>;
       create: CreateInput;
       update: UpdateInput;
     }>,
@@ -245,7 +248,7 @@ export class PrismaQueryHelper {
    * Transaction avec retry automatique sur deadlock
    */
   async transactionWithRetry<T>(
-    operation: (tx: Parameters<typeof this.prisma.$transaction>[0] extends (fn: infer U) => any ? U : never) => Promise<T>,
+    operation: (tx: Parameters<typeof this.prisma.$transaction>[0] extends (fn: infer U) => unknown ? U : never) => Promise<T>,
     options: { maxRetries?: number; retryDelay?: number } = {},
   ): Promise<T> {
     const { maxRetries = 3, retryDelay = 100 } = options;
@@ -254,23 +257,22 @@ export class PrismaQueryHelper {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         return await this.prisma.$transaction(operation as unknown as Parameters<typeof this.prisma.$transaction>[0]) as T;
-      } catch (error: any) {
-        lastError = error;
-        
+      } catch (error: unknown) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const err = error as { code?: string; message?: string };
         // Retry uniquement sur les deadlocks ou timeouts
-        const isRetryable = 
-          error.code === 'P2034' || // Deadlock
-          error.code === 'P1017' || // Server closed connection
-          error.message?.includes('deadlock') ||
-          error.message?.includes('timeout');
+        const isRetryable =
+          err.code === 'P2034' || // Deadlock
+          err.code === 'P1017' || // Server closed connection
+          (typeof err.message === 'string' && (err.message.includes('deadlock') || err.message.includes('timeout')));
 
         if (!isRetryable || attempt === maxRetries - 1) {
           throw error;
         }
 
         this.logger.warn(`Transaction failed (attempt ${attempt + 1}/${maxRetries}), retrying...`, {
-          error: error.message,
-          code: error.code,
+          error: err.message,
+          code: err.code,
         });
 
         // Exponential backoff
@@ -288,14 +290,14 @@ export class PrismaQueryHelper {
    */
   async softDelete(
     model: {
-      update: (args: any) => Promise<any>;
+      update: (args: unknown) => Promise<unknown>;
     },
-    where: Record<string, any>,
+    where: Record<string, unknown>,
     options: { deletedByField?: string; deletedBy?: string } = {},
   ): Promise<void> {
     const { deletedByField = 'deletedBy', deletedBy } = options;
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       deletedAt: new Date(),
     };
 

@@ -8,13 +8,14 @@ import { PersonalizationController } from './personalization.controller';
 import { PersonalizationService } from './personalization.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ForbiddenException } from '@nestjs/common';
+import { RequestWithUser } from '@/common/types/user.types';
 
 describe('PersonalizationController', () => {
   let controller: PersonalizationController;
   let personalizationService: any; // Use any for mock methods
   let prismaService: any; // Use any for mock methods
 
-  const mockRequest = { brandId: 'brand-123' };
+  const mockRequest = { brandId: 'brand-123' } as unknown as RequestWithUser;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

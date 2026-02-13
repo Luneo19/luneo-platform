@@ -41,7 +41,7 @@ export async function deleteFileFromStorage(
     }
 
     logger.info('File deleted from storage', { fileUrl, provider });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error deleting file from storage', { error, fileUrl });
     // Don't throw - file deletion failures shouldn't break the flow
   }
@@ -106,8 +106,8 @@ async function deleteFromCloudinary(publicUrl: string): Promise<void> {
       throw new Error(`Cloudinary deletion failed: ${error}`);
     }
 
-    logger.info('File deleted from Cloudinary', { publicId });
-  } catch (error: any) {
+      logger.info('File deleted from Cloudinary', { publicId });
+  } catch (error: unknown) {
     logger.error('Error deleting from Cloudinary', { error, publicUrl });
     throw error;
   }
@@ -217,11 +217,11 @@ async function deleteFromS3(
       }
 
       logger.info('File deleted from S3 via direct API', { bucket, key });
-    } catch (s3Error: any) {
+    } catch (s3Error: unknown) {
       logger.error('Error deleting from S3', { error: s3Error, bucket, key, fileUrl });
       // Don't throw - file deletion failures shouldn't break the flow
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error deleting from S3', { error, fileUrl });
     throw error;
   }

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { Configuration3D } from '../types';
 
 interface DesignToolsProps {
@@ -17,6 +18,7 @@ interface DesignToolsProps {
 }
 
 export function DesignTools({ configuration, onUpdate }: DesignToolsProps) {
+  const { t } = useI18n();
   if (!configuration) return null;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

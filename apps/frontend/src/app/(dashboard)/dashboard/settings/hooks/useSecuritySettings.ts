@@ -1,14 +1,18 @@
 /**
  * Hook personnalisé pour les paramètres de sécurité
  */
+'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { trpc } from '@/lib/trpc/client';
 
 export function useSecuritySettings() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -25,22 +29,23 @@ export function useSecuritySettings() {
           newPassword,
         });
         toast({
-          title: 'Succès',
-          description: 'Mot de passe modifié avec succès',
+          title: t('common.success'),
+          description: t('settings.profile.saved'),
         });
         router.refresh();
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('Error changing password', { error });
         toast({
-          title: 'Erreur',
-          description: error.message || 'Erreur lors du changement de mot de passe',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [changePasswordMutation, toast, router]
+    [changePasswordMutation, toast, router, t]
   );
 
   return {

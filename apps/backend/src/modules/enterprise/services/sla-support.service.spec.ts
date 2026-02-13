@@ -34,6 +34,9 @@ describe('SLASupportService', () => {
               count: jest.fn(),
               groupBy: jest.fn(),
             },
+            serviceHealth: {
+              findFirst: jest.fn().mockResolvedValue(null),
+            },
           },
         },
         {

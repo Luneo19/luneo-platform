@@ -12,7 +12,19 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 
-const industriesData: Record<string, any> = {
+interface IndustryStat {
+  value: string;
+  label: string;
+}
+const industriesData: Record<string, {
+  name: string;
+  icon: React.ReactNode;
+  color: string;
+  description: string;
+  stats: IndustryStat[];
+  useCases: string[];
+  testimonial: { quote: string; author: string; role: string; company: string; metric: string };
+}> = {
   'printing': {
     name: 'Printing & Print-on-Demand',
     icon: <Package className="w-10 h-10 sm:w-12 sm:h-12" />,
@@ -234,7 +246,7 @@ function IndustryPageContent() {
           <div className="absolute inset-0 gradient-mesh-purple" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {industry.stats.map((stat: any, i: number) => (
+            {industry.stats.map((stat: IndustryStat, i: number) => (
               <motion
                 key={i}
                 initial={{ opacity: 0, y: 30 }}

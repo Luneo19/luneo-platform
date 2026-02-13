@@ -10,14 +10,40 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
+/** Design generation options (size, quality, style, etc.) */
+export interface DesignOptions {
+  occasion?: string;
+  style?: string;
+  size?: string;
+  quality?: string;
+  numImages?: number;
+  previewMode?: boolean;
+  exploration?: boolean;
+  provider?: string;
+  steps?: number;
+  cfgScale?: number;
+  seed?: number;
+  zones?: Record<string, unknown>;
+  effects?: string[];
+  brandKit?: unknown;
+  constraints?: unknown;
+  [key: string]: unknown;
+}
+
+/** Product/design rules (zones, validation) */
+export interface DesignRules {
+  zones?: Array<{ type?: string }>;
+  [key: string]: unknown;
+}
+
 interface DesignJobData {
   designId: string;
   productId: string;
   brandId: string;
   userId?: string;
   prompt: string;
-  options: any;
-  rules: any;
+  options: DesignOptions;
+  rules: DesignRules;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   retryCount?: number;
 }
@@ -37,7 +63,7 @@ interface AIGenerationResult {
     quality: string;
     prompt: string;
     seed?: number;
-    [key: string]: any; // Permet propriétés supplémentaires
+    [key: string]: unknown;
   };
   costs: {
     tokens?: number;
@@ -181,8 +207,7 @@ export class DesignWorker {
         options,
         rules,
       };
-
-      const validationResult = await this.validationEngine.validateDesign(validationContext);
+      const validationResult = await this.validationEngine.validateDesign(validationContext as unknown as Parameters<ValidationEngine['validateDesign']>[0]);
 
       // Mettre à jour le design avec les résultats de validation
       await this.prisma.design.update({
@@ -253,15 +278,14 @@ export class DesignWorker {
   /**
    * Valide les règles du design
    */
-  private async validateDesignRules(productId: string, options: any, rules: any) {
+  private async validateDesignRules(productId: string, options: DesignOptions, rules: DesignRules) {
     const validationContext = {
       productId,
       brandId: '', // Sera rempli par le job
       options,
       rules,
     };
-
-    return this.validationEngine.validateDesign(validationContext);
+    return this.validationEngine.validateDesign(validationContext as unknown as Parameters<ValidationEngine['validateDesign']>[0]);
   }
 
   /**
@@ -301,8 +325,8 @@ export class DesignWorker {
    */
   private async generateWithAI(
     prompt: string,
-    options: any,
-    rules: any,
+    options: DesignOptions,
+    rules: DesignRules,
     brandId: string,
     productId?: string,
   ): Promise<AIGenerationResult> {
@@ -319,7 +343,7 @@ export class DesignWorker {
 
         if (template) {
           // Récupérer les infos du produit pour le contexte
-          let product = null;
+          let product: { name: string; description: string | null } | null = null;
           if (productId) {
             product = await this.prisma.product.findUnique({
               where: { id: productId },
@@ -327,18 +351,18 @@ export class DesignWorker {
             });
           }
 
+          const templateWithPrompt = template as { prompt: string; variables?: Record<string, unknown>; name?: string; version?: number };
           const context = {
             userInput: prompt,
             productName: product?.name,
-            productDescription: product?.description,
+            productDescription: product?.description ?? undefined,
             occasion: options.occasion,
             style: options.style,
-            brandKit: options.brandKit,
-            constraints: options.constraints,
+            brandKit: options.brandKit as { colors?: string[]; tone?: string; forbidden?: string[] } | undefined,
+            constraints: options.constraints as { engraving?: boolean; setting?: string } | undefined,
           };
-
-          finalPrompt = this.promptTemplates.renderTemplate(template, context);
-          this.logger.debug(`Used prompt template: ${template.name} v${template.version}`);
+          finalPrompt = this.promptTemplates.renderTemplate(templateWithPrompt, context);
+          this.logger.debug(`Used prompt template: ${templateWithPrompt.name ?? 'unknown'} v${templateWithPrompt.version ?? 0}`);
         }
       }
 
@@ -359,9 +383,9 @@ export class DesignWorker {
       const result = await this.aiOrchestrator.generateImage(
         {
           prompt: finalPrompt,
-          size: options.size || '1024x1024',
-          quality: options.quality || 'standard',
-          style: options.style || 'natural',
+          size: (options.size || '1024x1024') as '1024x1024' | '1792x1024' | '1024x1792',
+          quality: (options.quality || 'standard') as 'standard' | 'hd',
+          style: (options.style || 'natural') as 'vivid' | 'natural',
           n: options.numImages || 1,
         },
         strategy,
@@ -396,13 +420,13 @@ export class DesignWorker {
   /**
    * Sélectionne le modèle IA approprié
    */
-  private selectAIModel(options: any, rules: any): string {
+  private selectAIModel(options: DesignOptions, rules: DesignRules): string {
     // Logique de sélection du modèle selon les besoins
     if (options.quality === 'ultra') {
       return 'dall-e-3';
     } else if (options.quality === 'high') {
       return 'midjourney-v6';
-    } else if (rules.zones?.some((zone: any) => zone.type === '3d')) {
+    } else if (rules.zones?.some((zone: { type?: string }) => zone.type === '3d')) {
       return 'stable-diffusion-3d';
     } else {
       return 'stable-diffusion-xl';
@@ -412,7 +436,7 @@ export class DesignWorker {
   /**
    * Prépare les paramètres de génération
    */
-  private prepareGenerationParams(prompt: string, options: any, model: string): any {
+  private prepareGenerationParams(prompt: string, options: DesignOptions, model: string): Record<string, unknown> {
     const baseParams = {
       prompt,
       num_images: options.numImages || 1,
@@ -442,12 +466,27 @@ export class DesignWorker {
     }
   }
 
-  /**
-   * Appelle l'API IA - utilise les vraies APIs en production
-   */
-  private async callAIAPI(model: string, params: any): Promise<any> {
+  /** Response shape from callAIAPI (OpenAI or Replicate or placeholder) */
+  private async callAIAPI(
+    model: string,
+    params: Record<string, unknown>,
+  ): Promise<{
+    images: Array<{ url: string; width: number; height: number; format: string; revisedPrompt?: string; isPlaceholder?: boolean }>;
+    usage?: { total_tokens: number; credits: number };
+    seed?: number;
+    version?: string;
+  }> {
+    const sizeStr = typeof params.size === 'string' ? params.size : '1024x1024';
+    const parseSize = (idx: number) => parseInt(sizeStr.split('x')[idx], 10) || 1024;
     const openaiApiKey = process.env.OPENAI_API_KEY;
     const replicateApiKey = process.env.REPLICATE_API_TOKEN;
+
+    if (model === 'dall-e-3' && openaiApiKey === 'sk-placeholder') {
+      this.logger.warn('OPENAI_API_KEY is a placeholder - returning mock result');
+    }
+    if (model === 'stable-diffusion-xl' && replicateApiKey === 'r8_placeholder') {
+      this.logger.warn('REPLICATE_API_TOKEN is a placeholder - returning mock result');
+    }
 
     // DALL-E 3 via OpenAI
     if (model === 'dall-e-3' && openaiApiKey && openaiApiKey !== 'sk-placeholder') {
@@ -469,12 +508,12 @@ export class DesignWorker {
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const data = (await response.json()) as { data: Array<{ url: string; revised_prompt?: string }> };
           return {
             images: data.data.map((img: { url: string; revised_prompt?: string }) => ({
               url: img.url,
-              width: parseInt(params.size?.split('x')[0]) || 1024,
-              height: parseInt(params.size?.split('x')[1]) || 1024,
+              width: parseSize(0),
+              height: parseSize(1),
               format: 'png',
               revisedPrompt: img.revised_prompt,
             })),
@@ -502,8 +541,8 @@ export class DesignWorker {
             input: {
               prompt: params.prompt,
               num_outputs: params.num_images || 1,
-              width: parseInt(params.size?.split('x')[0]) || 1024,
-              height: parseInt(params.size?.split('x')[1]) || 1024,
+              width: parseSize(0),
+              height: parseSize(1),
               num_inference_steps: params.steps || 30,
               guidance_scale: params.cfg_scale || 7.5,
               seed: params.seed,
@@ -528,14 +567,14 @@ export class DesignWorker {
 
           if (result.status === 'succeeded' && result.output) {
             return {
-              images: result.output.map((url: string) => ({
+              images: (result.output as string[]).map((url: string) => ({
                 url,
-                width: parseInt(params.size?.split('x')[0]) || 1024,
-                height: parseInt(params.size?.split('x')[1]) || 1024,
+                width: parseSize(0),
+                height: parseSize(1),
                 format: 'png',
               })),
               usage: { total_tokens: 0, credits: 5 },
-              seed: params.seed || 0,
+              seed: typeof params.seed === 'number' ? params.seed : 0,
               version: 'sdxl-1.0',
             };
           }
@@ -551,8 +590,8 @@ export class DesignWorker {
     return {
       images: [{
         url: '/images/placeholder-generated.png',
-        width: parseInt(params.size?.split('x')[0]) || 1024,
-        height: parseInt(params.size?.split('x')[1]) || 1024,
+        width: parseSize(0),
+        height: parseSize(1),
         format: 'png',
         isPlaceholder: true,
       }],
@@ -565,7 +604,7 @@ export class DesignWorker {
   /**
    * Appelle l'API de modération
    */
-  private async callModerationAPI(prompt: string): Promise<any> {
+  private async callModerationAPI(prompt: string): Promise<{ flagged: boolean; confidence: number; categories?: string[] }> {
     // Simulation de modération
     // En production, utiliser OpenAI Moderation API
     
@@ -581,7 +620,7 @@ export class DesignWorker {
   /**
    * Traite la réponse IA
    */
-  private async processAIResponse(response: any): Promise<Array<{
+  private async processAIResponse(response: { images: Array<{ url: string; width?: number; height?: number; format?: string }> }): Promise<Array<{
     url: string;
     width: number;
     height: number;
@@ -596,9 +635,9 @@ export class DesignWorker {
       
       images.push({
         url: imageData.url,
-        width: imageData.width,
-        height: imageData.height,
-        format: imageData.format,
+        width: imageData.width ?? 1024,
+        height: imageData.height ?? 1024,
+        format: imageData.format ?? 'png',
         size: imageBuffer.length,
       });
     }
@@ -609,7 +648,10 @@ export class DesignWorker {
   /**
    * Post-traite les images générées
    */
-  private async postProcessImages(images: any[], options: any): Promise<any[]> {
+  private async postProcessImages(
+    images: Array<{ url: string; width?: number; height?: number; format?: string }>,
+    options: DesignOptions,
+  ): Promise<Array<{ url: string; width?: number; height?: number; format?: string; processed?: boolean; effects?: string[] }>> {
     const processedImages = [];
 
     for (const image of images) {
@@ -629,7 +671,10 @@ export class DesignWorker {
   /**
    * Applique les post-traitements
    */
-  private async applyPostProcessing(image: any, options: any): Promise<any> {
+  private async applyPostProcessing(
+    image: { url: string; width?: number; height?: number; format?: string },
+    options: DesignOptions,
+  ): Promise<{ url: string; width?: number; height?: number; format?: string; processed?: boolean; effects?: string[] }> {
     // Simulation de post-traitement
     // En production, utiliser Sharp ou équivalent
     
@@ -643,7 +688,10 @@ export class DesignWorker {
   /**
    * Upload les assets vers S3
    */
-  private async uploadAssets(images: any[], designId: string): Promise<any[]> {
+  private async uploadAssets(
+    images: Array<{ url: string; width?: number; height?: number; format?: string }>,
+    designId: string,
+  ): Promise<Array<{ url: string; filename: string; size: number; format: string; width?: number; height?: number; index: number }>> {
     const uploadedAssets = [];
 
     for (let i = 0; i < images.length; i++) {
@@ -672,7 +720,7 @@ export class DesignWorker {
           url: typeof uploadResult === 'string' ? uploadResult : String(uploadResult),
           filename,
           size: imageBuffer.length,
-          format: image.format,
+          format: image.format ?? 'png',
           width: image.width,
           height: image.height,
           index: i + 1,
@@ -759,7 +807,10 @@ export class DesignWorker {
   /**
    * Analyse les performances du design
    */
-  private async analyzeDesignPerformance(designId: string, options: any): Promise<any> {
+  private async analyzeDesignPerformance(
+    designId: string,
+    options: DesignOptions,
+  ): Promise<{ complexity: number; estimatedRenderTime: number; resourceUsage: Record<string, number>; qualityScore: number }> {
     // Simulation d'analyse de performance
     return {
       complexity: this.calculateComplexity(options),
@@ -772,7 +823,7 @@ export class DesignWorker {
   /**
    * Calcule la complexité
    */
-  private calculateComplexity(options: any): number {
+  private calculateComplexity(options: DesignOptions): number {
     let complexity = 1;
     
     if (options.zones) {
@@ -789,7 +840,7 @@ export class DesignWorker {
   /**
    * Estime le temps de rendu
    */
-  private estimateRenderTime(options: any): number {
+  private estimateRenderTime(options: DesignOptions): number {
     const baseTime = 2000; // 2 secondes de base
     const complexity = this.calculateComplexity(options);
     return baseTime * complexity;
@@ -798,7 +849,7 @@ export class DesignWorker {
   /**
    * Estime l'utilisation des ressources
    */
-  private estimateResourceUsage(options: any): any {
+  private estimateResourceUsage(options: DesignOptions): Record<string, number> {
     return {
       memory: this.calculateComplexity(options) * 100, // MB
       cpu: this.calculateComplexity(options) * 10, // %
@@ -809,7 +860,7 @@ export class DesignWorker {
   /**
    * Calcule le score de qualité
    */
-  private calculateQualityScore(options: any): number {
+  private calculateQualityScore(options: DesignOptions): number {
     let score = 0.5;
     
     if (options.quality === 'ultra') score += 0.3;
@@ -824,7 +875,10 @@ export class DesignWorker {
   /**
    * Optimise les options du design
    */
-  private async optimizeDesignOptions(options: any, performanceAnalysis: any): Promise<any> {
+  private async optimizeDesignOptions(
+    options: DesignOptions,
+    performanceAnalysis: { complexity: number; estimatedRenderTime: number; resourceUsage?: Record<string, number>; qualityScore?: number },
+  ): Promise<DesignOptions> {
     const optimized = { ...options };
     
     // Optimisations basées sur l'analyse de performance
@@ -848,15 +902,21 @@ export class DesignWorker {
   /**
    * Génère des suggestions d'optimisation
    */
-  private async generateOptimizationSuggestions(designId: string, originalOptions: any, optimizedOptions: any): Promise<string[]> {
+  private async generateOptimizationSuggestions(
+    designId: string,
+    originalOptions: DesignOptions,
+    optimizedOptions: DesignOptions,
+  ): Promise<string[]> {
     const suggestions = [];
     
     if (originalOptions.quality !== optimizedOptions.quality) {
       suggestions.push(`Qualité réduite de ${originalOptions.quality} à ${optimizedOptions.quality} pour améliorer les performances`);
     }
     
-    if (originalOptions.effects?.length > optimizedOptions.effects?.length) {
-      suggestions.push(`${originalOptions.effects.length - optimizedOptions.effects.length} effet(s) supprimé(s) pour réduire la complexité`);
+    const origLen = originalOptions.effects?.length ?? 0;
+    const optLen = optimizedOptions.effects?.length ?? 0;
+    if (origLen > optLen) {
+      suggestions.push(`${origLen - optLen} effet(s) supprimé(s) pour réduire la complexité`);
     }
     
     return suggestions;
@@ -865,7 +925,10 @@ export class DesignWorker {
   /**
    * Met en cache les résultats du design
    */
-  private async cacheDesignResults(designId: string, assets: any[]): Promise<void> {
+  private async cacheDesignResults(
+    designId: string,
+    assets: Array<{ url: string; filename: string; size: number; format: string; width?: number; height?: number; index: number }>,
+  ): Promise<void> {
     const cacheKey = `design_results:${designId}`;
     const cacheData = {
       assets,

@@ -309,24 +309,28 @@ export class OrderSyncService {
         },
       });
 
-      // Transform to expected return type
-      return orders.map(order => ({
-        id: order.id,
-        orderNumber: order.orderNumber,
-        status: order.status,
-        totalCents: order.totalCents,
-        createdAt: order.createdAt,
-        product: {
-          id: order.product.id,
-          name: order.product.name,
-          price: Number(order.product.price),
-        },
-        design: {
-          id: order.design.id,
-          prompt: order.design.prompt,
-          previewUrl: order.design.previewUrl,
-        },
-      }));
+      // Transform to expected return type (filter out orders without product/design)
+      return orders
+        .filter((order): order is typeof order & { product: NonNullable<typeof order.product>; design: NonNullable<typeof order.design> } =>
+          order.product != null && order.design != null
+        )
+        .map(order => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          totalCents: order.totalCents,
+          createdAt: order.createdAt,
+          product: {
+            id: order.product.id,
+            name: order.product.name,
+            price: Number(order.product.price),
+          },
+          design: {
+            id: order.design.id,
+            prompt: order.design.prompt,
+            previewUrl: order.design.previewUrl,
+          },
+        }));
     } catch (error) {
       this.logger.error(`Error fetching recent orders:`, error);
       throw error;

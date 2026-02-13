@@ -14,9 +14,11 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ImportPageClient } from './ImportPageClient';
 import { ImportSkeleton } from './components/ImportSkeleton';
+import { NotAuthenticatedMessage } from '../../components/NotAuthenticatedMessage';
+import { fr } from '@/i18n/locales';
 
 export const metadata = {
-  title: 'Importer des fichiers | Luneo',
+  title: `${fr.common.importFiles} | Luneo`,
   description: 'Importez vos templates et designs dans la bibliothèque',
 };
 
@@ -31,7 +33,7 @@ export default async function ImportPage() {
     return (
       <ErrorBoundary level="page" componentName="ImportPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

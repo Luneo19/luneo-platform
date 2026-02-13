@@ -299,11 +299,11 @@ export function useAuditLog() {
 /**
  * Higher-order function pour wrapper des actions avec audit automatique
  */
-export function withAudit<T extends (...args: any[]) => Promise<any>>(
+export function withAudit<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   auditFn: () => Promise<boolean>
 ): T {
-  return (async (...args: any[]) => {
+  return (async (...args: Parameters<T>) => {
     const result = await fn(...args);
     await auditFn();
     return result;

@@ -59,14 +59,20 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
     date: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
   }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayloadEntry {
+    name: string;
+    value: number;
+    color: string;
+    payload: { date: string };
+  }
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: TooltipPayloadEntry[] }) => {
     if (active && payload && payload.length) {
       return (
         <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
           <p className="text-sm text-white/60 mb-2">{payload[0].payload.date}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
+              {entry.name}: {formatCurrency(entry.value ?? 0)}
             </p>
           ))}
         </div>

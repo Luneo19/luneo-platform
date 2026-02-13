@@ -6,6 +6,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useI18n } from '@/i18n/useI18n';
 import { ProductRow } from './ProductRow';
 import type { ProductDisplay } from '../../types';
 
@@ -28,6 +29,7 @@ export function ProductsTable({
   onDelete,
   onView,
 }: ProductsTableProps) {
+  const { t } = useI18n();
   const allSelected =
     products.length > 0 && selectedProducts.size === products.length;
 
@@ -44,22 +46,22 @@ export function ProductsTable({
                 />
               </th>
               <th className="p-4 text-left text-gray-700 font-medium">
-                Produit
+                {t('products.product')}
               </th>
               <th className="p-4 text-left text-gray-700 font-medium">
-                Catégorie
+                {t('products.category')}
               </th>
-              <th className="p-4 text-left text-gray-700 font-medium">Prix</th>
+              <th className="p-4 text-left text-gray-700 font-medium">{t('products.price')}</th>
               <th className="p-4 text-left text-gray-700 font-medium">
-                Statut
+                {t('products.status')}
               </th>
-              <th className="p-4 text-left text-gray-700 font-medium">Vues</th>
+              <th className="p-4 text-left text-gray-700 font-medium">{t('products.views')}</th>
               <th className="p-4 text-left text-gray-700 font-medium">
-                Commandes
+                {t('products.ordersCount')}
               </th>
-              <th className="p-4 text-left text-gray-700 font-medium">Date</th>
+              <th className="p-4 text-left text-gray-700 font-medium">{t('products.date')}</th>
               <th className="p-4 text-left text-gray-700 font-medium">
-                Actions
+                {t('products.actions')}
               </th>
             </tr>
           </thead>

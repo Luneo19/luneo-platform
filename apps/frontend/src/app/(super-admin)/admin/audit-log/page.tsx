@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ClipboardList, Search, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { logger } from '@/lib/logger';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -50,33 +51,37 @@ export default function AuditLogPage() {
   const [actionFilter, setActionFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const params: Record<string, string> = { page: String(page), pageSize: '20' };
+      if (actionFilter) params.action = actionFilter;
+
+      const res = await fetch(`/api/admin/orion/audit-log?${new URLSearchParams(params)}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data: AuditResponse = await res.json();
+
+      const resolved = (data as unknown as { data?: AuditResponse })?.data || data;
+      setEntries(resolved.items || []);
+      setTotal(resolved.total || 0);
+      setTotalPages(resolved.totalPages || 1);
+    } catch (err) {
+      logger.error('Audit log fetch failed', { error: err });
+      setEntries([]);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, actionFilter]);
 
   useEffect(() => {
-    async function fetchLogs() {
-      setLoading(true);
-      try {
-        const params: Record<string, string> = { page: String(page), pageSize: '20' };
-        if (actionFilter) params.action = actionFilter;
-
-        const res = await fetch(`/api/admin/orion/audit-log?${new URLSearchParams(params)}`, {
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('Failed');
-        const data: AuditResponse = await res.json();
-
-        // Handle wrapped response from backend
-        const resolved = (data as unknown as { data?: AuditResponse })?.data || data;
-        setEntries(resolved.items || []);
-        setTotal(resolved.total || 0);
-        setTotalPages(resolved.totalPages || 1);
-      } catch {
-        setEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchLogs();
-  }, [page, actionFilter]);
+  }, [fetchLogs]);
 
   const filtered = searchQuery
     ? entries.filter(e =>
@@ -133,6 +138,13 @@ export default function AuditLogPage() {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+            </div>
+          ) : loadError ? (
+            <div className="text-center py-12">
+              <p className="text-red-400 mb-4">Erreur lors du chargement du journal d&apos;audit.</p>
+              <Button variant="outline" onClick={() => fetchLogs()} className="border-zinc-700">
+                Réessayer
+              </Button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">Aucune entrée trouvée</div>

@@ -37,7 +37,7 @@ export interface AnalyticsReport {
   id: string;
   type: 'usage' | 'revenue' | 'performance' | 'custom';
   filters: AnalyticsFilters;
-  data: any;
+  data: Record<string, unknown>;
   generatedAt: Date;
   generatedBy: string;
 }

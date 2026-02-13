@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { z } from 'zod';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const { email, reason } = validation.data;
 
-    logger.info('Newsletter unsubscribe request', {
+    serverLogger.info('Newsletter unsubscribe request', {
       email: email.replace(/(.{2}).*@/, '$1***@'),
       reason,
     });
@@ -80,9 +80,9 @@ export async function POST(request: NextRequest) {
           }),
         });
 
-        logger.info('Contact removed from SendGrid', { email: email.replace(/(.{2}).*@/, '$1***@') });
+        serverLogger.info('Contact removed from SendGrid', { email: email.replace(/(.{2}).*@/, '$1***@') });
       } catch (sendgridError) {
-        logger.error('SendGrid unsubscribe error', { error: sendgridError });
+        serverLogger.error('SendGrid unsubscribe error', { error: sendgridError });
       }
     }
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ email, reason }),
       });
     } catch (dbError) {
-      logger.warn('Backend unsubscribe update failed', { error: dbError });
+      serverLogger.warn('Backend unsubscribe update failed', { error: dbError });
     }
 
     return {

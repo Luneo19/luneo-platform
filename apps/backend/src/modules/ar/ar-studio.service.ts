@@ -73,6 +73,7 @@ export class ArStudioService {
           tags: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: 50,
       });
 
       // Transformer en format ARModel
@@ -221,6 +222,7 @@ export class ArStudioService {
         select: {
           eventType: true,
         },
+        take: 1000,
       });
 
       const views = events.filter((e) => e.eventType === 'ar_view').length;
@@ -357,6 +359,7 @@ export class ArStudioService {
         // Find product by checking modelConfig JSON field
         const products = await this.prisma.product.findMany({
           where: { brandId },
+          take: 100,
         });
         const product = products.find((p) => {
           const config = p.modelConfig as Record<string, unknown> | null;
@@ -841,6 +844,220 @@ export class ArStudioService {
       this.logger.warn(`Failed to get AR conversions count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur
     }
+  }
+
+  /**
+   * Upload a 3D model file and create a Product record.
+   */
+  async uploadModel(
+    brandId: string,
+    userId: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string; size: number },
+    metadata: { name: string; format?: string; projectId?: string },
+  ): Promise<ARModel> {
+    const ALLOWED_EXTENSIONS = ['.glb', '.gltf', '.usdz', '.obj', '.fbx'];
+
+    const ext = `.${file.originalname.split('.').pop()?.toLowerCase() || ''}`;
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      throw new BadRequestException(
+        `Format non supporté. Formats autorisés: ${ALLOWED_EXTENSIONS.join(', ')}`,
+      );
+    }
+
+    const maxSize = 100 * 1024 * 1024; // 100 MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('Le fichier dépasse la taille maximale de 100 MB');
+    }
+
+    const storageKey = `ar-studio/${brandId}/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    const modelUrl = await this.storageService.uploadBuffer(
+      file.buffer,
+      storageKey,
+      {
+        contentType: file.mimetype || 'application/octet-stream',
+        bucket: 'luneo-ar-models',
+      },
+    );
+
+    const slug = `ar-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const product = await this.prisma.product.create({
+      data: {
+        name: metadata.name || file.originalname.replace(/\.[^/.]+$/, ''),
+        slug,
+        description: 'Modèle AR uploadé',
+        price: 0,
+        brand: { connect: { id: brandId } },
+        model3dUrl: modelUrl,
+        status: 'ACTIVE',
+        modelConfig: {
+          source: 'ar_studio_upload',
+          format: ext.slice(1),
+          originalName: file.originalname,
+          fileSize: file.size,
+          uploadedAt: new Date().toISOString(),
+          projectId: metadata.projectId,
+        } as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        name: true,
+        model3dUrl: true,
+        thumbnailUrl: true,
+        category: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        modelConfig: true,
+        tags: true,
+      },
+    });
+
+    return {
+      id: product.id,
+      name: product.name,
+      type: product.category || 'other',
+      glbUrl: product.model3dUrl || undefined,
+      usdzUrl: product.model3dUrl || undefined,
+      thumbnailUrl: product.thumbnailUrl || undefined,
+      status: product.status === 'ACTIVE' ? 'active' : 'archived',
+      brandId,
+      productId: product.id,
+      viewsCount: 0,
+      tryOnsCount: 0,
+      conversionsCount: 0,
+      metadata: (product.modelConfig as Record<string, unknown>) || undefined,
+      tags: product.tags || [],
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    };
+  }
+
+  /**
+   * Delete an AR model by ID. Checks ownership (brand must own the product).
+   */
+  async deleteModel(modelId: string, brandId: string): Promise<void> {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: modelId,
+        brandId,
+        model3dUrl: { not: null },
+      },
+    });
+    if (!product) {
+      throw new NotFoundException('AR model not found');
+    }
+    await this.prisma.product.delete({
+      where: { id: modelId },
+    });
+  }
+
+  /**
+   * Brand-level AR analytics. Period: 7d, 30d, 90d.
+   */
+  async getBrandAnalytics(
+    brandId: string,
+    period: '7d' | '30d' | '90d',
+  ): Promise<{
+    totalViews: number;
+    totalTryOns: number;
+    averageSessionDuration: number;
+    mostPopularModels: Array<{ modelId: string; name: string; views: number; tryOns: number }>;
+  }> {
+    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const events = await this.prisma.analyticsEvent.findMany({
+      where: {
+        brandId,
+        eventType: { in: ['ar_view', 'ar_try_on'] },
+        timestamp: { gte: since },
+      },
+      select: { eventType: true, properties: true },
+      take: 1000,
+    });
+
+    const totalViews = events.filter((e) => e.eventType === 'ar_view').length;
+    const totalTryOns = events.filter((e) => e.eventType === 'ar_try_on').length;
+
+    const modelIdCounts: Record<string, { views: number; tryOns: number }> = {};
+    for (const e of events) {
+      const props = e.properties as Record<string, unknown> | null;
+      const modelId = (props?.modelId ?? props?.productId) as string | undefined;
+      if (modelId) {
+        if (!modelIdCounts[modelId]) modelIdCounts[modelId] = { views: 0, tryOns: 0 };
+        if (e.eventType === 'ar_view') modelIdCounts[modelId].views++;
+        else modelIdCounts[modelId].tryOns++;
+      }
+    }
+
+    const topModelIds = Object.entries(modelIdCounts)
+      .sort((a, b) => b[1].views + b[1].tryOns - (a[1].views + a[1].tryOns))
+      .slice(0, 10)
+      .map(([id]) => id);
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: topModelIds }, brandId },
+      select: { id: true, name: true },
+      take: 10,
+    });
+    const nameById = Object.fromEntries(products.map((p) => [p.id, p.name]));
+
+    const mostPopularModels = topModelIds.map((modelId) => ({
+      modelId,
+      name: nameById[modelId] ?? modelId,
+      views: modelIdCounts[modelId]?.views ?? 0,
+      tryOns: modelIdCounts[modelId]?.tryOns ?? 0,
+    }));
+
+    return {
+      totalViews,
+      totalTryOns,
+      averageSessionDuration: 0,
+      mostPopularModels,
+    };
+  }
+
+  /**
+   * List AR sessions for the brand (derived from AnalyticsEvent sessionId).
+   */
+  async listSessions(
+    brandId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ sessions: Array<{ id: string; sessionId: string; modelId?: string; timestamp: Date }>; total: number }> {
+    const since = new Date();
+    since.setDate(since.getDate() - 90);
+
+    const groups = await this.prisma.analyticsEvent.groupBy({
+      by: ['sessionId'],
+      _max: { timestamp: true },
+      where: {
+        brandId,
+        eventType: 'ar_view',
+        sessionId: { not: null },
+        timestamp: { gte: since },
+      },
+    });
+
+    const sorted = groups
+      .filter((g) => g.sessionId != null && g._max?.timestamp != null)
+      .sort((a, b) => (b._max!.timestamp!.getTime() - a._max!.timestamp!.getTime()));
+
+    const total = sorted.length;
+    const start = (page - 1) * limit;
+    const pageGroups = sorted.slice(start, start + limit);
+
+    const sessions = pageGroups.map((g) => ({
+      id: g.sessionId!,
+      sessionId: g.sessionId!,
+      modelId: undefined as string | undefined,
+      timestamp: g._max!.timestamp!,
+    }));
+
+    return { sessions, total };
   }
 }
 

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import * as ExcelJS from 'exceljs';
-import * as PDFDocument from 'pdfkit';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PDFDocument = require('pdfkit');
 import { Response } from 'express';
 
 export interface ExportOptions {
@@ -25,7 +26,14 @@ export class AnalyticsExportService {
     const { startDate, endDate, brandId, includeCharts } = options;
 
     // Create PDF document
-    const doc = new PDFDocument({ margin: 50 });
+    const PDFDoc = PDFDocument as new (opts?: Record<string, unknown>) => {
+      pipe: (res: Response) => void;
+      fontSize: (n: number) => { text: (s: string, opts?: Record<string, unknown>) => void };
+      moveDown: (n?: number) => void;
+      text: (s: string, opts?: Record<string, unknown>) => void;
+      end: () => void;
+    };
+    const doc = new PDFDoc({ margin: 50 });
     
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
@@ -234,7 +242,7 @@ export class AnalyticsExportService {
         date: order.createdAt.toLocaleDateString(),
         amount: (order.totalCents / 100).toFixed(2) + '€',
         status: order.status,
-        customer: order.userId.substring(0, 8),
+        customer: (order.userId ?? '').substring(0, 8),
       });
     });
 
@@ -298,7 +306,7 @@ export class AnalyticsExportService {
     // CSV rows for orders
     orders.forEach((order) => {
       csvRows.push(
-        `${order.id.substring(0, 8)},${order.createdAt.toLocaleDateString('fr-FR')},${(order.totalCents / 100).toFixed(2)},${order.status},${order.userId.substring(0, 8)}`,
+        `${order.id.substring(0, 8)},${order.createdAt.toLocaleDateString('fr-FR')},${(order.totalCents / 100).toFixed(2)},${order.status},${(order.userId ?? '').substring(0, 8)}`,
       );
     });
 

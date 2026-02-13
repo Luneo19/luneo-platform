@@ -10,9 +10,12 @@ import {
   Trash2, Download, Eye, EyeOff
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { endpoints } from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { api, endpoints } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { trpc } from '@/lib/trpc/client';
+import { logger } from '@/lib/logger';
 
 interface UserProfile {
   name: string;
@@ -41,6 +44,7 @@ interface NotificationSettings {
 
 function SettingsPageContent() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
@@ -59,45 +63,51 @@ function SettingsPageContent() {
 
   const profileQuery = trpc.profile.get.useQuery();
   const updateProfileMutation = trpc.profile.update.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: unknown) => {
+      setSaving(false);
       profileQuery.refetch();
+      const d = data as { name?: string; email?: string; company?: string; role?: string; avatar_url?: string; phone?: string; website?: string; timezone?: string };
       setProfile({
-        name: data.name || '',
-        email: data.email || '',
-        company: data.company || '',
-        role: data.role || '',
-        avatar: data.avatar_url || '',
-        phone: data.phone || '',
-        website: data.website || '',
-        timezone: data.timezone || 'Europe/Paris',
+        name: String(d?.name ?? ''),
+        email: String(d?.email ?? ''),
+        company: String(d?.company ?? ''),
+        role: String(d?.role ?? ''),
+        avatar: String(d?.avatar_url ?? ''),
+        phone: String(d?.phone ?? ''),
+        website: String(d?.website ?? ''),
+        timezone: String(d?.timezone ?? 'Europe/Paris'),
       });
-      toast({ title: 'Succès', description: 'Profil mis à jour' });
+      toast({ title: t('common.success'), description: t('settings.profile.saved') });
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      setSaving(false);
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
   const changePasswordMutation = trpc.profile.changePassword.useMutation({
     onSuccess: () => {
-      toast({ title: 'Succès', description: 'Mot de passe modifié' });
+      setSaving(false);
+      toast({ title: t('common.success'), description: t('settings.security.passwordChanged') });
       setShowPassword(false);
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      setSaving(false);
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
   useEffect(() => {
     if (profileQuery.data) {
+      const d = profileQuery.data as unknown as { name?: string; email?: string; company?: string; role?: string; avatar_url?: string; phone?: string; website?: string; timezone?: string };
       setProfile({
-        name: profileQuery.data.name || '',
-        email: profileQuery.data.email || '',
-        company: profileQuery.data.company || '',
-        role: profileQuery.data.role || '',
-        avatar: profileQuery.data.avatar_url || '',
-        phone: profileQuery.data.phone || '',
-        website: profileQuery.data.website || '',
-        timezone: profileQuery.data.timezone || 'Europe/Paris',
+        name: String(d.name ?? ''),
+        email: String(d.email ?? ''),
+        company: String(d.company ?? ''),
+        role: String(d.role ?? ''),
+        avatar: String(d.avatar_url ?? ''),
+        phone: String(d.phone ?? ''),
+        website: String(d.website ?? ''),
+        timezone: String(d.timezone ?? 'Europe/Paris'),
       });
       setLoading(false);
     } else if (profileQuery.isLoading) {
@@ -105,8 +115,8 @@ function SettingsPageContent() {
     } else if (profileQuery.isError) {
       setLoading(false);
       toast({
-        title: 'Erreur',
-        description: profileQuery.error?.message || 'Erreur lors du chargement du profil',
+        title: t('common.error'),
+        description: profileQuery.error?.message || t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     }
@@ -121,17 +131,19 @@ function SettingsPageContent() {
   // Load settings from API
   useEffect(() => {
     fetch('/api/v1/users/settings', { credentials: 'include' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
         if (data) {
           const settings = data.data || data;
-          if (settings.security) setSecurity(prev => ({ ...prev, ...settings.security }));
-          if (settings.notifications) setNotifications(prev => ({ ...prev, ...settings.notifications }));
+          if (settings.security) setSecurity((prev) => ({ ...prev, ...settings.security }));
+          if (settings.notifications) setNotifications((prev) => ({ ...prev, ...settings.notifications }));
           if (settings.theme) setTheme(settings.theme);
           if (settings.language) setLanguage(settings.language);
         }
       })
-      .catch(() => { /* Keep defaults if API fails */ });
+      .catch((err: unknown) => {
+        logger.error('Failed to load user settings', err);
+      });
   }, []);
 
   const [passwords, setPasswords] = useState({
@@ -160,35 +172,35 @@ function SettingsPageContent() {
       phone: profile.phone,
       timezone: profile.timezone,
     });
-    setSaving(false);
   }, [profile, updateProfileMutation]);
 
   const handleChangePassword = useCallback(() => {
     if (passwords.new !== passwords.confirm) {
       toast({
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas.",
-        variant: "destructive",
+        title: t('common.error'),
+        description: t('settings.security.passwordsDoNotMatch'),
+        variant: 'destructive',
       });
       return;
     }
 
     if (passwords.new.length < 8) {
       toast({
-        title: "Erreur",
-        description: "Le mot de passe doit contenir au moins 8 caractères.",
-        variant: "destructive",
+        title: t('common.error'),
+        description: t('settings.security.passwordMinLength'),
+        variant: 'destructive',
       });
       return;
     }
 
     setSaving(true);
-    changePasswordMutation.mutate({
-      currentPassword: passwords.current,
-      newPassword: passwords.new,
-    });
+    changePasswordMutation.mutate(
+      { currentPassword: passwords.current, newPassword: passwords.new },
+      {
+        onSettled: () => setSaving(false),
+      }
+    );
     setPasswords({ current: '', new: '', confirm: '' });
-    setSaving(false);
   }, [passwords, changePasswordMutation, toast]);
 
   const handleToggle2FA = async () => {
@@ -198,22 +210,22 @@ function SettingsPageContent() {
         await endpoints.auth.disable2FA();
         setSecurity({ ...security, twoFactorEnabled: false });
         toast({
-          title: "2FA désactivée",
-          description: "L'authentification à deux facteurs a été désactivée.",
+          title: t('settings.security.twoFactorDisabled'),
+          description: t('settings.security.twoFactorDisabledDesc'),
         });
       } else {
         await endpoints.auth.setup2FA();
         setSecurity({ ...security, twoFactorEnabled: true });
         toast({
-          title: "2FA activée",
-          description: "Scannez le QR code avec votre application (prochaine étape à compléter dans les paramètres sécurité).",
+          title: t('settings.security.twoFactorEnabled'),
+          description: t('settings.security.twoFactorEnabledDesc'),
         });
       }
     } catch (error: unknown) {
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de modifier les paramètres de sécurité.",
-        variant: "destructive",
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -225,14 +237,15 @@ function SettingsPageContent() {
     try {
       await endpoints.settings.notifications(notifications as unknown as Record<string, unknown>);
       toast({
-        title: "Notifications enregistrées",
-        description: "Vos préférences de notification ont été mises à jour.",
+        title: t('settings.security.notificationsSaved'),
+        description: t('settings.security.notificationsSavedDesc'),
       });
-    } catch (error) {
+    } catch (err: unknown) {
+      logger.error('Failed to save notification preferences', err);
       toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder les préférences.",
-        variant: "destructive",
+        title: t('common.error'),
+        description: t('settings.security.savePrefsError'),
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -242,8 +255,8 @@ function SettingsPageContent() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Paramètres</h1>
-        <p className="text-white/60">Gérez votre compte, sécurité et préférences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t('settings.title')}</h1>
+        <p className="text-white/60">{t('settings.security.title')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -253,28 +266,28 @@ function SettingsPageContent() {
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
             <User className="w-4 h-4 mr-2" />
-            Profil
+            {t('settings.tabs.profile')}
           </TabsTrigger>
           <TabsTrigger
             value="security"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
             <Shield className="w-4 h-4 mr-2" />
-            Sécurité
+            {t('settings.tabs.security')}
           </TabsTrigger>
           <TabsTrigger
             value="notifications"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
             <Bell className="w-4 h-4 mr-2" />
-            Notifications
+            {t('settings.tabs.notifications')}
           </TabsTrigger>
           <TabsTrigger
             value="preferences"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
             <Palette className="w-4 h-4 mr-2" />
-            Préférences
+            {t('settings.tabs.preferences')}
           </TabsTrigger>
           <TabsTrigger
             value="danger"
@@ -307,7 +320,7 @@ function SettingsPageContent() {
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
                     <User className="w-4 h-4 inline mr-2" />
-                    Nom complet
+                    {t('settings.security.fullName')}
                   </label>
                   <Input
                     value={profile.name}
@@ -333,7 +346,7 @@ function SettingsPageContent() {
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
                     <Building className="w-4 h-4 inline mr-2" />
-                    Entreprise
+                    {t('settings.security.company')}
                   </label>
                   <Input
                     value={profile.company}
@@ -344,7 +357,7 @@ function SettingsPageContent() {
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
                     <Smartphone className="w-4 h-4 inline mr-2" />
-                    Téléphone
+                    {t('settings.security.phone')}
                   </label>
                   <Input
                     value={profile.phone}
@@ -358,7 +371,7 @@ function SettingsPageContent() {
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
                     <Globe className="w-4 h-4 inline mr-2" />
-                    Site web
+                    {t('settings.security.website')}
                   </label>
                   <Input
                     value={profile.website}
@@ -368,7 +381,7 @@ function SettingsPageContent() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
-                    Fuseau horaire
+                    {t('settings.security.timezone')}
                   </label>
                   <select
                     value={profile.timezone}
@@ -388,11 +401,11 @@ function SettingsPageContent() {
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
               >
                 {saving ? (
-                  <>Enregistrement...</>
+                  <>{t('settings.security.saving')}</>
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Enregistrer les modifications
+                    {t('settings.security.saveChanges')}
                   </>
                 )}
               </Button>
@@ -402,11 +415,11 @@ function SettingsPageContent() {
 
         <TabsContent value="security" className="space-y-6">
           <Card className="dash-card p-6 border-white/[0.06]">
-            <h3 className="text-lg font-bold text-white mb-4">Changer le mot de passe</h3>
+            <h3 className="text-lg font-bold text-white mb-4">{t('settings.security.changePassword')}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-2">
-                  Mot de passe actuel
+                  {t('settings.security.currentPassword')}
                 </label>
                 <div className="relative">
                   <Input
@@ -426,7 +439,7 @@ function SettingsPageContent() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-2">
-                  Nouveau mot de passe
+                  {t('settings.security.newPassword')}
                 </label>
                 <Input
                   type="password"
@@ -437,7 +450,7 @@ function SettingsPageContent() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-2">
-                  Confirmer le nouveau mot de passe
+                  {t('settings.security.confirmPassword')}
                 </label>
                 <Input
                   type="password"
@@ -452,7 +465,7 @@ function SettingsPageContent() {
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Changer le mot de passe
+                {t('settings.security.changePassword')}
               </Button>
             </div>
           </Card>
@@ -460,35 +473,35 @@ function SettingsPageContent() {
           <Card className="dash-card p-6 border-white/[0.06]">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Authentification à deux facteurs (2FA)</h3>
+                <h3 className="text-lg font-bold text-white mb-2">{t('settings.security.twoFactor')}</h3>
                 <p className="text-white/60 text-sm mb-4">
-                  Ajoutez une couche de sécurité supplémentaire à votre compte
+                  {t('settings.security.twoFactorAddLayer')}
                 </p>
                 {security.twoFactorEnabled && (
                   <div className="flex items-center text-[#4ade80] text-sm">
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    2FA activée
+                    {t('settings.security.twoFactorEnabled')}
                   </div>
                 )}
               </div>
               <Button
                 onClick={handleToggle2FA}
-                variant={security.twoFactorEnabled ? "destructive" : "default"}
+                variant={security.twoFactorEnabled ? 'destructive' : 'default'}
                 disabled={saving}
-                className={!security.twoFactorEnabled ? "bg-gradient-to-r from-purple-600 to-pink-600 border-0" : "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"}
+                className={!security.twoFactorEnabled ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-0' : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'}
               >
-                {security.twoFactorEnabled ? "Désactiver" : "Activer"}
+                {security.twoFactorEnabled ? t('common.close') + ' / Désactiver' : 'Activer'}
               </Button>
             </div>
           </Card>
 
           <Card className="dash-card p-6 border-white/[0.06]">
-            <h3 className="text-lg font-bold text-white mb-4">Sessions actives</h3>
+            <h3 className="text-lg font-bold text-white mb-4">{t('settings.security.sessions')}</h3>
             <p className="text-white/60 text-sm mb-4">
-              {security.sessions} session(s) active(s) • Dernière connexion: il y a 2 heures
+              {t('settings.security.sessionsCount', { count: security.sessions })} • {t('settings.security.lastLogin', { time: '2h' })}
             </p>
             <Button variant="outline" className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]">
-              Déconnecter toutes les sessions
+              {t('settings.security.revokeAll')}
             </Button>
           </Card>
         </TabsContent>
@@ -542,25 +555,25 @@ function SettingsPageContent() {
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-3">Thème</label>
                 <div className="grid grid-cols-2 gap-4">
-                  {['dark', 'light'].map((t) => (
+                  {['dark', 'light'].map((themeKey) => (
                     <button
-                      key={t}
-                      onClick={() => setTheme(t)}
+                      key={themeKey}
+                      onClick={() => setTheme(themeKey)}
                       className={`p-4 rounded-xl border-2 transition-all ${
-                        theme === t
+                        theme === themeKey
                           ? 'border-purple-500 bg-purple-500/10'
                           : 'border-white/[0.06] bg-white/[0.04] hover:border-white/[0.12]'
                       }`}
                     >
-                      <div className={`w-full h-20 rounded-lg mb-2 ${t === 'dark' ? 'bg-[#12121a]' : 'bg-white/20'}`} />
-                      <span className="text-white capitalize">{t === 'dark' ? 'Sombre' : 'Clair'}</span>
+                      <div className={`w-full h-20 rounded-lg mb-2 ${themeKey === 'dark' ? 'bg-[#12121a]' : 'bg-white/20'}`} />
+                      <span className="text-white capitalize">{themeKey === 'dark' ? t('settings.security.dark') : t('settings.security.light')}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-3">Langue</label>
+                <label className="block text-sm font-medium text-white/60 mb-3">{t('settings.security.language')}</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
@@ -577,31 +590,31 @@ function SettingsPageContent() {
 
         <TabsContent value="danger" className="space-y-6">
           <Card className="dash-card p-6 border-red-500/30 bg-red-500/5">
-            <h3 className="text-lg font-bold text-red-400 mb-4">Zone de danger</h3>
+            <h3 className="text-lg font-bold text-red-400 mb-4">{t('settings.security.dangerZone')}</h3>
             <p className="text-white/60 text-sm mb-6">
-              Actions irréversibles qui peuvent affecter définitivement votre compte
+              {t('settings.security.dangerZoneDesc')}
             </p>
 
             <div className="space-y-4">
               <div className="flex items-start justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.06]">
                 <div>
-                  <h4 className="text-white font-medium">Exporter mes données</h4>
-                  <p className="text-sm text-white/60">Télécharger toutes vos données en format JSON</p>
+                  <h4 className="text-white font-medium">{t('settings.security.exportMyData')}</h4>
+                  <p className="text-sm text-white/60">{t('settings.security.exportMyDataDesc')}</p>
                 </div>
                 <Button variant="outline" className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]">
                   <Download className="w-4 h-4 mr-2" />
-                  Exporter
+                  {t('common.export')}
                 </Button>
               </div>
 
               <div className="flex items-start justify-between p-4 bg-white/[0.04] rounded-xl border border-red-500/20">
                 <div>
-                  <h4 className="text-red-400 font-medium">Supprimer mon compte</h4>
-                  <p className="text-sm text-white/60">Supprimer définitivement votre compte et toutes vos données</p>
+                  <h4 className="text-red-400 font-medium">{t('settings.security.deleteAccount')}</h4>
+                  <p className="text-sm text-white/60">{t('settings.security.deleteAccountDesc')}</p>
                 </div>
                 <Button variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30">
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Supprimer
+                  {t('common.delete')}
                 </Button>
               </div>
             </div>

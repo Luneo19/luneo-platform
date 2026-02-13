@@ -2,6 +2,7 @@
 
 import { UserPlus, Settings, Rocket } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { GlowCard } from '@/components/ui/tilt-card';
 
 const steps = [
   {
@@ -43,7 +44,7 @@ export function HowItWorksNew() {
               <span className="text-white">Lancez-vous en </span>
               <span className="italic text-gradient-purple">3 etapes simples</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-400 px-2">
+            <p className="text-base sm:text-lg text-slate-300 px-2">
               De zero au lancement en un temps record.
             </p>
           </div>
@@ -61,7 +62,8 @@ export function HowItWorksNew() {
                 staggerDelay={150}
                 delay={100}
               >
-                <div className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-10 p-6 sm:p-8 md:p-10 bg-dark-card/60 backdrop-blur-sm rounded-2xl border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+                <GlowCard glowColor="rgba(168, 85, 247, 0.08)" className="h-full rounded-2xl">
+                <div className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-10 p-6 sm:p-8 md:p-10 bg-dark-card/60 backdrop-blur-sm rounded-2xl border border-white/[0.04] hover:border-white/[0.08] transition-all duration-300 h-full">
                   {/* Number */}
                   <div className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gradient-purple flex-shrink-0 font-display">
                     {step.number}
@@ -70,7 +72,7 @@ export function HowItWorksNew() {
                   {/* Content */}
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1.5 sm:mb-2">{step.title}</h3>
-                    <p className="text-xs sm:text-sm md:text-base text-slate-400 leading-relaxed">{step.description}</p>
+                    <p className="text-xs sm:text-sm md:text-base text-slate-300 leading-relaxed">{step.description}</p>
                   </div>
 
                   {/* Icon */}
@@ -80,6 +82,7 @@ export function HowItWorksNew() {
                     </div>
                   </div>
                 </div>
+                </GlowCard>
               </ScrollReveal>
             );
           })}

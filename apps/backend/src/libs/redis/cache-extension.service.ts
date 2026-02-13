@@ -14,7 +14,7 @@ export interface CacheTag {
 export interface CacheWarmupConfig {
   key: string;
   type: string;
-  generator: () => Promise<any>;
+  generator: () => Promise<unknown>;
   ttl?: number;
   tags?: string[];
 }
@@ -32,7 +32,7 @@ export class CacheExtensionService {
    */
   async setWithTags(
     key: string,
-    data: any,
+    data: unknown,
     type: string = 'api',
     tags: string[] = [],
     ttl?: number,
@@ -41,11 +41,12 @@ export class CacheExtensionService {
     const setResult = await this.redis.set(key, data, type, { ttl, tags });
 
     if (setResult && tags.length > 0) {
-      // Store tags for this key
-      for (const tag of tags) {
-        await this.redis.client.sadd(`${this.TAG_PREFIX}${tag}`, key);
-        // Set expiration on tag set (optional, for cleanup)
-        await this.redis.client.expire(`${this.TAG_PREFIX}${tag}`, ttl || 3600);
+      const client = this.redis.client;
+      if (client) {
+        for (const tag of tags) {
+          await client.sadd(`${this.TAG_PREFIX}${tag}`, key);
+          await client.expire(`${this.TAG_PREFIX}${tag}`, ttl || 3600);
+        }
       }
     }
 
@@ -56,18 +57,17 @@ export class CacheExtensionService {
    * Invalidate cache by tag
    */
   async invalidateByTag(tag: string): Promise<number> {
+    const client = this.redis.client;
+    if (!client) return 0;
     const tagKey = `${this.TAG_PREFIX}${tag}`;
-    const keys = await this.redis.client.smembers(tagKey);
+    const keys = await client.smembers(tagKey);
 
     if (keys.length === 0) {
       return 0;
     }
 
-    // Delete all keys with this tag
-    const deleted = await this.redis.client.del(...keys);
-
-    // Delete the tag set
-    await this.redis.client.del(tagKey);
+    const deleted = await client.del(...keys);
+    await client.del(tagKey);
 
     this.logger.log(`Invalidated ${deleted} cache entries for tag: ${tag}`);
 
@@ -98,10 +98,13 @@ export class CacheExtensionService {
     misses: number;
     hitRate: number;
   }> {
-    const info = await this.redis.client.info('stats');
-    const memoryInfo = await this.redis.client.info('memory');
+    const client = this.redis.client;
+    if (!client) {
+      return { memory: '0B', keys: 0, hits: 0, misses: 0, hitRate: 0 };
+    }
+    const info = await client.info('stats');
+    const memoryInfo = await client.info('memory');
 
-    // Parse Redis INFO output
     const keyspaceHits = this.parseInfoValue(info, 'keyspace_hits') || '0';
     const keyspaceMisses = this.parseInfoValue(info, 'keyspace_misses') || '0';
     const hits = parseInt(keyspaceHits, 10);
@@ -110,7 +113,7 @@ export class CacheExtensionService {
     const hitRate = total > 0 ? (hits / total) * 100 : 0;
 
     const usedMemory = this.parseInfoValue(memoryInfo, 'used_memory_human') || '0B';
-    const dbSize = await this.redis.client.dbsize();
+    const dbSize = await client.dbsize();
 
     return {
       memory: usedMemory,
@@ -133,15 +136,18 @@ export class CacheExtensionService {
    * Warm up cache with registered configurations
    */
   async warmupCache(): Promise<{ warmed: number; failed: number }> {
+    const client = this.redis.client;
+    if (!client) return { warmed: 0, failed: 0 };
     const pattern = `${this.WARMUP_PREFIX}*`;
-    const keys = await this.redis.client.keys(pattern);
+    const keys = await client.keys(pattern);
 
     let warmed = 0;
     let failed = 0;
 
     for (const key of keys) {
       try {
-        const config: CacheWarmupConfig = await this.redis.get(key.replace(this.WARMUP_PREFIX, ''), 'api');
+        const raw = await this.redis.get(key.replace(this.WARMUP_PREFIX, ''), 'api');
+        const config = raw as CacheWarmupConfig | null;
 
         if (config && config.generator) {
           const data = await config.generator();
@@ -169,15 +175,20 @@ export class CacheExtensionService {
    * Clear all cache
    */
   async clearAll(): Promise<void> {
-    await this.redis.client.flushdb();
-    this.logger.log('All cache cleared');
+    const client = this.redis.client;
+    if (client) {
+      await client.flushdb();
+      this.logger.log('All cache cleared');
+    }
   }
 
   /**
    * Get cache keys by pattern
    */
   async getKeysByPattern(pattern: string): Promise<string[]> {
-    return this.redis.client.keys(pattern);
+    const client = this.redis.client;
+    if (!client) return [];
+    return client.keys(pattern);
   }
 
   /**

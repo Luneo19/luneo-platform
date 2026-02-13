@@ -22,7 +22,7 @@ export class SafeLoggerService implements LoggerService {
   /**
    * Log a message (development only)
    */
-  log(message: any, context?: string): void {
+  log(message: unknown, context?: string): void {
     const sanitized = this.sanitizeMessage(message);
     this.logger.log(sanitized, context);
   }
@@ -30,7 +30,7 @@ export class SafeLoggerService implements LoggerService {
   /**
    * Log an error
    */
-  error(message: any, trace?: string, context?: string): void {
+  error(message: unknown, trace?: string, context?: string): void {
     const sanitizedMessage = this.sanitizeMessage(message);
     const sanitizedTrace = trace ? this.sanitizeMessage(trace) : undefined;
     this.logger.error(sanitizedMessage, sanitizedTrace, context);
@@ -39,7 +39,7 @@ export class SafeLoggerService implements LoggerService {
   /**
    * Log a warning
    */
-  warn(message: any, context?: string): void {
+  warn(message: unknown, context?: string): void {
     const sanitized = this.sanitizeMessage(message);
     this.logger.warn(sanitized, context);
   }
@@ -47,7 +47,7 @@ export class SafeLoggerService implements LoggerService {
   /**
    * Log debug info (development only)
    */
-  debug(message: any, context?: string): void {
+  debug(message: unknown, context?: string): void {
     const sanitized = this.sanitizeMessage(message);
     this.logger.debug(sanitized, context);
   }
@@ -55,7 +55,7 @@ export class SafeLoggerService implements LoggerService {
   /**
    * Log verbose info (development only)
    */
-  verbose(message: any, context?: string): void {
+  verbose(message: unknown, context?: string): void {
     const sanitized = this.sanitizeMessage(message);
     this.logger.verbose(sanitized, context);
   }
@@ -63,7 +63,7 @@ export class SafeLoggerService implements LoggerService {
   /**
    * Sanitize message before logging
    */
-  private sanitizeMessage(message: any): any {
+  private sanitizeMessage(message: unknown): unknown {
     if (message === null || message === undefined) {
       return message;
     }

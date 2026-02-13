@@ -24,7 +24,7 @@ export class WebhookHandlerService {
   async handleShopifyWebhook(
     topic: string,
     shop: string,
-    payload: any,
+    payload: Record<string, unknown>,
     hmacHeader: string,
   ): Promise<void> {
     try {
@@ -84,7 +84,7 @@ export class WebhookHandlerService {
    */
   async handleWooCommerceWebhook(
     topic: string,
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string,
   ): Promise<void> {
     try {
@@ -133,7 +133,7 @@ export class WebhookHandlerService {
         data: {
           webhookId: webhook.id,
           event: webhook.topic || 'unknown',
-          payload: webhook.payload,
+          payload: webhook.payload as import('@prisma/client').Prisma.InputJsonValue,
           statusCode: 200,
           response: 'received',
           createdAt: new Date(webhook.created_at),
@@ -150,7 +150,7 @@ export class WebhookHandlerService {
   async getWebhookHistory(
     integrationId: string,
     limit: number = 50,
-  ): Promise<any[]> {
+  ): Promise<import('@prisma/client').WebhookLog[]> {
     try {
       const integration = await this.prisma.ecommerceIntegration.findUnique({
         where: { id: integrationId },
@@ -241,7 +241,7 @@ export class WebhookHandlerService {
   /**
    * Obtient les statistiques des webhooks
    */
-  async getWebhookStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<any> {
+  async getWebhookStats(integrationId: string, period: 'day' | 'week' | 'month' = 'week'): Promise<{ period: string; totalWebhooks: number; webhooksByTopic: Record<string, number>; webhooksByStatus: Record<string, number>; successRate: number }> {
     try {
       // Trouver l'intégration pour obtenir brandId
       const integration = await this.prisma.ecommerceIntegration.findUnique({

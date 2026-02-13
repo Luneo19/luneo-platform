@@ -6,6 +6,8 @@ import { Header } from '../Header';
 // Mock dependencies
 vi.mock('next/navigation', () => ({
   usePathname: () => '/dashboard',
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
 }));
 
 vi.mock('@/i18n/useI18n', () => ({

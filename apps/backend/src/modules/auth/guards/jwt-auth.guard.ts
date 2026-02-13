@@ -22,10 +22,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, _info: any) {
+  handleRequest<TUser = import('@/common/types/user.types').CurrentUser>(err: Error | null, user: TUser | null | false, _info: unknown): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException('Token invalide ou expiré');
     }
-    return user;
+    return user as TUser;
   }
 }

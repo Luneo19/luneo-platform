@@ -26,8 +26,10 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function MarketingPage() {
+  const { t } = useI18n();
   const [channel, setChannel] = useState<'Email' | 'Social Ads' | 'Display' | 'Print'>('Email');
   const [goal, setGoal] = useState('Conversions');
   const [budget, setBudget] = useState(2500);
@@ -166,6 +168,7 @@ export default function MarketingPage() {
   const handleGeneratePlan = () => {
     setIsGenerating(true);
     setCopied(false);
+    // Demo simulation - replace with real API in production
     setTimeout(() => {
       setTimeline((_prev) => [
         {
@@ -215,16 +218,18 @@ export default function MarketingPage() {
         customMessage: sequenceSteps.map((step, i) => `${i + 1}. ${step.subject} → ${step.cta}`).join('\n'),
       });
       setSequenceStatus('sent');
-      setTimeout(() => setSequenceStatus('idle'), 4000);
-    } catch (error: any) {
+      // Demo simulation - replace with real API in production
+      setTimeout(() => setSequenceStatus('idle'), 1000);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       logger.error('Send sequence failed', {
         error,
         channel,
         goal,
         stepsCount: sequenceSteps.length,
-        message: error.message || 'Unknown error',
+        message: message || 'Unknown error',
       });
-      setSequenceError("Impossible d'envoyer la séquence (sandbox).");
+      setSequenceError(t('common.sendError'));
       setSequenceStatus('error');
     }
   };
@@ -309,7 +314,7 @@ export default function MarketingPage() {
                   rows={3}
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Lancement collection, focus mobile, CTA test..."
+                  placeholder={t('common.launchFocusCTA')}
                 />
               </div>
             </div>
@@ -322,7 +327,7 @@ export default function MarketingPage() {
                   {isGenerating ? 'Simulation...' : 'Générer le plan'}
                 </Button>
                 <Button variant="outline" onClick={handleCopyPlan} className="flex-1 border-white/[0.04] text-white hover:bg-white/10">
-                  {copied ? 'Copié ✅' : 'Copier le brief'}
+                  {copied ? t('common.copied') : t('common.copyBrief')}
                 </Button>
               </div>
             </Card>

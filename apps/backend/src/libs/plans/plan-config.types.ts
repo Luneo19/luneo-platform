@@ -13,8 +13,8 @@
 /**
  * Tiers de plans disponibles.
  * Synchronise avec l'enum SubscriptionPlan dans Prisma.
- * Note: BUSINESS n'est pas dans l'enum Prisma (FREE/STARTER/PROFESSIONAL/ENTERPRISE)
- * mais est utilise en interne pour la logique de pricing.
+ * Tous les tiers (FREE/STARTER/PROFESSIONAL/BUSINESS/ENTERPRISE)
+ * sont presents dans l'enum Prisma SubscriptionPlan.
  */
 export enum PlanTier {
   FREE = 'free',
@@ -133,4 +133,8 @@ export interface PlanConfig {
   limits: FeatureLimits;
   quotas: UsageQuota[];
   agentLimits: AgentLimits;
+  /** Monthly AI credits included in the plan (refilled on subscription renewal). -1 = unlimited. */
+  monthlyCredits: number;
+  /** Marketplace commission rate (platform take) in percent. Used when seller sells on marketplace. */
+  marketplaceCommissionPercent?: number;
 }

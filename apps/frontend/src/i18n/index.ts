@@ -4,7 +4,7 @@
  * Uses centralized locale files from ./locales (fr, en) and JSON fallbacks for de, es, it.
  */
 
-import { en } from './locales/en';
+import en from './locales/en';
 import { fr } from './locales/fr';
 import de from './locales/de.json';
 import es from './locales/es.json';
@@ -12,7 +12,8 @@ import it from './locales/it.json';
 
 export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it';
 
-export const DEFAULT_LOCALE: Locale = 'en';
+// PRODUCTION FIX: Aligned with config.ts - default to 'fr' (primary market is francophone/Swiss)
+export const DEFAULT_LOCALE: Locale = 'fr';
 
 export const SUPPORTED_LOCALES: Locale[] = ['en', 'fr', 'de', 'es', 'it'];
 
@@ -36,7 +37,7 @@ export const LOCALE_FLAGS: Record<Locale, string> = {
 type TranslationDict = typeof fr;
 
 const translations: Record<string, TranslationDict> = {
-  en,
+  en: en as unknown as TranslationDict,
   fr,
   de: de as unknown as TranslationDict,
   es: es as unknown as TranslationDict,
@@ -46,13 +47,13 @@ const translations: Record<string, TranslationDict> = {
 /**
  * Get nested translation value by path
  */
-function getNestedValue(obj: any, path: string): string | undefined {
+function getNestedValue(obj: Record<string, unknown>, path: string): string | undefined {
   const keys = path.split('.');
   let result = obj;
   
   for (const key of keys) {
     if (result && typeof result === 'object' && key in result) {
-      result = result[key];
+      result = result[key] as Record<string, unknown>;
     } else {
       return undefined;
     }
@@ -163,6 +164,7 @@ export function detectBrowserLocale(): Locale {
 }
 
 export { en, fr };
+export { useI18n } from './useI18n';
 export type { TranslationDict };
 
 

@@ -4,55 +4,81 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Save, RefreshCw } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { endpoints } from '@/lib/api/client';
 import type { NotificationPreference } from '../../types';
+
+const DEFAULT_PREFERENCES: NotificationPreference = {
+  email: {
+    orders: true,
+    designs: true,
+    marketing: false,
+    securityAlerts: true,
+  },
+  push: {
+    orders: true,
+    designs: true,
+  },
+  inApp: {
+    orders: true,
+    designs: true,
+    system: true,
+  },
+};
 
 interface NotificationsTabProps {
   initialPreferences?: NotificationPreference;
 }
 
 export function NotificationsTab({ initialPreferences }: NotificationsTabProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [preferences, setPreferences] = useState<NotificationPreference>(
-    initialPreferences || {
-      email: {
-        orders: true,
-        designs: true,
-        marketing: false,
-        securityAlerts: true,
-      },
-      push: {
-        orders: true,
-        designs: true,
-      },
-      inApp: {
-        orders: true,
-        designs: true,
-        system: true,
-      },
-    }
+    initialPreferences ?? DEFAULT_PREFERENCES
   );
-
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(!initialPreferences);
+
+  useEffect(() => {
+    if (initialPreferences !== undefined) return;
+    let cancelled = false;
+    endpoints.settings.getNotifications()
+      .then((res) => {
+        if (cancelled) return;
+        const p = res as Partial<NotificationPreference>;
+        setPreferences({
+          email: { ...DEFAULT_PREFERENCES.email, ...p.email },
+          push: { ...DEFAULT_PREFERENCES.push, ...p.push },
+          inApp: { ...DEFAULT_PREFERENCES.inApp, ...p.inApp },
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setPreferences(DEFAULT_PREFERENCES);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [initialPreferences]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
       await endpoints.settings.notifications(preferences as unknown as Record<string, unknown>);
-      toast({ title: 'Succès', description: 'Préférences mises à jour' });
+      toast({ title: t('common.success'), description: t('settings.notifications.successUpdated') });
     } catch (error: unknown) {
       const message = error && typeof error === 'object' && 'message' in error
         ? String((error as { message: string }).message)
-        : 'Erreur lors de la mise à jour';
+        : t('settings.notifications.errorUpdate');
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });
@@ -61,21 +87,29 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
     }
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6 text-gray-500">
+        <p>{t('settings.notifications.loadingPrefs')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Email Notifications */}
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Notifications Email</CardTitle>
+          <CardTitle className="text-gray-900">{t('settings.notifications.emailTitle')}</CardTitle>
           <CardDescription className="text-gray-600">
-            Choisissez les notifications que vous souhaitez recevoir par email
+            {t('settings.notifications.emailDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Commandes</Label>
-              <p className="text-sm text-gray-500">Notifications sur vos commandes</p>
+              <Label className="text-gray-700">{t('settings.notifications.orders')}</Label>
+              <p className="text-sm text-gray-500">{t('settings.notifications.ordersDesc')}</p>
             </div>
             <Checkbox
               checked={preferences.email.orders}
@@ -89,8 +123,8 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Designs</Label>
-              <p className="text-sm text-gray-500">Notifications sur vos designs</p>
+              <Label className="text-gray-700">{t('settings.notifications.designs')}</Label>
+              <p className="text-sm text-gray-500">{t('settings.notifications.designsDesc')}</p>
             </div>
             <Checkbox
               checked={preferences.email.designs}
@@ -104,8 +138,8 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Marketing</Label>
-              <p className="text-sm text-gray-500">Newsletters et offres promotionnelles</p>
+              <Label className="text-gray-700">{t('settings.notifications.marketing')}</Label>
+              <p className="text-sm text-gray-500">{t('settings.notifications.marketingDesc')}</p>
             </div>
             <Checkbox
               checked={preferences.email.marketing}
@@ -119,8 +153,8 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Alertes de sécurité</Label>
-              <p className="text-sm text-gray-500">Notifications importantes de sécurité</p>
+              <Label className="text-gray-700">{t('settings.notifications.securityAlerts')}</Label>
+              <p className="text-sm text-gray-500">{t('settings.notifications.securityAlertsDesc')}</p>
             </div>
             <Checkbox
               checked={preferences.email.securityAlerts}
@@ -138,15 +172,15 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
       {/* In-App Notifications */}
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Notifications In-App</CardTitle>
+          <CardTitle className="text-gray-900">{t('settings.notifications.inAppTitle')}</CardTitle>
           <CardDescription className="text-gray-600">
-            Choisissez les notifications affichées dans l'application
+            {t('settings.notifications.inAppDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Commandes</Label>
+              <Label className="text-gray-700">{t('settings.notifications.orders')}</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.orders}
@@ -160,7 +194,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Designs</Label>
+              <Label className="text-gray-700">{t('settings.notifications.designs')}</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.designs}
@@ -174,7 +208,7 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-gray-700">Système</Label>
+              <Label className="text-gray-700">{t('settings.notifications.system')}</Label>
             </div>
             <Checkbox
               checked={preferences.inApp.system}
@@ -198,12 +232,12 @@ export function NotificationsTab({ initialPreferences }: NotificationsTabProps) 
           {isSaving ? (
             <>
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              Enregistrement...
+              {t('settings.notifications.saving')}
             </>
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
-              Enregistrer
+              {t('settings.profile.save')}
             </>
           )}
         </Button>

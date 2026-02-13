@@ -2,20 +2,21 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Eye, Download, Trash2 } from 'lucide-react';
+import { ExportLabel } from '../ExportLabel';
 
 export const metadata: Metadata = {
-  title: 'RGPD & Protection des données - Luneo',
+  title: 'RGPD & Protection des données - Luneo Tech',
   description:
-    'Luneo est conforme au RGPD. Droits d\'accès, rectification, effacement, portabilité et opposition.',
+    'Luneo Tech est conforme au RGPD. Droits d\'accès, rectification, effacement, portabilité et opposition.',
   openGraph: {
-    title: 'RGPD & Protection des données - Luneo',
+    title: 'RGPD & Protection des données - Luneo Tech',
     description: 'Conformité RGPD et droits des personnes.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'RGPD & Protection des données - Luneo',
-    description: 'RGPD et protection des données Luneo.',
+    title: 'RGPD & Protection des données - Luneo Tech',
+    description: 'RGPD et protection des données Luneo Tech.',
   },
 };
 
@@ -43,7 +44,7 @@ function GDPRPageContent() {
             </h1>
           </div>
           <p className="text-lg text-gray-300">
-            Luneo est conforme au Règlement Général sur la Protection des Données (RGPD)
+            Luneo Tech est conforme au Règlement Général sur la Protection des Données (RGPD)
           </p>
         </div>
 
@@ -56,7 +57,7 @@ function GDPRPageContent() {
           </div>
           <div className="bg-green-500/20 rounded-lg p-4 text-center border border-green-500/30">
             <Download className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <h3 className="font-semibold text-white mb-1">Exporter</h3>
+            <h3 className="font-semibold text-white mb-1"><ExportLabel /></h3>
             <p className="text-xs text-gray-400">Vos données</p>
           </div>
           <div className="bg-orange-500/20 rounded-lg p-4 text-center border border-orange-500/30">
@@ -76,8 +77,8 @@ function GDPRPageContent() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">1. Responsable du Traitement</h2>
             <p className="text-gray-300 leading-relaxed">
-              <strong>Luneo SAS</strong><br />
-              Adresse : [Adresse à compléter]<br />
+              <strong>Luneo Tech</strong><br />
+              Adresse : Neuchâtel, Suisse<br />
               Email DPO : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
             </p>
           </section>
@@ -111,7 +112,7 @@ function GDPRPageContent() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">3. Base Légale du Traitement</h2>
             <ul className="list-disc pl-6 text-gray-300 space-y-2">
-              <li><strong>Exécution du contrat :</strong> Fourniture des services Luneo</li>
+              <li><strong>Exécution du contrat :</strong> Fourniture des services Luneo Tech</li>
               <li><strong>Consentement :</strong> Marketing et cookies non essentiels</li>
               <li><strong>Intérêt légitime :</strong> Sécurité et prévention de la fraude</li>
               <li><strong>Obligation légale :</strong> Facturation et comptabilité</li>
@@ -192,7 +193,7 @@ function GDPRPageContent() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">7. Transferts de Données</h2>
             <p className="text-gray-300 leading-relaxed">
-              Vos données sont hébergées dans l'Union Européenne (AWS eu-west-1, Paris). 
+              Vos données sont hébergées en Suisse et dans l'Union Européenne. 
               Certains sous-traitants peuvent être hors UE (USA) avec garanties appropriées (Standard Contractual Clauses).
             </p>
           </section>
@@ -207,7 +208,7 @@ function GDPRPageContent() {
                 📧 Email : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
               </p>
               <p className="text-gray-300 mt-4 text-sm">
-                Vous pouvez également contacter la CNIL en cas de litige : <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">www.cnil.fr</a>
+                Vous pouvez également contacter le Préposé fédéral à la protection des données (PFPDT) en cas de litige : <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">www.edoeb.admin.ch</a>
               </p>
             </div>
           </section>

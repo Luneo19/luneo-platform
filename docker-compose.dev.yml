@@ -22,7 +22,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./apps/backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U luneo_user -d luneo_dev"]
       interval: 10s
@@ -55,7 +55,7 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: ./apps/backend
       dockerfile: Dockerfile.dev
     container_name: luneo-api-dev
     environment:
@@ -108,9 +108,9 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ./backend:/app
+      - ./apps/backend:/app
       - /app/node_modules
-      - ./backend/.env:/app/.env:ro
+      - ./apps/backend/.env:/app/.env:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -241,7 +241,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -310,7 +310,7 @@ services:
   # Frontend Next.js (optionnel, peut être lancé séparément)
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/frontend
       dockerfile: Dockerfile.dev
     container_name: luneo-frontend-dev
     environment:
@@ -320,7 +320,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend:/app
+      - ./apps/frontend:/app
       - /app/node_modules
       - /app/.next
     networks:

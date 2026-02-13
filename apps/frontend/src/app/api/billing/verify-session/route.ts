@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import Stripe from 'stripe';
 
 export const runtime = 'nodejs';
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         : undefined,
     };
 
-    logger.info('Session verified successfully', {
+    serverLogger.info('Session verified successfully', {
       sessionId,
       planName: responseData.planName,
       customerEmail: responseData.customerEmail,

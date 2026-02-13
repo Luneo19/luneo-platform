@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 
 export const metadata: Metadata = {
   title: 'À propos | Luneo - Notre Mission & Équipe',
@@ -8,11 +9,15 @@ export const metadata: Metadata = {
     title: 'À propos | Luneo',
     description: 'Découvrez l\'histoire de Luneo et notre mission de démocratiser la personnalisation produit.',
     type: 'website',
-    url: 'https://luneo.app/about',
+    url: `${SEO_BASE_URL}/about`,
     siteName: 'Luneo',
   },
   alternates: {
-    canonical: 'https://luneo.app/about',
+    canonical: `${SEO_BASE_URL}/about`,
+    languages: {
+      fr: `${SEO_BASE_URL}/about`,
+      en: `${SEO_BASE_URL}/en/about`,
+    },
   },
 };
 

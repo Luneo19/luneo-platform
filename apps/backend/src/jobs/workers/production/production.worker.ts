@@ -13,11 +13,11 @@ interface ProductionJobData {
   designId: string;
   productId: string;
   quantity: number;
-  options: any;
+  options: Record<string, unknown>;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   factoryWebhookUrl?: string;
-  shippingAddress: any;
-  billingAddress: any;
+  shippingAddress: Record<string, unknown>;
+  billingAddress: Record<string, unknown>;
 }
 
 interface ProductionBundle {
@@ -83,13 +83,17 @@ export class ProductionWorker {
       ]);
 
       // Valider les données
-      await this.validateProductionData(order, design, product, brand);
+      await this.validateProductionData(order, design as Record<string, unknown> & { status?: string }, product, brand);
 
       // Générer les fichiers de production
-      const productionFiles = await this.generateProductionFiles(design, product, options);
+      const productionFiles = await this.generateProductionFiles(
+        design as Record<string, unknown> & { assets: Array<{ id: string; url: string; type: string; metaJson?: unknown }> },
+        product,
+        options,
+      );
 
       // Créer les instructions de production
-      const instructions = await this.createProductionInstructions(order, design, product, options);
+      const instructions = await this.createProductionInstructions(order, design, product, options, quantity);
 
       // Créer le bundle de production
       const bundle: ProductionBundle = {
@@ -285,7 +289,7 @@ export class ProductionWorker {
         product: {
           name: product.name,
           sku: product.sku,
-          baseSpecifications: product.specifications || {},
+          baseSpecifications: (product as { specifications?: Record<string, unknown> }).specifications || {},
         },
         design: {
           customizations: design.optionsJson,
@@ -335,7 +339,7 @@ export class ProductionWorker {
   /**
    * Récupère une commande
    */
-  private async getOrder(orderId: string): Promise<any> {
+  private async getOrder(orderId: string): Promise<import('@prisma/client').Order> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -373,7 +377,7 @@ export class ProductionWorker {
   /**
    * Récupère un produit
    */
-  private async getProduct(productId: string): Promise<any> {
+  private async getProduct(productId: string): Promise<import('@prisma/client').Product> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -388,7 +392,7 @@ export class ProductionWorker {
   /**
    * Récupère une marque
    */
-  private async getBrand(brandId: string): Promise<any> {
+  private async getBrand(brandId: string): Promise<import('@prisma/client').Brand> {
     const brand = await this.prisma.brand.findUnique({
       where: { id: brandId },
     });
@@ -403,7 +407,12 @@ export class ProductionWorker {
   /**
    * Valide les données de production
    */
-  private async validateProductionData(order: any, design: any, product: any, brand: any): Promise<void> {
+  private async validateProductionData(
+    order: import('@prisma/client').Order,
+    design: Record<string, unknown>,
+    product: import('@prisma/client').Product,
+    brand: import('@prisma/client').Brand,
+  ): Promise<void> {
     if (order.status !== 'PAID') {
       throw new Error('Order must be paid before production');
     }
@@ -424,17 +433,22 @@ export class ProductionWorker {
   /**
    * Génère les fichiers de production
    */
-  private async generateProductionFiles(design: any, product: any, options: any): Promise<any[]> {
-    const files = [];
+  private async generateProductionFiles(
+    design: Record<string, unknown> & { assets: Array<{ id: string; url: string; type: string; metaJson?: unknown }> },
+    product: import('@prisma/client').Product,
+    options: Record<string, unknown>,
+  ): Promise<Array<{ filename: string; url: string; type: 'design' | 'instructions' | 'metadata'; format: string; size: number }>> {
+    const files: Array<{ filename: string; url: string; type: 'design' | 'instructions' | 'metadata'; format: string; size: number }> = [];
 
     // Fichiers du design
     for (const asset of design.assets) {
+      const metaJson = asset.metaJson as { size?: number } | undefined;
       files.push({
         filename: `design_${asset.id}.${asset.type}`,
         url: asset.url,
         type: 'design',
         format: asset.type,
-        size: asset.metaJson?.size || 0,
+        size: metaJson?.size ?? 0,
       });
     }
 
@@ -455,13 +469,24 @@ export class ProductionWorker {
   /**
    * Crée les instructions de production
    */
-  private async createProductionInstructions(order: any, design: any, product: any, options: any): Promise<any> {
+  private async createProductionInstructions(
+    order: import('@prisma/client').Order,
+    design: Record<string, unknown>,
+    product: import('@prisma/client').Product,
+    options: Record<string, unknown>,
+    quantity: number,
+  ): Promise<{ quantity: number; materials: string[]; finishes: string[]; specialInstructions: string[]; qualityLevel: string; deadline: Date }> {
+    const materials = Array.isArray(options.materials) ? (options.materials as string[]) : ['standard'];
+    const finishes = Array.isArray(options.finishes) ? (options.finishes as string[]) : ['standard'];
+    const specialInstructions = Array.isArray(options.specialInstructions)
+      ? (options.specialInstructions as unknown[]).map((s) => String(s))
+      : [];
     return {
-      quantity: order.quantity,
-      materials: options.materials || ['standard'],
-      finishes: options.finishes || ['standard'],
-      specialInstructions: options.specialInstructions || [],
-      qualityLevel: options.qualityLevel || 'standard',
+      quantity,
+      materials,
+      finishes,
+      specialInstructions,
+      qualityLevel: typeof options.qualityLevel === 'string' ? options.qualityLevel : 'standard',
       deadline: this.calculateDeadline(order.createdAt, product.productionTime || 5),
     };
   }
@@ -549,7 +574,7 @@ export class ProductionWorker {
   /**
    * Génère la signature du webhook
    */
-  private generateWebhookSignature(payload: any): string {
+  private generateWebhookSignature(payload: Record<string, unknown>): string {
     // Simulation de signature HMAC
     // En production, utiliser crypto.createHmac
     return `sha256=${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
@@ -688,7 +713,13 @@ export class ProductionWorker {
   /**
    * Analyse les vérifications de qualité
    */
-  private analyzeQualityChecks(qualityChecks: any[]): any {
+  private analyzeQualityChecks(qualityChecks: Array<{ qualityScore: number; issues: string[]; recommendations: string[] }>): {
+    overallScore: number;
+    issues: string[];
+    recommendations: string[];
+    passed: boolean;
+    assetCount: number;
+  } {
     const overallScore = qualityChecks.reduce((sum, check) => sum + check.qualityScore, 0) / qualityChecks.length;
     const allIssues = qualityChecks.flatMap(check => check.issues);
     const allRecommendations = qualityChecks.flatMap(check => check.recommendations);
@@ -705,7 +736,7 @@ export class ProductionWorker {
   /**
    * Sauvegarde le rapport de qualité
    */
-  private async saveQualityReport(orderId: string, qualityReport: any): Promise<void> {
+  private async saveQualityReport(orderId: string, qualityReport: { overallScore: number; issues: string[]; recommendations: string[]; passed: boolean }): Promise<void> {
     await this.prisma.qualityReport.create({
       data: {
         orderId,
@@ -721,7 +752,7 @@ export class ProductionWorker {
   /**
    * Extrait les zones du design
    */
-  private extractZonesFromDesign(design: any): any[] {
+  private extractZonesFromDesign(design: Record<string, unknown> & { optionsJson?: { zones?: Record<string, Record<string, unknown>> } }): Array<Record<string, unknown>> {
     if (!design.optionsJson?.zones) return [];
     return Object.entries(design.optionsJson.zones as Record<string, Record<string, unknown>>).map(([id, data]) => ({
       id,
@@ -732,7 +763,7 @@ export class ProductionWorker {
   /**
    * Génère les points de contrôle qualité
    */
-  private generateQualityCheckpoints(design: any, product: any): string[] {
+  private generateQualityCheckpoints(design: Record<string, unknown>, product: import('@prisma/client').Product): string[] {
     return [
       'Material verification',
       'Dimensional accuracy',
@@ -745,7 +776,7 @@ export class ProductionWorker {
   /**
    * Calcule les tolérances
    */
-  private calculateTolerances(product: any, options: any): Record<string, number> {
+  private calculateTolerances(product: import('@prisma/client').Product, options: Record<string, unknown>): Record<string, number> {
     return {
       dimensions: options.qualityLevel === 'premium' ? 0.1 : 0.2,
       color: options.qualityLevel === 'premium' ? 5 : 10,
@@ -756,7 +787,7 @@ export class ProductionWorker {
   /**
    * Génère les exigences d'emballage
    */
-  private generatePackagingRequirements(product: any, quantity: number): string[] {
+  private generatePackagingRequirements(product: import('@prisma/client').Product, quantity: number): string[] {
     return [
       'Protective wrapping',
       'Branded packaging',
@@ -767,7 +798,7 @@ export class ProductionWorker {
   /**
    * Génère les exigences d'étiquetage
    */
-  private generateLabelingRequirements(orderId: string, product: any, design: any): string[] {
+  private generateLabelingRequirements(orderId: string, product: import('@prisma/client').Product, design: Record<string, unknown>): string[] {
     return [
       'Order ID',
       'Product SKU',
@@ -779,7 +810,7 @@ export class ProductionWorker {
   /**
    * Crée le document d'instructions
    */
-  private async createInstructionsDocument(instructions: any): Promise<Buffer> {
+  private async createInstructionsDocument(instructions: Record<string, unknown>): Promise<Buffer> {
     // Simulation de création de document
     // En production, utiliser une librairie comme PDFKit
     const document = JSON.stringify(instructions, null, 2);

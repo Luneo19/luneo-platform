@@ -29,9 +29,11 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCollections } from '@/lib/hooks/useCollections';
+import { useCollections, type Collection } from '@/lib/hooks/useCollections';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { CollectionModal } from '@/components/collections/CollectionModal';
 import { AddDesignsModal } from '@/components/collections/AddDesignsModal';
 import { CollectionsSkeleton } from '@/components/ui/skeletons';
@@ -42,6 +44,7 @@ import { CollectionsSkeleton } from '@/components/ui/skeletons';
  */
 function CollectionsPage() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const {
     collections,
     loading,
@@ -55,7 +58,7 @@ function CollectionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterPublic, setFilterPublic] = useState<'all' | 'public' | 'private'>('all');
-  const [selectedCollection, setSelectedCollection] = useState<any>(null);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddDesignsModalOpen, setIsAddDesignsModalOpen] = useState(false);
@@ -99,13 +102,13 @@ function CollectionsPage() {
       await createCollection(data);
       setIsCreateModalOpen(false);
       toast({
-        title: 'Collection créée',
-        description: `La collection "${data.name}" a été créée avec succès`,
+        title: t('collections.created'),
+        description: t('collections.createdDesc', { name: data.name }),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de créer la collection',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
@@ -125,13 +128,13 @@ function CollectionsPage() {
       setIsEditModalOpen(false);
       setSelectedCollection(null);
       toast({
-        title: 'Collection mise à jour',
-        description: `La collection "${data.name}" a été mise à jour`,
+        title: t('collections.updated'),
+        description: t('collections.updatedDesc', { name: data.name }),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de mettre à jour la collection',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
@@ -142,24 +145,24 @@ function CollectionsPage() {
       await deleteCollection(id);
       setCollectionToDelete(null);
       toast({
-        title: 'Collection supprimée',
-        description: 'La collection a été supprimée avec succès',
+        title: t('collections.deleted'),
+        description: t('collections.deletedDesc'),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de supprimer la collection',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
   };
 
-  const handleOpenEdit = (collection: any) => {
+  const handleOpenEdit = (collection: Collection) => {
     setSelectedCollection(collection);
     setIsEditModalOpen(true);
   };
 
-  const handleOpenAddDesigns = (collection: any) => {
+  const handleOpenAddDesigns = (collection: Collection) => {
     setSelectedCollection(collection);
     setIsAddDesignsModalOpen(true);
   };
@@ -172,10 +175,10 @@ function CollectionsPage() {
     return (
       <EmptyState
         icon={<FolderOpen className="w-16 h-16" />}
-        title="Erreur de chargement"
+        title={t('collections.errorLoading')}
         description={error}
         action={{
-          label: 'Réessayer',
+          label: t('common.retry'),
           onClick: refresh,
         }}
       />
@@ -387,7 +390,7 @@ function CollectionsPage() {
               setSelectedCollection(null);
             }}
             onSubmit={handleUpdateCollection}
-            collection={selectedCollection}
+            collection={{ ...selectedCollection, description: selectedCollection.description ?? undefined }}
             mode="edit"
           />
 
@@ -397,7 +400,7 @@ function CollectionsPage() {
               setIsAddDesignsModalOpen(false);
               setSelectedCollection(null);
             }}
-            collection={selectedCollection}
+            collection={{ ...selectedCollection, description: selectedCollection.description ?? undefined }}
             onSuccess={() => {
               refresh();
               setIsAddDesignsModalOpen(false);
@@ -460,7 +463,7 @@ function CollectionCard({
   onDelete,
   onAddDesigns,
 }: {
-  collection: any;
+  collection: Collection;
   onEdit: () => void;
   onDelete: () => void;
   onAddDesigns: () => void;
@@ -565,7 +568,7 @@ function CollectionListItem({
   onDelete,
   onAddDesigns,
 }: {
-  collection: any;
+  collection: Collection;
   onEdit: () => void;
   onDelete: () => void;
   onAddDesigns: () => void;

@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,8 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { ArrowLeft, Download, Palette, Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 import {
   Table,
   TableBody,
@@ -61,6 +64,7 @@ function downloadCSV(rows: Record<string, unknown>[], filename: string) {
 }
 
 function DesignsContent() {
+  const { t } = useI18n();
   const [period, setPeriod] = useState<Period>(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,18 +73,19 @@ function DesignsContent() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`/api/designs?limit=100&sort=createdAt:desc`)
-      .then((res) => res.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data?.designs ?? [];
+    const load = async () => {
+      try {
+        const data = await endpoints.designs.list({ limit: 100 });
+        const rawList = Array.isArray(data) ? data : (data as { designs?: unknown[] })?.designs ?? [];
+        const list = rawList as Array<{ id: string; name?: string | null; status?: string; createdAt?: string; previewUrl?: string | null; viewCount?: number }>;
         const since = new Date();
         since.setDate(since.getDate() - period);
-        const filtered = list.filter((d: { createdAt?: string }) => {
+        const filtered = list.filter((d) => {
           if (!d.createdAt) return true;
           return new Date(d.createdAt) >= since;
         });
         setDesigns(
-          filtered.map((d: { id: string; name?: string | null; status?: string; createdAt?: string; previewUrl?: string | null }) => ({
+          filtered.map((d) => ({
             id: d.id,
             name: d.name ?? null,
             status: d.status ?? 'PENDING',
@@ -89,10 +94,15 @@ function DesignsContent() {
             viewCount: d.viewCount ?? 0,
           }))
         );
-      })
-      .catch(() => setError('Erreur lors du chargement des designs'))
-      .finally(() => setLoading(false));
-  }, [period]);
+      } catch (err) {
+        logger.error('Designs analytics load error', { error: err });
+        setError(t('analytics.errorLoadDesigns'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [period, t]);
 
   const stats = useMemo(() => {
     const total = designs.length;
@@ -165,7 +175,7 @@ function DesignsContent() {
       <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center">
         <p className="text-red-400">{error}</p>
         <Button variant="outline" className="mt-4 border-gray-600" onClick={() => setError(null)}>
-          Réessayer
+          {t('analytics.retry')}
         </Button>
       </div>
     );
@@ -212,8 +222,8 @@ function DesignsContent() {
           <div className="flex items-center gap-2">
             <Palette className="w-8 h-8 text-cyan-400" />
             <div>
-              <h1 className="text-2xl font-bold text-white">Analytics Designs</h1>
-              <p className="text-sm text-gray-400">Designs créés, statuts et catégories</p>
+              <h1 className="text-2xl font-bold text-white">{t('analytics.designsPageTitle')}</h1>
+              <p className="text-sm text-gray-400">{t('analytics.designsPageSubtitle')}</p>
             </div>
           </div>
         </div>
@@ -231,7 +241,7 @@ function DesignsContent() {
           ))}
           <Button variant="outline" size="sm" className="border-gray-600" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            {t('analytics.exportCsv')}
           </Button>
         </div>
       </div>
@@ -239,25 +249,25 @@ function DesignsContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Total designs</p>
+            <p className="text-sm text-gray-400">{t('analytics.totalDesigns')}</p>
             <p className="text-2xl font-bold text-white">{stats.total}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Ce mois</p>
+            <p className="text-sm text-gray-400">{t('analytics.thisMonth')}</p>
             <p className="text-2xl font-bold text-white">{stats.thisMonth}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Taux complété</p>
+            <p className="text-sm text-gray-400">{t('analytics.completionRate')}</p>
             <p className="text-2xl font-bold text-white">{stats.completedRate}%</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Moy. / semaine</p>
+            <p className="text-sm text-gray-400">{t('analytics.avgPerWeek')}</p>
             <p className="text-2xl font-bold text-white">{stats.avgPerWeek}</p>
           </CardContent>
         </Card>
@@ -266,11 +276,11 @@ function DesignsContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Designs créés dans le temps</CardTitle>
+            <CardTitle className="text-white">{t('analytics.designsOverTime')}</CardTitle>
           </CardHeader>
           <CardContent>
             {areaData.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée sur la période</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noData')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={areaData}>
@@ -286,11 +296,11 @@ function DesignsContent() {
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Répartition par statut</CardTitle>
+            <CardTitle className="text-white">{t('analytics.byStatus')}</CardTitle>
           </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -317,11 +327,11 @@ function DesignsContent() {
 
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Designs par catégorie</CardTitle>
+          <CardTitle className="text-white">{t('analytics.byCategory')}</CardTitle>
         </CardHeader>
         <CardContent>
           {barData.every((d) => d.count === 0) ? (
-            <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+            <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={barData} layout="vertical" margin={{ left: 80 }}>
@@ -338,18 +348,18 @@ function DesignsContent() {
 
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Top 10 designs les plus vus</CardTitle>
+          <CardTitle className="text-white">{t('analytics.topViewed')}</CardTitle>
         </CardHeader>
         <CardContent>
           {topViewed.length === 0 ? (
-            <p className="text-gray-400 text-sm py-8 text-center">Aucun design pour l’instant</p>
+            <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDesignsYet')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700 hover:bg-transparent">
-                  <TableHead className="text-gray-400">Design</TableHead>
-                  <TableHead className="text-gray-400">Statut</TableHead>
-                  <TableHead className="text-gray-400">Vues</TableHead>
+                  <TableHead className="text-gray-400">{t('analytics.design')}</TableHead>
+                  <TableHead className="text-gray-400">{t('support.status')}</TableHead>
+                  <TableHead className="text-gray-400">{t('analytics.metrics.views')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

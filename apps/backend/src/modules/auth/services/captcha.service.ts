@@ -25,12 +25,10 @@ export class CaptchaService {
    */
   async verifyToken(token: string, action: string, minScore: number = 0.5): Promise<boolean> {
     if (!this.secretKey) {
-      // In development, allow requests without CAPTCHA if not configured
-      if (this.configService.get('app.nodeEnv') === 'development') {
-        this.logger.warn('CAPTCHA validation skipped in development mode');
-        return true;
-      }
-      throw new BadRequestException('CAPTCHA verification is required but not configured');
+      // If CAPTCHA is not configured, skip verification gracefully
+      // This prevents blocking users when reCAPTCHA keys are not set
+      this.logger.warn('CAPTCHA validation skipped — secret key not configured');
+      return true;
     }
 
     if (!token) {
@@ -102,10 +100,8 @@ export class CaptchaService {
    */
   async verifyV2Token(token: string): Promise<boolean> {
     if (!this.secretKey) {
-      if (this.configService.get('app.nodeEnv') === 'development') {
-        return true;
-      }
-      throw new BadRequestException('CAPTCHA verification is required but not configured');
+      this.logger.warn('CAPTCHA v2 validation skipped — secret key not configured');
+      return true;
     }
 
     if (!token) {

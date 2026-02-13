@@ -2,7 +2,7 @@ import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { manageTenantFeaturesSchema } from '@/lib/validation/zod-schemas';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: TenantFeaturesRouteC
 
     const result = await response.json();
 
-    logger.info('Tenant features fetched', {
+    serverLogger.info('Tenant features fetched', {
       brandId,
       userId: user.id,
     });
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest, { params }: TenantFeaturesRoute
 
     const result = await response.json();
 
-    logger.info('Tenant feature updated', {
+    serverLogger.info('Tenant feature updated', {
       brandId,
       userId: user.id,
       feature: validation.data.feature,
@@ -159,7 +159,7 @@ export async function PUT(request: NextRequest, { params }: TenantFeaturesRouteC
 
     const result = await response.json();
 
-    logger.info('Tenant features updated', {
+    serverLogger.info('Tenant features updated', {
       brandId,
       userId: user.id,
       featuresCount: Object.keys(features).length,
@@ -210,7 +210,7 @@ export async function DELETE(request: NextRequest, { params }: TenantFeaturesRou
 
     const result = await response.json();
 
-    logger.info('Tenant feature deleted', {
+    serverLogger.info('Tenant feature deleted', {
       brandId,
       userId: user.id,
       feature,

@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Render2DService } from './services/render-2d.service';
@@ -37,6 +38,7 @@ export class RenderController {
   ) {}
 
   @Post('2d')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère un rendu 2D' })
   @ApiResponse({ status: 200, description: 'Rendu généré avec succès' })
   async render2D(@Body() request: RenderRequest) {
@@ -44,6 +46,7 @@ export class RenderController {
   }
 
   @Post('3d')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère un rendu 3D' })
   @ApiResponse({ status: 200, description: 'Rendu généré avec succès' })
   async render3D(@Body() request: RenderRequest) {
@@ -58,6 +61,7 @@ export class RenderController {
   }
 
   @Post('cad/validate')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Valide un design CAD pour la production' })
   @ApiResponse({ status: 200, description: 'Validation CAD effectuée' })
   async validateCAD(@Body() dto: ValidateCADDto) {
@@ -71,6 +75,7 @@ export class RenderController {
   }
 
   @Post('lod/generate')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère les niveaux LOD pour un design' })
   @ApiResponse({ status: 200, description: 'LODs générés' })
   async generateLODs(@Body() dto: GenerateLODDto) {
@@ -90,6 +95,7 @@ export class RenderController {
   }
 
   @Post('marketing')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère un rendu marketing' })
   @ApiResponse({ status: 200, description: 'Rendu marketing généré' })
   async generateMarketingRender(@Body() dto: GenerateMarketingRenderDto) {
@@ -102,6 +108,7 @@ export class RenderController {
   }
 
   @Post('variant')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère un variant (matériau/pierre) sans re-export' })
   @ApiResponse({ status: 200, description: 'Variant généré' })
   async generateVariant(@Body() dto: GenerateVariantDto) {
@@ -115,6 +122,7 @@ export class RenderController {
   }
 
   @Post('variants/batch')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère plusieurs variants en batch' })
   @ApiResponse({ status: 200, description: 'Variants générés' })
   async generateVariantsBatch(@Body() dto: GenerateVariantsBatchDto) {
@@ -129,6 +137,7 @@ export class RenderController {
 
   // NOUVEAU: Endpoints pour queue et status
   @Post('preview')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Enqueue un preview render (rapide, 2D)' })
   @ApiResponse({ status: 201, description: 'Render job enqueued' })
   async enqueuePreview(
@@ -138,6 +147,7 @@ export class RenderController {
   }
 
   @Post('final')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Enqueue un final render (haute qualité, 3D)' })
   @ApiResponse({ status: 201, description: 'Render job enqueued' })
   async enqueueFinal(
@@ -147,6 +157,7 @@ export class RenderController {
   }
 
   @Post('enqueue')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Enqueue un render (générique)' })
   @ApiResponse({ status: 201, description: 'Render job enqueued' })
   async enqueue(@Body() dto: EnqueueRenderDto) {
@@ -168,6 +179,7 @@ export class RenderController {
   }
 
   @Post('print-ready')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère un rendu print-ready haute résolution (300 DPI)' })
   @ApiResponse({ status: 200, description: 'Rendu print-ready généré' })
   async renderPrintReady(@Body() request: RenderPrintReadyDto) {
@@ -179,6 +191,7 @@ export class RenderController {
   }
 
   @Post('3d/highres')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère un rendu 3D haute résolution' })
   @ApiResponse({ status: 200, description: 'Rendu 3D haute résolution généré' })
   async render3DHighRes(@Body() body: Render3DHighResDto, @Request() req: ExpressRequest & { user: { id: string } }) {
@@ -186,6 +199,7 @@ export class RenderController {
   }
 
   @Post('3d/export-ar')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Exporte un modèle 3D pour AR (iOS/Android/Web)' })
   @ApiResponse({ status: 200, description: 'Modèle AR exporté' })
   async exportAR(@Body() body: ExportARDto, @Request() req: ExpressRequest & { user: { id: string } }) {

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();

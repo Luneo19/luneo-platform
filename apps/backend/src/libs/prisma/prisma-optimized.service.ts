@@ -29,10 +29,11 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
           await this.$connect();
           this.logger.log('Prisma connected to database');
           return;
-        } catch (error: any) {
+        } catch (error: unknown) {
           retries--;
+          const errMsg = error instanceof Error ? error.message : String(error);
           if (retries === 0) {
-            this.logger.error('❌ Failed to connect to database', error.message);
+            this.logger.error('❌ Failed to connect to database', errMsg);
             // Ne pas throw pour permettre à l'application de démarrer en mode dégradé
             // L'application pourra toujours répondre aux health checks
             this.logger.warn('⚠️ Application starting in degraded mode (database unavailable)');
@@ -43,8 +44,9 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
           delay *= 2; // Backoff exponentiel
         }
       }
-    } catch (error: any) {
-      this.logger.error('❌ Failed to connect to database', error.message);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.logger.error('❌ Failed to connect to database', errMsg);
       this.logger.warn('⚠️ Application starting in degraded mode (database unavailable)');
     }
   }
@@ -59,8 +61,8 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
    * Find many with cache
    */
   async findManyWithCache<T>(
-    model: any,
-    args: any,
+    model: { findMany: (args: unknown) => Promise<T[]> },
+    args: unknown,
     cacheKey: string,
     cacheType: string = 'api',
     ttl?: number
@@ -91,8 +93,8 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
    * Find unique with cache
    */
   async findUniqueWithCache<T>(
-    model: any,
-    args: any,
+    model: { findUnique: (args: unknown) => Promise<T | null> },
+    args: unknown,
     cacheKey: string,
     cacheType: string = 'api',
     ttl?: number
@@ -123,8 +125,8 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
    * Count with cache
    */
   async countWithCache(
-    model: any,
-    args: any,
+    model: { count: (args: unknown) => Promise<number> },
+    args: unknown,
     cacheKey: string,
     cacheType: string = 'api',
     ttl?: number
@@ -155,12 +157,12 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
    * Aggregation with cache
    */
   async aggregateWithCache(
-    model: any,
-    args: any,
+    model: { aggregate: (args: unknown) => Promise<unknown> },
+    args: unknown,
     cacheKey: string,
     cacheType: string = 'analytics',
     ttl?: number
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Essayer de récupérer depuis le cache
       const cached = await this.redisService.get(cacheKey, cacheType);
@@ -267,7 +269,7 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     brandId: string,
     page: number = 1,
     limit: number = 20,
-    filters: any = {}
+    filters: Record<string, unknown> = {}
   ) {
     const cacheKey = `products:${brandId}:${page}:${limit}:${JSON.stringify(filters)}`;
     

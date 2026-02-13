@@ -1,15 +1,19 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 // Optional: prom-client (install with: npm install prom-client)
-let Registry: any, Counter: any, Histogram: any, Gauge: any, collectDefaultMetrics: any;
+let Registry: unknown = null;
+let Counter: unknown;
+let Histogram: unknown;
+let Gauge: unknown;
+let collectDefaultMetrics: ((opts: { register: unknown }) => void) | undefined;
 try {
-  const promClient = require('prom-client');
+  const promClient = require('prom-client') as Record<string, unknown>;
   Registry = promClient.Registry;
   Counter = promClient.Counter;
   Histogram = promClient.Histogram;
   Gauge = promClient.Gauge;
-  collectDefaultMetrics = promClient.collectDefaultMetrics;
-} catch (e) {
+  collectDefaultMetrics = promClient.collectDefaultMetrics as typeof collectDefaultMetrics;
+} catch {
   // prom-client not installed, will use fallback
 }
 
@@ -26,31 +30,31 @@ try {
 @Injectable()
 export class PrometheusService implements OnModuleInit {
   private readonly logger = new Logger(PrometheusService.name);
-  private readonly registry: any;
+  private readonly registry: unknown;
 
   // HTTP Metrics
-  public readonly httpRequestsTotal: any;
-  public readonly httpRequestDuration: any;
-  public readonly httpRequestSize: any;
-  public readonly httpResponseSize: any;
+  public readonly httpRequestsTotal: { inc: (labels?: Record<string, string>) => void };
+  public readonly httpRequestDuration: { observe: (labels: Record<string, string>, value: number) => void };
+  public readonly httpRequestSize: { observe: (labels: Record<string, string>, value: number) => void };
+  public readonly httpResponseSize: { observe: (labels: Record<string, string>, value: number) => void };
 
   // Business Metrics
-  public readonly designsCreated: any;
-  public readonly aiGenerations: any;
-  public readonly aiCosts: any;
-  public readonly ordersCreated: any;
-  public readonly renderRequests: any;
+  public readonly designsCreated: { inc: (labels?: Record<string, string>) => void };
+  public readonly aiGenerations: { inc: (labels?: Record<string, string>) => void };
+  public readonly aiCosts: { inc: (labels?: Record<string, string>) => void };
+  public readonly ordersCreated: { inc: (labels?: Record<string, string>) => void };
+  public readonly renderRequests: { inc: (labels?: Record<string, string>) => void };
 
   // System Metrics
-  public readonly activeConnections: any;
-  public readonly queueSize: any;
-  public readonly cacheHitRate: any;
+  public readonly activeConnections: { set: (labels: Record<string, string>, value: number) => void };
+  public readonly queueSize: { set: (labels: Record<string, string>, value: number) => void };
+  public readonly cacheHitRate: { set: (labels: Record<string, string>, value: number) => void };
 
   constructor() {
     if (!Registry) {
       this.logger.warn('prom-client not installed. Metrics will not be available.');
       // Create dummy objects to prevent errors
-      this.registry = null;
+      this.registry = null as unknown;
       this.httpRequestsTotal = { inc: () => {} };
       this.httpRequestDuration = { observe: () => {} };
       this.httpRequestSize = { observe: () => {} };
@@ -65,7 +69,7 @@ export class PrometheusService implements OnModuleInit {
       this.cacheHitRate = { set: () => {} };
       return;
     }
-    this.registry = new Registry();
+    this.registry = new (Registry as new () => unknown)();
 
     // Collect default metrics (CPU, memory, etc.)
     if (collectDefaultMetrics) {
@@ -181,23 +185,31 @@ export class PrometheusService implements OnModuleInit {
   }
 
   /**
+   * Get the Prometheus registry (for registering custom metrics from other services)
+   */
+  getRegistry(): unknown {
+    return this.registry ?? null;
+  }
+
+  /**
    * Get metrics in Prometheus format
    */
   async getMetrics(): Promise<string> {
     if (!this.registry) {
       return '# prom-client not installed. Install with: prom-client\n';
     }
-    return this.registry.metrics();
+    return (this.registry as { metrics(): string }).metrics();
   }
 
   /**
    * Get basic request count and latency for health endpoint (from prom-client registry).
    */
   async getRequestStats(): Promise<{ requestCountTotal: number; latencyP95Ms: number | null }> {
-    if (!this.registry || typeof this.registry.getMetricsAsJSON !== 'function') {
+    const reg = this.registry as { getMetricsAsJSON?: () => unknown } | null;
+    if (!reg || typeof reg.getMetricsAsJSON !== 'function') {
       return { requestCountTotal: 0, latencyP95Ms: null };
     }
-    const metrics = this.registry.getMetricsAsJSON() as Array<{ name: string; values?: Array<{ value?: number; labels?: Record<string, string> }> }>;
+    const metrics = reg.getMetricsAsJSON() as Array<{ name: string; values?: Array<{ value?: number; labels?: Record<string, string> }> }>;
     let requestCountTotal = 0;
     let latencyP95Ms: number | null = null;
     for (const m of metrics) {
@@ -220,8 +232,9 @@ export class PrometheusService implements OnModuleInit {
    * Reset all metrics (useful for testing)
    */
   async resetMetrics(): Promise<void> {
-    if (this.registry) {
-      await this.registry.resetMetrics();
+    const reg = this.registry as { resetMetrics?: () => Promise<void> } | null;
+    if (reg && typeof reg.resetMetrics === 'function') {
+      await reg.resetMetrics();
     }
   }
 }

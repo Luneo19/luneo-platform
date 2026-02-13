@@ -1,7 +1,9 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole, Prisma, PaymentStatus, SubscriptionStatus } from '@prisma/client';
+import { UserRole, Prisma, PaymentStatus, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
+import { BillingService } from '@/modules/billing/billing.service';
 
 @Injectable()
 export class AdminService {
@@ -10,6 +12,8 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private readonly configService: ConfigService,
+    private readonly billingService: BillingService,
   ) {}
 
   // ========================================
@@ -28,6 +32,7 @@ export class AdminService {
         subscriptionStatus: true,
       },
       orderBy: { name: 'asc' },
+      take: 100,
     });
     return {
       tenants: brands.map((b) => ({
@@ -36,6 +41,98 @@ export class AdminService {
         plan: b.subscriptionPlan || 'starter',
         status: b.subscriptionStatus || 'active',
       })),
+    };
+  }
+
+  /**
+   * Suspend a brand - disables all access for the brand and its users
+   */
+  async suspendBrand(brandId: string, reason?: string) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    if (!brand) throw new NotFoundException(`Brand ${brandId} not found`);
+
+    await this.prisma.brand.update({
+      where: { id: brandId },
+      data: { status: 'SUSPENDED' },
+    });
+
+    this.logger.warn(`Brand ${brandId} (${brand.name}) suspended. Reason: ${reason || 'No reason provided'}`);
+
+    return {
+      success: true,
+      brandId,
+      status: 'SUSPENDED',
+      reason: reason || null,
+      suspendedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Unsuspend a brand - restores access
+   */
+  async unsuspendBrand(brandId: string) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    if (!brand) throw new NotFoundException(`Brand ${brandId} not found`);
+
+    await this.prisma.brand.update({
+      where: { id: brandId },
+      data: { status: 'ACTIVE' },
+    });
+
+    this.logger.log(`Brand ${brandId} (${brand.name}) unsuspended.`);
+
+    return {
+      success: true,
+      brandId,
+      status: 'ACTIVE',
+      unsuspendedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Ban a user - disables their account
+   */
+  async banUser(userId: string, reason?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User ${userId} not found`);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+
+    this.logger.warn(`User ${userId} (${user.email}) banned. Reason: ${reason || 'No reason provided'}`);
+
+    return {
+      success: true,
+      userId,
+      email: user.email,
+      isActive: false,
+      reason: reason || null,
+      bannedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Unban a user - restores their account access
+   */
+  async unbanUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User ${userId} not found`);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: true },
+    });
+
+    this.logger.log(`User ${userId} (${user.email}) unbanned.`);
+
+    return {
+      success: true,
+      userId,
+      email: user.email,
+      isActive: true,
+      unbannedAt: new Date().toISOString(),
     };
   }
 
@@ -75,6 +172,115 @@ export class AdminService {
     }
 
     return brand;
+  }
+
+  /**
+   * Update brand details (admin)
+   * @param syncStripe - If true and plan changed, sync the change to Stripe via BillingService.changePlan
+   */
+  async updateBrand(
+    brandId: string,
+    data: {
+      name?: string;
+      description?: string;
+      website?: string;
+      industry?: string;
+      status?: string;
+      plan?: string;
+      subscriptionPlan?: string;
+      subscriptionStatus?: string;
+      maxProducts?: number;
+      maxMonthlyGenerations?: number;
+      aiCostLimitCents?: number;
+      companyName?: string;
+      vatNumber?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      phone?: string;
+      syncStripe?: boolean;
+    },
+  ) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    if (!brand) throw new NotFoundException(`Brand ${brandId} not found`);
+
+    const newPlan = data.subscriptionPlan ?? data.plan;
+    const planChanged =
+      newPlan !== undefined &&
+      newPlan !== null &&
+      String(newPlan).toLowerCase() !== String(brand.subscriptionPlan ?? brand.plan ?? '').toLowerCase();
+
+    if (data.syncStripe === true && planChanged && newPlan) {
+      const brandUser = await this.prisma.user.findFirst({
+        where: { brandId },
+        select: { id: true },
+      });
+      if (brandUser) {
+        try {
+          await this.billingService.changePlan(brandUser.id, String(newPlan).toLowerCase(), {
+            immediateChange: true,
+          });
+          this.logger.log(`Stripe plan synced for brand ${brandId} -> ${newPlan}`);
+        } catch (err) {
+          this.logger.warn(
+            `Stripe sync failed for brand ${brandId} (plan ${newPlan}): ${err instanceof Error ? err.message : String(err)}`,
+          );
+          // Continue with DB update; admin can retry Stripe separately
+        }
+      } else {
+        this.logger.warn(`Stripe sync skipped for brand ${brandId}: no user found for brand`);
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.website !== undefined) updateData.website = data.website;
+    if (data.industry !== undefined) updateData.industry = data.industry;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.plan !== undefined) updateData.plan = data.plan;
+    if (data.subscriptionPlan !== undefined) updateData.subscriptionPlan = data.subscriptionPlan;
+    if (data.subscriptionStatus !== undefined) updateData.subscriptionStatus = data.subscriptionStatus;
+    if (data.maxProducts !== undefined) updateData.maxProducts = data.maxProducts;
+    if (data.maxMonthlyGenerations !== undefined) updateData.maxMonthlyGenerations = data.maxMonthlyGenerations;
+    if (data.aiCostLimitCents !== undefined) updateData.aiCostLimitCents = data.aiCostLimitCents;
+    if (data.companyName !== undefined) updateData.companyName = data.companyName;
+    if (data.vatNumber !== undefined) updateData.vatNumber = data.vatNumber;
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.city !== undefined) updateData.city = data.city;
+    if (data.country !== undefined) updateData.country = data.country;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+
+    const updated = await this.prisma.brand.update({
+      where: { id: brandId },
+      data: updateData,
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            lastLoginAt: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            users: true,
+            products: true,
+            designs: true,
+            orders: true,
+            invoices: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(`Brand ${brandId} updated by admin`);
+    return updated;
   }
 
   // ========================================
@@ -408,10 +614,12 @@ export class AdminService {
           deletedAt: null,
         },
         select: { createdAt: true, totalCents: true },
+        take: 1000,
       }),
       this.prisma.user.findMany({
         where: { ...nonAdminWhere, createdAt: { gte: twelveMonthsAgo } },
         select: { createdAt: true },
+        take: 1000,
       }),
       this.prisma.brand.groupBy({
         by: ['subscriptionPlan'],
@@ -421,6 +629,7 @@ export class AdminService {
       this.prisma.order.findMany({
         where: { ...paidOrderWhere, userId: { not: null } },
         select: { userId: true, totalCents: true },
+        take: 1000,
       }),
     ]);
 
@@ -530,6 +739,7 @@ export class AdminService {
     const brandIds = await this.prisma.brand.findMany({
       where: { deletedAt: null },
       select: { id: true, subscriptionPlan: true },
+      take: 100,
     });
     const brandPlanMap = new Map(brandIds.map((b) => [b.id, b.subscriptionPlan]));
     for (const ob of ordersByBrandPlan) {
@@ -690,6 +900,7 @@ export class AdminService {
     if (type === 'customers') {
       const customers = await this.prisma.user.findMany({
         where: { role: { not: UserRole.PLATFORM_ADMIN } },
+        take: 100,
         select: {
           id: true,
           email: true,
@@ -794,6 +1005,7 @@ export class AdminService {
   async getBillingOverview() {
     const brands = await this.prisma.brand.findMany({
       where: { deletedAt: null },
+      take: 100,
       select: {
         id: true,
         name: true,
@@ -892,8 +1104,9 @@ export class AdminService {
   async createAdminUser() {
     try {
       const bcrypt = require('bcryptjs');
-      const defaultAdminPw = process.env.ADMIN_DEFAULT_PASSWORD;
-      if (!defaultAdminPw && process.env.NODE_ENV === 'production') {
+      const defaultAdminPw = this.configService.get<string>('ADMIN_DEFAULT_PASSWORD');
+      const nodeEnv = this.configService.get<string>('NODE_ENV') ?? process.env.NODE_ENV;
+      if (!defaultAdminPw && nodeEnv === 'production') {
         throw new Error('ADMIN_DEFAULT_PASSWORD must be set in production');
       }
       // In production: use env var. In dev: use env var or generate random password
@@ -904,8 +1117,8 @@ export class AdminService {
         this.logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
       }
       const adminPassword = await bcrypt.hash(passwordToHash, 13);
-      const adminEmail = process.env.ADMIN_EMAIL;
-      if (!adminEmail && process.env.NODE_ENV === 'production') {
+      const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
+      if (!adminEmail && nodeEnv === 'production') {
         throw new Error('ADMIN_EMAIL must be set in production');
       }
       const finalAdminEmail = adminEmail || 'admin@localhost.dev';
@@ -929,8 +1142,9 @@ export class AdminService {
         message: 'Admin user created successfully',
         email: adminUser.email,
       };
-    } catch (error: any) {
-      this.logger.error(`❌ Failed to create admin: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`❌ Failed to create admin: ${message}`);
       throw error;
     }
   }
@@ -945,6 +1159,7 @@ export class AdminService {
           gte: startDate,
         },
       },
+      take: 1000,
       select: {
         id: true,
         brandId: true,
@@ -974,6 +1189,76 @@ export class AdminService {
       costs,
       period,
     };
+  }
+
+  // ========================================
+  // SETTINGS
+  // ========================================
+
+  private static readonly SETTINGS_PREFIX = 'platform:settings:';
+
+  /**
+   * Get all platform settings
+   */
+  async getSettings() {
+    const configs = await this.prisma.systemConfig.findMany({
+      where: { key: { startsWith: AdminService.SETTINGS_PREFIX } },
+      take: 100,
+    });
+
+    const settings: Record<string, string | boolean | number> = {
+      enforce2FA: false,
+      sessionTimeout: 30,
+      ipWhitelist: '',
+      emailNotifications: true,
+      webhookAlerts: true,
+      maintenanceMode: false,
+      platformName: 'Luneo',
+      defaultLanguage: 'fr',
+      timezone: 'Europe/Paris',
+    };
+
+    for (const config of configs) {
+      const key = config.key.replace(AdminService.SETTINGS_PREFIX, '');
+      try {
+        settings[key] = JSON.parse(config.value);
+      } catch {
+        settings[key] = config.value;
+      }
+    }
+
+    return { settings };
+  }
+
+  /**
+   * Update platform settings
+   */
+  async updateSettings(updates: Record<string, unknown>) {
+    const validKeys = [
+      'enforce2FA', 'sessionTimeout', 'ipWhitelist',
+      'emailNotifications', 'webhookAlerts', 'maintenanceMode',
+      'platformName', 'defaultLanguage', 'timezone',
+    ];
+
+    const updated: string[] = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (!validKeys.includes(key)) continue;
+
+      const configKey = `${AdminService.SETTINGS_PREFIX}${key}`;
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+
+      await this.prisma.systemConfig.upsert({
+        where: { key: configKey },
+        create: { key: configKey, value: stringValue, description: `Platform setting: ${key}` },
+        update: { value: stringValue },
+      });
+
+      updated.push(key);
+    }
+
+    this.logger.log(`Updated platform settings: ${updated.join(', ')}`);
+    return { success: true, updated };
   }
 
   private static readonly BLACKLIST_CONFIG_KEY = 'ai:blacklisted_prompts';
@@ -1032,7 +1317,7 @@ export class AdminService {
   async bulkActionCustomers(
     customerIds: string[],
     action: 'email' | 'export' | 'tag' | 'segment' | 'delete',
-    options?: Record<string, any>,
+    options?: Record<string, unknown>,
   ) {
     this.logger.log(`Bulk action: ${action} on ${customerIds.length} customers`);
 
@@ -1042,9 +1327,9 @@ export class AdminService {
       case 'export':
         return this.bulkExportCustomers(customerIds);
       case 'tag':
-        return this.bulkTagCustomers(customerIds, options?.tags || []);
+        return this.bulkTagCustomers(customerIds, Array.isArray(options?.tags) ? options.tags : []);
       case 'segment':
-        return this.bulkSegmentCustomers(customerIds, options?.segmentId);
+        return this.bulkSegmentCustomers(customerIds, typeof options?.segmentId === 'string' ? options.segmentId : undefined);
       case 'delete':
         return this.bulkDeleteCustomers(customerIds);
       default:
@@ -1168,5 +1453,262 @@ export class AdminService {
       message: `Deleted ${customerIds.length} customers`,
       count: customerIds.length,
     };
+  }
+
+  // ========================================
+  // DISCOUNT CODES MANAGEMENT
+  // ========================================
+
+  async getDiscounts(options?: { page?: number; limit?: number; isActive?: boolean }) {
+    const page = options?.page || 1;
+    const limit = Math.min(options?.limit || 50, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.DiscountWhereInput = {};
+    if (options?.isActive !== undefined) where.isActive = options.isActive;
+
+    const [discounts, total] = await Promise.all([
+      this.prisma.discount.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.discount.count({ where }),
+    ]);
+
+    return { discounts, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
+
+  async createDiscount(data: {
+    code: string;
+    type: string;
+    value: number;
+    minPurchaseCents?: number;
+    maxDiscountCents?: number;
+    validFrom?: string | Date;
+    validUntil?: string | Date;
+    usageLimit?: number;
+    isActive?: boolean;
+    brandId?: string;
+    description?: string;
+  }) {
+    const code = data.code.toUpperCase().trim();
+
+    // Check uniqueness
+    const existing = await this.prisma.discount.findUnique({ where: { code } });
+    if (existing) {
+      throw new Error(`Discount code "${code}" already exists`);
+    }
+
+    const discountType = data.type.toUpperCase() === 'FIXED' ? 'FIXED' : 'PERCENTAGE';
+
+    return this.prisma.discount.create({
+      data: {
+        code,
+        type: discountType as DiscountType,
+        value: data.value,
+        minPurchaseCents: data.minPurchaseCents ?? 0,
+        maxDiscountCents: data.maxDiscountCents,
+        validFrom: data.validFrom ? new Date(data.validFrom) : new Date(),
+        validUntil: data.validUntil ? new Date(data.validUntil) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        usageLimit: data.usageLimit,
+        usageCount: 0,
+        isActive: data.isActive ?? true,
+        brandId: data.brandId,
+        description: data.description,
+      },
+    });
+  }
+
+  async updateDiscount(id: string, data: Record<string, unknown>) {
+    return this.prisma.discount.update({
+      where: { id },
+      data: data as Prisma.DiscountUpdateInput,
+    });
+  }
+
+  async deleteDiscount(id: string) {
+    return this.prisma.discount.delete({ where: { id } });
+  }
+
+  // ========================================
+  // REFERRAL / COMMISSIONS MANAGEMENT
+  // ========================================
+
+  async getReferrals(options?: { page?: number; limit?: number; status?: string }) {
+    const page = options?.page || 1;
+    const limit = Math.min(options?.limit || 50, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ReferralWhereInput = {};
+    if (options?.status) where.status = options.status as ReferralStatus;
+
+    const [referrals, total] = await Promise.all([
+      this.prisma.referral.findMany({
+        where,
+        include: {
+          referrer: { select: { id: true, firstName: true, lastName: true, email: true } },
+          referredUser: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.referral.count({ where }),
+    ]);
+
+    return { referrals, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
+
+  async getCommissions(options?: { page?: number; limit?: number; status?: string }) {
+    const page = options?.page || 1;
+    const limit = Math.min(options?.limit || 50, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CommissionWhereInput = {};
+    if (options?.status) where.status = options.status as CommissionStatus;
+
+    const [commissions, total] = await Promise.all([
+      this.prisma.commission.findMany({
+        where,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          referral: { select: { id: true, referralCode: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.commission.count({ where }),
+    ]);
+
+    return { commissions, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
+
+  async approveCommission(commissionId: string) {
+    return this.prisma.commission.update({
+      where: { id: commissionId },
+      data: { status: 'APPROVED' },
+    });
+  }
+
+  async markCommissionPaid(commissionId: string) {
+    return this.prisma.commission.update({
+      where: { id: commissionId },
+      data: { status: 'PAID', paidAt: new Date() },
+    });
+  }
+
+  async rejectCommission(commissionId: string) {
+    return this.prisma.commission.update({
+      where: { id: commissionId },
+      data: { status: 'CANCELLED' },
+    });
+  }
+
+  // ========================================
+  // SUPPORT - AGENT ASSIGNMENT & TICKETS
+  // ========================================
+
+  async getAllTickets(options?: { page?: number; limit?: number; status?: string; assignedTo?: string }) {
+    const page = options?.page || 1;
+    const limit = Math.min(options?.limit || 50, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TicketWhereInput = {};
+    if (options?.status) where.status = options.status as TicketStatus;
+    if (options?.assignedTo) where.assignedTo = options.assignedTo;
+
+    const [tickets, total] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          assignedUser: { select: { id: true, firstName: true, lastName: true, email: true } },
+          messages: { take: 1, orderBy: { createdAt: 'desc' } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.ticket.count({ where }),
+    ]);
+
+    return { tickets, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
+
+  async assignTicket(ticketId: string, agentId: string) {
+    const agent = await this.prisma.user.findUnique({ where: { id: agentId } });
+    if (!agent) throw new Error('Agent not found');
+
+    const updated = await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { assignedTo: agentId },
+    });
+
+    // Create activity
+    await this.prisma.ticketActivity.create({
+      data: {
+        ticketId,
+        action: 'assigned',
+        userId: agentId,
+        newValue: `Assigned to ${agent.firstName || agent.email}`,
+      },
+    });
+
+    return updated;
+  }
+
+  async addAgentReply(ticketId: string, agentId: string, content: string) {
+    const message = await this.prisma.ticketMessage.create({
+      data: {
+        ticketId,
+        userId: agentId,
+        content,
+        type: 'AGENT',
+      },
+    });
+
+    // Update ticket
+    await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { updatedAt: new Date() },
+    });
+
+    // Create activity
+    await this.prisma.ticketActivity.create({
+      data: {
+        ticketId,
+        action: 'message_added',
+        userId: agentId,
+        newValue: 'Staff reply added',
+      },
+    });
+
+    return message;
+  }
+
+  async updateTicketStatus(ticketId: string, status: string, agentId: string) {
+    const data: Prisma.TicketUpdateInput = { status: status as TicketStatus };
+    if (status === 'RESOLVED') data.resolvedAt = new Date();
+    if (status === 'CLOSED') data.closedAt = new Date();
+
+    const ticket = await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data,
+    });
+
+    await this.prisma.ticketActivity.create({
+      data: {
+        ticketId,
+        action: 'status_changed',
+        userId: agentId,
+        oldValue: 'previous',
+        newValue: status,
+      },
+    });
+
+    return ticket;
   }
 }

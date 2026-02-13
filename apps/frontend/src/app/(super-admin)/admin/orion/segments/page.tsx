@@ -126,9 +126,9 @@ export default function OrionSegmentsPage() {
       </div>
 
       {isError && (
-        <Card className="bg-red-950/30 border-red-800">
-          <CardContent className="py-4 text-red-200">
-            {error?.message ?? 'Failed to load segments'}
+        <Card className="bg-zinc-800/80 border-zinc-600">
+          <CardContent className="py-4 text-zinc-400">
+            No data available. Segments API is not available. You can still create segments when the API is back.
           </CardContent>
         </Card>
       )}
@@ -336,7 +336,9 @@ export default function OrionSegmentsPage() {
           {isLoading ? (
             <div className="py-12 text-center text-zinc-400">Loading segments…</div>
           ) : segments.length === 0 ? (
-            <div className="py-12 text-center text-zinc-500">No segments yet. Create one above.</div>
+            <div className="py-12 text-center text-zinc-500">
+              {isError ? 'No data available.' : 'No segments yet. Create one above.'}
+            </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
               {segments.map((seg) => {

@@ -89,7 +89,7 @@ export interface AnalyticsEvent {
   action: EventAction;
   label?: string;
   value?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Extended event with context
@@ -145,7 +145,7 @@ export interface UserProperties {
   plan?: string;
   company?: string;
   createdAt?: string;
-  traits?: Record<string, any>;
+  traits?: Record<string, unknown>;
 }
 
 // Session data

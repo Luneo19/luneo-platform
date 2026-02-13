@@ -315,7 +315,7 @@ function Configurator3DDemo({
     [selectedMaterial]
   );
 
-  // Initialize 3D engine
+  // Demo simulation - replace with real API in production. Initialize 3D engine.
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);

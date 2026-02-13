@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, createContext, useContext } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   createTranslator,
   formatDate as formatDateFn,
@@ -19,6 +20,7 @@ import {
   LOCALE_NAMES,
   LOCALE_FLAGS,
 } from './index';
+import { useI18nContextOptional } from './provider';
 
 interface AvailableLocale {
   locale: Locale;
@@ -56,13 +58,12 @@ function getStoredLocale(): Locale | null {
   return null;
 }
 
-/**
- * Store locale in localStorage
- */
-function storeLocale(locale: Locale): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-  }
+/** Persist locale to cookie and localStorage; update document.lang. */
+function persistLocale(locale: Locale): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  document.cookie = `${LOCALE_STORAGE_KEY}=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+  document.documentElement.lang = locale;
 }
 
 /**
@@ -72,43 +73,48 @@ function storeLocale(locale: Locale): void {
  * - locale / setLocale: current locale and setter (persisted in localStorage).
  */
 export function useI18n() {
-  const context = useContext(I18nContext);
-  
-  // Always call hooks unconditionally (React rules)
+  const providerContext = useI18nContextOptional();
+  const router = useRouter();
   const [fallbackLocale, setFallbackLocale] = useState<Locale>(DEFAULT_LOCALE);
-  
+
   useEffect(() => {
-    if (!context) {
+    if (!providerContext) {
       const stored = getStoredLocale();
-      if (stored) {
-        setFallbackLocale(stored);
-      } else {
-        const detected = detectBrowserLocale();
-        setFallbackLocale(detected);
-      }
+      if (stored) setFallbackLocale(stored);
+      else setFallbackLocale(detectBrowserLocale());
     }
-  }, [context]);
-  
-  const setFallbackLocaleFn = useCallback((newLocale: Locale) => {
-    setFallbackLocale(newLocale);
-    storeLocale(newLocale);
-    // Update HTML lang attribute
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = newLocale;
-    }
-  }, []);
-  
-  // If context exists, use it
-  if (context) {
-    return context;
+  }, [providerContext]);
+
+  const setLocale = useCallback(
+    (newLocale: Locale) => {
+      persistLocale(newLocale);
+      if (!providerContext) setFallbackLocale(newLocale);
+      router.refresh();
+    },
+    [providerContext, router],
+  );
+
+  if (providerContext) {
+    const locale = providerContext.locale as Locale;
+    return {
+      locale,
+      setLocale,
+      t: (key: string, variables?: Record<string, string | number>) =>
+        providerContext.t(key, variables as Record<string, string | number | boolean | null | undefined>),
+      formatDate: (date: Date | number) =>
+        providerContext.formatDateTime(date, { dateStyle: 'long', timeStyle: undefined }),
+      formatCurrency: (amount: number, currency?: string) => providerContext.formatCurrency(amount, { currency }),
+      formatNumber: (number: number) => providerContext.formatNumber(number),
+      formatRelativeTime: (date: Date | number) => formatRelativeTimeFn(date, locale),
+      supportedLocales: SUPPORTED_LOCALES,
+      availableLocales: providerContext.availableLocales as AvailableLocale[],
+      localeNames: LOCALE_NAMES,
+      localeFlags: LOCALE_FLAGS,
+    };
   }
-  
-  // Fallback if not in provider
+
   const locale = fallbackLocale;
-  const setLocale = setFallbackLocaleFn;
   const t = createTranslator(locale);
-  
-  // Convert supported locales to AvailableLocale format
   const availableLocales: AvailableLocale[] = SUPPORTED_LOCALES.map((loc) => ({
     locale: loc,
     label: LOCALE_NAMES[loc],

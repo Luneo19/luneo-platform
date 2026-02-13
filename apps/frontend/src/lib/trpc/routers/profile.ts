@@ -12,9 +12,9 @@ import { TRPCError } from '@trpc/server';
 const UpdateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().optional(),
-  phone: z.string().optional(),
-  website: z.string().url().optional(),
-  timezone: z.string().optional(),
+  phone: z.string().max(30).optional(),
+  website: z.union([z.string().url(), z.literal('')]).optional(),
+  timezone: z.string().max(50).optional(),
   company: z.string().optional(),
 });
 
@@ -40,7 +40,7 @@ export const profileRouter = router({
         });
       }
 
-      const u = userData as Record<string, unknown>;
+      const u = userData as unknown as Record<string, unknown>;
       const metadata = (u.metadata ?? {}) as Record<string, unknown>;
 
       return {
@@ -53,8 +53,8 @@ export const profileRouter = router({
         timezone: u.timezone || 'Europe/Paris',
         role: u.role,
         company: metadata.company || '',
-        createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : '',
-        lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : null,
+        createdAt: (typeof u.createdAt === 'string' || typeof u.createdAt === 'number' || u.createdAt instanceof Date) ? new Date(u.createdAt as string | number | Date).toISOString() : '',
+        lastLoginAt: (typeof u.lastLoginAt === 'string' || typeof u.lastLoginAt === 'number' || u.lastLoginAt instanceof Date) ? new Date(u.lastLoginAt as string | number | Date).toISOString() : null,
       };
     } catch (error: unknown) {
       if (error instanceof TRPCError) throw error;
@@ -75,37 +75,46 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        const currentUser = (await endpoints.auth.me()) as Record<string, unknown> | null;
+        const currentUser = (await endpoints.auth.me()) as unknown as Record<string, unknown> | null;
         const metadata = (currentUser?.metadata ?? {}) as Record<string, unknown>;
 
+        // Backend UpdateProfileDto: firstName, lastName, avatar, phone, website, timezone
         const updateData: Record<string, unknown> = {};
-        if (input.name !== undefined) updateData.name = input.name;
-        if (input.email !== undefined) updateData.email = input.email;
+        if (input.name !== undefined) {
+          const parts = input.name.trim().split(/\s+/);
+          updateData.firstName = parts[0] ?? '';
+          updateData.lastName = parts.slice(1).join(' ') ?? '';
+        }
         if (input.phone !== undefined) updateData.phone = input.phone;
         if (input.website !== undefined) updateData.website = input.website;
         if (input.timezone !== undefined) updateData.timezone = input.timezone;
-        if (input.company !== undefined) {
-          updateData.metadata = {
-            ...metadata,
-            company: input.company,
-          };
-        }
 
         const updated = await endpoints.users.update(user.id, updateData as Record<string, unknown>) as Record<string, unknown>;
+
+        // Company is stored on the brand; update via brand settings if provided
+        if (input.company !== undefined) {
+          await endpoints.brands.updateSettings({ name: input.company }).catch((err: unknown) => {
+            logger.warn('Brand name update skipped or failed', { err, userId: user.id });
+          });
+        }
 
         logger.info('Profile updated', { userId: user.id, fields: Object.keys(input) });
 
         const updatedMetadata = (updated.metadata ?? {}) as Record<string, unknown>;
+        const firstName = (updated.firstName as string) || '';
+        const lastName = (updated.lastName as string) || '';
+        const name = [firstName, lastName].filter(Boolean).join(' ') || '';
+        const profile = updated.userProfile as { phone?: string; website?: string; timezone?: string } | undefined;
         return {
           id: updated.id,
           email: updated.email,
-          name: updated.name || '',
-          avatar_url: updated.imageUrl || updated.avatar_url || '',
-          phone: updated.phone || '',
-          website: updated.website || '',
-          timezone: updated.timezone || 'Europe/Paris',
+          name,
+          avatar_url: updated.avatar ?? updated.imageUrl ?? updated.avatar_url ?? '',
+          phone: profile?.phone ?? (updated.phone as string) ?? '',
+          website: profile?.website ?? (updated.website as string) ?? '',
+          timezone: profile?.timezone ?? (updated.timezone as string) ?? 'Europe/Paris',
           role: updated.role,
-          company: updatedMetadata.company || '',
+          company: (updatedMetadata.company as string) ?? (input.company ?? ''),
         };
       } catch (error: unknown) {
         logger.error('Error updating profile', { error, input, userId: user.id });
@@ -121,19 +130,9 @@ export const profileRouter = router({
    */
   getSessions: protectedProcedure.query(async ({ ctx }) => {
     try {
-      return {
-        sessions: [
-          {
-            id: 'current',
-            device: 'MacBook Pro',
-            browser: 'Chrome 120',
-            location: 'Paris, France',
-            ipAddress: '192.168.1.1',
-            lastActive: new Date(),
-            isCurrent: true,
-          },
-        ],
-      };
+      const response = await endpoints.security.sessions();
+      const sessions = Array.isArray(response) ? response : (response as Record<string, unknown>)?.sessions ?? [];
+      return { sessions };
     } catch (error: unknown) {
       logger.error('Error fetching sessions', { error, userId: ctx.user.id });
       throw new TRPCError({
@@ -150,6 +149,7 @@ export const profileRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
+        await endpoints.security.revokeSession(input.sessionId);
         logger.info('Session revoked', { sessionId: input.sessionId, userId: ctx.user.id });
         return { success: true };
       } catch (error: unknown) {
@@ -166,13 +166,11 @@ export const profileRouter = router({
    */
   listApiKeys: protectedProcedure.query(async ({ ctx }) => {
     try {
+      const response = await api.get('/api/v1/api-keys');
+      const raw = response as Record<string, unknown>;
+      return { keys: Array.isArray(raw) ? raw : (raw?.keys ?? raw?.data ?? []) as unknown[] };
+    } catch {
       return { keys: [] };
-    } catch (error: unknown) {
-      logger.error('Error listing API keys', { error, userId: ctx.user.id });
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Erreur lors de la récupération des clés API',
-      });
     }
   }),
 
@@ -180,16 +178,19 @@ export const profileRouter = router({
    * Crée une clé API
    */
   createApiKey: protectedProcedure
-    .input(z.object({ name: z.string().min(1) }))
+    .input(z.object({ name: z.string().min(1), permissions: z.array(z.string()).optional() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const apiKey = `luneo_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+        const response = await api.post('/api/v1/api-keys', { name: input.name, permissions: input.permissions });
+        const raw = response as Record<string, unknown>;
         logger.info('API key created', { name: input.name, userId: ctx.user.id });
         return {
-          id: Date.now().toString(),
-          name: input.name,
-          key: apiKey,
-          createdAt: new Date(),
+          id: String(raw.id ?? ''),
+          name: String(raw.name ?? input.name),
+          key: String(raw.key ?? raw.apiKey ?? ''),
+          createdAt: (raw.createdAt != null && (typeof raw.createdAt === 'string' || typeof raw.createdAt === 'number' || raw.createdAt instanceof Date))
+            ? new Date(raw.createdAt as string | number | Date).toISOString()
+            : new Date().toISOString(),
         };
       } catch (error: unknown) {
         logger.error('Error creating API key', { error, input, userId: ctx.user.id });
@@ -207,6 +208,7 @@ export const profileRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
+        await api.delete(`/api/v1/api-keys/${input.id}`);
         logger.info('API key deleted', { keyId: input.id, userId: ctx.user.id });
         return { success: true };
       } catch (error: unknown) {
@@ -223,7 +225,8 @@ export const profileRouter = router({
    */
   listWebhooks: protectedProcedure.query(async ({ ctx }) => {
     try {
-      return { webhooks: [] };
+      const data = await api.get<{ webhooks?: unknown[]; data?: unknown[] }>('/api/v1/public-api/webhooks');
+      return { webhooks: data?.webhooks || data?.data || [] };
     } catch (error: unknown) {
       logger.error('Error listing webhooks', { error, userId: ctx.user.id });
       throw new TRPCError({
@@ -237,17 +240,21 @@ export const profileRouter = router({
    * Crée un webhook
    */
   createWebhook: protectedProcedure
-    .input(z.object({ url: z.string().url(), events: z.array(z.string()).optional() }))
+    .input(z.object({
+      url: z.string().url(),
+      events: z.array(z.string()).optional(),
+      name: z.string().optional(),
+      secret: z.string().optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       try {
-        logger.info('Webhook created', { url: input.url, userId: ctx.user.id });
-        return {
-          id: Date.now().toString(),
+        const data = await api.post('/api/v1/public-api/webhooks', {
+          name: input.name || 'Webhook',
           url: input.url,
-          events: input.events || [],
-          status: 'active',
-          createdAt: new Date(),
-        };
+          events: input.events,
+          secret: input.secret,
+        });
+        return data;
       } catch (error: unknown) {
         logger.error('Error creating webhook', { error, input, userId: ctx.user.id });
         throw new TRPCError({
@@ -264,7 +271,7 @@ export const profileRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       try {
-        logger.info('Webhook deleted', { webhookId: input.id, userId: ctx.user.id });
+        await api.delete(`/api/v1/public-api/webhooks/${input.id}`);
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error deleting webhook', { error, input, userId: ctx.user.id });
@@ -280,14 +287,10 @@ export const profileRouter = router({
    */
   getNotificationPreferences: protectedProcedure.query(async ({ ctx }) => {
     try {
-      return {
-        preferences: [
-          { id: 'email', type: 'email', category: 'all', enabled: true },
-          { id: 'push', type: 'push', category: 'all', enabled: true },
-          { id: 'sms', type: 'sms', category: 'all', enabled: false },
-          { id: 'in_app', type: 'in_app', category: 'all', enabled: true },
-        ],
-      };
+      const response = await endpoints.settings.getNotifications();
+      const raw = response as Record<string, unknown>;
+      const prefs = raw.preferences ?? raw;
+      return { preferences: Array.isArray(prefs) ? prefs : [] };
     } catch (error: unknown) {
       logger.error('Error fetching notification preferences', { error, userId: ctx.user.id });
       throw new TRPCError({
@@ -306,9 +309,9 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        await api.post('/api/v1/auth/change-password', {
-          currentPassword: input.currentPassword,
-          newPassword: input.newPassword,
+        await api.put('/api/v1/users/me/password', {
+          current_password: input.currentPassword,
+          new_password: input.newPassword,
         });
 
         logger.info('Password changed', { userId: user.id });
@@ -369,9 +372,9 @@ export const profileRouter = router({
       const { user } = ctx;
 
       try {
-        await api.post('/api/v1/auth/change-password', {
-          currentPassword: input.currentPassword,
-          newPassword: input.newPassword,
+        await api.put('/api/v1/users/me/password', {
+          current_password: input.currentPassword,
+          new_password: input.newPassword,
         });
 
         logger.info('Password updated', { userId: user.id });

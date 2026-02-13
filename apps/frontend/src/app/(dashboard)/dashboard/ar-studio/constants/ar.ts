@@ -34,11 +34,11 @@ export const MODEL_TYPES: ModelTypeOption[] = [
 ];
 
 export const STATUS_OPTIONS = [
-  { value: 'all', label: 'Tous' },
-  { value: 'active', label: 'Actif' },
-  { value: 'processing', label: 'Traitement' },
-  { value: 'draft', label: 'Brouillon' },
-  { value: 'error', label: 'Erreur' },
+  { value: 'all', labelKey: 'common.all' },
+  { value: 'active', labelKey: 'arStudio.status.active' },
+  { value: 'processing', labelKey: 'arStudio.status.processing' },
+  { value: 'draft', labelKey: 'arStudio.status.draft' },
+  { value: 'error', labelKey: 'common.error' },
 ] as const;
 
 export const ACCEPTED_FILE_TYPES = {

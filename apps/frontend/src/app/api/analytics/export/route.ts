@@ -6,7 +6,7 @@
 
 import { getBackendUrl } from '@/lib/api/server-url';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { AnalyticsExportSchema } from '@/lib/validations/api-schemas';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -140,7 +140,7 @@ async function fetchAnalyticsData(
 
     return { dailyData, funnelData, topProducts, audienceData };
   } catch (error) {
-    logger.error('Failed to fetch analytics from backend:', error);
+    serverLogger.error('Failed to fetch analytics from backend:', error);
     throw error;
   }
 }
@@ -276,14 +276,14 @@ function generateCSV(data: AnalyticsExportData, reportType: string): string {
   if (data.audienceData) {
     csv += 'DEVICES\n';
     csv += 'Device,Percentage (%)\n';
-    data.audienceData.devices.forEach((row: Record<string, unknown>) => {
+    data.audienceData.devices?.forEach((row: Record<string, unknown>) => {
       csv += `${row.device},${row.percentage}\n`;
     });
     csv += '\n';
 
     csv += 'COUNTRIES\n';
     csv += 'Country,Visitors\n';
-    data.audienceData.countries.forEach((row: Record<string, unknown>) => {
+    data.audienceData.countries?.forEach((row: Record<string, unknown>) => {
       csv += `${row.country},${row.visitors}\n`;
     });
   }
@@ -412,7 +412,7 @@ function generatePDFHTML(data: AnalyticsExportData, startDate?: string, endDate?
         <h3>Par Appareil</h3>
         <table>
           <tr><th>Appareil</th><th>Pourcentage</th></tr>
-          ${data.audienceData.devices
+          ${(data.audienceData.devices ?? [])
             .map(
               (d: Record<string, unknown>) => `
             <tr><td>${d.device}</td><td>${d.percentage}%</td></tr>
@@ -423,7 +423,7 @@ function generatePDFHTML(data: AnalyticsExportData, startDate?: string, endDate?
         <h3>Par Pays</h3>
         <table>
           <tr><th>Pays</th><th>Visiteurs</th></tr>
-          ${data.audienceData.countries
+          ${(data.audienceData.countries ?? [])
             .map(
               (c: Record<string, unknown>) => `
             <tr><td>${c.country}</td><td>${Number(c.visitors ?? 0).toLocaleString()}</td></tr>
@@ -456,7 +456,7 @@ export async function POST(request: NextRequest) {
       const validation = AnalyticsExportSchema.safeParse(body);
 
       if (!validation.success) {
-        logger.warn('Invalid body for /api/analytics/export POST', {
+        serverLogger.warn('Invalid body for /api/analytics/export POST', {
           errors: validation.error.errors,
         });
         throw {
@@ -487,9 +487,9 @@ export async function POST(request: NextRequest) {
       try {
         data = await fetchAnalyticsData(startDateStr, endDateStr, cookieHeader);
         isRealData = true;
-        logger.info('Analytics export using real backend data');
+        serverLogger.info('Analytics export using real backend data');
       } catch (backendError) {
-        logger.warn('Backend analytics unavailable, using fallback data', { error: backendError });
+        serverLogger.warn('Backend analytics unavailable, using fallback data', { error: backendError });
         data = generateFallbackData(startDate, endDate, dateRange, reportType);
       }
 
@@ -506,7 +506,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      logger.info('Analytics export requested', {
+      serverLogger.info('Analytics export requested', {
         format,
         startDate: startDateStr,
         endDate: endDateStr,

@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrentUser, JwtPayload } from '@/common/types/user.types';
 
@@ -13,14 +14,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        // Try to extract from cookies first (httpOnly)
-        (req: any) => {
-          if (req && req.cookies && req.cookies.accessToken) {
-            return req.cookies.accessToken;
-          }
-          return null;
-        },
-        // Fallback to Authorization header (backward compatibility)
+        (req: Request) => req?.cookies?.access_token || null,
+        (req: Request) => req?.cookies?.accessToken || null,
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,

@@ -105,14 +105,14 @@ export function useOrder(
  * Hook pour créer une commande
  */
 export function useCreateOrder(
-  options?: UseMutationOptions<Order, Error, any>
+  options?: UseMutationOptions<Order, Error, unknown>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<Order, Error, any>({
+  return useMutation<Order, Error, unknown>({
     mutationFn: async (data): Promise<Order> => {
       try {
-        const result = await endpoints.orders.create(data) as unknown;
+        const result = await endpoints.orders.create(data as Record<string, unknown>) as unknown;
         return result as Order;
       } catch (error) {
         logger.error('Failed to create order', { error, data });
@@ -133,11 +133,11 @@ export function useCreateOrder(
  * Hook pour mettre à jour une commande
  */
 export function useUpdateOrder(
-  options?: UseMutationOptions<Order, Error, { id: string; data: any }>
+  options?: UseMutationOptions<Order, Error, { id: string; data: Partial<Order> }>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<Order, Error, { id: string; data: any }>({
+  return useMutation<Order, Error, { id: string; data: Partial<Order> }>({
     mutationFn: async ({ id, data }): Promise<Order> => {
       try {
         const result = await endpoints.orders.update(id, data) as unknown;

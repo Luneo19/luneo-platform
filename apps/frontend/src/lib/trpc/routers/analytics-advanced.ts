@@ -55,12 +55,13 @@ export const analyticsAdvancedRouter = router({
         });
       }
 
-      const response = await api.get<{ funnels?: unknown[]; data?: unknown[] }>('/api/v1/analytics-advanced/funnels').catch(() => ({ funnels: [] }));
-      const funnels = response?.funnels ?? response?.data ?? [];
+      const response = await api.get<{ funnels?: unknown[]; data?: unknown[] }>('/api/v1/analytics/advanced/funnels').catch(() => ({ funnels: [] }));
+      const res = response as { funnels?: unknown[]; data?: unknown[] };
+      const funnels = res?.funnels ?? res?.data ?? [];
 
       return {
         success: true,
-        funnels: (Array.isArray(funnels) ? funnels : []).map((funnel: any) => ({
+        funnels: ((Array.isArray(funnels) ? funnels : []) as Record<string, unknown>[]).map((funnel) => ({
           id: funnel.id,
           name: funnel.name,
           description: funnel.description,
@@ -104,7 +105,7 @@ export const analyticsAdvancedRouter = router({
           });
         }
 
-        const funnel = await api.get<{ steps?: unknown[] }>(`/api/v1/analytics-advanced/funnels/${input.funnelId}`).catch(() => null);
+        const funnel = await api.get<{ steps?: unknown[] }>(`/api/v1/analytics/advanced/funnels/${input.funnelId}`).catch(() => null);
         if (!funnel) {
           throw new TRPCError({
             code: 'NOT_FOUND',
@@ -116,12 +117,14 @@ export const analyticsAdvancedRouter = router({
         const startDate = input.filters?.startDate ? new Date(input.filters.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const endDate = input.filters?.endDate ? new Date(input.filters.endDate) : new Date();
 
-        const funnelDataResponse = await api.get<{ steps?: unknown[]; data?: unknown[] }>(`/api/v1/analytics-advanced/funnels/${input.funnelId}/data`, {
+        const funnelDataResponse = await api.get<{ steps?: unknown[]; data?: unknown[] }>(`/api/v1/analytics/advanced/funnels/${input.funnelId}/data`, {
           params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
         }).catch(() => ({ steps: [] }));
 
         type StepLike = { id: string; name: string };
-        const funnelData = funnelDataResponse?.steps ?? funnelDataResponse?.data ?? steps.map((step: StepLike, index: number) => {
+        const fdRes = funnelDataResponse as { steps?: unknown[]; data?: unknown[] };
+        const stepsData = fdRes?.steps ?? fdRes?.data ?? [];
+        const funnelData = Array.isArray(stepsData) ? stepsData : (steps as StepLike[]).map((step: StepLike, index: number) => {
           const eventCount = 0;
           const previousCount = index > 0 ? 0 : eventCount;
 
@@ -137,13 +140,15 @@ export const analyticsAdvancedRouter = router({
             };
         });
 
-        const totalConversion = funnelData.length > 0
-          ? (funnelData[funnelData.length - 1].users / (funnelData[0]?.users || 1)) * 100
+        type StepDataLike = { users?: number; stepName?: string; dropoff?: number };
+        const funnelSteps = funnelData as StepDataLike[];
+        const totalConversion = funnelSteps.length > 0
+          ? ((funnelSteps[funnelSteps.length - 1]?.users ?? 0) / ((funnelSteps[0]?.users ?? 1) || 1)) * 100
           : 0;
 
         // Trouver le point de dropoff le plus important
         type StepWithDropoff = { dropoff: number; stepName: string };
-        const funnelStepsForReduce: StepWithDropoff[] = funnelData.map((s: { dropoff?: number; stepName?: string }) => ({
+        const funnelStepsForReduce: StepWithDropoff[] = funnelSteps.map((s) => ({
           dropoff: s.dropoff ?? 0,
           stepName: s.stepName ?? '',
         }));
@@ -157,7 +162,7 @@ export const analyticsAdvancedRouter = router({
           success: true,
           data: {
             funnelId: input.funnelId,
-            steps: funnelData,
+            steps: funnelSteps,
             totalConversion: Math.round(totalConversion * 100) / 100,
             dropoffPoint: dropoffPoint.stepName,
           },
@@ -184,7 +189,8 @@ export const analyticsAdvancedRouter = router({
           });
         }
 
-        const funnel = await api.post<any>('/api/v1/analytics-advanced/funnels', {
+        type FunnelApiResponse = { id: string; name?: string; description?: string; steps?: unknown[]; isActive?: boolean; brandId?: string; createdAt?: unknown; updatedAt?: unknown };
+        const funnel = await api.post<FunnelApiResponse>('/api/v1/analytics/advanced/funnels', {
           name: input.name,
           description: input.description,
           steps: input.steps,
@@ -235,19 +241,19 @@ export const analyticsAdvancedRouter = router({
         const startDate = input?.startDate ? new Date(input.startDate) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
         const endDate = input?.endDate ? new Date(input.endDate) : new Date();
 
-        const cohortsRes = await api.get<any>('/api/v1/analytics-advanced/cohorts', {
+        const cohortsRes = await api.get<Record<string, unknown>>('/api/v1/analytics/advanced/cohorts', {
           params: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
         }).catch(() => []);
         const cohortsRaw = cohortsRes as unknown[] | { cohorts?: unknown[]; data?: unknown[] };
-        const cohorts = Array.isArray(cohortsRes) ? cohortsRes : (cohortsRaw && typeof cohortsRaw === 'object' ? (cohortsRaw.cohorts ?? cohortsRaw.data ?? []) : []);
+        const cohorts = Array.isArray(cohortsRes) ? cohortsRes : (cohortsRaw && typeof cohortsRaw === 'object' && !Array.isArray(cohortsRaw) ? ((cohortsRaw as { cohorts?: unknown[]; data?: unknown[] }).cohorts ?? (cohortsRaw as { data?: unknown[] }).data ?? []) : []);
 
         type CohortLike = { cohortDate?: string | Date; userCount?: number; period?: number; retention?: number; revenue?: number };
         const formattedCohorts = (cohorts as CohortLike[]).map((cohort) => ({
-          cohort: new Date(cohort.cohortDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
+          cohort: new Date(cohort.cohortDate ?? 0).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
           users: cohort.userCount,
           retention30: cohort.period === 30 ? cohort.retention : null,
           retention90: cohort.period === 90 ? cohort.retention : null,
-          ltv: cohort.revenue / cohort.userCount,
+          ltv: (cohort.revenue ?? 0) / (cohort.userCount ?? 1),
           revenue: cohort.revenue,
         }));
 
@@ -258,10 +264,14 @@ export const analyticsAdvancedRouter = router({
         };
 
         if (cohorts.length >= 2) {
-          const latest = cohorts[0];
-          const previous = cohorts[1];
-          trends.retention = latest.retention > previous.retention ? 'up' : latest.retention < previous.retention ? 'down' : 'stable';
-          trends.revenue = latest.revenue > previous.revenue ? 'up' : latest.revenue < previous.revenue ? 'down' : 'stable';
+          const latest = cohorts[0] as CohortLike;
+          const previous = cohorts[1] as CohortLike;
+          const latestRetention = Number(latest?.retention ?? 0);
+          const previousRetention = Number(previous?.retention ?? 0);
+          const latestRevenue = Number(latest?.revenue ?? 0);
+          const previousRevenue = Number(previous?.revenue ?? 0);
+          trends.retention = latestRetention > previousRetention ? 'up' : latestRetention < previousRetention ? 'down' : 'stable';
+          trends.revenue = latestRevenue > previousRevenue ? 'up' : latestRevenue < previousRevenue ? 'down' : 'stable';
         }
 
         return {
@@ -294,9 +304,9 @@ export const analyticsAdvancedRouter = router({
         });
       }
 
-        const segmentsRes = await api.get<unknown[] | { segments?: unknown[]; data?: unknown[] }>('/api/v1/analytics-advanced/segments').catch(() => []);
+        const segmentsRes = await api.get<unknown[] | { segments?: unknown[]; data?: unknown[] }>('/api/v1/analytics/advanced/segments').catch(() => []);
         const segmentsRaw = segmentsRes;
-        const segments = Array.isArray(segmentsRes) ? segmentsRes : (segmentsRaw && typeof segmentsRaw === 'object' ? (segmentsRaw.segments ?? segmentsRaw.data ?? []) : []);
+        const segments = Array.isArray(segmentsRes) ? segmentsRes : (segmentsRaw && typeof segmentsRaw === 'object' && !Array.isArray(segmentsRaw) ? ((segmentsRaw as { segments?: unknown[]; data?: unknown[] }).segments ?? (segmentsRaw as { data?: unknown[] }).data ?? []) : []);
 
         type SegmentLike = { id: string; name: string; description?: string; criteria?: Record<string, unknown>; userCount?: number; isActive?: boolean };
         return {
@@ -336,13 +346,13 @@ export const analyticsAdvancedRouter = router({
         });
       }
 
-        const predictionsRes = await api.get<unknown[] | { predictions?: unknown[]; data?: unknown[] }>('/api/v1/analytics-advanced/predictions', { params: { type: 'revenue', take: 3 } }).catch(() => []);
+        const predictionsRes = await api.get<unknown[] | { predictions?: unknown[]; data?: unknown[] }>('/api/v1/analytics/advanced/predictions', { params: { type: 'revenue', take: 3 } }).catch(() => []);
         const predRaw = predictionsRes as unknown[] | { predictions?: unknown[]; data?: unknown[] };
-        const predictions = Array.isArray(predictionsRes) ? predictionsRes : (predRaw && typeof predRaw === 'object' ? (predRaw.predictions ?? predRaw.data ?? []) : []);
+        const predictions = Array.isArray(predictionsRes) ? predictionsRes : (predRaw && typeof predRaw === 'object' && !Array.isArray(predRaw) ? ((predRaw as { predictions?: unknown[]; data?: unknown[] }).predictions ?? (predRaw as { data?: unknown[] }).data ?? []) : []);
 
-        // Formater les prédictions en scénarios
-        const formattedPredictions = predictions.map(
-          (pred: { value: number; metadata?: unknown; confidence: number }, index: number) => {
+        type PredLike = { value: number; metadata?: unknown; confidence: number };
+        const formattedPredictions = (predictions as PredLike[]).map(
+          (pred: PredLike, index: number) => {
           const scenarios = ['conservative', 'optimistic', 'very_optimistic'];
           const probabilities = [35, 45, 20];
           return {
@@ -356,15 +366,7 @@ export const analyticsAdvancedRouter = router({
 
         return {
           success: true,
-          predictions: formattedPredictions.length > 0 ? formattedPredictions : [
-            {
-              scenario: 'conservative',
-              revenue: 125450,
-              probability: 35,
-              factors: ['Croissance normale 5%'],
-              confidence: 92.5,
-            },
-          ],
+          predictions: formattedPredictions.length > 0 ? formattedPredictions : [],
         };
       } catch (error) {
         logger.error('Failed to get revenue predictions', { error, userId: ctx.user.id });

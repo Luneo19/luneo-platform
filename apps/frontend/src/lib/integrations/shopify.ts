@@ -19,6 +19,95 @@ interface ShopifyConfig {
   apiVersion?: string;
 }
 
+// Raw API response types
+interface ShopifyRawShop {
+  id: number;
+  name: string;
+  domain: string;
+  email: string;
+  currency: string;
+  timezone: string;
+  plan_name: string;
+}
+
+interface ShopifyRawImage {
+  id?: number;
+  src?: string;
+  alt?: string;
+  position?: number;
+}
+
+interface ShopifyRawVariant {
+  id?: number;
+  title?: string;
+  price?: string;
+  sku?: string;
+  inventory_quantity?: number;
+  compare_at_price?: string;
+  weight?: number;
+  weight_unit?: string;
+  option1?: string;
+  option2?: string;
+  option3?: string;
+}
+
+interface ShopifyRawOption {
+  name?: string;
+  position?: number;
+  values?: string[];
+}
+
+interface ShopifyRawProduct {
+  id: number;
+  title: string;
+  handle: string;
+  body_html?: string | null;
+  vendor?: string;
+  product_type?: string;
+  tags?: string;
+  status?: string;
+  images?: ShopifyRawImage[];
+  variants?: ShopifyRawVariant[];
+  options?: ShopifyRawOption[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface ShopifyRawLineItem {
+  id?: number;
+  product_id?: number;
+  variant_id?: number;
+  title?: string;
+  quantity?: number;
+  price?: string;
+  sku?: string;
+  properties?: Array<{ name?: string; value?: string }>;
+}
+
+interface ShopifyRawOrder {
+  id: number;
+  name?: string;
+  email?: string;
+  total_price?: string;
+  currency?: string;
+  financial_status?: string;
+  fulfillment_status?: string;
+  line_items?: ShopifyRawLineItem[];
+  customer?: {
+    id?: number;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  created_at?: string;
+}
+
+interface ShopifyRawCollection {
+  id: number;
+  title: string;
+  handle: string;
+}
+
 class ShopifyService {
   private shopDomain: string;
   private accessToken: string;
@@ -63,7 +152,7 @@ class ShopifyService {
    * Get shop information
    */
   async getShop(): Promise<ShopifyStore> {
-    const data = await this.request<{ shop: any }>('/shop.json');
+    const data = await this.request<{ shop: ShopifyRawShop }>('/shop.json');
     
     return {
       id: data.shop.id.toString(),
@@ -98,7 +187,7 @@ class ShopifyService {
       queryParams.set('collection_id', params.collectionId);
     }
 
-    const data = await this.request<{ products: any[] }>(
+    const data = await this.request<{ products: ShopifyRawProduct[] }>(
       `/products.json?${queryParams.toString()}`
     );
 
@@ -107,37 +196,37 @@ class ShopifyService {
       title: p.title,
       handle: p.handle,
       description: p.body_html || '',
-      vendor: p.vendor,
-      productType: p.product_type,
+      vendor: p.vendor || '',
+      productType: p.product_type || '',
       tags: p.tags ? p.tags.split(', ') : [],
-      status: p.status,
-      images: (p.images || []).map((img: any) => ({
-        id: img.id.toString(),
-        src: img.src,
+      status: (p.status || 'draft') as 'active' | 'draft' | 'archived',
+      images: (p.images || []).map((img: ShopifyRawImage) => ({
+        id: (img.id || 0).toString(),
+        src: img.src || '',
         alt: img.alt,
-        position: img.position,
+        position: img.position || 0,
       })),
-      variants: (p.variants || []).map((v: any) => ({
-        id: v.id.toString(),
+      variants: (p.variants || []).map((v: ShopifyRawVariant) => ({
+        id: (v.id || 0).toString(),
         productId: p.id.toString(),
-        title: v.title,
+        title: v.title || '',
         sku: v.sku || '',
-        price: v.price,
+        price: v.price || '0',
         compareAtPrice: v.compare_at_price,
-        inventoryQuantity: v.inventory_quantity,
-        weight: v.weight,
-        weightUnit: v.weight_unit,
+        inventoryQuantity: v.inventory_quantity || 0,
+        weight: v.weight || 0,
+        weightUnit: v.weight_unit || 'kg',
         option1: v.option1,
         option2: v.option2,
         option3: v.option3,
       })),
-      options: (p.options || []).map((o: any) => ({
-        id: o.id.toString(),
-        name: o.name,
-        values: o.values,
+      options: (p.options || []).map((o: ShopifyRawOption) => ({
+        id: o.name || '',
+        name: o.name || '',
+        values: o.values || [],
       })),
-      createdAt: p.created_at,
-      updatedAt: p.updated_at,
+      createdAt: p.created_at || '',
+      updatedAt: p.updated_at || '',
     }));
 
     return { products };
@@ -147,7 +236,7 @@ class ShopifyService {
    * Get single product
    */
   async getProduct(productId: string): Promise<ShopifyProduct> {
-    const data = await this.request<{ product: any }>(`/products/${productId}.json`);
+    const data = await this.request<{ product: ShopifyRawProduct }>(`/products/${productId}.json`);
     const p = data.product;
 
     return {
@@ -155,37 +244,37 @@ class ShopifyService {
       title: p.title,
       handle: p.handle,
       description: p.body_html || '',
-      vendor: p.vendor,
-      productType: p.product_type,
+      vendor: p.vendor || '',
+      productType: p.product_type || '',
       tags: p.tags ? p.tags.split(', ') : [],
-      status: p.status,
-      images: (p.images || []).map((img: any) => ({
-        id: img.id.toString(),
-        src: img.src,
+      status: (p.status || 'draft') as 'active' | 'draft' | 'archived',
+      images: (p.images || []).map((img: ShopifyRawImage) => ({
+        id: (img.id || 0).toString(),
+        src: img.src || '',
         alt: img.alt,
-        position: img.position,
+        position: img.position || 0,
       })),
-      variants: (p.variants || []).map((v: any) => ({
-        id: v.id.toString(),
+      variants: (p.variants || []).map((v: ShopifyRawVariant) => ({
+        id: (v.id || 0).toString(),
         productId: p.id.toString(),
-        title: v.title,
+        title: v.title || '',
         sku: v.sku || '',
-        price: v.price,
+        price: v.price || '0',
         compareAtPrice: v.compare_at_price,
-        inventoryQuantity: v.inventory_quantity,
-        weight: v.weight,
-        weightUnit: v.weight_unit,
+        inventoryQuantity: v.inventory_quantity || 0,
+        weight: v.weight || 0,
+        weightUnit: v.weight_unit || 'kg',
         option1: v.option1,
         option2: v.option2,
         option3: v.option3,
       })),
-      options: (p.options || []).map((o: any) => ({
-        id: o.id.toString(),
-        name: o.name,
-        values: o.values,
+      options: (p.options || []).map((o: ShopifyRawOption) => ({
+        id: o.name || '',
+        name: o.name || '',
+        values: o.values || [],
       })),
-      createdAt: p.created_at,
-      updatedAt: p.updated_at,
+      createdAt: p.created_at || '',
+      updatedAt: p.updated_at || '',
     };
   }
 
@@ -220,7 +309,7 @@ class ShopifyService {
       },
     };
 
-    const data = await this.request<{ product: any }>('/products.json', {
+    const data = await this.request<{ product: ShopifyRawProduct }>('/products.json', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -286,43 +375,45 @@ class ShopifyService {
       queryParams.set('created_at_max', params.createdAtMax);
     }
 
-    const data = await this.request<{ orders: any[] }>(
+    const data = await this.request<{ orders: ShopifyRawOrder[] }>(
       `/orders.json?${queryParams.toString()}`
     );
 
     return data.orders.map((o) => ({
       id: o.id.toString(),
-      name: o.name,
-      email: o.email,
-      totalPrice: o.total_price,
-      currency: o.currency,
-      financialStatus: o.financial_status,
+      name: o.name || '',
+      email: o.email || '',
+      totalPrice: o.total_price || '0',
+      currency: o.currency || 'USD',
+      financialStatus: o.financial_status || 'pending',
       fulfillmentStatus: o.fulfillment_status || 'unfulfilled',
-      lineItems: (o.line_items || []).map((item: any) => ({
-        id: item.id.toString(),
-        productId: item.product_id?.toString(),
-        variantId: item.variant_id?.toString(),
-        title: item.title,
-        quantity: item.quantity,
-        price: item.price,
+      lineItems: (o.line_items || []).map((item: ShopifyRawLineItem) => ({
+        id: (item.id || 0).toString(),
+        productId: item.product_id?.toString() ?? '',
+        variantId: item.variant_id?.toString() ?? '',
+        title: item.title || '',
+        quantity: item.quantity || 0,
+        price: item.price || '0',
         sku: item.sku || '',
-        customizations: item.properties?.reduce((acc: any, prop: any) => {
-          acc[prop.name] = prop.value;
+        customizations: item.properties?.reduce((acc: Record<string, string>, prop: { name?: string; value?: string }) => {
+          if (prop.name && prop.value) {
+            acc[prop.name] = prop.value;
+          }
           return acc;
         }, {}),
       })),
       customer: o.customer ? {
-        id: o.customer.id.toString(),
-        email: o.customer.email,
+        id: (o.customer.id || 0).toString(),
+        email: o.customer.email || '',
         firstName: o.customer.first_name || '',
         lastName: o.customer.last_name || '',
       } : {
         id: '',
-        email: o.email,
+        email: o.email || '',
         firstName: '',
         lastName: '',
       },
-      createdAt: o.created_at,
+      createdAt: o.created_at || '',
     }));
   }
 
@@ -376,8 +467,8 @@ class ShopifyService {
    */
   async getCollections(): Promise<Array<{ id: string; title: string; handle: string }>> {
     const [smart, custom] = await Promise.all([
-      this.request<{ smart_collections: any[] }>('/smart_collections.json'),
-      this.request<{ custom_collections: any[] }>('/custom_collections.json'),
+      this.request<{ smart_collections: ShopifyRawCollection[] }>('/smart_collections.json'),
+      this.request<{ custom_collections: ShopifyRawCollection[] }>('/custom_collections.json'),
     ]);
 
     const collections = [
@@ -401,5 +492,3 @@ export function createShopifyService(config: ShopifyConfig): ShopifyService {
 }
 
 export { ShopifyService };
-
-

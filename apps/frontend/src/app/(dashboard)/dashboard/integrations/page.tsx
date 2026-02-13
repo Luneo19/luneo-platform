@@ -27,7 +27,8 @@
  * ~1,000+ lignes de code professionnel de niveau entreprise mondiale
  */
 
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
 import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
@@ -175,6 +176,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { endpoints } from '@/lib/api/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 // Platform configurations
 const PLATFORMS = [
@@ -212,100 +215,36 @@ const PLATFORMS = [
   },
 ];
 
-// Mock data
-const mockIntegrations = [
-  {
-    id: '1',
-    platform: 'shopify',
-    storeName: 'Ma Boutique Shopify',
-    storeUrl: 'ma-boutique.myshopify.com',
-    status: 'connected',
-    lastSyncAt: Date.now() - 3600000,
-    syncConfig: {
-      products: { enabled: true, direction: 'bidirectional' },
-      orders: { enabled: true, direction: 'import' },
-      inventory: { enabled: true, direction: 'bidirectional' },
-    },
-    settings: {
-      autoSync: true,
-      syncInterval: 30,
-      importProducts: true,
-      exportDesigns: true,
-      webhooksEnabled: true,
-    },
-  },
-  {
-    id: '2',
-    platform: 'woocommerce',
-    storeName: 'Ma Boutique WooCommerce',
-    storeUrl: 'www.ma-boutique.com',
-    status: 'connected',
-    lastSyncAt: Date.now() - 7200000,
-    syncConfig: {
-      products: { enabled: true, direction: 'bidirectional' },
-      orders: { enabled: true, direction: 'import' },
-      inventory: { enabled: false, direction: 'import' },
-    },
-    settings: {
-      autoSync: true,
-      syncInterval: 60,
-      importProducts: true,
-      exportDesigns: false,
-      webhooksEnabled: false,
-    },
-  },
-];
+// Integration card type built from API status endpoints
+type IntegrationCard = {
+  id: string;
+  platform: string;
+  storeName: string;
+  storeUrl: string;
+  status: 'connected' | 'disconnected' | 'error' | 'pending';
+  lastSyncAt: number | null;
+  syncedProductsCount?: number;
+  syncConfig: {
+    products: { enabled: boolean; direction: string };
+    orders: { enabled: boolean; direction: string };
+    inventory: { enabled: boolean; direction: string };
+  };
+  settings: {
+    autoSync: boolean;
+    syncInterval: number;
+    importProducts: boolean;
+    exportDesigns: boolean;
+    webhooksEnabled: boolean;
+  };
+};
 
-const mockSyncHistory = [
-  {
-    id: '1',
-    type: 'products',
-    direction: 'import',
-    status: 'success',
-    items: 145,
-    timestamp: Date.now() - 3600000,
-  },
-  {
-    id: '2',
-    type: 'orders',
-    direction: 'import',
-    status: 'success',
-    items: 32,
-    timestamp: Date.now() - 7200000,
-  },
-  {
-    id: '3',
-    type: 'inventory',
-    direction: 'export',
-    status: 'partial',
-    items: 89,
-    timestamp: Date.now() - 10800000,
-  },
-];
-
-const mockWebhooks = [
-  {
-    id: '1',
-    url: 'https://api.example.com/webhooks/orders',
-    status: 'active',
-    events: ['order.created', 'order.updated'],
-    lastTriggered: Date.now() - 1800000,
-  },
-  {
-    id: '2',
-    url: 'https://api.example.com/webhooks/products',
-    status: 'active',
-    events: ['product.created', 'product.updated'],
-    lastTriggered: Date.now() - 3600000,
-  },
-];
-
-const mockAnalytics = {
-  totalSyncs: 1247,
-  successRate: 98.5,
-  avgSyncTime: 12.3,
-  productsSynced: 12450,
-  ordersSynced: 3420,
+type SyncLogEntry = {
+  id: string;
+  type: string;
+  direction: string;
+  status: string;
+  items: number;
+  timestamp: number;
 };
 
 function formatTime(timestamp: number): string {
@@ -338,8 +277,80 @@ function getStatusBadge(status: string) {
 
 function IntegrationsPageContent() {
   const { toast } = useToast();
-  const [integrations, setIntegrations] = useState(mockIntegrations);
-  const [selectedIntegration, setSelectedIntegration] = useState<typeof mockIntegrations[0] | null>(null);
+  const { t } = useI18n();
+  const [integrations, setIntegrations] = useState<IntegrationCard[]>([]);
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationCard | null>(null);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
+
+  const fetchIntegrationsFromStatus = useCallback(async () => {
+    setLoadingIntegrations(true);
+    try {
+      const [shopifyRes, wooRes, zapierRes] = await Promise.allSettled([
+        endpoints.integrations.shopifyStatus(),
+        endpoints.integrations.woocommerceStatus(),
+        endpoints.integrations.zapierSubscriptions().then((subs) => Array.isArray(subs) ? subs : []),
+      ]);
+      const cards: IntegrationCard[] = [];
+      const defaultSync = { products: { enabled: true, direction: 'bidirectional' }, orders: { enabled: true, direction: 'import' }, inventory: { enabled: true, direction: 'bidirectional' } };
+      const defaultSettings = { autoSync: true, syncInterval: 30, importProducts: true, exportDesigns: true, webhooksEnabled: false };
+      if (shopifyRes.status === 'fulfilled' && shopifyRes.value) {
+        const s = shopifyRes.value;
+        const connected = !!s.connected;
+        const lastSync = s.lastSyncAt && typeof s.lastSyncAt === 'string' ? s.lastSyncAt : null;
+        cards.push({
+          id: 'shopify',
+          platform: 'shopify',
+          storeName: s.shopDomain ? `Shopify: ${s.shopDomain}` : 'Shopify',
+          storeUrl: s.shopDomain || '',
+          status: connected ? 'connected' : 'disconnected',
+          lastSyncAt: lastSync ? new Date(lastSync).getTime() : null,
+          syncedProductsCount: s.syncedProductsCount ?? 0,
+          syncConfig: defaultSync,
+          settings: defaultSettings,
+        });
+      } else {
+        cards.push({ id: 'shopify', platform: 'shopify', storeName: 'Shopify', storeUrl: '', status: 'disconnected', lastSyncAt: null, syncConfig: defaultSync, settings: defaultSettings });
+      }
+      if (wooRes.status === 'fulfilled' && wooRes.value) {
+        const w = wooRes.value;
+        const connected = !!w.connected;
+        const lastSync = w.lastSyncAt && typeof w.lastSyncAt === 'string' ? w.lastSyncAt : null;
+        cards.push({
+          id: 'woocommerce',
+          platform: 'woocommerce',
+          storeName: w.siteUrl ? `WooCommerce: ${w.siteUrl}` : 'WooCommerce',
+          storeUrl: w.siteUrl || '',
+          status: connected ? 'connected' : 'disconnected',
+          lastSyncAt: lastSync ? new Date(lastSync).getTime() : null,
+          syncedProductsCount: w.syncedProductsCount ?? 0,
+          syncConfig: defaultSync,
+          settings: defaultSettings,
+        });
+      } else {
+        cards.push({ id: 'woocommerce', platform: 'woocommerce', storeName: 'WooCommerce', storeUrl: '', status: 'disconnected', lastSyncAt: null, syncConfig: defaultSync, settings: defaultSettings });
+      }
+      const zapList = zapierRes.status === 'fulfilled' && Array.isArray(zapierRes.value) ? zapierRes.value : [];
+      cards.push({
+        id: 'zapier',
+        platform: 'zapier',
+        storeName: zapList.length > 0 ? `Zapier (${zapList.length} subscription(s))` : 'Zapier',
+        storeUrl: '',
+        status: zapList.length > 0 ? 'connected' : 'disconnected',
+        lastSyncAt: null,
+        syncConfig: defaultSync,
+        settings: defaultSettings,
+      });
+      setIntegrations(cards);
+    } catch (err) {
+      setIntegrations([]);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIntegrationsFromStatus();
+  }, [fetchIntegrationsFromStatus]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -357,16 +368,16 @@ function IntegrationsPageContent() {
     apiSecret: '',
   });
 
-  const extendedSyncHistory = useMemo(() => {
-    return Array.from({ length: 50 }, (_, i) => ({
-      ...mockSyncHistory[i % mockSyncHistory.length],
-      id: String(i + 1),
-      timestamp: Date.now() - (i * 3600000),
-    }));
-  }, []);
-
-  const webhooks = useMemo(() => mockWebhooks, []);
-  const analytics = useMemo(() => mockAnalytics, []);
+  // PRODUCTION FIX: Sync history should come from API - show empty until real data
+  const extendedSyncHistory = useMemo(() => [] as SyncLogEntry[], []);
+  const webhooks = useMemo(() => [] as unknown[], []);
+  const analytics = useMemo(() => ({
+    totalSyncs: 0,
+    successRate: 0,
+    avgSyncTime: 0,
+    productsSynced: 0,
+    ordersSynced: 0,
+  }), []);
 
   const filteredIntegrations = useMemo(() => {
     return integrations.filter(integration => {
@@ -382,67 +393,84 @@ function IntegrationsPageContent() {
     return PLATFORMS.find(p => p.id === selectedPlatform);
   }, [selectedPlatform]);
 
-  const handleTestConnection = useCallback((integrationId: string) => {
-    toast({
-      title: 'Test de connexion',
-      description: 'Test en cours...',
-    });
-    setTimeout(() => {
+  const handleTestConnection = useCallback(
+    async (integrationId: string) => {
+      const integration = integrations.find((i) => i.id === integrationId);
+      if (!integration) return;
       toast({
-        title: 'Connexion réussie',
-        description: 'La connexion fonctionne correctement',
+        title: t('integrations.testConnection'),
+        description: 'Test en cours...',
       });
-    }, 2000);
-  }, [toast]);
+      try {
+        await endpoints.integrations.test(integration.platform, {
+          storeDomain: integration.storeUrl,
+          storeName: integration.storeName,
+        });
+        toast({
+          title: t('integrations.connectionSuccess'),
+          description: 'La connexion fonctionne correctement',
+        });
+      } catch (error: unknown) {
+        toast({
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
+          variant: 'destructive',
+        });
+      }
+    },
+    [toast, integrations]
+  );
 
-  const handleDisconnect = useCallback((integrationId: string) => {
-    setIntegrations(prev => prev.filter(i => i.id !== integrationId));
-    toast({
-      title: 'Déconnexion',
-      description: 'L\'intégration a été déconnectée',
-    });
-  }, [toast]);
+  const handleDisconnect = useCallback(async (integrationId: string) => {
+    const integration = integrations.find((i) => i.id === integrationId);
+    if (!integration) return;
+    try {
+      await endpoints.integrations.disable(integration.platform);
+      await fetchIntegrationsFromStatus();
+      toast({
+        title: t('integrations.disconnect'),
+        description: "L'intégration a été déconnectée",
+      });
+    } catch (error: unknown) {
+      toast({
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
+      });
+    }
+  }, [toast, integrations, fetchIntegrationsFromStatus]);
 
-  const handleConnect = useCallback(() => {
+  const handleConnect = useCallback(async () => {
     if (!selectedPlatform || !formData.storeDomain || !formData.apiKey) {
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: 'Veuillez remplir tous les champs requis',
         variant: 'destructive',
       });
       return;
     }
-
-    const newIntegration = {
-      id: String(integrations.length + 1),
-      platform: selectedPlatform,
-      storeName: formData.storeDomain,
-      storeUrl: formData.storeDomain,
-      status: 'connected' as const,
-      lastSyncAt: Date.now(),
-      syncConfig: {
-        products: { enabled: true, direction: 'bidirectional' as const },
-        orders: { enabled: true, direction: 'import' as const },
-        inventory: { enabled: true, direction: 'bidirectional' as const },
-      },
-      settings: {
-        autoSync: true,
-        syncInterval: 30,
-        importProducts: true,
-        exportDesigns: true,
-        webhooksEnabled: false,
-      },
-    };
-
-    setIntegrations(prev => [...prev, newIntegration]);
-    setShowAddDialog(false);
-    setSelectedPlatform(null);
-    setFormData({ storeDomain: '', apiKey: '', apiSecret: '' });
-    toast({
-      title: 'Connexion réussie',
-      description: 'L\'intégration a été configurée avec succès',
-    });
-  }, [selectedPlatform, formData, integrations.length, toast]);
+    try {
+      await endpoints.integrations.enable(selectedPlatform, {
+        storeDomain: formData.storeDomain,
+        apiKey: formData.apiKey,
+        apiSecret: formData.apiSecret || undefined,
+      });
+      await fetchIntegrationsFromStatus();
+      setShowAddDialog(false);
+      setSelectedPlatform(null);
+      setFormData({ storeDomain: '', apiKey: '', apiSecret: '' });
+      toast({
+        title: t('integrations.connectionSuccess'),
+        description: "L'intégration a été configurée avec succès",
+      });
+    } catch (error: unknown) {
+      toast({
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
+      });
+    }
+  }, [selectedPlatform, formData, toast, fetchIntegrationsFromStatus]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6">
@@ -673,7 +701,7 @@ function IntegrationsPageContent() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value)} className="space-y-6">
         <div className="flex items-center justify-between">
           <TabsList className="bg-slate-900 border border-slate-800">
             <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600">Vue d'ensemble</TabsTrigger>
@@ -738,11 +766,11 @@ function IntegrationsPageContent() {
                                   <div className="flex items-center gap-4 text-sm">
                                     <div className="flex items-center gap-1">
                                       <Package className="w-4 h-4 text-slate-500" />
-                                      <span className="text-slate-400">145 produits</span>
+                                      <span className="text-slate-400">{integration.syncedProductsCount ?? 0} produits</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <Clock className="w-4 h-4 text-slate-500" />
-                                      <span className="text-slate-400">{formatTime(integration.lastSyncAt)}</span>
+                                      <span className="text-slate-400">{integration.lastSyncAt != null ? formatTime(integration.lastSyncAt) : 'Jamais'}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -791,15 +819,15 @@ function IntegrationsPageContent() {
                             {/* Quick stats */}
                             <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800">
                               <div>
-                                <p className="text-2xl font-bold">145</p>
+                                <p className="text-2xl font-bold">{integration.syncedProductsCount ?? 0}</p>
                                 <p className="text-sm text-slate-400">Produits sync</p>
                               </div>
                               <div>
-                                <p className="text-2xl font-bold">32</p>
+                                <p className="text-2xl font-bold">—</p>
                                 <p className="text-sm text-slate-400">Commandes</p>
                               </div>
                               <div>
-                                <p className="text-2xl font-bold">98%</p>
+                                <p className="text-2xl font-bold">—</p>
                                 <p className="text-sm text-slate-400">Taux de succès</p>
                               </div>
                             </div>

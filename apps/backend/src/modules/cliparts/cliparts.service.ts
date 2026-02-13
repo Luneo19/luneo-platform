@@ -11,7 +11,7 @@ export class ClipartsService {
     const limit = Math.min(options?.limit || 50, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: import('@prisma/client').Prisma.ClipartWhereInput = {};
 
     // Filter by public or user's cliparts
     if (options?.publicOnly) {

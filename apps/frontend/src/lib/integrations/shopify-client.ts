@@ -32,6 +32,13 @@ export interface ShopifyProduct {
   }>;
 }
 
+export interface ShopifyRawOrder {
+  id: number;
+  name?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Vérifie un access token Shopify
  */
@@ -53,7 +60,7 @@ export async function verifyShopifyToken(
 
     const data = await response.json();
     return data.shop;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error verifying Shopify token', { error, shopDomain });
     throw error;
   }
@@ -84,7 +91,7 @@ export async function getShopifyProducts(
 
     const data = await response.json();
     return data.products || [];
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching Shopify products', { error, shopDomain });
     throw error;
   }
@@ -97,7 +104,7 @@ export async function getShopifyOrders(
   shopDomain: string,
   accessToken: string,
   limit: number = 50
-): Promise<any[]> {
+): Promise<ShopifyRawOrder[]> {
   try {
     const response = await fetch(
       `https://${shopDomain}/admin/api/2024-10/orders.json?limit=${limit}&status=any`,
@@ -115,9 +122,8 @@ export async function getShopifyOrders(
 
     const data = await response.json();
     return data.orders || [];
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching Shopify orders', { error, shopDomain });
     throw error;
   }
 }
-

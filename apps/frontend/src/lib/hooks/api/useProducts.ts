@@ -104,14 +104,14 @@ export function useProduct(
  * Hook pour créer un produit
  */
 export function useCreateProduct(
-  options?: UseMutationOptions<Product, Error, any>
+  options?: UseMutationOptions<Product, Error, unknown>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<Product, Error, any>({
+  return useMutation<Product, Error, unknown>({
     mutationFn: async (data): Promise<Product> => {
       try {
-        const result = await endpoints.products.create(data) as unknown;
+        const result = await endpoints.products.create(data as Record<string, unknown>) as unknown;
         return result as Product;
       } catch (error) {
         logger.error('Failed to create product', { error, data });
@@ -130,11 +130,11 @@ export function useCreateProduct(
  * Hook pour mettre à jour un produit
  */
 export function useUpdateProduct(
-  options?: UseMutationOptions<Product, Error, { id: string; data: any }>
+  options?: UseMutationOptions<Product, Error, { id: string; data: Partial<Product> }>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<Product, Error, { id: string; data: any }>({
+  return useMutation<Product, Error, { id: string; data: Partial<Product> }>({
     mutationFn: async ({ id, data }): Promise<Product> => {
       try {
         const result = await endpoints.products.update(id, data) as unknown;

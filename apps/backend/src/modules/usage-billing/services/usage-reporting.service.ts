@@ -229,9 +229,9 @@ export class UsageReportingService {
     }
 
     // Insight sur les projections
-    if (projections.projectedOverage > 5000) {
+    if ((projections.projectedOverage ?? 0) > 5000) {
       insights.push(
-        `⚠️  Projected overage costs: €${(projections.projectedOverage / 100).toFixed(2)}. Consider upgrading your plan.`,
+        `⚠️  Projected overage costs: €${((projections.projectedOverage ?? 0) / 100).toFixed(2)}. Consider upgrading your plan.`,
       );
     }
 

@@ -316,6 +316,12 @@ enum PurchaseStatus {
   REFUNDED
 }
 
+enum MarketplacePayoutStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 // ========================================
 // MODELS
 // ========================================
@@ -428,11 +434,18 @@ model User {
   arProjectMemberships ARProjectMember[]     @relation("UserARProjectMemberships")
   arProjectComments    ARProjectComment[]    @relation("UserARProjectComments")
 
+  // Shopping Cart
+  carts Cart[] @relation("UserCart")
+
   @@index([email])
   @@index([brandId])
   @@index([role])
   @@index([aiCredits])
   @@index([deletedAt]) // Soft delete index for efficient queries on active users
+  // Composite indexes for multi-tenant queries
+  @@index([brandId, role])
+  @@index([brandId, isActive])
+  @@index([brandId, createdAt])
 }
 
 model Download {
@@ -538,6 +551,11 @@ model Brand {
   arEnabled             Boolean            @default(false)
   whiteLabel            Boolean            @default(false)
 
+  // Grace period & read-only (failed payment)
+  gracePeriodEndsAt     DateTime?   // When grace period expires (null = no grace period)
+  readOnlyMode          Boolean     @default(false) // If true, only billing/read endpoints allowed
+  lastGraceReminderDay  Int?        // Last grace reminder sent: 0, 1, or 2 (for day 0, 1, 2)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -548,6 +566,7 @@ model Brand {
   designs               Design[]
   orders                Order[]
   webhooks              Webhook[]
+  webhookSubscriptions  WebhookSubscription[]
   apiKeys               ApiKey[]
   aiCosts               AICost[]
   ecommerceIntegrations EcommerceIntegration[]
@@ -589,6 +608,9 @@ model Brand {
   // Discounts
   discounts Discount[]
 
+  // Print-on-Demand
+  printOrders PrintOrder[]
+
   // Audit & Safety
   auditLogs         AuditLog[]
   moderationRecords ModerationRecord[]
@@ -613,7 +635,7 @@ model Brand {
 
   // Organization
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([slug])
   @@index([status])
@@ -636,7 +658,7 @@ model Brand {
 model MarketplaceItem {
   id              String   @id @default(cuid())
   sellerId        String   // Brand ID of the seller
-  seller          Brand    @relation("MarketplaceSeller", fields: [sellerId], references: [id])
+  seller          Brand    @relation("MarketplaceSeller", fields: [sellerId], references: [id], onDelete: Restrict)
   title           String
   description     String?  @db.Text
   type            MarketplaceItemType
@@ -677,21 +699,28 @@ model MarketplaceReview {
 
   @@unique([itemId, buyerId])
   @@index([itemId])
+  @@index([buyerId])
 }
 
 model MarketplacePurchase {
-  id        String   @id @default(cuid())
-  itemId    String
-  item      MarketplaceItem @relation(fields: [itemId], references: [id])
-  buyerId   String   // Brand ID of the buyer
-  buyer     Brand    @relation("MarketplaceBuyer", fields: [buyerId], references: [id])
-  price    Decimal  @db.Decimal(10, 2)
-  currency String   @default("CHF")
-  status   PurchaseStatus @default(COMPLETED)
-  createdAt DateTime @default(now())
+  id                 String                  @id @default(cuid())
+  itemId             String
+  item               MarketplaceItem         @relation(fields: [itemId], references: [id])
+  buyerId            String                  // Brand ID of the buyer
+  buyer              Brand                   @relation("MarketplaceBuyer", fields: [buyerId], references: [id])
+  price              Decimal                 @db.Decimal(10, 2)
+  currency           String                  @default("CHF")
+  status             PurchaseStatus           @default(COMPLETED)
+  commissionPercent  Int?                    // Platform commission % (from seller's plan)
+  commissionCents    Int?                    // Platform commission amount in cents
+  payoutScheduledAt  DateTime?                // When seller payout is due (createdAt + 7 days)
+  payoutStatus       MarketplacePayoutStatus @default(PENDING)
+  paidOutAt          DateTime?               // When Stripe transfer was completed
+  createdAt          DateTime                @default(now())
 
   @@index([buyerId])
   @@index([itemId])
+  @@index([payoutScheduledAt, payoutStatus])
 }
 
 // ========================================
@@ -898,7 +927,7 @@ model ARProject {
   updatedAt   DateTime @updatedAt
 
   brand    Brand    @relation("BrandARProjects", fields: [brandId], references: [id], onDelete: Cascade)
-  owner    User     @relation("UserARProjects", fields: [ownerId], references: [id])
+  owner    User     @relation("UserARProjects", fields: [ownerId], references: [id], onDelete: Cascade)
   members  ARProjectMember[]
   comments ARProjectComment[]
 
@@ -1069,6 +1098,10 @@ model Product {
   @@index([brandId, isActive]) // NOUVEAU: Composite
   @@index([status])
   @@index([deletedAt]) // Soft delete index for efficient queries on active products
+  // Composite indexes for filtered queries
+  @@index([brandId, status])
+  @@index([brandId, createdAt])
+  @@index([brandId, category])
 }
 
 model ProductVariant {
@@ -1190,6 +1223,7 @@ model Template {
   @@index([brandId])
   @@index([productId])
   @@index([brandId, isActive])
+  @@index([brandId, createdAt])
 }
 
 model Design {
@@ -1388,10 +1422,13 @@ model Order {
   commissions    Commission[]
 
   // Commission tracking
-  commissionPercent Float?
-  commissionCents   Int?
+  commissionPercent Float? @default(0)
+  commissionCents   Int?   @default(0)
   discountId        String?
   discount          Discount? @relation(fields: [discountId], references: [id], onDelete: SetNull)
+
+  // Print-on-Demand
+  printOrders PrintOrder[]
 
   @@index([userId])
   @@index([brandId])
@@ -1412,6 +1449,40 @@ model Order {
   @@index([deletedAt]) // Soft delete index for efficient queries on active orders
   // DB-01: Composite index for status-based queries with date sorting
   @@index([status, createdAt])
+  // Composite for brand payment queries
+  @@index([brandId, paymentStatus])
+  // PRODUCTION: Composite for user order history (sorted by date)
+  @@index([userId, createdAt])
+}
+
+// ========================================
+// PRINT ORDER (Print-on-Demand)
+// ========================================
+model PrintOrder {
+  id              String   @id @default(cuid())
+  orderId         String   // Reference to the main Order
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  brandId         String
+  brand           Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  provider        String   // 'printful', 'printify', 'gelato'
+  providerOrderId String?  // Provider's order ID
+  status          String   @default("pending") // pending, processing, shipped, delivered, cancelled
+  trackingNumber  String?
+  trackingUrl     String?
+  items           Json     // Order items details
+  shippingAddress Json     // Shipping address
+  providerCost    Int      @default(0) // Cost from provider in cents
+  luneoMargin     Int      @default(0) // Luneo's margin in cents
+  brandMargin     Int      @default(0) // Brand's margin in cents
+  totalPrice      Int      @default(0) // Total price charged to customer
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([brandId])
+  @@index([providerOrderId])
+  @@index([status])
 }
 
 // ========================================
@@ -1448,6 +1519,20 @@ model OrderItem {
   @@index([orderId, productId])
 }
 
+model WebhookSubscription {
+  id        String   @id @default(cuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  event     String   // 'new_design', 'new_order', 'new_subscription', 'design_updated'
+  targetUrl String   // Zapier's webhook URL
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId, event])
+  @@index([isActive])
+}
+
 model ApiKey {
   id          String    @id @default(cuid())
   name        String
@@ -1469,6 +1554,7 @@ model ApiKey {
   @@index([brandId])
   @@index([key])
   @@index([isActive])
+  @@index([brandId, isActive])
 }
 
 model AICost {
@@ -1487,6 +1573,8 @@ model AICost {
   @@index([brandId])
   @@index([provider])
   @@index([createdAt])
+  @@index([brandId, createdAt])
+  @@index([brandId, provider])
 }
 
 model UserQuota {
@@ -1531,6 +1619,7 @@ model Webhook {
 
   @@index([brandId])
   @@index([isActive])
+  @@index([brandId, isActive])
 }
 
 model SystemConfig {
@@ -1800,6 +1889,8 @@ model EcommerceIntegration {
   @@index([platform])
   @@index([shopDomain])
   @@index([status])
+  @@index([brandId, status])
+  @@index([brandId, platform])
 }
 
 model ProductMapping {
@@ -1956,6 +2047,8 @@ model Invoice {
   @@index([stripeInvoiceId])
   @@index([status])
   @@index([createdAt])
+  @@index([brandId, status])
+  @@index([brandId, createdAt])
 }
 
 // ========================================
@@ -2211,6 +2304,8 @@ model UserProfile {
   bankName  String?  @map("bank_name")
   address   Json? // Full address as JSON
   phone     String?
+  website   String?
+  timezone  String?  @default("Europe/Paris")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -2232,6 +2327,7 @@ model UsageMetric {
   @@index([brandId])
   @@index([metric])
   @@index([timestamp])
+  @@index([brandId, metric, timestamp])
 }
 
 // ========================================
@@ -2974,18 +3070,20 @@ model CreditPack {
 }
 
 model CreditTransaction {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  packId          String?  @map("pack_id")
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  packId          String?   @map("pack_id")
   amount          Int // Positive = purchase, Negative = usage
-  balanceBefore   Int      @map("balance_before")
-  balanceAfter    Int      @map("balance_after")
-  type            String // 'purchase', 'usage', 'refund', 'bonus', 'expiration'
+  balanceBefore   Int       @map("balance_before")
+  balanceAfter    Int       @map("balance_after")
+  type            String // 'purchase', 'usage', 'refund', 'bonus', 'expiration', 'monthly_refill'
   source          String? // '/api/ai/generate', 'admin', 'stripe_webhook'
   metadata        Json? // Additional data (endpoint, cost, model, duration, etc.)
-  stripeSessionId String?  @map("stripe_session_id")
-  stripePaymentId String?  @map("stripe_payment_id")
-  createdAt       DateTime @default(now()) @map("created_at")
+  stripeSessionId String?   @map("stripe_session_id")
+  stripePaymentId String?   @map("stripe_payment_id")
+  expiresAt       DateTime? @map("expires_at") // Add-on credits expire after 12 months; plan refills have null
+  expiredAt       DateTime? @map("expired_at") // When this transaction was marked expired (balance adjusted)
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   // Relations
   user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2996,6 +3094,10 @@ model CreditTransaction {
   @@index([createdAt])
   @@index([stripeSessionId])
   @@index([packId])
+  @@index([expiresAt])
+  @@index([expiredAt])
+  // PRODUCTION: Composite for user credit history (sorted by date)
+  @@index([userId, createdAt])
   @@map("CreditTransaction")
 }
 
@@ -3195,6 +3297,11 @@ model Ticket {
   firstResponseAt DateTime? // Time to first response
   resolvedAt      DateTime?
   closedAt        DateTime?
+
+  // CSAT (Customer Satisfaction)
+  csatRating      Int?      // 1-5 rating
+  csatComment     String?   // Optional feedback comment
+  csatSubmittedAt DateTime? // When CSAT was submitted
 
   // Relations
   messages    TicketMessage[]
@@ -3654,6 +3761,8 @@ model DesignCollection {
   @@index([userId])
   @@index([brandId])
   @@index([isPublic])
+  @@index([brandId, isPublic])
+  @@index([brandId, createdAt])
   @@map("DesignCollection")
 }
 
@@ -3719,6 +3828,7 @@ model Clipart {
   @@index([brandId])
   @@index([category])
   @@index([isPublic])
+  @@index([brandId, category])
   @@index([createdAt])
   @@map("Clipart")
 }
@@ -3750,6 +3860,8 @@ model TeamMember {
   @@index([userId])
   @@index([email])
   @@index([status])
+  @@index([organizationId, status])
+  @@index([organizationId, role])
   @@map("TeamMember")
 }
 
@@ -3918,13 +4030,14 @@ model CustomerSegment {
 // ========================================
 
 model EmailTemplate {
-  id          String   @id @default(cuid())
+  id          String                @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String                @unique
   subject     String
-  htmlContent String   @db.Text
-  textContent String?  @db.Text
-  variables   String[] // ["firstName", "planName", etc.]
+  htmlContent String                @db.Text
+  textContent String?               @db.Text
+  variables   String[]              // ["firstName", "planName", etc.]
+  category    EmailTemplateCategory @default(OTHER)
 
   // Relations
   campaigns       EmailCampaign[]
@@ -3934,6 +4047,7 @@ model EmailTemplate {
   updatedAt DateTime @updatedAt
 
   @@index([slug])
+  @@index([category])
 }
 
 model EmailCampaign {
@@ -3957,6 +4071,9 @@ model EmailCampaign {
   scheduledAt DateTime?
   sentAt      DateTime?
 
+  // Relations
+  logs EmailLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -3965,17 +4082,18 @@ model EmailCampaign {
 }
 
 model EmailAutomation {
-  id            String  @id @default(cuid())
+  id            String           @id @default(cuid())
   name          String
   description   String?
-  trigger       String // user.created, trial.started, etc.
+  trigger       String           // user.created, trial.started, etc.
   triggerConfig Json?
 
-  status String @default("draft") // draft, active, paused
+  status AutomationStatus @default(draft)
 
   // Relations
   steps AutomationStep[]
   runs  AutomationRun[]
+  logs  EmailLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4010,17 +4128,17 @@ model AutomationStep {
 }
 
 model AutomationRun {
-  id           String          @id @default(cuid())
+  id           String             @id @default(cuid())
   automationId String
-  automation   EmailAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automation   EmailAutomation    @relation(fields: [automationId], references: [id], onDelete: Cascade)
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  status      String @default("active") // active, completed, cancelled
-  currentStep Int    @default(0)
+  status      AutomationRunStatus @default(active)
+  currentStep Int                 @default(0)
 
-  startedAt   DateTime  @default(now())
+  startedAt   DateTime            @default(now())
   completedAt DateTime?
   nextStepAt  DateTime?
 
@@ -4039,7 +4157,9 @@ model EmailLog {
   type      String // campaign, automation, transactional
 
   campaignId   String?
+  campaign     EmailCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   automationId String?
+  automation   EmailAutomation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
 
   subject  String
   template String?
@@ -4056,6 +4176,8 @@ model EmailLog {
   @@index([type])
   @@index([status])
   @@index([messageId])
+  @@index([campaignId])
+  @@index([automationId])
 }
 
 // ========================================
@@ -4580,6 +4702,7 @@ model CustomTheme {
 
   @@index([brandId])
   @@index([isActive])
+  @@index([brandId, isActive])
 }
 
 model CustomDomain {
@@ -4595,6 +4718,7 @@ model CustomDomain {
 
   @@index([brandId])
   @@index([isActive])
+  @@index([brandId, isActive])
 }
 
 model SLATicket {
@@ -4619,6 +4743,7 @@ model SLATicket {
   @@index([slaStatus])
   @@index([slaResponseDeadline])
   @@index([slaResolutionDeadline])
+  @@index([brandId, slaStatus])
 }
 
 // ========================================
@@ -4776,6 +4901,7 @@ model ARIntegration {
   @@index([brandId])
   @@index([platform])
   @@index([isActive])
+  @@index([brandId, isActive])
 }
 
 model SyncHistory {
@@ -4929,7 +5055,7 @@ model AssetFolder {
   updatedAt DateTime @updatedAt
 
   // Relations
-  parent   AssetFolder?  @relation("FolderTree", fields: [parentId], references: [id])
+  parent   AssetFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: SetNull)
   children AssetFolder[] @relation("FolderTree")
   files    AssetFile[]
 
@@ -4971,11 +5097,13 @@ model AssetFile {
   updatedAt DateTime @updatedAt
 
   // Relations
-  folder AssetFolder? @relation(fields: [folderId], references: [id])
+  folder AssetFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
   @@index([folderId])
   @@index([type])
+  @@index([brandId, type])
+  @@index([brandId, folderId])
 }
 
 // ========================================
@@ -5047,6 +5175,8 @@ model Project {
   @@index([workspaceId])
   @@index([type])
   @@index([status])
+  @@index([brandId, status])
+  @@index([brandId, type])
 }
 
 // ========================================
@@ -5086,6 +5216,7 @@ model Configurator3DConfiguration {
   @@index([productId])
   @@index([projectId])
   @@index([isActive])
+  @@index([brandId, isActive])
 }
 
 model Configurator3DComponent {
@@ -5487,45 +5618,142 @@ model FeatureFlag {
   @@index([key])
   @@index([brandId])
   @@index([isEnabled])
+  @@index([brandId, isEnabled])
 }
 
 // ============================================================================
 // ORION - Super Admin AI Command Center
 // ============================================================================
 
+// ========================================
+// ORION ENUMS
+// ========================================
+
+enum OrionAgentType {
+  ACQUISITION
+  ONBOARDING
+  COMMUNICATION
+  RETENTION
+  REVENUE
+  ANALYTICS
+  GENERAL
+}
+
+enum OrionAgentStatus {
+  ACTIVE
+  PAUSED
+  MAINTENANCE
+}
+
+enum ChurnRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum GrowthPotential {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AutomationStatus {
+  draft
+  active
+  paused
+}
+
+enum AutomationRunStatus {
+  active
+  completed
+  cancelled
+}
+
+enum EmailTemplateCategory {
+  ONBOARDING
+  RETENTION
+  ENGAGEMENT
+  TRANSACTIONAL
+  UPSELL
+  WIN_BACK
+  OTHER
+}
+
 model OrionAgent {
-  id          String   @id @default(uuid())
-  name        String   @unique // APOLLO, ATHENA, HERMES, ARTEMIS, HADES, ZEUS
+  id          String           @id @default(uuid())
+  name        String           @unique // APOLLO, ATHENA, HERMES, ARTEMIS, HADES, ZEUS
   displayName String
+  type        OrionAgentType   @default(GENERAL)
   description String?
-  status      String   @default("PAUSED") // ACTIVE, PAUSED, MAINTENANCE
-  config      Json     @default("{}")
+  status      OrionAgentStatus @default(PAUSED)
+  config      Json             @default("{}")
   lastRunAt   DateTime?
-  tasksLast24h Int     @default(0)
-  successRate  Float   @default(0)
-  errorCount   Int     @default(0)
-  avgExecTime  Float   @default(0) // ms
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tasksLast24h Int             @default(0)
+  successRate  Float           @default(0)
+  errorCount   Int             @default(0)
+  avgExecTime  Float           @default(0) // ms
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("orion_agents")
 }
 
 model CustomerHealthScore {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  healthScore      Int      @default(50) // 0-100
-  churnRisk        String   @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
-  activationScore  Int      @default(0)
-  engagementScore  Int      @default(0)
-  adoptionScore    Int      @default(0)
-  growthPotential  String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  id               String          @id @default(uuid())
+  userId           String          @unique
+  healthScore      Int             @default(50) // 0-100
+  churnRisk        ChurnRisk       @default(LOW)
+  activationScore  Int             @default(0)
+  engagementScore  Int             @default(0)
+  adoptionScore    Int             @default(0)
+  growthPotential  GrowthPotential @default(MEDIUM)
   lastActivityAt   DateTime?
-  signals          Json     @default("[]")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  signals          Json            @default("[]")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("customer_health_scores")
+}
+
+// ========================================
+// CART (Shopping Cart)
+// ========================================
+
+model Cart {
+  id        String     @id @default(cuid())
+  sessionId String?    @unique // For anonymous users
+  userId    String?
+  user      User?      @relation("UserCart", fields: [userId], references: [id], onDelete: Cascade)
+  brandId   String
+  items     CartItem[]
+  metadata  Json?
+  expiresAt DateTime?  // Auto-expire abandoned carts
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, brandId])
+  @@index([sessionId])
+  @@index([brandId])
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id              String  @id @default(cuid())
+  cartId          String
+  cart            Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId       String
+  designId        String?
+  customizationId String?
+  quantity        Int     @default(1)
+  priceCents      Int // snapshot price at time of add
+  metadata        Json? // custom options, preview URL, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([cartId, productId, designId, customizationId])
+  @@index([cartId])
+  @@index([productId])
 }

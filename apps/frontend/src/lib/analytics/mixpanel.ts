@@ -6,13 +6,13 @@
 declare global {
   interface Window {
     mixpanel: {
-      init: (token: string, config?: Record<string, any>) => void;
-      track: (eventName: string, properties?: Record<string, any>) => void;
+      init: (token: string, config?: Record<string, unknown>) => void;
+      track: (eventName: string, properties?: Record<string, unknown>) => void;
       identify: (userId: string) => void;
       people: {
-        set: (properties: Record<string, any>) => void;
+        set: (properties: Record<string, unknown>) => void;
       };
-      register: (properties: Record<string, any>) => void;
+      register: (properties: Record<string, unknown>) => void;
       reset: () => void;
     };
   }
@@ -52,7 +52,7 @@ export function initMixpanel(): void {
  */
 export function trackMixpanelEvent(
   eventName: string,
-  properties?: Record<string, any>,
+  properties?: Record<string, unknown>,
 ): void {
   if (typeof window === 'undefined' || !window.mixpanel || !initialized) {
     return;
@@ -67,7 +67,7 @@ export function trackMixpanelEvent(
 /**
  * Identify user
  */
-export function identifyMixpanelUser(userId: string, properties?: Record<string, any>): void {
+export function identifyMixpanelUser(userId: string, properties?: Record<string, unknown>): void {
   if (typeof window === 'undefined' || !window.mixpanel || !initialized) {
     return;
   }
@@ -82,7 +82,7 @@ export function identifyMixpanelUser(userId: string, properties?: Record<string,
 /**
  * Set user properties
  */
-export function setMixpanelUserProperties(properties: Record<string, any>): void {
+export function setMixpanelUserProperties(properties: Record<string, unknown>): void {
   if (typeof window === 'undefined' || !window.mixpanel || !initialized) {
     return;
   }
@@ -93,7 +93,7 @@ export function setMixpanelUserProperties(properties: Record<string, any>): void
 /**
  * Register super properties (sent with every event)
  */
-export function registerMixpanelSuperProperties(properties: Record<string, any>): void {
+export function registerMixpanelSuperProperties(properties: Record<string, unknown>): void {
   if (typeof window === 'undefined' || !window.mixpanel || !initialized) {
     return;
   }

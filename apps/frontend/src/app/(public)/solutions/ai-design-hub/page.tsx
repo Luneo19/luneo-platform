@@ -25,11 +25,13 @@ import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
+import { useI18n } from '@/i18n/useI18n';
 
 // Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
-const APP_URL = 'https://luneo.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 function AIDesignHubPageContent() {
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('photoréaliste');
   const [variations, setVariations] = useState(4);
@@ -54,24 +56,29 @@ function AIDesignHubPageContent() {
     setError(null);
     setIsGenerating(true);
     try {
-      const data = await api.post<any>('/api/v1/ai/generate', {
+      const raw = await api.post<Record<string, unknown>>('/api/v1/ai/generate', {
         prompt,
         style,
         count: variations,
       });
-      
+      const data = raw as {
+        data?: { images?: Array<{ url?: string }> };
+        images?: Array<{ url?: string }>;
+        url?: string;
+        imageUrl?: string;
+      };
       // Handle different response structures
       let urls: string[] = [];
       if (data?.data?.images && Array.isArray(data.data.images)) {
-        urls = data.data.images.map((img: { url?: string }) => img.url).filter(Boolean);
+        urls = data.data.images.map((img) => img.url).filter(Boolean) as string[];
       } else if (data?.images && Array.isArray(data.images)) {
-        urls = data.images.map((img: { url?: string }) => img.url).filter(Boolean);
+        urls = data.images.map((img) => img.url).filter(Boolean) as string[];
       } else if (data?.url) {
         urls = [data.url];
       } else if (data?.imageUrl) {
         urls = [data.imageUrl];
-      } else if (typeof data === 'string') {
-        urls = [data];
+      } else if (typeof raw === 'string') {
+        urls = [raw];
       }
       
       if (!urls.length) {
@@ -80,15 +87,16 @@ function AIDesignHubPageContent() {
       } else {
         setResults((prev) => [...urls, ...prev].slice(0, 12));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('AI demo error', {
         error: err,
         prompt,
         style,
         variations,
-        message: err.message || 'Unknown error',
+        message,
       });
-      setError("Erreur pendant la génération, réessayez dans quelques secondes.");
+      setError(t('common.generationError'));
     } finally {
       setIsGenerating(false);
     }
@@ -257,7 +265,7 @@ function AIDesignHubPageContent() {
                 </label>
                 <Textarea
                   id="ai-demo-prompt"
-                  placeholder="Ex. : Illustration futuriste d’un skateboard chrome lumineux dans un tunnel néon"
+                  placeholder={t('common.examplePrompt')}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={4}

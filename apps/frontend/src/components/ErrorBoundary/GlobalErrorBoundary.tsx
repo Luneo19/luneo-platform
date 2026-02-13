@@ -49,7 +49,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
 
     // Log to console in development
-    logger.error('GlobalErrorBoundary caught error:', error, errorInfo);
+    logger.error('GlobalErrorBoundary caught error:', error, { errorInfo });
 
     // Report to error tracking service
     this.reportError(error, errorInfo);
@@ -60,12 +60,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
   private reportError(error: Error, errorInfo: ErrorInfo): void {
     // Report to Sentry or other service
-    if (typeof window !== 'undefined' && (window as Window & { Sentry?: { captureException: (error: Error, options?: object) => void } }).Sentry) {
-      (window as Window & { Sentry: { captureException: (error: Error, options?: object) => void } }).Sentry.captureException(error, {
-        extra: {
-          componentStack: errorInfo.componentStack,
-        },
-      });
+    if (typeof window !== 'undefined') {
+      const win = window as unknown as Window & { Sentry?: { captureException: (error: Error, options?: object) => void } };
+      if (win.Sentry) {
+        win.Sentry.captureException(error, {
+          extra: {
+            componentStack: errorInfo.componentStack,
+          },
+        });
+      }
     }
 
     // Also send to our API

@@ -5,19 +5,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { CronJobsService } from './cron-jobs.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { EmailService } from '@/modules/email/email.service';
 
 describe('CronJobsService', () => {
   let service: CronJobsService;
   const mockPrisma = {
     design: { count: jest.fn(), findMany: jest.fn() },
     order: { count: jest.fn(), aggregate: jest.fn() },
-    user: { count: jest.fn() },
+    user: { count: jest.fn(), findMany: jest.fn() },
     refreshToken: { deleteMany: jest.fn() },
     designVersion: { count: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
     notification: { deleteMany: jest.fn() },
     auditLog: { deleteMany: jest.fn() },
   };
   const mockConfigService = { get: jest.fn() };
+  const mockEmailService = { sendEmail: jest.fn(), queueEmail: jest.fn().mockResolvedValue({ jobId: 'test-job' }) };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -26,6 +28,7 @@ describe('CronJobsService', () => {
         CronJobsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
     service = module.get<CronJobsService>(CronJobsService);
@@ -41,10 +44,24 @@ describe('CronJobsService', () => {
       mockPrisma.order.count.mockResolvedValue(5);
       mockPrisma.order.aggregate.mockResolvedValue({ _sum: { totalCents: 10000 } });
       mockPrisma.user.count.mockResolvedValue(3);
+      mockPrisma.user.findMany.mockResolvedValue([{ email: 'admin@test.com' }]);
       const result = await service.generateAnalyticsDigest();
       expect(result.success).toBe(true);
       expect(result.digest.metrics.designs.count).toBe(10);
       expect(result.digest.metrics.orders.revenue).toBe(100);
+    });
+
+    it('should queue emails to platform admins', async () => {
+      mockPrisma.design.count.mockResolvedValue(0);
+      mockPrisma.order.count.mockResolvedValue(0);
+      mockPrisma.order.aggregate.mockResolvedValue({ _sum: { totalCents: 0 } });
+      mockPrisma.user.count.mockResolvedValue(0);
+      mockPrisma.user.findMany.mockResolvedValue([
+        { email: 'admin1@test.com' },
+        { email: 'admin2@test.com' },
+      ]);
+      await service.generateAnalyticsDigest();
+      expect(mockEmailService.queueEmail).toHaveBeenCalledTimes(2);
     });
   });
 

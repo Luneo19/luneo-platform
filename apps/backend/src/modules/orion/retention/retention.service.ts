@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ChurnRisk, GrowthPotential, AutomationRunStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
-const CHURN_RISK_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+const CHURN_RISK_LEVELS = [ChurnRisk.LOW, ChurnRisk.MEDIUM, ChurnRisk.HIGH, ChurnRisk.CRITICAL] as const;
 
 @Injectable()
 export class RetentionService {
@@ -20,7 +21,7 @@ export class RetentionService {
       count: scores.filter((r) => r.churnRisk === level).length,
     }));
     const atRisk = scores.filter(
-      (r) => r.churnRisk === 'HIGH' || r.churnRisk === 'CRITICAL',
+      (r) => r.churnRisk === ChurnRisk.HIGH || r.churnRisk === ChurnRisk.CRITICAL,
     ).length;
     const atRiskPct = total > 0 ? (atRisk / total) * 100 : 0;
 
@@ -51,7 +52,7 @@ export class RetentionService {
 
   async getAtRiskCustomers(limit?: number) {
     const list = await this.prisma.customerHealthScore.findMany({
-      where: { churnRisk: { in: ['HIGH', 'CRITICAL'] } },
+      where: { churnRisk: { in: [ChurnRisk.HIGH, ChurnRisk.CRITICAL] } },
       orderBy: { healthScore: 'asc' },
       take: limit ?? 100,
       include: {
@@ -87,11 +88,11 @@ export class RetentionService {
     userId: string,
     data: {
       healthScore?: number;
-      churnRisk?: string;
+      churnRisk?: ChurnRisk | string;
       activationScore?: number;
       engagementScore?: number;
       adoptionScore?: number;
-      growthPotential?: string;
+      growthPotential?: GrowthPotential | string;
       lastActivityAt?: Date | null;
       signals?: unknown;
     },
@@ -101,21 +102,21 @@ export class RetentionService {
       create: {
         userId,
         healthScore: data.healthScore ?? 50,
-        churnRisk: (data.churnRisk as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL') ?? 'LOW',
+        churnRisk: (data.churnRisk as ChurnRisk) ?? ChurnRisk.LOW,
         activationScore: data.activationScore ?? 0,
         engagementScore: data.engagementScore ?? 0,
         adoptionScore: data.adoptionScore ?? 0,
-        growthPotential: (data.growthPotential as 'LOW' | 'MEDIUM' | 'HIGH') ?? 'MEDIUM',
+        growthPotential: (data.growthPotential as GrowthPotential) ?? GrowthPotential.MEDIUM,
         lastActivityAt: data.lastActivityAt ?? null,
         signals: (data.signals as object) ?? [],
       },
       update: {
         ...(data.healthScore !== undefined && { healthScore: data.healthScore }),
-        ...(data.churnRisk !== undefined && { churnRisk: data.churnRisk }),
+        ...(data.churnRisk !== undefined && { churnRisk: data.churnRisk as ChurnRisk }),
         ...(data.activationScore !== undefined && { activationScore: data.activationScore }),
         ...(data.engagementScore !== undefined && { engagementScore: data.engagementScore }),
         ...(data.adoptionScore !== undefined && { adoptionScore: data.adoptionScore }),
-        ...(data.growthPotential !== undefined && { growthPotential: data.growthPotential }),
+        ...(data.growthPotential !== undefined && { growthPotential: data.growthPotential as GrowthPotential }),
         ...(data.lastActivityAt !== undefined && { lastActivityAt: data.lastActivityAt }),
         ...(data.signals !== undefined && { signals: data.signals as object }),
       },
@@ -123,16 +124,26 @@ export class RetentionService {
   }
 
   async calculateHealthScore(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, lastLoginAt: true, createdAt: true },
-    });
+    const [user, userWithBrand] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, lastLoginAt: true, createdAt: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { brand: { select: { stripeSubscriptionId: true, plan: true, planExpiresAt: true } } },
+      }),
+    ]);
     if (!user) throw new NotFoundException('User not found');
 
-    // Resolve subscription status from Stripe/billing if available; otherwise assume active
-    const subscriptionActive = true;
-
+    // Resolve subscription status from user's brand
     const now = new Date();
+    const subscriptionActive =
+      !!(userWithBrand?.brand?.stripeSubscriptionId) ||
+      (userWithBrand?.brand?.planExpiresAt
+        ? new Date(userWithBrand.brand.planExpiresAt) > now
+        : false);
+
     const lastLogin = user.lastLoginAt ? new Date(user.lastLoginAt) : null;
     const daysSinceLogin = lastLogin
       ? (now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60 * 24)
@@ -150,15 +161,15 @@ export class RetentionService {
     if (daysSinceSignup >= 30) score += 5;
     score = Math.max(0, Math.min(100, score));
 
-    let churnRisk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
-    if (score <= 25) churnRisk = 'CRITICAL';
-    else if (score <= 45) churnRisk = 'HIGH';
-    else if (score <= 65) churnRisk = 'MEDIUM';
+    let churnRisk: ChurnRisk = ChurnRisk.LOW;
+    if (score <= 25) churnRisk = ChurnRisk.CRITICAL;
+    else if (score <= 45) churnRisk = ChurnRisk.HIGH;
+    else if (score <= 65) churnRisk = ChurnRisk.MEDIUM;
 
     const activationScore = Math.min(100, Math.round(daysSinceSignup > 0 ? 100 / Math.log1p(daysSinceSignup) : 80));
     const engagementScore = daysSinceLogin <= 7 ? 90 : daysSinceLogin <= 30 ? 60 : daysSinceLogin <= 60 ? 30 : 10;
     const adoptionScore = subscriptionActive ? 70 : 40;
-    const growthPotential = score >= 70 ? 'HIGH' : score >= 50 ? 'MEDIUM' : 'LOW';
+    const growthPotential: GrowthPotential = score >= 70 ? GrowthPotential.HIGH : score >= 50 ? GrowthPotential.MEDIUM : GrowthPotential.LOW;
 
     const updated = await this.prisma.customerHealthScore.upsert({
       where: { userId },
@@ -216,11 +227,11 @@ export class RetentionService {
   async triggerWinBack(userIds: string[]) {
     const winBackAutomations = await this.prisma.emailAutomation.findFirst({
       where: {
-        status: 'active',
+        status: 'active' as const,
         OR: [
-          { trigger: { contains: 'win', mode: 'insensitive' } },
-          { trigger: { contains: 'churn', mode: 'insensitive' } },
-          { name: { contains: 'win-back', mode: 'insensitive' } },
+          { trigger: { contains: 'win', mode: 'insensitive' as const } },
+          { trigger: { contains: 'churn', mode: 'insensitive' as const } },
+          { name: { contains: 'win-back', mode: 'insensitive' as const } },
         ],
       },
     });
@@ -238,7 +249,7 @@ export class RetentionService {
           data: {
             automationId: winBackAutomations.id,
             customerId: c.id,
-            status: 'active',
+            status: AutomationRunStatus.active,
             currentStep: 0,
           },
         }),

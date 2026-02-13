@@ -133,7 +133,7 @@ export const createDesignSchema = z.object({
   height: z.number().int().min(1).max(4096).optional(),
   format: z.enum(['png', 'jpg', 'webp']).default('png'),
   tags: tagsSchema,
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -168,7 +168,7 @@ export const orderItemSchema = z.object({
   design_preview_url: urlSchema.optional(),
   design_print_url: urlSchema.optional(),
   quantity: z.number().int().min(1, 'La quantité doit être au moins 1').max(1000, 'La quantité ne peut pas dépasser 1000'),
-  customization: z.record(z.any()).optional(),
+  customization: z.record(z.unknown()).optional(),
   production_notes: z.string().max(500).optional(),
 });
 
@@ -196,7 +196,7 @@ export const productVariantSchema = z.object({
   sku: z.string().max(100).optional(),
   price: z.number().min(0, 'Le prix doit être positif').optional(),
   stock: z.number().int().min(0).nullable().optional(),
-  attributes: z.record(z.any()).optional(),
+  attributes: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -210,7 +210,7 @@ export const createProductSchema = z.object({
   currency: z.enum(['EUR', 'USD', 'GBP']).default('EUR'),
   images: z.array(urlSchema).max(10, 'Maximum 10 images').optional(),
   variants: z.array(productVariantSchema).max(50, 'Maximum 50 variantes').optional(),
-  customization_options: z.record(z.any()).optional(),
+  customization_options: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -224,7 +224,7 @@ export const updateProductSchema = z.object({
   currency: z.enum(['EUR', 'USD', 'GBP']).optional(),
   images: z.array(urlSchema).max(10, 'Maximum 10 images').optional(),
   variants: z.array(productVariantSchema).max(50, 'Maximum 50 variantes').optional(),
-  customization_options: z.record(z.any()).optional(),
+  customization_options: z.record(z.unknown()).optional(),
   stock: z.number().int().min(0).nullable().optional(),
 });
 
@@ -241,7 +241,7 @@ export const createNotificationSchema = z.object({
   action_url: urlSchema.optional(),
   action_label: z.string().max(50).optional(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -260,11 +260,11 @@ export const connectIntegrationSchema = z.object({
   service: z.enum(['shopify', 'woocommerce', 'stripe', 'sendgrid', 'cloudinary'], {
     errorMap: () => ({ message: 'Service invalide. Services supportés: shopify, woocommerce, stripe, sendgrid, cloudinary' }),
   }),
-  credentials: z.record(z.string(), z.any()).refine(
+  credentials: z.record(z.string(), z.unknown()).refine(
     (obj) => Object.keys(obj).length >= 1,
     { message: 'Les credentials sont requis' }
   ),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -375,7 +375,7 @@ export const renderHighresSchema = z.object({
  */
 export const saveCustomDesignSchema = z.object({
   name: z.string().min(1, 'Le nom du design est requis').max(200, 'Le nom du design ne peut pas dépasser 200 caractères').trim(),
-  design_data: z.record(z.any(), z.any()).or(z.string()), // Peut être un objet ou une string JSON
+  design_data: z.record(z.unknown()).or(z.string()), // Peut être un objet ou une string JSON
   product_id: idSchema.optional().nullable(),
   thumbnail_url: urlSchema.optional().nullable(),
   tags: tagsSchema,
@@ -386,7 +386,7 @@ export const saveCustomDesignSchema = z.object({
  */
 export const updateCustomDesignSchema = z.object({
   name: z.string().min(1).max(200).trim().optional(),
-  design_data: z.record(z.any(), z.any()).or(z.string()).optional(),
+  design_data: z.record(z.unknown()).or(z.string()).optional(),
   product_id: idSchema.optional().nullable(),
   thumbnail_url: urlSchema.optional().nullable(),
   tags: tagsSchema,
@@ -447,7 +447,7 @@ export const sendEmailSchema = z.object({
   to: emailSchema,
   subject: z.string().min(1, 'Le sujet est requis').max(200, 'Le sujet ne peut pas dépasser 200 caractères'),
   template: z.string().max(100).optional(),
-  data: z.record(z.any()).optional(),
+  data: z.record(z.unknown()).optional(),
   html: z.string().max(100000).optional(), // Limite de taille HTML
   text: z.string().max(100000).optional(), // Limite de taille texte
 });
@@ -571,7 +571,7 @@ export const createTemplateSchema = z.object({
   name: nameSchema.max(200, 'Le nom du template ne peut pas dépasser 200 caractères'),
   category: z.string().max(100).optional(),
   thumbnail_url: urlSchema.optional(),
-  template_data: z.any(), // JSON object or string
+  template_data: z.union([z.record(z.unknown()), z.string()]), // JSON object or string
   tags: tagsSchema,
   is_premium: z.boolean().default(false),
 });
@@ -620,7 +620,7 @@ export const onboardingSchema = z.object({
   step: z.enum(['welcome', 'profile', 'preferences', 'complete'], {
     errorMap: () => ({ message: 'Étape invalide. Étapes valides: welcome, profile, preferences, complete' }),
   }),
-  data: z.record(z.any()), // JSON object
+  data: z.record(z.unknown()), // JSON object
 });
 
 /**
@@ -646,7 +646,7 @@ export const convertUSDZSchema = z.object({
  */
 export const webhookNotificationSchema = z.object({
   event: z.string().min(1, 'L\'événement est requis').max(100, 'L\'événement ne peut pas dépasser 100 caractères'),
-  data: z.record(z.any()), // JSON object
+  data: z.record(z.unknown()), // JSON object
   resource_type: z.string().max(50).optional(),
   resource_id: idSchema.optional(),
 });

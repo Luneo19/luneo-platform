@@ -1,7 +1,7 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder, validateRequest, validateWithZodSchema } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { changePasswordSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
       };
     }
 
-    logger.info('Password changed', {
+    serverLogger.info('Password changed', {
       userId: user.id,
     });
 

@@ -24,7 +24,8 @@ export class AIImageService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    this.replicateApiKey = this.configService.get<string>('REPLICATE_API_KEY') || '';
+    // PRODUCTION FIX: Standardize on REPLICATE_API_TOKEN (matches configuration.ts)
+    this.replicateApiKey = this.configService.get<string>('REPLICATE_API_TOKEN') || this.configService.get<string>('ai.replicate.apiToken') || '';
     this.cloudinaryCloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME') || '';
     this.cloudinaryApiKey = this.configService.get<string>('CLOUDINARY_API_KEY') || '';
     this.cloudinaryApiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET') || '';
@@ -50,9 +51,9 @@ export class AIImageService {
     }
 
     try {
-      let upscaledUrl: string;
-      let width: number;
-      let height: number;
+      let upscaledUrl: string | undefined;
+      let width: number = 0;
+      let height: number = 0;
 
       // Try Replicate first if API key is configured
       if (this.replicateApiKey) {
@@ -86,14 +87,17 @@ export class AIImageService {
           }
 
           if (prediction.status === 'succeeded') {
-            upscaledUrl = prediction.output;
+            const outputUrl = prediction.output;
+            if (typeof outputUrl !== 'string') throw new InternalServerErrorException('Invalid upscale output');
+            upscaledUrl = outputUrl;
             // Get dimensions from image
             const imageResponse = await axios.get(upscaledUrl, { responseType: 'arraybuffer' });
             const metadata = await sharp(Buffer.from(imageResponse.data)).metadata();
             width = metadata.width || 0;
             height = metadata.height || 0;
           } else {
-            throw new InternalServerErrorException(`Upscale failed: ${prediction.error}`);
+            this.logger.error('Replicate upscale failed', { predictionError: prediction.error });
+            throw new InternalServerErrorException('Image processing failed. Please try again.');
           }
         } catch (replicateError) {
           this.logger.warn('Replicate upscale failed, falling back to Cloudinary', replicateError);
@@ -119,13 +123,13 @@ export class AIImageService {
         scale,
         enhanceDetails,
         originalUrl: imageUrl,
-        upscaledUrl,
+        upscaledUrl: upscaledUrl!,
       });
 
-      return { url: upscaledUrl, width, height };
+      return { url: upscaledUrl!, width, height };
     } catch (error) {
-      this.logger.error(`Failed to upscale image: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to upscale image: ${error.message}`);
+      this.logger.error('AI image upscale failed', { error });
+      throw new InternalServerErrorException('Image processing failed. Please try again.');
     }
   }
 
@@ -187,7 +191,8 @@ export class AIImageService {
         if (prediction.status === 'succeeded') {
           resultUrl = prediction.output;
         } else {
-          throw new InternalServerErrorException(`Background removal failed: ${prediction.error}`);
+          this.logger.error('Replicate background removal failed', { predictionError: prediction.error });
+          throw new InternalServerErrorException('Image processing failed. Please try again.');
         }
       } else {
         throw new BadRequestException('Replicate API key not configured');
@@ -202,8 +207,8 @@ export class AIImageService {
 
       return { url: resultUrl };
     } catch (error) {
-      this.logger.error(`Failed to remove background: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to remove background: ${error.message}`);
+      this.logger.error('AI image processing failed', { error });
+      throw new BadRequestException('Image processing failed. Please try again.');
     }
   }
 
@@ -294,11 +299,10 @@ export class AIImageService {
         colorsFound: colorArray.length,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return { colors: colorArray as any };
+      return { colors: colorArray as Array<{ hex: string; rgb: { r: number; g: number; b: number }; hsl: { h: number; s: number; l: number }; percentage: number }> };
     } catch (error) {
-      this.logger.error(`Failed to extract colors: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to extract colors: ${error.message}`);
+      this.logger.error('Extract colors failed', { error });
+      throw new InternalServerErrorException('Image processing failed. Please try again.');
     }
   }
 
@@ -366,11 +370,8 @@ export class AIImageService {
 
       return { url: imageUrl, revisedPrompt };
     } catch (error) {
-      this.logger.error(`Failed to generate image: ${error.message}`, error.stack);
-      if (axios.isAxiosError(error) && error.response) {
-        throw new BadRequestException(`OpenAI API error: ${error.response.data?.error?.message || error.message}`);
-      }
-      throw new BadRequestException(`Failed to generate image: ${error.message}`);
+      this.logger.error('AI image generation failed', { error });
+      throw new InternalServerErrorException('Image generation failed. Please try again.');
     }
   }
 
@@ -471,7 +472,7 @@ export class AIImageService {
             api_secret: this.cloudinaryApiSecret,
           });
 
-          const uploadResult = await new Promise<any>((resolve, reject) => {
+          const uploadResult = await new Promise<{ secure_url: string }>((resolve, reject) => {
             cloudinary.uploader
               .upload_stream(
                 {
@@ -482,7 +483,8 @@ export class AIImageService {
                 },
                 (error, result) => {
                   if (error) reject(error);
-                  else resolve(result);
+                  else if (result?.secure_url) resolve({ secure_url: result.secure_url });
+                  else reject(new Error('Cloudinary upload failed: no URL returned'));
                 },
               )
               .end(croppedBuffer);
@@ -513,8 +515,8 @@ export class AIImageService {
         newSize: targetSize,
       };
     } catch (error) {
-      this.logger.error(`Failed to smart crop image: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to smart crop image: ${error.message}`);
+      this.logger.error('Smart crop failed', { error });
+      throw new InternalServerErrorException('Image processing failed. Please try again.');
     }
   }
 

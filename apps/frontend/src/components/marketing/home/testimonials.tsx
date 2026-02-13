@@ -43,7 +43,7 @@ export function Testimonials() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
             Ils nous font confiance
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Découvrez comment nos clients transforment leur business avec Luneo
           </p>
         </FadeIn>
@@ -59,7 +59,7 @@ export function Testimonials() {
                 </div>
 
                 {/* Quote Icon */}
-                <Quote className="w-8 h-8 text-gray-600 mb-4" />
+                <Quote className="w-8 h-8 text-gray-400 mb-4" />
 
                 {/* Quote */}
                 <p className="text-gray-300 mb-6 leading-relaxed italic">
@@ -71,10 +71,10 @@ export function Testimonials() {
                   <p className="font-semibold text-white">
                     {testimonial.author}
                   </p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-300">
                     {testimonial.role}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-300 mt-1">
                     {testimonial.company}
                   </p>
                 </div>

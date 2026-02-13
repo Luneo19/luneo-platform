@@ -89,7 +89,6 @@ export class BodyTracker {
       }
 
       // Créer Pose (require used so optional dependency does not break build if missing)
-      // @ts-expect-error -- @mediapipe/pose is optional; module may be unresolved at build time
       const { Pose: PoseClass } = require('@mediapipe/pose');
       this.pose = new PoseClass({
         locateFile: (file: string) => {
@@ -98,7 +97,7 @@ export class BodyTracker {
       });
 
       // Configurer Pose
-      this.pose.setOptions({
+      this.pose!.setOptions({
         modelComplexity: this.config.modelComplexity,
         minDetectionConfidence: this.config.minDetectionConfidence,
         minTrackingConfidence: this.config.minTrackingConfidence,
@@ -106,14 +105,14 @@ export class BodyTracker {
       });
 
       // Setup callback
-      this.pose.onResults((results: PoseResults) => this.onResults(results));
+      this.pose!.onResults((results: PoseResults) => this.onResults(results));
 
       // Créer Camera si videoElement fourni
       if (this.videoElement) {
         this.camera = new Camera(this.videoElement, {
           onFrame: async () => {
             if (this.pose && this.videoElement && this.videoElement.readyState >= 2) {
-              await this.pose.send({ image: this.videoElement });
+              await this.pose!.send({ image: this.videoElement });
             }
           },
           width: this.videoElement.videoWidth || 1280,

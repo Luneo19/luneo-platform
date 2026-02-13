@@ -16,6 +16,7 @@ import { BullModule } from '@nestjs/bull';
 import { ShopifyModule } from './shopify/shopify.module';
 import { WooCommerceModule } from './woocommerce/woocommerce.module';
 import { PrestaShopModule } from './prestashop/prestashop.module';
+import { ZapierModule } from './zapier/zapier.module';
 
 // Shared services
 import { IntegrationOrchestratorService } from './services/integration-orchestrator.service';
@@ -50,6 +51,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     ShopifyModule,
     WooCommerceModule,
     PrestaShopModule,
+    ZapierModule,
   ],
   providers: [
     IntegrationOrchestratorService,
@@ -63,6 +65,7 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     ShopifyModule,
     WooCommerceModule,
     PrestaShopModule,
+    ZapierModule,
   ],
 })
 export class IntegrationsModule {}

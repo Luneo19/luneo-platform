@@ -5,20 +5,24 @@
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { trpc } from '@/lib/trpc/client';
-import type { OrderStatus } from '../types';
+import type { OrderStatus as DashboardOrderStatus } from '../types';
+import { OrderStatus as ApiOrderStatus } from '@/lib/types/order';
 
-// Mapping entre statuts frontend (minuscules) et backend (Prisma enum)
-const STATUS_MAPPING: Record<OrderStatus, 'CREATED' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'> = {
-  pending: 'CREATED',
-  processing: 'CONFIRMED',
-  shipped: 'SHIPPED',
-  delivered: 'DELIVERED',
-  cancelled: 'CANCELLED',
+// Mapping entre statuts frontend (minuscules) et backend (API enum)
+const STATUS_MAPPING: Record<DashboardOrderStatus, ApiOrderStatus> = {
+  pending: ApiOrderStatus.PENDING,
+  processing: ApiOrderStatus.PROCESSING,
+  shipped: ApiOrderStatus.SHIPPED,
+  delivered: ApiOrderStatus.DELIVERED,
+  cancelled: ApiOrderStatus.CANCELLED,
 };
 
 export function useOrderActions() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -29,7 +33,7 @@ export function useOrderActions() {
   const handleUpdateStatus = useCallback(
     async (
       orderId: string,
-      status: OrderStatus,
+      status: DashboardOrderStatus,
       notes?: string
     ): Promise<{ success: boolean }> => {
       try {
@@ -39,22 +43,22 @@ export function useOrderActions() {
           notes,
         });
         toast({
-          title: 'Succès',
-          description: 'Statut de la commande mis à jour',
+          title: t('common.success'),
+          description: t('orders.statusUpdated'),
         });
         router.refresh();
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error updating order status', { error });
         toast({
-          title: 'Erreur',
-          description: error instanceof Error ? error.message : 'Erreur lors de la mise à jour',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [updateMutation, toast, router]
+    [updateMutation, toast, router, t]
   );
 
   const handleCancelOrder = useCallback(
@@ -62,28 +66,28 @@ export function useOrderActions() {
       try {
         await cancelMutation.mutateAsync({ id: orderId, reason });
         toast({
-          title: 'Succès',
-          description: 'Commande annulée',
+          title: t('common.success'),
+          description: t('orders.cancelledSuccessfully'),
         });
         router.refresh();
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error cancelling order', { error });
         toast({
-          title: 'Erreur',
-          description: error instanceof Error ? error.message : 'Erreur lors de l\'annulation',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [cancelMutation, toast, router]
+    [cancelMutation, toast, router, t]
   );
 
   const handleBulkUpdateStatus = useCallback(
     async (
       orderIds: string[],
-      status: OrderStatus
+      status: DashboardOrderStatus
     ): Promise<{ success: boolean }> => {
       try {
         await Promise.all(
@@ -95,22 +99,22 @@ export function useOrderActions() {
           )
         );
         toast({
-          title: 'Succès',
-          description: `${orderIds.length} commande(s) mises à jour`,
+          title: t('common.success'),
+          description: t('orders.bulkStatusUpdated', { count: orderIds.length }),
         });
         router.refresh();
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error bulk updating orders', { error });
         toast({
-          title: 'Erreur',
-          description: 'Erreur lors de la mise à jour en masse',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [updateMutation, toast, router]
+    [updateMutation, toast, router, t]
   );
 
   return {

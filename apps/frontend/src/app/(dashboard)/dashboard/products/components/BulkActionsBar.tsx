@@ -8,8 +8,17 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { useI18n } from '@/i18n/useI18n';
 import { BULK_ACTIONS } from '../constants/products';
 import type { BulkAction } from '../types';
+
+const BULK_LABEL_KEYS: Record<string, string> = {
+  activate: 'products.bulkActivate',
+  deactivate: 'products.bulkDeactivate',
+  archive: 'products.bulkArchive',
+  export: 'products.bulkExport',
+  delete: 'products.delete',
+};
 
 interface BulkActionsBarProps {
   selectedCount: number;
@@ -22,6 +31,7 @@ export function BulkActionsBar({
   onClearSelection,
   onBulkAction,
 }: BulkActionsBarProps) {
+  const { t } = useI18n();
   if (selectedCount === 0) return null;
 
   return (
@@ -32,8 +42,7 @@ export function BulkActionsBar({
     >
       <div className="flex items-center gap-4">
         <span className="text-white font-medium">
-          {selectedCount} produit{selectedCount > 1 ? 's' : ''} sélectionné
-          {selectedCount > 1 ? 's' : ''}
+          {t('products.selectedCount', { count: selectedCount })}
         </span>
         <Button variant="ghost" size="sm" onClick={onClearSelection}>
           <X className="w-4 h-4" />
@@ -42,7 +51,7 @@ export function BulkActionsBar({
       <div className="flex items-center gap-2">
         {BULK_ACTIONS.map((action: BulkAction) => {
           const Icon = action.icon;
-          const actionLabel = action.label as string;
+          const actionLabel = BULK_LABEL_KEYS[action.type] ? t(BULK_LABEL_KEYS[action.type]) : (action.label as string);
           const actionVariant = action.variant as 'default' | 'destructive' | 'outline';
           return (
             <Button

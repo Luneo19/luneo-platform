@@ -138,6 +138,7 @@ export class WebhookService {
   async findAll(brandId: string) {
     const webhooks = await this.prisma.webhook.findMany({
       where: { brandId },
+      take: 100,
       include: {
         _count: {
           select: { webhookLogs: true },
@@ -399,7 +400,8 @@ export class WebhookService {
 
       return { success: result.success, error: result.error };
     } catch (error) {
-      return { success: false, error: error.message };
+      this.logger.error('Webhook delivery failed', { error });
+      return { error: 'Webhook delivery failed', success: false };
     }
   }
 

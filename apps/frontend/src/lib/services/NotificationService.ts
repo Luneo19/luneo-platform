@@ -212,22 +212,22 @@ export class NotificationService {
       const dbNotifications = response?.notifications ?? response?.data ?? [];
       const list = Array.isArray(dbNotifications) ? dbNotifications : [];
       const total = response?.pagination?.total ?? response?.total ?? list.length;
-      const unreadCount = response?.unreadCount ?? list.filter((n: { read?: boolean }) => !n.read).length;
+      const unreadCount = response?.unreadCount ?? list.filter((n: unknown) => !(n as { read?: boolean }).read).length;
 
-      const notifications: Notification[] = list.map(
-        (n: {
-          id: string;
-          userId: string;
-          type: string;
-          title: string;
-          message: string;
-          data?: Record<string, unknown>;
-          read: boolean;
-          readAt?: Date | string | null;
-          createdAt: Date | string;
-          actionUrl?: string | null;
-          actionLabel?: string | null;
-        }) => ({
+      type NotifLike = {
+        id: string;
+        userId: string;
+        type: string;
+        title: string;
+        message: string;
+        data?: Record<string, unknown>;
+        read: boolean;
+        readAt?: Date | string | null;
+        createdAt: Date | string;
+        actionUrl?: string | null;
+        actionLabel?: string | null;
+      };
+      const notifications: Notification[] = (list as NotifLike[]).map((n) => ({
           id: n.id,
           userId: n.userId,
           type: n.type as Notification['type'],
@@ -235,7 +235,7 @@ export class NotificationService {
           message: n.message,
           data: n.data,
           read: n.read,
-          readAt: n.readAt ?? undefined,
+          readAt: n.readAt != null ? (typeof n.readAt === 'string' ? new Date(n.readAt) : n.readAt) : undefined,
           createdAt: typeof n.createdAt === 'string' ? new Date(n.createdAt) : n.createdAt,
           actionUrl: n.actionUrl ?? undefined,
           actionLabel: n.actionLabel ?? undefined,
@@ -365,6 +365,62 @@ export class NotificationService {
   }
 
   // ========================================
+  // REAL-TIME (SSE)
+  // ========================================
+
+  /**
+   * Build SSE stream URL (matches API client: uses NEXT_PUBLIC_API_URL env var).
+   */
+  private getSSEStreamUrl(): string {
+    if (typeof window === 'undefined') return '';
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:3001` : 'http://127.0.0.1:3001');
+    return `${base.replace(/\/$/, '')}/api/v1/notifications/stream`;
+  }
+
+  /**
+   * Subscribe to real-time notifications via Server-Sent Events.
+   * Cookies are sent automatically (withCredentials) for auth.
+   * Returns an unsubscribe function.
+   */
+  subscribeToRealtime(onNotification: (notification: Notification) => void): () => void {
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+      return () => {};
+    }
+    const url = this.getSSEStreamUrl();
+    if (!url) return () => {};
+    const es = new EventSource(url, { withCredentials: true });
+    const handler = (event: MessageEvent) => {
+      try {
+        const raw = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
+        const data = JSON.parse(raw) as Record<string, unknown>;
+        const notification: Notification = {
+          id: String(data.id ?? ''),
+          userId: String(data.userId ?? ''),
+          type: (data.type as Notification['type']) ?? 'info',
+          title: String(data.title ?? ''),
+          message: String(data.message ?? ''),
+          data: data.data as Record<string, unknown> | undefined,
+          read: Boolean(data.read ?? false),
+          readAt: data.readAt ? new Date(data.readAt as string) : undefined,
+          createdAt: new Date((data.createdAt as string) ?? Date.now()),
+          actionUrl: data.actionUrl as string | undefined,
+          actionLabel: data.actionLabel as string | undefined,
+        };
+        onNotification(notification);
+      } catch (err) {
+        logger.error('SSE parse error', { error: err, data: event.data });
+      }
+    };
+    es.onmessage = handler;
+    es.onerror = () => {
+      logger.warn('SSE connection error or closed');
+    };
+    return () => {
+      es.close();
+    };
+  }
+
+  // ========================================
   // EMAIL NOTIFICATIONS
   // ========================================
 
@@ -457,7 +513,7 @@ export class NotificationService {
             ${actionButton}
             <p style="margin-top: 30px; font-size: 12px; color: #666;">
               Vous recevez cet email car vous avez activé les notifications par email pour ce type d'événement.
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:3000')}/settings/notifications" style="color: #0070f3;">Gérer mes préférences</a>
             </p>
           </div>
         </body>
@@ -543,7 +599,28 @@ export class NotificationService {
   }
 
   /**
-   * S'abonner aux notifications push (côté client)
+   * Register the service worker (must be called before subscribeToPush).
+   * Returns the registration or null if not supported.
+   */
+  async registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        return null;
+      }
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+      });
+      logger.info('Service worker registered', { scope: registration.scope });
+      return registration;
+    } catch (error) {
+      logger.error('Failed to register service worker', { error });
+      return null;
+    }
+  }
+
+  /**
+   * S'abonner aux notifications push (côté client).
+   * Registers the service worker if needed, requests permission, subscribes with VAPID, sends subscription to backend.
    */
   async subscribeToPush(userId: string): Promise<PushSubscription | null> {
     try {
@@ -553,6 +630,17 @@ export class NotificationService {
         return null;
       }
 
+      // Register service worker first (ensures /sw.js is controlling the page)
+      const registration =
+        (await navigator.serviceWorker.getRegistration()) ??
+        (await this.registerServiceWorker());
+      if (!registration) {
+        logger.warn('Could not get or register service worker');
+        return null;
+      }
+      // Wait for the SW to be active (e.g. after first register)
+      const activeRegistration = await navigator.serviceWorker.ready;
+
       // Request notification permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
@@ -560,23 +648,28 @@ export class NotificationService {
         return null;
       }
 
-      // Get service worker registration
-      const registration = await navigator.serviceWorker.ready;
-
-      const { publicKey } = await api.get<{ publicKey: string }>(
-        '/api/v1/notifications/push/vapid-key'
-      );
+      // VAPID public key: prefer env, fallback to API
+      let publicKey: string;
+      const envKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (envKey && envKey.trim()) {
+        publicKey = envKey.trim();
+      } else {
+        const res = await api.get<{ publicKey: string }>(
+          '/api/v1/notifications/push/vapid-key'
+        );
+        publicKey = res.publicKey;
+      }
 
       // Convert VAPID key to Uint8Array
       const applicationServerKey = this.urlBase64ToUint8Array(publicKey);
 
       // Subscribe to push
-      const subscription = await registration.pushManager.subscribe({
+      const subscription = await activeRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey as BufferSource,
       });
 
-      // Save subscription to backend
+      // Send subscription to backend
       await this.savePushSubscription(userId, subscription);
 
       logger.info('Successfully subscribed to push notifications');
@@ -675,35 +768,81 @@ export class NotificationService {
   };
 
   /**
+   * Map API shape (email.designs, etc.) to internal shape (email.customizations).
+   */
+  private mapApiPreferencesToInternal(api: {
+    email?: { orders?: boolean; designs?: boolean; marketing?: boolean; securityAlerts?: boolean };
+    push?: { orders?: boolean; designs?: boolean };
+    inApp?: { orders?: boolean; designs?: boolean; system?: boolean };
+  }): NotificationPreferences {
+    return {
+      email: {
+        ...this.defaultPreferences.email,
+        orders: api.email?.orders ?? this.defaultPreferences.email.orders,
+        customizations: api.email?.designs ?? this.defaultPreferences.email.customizations,
+        marketing: api.email?.marketing ?? this.defaultPreferences.email.marketing,
+        system: this.defaultPreferences.email.system,
+      },
+      push: {
+        ...this.defaultPreferences.push,
+        orders: api.push?.orders ?? this.defaultPreferences.push.orders,
+        customizations: api.push?.designs ?? this.defaultPreferences.push.customizations,
+        system: this.defaultPreferences.push.system,
+      },
+      inApp: {
+        ...this.defaultPreferences.inApp,
+        orders: api.inApp?.orders ?? this.defaultPreferences.inApp.orders,
+        customizations: api.inApp?.designs ?? this.defaultPreferences.inApp.customizations,
+        system: api.inApp?.system ?? this.defaultPreferences.inApp.system,
+      },
+    };
+  }
+
+  /**
    * Récupère les préférences de notifications (via API or defaults)
    */
   async getPreferences(userId: string): Promise<NotificationPreferences> {
     try {
-      const res = await api.get<{ notificationPreferences?: NotificationPreferences }>(
-        '/api/v1/settings/notifications'
-      ).catch(() => null);
-      const userPrefs = res?.notificationPreferences;
-      if (userPrefs) {
-        return {
-          email: { ...this.defaultPreferences.email, ...(userPrefs.email || {}) },
-          push: { ...this.defaultPreferences.push, ...(userPrefs.push || {}) },
-          inApp: { ...this.defaultPreferences.inApp, ...(userPrefs.inApp || {}) },
-        };
+      const res = await api.get<{
+        email?: { orders?: boolean; designs?: boolean; marketing?: boolean; securityAlerts?: boolean };
+        push?: { orders?: boolean; designs?: boolean };
+        inApp?: { orders?: boolean; designs?: boolean; system?: boolean };
+      }>('/api/v1/settings/notifications').catch(() => null);
+      if (res && (res.email || res.push || res.inApp)) {
+        return this.mapApiPreferencesToInternal(res);
       }
-      const me = await endpoints.auth.me().catch(() => null) as { notificationPreferences?: NotificationPreferences } | null;
+      const me = await endpoints.auth.me().catch(() => null) as {
+        notificationPreferences?: { email?: { orders?: boolean; designs?: boolean }; push?: { orders?: boolean; designs?: boolean }; inApp?: { orders?: boolean; designs?: boolean; system?: boolean } };
+      } | null;
       const prefs = me?.notificationPreferences;
-      if (prefs) {
-        return {
-          email: { ...this.defaultPreferences.email, ...(prefs.email || {}) },
-          push: { ...this.defaultPreferences.push, ...(prefs.push || {}) },
-          inApp: { ...this.defaultPreferences.inApp, ...(prefs.inApp || {}) },
-        };
+      if (prefs && (prefs.email || prefs.push || prefs.inApp)) {
+        return this.mapApiPreferencesToInternal(prefs);
       }
       return this.defaultPreferences;
     } catch (error: unknown) {
       logger.error('Error fetching notification preferences', { error, userId });
       return this.defaultPreferences;
     }
+  }
+
+  /**
+   * Map internal preferences (customizations) to API shape (designs).
+   */
+  private mapInternalPreferencesToApi(prefs: NotificationPreferences): Record<string, unknown> {
+    return {
+      email: {
+        orders: prefs.email.orders,
+        designs: prefs.email.customizations,
+        marketing: prefs.email.marketing,
+        securityAlerts: prefs.email.system,
+      },
+      push: { orders: prefs.push.orders, designs: prefs.push.customizations },
+      inApp: {
+        orders: prefs.inApp.orders,
+        designs: prefs.inApp.customizations,
+        system: prefs.inApp.system,
+      },
+    };
   }
 
   /**
@@ -723,7 +862,7 @@ export class NotificationService {
         inApp: { ...current.inApp, ...(preferences.inApp || {}) },
       };
 
-      await endpoints.settings.notifications(updated as unknown as Record<string, unknown>);
+      await endpoints.settings.notifications(this.mapInternalPreferencesToApi(updated));
 
       logger.info('Notification preferences updated', { userId });
       return updated;

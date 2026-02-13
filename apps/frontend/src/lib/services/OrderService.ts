@@ -96,7 +96,7 @@ export interface CreateOrderRequest {
   };
   paymentMethodId?: string;
   customerNotes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateOrderRequest {
@@ -104,7 +104,7 @@ export interface UpdateOrderRequest {
   trackingNumber?: string;
   shippingProvider?: string;
   notes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProductionFileRequest {
@@ -231,7 +231,7 @@ export class OrderService {
         userId: orderData.userId ?? '',
         brandId: orderData.brandId ?? undefined,
         orderNumber: orderData.orderNumber ?? '',
-        status: (orderData.status as OrderStatus) ?? OrderStatus.PENDING,
+        status: (orderData.status != null ? (orderData.status as OrderStatus) : OrderStatus.PENDING) as OrderStatus,
         paymentStatus: (orderData.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING,
         shippingStatus: (orderData.shippingStatus as ShippingStatus) ?? ShippingStatus.PENDING,
         items: (orderData.items ?? []).map((item: OrderItemApi) => ({
@@ -292,7 +292,7 @@ export class OrderService {
     try {
       // Appel tRPC pour lister les commandes
       const result = await trpcVanilla.order.list.query({
-        status: options?.status,
+        status: options?.status as OrderStatus | undefined,
         startDate: options?.startDate,
         endDate: options?.endDate,
         limit: options?.limit || 20,
@@ -300,12 +300,14 @@ export class OrderService {
       }) as { orders: OrderApiResponse[]; total: number; hasMore: boolean };
 
       // Convertir les réponses Prisma en types Order
-      const orders: Order[] = result.orders.map((orderData) => ({
+      const orders: Order[] = result.orders.map((orderData) => {
+        const status: OrderStatus = orderData.status != null ? (orderData.status as OrderStatus) : OrderStatus.PENDING;
+        return {
         id: orderData.id,
         userId: orderData.userId ?? '',
         brandId: orderData.brandId ?? undefined,
         orderNumber: orderData.orderNumber ?? '',
-        status: (orderData.status as OrderStatus) ?? OrderStatus.PENDING,
+        status,
         paymentStatus: (orderData.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING,
         shippingStatus: (orderData.shippingStatus as ShippingStatus) ?? ShippingStatus.PENDING,
         items: (orderData.items ?? []).map((item: OrderItemApi) => ({
@@ -337,7 +339,8 @@ export class OrderService {
         shippedAt: orderData.shippedAt != null ? new Date(orderData.shippedAt) : undefined,
         deliveredAt: orderData.deliveredAt != null ? new Date(orderData.deliveredAt) : undefined,
         cancelledAt: orderData.cancelledAt != null ? new Date(orderData.cancelledAt) : undefined,
-      }));
+      };
+      });
 
       return {
         orders,
@@ -358,9 +361,9 @@ export class OrderService {
       logger.info('Updating order', { orderId, status: request.status });
 
       // Appel tRPC pour mettre à jour la commande
-      const updatePayload: OrderUpdatePayload = {
+      const updatePayload = {
         id: orderId,
-        status: request.status,
+        status: request.status as OrderStatus | undefined,
         trackingNumber: request.trackingNumber,
         shippingProvider: request.shippingProvider,
         notes: request.notes,
@@ -374,7 +377,7 @@ export class OrderService {
         userId: orderData.userId ?? '',
         brandId: orderData.brandId ?? undefined,
         orderNumber: orderData.orderNumber ?? '',
-        status: (orderData.status as OrderStatus) ?? OrderStatus.PENDING,
+        status: (orderData.status != null ? (orderData.status as OrderStatus) : OrderStatus.PENDING) as OrderStatus,
         paymentStatus: (orderData.paymentStatus as PaymentStatus) ?? PaymentStatus.PENDING,
         shippingStatus: (orderData.shippingStatus as ShippingStatus) ?? ShippingStatus.PENDING,
         items: orderData.metadata?.items ?? [],

@@ -27,7 +27,6 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { logger } from '@/lib/logger';
-import { api } from '@/lib/api/client';
 
 interface Notification {
   id: string;
@@ -58,12 +57,17 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get<{ notifications?: Array<Record<string, unknown>>; data?: { notifications?: Array<Record<string, unknown>> } }>('/api/v1/notifications');
-      const data = (response as { data?: { notifications?: unknown[] } })?.data ?? response;
+      const res = await fetch('/api/v1/notifications', { credentials: 'include' });
+      if (!res.ok) {
+        setNotifications([]);
+        return;
+      }
+      const raw = await res.json();
+      const data = raw?.data ?? raw;
       const list = (data as { notifications?: unknown[] })?.notifications ?? [];
       const items = Array.isArray(list) ? list : [];
       setNotifications(
-        items.map((n: Record<string, unknown>) => ({
+        (items as Record<string, unknown>[]).map((n) => ({
           id: String(n.id ?? ''),
           type: (n.type as Notification['type']) ?? 'info',
           title: String(n.title ?? ''),
@@ -84,10 +88,17 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
   const markAsRead = async (id: string) => {
     try {
-      await api.post(`/api/v1/notifications/${id}/read`, {});
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-      );
+      const res = await fetch(`/api/v1/notifications/${id}/read`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+        );
+      }
     } catch (error) {
       logger.error('Failed to mark notification as read', error as Error);
     }
@@ -95,8 +106,15 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
   const markAllAsRead = async () => {
     try {
-      await api.post('/api/v1/notifications/read-all', {});
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      const res = await fetch('/api/v1/notifications/read-all', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      }
     } catch (error) {
       logger.error('Failed to mark all notifications as read', error as Error);
     }
@@ -104,8 +122,13 @@ export function NotificationsPanel({ userId }: NotificationsPanelProps) {
 
   const deleteNotification = async (id: string) => {
     try {
-      await api.delete(`/api/v1/notifications/${id}`);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      const res = await fetch(`/api/v1/notifications/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+      }
     } catch (error) {
       logger.error('Failed to delete notification', error as Error);
     }

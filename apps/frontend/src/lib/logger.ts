@@ -7,7 +7,7 @@
 // type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 class Logger {
@@ -43,7 +43,7 @@ class Logger {
     if (this.isProduction) {
       // En production, envoyer à Sentry si configuré (uniquement pour warnings critiques)
       try {
-        let Sentry: any;
+        let Sentry: { captureMessage: (msg: string, opts?: { level?: string; extra?: LogContext }) => void };
         try {
           Sentry = require('@sentry/nextjs');
         } catch {
@@ -75,7 +75,10 @@ class Logger {
       // En production, envoyer à Sentry si configuré
       try {
         // Vérifier si Sentry est disponible
-        let Sentry: any;
+        let Sentry: {
+          captureMessage: (msg: string, opts?: { level?: string; extra?: LogContext }) => void;
+          captureException: (err: Error, opts?: { extra?: LogContext; tags?: Record<string, string> }) => void;
+        };
         try {
           Sentry = require('@sentry/nextjs');
         } catch {

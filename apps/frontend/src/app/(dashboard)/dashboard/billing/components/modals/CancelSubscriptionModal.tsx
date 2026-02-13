@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useBilling } from '../../hooks/useBilling';
+import { useI18n } from '@/i18n/useI18n';
 
 interface CancelSubscriptionModalProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function CancelSubscriptionModal({
   open,
   onOpenChange,
 }: CancelSubscriptionModalProps) {
+  const { t } = useI18n();
   const { cancelSubscription, isLoading } = useBilling();
 
   const handleCancel = async () => {
@@ -38,9 +40,9 @@ export function CancelSubscriptionModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle className="text-red-400">Annuler l'abonnement</DialogTitle>
+          <DialogTitle className="text-red-400">{t('dashboard.billing.cancelConfirmTitle')}</DialogTitle>
           <DialogDescription>
-            Êtes-vous sûr de vouloir annuler votre abonnement ?
+            {t('dashboard.billing.cancelConfirmDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -48,24 +50,23 @@ export function CancelSubscriptionModal({
             <p className="text-sm text-red-400 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Votre abonnement restera actif jusqu'à la fin de la période actuelle. Vous ne
-                serez plus facturé après cette date.
+                {t('dashboard.billing.cancelNote')}
               </span>
             </p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
-            Garder l'abonnement
+            {t('dashboard.billing.keepSubscription')}
           </Button>
           <Button variant="destructive" onClick={handleCancel} disabled={isLoading}>
             {isLoading ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Annulation...
+                {t('dashboard.billing.cancelling')}
               </>
             ) : (
-              'Annuler l\'abonnement'
+              t('dashboard.billing.cancelSubscription')
             )}
           </Button>
         </DialogFooter>

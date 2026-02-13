@@ -107,14 +107,53 @@ export class DashboardService {
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
-    // Return widget-specific data placeholder; extend per widget type as needed
-    const industrySlug = brand.organization?.industry?.slug ?? null;
-    return {
-      widgetSlug,
-      brandId,
-      industrySlug,
-      data: {},
-    };
+
+    const industrySlug = brand?.organization?.industry?.slug ?? null;
+    let data: Record<string, unknown> = {};
+
+    switch (widgetSlug) {
+      case 'revenue-chart': {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const orders = await this.prisma.order.findMany({
+          where: { brandId, createdAt: { gte: thirtyDaysAgo } },
+          select: { totalCents: true, createdAt: true },
+          take: 1000,
+          orderBy: { createdAt: 'asc' },
+        });
+        data = {
+          orders: orders.map((o) => ({ date: o.createdAt, amount: (o.totalCents ?? 0) / 100 })),
+        };
+        break;
+      }
+      case 'recent-orders': {
+        const orders = await this.prisma.order.findMany({
+          where: { brandId },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, status: true, totalCents: true, createdAt: true },
+        });
+        data = { orders };
+        break;
+      }
+      case 'top-products': {
+        const products = await this.prisma.product.findMany({
+          where: { brandId },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, name: true, price: true, images: true },
+        });
+        data = { products };
+        break;
+      }
+      case 'credits-balance': {
+        data = { message: 'Use /api/v1/credits/balance' };
+        break;
+      }
+      default:
+        data = {};
+    }
+
+    return { widgetSlug, brandId, industrySlug, data };
   }
 
   async updatePreferences(

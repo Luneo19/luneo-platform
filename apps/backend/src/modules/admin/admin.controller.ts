@@ -1,7 +1,9 @@
 import {
   Controller,
   Get,
+  Put,
   Post,
+  Patch,
   Delete,
   Body,
   Query,
@@ -21,19 +23,26 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { SetupKeyGuard } from '@/common/guards/setup-key.guard';
 import { AddBlacklistedPromptDto, BulkActionCustomersDto } from './dto/admin.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @ApiTags('admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
+// @ts-expect-error NestJS decorator typing - Roles returns object
 @Roles(UserRole.PLATFORM_ADMIN)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly configService: ConfigService,
+  ) {}
 
   // ========================================
   // TENANTS (BRANDS) - Platform admin view
@@ -55,6 +64,60 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Brand not found' })
   async getBrandDetail(@Param('brandId') brandId: string) {
     return this.adminService.getBrandDetail(brandId);
+  }
+
+  @Patch('brands/:brandId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update brand details (admin)' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Brand updated' })
+  @ApiResponse({ status: 404, description: 'Brand not found' })
+  async updateBrand(
+    @Param('brandId') brandId: string,
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      website?: string;
+      industry?: string;
+      status?: string;
+      plan?: string;
+      subscriptionPlan?: string;
+      subscriptionStatus?: string;
+      maxProducts?: number;
+      maxMonthlyGenerations?: number;
+      aiCostLimitCents?: number;
+      companyName?: string;
+      vatNumber?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      phone?: string;
+      syncStripe?: boolean;
+    },
+  ) {
+    return this.adminService.updateBrand(brandId, body);
+  }
+
+  @Post('brands/:brandId/suspend')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Suspend a brand (disable all access)' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Brand suspended' })
+  async suspendBrand(
+    @Param('brandId') brandId: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.adminService.suspendBrand(brandId, reason);
+  }
+
+  @Post('brands/:brandId/unsuspend')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unsuspend a brand (restore access)' })
+  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiResponse({ status: 200, description: 'Brand unsuspended' })
+  async unsuspendBrand(@Param('brandId') brandId: string) {
+    return this.adminService.unsuspendBrand(brandId);
   }
 
   // ========================================
@@ -88,6 +151,27 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async getCustomerById(@Param('id') id: string) {
     return this.adminService.getCustomerById(id);
+  }
+
+  @Post('customers/:id/ban')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ban a user (disable account)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User banned' })
+  async banUser(
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.adminService.banUser(id, reason);
+  }
+
+  @Post('customers/:id/unban')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unban a user (restore account)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User unbanned' })
+  async unbanUser(@Param('id') id: string) {
+    return this.adminService.unbanUser(id);
   }
 
   // ========================================
@@ -151,7 +235,7 @@ export class AdminController {
   @ApiResponse({ status: 401, description: 'Clé secrète invalide' })
   async createAdmin(@Headers('x-setup-key') setupKey: string) {
     // Vérifier la clé secrète (obligatoire en variable d'environnement)
-    const validKey = process.env.SETUP_SECRET_KEY;
+    const validKey = this.configService.get<string>('SETUP_SECRET_KEY');
     
     if (!validKey) {
       throw new UnauthorizedException('SETUP_SECRET_KEY environment variable is not configured');
@@ -227,6 +311,26 @@ export class AdminController {
     return this.adminService.removeBlacklistedPrompt(decodeURIComponent(term));
   }
 
+  // ========================================
+  // SETTINGS
+  // ========================================
+
+  @Get('settings')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get platform settings' })
+  @ApiResponse({ status: 200, description: 'Platform settings' })
+  async getSettings() {
+    return this.adminService.getSettings();
+  }
+
+  @Put('settings')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update platform settings' })
+  @ApiResponse({ status: 200, description: 'Settings updated' })
+  async updateSettings(@Body() body: UpdateSettingsDto) {
+    return this.adminService.updateSettings(body as unknown as Record<string, unknown>);
+  }
+
   @Post('customers/bulk-action')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
@@ -243,5 +347,183 @@ export class AdminController {
       body.action,
       body.options,
     );
+  }
+
+  // ========================================
+  // DISCOUNT CODES MANAGEMENT
+  // ========================================
+
+  @Get('discounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all discount codes' })
+  @ApiResponse({ status: 200, description: 'Discount codes list' })
+  async getDiscounts(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('isActive') isActive?: string,
+  ) {
+    return this.adminService.getDiscounts({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+    });
+  }
+
+  @Post('discounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a discount code' })
+  @ApiResponse({ status: 201, description: 'Discount code created' })
+  async createDiscount(@Body() body: {
+    code: string;
+    type: string;
+    value: number;
+    minPurchaseCents?: number;
+    maxDiscountCents?: number;
+    validFrom?: string | Date;
+    validUntil?: string | Date;
+    usageLimit?: number;
+    isActive?: boolean;
+    brandId?: string;
+    description?: string;
+  }) {
+    return this.adminService.createDiscount(body);
+  }
+
+  @Put('discounts/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a discount code' })
+  @ApiParam({ name: 'id', description: 'Discount ID' })
+  @ApiResponse({ status: 200, description: 'Discount code updated' })
+  async updateDiscount(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateDiscount(id, body);
+  }
+
+  @Delete('discounts/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a discount code' })
+  @ApiParam({ name: 'id', description: 'Discount ID' })
+  @ApiResponse({ status: 200, description: 'Discount code deleted' })
+  async deleteDiscount(@Param('id') id: string) {
+    return this.adminService.deleteDiscount(id);
+  }
+
+  // ========================================
+  // REFERRAL / COMMISSIONS MANAGEMENT
+  // ========================================
+
+  @Get('referrals')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all referrals' })
+  @ApiResponse({ status: 200, description: 'Referrals list' })
+  async getReferrals(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getReferrals({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      status,
+    });
+  }
+
+  @Get('commissions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all commissions' })
+  @ApiResponse({ status: 200, description: 'Commissions list' })
+  async getCommissions(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getCommissions({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      status,
+    });
+  }
+
+  @Post('commissions/:id/approve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve a commission for payout' })
+  @ApiParam({ name: 'id', description: 'Commission ID' })
+  @ApiResponse({ status: 200, description: 'Commission approved' })
+  async approveCommission(@Param('id') id: string) {
+    return this.adminService.approveCommission(id);
+  }
+
+  @Post('commissions/:id/pay')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mark commission as paid' })
+  @ApiParam({ name: 'id', description: 'Commission ID' })
+  @ApiResponse({ status: 200, description: 'Commission marked as paid' })
+  async markCommissionPaid(@Param('id') id: string) {
+    return this.adminService.markCommissionPaid(id);
+  }
+
+  @Post('commissions/:id/reject')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject a commission' })
+  @ApiParam({ name: 'id', description: 'Commission ID' })
+  @ApiResponse({ status: 200, description: 'Commission rejected' })
+  async rejectCommission(@Param('id') id: string) {
+    return this.adminService.rejectCommission(id);
+  }
+
+  // ========================================
+  // SUPPORT - ADMIN TICKET MANAGEMENT
+  // ========================================
+
+  @Get('support/tickets')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all support tickets (admin view)' })
+  @ApiResponse({ status: 200, description: 'All tickets list' })
+  async getAllTickets(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+    @Query('assignedTo') assignedTo?: string,
+  ) {
+    return this.adminService.getAllTickets({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      status,
+      assignedTo,
+    });
+  }
+
+  @Post('support/tickets/:id/assign')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Assign a ticket to an agent' })
+  @ApiParam({ name: 'id', description: 'Ticket ID' })
+  @ApiResponse({ status: 200, description: 'Ticket assigned' })
+  async assignTicket(@Param('id') id: string, @Body('agentId') agentId: string) {
+    return this.adminService.assignTicket(id, agentId);
+  }
+
+  @Post('support/tickets/:id/reply')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add a staff reply to a ticket' })
+  @ApiParam({ name: 'id', description: 'Ticket ID' })
+  @ApiResponse({ status: 200, description: 'Reply added' })
+  async addAgentReply(
+    @Param('id') id: string,
+    @Body('agentId') agentId: string,
+    @Body('content') content: string,
+  ) {
+    return this.adminService.addAgentReply(id, agentId, content);
+  }
+
+  @Put('support/tickets/:id/status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update ticket status' })
+  @ApiParam({ name: 'id', description: 'Ticket ID' })
+  @ApiResponse({ status: 200, description: 'Status updated' })
+  async updateTicketStatus(
+    @Param('id') id: string,
+    @Body('status') status: string,
+    @Body('agentId') agentId: string,
+  ) {
+    return this.adminService.updateTicketStatus(id, status, agentId);
   }
 }

@@ -67,6 +67,12 @@ apiClient.interceptors.request.use(
     // Add request timestamp
     config.headers['X-Request-Time'] = new Date().toISOString();
 
+    // PRODUCTION FIX: Send locale to backend for i18n-aware responses
+    if (typeof window !== 'undefined') {
+      const locale = localStorage.getItem('luneo_locale') || document.cookie.match(/luneo_locale=([^;]+)/)?.[1] || 'fr';
+      config.headers['Accept-Language'] = locale;
+    }
+
     // Add brand context if available
     const brandId = typeof window !== 'undefined' ? localStorage.getItem('brandId') : null;
     if (brandId) {
@@ -275,6 +281,8 @@ export const endpoints = {
       api.post('/api/v1/auth/reset-password', { token, password }),
     verifyEmail: (token: string) => 
       api.post<{ message: string; verified: boolean }>('/api/v1/auth/verify-email', { token }),
+    resendVerification: (email: string) =>
+      api.post<{ message: string }>('/api/v1/auth/resend-verification', { email }),
     setup2FA: () => api.post<{ secret: string; qrCodeUrl: string; backupCodes: string[] }>('/api/v1/auth/2fa/setup'),
     verify2FA: (token: string) => api.post<{ message: string; backupCodes: string[] }>('/api/v1/auth/2fa/verify', { token }),
     disable2FA: () => api.post<{ message: string }>('/api/v1/auth/2fa/disable'),
@@ -288,15 +296,18 @@ export const endpoints = {
 
   // Users
   users: {
-    list: (params?: { page?: number; limit?: number }) => 
+    list: (params?: { page?: number; limit?: number }) =>
       api.get('/api/v1/users', { params }),
     get: (id: string) => api.get(`/api/v1/users/${id}`),
-    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/users/${id}`, data),
-    delete: (id: string) => api.delete(`/api/v1/users/${id}`),
+    update: (_id: string, data: Record<string, unknown>) => api.patch('/api/v1/users/me', data),
+    delete: (_id: string, data: { password: string; reason?: string }) =>
+      api.delete<{ success?: boolean; message?: string }>('/api/v1/security/gdpr/delete-account', { data }),
   },
 
   // Settings
   settings: {
+    getNotifications: () =>
+      api.get<{ email?: { orders?: boolean; designs?: boolean; marketing?: boolean; securityAlerts?: boolean }; push?: { orders?: boolean; designs?: boolean }; inApp?: { orders?: boolean; designs?: boolean; system?: boolean } }>('/api/v1/settings/notifications'),
     notifications: (preferences: Record<string, unknown>) =>
       api.put<{ success: boolean }>('/api/v1/settings/notifications', preferences),
   },
@@ -315,7 +326,7 @@ export const endpoints = {
       api.get('/api/v1/products', { params }),
     get: (id: string) => api.get(`/api/v1/products/${id}`),
     create: (data: Record<string, unknown>) => api.post('/api/v1/products', data),
-    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/products/${id}`, data),
+    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/products/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/products/${id}`),
     variants: {
       list: (productId: string) => api.get(`/api/v1/products/${productId}/variants`),
@@ -381,7 +392,8 @@ export const endpoints = {
     get: (id: string) => api.get(`/api/v1/orders/${id}`),
     create: (data: Record<string, unknown>) => api.post('/api/v1/orders', data),
     update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/orders/${id}`, data),
-    cancel: (id: string) => api.post(`/api/v1/orders/${id}/cancel`),
+    cancel: (orderId: string, reason?: string) =>
+      api.post(`/api/v1/orders/${orderId}/cancel`, { reason }),
     updateStatus: (id: string, status: string) => api.put(`/api/v1/orders/${id}/status`, { status }),
     tracking: (id: string) => api.get(`/api/v1/orders/${id}/tracking`),
     refund: (id: string, reason: string) => api.post(`/api/v1/orders/${id}/refund`, { reason }),
@@ -423,7 +435,8 @@ export const endpoints = {
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
     plans: () => api.get('/api/v1/pricing/plans'),
-    subscribe: (planId: string, email?: string) => api.post('/api/v1/billing/create-checkout-session', { planId, email }),
+    subscribe: (planId: string, email?: string, billingInterval?: 'monthly' | 'yearly') =>
+      api.post('/api/v1/billing/create-checkout-session', { planId, email, billingInterval: billingInterval || 'monthly' }),
     cancel: () => api.post('/api/v1/billing/cancel-downgrade'),
     cancelSubscription: (immediate?: boolean) =>
       api.post<{ success: boolean; message?: string; cancelAt?: string }>('/api/v1/billing/cancel-subscription', { immediate: !!immediate }),
@@ -431,7 +444,8 @@ export const endpoints = {
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
     addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
     removePaymentMethod: () => api.delete('/api/v1/billing/payment-methods'),
-    customerPortal: () => api.get('/api/v1/billing/customer-portal'),
+    customerPortal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
+    portal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
     changePlan: (data: { planId: string; billingInterval?: string }) => api.post('/api/v1/billing/change-plan', data),
     previewPlanChange: (planId: string, billingInterval?: string) => 
       api.get('/api/v1/billing/preview-plan-change', { params: { planId, billingInterval } }),
@@ -453,9 +467,9 @@ export const endpoints = {
     deleteAccount: (data: { password: string; reason?: string }) =>
       api.delete<{ success: boolean; message?: string }>('/api/v1/security/gdpr/delete-account', { data }),
     sessions: () =>
-      api.get<Array<{ id: string; device?: string; browser?: string; location?: string; ip?: string; lastActive?: string; current?: boolean }>>('/api/v1/security/sessions'),
+      api.get<Array<{ id: string; device?: string; browser?: string; location?: string; ip?: string; lastActive?: string; current?: boolean }>>('/api/v1/users/me/sessions'),
     revokeSession: (sessionId: string) =>
-      api.delete<void>(`/api/v1/security/sessions/${sessionId}`),
+      api.delete<void>(`/api/v1/users/me/sessions/${sessionId}`),
   },
 
   // Integrations
@@ -464,6 +478,12 @@ export const endpoints = {
     enable: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/enable`, config),
     disable: (type: string) => api.delete(`/api/v1/integrations/${type}`),
     test: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/test`, config),
+    shopifyStatus: () =>
+      api.get<{ connected: boolean; shopDomain?: string; status?: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/shopify/status'),
+    woocommerceStatus: () =>
+      api.get<{ connected: boolean; siteUrl?: string; status: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/woocommerce/status'),
+    zapierSubscriptions: () =>
+      api.get<Array<{ id: string; event?: string; targetUrl?: string }>>('/api/v1/integrations/zapier/subscriptions'),
   },
 
   // Team
@@ -481,64 +501,117 @@ export const endpoints = {
   publicApi: {
     keys: {
       list: () => api.get('/api/v1/api-keys'),
+      get: (id: string) => api.get(`/api/v1/api-keys/${id}`),
+      getUsage: (id: string, period?: '24h' | '7d' | '30d') =>
+        api.get<{ requests: number; errors: number; rateLimitHits: number; period: string }>(
+          `/api/v1/api-keys/${id}/usage`,
+          { params: period ? { period } : undefined }
+        ),
       create: (data: Record<string, unknown>) => api.post('/api/v1/api-keys', data),
+      update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/api-keys/${id}`, data),
       delete: (id: string) => api.delete(`/api/v1/api-keys/${id}`),
-      regenerate: (id: string) => api.post(`/api/v1/api-keys/${id}/regenerate`),
+      regenerate: (id: string) => api.post<{ secret: string }>(`/api/v1/api-keys/${id}/regenerate`),
     },
     webhooks: {
-      list: () => api.get('/api/v1/webhooks'),
-      get: (id: string) => api.get(`/api/v1/webhooks/${id}`),
+      list: () => api.get('/api/v1/public-api/webhooks'),
+      get: (id: string) => api.get(`/api/v1/public-api/webhooks/${id}`),
       create: (data: {
         name: string;
         url: string;
         secret?: string;
         events: string[];
         isActive?: boolean;
-      }) => api.post('/api/v1/webhooks', data),
+      }) => api.post('/api/v1/public-api/webhooks', data),
       update: (id: string, data: {
         name?: string;
         url?: string;
         secret?: string;
         events?: string[];
         isActive?: boolean;
-      }) => api.put(`/api/v1/webhooks/${id}`, data),
-      delete: (id: string) => api.delete(`/api/v1/webhooks/${id}`),
+      }) => api.put(`/api/v1/public-api/webhooks/${id}`, data),
+      delete: (id: string) => api.delete(`/api/v1/public-api/webhooks/${id}`),
       test: (url: string, secret?: string) =>
-        api.post('/api/v1/webhooks/test', { url, secret }),
+        api.post('/api/v1/public-api/webhooks/test', { url, secret }),
       logs: (id: string, params?: { page?: number; limit?: number }) =>
-        api.get(`/api/v1/webhooks/${id}/logs`, { params }),
+        api.get(`/api/v1/public-api/webhooks/${id}/logs`, { params }),
       history: (params?: { page?: number; limit?: number }) =>
-        api.get('/api/v1/webhooks/history', { params }),
-      retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
+        api.get('/api/v1/public-api/webhooks/history', { params }),
+      retry: (logId: string) => api.post(`/api/v1/public-api/webhooks/${logId}/retry`),
     },
   },
 
   // Webhooks (alias direct pour compatibilité)
   webhooks: {
-    list: () => api.get('/api/v1/webhooks'),
-    get: (id: string) => api.get(`/api/v1/webhooks/${id}`),
+    list: () => api.get('/api/v1/public-api/webhooks'),
+    get: (id: string) => api.get(`/api/v1/public-api/webhooks/${id}`),
     create: (data: {
       name: string;
       url: string;
       secret?: string;
       events: string[];
       isActive?: boolean;
-    }) => api.post('/api/v1/webhooks', data),
+    }) => api.post('/api/v1/public-api/webhooks', data),
     update: (id: string, data: {
       name?: string;
       url?: string;
       secret?: string;
       events?: string[];
       isActive?: boolean;
-    }) => api.put(`/api/v1/webhooks/${id}`, data),
-    delete: (id: string) => api.delete(`/api/v1/webhooks/${id}`),
+    }) => api.put(`/api/v1/public-api/webhooks/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/public-api/webhooks/${id}`),
     test: (url: string, secret?: string) =>
-      api.post('/api/v1/webhooks/test', { url, secret }),
+      api.post('/api/v1/public-api/webhooks/test', { url, secret }),
     logs: (id: string, params?: { page?: number; limit?: number }) =>
-      api.get(`/api/v1/webhooks/${id}/logs`, { params }),
+      api.get(`/api/v1/public-api/webhooks/${id}/logs`, { params }),
     history: (params?: { page?: number; limit?: number }) =>
-      api.get('/api/v1/webhooks/history', { params }),
-    retry: (logId: string) => api.post(`/api/v1/webhooks/${logId}/retry`),
+      api.get('/api/v1/public-api/webhooks/history', { params }),
+    retry: (logId: string) => api.post(`/api/v1/public-api/webhooks/${logId}/retry`),
+  },
+
+  // Support
+  support: {
+    submitCSAT: (ticketId: string, data: { rating: number; comment?: string }) =>
+      api.post<{ success: boolean; rating: number }>(`/api/v1/support/tickets/${ticketId}/csat`, data),
+  },
+
+  // Discount codes
+  discountCodes: {
+    validate: (code: string, subtotalCents?: number, brandId?: string) =>
+      api.post<{ discountId: string; code: string; discountCents: number; type: string; description?: string }>('/api/v1/discount-codes/validate', { code, subtotalCents, brandId }),
+  },
+
+  // Referral / Affiliate
+  referral: {
+    stats: () =>
+      api.get<{
+        referralCode: string;
+        referralLink: string;
+        totalReferrals: number;
+        activeReferrals: number;
+        totalEarnings: number;
+        pendingEarnings: number;
+        recentReferrals?: unknown[];
+      }>('/api/v1/referral/stats'),
+    join: (email: string) => api.post('/api/v1/referral/join', { email }),
+    withdraw: () => api.post('/api/v1/referral/withdraw'),
+  },
+
+  // Virtual Try-On (sessions & configurations)
+  tryOn: {
+    createSession: (body: { configurationId: string; visitorId: string; deviceInfo?: Record<string, unknown> }) =>
+      api.post<{ id: string; sessionId?: string }>('/api/v1/try-on/sessions', body),
+    getSession: (sessionId: string) =>
+      api.get<{ id: string; sessionId?: string; status: string }>(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}`),
+    createConfiguration: (projectId: string, body: { name: string; productType: string; settings?: Record<string, unknown> }) =>
+      api.post('/api/v1/try-on/configurations', body, { params: { projectId } }),
+  },
+
+  // Experiments (A/B)
+  experiments: {
+    getAssignment: (experimentName: string) =>
+      api.get<{ variant: string }>(`/api/v1/experiments/assignment/${encodeURIComponent(experimentName)}`),
+    recordConversion: (payload: { experimentName: string; value?: number; sessionId?: string; eventType?: string }) =>
+      api.post('/api/v1/experiments/conversion', payload),
   },
 
   // Marketplace (templates listing, detail, reviews)

@@ -71,7 +71,7 @@ export interface CollaborationActivity {
   userName: string;
   action: CollaborationAction;
   target?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   timestamp: number;
 }
 

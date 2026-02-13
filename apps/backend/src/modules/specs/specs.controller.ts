@@ -8,6 +8,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { RequestWithUserAndBrand } from '@/common/types/user.types';
 import { ValidateSpecDto } from './dto/validate-spec.dto';
 import { SpecsService } from './specs.service';
 import { CreateSpecDto } from './dto/create-spec.dto';
@@ -34,7 +35,7 @@ export class SpecsController {
   @ApiResponse({ status: 201, description: 'Spec créé ou récupéré' })
   async createOrGet(
     @Body() dto: CreateSpecDto,
-    @Request() req: any,
+    @Request() req: RequestWithUserAndBrand,
   ) {
     return this.specsService.createOrGet(dto, req.brandId);
   }
@@ -44,7 +45,7 @@ export class SpecsController {
   @ApiResponse({ status: 200, description: 'Spec trouvé' })
   async findByHash(
     @Param('specHash') specHash: string,
-    @Request() req: any,
+    @Request() req: RequestWithUserAndBrand,
   ) {
     return this.specsService.findByHash(specHash, req.brandId);
   }

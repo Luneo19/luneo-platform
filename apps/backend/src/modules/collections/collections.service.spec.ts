@@ -10,7 +10,7 @@ describe('CollectionsService', () => {
   let service: CollectionsService;
   let prisma: PrismaService;
 
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     designCollection: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -61,7 +61,7 @@ describe('CollectionsService', () => {
       expect(result.collections).toEqual(collections);
       expect(result.pagination.total).toBe(1);
       expect(mockPrisma.designCollection.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { userId, brandId }, skip: 0, take: 10 }),
+        expect.objectContaining({ where: expect.objectContaining({ userId, brandId }), skip: 0, take: 10 }),
       );
     });
   });

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import { CATEGORIES, STATUS_OPTIONS } from '../../constants/products';
 import type { ProductDisplay } from '../../types';
 
@@ -46,6 +47,7 @@ export const ProductRow = memo(function ProductRow({
   onDelete,
   onView,
 }: ProductRowProps) {
+  const { t } = useI18n();
   const categoryConfig =
     CATEGORIES.find((c) => c.value === product.category) || CATEGORIES[0];
   const statusConfig =
@@ -83,7 +85,7 @@ export const ProductRow = memo(function ProductRow({
       </td>
       <td className="p-4">
         <Badge variant="outline" className="text-xs">
-          {categoryConfig.label}
+          {t(`products.categories.${categoryConfig.value}` as string)}
         </Badge>
       </td>
       <td className="p-4">
@@ -106,7 +108,7 @@ export const ProductRow = memo(function ProductRow({
                 : 'bg-gray-500'
           )}
         >
-          {statusConfig.label}
+          {t(`products.${statusConfig.value.toLowerCase()}` as string)}
         </Badge>
       </td>
       <td className="p-4">
@@ -130,20 +132,20 @@ export const ProductRow = memo(function ProductRow({
           <DropdownMenuContent align="end" className="bg-white border-gray-200">
             <DropdownMenuItem onClick={onView} className="text-gray-900">
               <Eye className="w-4 h-4 mr-2" />
-              Voir
+              {t('products.view')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onEdit} className="text-gray-900">
               <Edit className="w-4 h-4 mr-2" />
-              Modifier
+              {t('products.edit')}
             </DropdownMenuItem>
             <DropdownMenuItem className="text-gray-900">
               <Copy className="w-4 h-4 mr-2" />
-              Dupliquer
+              {t('products.duplicate')}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-gray-200" />
             <DropdownMenuItem onClick={onDelete} className="text-red-400">
               <Trash2 className="w-4 h-4 mr-2" />
-              Supprimer
+              {t('products.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

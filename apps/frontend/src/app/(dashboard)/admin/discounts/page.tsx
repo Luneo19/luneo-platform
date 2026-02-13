@@ -33,6 +33,7 @@ import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 
 type DiscountType = 'PERCENTAGE' | 'FIXED';
@@ -118,6 +119,7 @@ function formatValue(d: Discount): string {
 }
 
 function AdminDiscountsPage() {
+  const { t } = useI18n();
   const [data, setData] = useState<ListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -226,9 +228,9 @@ function AdminDiscountsPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Discount Codes</h1>
+          <h1 className="text-3xl font-bold text-white">{t('admin.discounts.title')}</h1>
           <p className="text-white/60 mt-1">
-            Create and manage coupon / discount codes
+            {t('admin.discounts.subtitle')}
           </p>
         </div>
         <Button
@@ -236,25 +238,25 @@ function AdminDiscountsPage() {
           className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Discount
+          {t('admin.discounts.createBtn')}
         </Button>
       </div>
 
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Filters</CardTitle>
-          <CardDescription className="text-white/60">Filter by status</CardDescription>
+          <CardTitle className="text-white">{t('admin.discounts.filters')}</CardTitle>
+          <CardDescription className="text-white/60">{t('admin.discounts.filterByStatus')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[180px] dash-input border-white/[0.08] bg-white/[0.04] text-white">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder={t('admin.discounts.allStatuses')} />
             </SelectTrigger>
             <SelectContent className="bg-[#1a1a2e] border-white/[0.06]">
-              <SelectItem value="all" className="text-white focus:bg-white/[0.06]">All statuses</SelectItem>
-              <SelectItem value="active" className="text-white focus:bg-white/[0.06]">Active</SelectItem>
-              <SelectItem value="inactive" className="text-white focus:bg-white/[0.06]">Inactive</SelectItem>
-              <SelectItem value="expired" className="text-white focus:bg-white/[0.06]">Expired</SelectItem>
+              <SelectItem value="all" className="text-white focus:bg-white/[0.06]">{t('admin.discounts.allStatuses')}</SelectItem>
+              <SelectItem value="active" className="text-white focus:bg-white/[0.06]">{t('admin.discounts.active')}</SelectItem>
+              <SelectItem value="inactive" className="text-white focus:bg-white/[0.06]">{t('admin.discounts.inactive')}</SelectItem>
+              <SelectItem value="expired" className="text-white focus:bg-white/[0.06]">{t('admin.discounts.expired')}</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
@@ -262,9 +264,9 @@ function AdminDiscountsPage() {
 
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Discount Codes</CardTitle>
+          <CardTitle className="text-white">{t('admin.discounts.title')}</CardTitle>
           <CardDescription className="text-white/60">
-            {meta ? `${meta.total} discount(s)` : 'Loading...'}
+            {meta ? t('admin.discounts.discountCount', { total: meta.total }) : t('common.loading')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -277,21 +279,21 @@ function AdminDiscountsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
-                    <TableHead className="text-white/60 border-white/[0.06]">Code</TableHead>
-                    <TableHead className="text-white/60 border-white/[0.06]">Type</TableHead>
-                    <TableHead className="text-white/60 border-white/[0.06]">Value</TableHead>
-                    <TableHead className="text-white/60 border-white/[0.06]">Status</TableHead>
-                    <TableHead className="text-white/60 border-white/[0.06]">Usage</TableHead>
-                    <TableHead className="text-white/60 border-white/[0.06]">Valid From</TableHead>
-                    <TableHead className="text-white/60 border-white/[0.06]">Valid To</TableHead>
-                    <TableHead className="text-right text-white/60 border-white/[0.06]">Actions</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.discounts.code')}</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.discounts.type')}</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.discounts.value')}</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.health.status')}</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.discounts.usageCount')}</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.discounts.validFrom')}</TableHead>
+                    <TableHead className="text-white/60 border-white/[0.06]">{t('admin.discounts.validTo')}</TableHead>
+                    <TableHead className="text-right text-white/60 border-white/[0.06]">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {discounts.length === 0 ? (
                     <TableRow className="border-white/[0.06]">
                       <TableCell colSpan={8} className="text-center text-white/40 py-8 border-white/[0.06]">
-                        No discount codes found.
+                        {t('admin.discounts.noCodesFound')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -306,13 +308,13 @@ function AdminDiscountsPage() {
                           <TableCell className="text-white border-white/[0.06]">{formatValue(d)}</TableCell>
                           <TableCell className="border-white/[0.06]">
                             {status === 'active' && (
-                              <span className="dash-badge dash-badge-new">Active</span>
+                              <span className="dash-badge dash-badge-new">{t('admin.discounts.active')}</span>
                             )}
                             {status === 'inactive' && (
-                              <span className="dash-badge text-white/60 border-white/20">Inactive</span>
+                              <span className="dash-badge text-white/60 border-white/20">{t('admin.discounts.inactive')}</span>
                             )}
                             {status === 'expired' && (
-                              <span className="dash-badge dash-badge-live">Expired</span>
+                              <span className="dash-badge dash-badge-live">{t('admin.discounts.expired')}</span>
                             )}
                           </TableCell>
                           <TableCell className="text-white/80 border-white/[0.06]">
@@ -351,7 +353,7 @@ function AdminDiscountsPage() {
               {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-white/60">
-                    Page {meta.page} of {meta.totalPages}
+                    {t('admin.discounts.pageOf', { page: meta.page, totalPages: meta.totalPages })}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -361,7 +363,7 @@ function AdminDiscountsPage() {
                       disabled={meta.page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
-                      Previous
+                      {t('common.previous')}
                     </Button>
                     <Button
                       variant="outline"
@@ -370,7 +372,7 @@ function AdminDiscountsPage() {
                       disabled={meta.page >= meta.totalPages}
                       onClick={() => setPage((p) => p + 1)}
                     >
-                      Next
+                      {t('common.next')}
                     </Button>
                   </div>
                 </div>
@@ -384,14 +386,14 @@ function AdminDiscountsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto dash-card border-white/[0.06] bg-[#12121a] text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">{editingId ? 'Edit Discount' : 'Create Discount'}</DialogTitle>
+            <DialogTitle className="text-white">{editingId ? t('admin.discounts.editTitle') : t('admin.discounts.createTitle')}</DialogTitle>
             <DialogDescription className="text-white/60">
-              {editingId ? 'Update the discount code.' : 'Add a new discount code.'}
+              {editingId ? t('admin.discounts.updateDesc') : t('admin.discounts.addDesc')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="code" className="text-white/80">Code</Label>
+              <Label htmlFor="code" className="text-white/80">{t('admin.discounts.code')}</Label>
               <Input
                 id="code"
                 value={form.code}
@@ -403,7 +405,7 @@ function AdminDiscountsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Type</Label>
+              <Label className="text-white/80">{t('admin.discounts.type')}</Label>
               <Select
                 value={form.type}
                 onValueChange={(v: DiscountType) => setForm((f) => ({ ...f, type: v }))}
@@ -412,14 +414,14 @@ function AdminDiscountsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a1a2e] border-white/[0.06]">
-                  <SelectItem value="PERCENTAGE" className="text-white focus:bg-white/[0.06]">Percentage</SelectItem>
-                  <SelectItem value="FIXED" className="text-white focus:bg-white/[0.06]">Fixed amount (cents)</SelectItem>
+                  <SelectItem value="PERCENTAGE" className="text-white focus:bg-white/[0.06]">{t('admin.discounts.percentage')}</SelectItem>
+                  <SelectItem value="FIXED" className="text-white focus:bg-white/[0.06]">{t('admin.discounts.fixedAmountCents')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="value" className="text-white/80">
-                Value {form.type === 'PERCENTAGE' ? '(0-100)' : '(cents)'}
+                {t('admin.discounts.value')} {form.type === 'PERCENTAGE' ? t('admin.discounts.valuePercentage') : t('admin.discounts.valueCents')}
               </Label>
               <Input
                 id="value"
@@ -434,7 +436,7 @@ function AdminDiscountsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="minPurchase" className="text-white/80">Min purchase (cents)</Label>
+                <Label htmlFor="minPurchase" className="text-white/80">{t('admin.discounts.minPurchaseCents')}</Label>
                 <Input
                   id="minPurchase"
                   type="number"
@@ -445,7 +447,7 @@ function AdminDiscountsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxDiscount" className="text-white/80">Max discount (cents)</Label>
+                <Label htmlFor="maxDiscount" className="text-white/80">{t('admin.discounts.maxDiscountCents')}</Label>
                 <Input
                   id="maxDiscount"
                   type="number"
@@ -458,7 +460,7 @@ function AdminDiscountsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="validFrom" className="text-white/80">Valid from</Label>
+                <Label htmlFor="validFrom" className="text-white/80">{t('admin.discounts.validFrom')}</Label>
                 <Input
                   id="validFrom"
                   type="datetime-local"
@@ -468,7 +470,7 @@ function AdminDiscountsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="validTo" className="text-white/80">Valid to</Label>
+                <Label htmlFor="validTo" className="text-white/80">{t('admin.discounts.validTo')}</Label>
                 <Input
                   id="validTo"
                   type="datetime-local"
@@ -479,7 +481,7 @@ function AdminDiscountsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="usageLimit" className="text-white/80">Max usages</Label>
+              <Label htmlFor="usageLimit" className="text-white/80">{t('admin.discounts.maxUsages')}</Label>
               <Input
                 id="usageLimit"
                 type="number"
@@ -490,12 +492,12 @@ function AdminDiscountsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-white/80">Description</Label>
+              <Label htmlFor="description" className="text-white/80">{t('admin.discounts.descriptionLabel')}</Label>
               <Input
                 id="description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Optional"
+                placeholder={t('common.optional')}
                 className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
               />
             </div>
@@ -505,15 +507,15 @@ function AdminDiscountsPage() {
                 checked={form.isActive}
                 onCheckedChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
               />
-              <Label htmlFor="isActive" className="text-white/80">Active</Label>
+              <Label htmlFor="isActive" className="text-white/80">{t('admin.discounts.active')}</Label>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setDialogOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={saving} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {editingId ? 'Update' : 'Create'}
+                {editingId ? t('common.save') : t('common.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -524,14 +526,14 @@ function AdminDiscountsPage() {
       <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">Delete discount</DialogTitle>
+            <DialogTitle className="text-white">{t('admin.discounts.deleteTitle')}</DialogTitle>
             <DialogDescription className="text-white/60">
-              This will permanently delete this discount code. This action cannot be undone.
+              {t('admin.discounts.deleteDesc')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setDeleteConfirmId(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               className="bg-[#f87171]/20 text-[#f87171] border border-[#f87171]/30 hover:bg-[#f87171]/30"
@@ -539,7 +541,7 @@ function AdminDiscountsPage() {
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
             >
               {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
+              {t('admin.discounts.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

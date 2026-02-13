@@ -4,9 +4,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { Generation, GenerationType, GenerationStatus } from '../types';
 
 export function useAIGenerations(
@@ -15,6 +17,7 @@ export function useAIGenerations(
   filterStatus: string
 ) {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [generations, setGenerations] = useState<Generation[]>([]);
 
   // Use listGenerated instead of listGenerations
@@ -66,13 +69,13 @@ export function useAIGenerations(
   const handleDelete = async (generationId: string) => {
     try {
       await api.delete(`/api/v1/ai-studio/generations/${generationId}`);
-      toast({ title: 'Succès', description: 'Génération supprimée' });
+      toast({ title: t('common.success'), description: t('aiStudio.generationDeleted') });
       generationsQuery.refetch();
     } catch (error: unknown) {
       logger.error('Error deleting generation', { error });
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la suppression',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }

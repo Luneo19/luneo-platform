@@ -4,7 +4,7 @@
  */
 
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getBackendUrl } from '@/lib/api/server-url';
@@ -50,7 +50,7 @@ export async function POST(
         );
       }
 
-      logger.info('Submitting order to POD (forwarding to backend)', {
+      serverLogger.info('Submitting order to POD (forwarding to backend)', {
         orderId: validated.orderId,
         provider,
       });

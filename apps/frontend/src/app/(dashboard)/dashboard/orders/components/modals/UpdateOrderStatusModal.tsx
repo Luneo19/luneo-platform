@@ -24,6 +24,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Save } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { OrderStatus } from '../../types';
 
 interface UpdateOrderStatusModalProps {
@@ -49,6 +50,7 @@ export function UpdateOrderStatusModal({
   orderId,
   onUpdate,
 }: UpdateOrderStatusModalProps) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<OrderStatus>(currentStatus);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -71,14 +73,14 @@ export function UpdateOrderStatusModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>Modifier le statut de la commande</DialogTitle>
+          <DialogTitle>{t('orders.updateStatusTitle')}</DialogTitle>
           <DialogDescription>
-            Changez le statut de la commande et ajoutez des notes si nécessaire
+            {t('orders.updateStatusDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label className="text-gray-700">Nouveau statut *</Label>
+            <Label className="text-gray-700">{t('orders.newStatus')}</Label>
             <Select value={status} onValueChange={(value) => setStatus(value as OrderStatus)}>
               <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                 <SelectValue />
@@ -86,18 +88,18 @@ export function UpdateOrderStatusModal({
               <SelectContent>
                 {STATUS_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {t(`orders.statuses.${option.value}` as string)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="text-gray-700">Notes (optionnel)</Label>
+            <Label className="text-gray-700">{t('orders.notesOptionalPlaceholder')}</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ajoutez des notes sur ce changement de statut..."
+              placeholder={t('orders.statusNotesPlaceholder')}
               rows={3}
               className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
@@ -109,7 +111,7 @@ export function UpdateOrderStatusModal({
               onClick={() => onOpenChange(false)}
               className="border-gray-200"
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -119,12 +121,12 @@ export function UpdateOrderStatusModal({
               {saving ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Enregistrement...
+                  {t('orders.saving')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Enregistrer
+                  {t('common.save')}
                 </>
               )}
             </Button>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     // Vérifier le cache
     const cached = await cacheService.get(cacheKey);
     if (cached) {
-      logger.info('Industries data served from cache', { industryId });
+      serverLogger.info('Industries data served from cache', { industryId });
       const response = NextResponse.json({ success: true, data: cached });
       response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
       response.headers.set('X-Cache', 'HIT');
@@ -123,13 +123,13 @@ export async function GET(request: NextRequest) {
       const backendResponse = await fetch(url.toString());
 
       if (!backendResponse.ok) {
-        logger.error('Error fetching industries from backend', { error: backendResponse.status, industryId });
+        serverLogger.error('Error fetching industries from backend', { error: backendResponse.status, industryId });
       } else {
         const result = await backendResponse.json();
         data = result.data || null;
       }
     } catch (error) {
-      logger.error('Error fetching industries from backend', { error, industryId });
+      serverLogger.error('Error fetching industries from backend', { error, industryId });
     }
 
     // Fallback aux données statiques si le backend échoue
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       } else {
         data = Object.values(FALLBACK_INDUSTRIES);
       }
-      logger.info('Industries using fallback data', { industryId });
+      serverLogger.info('Industries using fallback data', { industryId });
     }
 
     // Mettre en cache

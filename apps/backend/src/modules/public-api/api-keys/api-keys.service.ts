@@ -53,7 +53,7 @@ export class ApiKeysService {
   /**
    * Safely converts Prisma Json rateLimit to ApiKey rateLimit type
    */
-  private parseRateLimit(rateLimit: JsonValue | null): ApiKey['rateLimit'] {
+  private parseRateLimit(rateLimit: JsonValue | import('@prisma/client').Prisma.JsonValue | null): ApiKey['rateLimit'] {
     if (!rateLimit || typeof rateLimit !== 'object' || Array.isArray(rateLimit)) {
       return {
         requestsPerMinute: 60,
@@ -71,17 +71,16 @@ export class ApiKeysService {
 
   /**
    * Créer une nouvelle API Key
+   * Key format: lun_ + 32-char hex (single credential for x-api-key header)
    */
-  async createApiKey(brandId: string, data: CreateApiKeyDto): Promise<{ apiKey: ApiKey; secret: string }> {
-    const keyId = `luneo_${this.generateKeyId()}`;
-    const secret = this.generateSecret();
-    const hashedSecret = await bcrypt.hash(secret, 13);
+  async createApiKey(brandId: string, data: CreateApiKeyDto): Promise<{ apiKey: ApiKey; key: string }> {
+    const keyValue = `lun_${crypto.randomBytes(16).toString('hex')}`;
+    const hashedSecret = await bcrypt.hash(keyValue, 13);
 
     const apiKey = await this.prisma.apiKey.create({
       data: {
-        id: keyId,
         name: data.name,
-        key: keyId,
+        key: keyValue,
         secret: hashedSecret,
         permissions: data.permissions,
         rateLimit: data.rateLimit,
@@ -102,30 +101,29 @@ export class ApiKeysService {
       apiKey: {
         id: apiKey.id,
         name: apiKey.name,
-        key: apiKey.id,
+        key: apiKey.key,
         permissions: apiKey.permissions,
-        rateLimit: apiKey.rateLimit as ApiKey['rateLimit'],
+        rateLimit: this.parseRateLimit(apiKey.rateLimit),
         brandId: apiKey.brandId,
         isActive: apiKey.isActive,
         createdAt: apiKey.createdAt,
       },
-      secret,
+      key: keyValue, // Only returned once; use in x-api-key header
     };
   }
 
   /**
-   * Valider une API Key
+   * Valider une API Key (lookup by key column, check active and not expired)
    */
   async validateApiKey(key: string, secret?: string): Promise<ApiKey> {
     const cacheKey = `api-key:${key}`;
     
-    // Essayer de récupérer depuis le cache
     let apiKey = await this.cache.get(
       cacheKey,
       'api',
       async () => {
         const keyData = await this.prisma.apiKey.findUnique({
-          where: { id: key, isActive: true },
+          where: { key, isActive: true },
           include: {
             brand: {
               select: { id: true, name: true, status: true }
@@ -137,7 +135,10 @@ export class ApiKeysService {
           throw new UnauthorizedException('Invalid API key');
         }
 
-        // Vérifier que la brand est active
+        if (keyData.expiresAt && new Date() > keyData.expiresAt) {
+          throw new UnauthorizedException('API key expired');
+        }
+
         if (keyData.brand.status !== 'ACTIVE') {
           throw new UnauthorizedException('Brand is not active');
         }
@@ -145,6 +146,7 @@ export class ApiKeysService {
         return {
           id: keyData.id,
           name: keyData.name,
+          key: keyData.key,
           permissions: keyData.permissions,
           rateLimit: this.parseRateLimit(keyData.rateLimit),
           brandId: keyData.brandId,
@@ -153,27 +155,28 @@ export class ApiKeysService {
           lastUsedAt: keyData.lastUsedAt,
         };
       },
-      { ttl: 3600 } // Cache 1 heure
+      { ttl: 3600 }
     );
 
-    // Vérifier le secret si fourni
     if (secret) {
       const keyData = await this.prisma.apiKey.findUnique({
-        where: { id: key },
+        where: { key },
         select: { secret: true }
       });
 
-      if (!keyData || !await bcrypt.compare(secret, keyData.secret)) {
+      if (!keyData || !await bcrypt.compare(secret, keyData.secret ?? '')) {
         throw new UnauthorizedException('Invalid API key secret');
       }
     }
 
-    // Mettre à jour lastUsedAt
-    await this.updateLastUsed(key);
+    if (!apiKey) {
+      throw new UnauthorizedException('API key validation failed');
+    }
 
+    await this.updateLastUsed(apiKey.id);
     return {
       ...apiKey,
-      key: apiKey.id, // Add the missing key field
+      lastUsedAt: apiKey.lastUsedAt ?? undefined,
     };
   }
 
@@ -197,13 +200,13 @@ export class ApiKeysService {
     return {
       id: apiKey.id,
       name: apiKey.name,
-      key: apiKey.id,
+      key: apiKey.key,
       permissions: apiKey.permissions,
-      rateLimit: this.parseRateLimit(apiKey.rateLimit),
+      rateLimit: this.parseRateLimit(apiKey.rateLimit as JsonValue | null),
       brandId: apiKey.brandId,
       isActive: apiKey.isActive,
       createdAt: apiKey.createdAt,
-      lastUsedAt: apiKey.lastUsedAt,
+      lastUsedAt: apiKey.lastUsedAt ?? undefined,
     };
   }
 
@@ -228,13 +231,13 @@ export class ApiKeysService {
     return {
       id: updatedKey.id,
       name: updatedKey.name,
-      key: updatedKey.id,
+      key: updatedKey.key,
       permissions: updatedKey.permissions,
-      rateLimit: this.parseRateLimit(updatedKey.rateLimit),
+      rateLimit: this.parseRateLimit(updatedKey.rateLimit as JsonValue | null),
       brandId: updatedKey.brandId,
       isActive: updatedKey.isActive,
       createdAt: updatedKey.createdAt,
-      lastUsedAt: updatedKey.lastUsedAt,
+      lastUsedAt: updatedKey.lastUsedAt ?? undefined,
     };
   }
 
@@ -266,7 +269,7 @@ export class ApiKeysService {
    * Lister les API Keys d'une brand
    */
   async listApiKeys(brandId: string): Promise<ApiKey[]> {
-    return this.cache.get(
+    const result = await this.cache.get<ApiKey[]>(
       `api-keys:${brandId}`,
       'api',
       async () => {
@@ -276,6 +279,7 @@ export class ApiKeysService {
           select: {
             id: true,
             name: true,
+            key: true,
             permissions: true,
             rateLimit: true,
             brandId: true,
@@ -288,17 +292,18 @@ export class ApiKeysService {
         return apiKeys.map(key => ({
           id: key.id,
           name: key.name,
-          key: key.id,
+          key: key.key,
           permissions: key.permissions,
-          rateLimit: this.parseRateLimit(key.rateLimit),
+          rateLimit: this.parseRateLimit(key.rateLimit as JsonValue | null),
           brandId: key.brandId,
           isActive: key.isActive,
           createdAt: key.createdAt,
-          lastUsedAt: key.lastUsedAt,
+          lastUsedAt: key.lastUsedAt ?? undefined,
         }));
       },
       { ttl: 1800 } // Cache 30 minutes
     );
+    return result ?? [];
   }
 
 
@@ -319,8 +324,7 @@ export class ApiKeysService {
       data: { isActive: false }
     });
 
-    // Invalider le cache
-    await this.cache.invalidate(`api-key:${keyId}`, 'api');
+    await this.cache.invalidate(`api-key:${apiKey.key}`, 'api');
     await this.cache.invalidate(`api-keys:${brandId}`, 'api');
   }
 
@@ -372,14 +376,13 @@ export class ApiKeysService {
   }
 
   /**
-   * Mettre à jour la dernière utilisation
+   * Mettre à jour la dernière utilisation (by record id)
    */
-  private async updateLastUsed(keyId: string): Promise<void> {
-    // Mettre à jour en arrière-plan pour ne pas bloquer la requête
+  private async updateLastUsed(apiKeyId: string): Promise<void> {
     setImmediate(async () => {
       try {
         await this.prisma.apiKey.update({
-          where: { id: keyId },
+          where: { id: apiKeyId },
           data: { lastUsedAt: new Date() }
         });
       } catch (error) {

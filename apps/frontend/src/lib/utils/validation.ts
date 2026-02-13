@@ -120,7 +120,7 @@ export function validateLength(
 /**
  * Valider qu'une valeur n'est pas vide
  */
-export function validateRequired(value: any, fieldName: string = 'field'): ValidationResult {
+export function validateRequired(value: unknown, fieldName: string = 'field'): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (value === null || value === undefined || value === '') {
@@ -177,7 +177,7 @@ export function validateRange(
 /**
  * Valider un objet avec plusieurs règles
  */
-export function validateObject<T extends Record<string, any>>(
+export function validateObject<T extends Record<string, unknown>>(
   data: T,
   rules: {
     [K in keyof T]?: Array<(value: T[K]) => ValidationResult>;
@@ -217,7 +217,7 @@ export function formatValidationErrors(errors: ValidationError[]): string {
 /**
  * Valider un objet avec schéma
  */
-export function validateSchema<T extends Record<string, any>>(
+export function validateSchema<T extends Record<string, unknown>>(
   data: T,
   schema: {
     [K in keyof T]?: {

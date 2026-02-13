@@ -5,6 +5,7 @@
 'use client';
 
 import React from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Search, Filter, Grid, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,6 +36,7 @@ export function ARFilters({
   onViewModeChange,
   modelsCount,
 }: ARFiltersProps) {
+  const { t } = useI18n();
   return (
     <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col md:flex-row gap-4">
@@ -42,7 +44,7 @@ export function ARFilters({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
-              placeholder="Rechercher des modèles..."
+              placeholder={t('arStudio.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className="bg-white border-gray-200 text-gray-900 pl-10"
@@ -53,7 +55,7 @@ export function ARFilters({
           <Select value={filterType} onValueChange={onFilterTypeChange}>
             <SelectTrigger className="w-48 bg-gray-900 border-gray-600 text-white">
               <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder={t('arStudio.typeFilter')} />
             </SelectTrigger>
             <SelectContent>
               {MODEL_TYPES.map((type) => {
@@ -71,12 +73,12 @@ export function ARFilters({
           </Select>
           <Select value={filterStatus} onValueChange={onFilterStatusChange}>
             <SelectTrigger className="w-40 bg-white border-gray-200 text-gray-900">
-              <SelectValue placeholder="Statut" />
+              <SelectValue placeholder={t('arStudio.statusFilter')} />
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((status) => (
                 <SelectItem key={status.value} value={status.value}>
-                  {status.label}
+                  {t(status.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -94,7 +96,7 @@ export function ARFilters({
         </div>
       </div>
       <div className="mt-3 text-sm text-gray-400">
-        {modelsCount} modèle{modelsCount > 1 ? 's' : ''} trouvé{modelsCount > 1 ? 's' : ''}
+        {t('arStudio.modelsFound', { count: modelsCount })}
       </div>
     </Card>
   );

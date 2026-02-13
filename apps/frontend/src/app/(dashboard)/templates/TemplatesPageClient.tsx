@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTemplates } from '@/lib/hooks/useTemplates';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
 import Image from 'next/image';
@@ -38,6 +39,7 @@ const CATEGORIES = [
 ];
 
 export function TemplatesPageClient() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -67,8 +69,8 @@ export function TemplatesPageClient() {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       toast({
-        title: 'Prévisualisation',
-        description: `Aucune prévisualisation disponible pour ${template.name}`,
+        title: t('designs.preview'),
+        description: t('templates.previewNotAvailable', { name: template.name }),
       });
     }
   };
@@ -87,14 +89,14 @@ export function TemplatesPageClient() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast({
-        title: 'Téléchargement',
-        description: `${template.name} a été téléchargé`,
+        title: t('common.download'),
+        description: t('templates.downloadSuccess', { name: template.name }),
       });
     } catch (error: unknown) {
       logger.error('Error downloading template', { error });
       toast({
-        title: 'Erreur',
-        description: 'Erreur lors du téléchargement',
+        title: t('common.error'),
+        description: t('templates.downloadError'),
         variant: 'destructive',
       });
     }
@@ -105,7 +107,7 @@ export function TemplatesPageClient() {
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Chargement des templates...</p>
+          <p className="text-gray-300">{t('templates.loadingTemplates')}</p>
         </div>
       </div>
     );
@@ -115,8 +117,8 @@ export function TemplatesPageClient() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="text-center">
-          <p className="text-red-400 mb-4">Erreur lors du chargement des templates</p>
-          <Button onClick={() => window.location.reload()}>Réessayer</Button>
+          <p className="text-red-400 mb-4">{t('templates.loadError')}</p>
+          <Button onClick={() => window.location.reload()}>{t('templates.retry')}</Button>
         </div>
       </div>
     );

@@ -31,42 +31,61 @@ export function getNonce(): string {
  * Build CSP directive with nonce
  * @param nonce - The nonce to include
  * @returns CSP directive string
+ *
+ * SEC-10: Comprehensive CSP with worker-src, manifest-src, media-src,
+ *         Sentry script-src, and report-uri for violation monitoring.
  */
 export function buildCSPWithNonce(nonce: string): string {
   const nonceValue = `'nonce-${nonce}'`;
+  const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.ingest.sentry.io' : '';
+  const reportUri = process.env.CSP_REPORT_URI || '';
   
-  return [
+  const directives = [
     "default-src 'self'",
-    `script-src 'self' ${nonceValue} 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live`,
+    `script-src 'self' ${nonceValue} 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com`,
     `style-src 'self' ${nonceValue} https://fonts.googleapis.com`,
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https://api.luneo.app https://*.luneo.app https://api.stripe.com https://*.sentry.io https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com",
+    `connect-src 'self' https://api.luneo.app https://*.luneo.app https://api.stripe.com https://*.sentry.io ${sentryDsn} https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com`.trim(),
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "frame-ancestors 'self'",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "media-src 'self' blob: data:",
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",
     "upgrade-insecure-requests",
-  ].join('; ');
+  ];
+
+  // CSP violation reporting (optional, requires endpoint)
+  if (reportUri) {
+    directives.push(`report-uri ${reportUri}`);
+  }
+
+  return directives.join('; ');
 }
 
 /**
- * Build CSP directive without unsafe-inline (more secure)
- * Uses nonces for all inline scripts and styles
+ * Build CSP directive without unsafe-inline or unsafe-eval (strictest)
+ * Uses nonces for all inline scripts and styles.
+ * SEC-10: No unsafe-eval — recommended for production.
  */
 export function buildStrictCSPWithNonce(nonce: string): string {
   const nonceValue = `'nonce-${nonce}'`;
   
   return [
     "default-src 'self'",
-    `script-src 'self' ${nonceValue} https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live`,
+    `script-src 'self' ${nonceValue} https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com`,
     `style-src 'self' ${nonceValue} https://fonts.googleapis.com`,
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' https://fonts.gstatic.com data:",
     "connect-src 'self' https://api.luneo.app https://*.luneo.app https://api.stripe.com https://*.sentry.io https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com",
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "frame-ancestors 'self'",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "media-src 'self' blob: data:",
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",

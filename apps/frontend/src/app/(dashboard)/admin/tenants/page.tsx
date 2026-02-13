@@ -11,6 +11,7 @@ import { Search, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TenantUsage {
   brandId: string;
@@ -31,6 +32,7 @@ interface Tenant {
 }
 
 function AdminTenantsPage() {
+  const { t } = useI18n();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,30 +103,30 @@ function AdminTenantsPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-white/60">Loading...</div>;
+    return <div className="p-6 text-white/60">{t('common.loading')}</div>;
   }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Tenant Management</h1>
+          <h1 className="text-3xl font-bold text-white">{t('admin.tenants.title')}</h1>
           <p className="text-white/60 mt-1">
-            View tenant costs and manage feature access
+            {t('admin.tenants.subtitle')}
           </p>
         </div>
       </div>
 
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Search Tenants</CardTitle>
-          <CardDescription className="text-white/60">Find tenants by name or ID</CardDescription>
+          <CardTitle className="text-white">{t('admin.tenants.searchTitle')}</CardTitle>
+          <CardDescription className="text-white/60">{t('admin.tenants.searchDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 h-4 w-4" />
             <Input
-              placeholder="Search tenants..."
+              placeholder={t('admin.tenants.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 dash-input border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/40"
@@ -135,22 +137,22 @@ function AdminTenantsPage() {
 
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Tenants Overview</CardTitle>
+          <CardTitle className="text-white">{t('admin.tenants.overview')}</CardTitle>
           <CardDescription className="text-white/60">
-            {filteredTenants.length} tenant{filteredTenants.length !== 1 ? 's' : ''} found
+            {t('admin.tenants.foundCount', { count: filteredTenants.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
-                <TableHead className="text-white/60 border-white/[0.06]">Tenant</TableHead>
-                <TableHead className="text-white/60 border-white/[0.06]">Plan</TableHead>
-                <TableHead className="text-white/60 border-white/[0.06]">Status</TableHead>
-                <TableHead className="text-white/60 border-white/[0.06]">Monthly Cost</TableHead>
-                <TableHead className="text-white/60 border-white/[0.06]">Usage</TableHead>
-                <TableHead className="text-white/60 border-white/[0.06]">Features</TableHead>
-                <TableHead className="text-white/60 border-white/[0.06]">Actions</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('admin.tenants.name')}</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('admin.tenants.plan')}</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('admin.tenants.status')}</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('admin.tenants.monthlyCost')}</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('admin.tenants.usage')}</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('admin.tenants.features')}</TableHead>
+                <TableHead className="text-white/60 border-white/[0.06]">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -166,7 +168,7 @@ function AdminTenantsPage() {
                     {tenant.status === 'active' ? (
                       <span className="dash-badge dash-badge-new">
                         <CheckCircle2 className="h-3 w-3 mr-1 inline" />
-                        Active
+                        {t('admin.tenants.active')}
                       </span>
                     ) : (
                       <span className="dash-badge dash-badge-live">
@@ -203,17 +205,17 @@ function AdminTenantsPage() {
                         className="text-white/80 hover:bg-white/[0.04] hover:text-white"
                         onClick={() => fetchTenantUsage(tenant.id)}
                       >
-                        Load Usage
+                        {t('admin.tenants.loadUsage')}
                       </Button>
                     )}
                   </TableCell>
                   <TableCell className="border-white/[0.06]">
                     {tenant.usage?.featuresDisabled.length ? (
                       <span className="dash-badge dash-badge-live">
-                        {tenant.usage.featuresDisabled.length} disabled
+                        {tenant.usage.featuresDisabled.length} {t('admin.tenants.disabledCount')}
                       </span>
                     ) : (
-                      <span className="dash-badge dash-badge-new">All enabled</span>
+                      <span className="dash-badge dash-badge-new">{t('admin.tenants.allEnabled')}</span>
                     )}
                   </TableCell>
                   <TableCell className="border-white/[0.06]">
@@ -223,7 +225,7 @@ function AdminTenantsPage() {
                       className="border-white/[0.08] text-white hover:bg-white/[0.04] hover:text-white"
                       onClick={() => setSelectedTenant(tenant.id === selectedTenant ? null : tenant.id)}
                     >
-                      {selectedTenant === tenant.id ? 'Hide' : 'View'}
+                      {selectedTenant === tenant.id ? t('admin.tenants.hide') : t('admin.tenants.view')}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -253,16 +255,17 @@ function TenantDetailCard({
   onToggleFeature: (brandId: string, feature: string, enabled: boolean) => void;
   onRefresh: () => void;
 }) {
+  const { t } = useI18n();
   const usage = tenant.usage;
 
   if (!usage) {
     return (
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Tenant Details</CardTitle>
+          <CardTitle className="text-white">{t('admin.tenants.details')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-white/60">No usage data available. Click "Load Usage" first.</p>
+          <p className="text-white/60">{t('admin.tenants.noUsageData')}</p>
         </CardContent>
       </Card>
     );
@@ -271,15 +274,15 @@ function TenantDetailCard({
   return (
     <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="text-white">{tenant.name} - Details</CardTitle>
-        <CardDescription className="text-white/60">Usage, costs, and feature management</CardDescription>
+        <CardTitle className="text-white">{tenant.name} - {t('admin.tenants.details')}</CardTitle>
+        <CardDescription className="text-white/60">{t('admin.tenants.detailsDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {usage.softLimitReached && (
           <Alert className="border-[#f87171]/30 bg-[#f87171]/10 text-[#f87171]">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Soft limit reached. Some features may be disabled.
+              {t('admin.tenants.softLimitReached')}
             </AlertDescription>
           </Alert>
         )}
@@ -287,7 +290,7 @@ function TenantDetailCard({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-white/80">Monthly Cost</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/80">{t('admin.tenants.monthlyCost')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
@@ -301,7 +304,7 @@ function TenantDetailCard({
 
           <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-white/80">Plan</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/80">{t('admin.tenants.plan')}</CardTitle>
             </CardHeader>
             <CardContent>
               <span className={`dash-badge text-base ${usage.plan === 'enterprise' ? 'dash-badge-enterprise' : 'dash-badge-pro'}`}>
@@ -312,14 +315,14 @@ function TenantDetailCard({
 
           <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-white/80">Features Status</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/80">{t('admin.tenants.featuresStatus')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {usage.featuresDisabled.length === 0 ? (
-                  <span className="text-[#4ade80]">All Enabled</span>
+                  <span className="text-[#4ade80]">{t('admin.tenants.allEnabled')}</span>
                 ) : (
-                  <span className="text-[#f87171]">{usage.featuresDisabled.length} Disabled</span>
+                  <span className="text-[#f87171]">{usage.featuresDisabled.length} {t('admin.tenants.disabledCount')}</span>
                 )}
               </div>
             </CardContent>
@@ -327,7 +330,7 @@ function TenantDetailCard({
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold mb-4 text-white">Usage Metrics</h3>
+          <h3 className="text-lg font-semibold mb-4 text-white">{t('admin.tenants.usageMetrics')}</h3>
           <div className="space-y-3">
             {Object.entries(usage.usage).map(([metric, data]) => (
               <div key={metric} className="flex items-center justify-between p-3 border border-white/[0.06] rounded-xl bg-white/[0.02]">
@@ -359,7 +362,7 @@ function TenantDetailCard({
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold mb-4 text-white">Feature Management</h3>
+          <h3 className="text-lg font-semibold mb-4 text-white">{t('admin.tenants.featureManagement')}</h3>
           <div className="space-y-2">
             {['render', 'ai_generation', 'storage_upload'].map((feature) => {
               const isDisabled = usage.featuresDisabled.includes(feature);
@@ -371,7 +374,7 @@ function TenantDetailCard({
                   <div>
                     <div className="font-medium capitalize text-white">{feature.replace(/_/g, ' ')}</div>
                     <div className="text-sm text-white/60">
-                      {isDisabled ? 'Currently disabled' : 'Currently enabled'}
+                      {isDisabled ? t('admin.tenants.currentlyDisabled') : t('admin.tenants.currentlyEnabled')}
                     </div>
                   </div>
                   <Button
@@ -381,7 +384,7 @@ function TenantDetailCard({
                       : 'bg-[#f87171]/20 text-[#f87171] border border-[#f87171]/30 hover:bg-[#f87171]/30'}
                     onClick={() => onToggleFeature(tenant.id, feature, !isDisabled)}
                   >
-                    {isDisabled ? 'Enable' : 'Disable'}
+                    {isDisabled ? t('admin.tenants.enable') : t('admin.tenants.disable')}
                   </Button>
                 </div>
               );
@@ -391,7 +394,7 @@ function TenantDetailCard({
 
         {usage.recommendations.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-white">Recommendations</h3>
+            <h3 className="text-lg font-semibold mb-4 text-white">{t('admin.tenants.recommendations')}</h3>
             <ul className="space-y-2">
               {usage.recommendations.map((rec, idx) => (
                 <li key={idx} className="text-sm text-white/60 flex items-start">
@@ -408,7 +411,7 @@ function TenantDetailCard({
           variant="outline"
           className="border-white/[0.08] text-white hover:bg-white/[0.04]"
         >
-          Refresh Data
+          {t('admin.tenants.refreshData')}
         </Button>
       </CardContent>
     </Card>

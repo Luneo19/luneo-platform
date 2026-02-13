@@ -1,15 +1,19 @@
 /**
  * Hook personnalisé pour gérer les sessions
  */
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { SecuritySession } from '../types';
 
 export function useSessions() {
+  const { t } = useI18n();
   const router = useRouter();
   const { toast } = useToast();
   const [sessions, setSessions] = useState<SecuritySession[]>([]);
@@ -21,7 +25,7 @@ export function useSessions() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await api.get<{ sessions?: Array<Record<string, unknown>> }>('/api/v1/auth/sessions');
+      const data = await api.get<{ sessions?: Array<Record<string, unknown>> }>('/api/v1/users/me/sessions');
       const list = data?.sessions ?? [];
       const deviceTypes = ['desktop', 'mobile', 'tablet', 'other'] as const;
       const mapDeviceType = (d: string): (typeof deviceTypes)[number] =>
@@ -59,41 +63,41 @@ export function useSessions() {
   const revokeSession = useCallback(
     async (sessionId: string): Promise<{ success: boolean }> => {
       try {
-        await api.delete(`/api/v1/auth/sessions/${sessionId}`);
-        toast({ title: 'Succès', description: 'Session révoquée avec succès' });
+        await api.delete(`/api/v1/users/me/sessions/${sessionId}`);
+        toast({ title: t('common.success'), description: t('common.success') });
         router.refresh();
         fetchSessions();
         return { success: true };
       } catch (error: unknown) {
         logger.error('Error revoking session', { error });
         toast({
-          title: 'Erreur',
-          description: error instanceof Error ? error.message : 'Erreur lors de la révocation de la session',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
       }
     },
-    [toast, router, fetchSessions]
+    [toast, router, fetchSessions, t]
   );
 
   const revokeAllSessions = useCallback(async (): Promise<{ success: boolean }> => {
     try {
-      await api.delete('/api/v1/auth/sessions?all=true');
-      toast({ title: 'Succès', description: 'Toutes les sessions ont été révoquées' });
+      await api.delete('/api/v1/users/me/sessions?all=true');
+      toast({ title: t('common.success'), description: t('common.success') });
       router.refresh();
       fetchSessions();
       return { success: true };
     } catch (error: unknown) {
       logger.error('Error revoking all sessions', { error });
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la révocation des sessions',
+        title: t('common.error'),
+          description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
       return { success: false };
     }
-  }, [toast, router, fetchSessions]);
+  }, [toast, router, fetchSessions, t]);
 
   return {
     sessions,

@@ -13,10 +13,12 @@ import {
   Param,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { RequestWithUser } from '@/common/types/user.types';
 import { SSOEnterpriseService, CreateSSODto } from '../services/sso-enterprise.service';
 import { UserRole } from '@prisma/client';
 
@@ -32,9 +34,12 @@ export class SSOEnterpriseController {
   @ApiOperation({ summary: 'Create SSO configuration for a brand' })
   @ApiResponse({ status: 201, description: 'SSO configuration created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid SSO configuration' })
-  async createSSOConfiguration(@Body() dto: CreateSSODto, @Request() req: any) {
+  async createSSOConfiguration(@Body() dto: CreateSSODto, @Request() req: RequestWithUser) {
     // Ensure user can only create SSO for their own brand (unless platform admin)
     if (req.user.role !== UserRole.PLATFORM_ADMIN) {
+      if (!req.user.brandId) {
+        throw new BadRequestException('Brand ID required');
+      }
       dto.brandId = req.user.brandId;
     }
 
@@ -45,10 +50,10 @@ export class SSOEnterpriseController {
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN)
   @ApiOperation({ summary: 'Get SSO configurations for a brand' })
   @ApiResponse({ status: 200, description: 'SSO configurations retrieved successfully' })
-  async getSSOConfigurations(@Param('brandId') brandId: string, @Request() req: any) {
+  async getSSOConfigurations(@Param('brandId') brandId: string, @Request() req: RequestWithUser) {
     // Ensure user can only access their own brand (unless platform admin)
     if (req.user.role !== UserRole.PLATFORM_ADMIN) {
-      brandId = req.user.brandId;
+      brandId = req.user.brandId || brandId;
     }
 
     const samlConfig = await this.ssoService.getSSOConfiguration(brandId, 'saml');

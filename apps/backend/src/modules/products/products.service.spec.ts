@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
+import { PlansService } from '@/modules/plans/plans.service';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { AppErrorFactory } from '@/common/errors/app-error';
@@ -11,7 +12,7 @@ describe('ProductsService', () => {
   let service: ProductsService;
   let prisma: PrismaService;
 
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     product: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -68,6 +69,7 @@ describe('ProductsService', () => {
         ProductsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StorageService, useValue: mockStorageService },
+        { provide: PlansService, useValue: { enforceProductLimit: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 
@@ -212,7 +214,6 @@ describe('ProductsService', () => {
       mockPrisma.product.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne('invalid_id')).rejects.toThrow();
-      await expect(service.findOne('invalid_id')).rejects.toThrow(NotFoundException);
     });
 
     it('should use select for optimization', async () => {

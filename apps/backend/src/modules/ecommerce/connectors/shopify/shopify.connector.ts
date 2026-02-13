@@ -329,7 +329,11 @@ export class ShopifyConnector {
       );
 
       const apiResponse = response.data as ShopifyApiResponse<ShopifyOrderResponse>;
-      return apiResponse?.data?.order || null;
+      const order = apiResponse?.data?.order;
+      if (!order) {
+        throw new InternalServerErrorException('Shopify API did not return order');
+      }
+      return order;
     } catch (error) {
       this.logger.error(`Error updating Shopify order status:`, error);
       throw error;
@@ -431,7 +435,7 @@ export class ShopifyConnector {
     const mapping = await this.prisma.productMapping.findFirst({
       where: {
         integrationId,
-        externalProductId: payload.id.toString(),
+        externalProductId: (payload.id ?? '').toString(),
       },
     });
 
@@ -615,9 +619,9 @@ export class ShopifyConnector {
   }
 
   /**
-   * Récupère une intégration
+   * Récupère une intégration (avec accessToken requis)
    */
-  private async getIntegration(integrationId: string): Promise<PrismaEcommerceIntegration> {
+  private async getIntegration(integrationId: string): Promise<Omit<PrismaEcommerceIntegration, 'accessToken'> & { accessToken: string }> {
     const integration = await this.prisma.ecommerceIntegration.findUnique({
       where: { id: integrationId },
     });
@@ -625,8 +629,10 @@ export class ShopifyConnector {
     if (!integration) {
       throw new NotFoundException(`Integration ${integrationId} not found`);
     }
-
-    return integration;
+    if (!integration.accessToken) {
+      throw new NotFoundException(`Integration ${integrationId} has no access token`);
+    }
+    return { ...integration, accessToken: integration.accessToken };
   }
 
   /**
@@ -660,7 +666,7 @@ export class ShopifyConnector {
     options?: SyncOptions,
   ): Promise<SyncResult> {
     const startTime = Date.now();
-    const errors: any[] = [];
+    const errors: Array<{ itemId: string; code: string; message: string }> = [];
     let itemsProcessed = 0;
     let itemsFailed = 0;
 
@@ -680,7 +686,7 @@ export class ShopifyConnector {
           errors.push({
             itemId: product.id,
             code: 'SYNC_ERROR',
-            message: error.message,
+            message: error instanceof Error ? error.message : 'Unknown error',
           });
           itemsFailed++;
         }

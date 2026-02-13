@@ -78,19 +78,19 @@ function RealtimeIndicatorComponent({
     }
   }, []);
 
-  const getEventTitle = useCallback((event: RealtimeEvent) => {
+  const getEventTitle = useCallback((event: RealtimeEvent): string => {
     const data = event.data as Record<string, unknown> | undefined;
     switch (event.type) {
       case 'metrics_update':
-        return `Métriques: ${data.visitors} visiteurs`;
+        return `Métriques: ${data?.visitors ?? 0} visiteurs`;
       case 'design_created':
-        return `Nouveau design: ${data.name}`;
+        return `Nouveau design: ${data?.name ?? ''}`;
       case 'order_created':
-        return `Commande: ${data.amount}€`;
+        return `Commande: ${data?.amount ?? 0}€`;
       case 'notification':
-        return data.title;
+        return String(data?.title ?? '');
       case 'conversion':
-        return `Conversion: ${data.type}`;
+        return `Conversion: ${data?.type ?? ''}`;
       default:
         return event.type;
     }
@@ -195,7 +195,7 @@ function RealtimeIndicatorComponent({
                           <div className="mt-0.5">{getEventIcon(event.type)}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-white truncate">
-                              {getEventTitle(event)}
+                              {String(getEventTitle(event))}
                             </p>
                             <p className="text-xs text-slate-500">
                               {formatTime(event.timestamp)}

@@ -13,6 +13,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Camera, CameraOff, Download, RotateCcw, Loader2 } from 'lucide-react';
 
 // UI Components
@@ -22,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 
 // AR Engine
 import { AREngine, TrackerType, TrackingData, ARProduct } from '@/lib/ar/AREngine';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -49,6 +51,7 @@ export function ARViewer({
   onTrackingUpdate,
   className,
 }: ARViewerProps) {
+  const { t } = useI18n();
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -108,7 +111,7 @@ export function ARViewer({
         setErrorMessage('Accès à la caméra refusé');
       } else {
         setStatus('error');
-        setErrorMessage(error instanceof Error ? error.message : 'Erreur inconnue');
+        setErrorMessage(getErrorDisplayMessage(error));
       }
     }
   }, [trackerType, products, onTrackingUpdate]);
@@ -211,13 +214,13 @@ export function ARViewer({
 
         {status === 'ready' && (
           <>
-            <Button onClick={handleCapture} size="icon" variant="secondary">
+            <Button onClick={handleCapture} size="icon" variant="secondary" aria-label="Capture screenshot">
               <Download className="h-5 w-5" />
             </Button>
-            <Button onClick={handleRestart} size="icon" variant="secondary">
+            <Button onClick={handleRestart} size="icon" variant="secondary" aria-label="Restart AR">
               <RotateCcw className="h-5 w-5" />
             </Button>
-            <Button onClick={stopAR} size="icon" variant="destructive">
+            <Button onClick={stopAR} size="icon" variant="destructive" aria-label="Stop AR camera">
               <CameraOff className="h-5 w-5" />
             </Button>
           </>
@@ -254,6 +257,7 @@ function ARStatusOverlay({
   confidence: number;
   trackerType: TrackerType;
 }) {
+  const { t } = useI18n();
   const trackingMessages = {
     face: isTracking ? 'Visage détecté' : 'Positionnez votre visage',
     hand: isTracking ? 'Main détectée' : 'Montrez votre main',
@@ -277,7 +281,7 @@ function ARStatusOverlay({
         <div className="text-center text-white max-w-xs">
           <CameraOff className="h-8 w-8 mx-auto mb-2 text-red-400" />
           <p className="font-medium">
-            {status === 'no-camera' ? 'Caméra non disponible' : 'Erreur'}
+            {status === 'no-camera' ? t('arStudio.cameraUnavailable') : t('common.error')}
           </p>
           <p className="text-sm text-white/70 mt-1">{errorMessage}</p>
         </div>

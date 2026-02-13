@@ -74,6 +74,9 @@ const config = {
   ],
 };
 
+const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'es', 'it'] as const;
+const LOCALE_COOKIE = 'luneo_locale';
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -91,6 +94,17 @@ export async function middleware(request: NextRequest) {
     pathname === '/service-worker.js'
   ) {
     return NextResponse.next();
+  }
+
+  // Locale from ?lang=: set cookie and redirect so server reads cookie
+  const langParam = request.nextUrl.searchParams.get('lang');
+  if (langParam && SUPPORTED_LOCALES.includes(langParam.toLowerCase() as (typeof SUPPORTED_LOCALES)[number])) {
+    const locale = langParam.toLowerCase();
+    const url = request.nextUrl.clone();
+    url.searchParams.delete('lang');
+    const res = NextResponse.redirect(url);
+    res.cookies.set(LOCALE_COOKIE, locale, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+    return res;
   }
   
   // Generate nonce for CSP (unique per request)
@@ -138,7 +152,31 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 7. Prevent CDN caching for admin routes
+  // 7. Admin role verification
+  // PRODUCTION FIX: Check user role from cookie/JWT for admin routes
+  // This prevents non-admin users from accessing /admin/* pages
+  if (pathname.startsWith('/admin')) {
+    const accessToken = request.cookies.get('accessToken')?.value;
+    if (accessToken) {
+      try {
+        // Decode JWT payload (no verification - that's the backend's job)
+        // This is a lightweight client-side guard; full RBAC is enforced server-side
+        const payload = JSON.parse(
+          Buffer.from(accessToken.split('.')[1], 'base64').toString()
+        );
+        const userRole = payload.role || payload.userRole || '';
+        if (!['SUPER_ADMIN', 'ADMIN'].includes(userRole)) {
+          // Non-admin user trying to access admin routes - redirect to dashboard
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      } catch {
+        // If JWT decode fails, let the backend handle it
+        // Don't block - the layout/API will reject unauthorized access
+      }
+    }
+  }
+
+  // 8. Prevent CDN caching for admin routes
   // Admin pages are dynamic (they read cookies and check roles server-side).
   // CDN must NEVER serve a cached redirect for these routes.
   if (pathname.startsWith('/admin')) {
@@ -147,7 +185,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Vercel-CDN-Cache-Control', 'private, no-store');
   }
 
-  // 8. Onboarding check — redirect to /onboarding if not completed
+  // 9. Onboarding check — redirect to /onboarding if not completed
   // This is a lightweight cookie-based check. Full validation is in the dashboard layout.
   const requiresOnboarding = config.onboardingRequiredRoutes.some(
     (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
@@ -191,13 +229,16 @@ function setSecurityHeaders(response: NextResponse, nonce?: string): void {
     // Fallback to unsafe-inline CSP (only for debugging when DISABLE_CSP_NONCES=true)
     csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: http:",
       "font-src 'self' https://fonts.gstatic.com data:",
       "connect-src 'self' https://api.luneo.app https://*.luneo.app https://api.stripe.com https://*.sentry.io https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "frame-ancestors 'self'",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
+      "media-src 'self' blob: data:",
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
@@ -392,7 +433,8 @@ function shouldCheckCSRF(request: NextRequest, pathname: string): boolean {
 
 function handleCSRF(request: NextRequest): NextResponse | null {
   const csrfToken = request.headers.get('x-csrf-token');
-  const csrfCookie = request.cookies.get('csrf-token')?.value;
+  // SECURITY FIX: Match backend cookie name (csrf_token, not csrf-token)
+  const csrfCookie = request.cookies.get('csrf_token')?.value;
 
   // In development, skip CSRF (but log for awareness)
   if (process.env.NODE_ENV === 'development') {

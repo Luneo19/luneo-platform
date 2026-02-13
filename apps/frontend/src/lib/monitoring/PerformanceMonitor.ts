@@ -148,7 +148,7 @@ export class PerformanceMonitorService {
    * Track un Web Vital
    */
   private trackWebVital(metric: WebVitals): void {
-    logger.info('Web Vital', metric);
+    logger.info('Web Vital', metric as unknown as Record<string, unknown>);
 
     if (typeof window === 'undefined') return;
     api.post('/api/v1/analytics/web-vitals', metric).catch(() => {
@@ -198,7 +198,7 @@ export class PerformanceMonitorService {
       this.errors.shift();
     }
 
-    logger.error('Error tracked', error);
+    logger.error('Error tracked', error as unknown as Record<string, unknown>);
 
     // Send to error tracking service (Sentry, etc.)
     if (typeof window !== 'undefined') {
@@ -288,7 +288,7 @@ export class PerformanceMonitorService {
 
     // Log slow requests
     if (metric.duration > 1000) {
-      logger.warn('Slow API request', metric);
+      logger.warn('Slow API request', metric as unknown as Record<string, unknown>);
     }
 
     // Send to analytics service (async, non-blocking, batched); silent failure

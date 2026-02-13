@@ -2,9 +2,12 @@
 
 import { CreditsDisplay } from '@/components/credits/CreditsDisplay';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { GlobalSearch } from '@/components/dashboard/GlobalSearch';
 import { useDensity } from '@/providers/DensityProvider';
 import { useIsAuthenticated } from '@/lib/hooks/useAuth';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '../../lib/logger';
+import { useI18n } from '@/i18n/useI18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronDown,
@@ -12,7 +15,6 @@ import {
   HelpCircle,
   LogOut,
   Menu,
-  Search,
   Settings,
   User,
   X
@@ -38,6 +40,7 @@ const Header = memo(function Header({
   const { user } = useIsAuthenticated();
   const { density, setDensity } = useDensity();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { t } = useI18n();
 
   const handleMenuToggle = useCallback(() => {
     onMenuToggle?.();
@@ -54,13 +57,9 @@ const Header = memo(function Header({
   const handleLogout = useCallback(async () => {
     setShowUserMenu(false);
     try {
-      // Use relative URL so cookies are properly sent/cleared via Vercel proxy (same-origin)
-      await fetch('/api/v1/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await endpoints.auth.logout();
     } catch (error) {
-      logger.error('Logout error:', error);
+      logger.error('Logout error', { error });
     } finally {
       window.location.href = '/login';
     }
@@ -93,15 +92,9 @@ const Header = memo(function Header({
             </div>
           </div>
 
-          {/* Center - Command palette trigger */}
+          {/* Center - Global search */}
           <div className="hidden md:flex flex-1 max-w-lg mx-4 sm:mx-8">
-            <button className="flex items-center gap-2 px-3 py-2 dash-input w-full text-sm text-white/40 hover:text-white/60 transition-colors">
-              <Search className="w-4 h-4" />
-              <span>Rechercher...</span>
-              <kbd className="hidden sm:inline-flex ml-auto items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono bg-white/[0.06] rounded text-white/30 border border-white/[0.06]">
-                <span>⌘</span>K
-              </kbd>
-            </button>
+            <GlobalSearch />
           </div>
 
           {/* Right Side */}
@@ -127,13 +120,13 @@ const Header = memo(function Header({
                       : 'text-white/40 hover:text-white/60'
                   }`}
                 >
-                  {mode === 'compact' ? 'Compact' : mode === 'comfort' ? 'Confort' : 'Large'}
+                  {mode === 'compact' ? t('dashboard.header.densityCompact') : mode === 'comfort' ? t('dashboard.header.densityComfort') : t('dashboard.header.densitySpacious')}
                 </button>
               ))}
             </div>
 
             {/* Help */}
-            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors">
+            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label="Help">
               <HelpCircle className="w-5 h-5 text-white/50" />
             </button>
 
@@ -176,7 +169,7 @@ const Header = memo(function Header({
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white">{user?.name || 'Utilisateur'}</p>
+                          <p className="text-sm font-medium text-white">{user?.name || t('dashboard.header.user')}</p>
                           <p className="text-xs text-white/40">{user?.email || ''}</p>
                         </div>
                       </div>
@@ -189,7 +182,7 @@ const Header = memo(function Header({
                         onClick={handleCloseMenu}
                       >
                         <User className="w-4 h-4 mr-3" />
-                        Mon profil
+                        {t('dashboard.header.myProfile')}
                       </Link>
                       <Link
                         href="/dashboard/settings"
@@ -197,7 +190,7 @@ const Header = memo(function Header({
                         onClick={handleCloseMenu}
                       >
                         <Settings className="w-4 h-4 mr-3" />
-                        Paramètres
+                        {t('common.settings')}
                       </Link>
                       <Link
                         href="/dashboard/billing"
@@ -205,7 +198,7 @@ const Header = memo(function Header({
                         onClick={handleCloseMenu}
                       >
                         <Crown className="w-4 h-4 mr-3" />
-                        Gérer l'abonnement
+                        {t('dashboard.header.manageSubscription')}
                       </Link>
                       <div className="border-t border-white/[0.06] my-1"></div>
                       <button
@@ -213,7 +206,7 @@ const Header = memo(function Header({
                         className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         <LogOut className="w-4 h-4 mr-3" />
-                        Se déconnecter
+                        {t('dashboard.header.logout')}
                       </button>
                     </div>
                   </motion.div>

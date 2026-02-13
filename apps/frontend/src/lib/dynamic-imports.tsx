@@ -18,6 +18,7 @@ const DefaultFallback = () => (
 );
 
 // Helper pour créer des imports dynamiques optimisés
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createLazyComponent = <T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>,
   options: LazyComponentProps = {}
@@ -153,7 +154,7 @@ export const LazyTemplateGallery = createLazyComponent(
 
 // Hook pour précharger les composants
 export const usePreloadComponent = () => {
-  const preload = (importFn: () => Promise<any>) => {
+  const preload = (importFn: () => Promise<unknown>) => {
     // Précharger le composant en arrière-plan
     importFn().catch((error) => {
       logger.warn('Failed to preload component', {
@@ -171,7 +172,7 @@ export const usePreloadComponent = () => {
     document.head.appendChild(link);
   };
 
-  const preloadOnHover = (element: HTMLElement, importFn: () => Promise<any>) => {
+  const preloadOnHover = (element: HTMLElement, importFn: () => Promise<unknown>) => {
     let hasPreloaded = false;
     
     const handleMouseEnter = () => {

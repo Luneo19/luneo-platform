@@ -130,7 +130,7 @@ export interface AssetInfo {
   size: number;
   width?: number;
   height?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SceneNode {
@@ -141,7 +141,7 @@ export interface SceneNode {
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   children?: SceneNode[];
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export interface ExportSettings {
@@ -152,7 +152,7 @@ export interface ExportSettings {
   includeMaterials: boolean;
   includeTextures: boolean;
   compressionLevel?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface RenderMetrics {

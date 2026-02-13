@@ -28,7 +28,7 @@ export class PrintReadyWorker {
     name: 'render-print-ready',
     concurrency: 2, // Process 2 jobs concurrently
   })
-  async process(job: Job<PrintReadyRenderJob>): Promise<any> {
+  async process(job: Job<PrintReadyRenderJob>): Promise<{ success: boolean; result: { status: string; url?: string; error?: string } }> {
     const { requestId, designId, productId, width, height, dpi, format, quality, backgroundColor, bleed } = job.data;
 
     this.logger.log(`Processing print-ready render job ${job.id} for request ${requestId}`);

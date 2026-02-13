@@ -68,11 +68,6 @@ type TableRowData = {
   lastActivityRaw: string;
 };
 
-function getApiBase(): string {
-  if (typeof window === 'undefined') return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  return process.env.NEXT_PUBLIC_API_URL || '';
-}
-
 function churnBadgeClass(risk: ChurnRisk): string {
   switch (risk) {
     case 'CRITICAL':
@@ -128,33 +123,52 @@ export default function HealthScoreDashboardPage() {
   const [sortKey, setSortKey] = useState<SortKey>('healthScore');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
+  const dashboardFallback: DashboardData = {
+    totalUsers: 0,
+    avgHealthScore: 0,
+    atRiskCount: 0,
+    atRiskPercent: 0,
+  };
+
   useEffect(() => {
-    const base = getApiBase();
-    const url = base ? `${base}/api/v1/orion/retention/dashboard` : '/api/v1/orion/retention/dashboard';
     setDashboardLoading(true);
     setDashboardError(null);
-    fetch(url, { credentials: 'include' })
+    fetch('/api/admin/orion/retention', { credentials: 'include' })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load dashboard');
+        if (res.status === 404 || !res.ok) {
+          setDashboard(dashboardFallback);
+          setDashboardError('No data available');
+          return null;
+        }
         return res.json();
       })
-      .then((data: DashboardData) => setDashboard(data))
-      .catch(() => setDashboardError('Failed to load dashboard'))
+      .then((data: DashboardData | null) => {
+        if (data != null) setDashboard(data);
+      })
+      .catch(() => {
+        setDashboard(dashboardFallback);
+        setDashboardError('No data available');
+      })
       .finally(() => setDashboardLoading(false));
   }, []);
 
   useEffect(() => {
-    const base = getApiBase();
-    const url = base ? `${base}/api/v1/orion/retention/at-risk` : '/api/v1/orion/retention/at-risk';
     setAtRiskLoading(true);
     setAtRiskError(null);
-    fetch(url, { credentials: 'include' })
+    fetch('/api/admin/orion/retention/at-risk', { credentials: 'include' })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load at-risk users');
+        if (res.status === 404 || !res.ok) {
+          setAtRiskRows([]);
+          return null;
+        }
         return res.json();
       })
-      .then((data: AtRiskUser[]) => setAtRiskRows(mapAtRiskToTableRows(data)))
-      .catch(() => setAtRiskError('Failed to load at-risk users'))
+      .then((data: AtRiskUser[] | null) => {
+        if (data != null) setAtRiskRows(mapAtRiskToTableRows(data));
+      })
+      .catch(() => {
+        setAtRiskRows([]);
+      })
       .finally(() => setAtRiskLoading(false));
   }, []);
 
@@ -230,7 +244,7 @@ export default function HealthScoreDashboardPage() {
     URL.revokeObjectURL(url);
   };
 
-  const hasError = dashboardError || atRiskError;
+  const showNoData = (dashboardError != null || atRiskError != null) && !dashboardLoading && !atRiskLoading;
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100 p-6 space-y-6">
@@ -246,11 +260,10 @@ export default function HealthScoreDashboardPage() {
         </div>
       </div>
 
-      {hasError && (
-        <Card className="bg-red-950/30 border-red-800">
-          <CardContent className="py-4 text-red-200">
-            {dashboardError && <p>{dashboardError}</p>}
-            {atRiskError && <p>{atRiskError}</p>}
+      {showNoData && (
+        <Card className="bg-zinc-800/80 border-zinc-600">
+          <CardContent className="py-4 text-zinc-400">
+            No data available. The retention API is not available. Showing empty state.
           </CardContent>
         </Card>
       )}
@@ -411,8 +424,6 @@ export default function HealthScoreDashboardPage() {
         <CardContent className="overflow-x-auto">
           {atRiskLoading ? (
             <div className="py-12 text-center text-zinc-400">Loading users…</div>
-          ) : atRiskError ? (
-            <div className="py-12 text-center text-red-400">{atRiskError}</div>
           ) : (
             <Table>
               <TableHeader>
@@ -468,7 +479,7 @@ export default function HealthScoreDashboardPage() {
                 {sortedRows.length === 0 ? (
                   <TableRow className="border-zinc-700">
                     <TableCell colSpan={5} className="py-12 text-center text-zinc-500">
-                      No users match the filters.
+                      {atRiskError ? 'No data available.' : 'No users match the filters.'}
                     </TableCell>
                   </TableRow>
                 ) : (

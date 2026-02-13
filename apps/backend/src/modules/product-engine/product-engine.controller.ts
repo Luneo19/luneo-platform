@@ -71,7 +71,7 @@ export class ProductEngineController {
   async getRulesUsageStats(
     @Param('productId') productId: string,
     @Query('period') period: 'day' | 'week' | 'month' = 'week'
-  ): Promise<any> {
+  ): Promise<{ period: string; startDate: Date; endDate: Date; designs: Record<string, number>; orders: number }> {
     return this.productRulesService.getRulesUsageStats(productId, period);
   }
 
@@ -161,14 +161,14 @@ export class ProductEngineController {
   async getZoneUsageStats(
     @Param('productId') productId: string,
     @Query('period') period: 'day' | 'week' | 'month' = 'week'
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     return this.zonesService.getZoneUsageStats(productId, period);
   }
 
   @Get('products/:productId/zones/improvement-suggestions')
   @ApiOperation({ summary: 'Obtient des suggestions d\'amélioration pour les zones' })
   @ApiResponse({ status: 200, description: 'Suggestions récupérées avec succès' })
-  async getZoneImprovementSuggestions(@Param('productId') productId: string): Promise<any> {
+  async getZoneImprovementSuggestions(@Param('productId') productId: string): Promise<unknown> {
     return this.zonesService.getZoneImprovementSuggestions(productId);
   }
 
@@ -189,7 +189,7 @@ export class ProductEngineController {
   @ApiResponse({ status: 200, description: 'Coordonnées validées avec succès' })
   async validateZoneCoordinates(
     @Body() body: ValidateZoneCoordinatesDto,
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.zonesService.validateZoneCoordinates(
       body.zone as Partial<ProductZone>,
       body.canvasWidth,
@@ -200,7 +200,7 @@ export class ProductEngineController {
   @Post('validate/overlaps')
   @ApiOperation({ summary: 'Détecte les chevauchements entre zones' })
   @ApiResponse({ status: 200, description: 'Chevauchements détectés avec succès' })
-  async detectZoneOverlaps(@Body() zones: ProductZone[]): Promise<any> {
+  async detectZoneOverlaps(@Body() zones: ProductZone[]): Promise<unknown> {
     return this.zonesService.detectZoneOverlaps(zones);
   }
 
@@ -212,14 +212,14 @@ export class ProductEngineController {
   @ApiOperation({ summary: 'Calcule le prix d\'un design personnalisé' })
   @ApiResponse({ status: 200, description: 'Prix calculé avec succès' })
   @ApiResponse({ status: 400, description: 'Données de pricing invalides' })
-  async calculatePrice(@Body() context: PricingContext): Promise<any> {
+  async calculatePrice(@Body() context: PricingContext): Promise<{ basePrice: number; zonePrice: number; materialPrice: number; finishPrice: number; quantityPrice: number; discount: number; totalPrice: number; breakdown: Record<string, number> }> {
     return this.pricingEngine.calculatePrice(context);
   }
 
   @Get('pricing/products/:productId/suggestions')
   @ApiOperation({ summary: 'Obtient des suggestions de prix pour un produit' })
   @ApiResponse({ status: 200, description: 'Suggestions récupérées avec succès' })
-  async getPricingSuggestions(@Param('productId') productId: string): Promise<any> {
+  async getPricingSuggestions(@Param('productId') productId: string): Promise<{ recommendedBasePrice: number; competitiveAnalysis: Record<string, unknown>; marginAnalysis: Record<string, unknown>; priceHistory: unknown[] }> {
     return this.pricingEngine.getPricingSuggestions(productId);
   }
 
@@ -229,7 +229,7 @@ export class ProductEngineController {
   async calculateCostPrice(
     @Param('productId') productId: string,
     @Body() options: DesignOptions
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.pricingEngine.calculateCostPrice(productId, options);
   }
 
@@ -243,7 +243,7 @@ export class ProductEngineController {
   async getProductPerformance(
     @Param('productId') productId: string,
     @Query('period') period: 'day' | 'week' | 'month' | 'year' = 'month'
-  ): Promise<any> {
+  ): Promise<{ rules: unknown; zones: unknown; period: string; generatedAt: Date }> {
     const statsPeriod: 'day' | 'week' | 'month' = period === 'year' ? 'month' : period;
     const [rulesStats, zoneStats] = await Promise.all([
       this.productRulesService.getRulesUsageStats(productId, statsPeriod),
@@ -261,7 +261,7 @@ export class ProductEngineController {
   @Get('analytics/products/:productId/optimization')
   @ApiOperation({ summary: 'Obtient des recommandations d\'optimisation' })
   @ApiResponse({ status: 200, description: 'Recommandations récupérées avec succès' })
-  async getOptimizationRecommendations(@Param('productId') productId: string): Promise<any> {
+  async getOptimizationRecommendations(@Param('productId') productId: string): Promise<{ zones: unknown; pricing: unknown; generatedAt: Date }> {
     const [zoneSuggestions, pricingSuggestions] = await Promise.all([
       this.zonesService.getZoneImprovementSuggestions(productId),
       this.pricingEngine.getPricingSuggestions(productId),
@@ -281,7 +281,7 @@ export class ProductEngineController {
   @Get('templates/zone-presets')
   @ApiOperation({ summary: 'Obtient les presets de zones disponibles' })
   @ApiResponse({ status: 200, description: 'Presets récupérés avec succès' })
-  async getZonePresets(): Promise<any> {
+  async getZonePresets(): Promise<Record<string, unknown[]>> {
     return {
       text: [
         {
@@ -385,15 +385,15 @@ export class ProductEngineController {
       throw new NotFoundException(`Preset ${body.presetId} not found`);
     }
 
-    // Créer la zone avec le preset
-    const zoneData = {
-      label: preset.name,
+    // Créer la zone avec le preset (override avec position/size, preset fournit le reste)
+    const zoneData: ProductZone = {
+      ...preset,
+      label: preset.label,
       type: preset.type,
-      x: body.position?.x || 100,
-      y: body.position?.y || 100,
+      x: body.position?.x ?? 100,
+      y: body.position?.y ?? 100,
       width: 200,
       height: 100,
-      ...preset,
     };
 
     return this.zonesService.createZone(body.productId, zoneData);

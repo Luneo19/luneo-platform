@@ -119,7 +119,7 @@ export class CloudinaryService {
     }
   }
 
-  generateSignedUrl(publicId: string, options: any = {}): string {
+  generateSignedUrl(publicId: string, options: Record<string, unknown> = {}): string {
     return cloudinary.url(publicId, {
       sign_url: true,
       ...options,

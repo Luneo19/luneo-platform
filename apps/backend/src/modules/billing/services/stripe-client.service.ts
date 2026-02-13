@@ -118,8 +118,9 @@ export class StripeClientService implements OnModuleInit {
                     this.logger.warn(`Stripe Price ID ${priceId} (${plan}/${interval}) is inactive`);
                   }
                   this.logger.debug(`Validated ${plan}/${interval}: ${priceId}`);
-                } catch (error: any) {
-                  this.logger.error(`Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) — ${error.message}`);
+                } catch (error: unknown) {
+                  const msg = error instanceof Error ? error.message : String(error);
+                  this.logger.error(`Invalid Stripe Price ID: ${priceId} (${plan}/${interval}) — ${msg}`);
                   validationSuccessful = false;
                 }
               }
@@ -134,8 +135,9 @@ export class StripeClientService implements OnModuleInit {
             this.logger.warn('Some Stripe Price IDs are invalid — billing features may be limited');
             this._stripeConfigValid = false;
           }
-        } catch (stripeError: any) {
-          this.logger.error(`Stripe API error during validation: ${stripeError.message}`);
+        } catch (stripeError: unknown) {
+          const msg = stripeError instanceof Error ? stripeError.message : String(stripeError);
+          this.logger.error(`Stripe API error during validation: ${msg}`);
           this.logger.warn('App starting in degraded mode — billing features unavailable');
           this._stripeConfigValid = false;
         }
@@ -143,8 +145,9 @@ export class StripeClientService implements OnModuleInit {
         this._stripeConfigValid = true;
         this.logger.log('Stripe configuration validated (non-production mode)');
       }
-    } catch (error: any) {
-      this.logger.error(`Stripe configuration validation failed: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Stripe configuration validation failed: ${msg}`);
       this.logger.warn('App starting in degraded mode — billing features unavailable');
       this._stripeConfigValid = false;
     }

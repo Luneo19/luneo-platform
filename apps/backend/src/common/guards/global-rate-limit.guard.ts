@@ -1,6 +1,6 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Reflector } from '@nestjs/core';
 import { RATE_LIMIT_SKIP_METADATA } from '@/libs/rate-limit/rate-limit.decorator';
 
@@ -12,8 +12,8 @@ import { RATE_LIMIT_SKIP_METADATA } from '@/libs/rate-limit/rate-limit.decorator
 @Injectable()
 export class GlobalRateLimitGuard extends ThrottlerGuard {
   constructor(
-    options: any,
-    storageService: any,
+    options: import('@nestjs/throttler').ThrottlerModuleOptions,
+    storageService: import('@nestjs/throttler').ThrottlerStorage,
     reflector: Reflector,
   ) {
     super(options, storageService, reflector);
@@ -34,6 +34,11 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
     );
 
     if (skipRateLimit) {
+      return true;
+    }
+
+    // Skip for health check endpoints
+    if (request.path.includes('/health')) {
       return true;
     }
 

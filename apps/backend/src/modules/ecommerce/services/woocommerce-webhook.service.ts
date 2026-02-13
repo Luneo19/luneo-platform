@@ -300,18 +300,19 @@ export class WooCommerceWebhookService {
         throw new NotFoundException(`Integration ${integrationId} not found`);
       }
 
+      const externalIds = [...new Set(order.line_items.map((item) => item.product_id.toString()))];
+      const mappings = await this.prisma.productMapping.findMany({
+        where: {
+          integrationId,
+          externalProductId: { in: externalIds },
+        },
+        include: { product: true },
+      });
+      const mappingByExternalId = new Map(mappings.map((m) => [m.externalProductId, m]));
+
       // Process line items to find customized products
       for (const lineItem of order.line_items) {
-        // Find product mapping
-        const mapping = await this.prisma.productMapping.findFirst({
-          where: {
-            integrationId,
-            externalProductId: lineItem.product_id.toString(),
-          },
-          include: {
-            product: true,
-          },
-        });
+        const mapping = mappingByExternalId.get(lineItem.product_id.toString());
 
         if (!mapping) {
           this.logger.warn(`Product mapping not found for WooCommerce product ${lineItem.product_id}`);
@@ -354,7 +355,7 @@ export class WooCommerceWebhookService {
                 state: order.shipping.state,
                 postalCode: order.shipping.postcode,
                 country: order.shipping.country,
-              } : null,
+              } : undefined,
               subtotalCents: Math.round(parseFloat(order.total) * 100),
               taxCents: 0,
               shippingCents: 0,
@@ -413,6 +414,7 @@ export class WooCommerceWebhookService {
             equals: order.id.toString(),
           },
         },
+        take: 100,
       });
 
       if (luneoOrders.length === 0) {
@@ -420,20 +422,22 @@ export class WooCommerceWebhookService {
         return;
       }
 
-      // Update all related orders
-      for (const luneoOrder of luneoOrders) {
-        await this.prisma.order.update({
-          where: { id: luneoOrder.id },
-          data: {
-            status: this.mapWooCommerceOrderStatus(order.status),
-            metadata: {
-              ...((luneoOrder.metadata as Record<string, JsonValue> | null) || {}),
-              lastSyncedAt: new Date().toISOString(),
-              wooCommerceStatus: order.status,
+      // Update all related orders in a single transaction
+      await this.prisma.$transaction(
+        luneoOrders.map((luneoOrder) =>
+          this.prisma.order.update({
+            where: { id: luneoOrder.id },
+            data: {
+              status: this.mapWooCommerceOrderStatus(order.status),
+              metadata: {
+                ...((luneoOrder.metadata as Record<string, JsonValue> | null) || {}),
+                lastSyncedAt: new Date().toISOString(),
+                wooCommerceStatus: order.status,
+              },
             },
-          },
-        });
-      }
+          })
+        )
+      );
 
       this.logger.log(`Successfully updated ${luneoOrders.length} Luneo order(s) from WooCommerce order ${order.id}`);
     } catch (error) {
@@ -474,23 +478,29 @@ export class WooCommerceWebhookService {
             equals: order.id.toString(),
           },
         },
+        take: 100,
       });
 
-      // Cancel orders that are not yet fulfilled
-      for (const luneoOrder of luneoOrders) {
-        if (['CREATED', 'PENDING_PAYMENT', 'PAID'].includes(luneoOrder.status)) {
-          await this.prisma.order.update({
-            where: { id: luneoOrder.id },
-            data: {
-              status: 'CANCELLED',
-              metadata: {
-                ...((luneoOrder.metadata as Record<string, JsonValue> | null) || {}),
-                cancelledAt: new Date().toISOString(),
-                cancelledFrom: 'woocommerce',
+      // Cancel orders that are not yet fulfilled in a single transaction
+      const toCancel = luneoOrders.filter((o) =>
+        ['CREATED', 'PENDING_PAYMENT', 'PAID'].includes(o.status)
+      );
+      if (toCancel.length > 0) {
+        await this.prisma.$transaction(
+          toCancel.map((luneoOrder) =>
+            this.prisma.order.update({
+              where: { id: luneoOrder.id },
+              data: {
+                status: 'CANCELLED',
+                metadata: {
+                  ...((luneoOrder.metadata as Record<string, JsonValue> | null) || {}),
+                  cancelledAt: new Date().toISOString(),
+                  cancelledFrom: 'woocommerce',
+                },
               },
-            },
-          });
-        }
+            })
+          )
+        );
       }
 
       this.logger.log(`Successfully handled deletion of WooCommerce order ${order.id}`);

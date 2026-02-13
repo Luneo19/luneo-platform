@@ -43,10 +43,10 @@ import { serverLogger } from "@/lib/logger-server";
 export const metadata: Metadata = {
   metadataBase: new URL(SEO_BASE_URL),
   title: {
-    default: 'Luneo - Plateforme de Personnalisation Produits | Design 2D/3D, AR & Print-Ready',
-    template: '%s | Luneo Platform',
+    default: 'Luneo - Plateforme de personnalisation produit IA',
+    template: '%s | Luneo',
   },
-  description: 'Créez et personnalisez vos produits avec notre plateforme complète : éditeur 2D (Konva.js), configurateur 3D (Three.js), Virtual Try-On AR, export print-ready (CMYK, PDF/X-4), intégrations e-commerce (Shopify, WooCommerce).',
+  description: 'Luneo est la plateforme SaaS de personnalisation produit par IA : éditeur 2D/3D, Virtual Try-On AR, export print-ready, intégrations e-commerce (Shopify, WooCommerce).',
   keywords: [
     'personnalisation produits',
     'design 2D',
@@ -74,9 +74,9 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'fr_FR',
     url: SEO_BASE_URL,
-    siteName: 'Luneo Platform',
-    title: 'Luneo - Plateforme de Personnalisation Produits',
-    description: 'Personnalisez vos produits avec notre éditeur 2D/3D, Virtual Try-On AR, et export print-ready professionnel.',
+    siteName: 'Luneo',
+    title: 'Luneo - Plateforme de personnalisation produit IA',
+    description: 'Luneo est la plateforme SaaS de personnalisation produit par IA : éditeur 2D/3D, Virtual Try-On AR, export print-ready.',
     images: [
       {
         url: '/og-image.png',
@@ -88,8 +88,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Luneo - Plateforme de Personnalisation Produits',
-    description: 'Personnalisez vos produits avec notre éditeur 2D/3D, Virtual Try-On AR, et export print-ready professionnel.',
+    title: 'Luneo - Plateforme de personnalisation produit IA',
+    description: 'Luneo est la plateforme SaaS de personnalisation produit par IA : éditeur 2D/3D, Virtual Try-On AR, export print-ready.',
     images: ['/og-image.png'],
     creator: '@luneo_app',
   },

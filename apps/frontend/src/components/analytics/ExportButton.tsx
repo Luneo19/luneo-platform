@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logger } from '@/lib/logger';
+import { getBackendUrl } from '@/lib/api/server-url';
 
 interface ExportButtonProps {
   startDate?: Date;

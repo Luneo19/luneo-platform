@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Save, RefreshCw } from 'lucide-react';
 import { ROLE_OPTIONS } from '../../constants/team';
 import type { TeamMember, TeamRole } from '../../types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface EditRoleModalProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function EditRoleModal({
   onUpdateRole,
   isUpdating = false,
 }: EditRoleModalProps) {
+  const { t } = useI18n();
   const [role, setRole] = useState<TeamRole>('MEMBER');
 
   useEffect(() => {
@@ -59,14 +61,14 @@ export function EditRoleModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>Modifier le rôle</DialogTitle>
+          <DialogTitle>{t('dashboard.team.editRoleTitle')}</DialogTitle>
           <DialogDescription>
-            Modifier le rôle de {member.name} dans l'équipe
+            {t('dashboard.team.editRoleDescription')} {member.name}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <Label className="text-gray-700">Rôle</Label>
+            <Label className="text-gray-700">{t('dashboard.team.role')}</Label>
             <Select value={role} onValueChange={(value) => setRole(value as TeamRole)}>
               <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-1">
                 <SelectValue />
@@ -74,7 +76,7 @@ export function EditRoleModal({
               <SelectContent>
                 {ROLE_OPTIONS.map((roleOption) => (
                   <SelectItem key={roleOption.id} value={roleOption.id}>
-                    {roleOption.name}
+                    {t(`dashboard.team.roles.${roleOption.id.toLowerCase()}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -87,7 +89,7 @@ export function EditRoleModal({
               onClick={() => onOpenChange(false)}
               className="border-gray-200"
             >
-              Annuler
+              {t('dashboard.common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -97,12 +99,12 @@ export function EditRoleModal({
               {isUpdating ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Mise à jour...
+                  {t('dashboard.billing.updating')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Enregistrer
+                  {t('dashboard.common.save')}
                 </>
               )}
             </Button>

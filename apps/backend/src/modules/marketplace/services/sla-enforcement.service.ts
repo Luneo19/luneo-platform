@@ -45,7 +45,7 @@ export class SLAEnforcementService {
     }
 
     const artisan = workOrder.artisan;
-    const slaLevel = artisan.slaLevel || 'standard';
+    const slaLevel = (artisan.slaLevel || 'standard') as keyof typeof this.SLA_CONFIG;
     const config = this.SLA_CONFIG[slaLevel];
 
     const now = new Date();

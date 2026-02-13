@@ -4,18 +4,18 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Politique des cookies - Luneo',
+  title: 'Politique des cookies - Luneo Tech',
   description:
-    'Politique d\'utilisation des cookies Luneo. Types de cookies, gestion et consentement.',
+    'Politique d\'utilisation des cookies Luneo Tech. Types de cookies, gestion et consentement.',
   openGraph: {
-    title: 'Politique des cookies - Luneo',
-    description: 'Comment Luneo utilise les cookies.',
+    title: 'Politique des cookies - Luneo Tech',
+    description: 'Comment Luneo Tech utilise les cookies.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Politique des cookies - Luneo',
-    description: 'Politique des cookies Luneo.',
+    title: 'Politique des cookies - Luneo Tech',
+    description: 'Politique des cookies Luneo Tech.',
   },
 };
 

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, RefreshCw, Moon, Sun, Monitor } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { useProfileSettings } from '../../hooks/useProfileSettings';
 import type { UserPreferences } from '../../types';
@@ -19,6 +20,7 @@ interface PreferencesTabProps {
 }
 
 export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
+  const { t } = useI18n();
   const { handleUpdateProfile, isUpdating } = useProfileSettings();
   const [preferences, setPreferences] = useState<UserPreferences>(initialPreferences);
 
@@ -36,17 +38,17 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
       {/* Theme */}
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Apparence</CardTitle>
+          <CardTitle className="text-gray-900">{t('settings.preferences.appearance')}</CardTitle>
           <CardDescription className="text-gray-600">
-            Choisissez votre thème préféré
+            {t('settings.preferences.appearanceDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { value: 'light', label: 'Clair', icon: Sun },
-              { value: 'dark', label: 'Sombre', icon: Moon },
-              { value: 'system', label: 'Système', icon: Monitor },
+              { value: 'light', label: t('settings.preferences.themeLight'), icon: Sun },
+              { value: 'dark', label: t('settings.preferences.themeDark'), icon: Moon },
+              { value: 'system', label: t('settings.preferences.themeSystem'), icon: Monitor },
             ].map((theme) => {
               const Icon = theme.icon;
               return (

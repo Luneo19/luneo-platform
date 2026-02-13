@@ -72,6 +72,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyRequests: 100,
       rateLimit: { requests: 10, windowMs: 60_000 },
     },
+    monthlyCredits: 3,
+    marketplaceCommissionPercent: 30,
   },
 
   // --------------------------------------------------------------------------
@@ -92,7 +94,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     pricing: {
       monthlyPrice: 19,
       yearlyPrice: 190,
-      basePriceCents: 2_900,
+      basePriceCents: 1_900, // 19€ * 100 centimes
       commissionPercent: 12,
     },
     limits: {
@@ -121,6 +123,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyRequests: 1_000,
       rateLimit: { requests: 30, windowMs: 60_000 },
     },
+    monthlyCredits: 10,
+    marketplaceCommissionPercent: 20,
   },
 
   // --------------------------------------------------------------------------
@@ -143,7 +147,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     pricing: {
       monthlyPrice: 49,
       yearlyPrice: 490,
-      basePriceCents: 9_900,
+      basePriceCents: 4_900, // 49€ * 100 centimes
       commissionPercent: 10,
     },
     limits: {
@@ -172,6 +176,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyRequests: 5_000,
       rateLimit: { requests: 60, windowMs: 60_000 },
     },
+    monthlyCredits: 100,
+    marketplaceCommissionPercent: 15,
   },
 
   // --------------------------------------------------------------------------
@@ -193,7 +199,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     pricing: {
       monthlyPrice: 99,
       yearlyPrice: 990,
-      basePriceCents: 29_900,
+      basePriceCents: 9_900, // 99€ * 100 centimes
       commissionPercent: 7,
     },
     limits: {
@@ -222,6 +228,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyRequests: 10_000,
       rateLimit: { requests: 90, windowMs: 60_000 },
     },
+    monthlyCredits: 500,
+    marketplaceCommissionPercent: 10,
   },
 
   // --------------------------------------------------------------------------
@@ -243,7 +251,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     pricing: {
       monthlyPrice: 299,
       yearlyPrice: 2_990,
-      basePriceCents: 99_900,
+      basePriceCents: 29_900, // 299€ * 100 centimes
       commissionPercent: 5,
     },
     limits: {
@@ -272,6 +280,8 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyRequests: -1,
       rateLimit: { requests: 120, windowMs: 60_000 },
     },
+    monthlyCredits: 99_999,
+    marketplaceCommissionPercent: 5,
   },
 };
 
@@ -362,8 +372,24 @@ export function getPlanInfo(tier: PlanTier): PlanInfo {
 }
 
 /**
+ * Recupere les credits mensuels inclus dans le plan (refill a chaque renouvellement).
+ */
+export function getMonthlyCredits(tier: PlanTier): number {
+  return getPlanConfig(tier).monthlyCredits;
+}
+
+/**
  * Verifie si une valeur represente "illimite".
  */
 export function isUnlimited(value: number): boolean {
   return value === -1;
+}
+
+/**
+ * Returns the marketplace commission rate (platform take) in percent for a given plan tier.
+ * Free=30%, Starter=20%, Professional=15%, Business=10%, Enterprise=5%.
+ */
+export function getMarketplaceCommission(planTier: string): number {
+  const config = getPlanConfig(normalizePlanTier(planTier));
+  return config.marketplaceCommissionPercent ?? 30;
 }

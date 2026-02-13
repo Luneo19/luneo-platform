@@ -9,7 +9,7 @@ export interface ZoneInput {
   size?: number;
   effect?: string;
   orientation?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 @Injectable()
@@ -19,7 +19,7 @@ export class SpecBuilderService {
   /**
    * Construire un DesignSpec depuis zone inputs
    */
-  async build(productId: string, zoneInputs: Record<string, ZoneInput>): Promise<any> {
+  async build(productId: string, zoneInputs: Record<string, ZoneInput>): Promise<Record<string, unknown>> {
     // 1. Récupérer le produit et ses zones
     const product = await this.prisma.product.findUnique({
       where: { id: productId },

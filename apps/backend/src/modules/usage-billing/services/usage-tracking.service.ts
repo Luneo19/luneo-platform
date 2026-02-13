@@ -236,7 +236,7 @@ export class UsageTrackingService {
     limit: number = 100,
   ) {
     try {
-      const where: any = { brandId };
+      const where: { brandId: string; metric?: UsageMetricType } = { brandId };
       if (metric) {
         where.metric = metric;
       }

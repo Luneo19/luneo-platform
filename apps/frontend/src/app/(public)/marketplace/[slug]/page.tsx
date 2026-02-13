@@ -37,96 +37,10 @@ import OptimizedImage from '@/components/optimized/OptimizedImage';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
 
-// Fallback template when API fails
-const FALLBACK_TEMPLATE: Template = {
-  id: '1',
-  name: 'T-Shirt Streetwear Pack',
-  description: `Une collection complète de 12 designs streetwear pour t-shirts, parfaite pour les marques de mode urbaine.
-
-Inclus dans ce pack:
-- 12 designs haute résolution (4000x4000px)
-- Fichiers source éditables
-- Guide d'utilisation PDF
-- Licence commerciale
-- Mises à jour gratuites
-
-Compatible avec Luneo, Photoshop et Illustrator.`,
-  slug: 't-shirt-streetwear-pack',
-  previewImage: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
-  previewImages: [
-    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
-    'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=800',
-    'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=800',
-    'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800',
-  ],
-  category: 'apparel',
-  tags: ['streetwear', 'urban', 'fashion', 't-shirt', 'graphic'],
-  price: 29,
-  currency: 'EUR',
-  isPremium: true,
-  isFeatured: true,
-  creatorId: 'c1',
-  creator: {
-    id: 'c1',
-    name: 'DesignMaster',
-    username: 'designmaster',
-    avatar: '',
-    verified: true,
-  },
-  downloads: 1234,
-  views: 8567,
-  likes: 456,
-  rating: 4.8,
-  reviewCount: 89,
-  format: 'json',
-  dimensions: { width: 4000, height: 4000 },
-  fileSize: 2500000,
-  compatibility: ['luneo', 'photoshop', 'illustrator'],
-  createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
-  updatedAt: Date.now(),
-  publishedAt: Date.now() - 28 * 24 * 60 * 60 * 1000,
-  status: 'published',
-};
-
-const FALLBACK_REVIEWS: Review[] = [
-  {
-    id: 'r1',
-    templateId: '1',
-    userId: 'u1',
-    user: { name: 'Sophie Martin', avatar: '' },
-    rating: 5,
-    title: 'Excellent pack, très professionnel !',
-    content: 'Les designs sont vraiment de qualité. J\'ai pu les utiliser directement pour ma boutique. Le support est réactif et les fichiers bien organisés.',
-    helpful: 24,
-    createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000,
-    verified: true,
-  },
-  {
-    id: 'r2',
-    templateId: '1',
-    userId: 'u2',
-    user: { name: 'Thomas Dupont' },
-    rating: 4,
-    title: 'Bon rapport qualité/prix',
-    content: 'Des designs modernes et tendance. Seul bémol : j\'aurais aimé plus de variations de couleurs.',
-    helpful: 12,
-    createdAt: Date.now() - 12 * 24 * 60 * 60 * 1000,
-    verified: true,
-  },
-  {
-    id: 'r3',
-    templateId: '1',
-    userId: 'u3',
-    user: { name: 'Marie Lambert' },
-    rating: 5,
-    title: 'Parfait pour ma marque',
-    content: 'Exactement ce que je cherchais ! Les fichiers sont bien structurés et faciles à modifier.',
-    helpful: 8,
-    createdAt: Date.now() - 20 * 24 * 60 * 60 * 1000,
-    verified: false,
-  },
-];
+// No mock data in production - show empty state when API fails
+const EMPTY_REVIEWS: Review[] = [];
 
 function normalizeApiTemplate(raw: Record<string, unknown>): Template {
   const creatorId = String(raw.creatorId ?? raw.creator_id ?? '');
@@ -136,7 +50,7 @@ function normalizeApiTemplate(raw: Record<string, unknown>): Template {
       ? (raw.preview_images as string[])
       : [];
   const thumb = raw.thumbnailUrl ?? raw.thumbnail_url;
-  const previewImage = typeof thumb === 'string' ? thumb : previewImages[0] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800';
+  const previewImage = typeof thumb === 'string' ? thumb : previewImages[0] || '/placeholder-template.svg';
   const toTs = (v: unknown) => (v instanceof Date ? v.getTime() : typeof v === 'string' ? new Date(v).getTime() : Date.now());
   const creator = (raw.creator as Record<string, unknown>) || {};
   return {
@@ -198,6 +112,7 @@ function normalizeApiReview(raw: Record<string, unknown>): Review {
 }
 
 function MarketplaceTemplatePageContent({ params }: { params: { slug: string } | Promise<{ slug: string }> }) {
+  const { t } = useI18n();
   const [resolvedParams, setResolvedParams] = React.useState<{ slug: string } | null>(null);
   const [template, setTemplate] = useState<Template | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -231,7 +146,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
         if (!cancelled) setTemplate(normalizeApiTemplate(raw));
       } catch (error) {
         logger.error('Failed to fetch marketplace template', { error, slug });
-        if (!cancelled) setTemplate(FALLBACK_TEMPLATE);
+        if (!cancelled) setTemplate(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -253,7 +168,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
         const normalized = (Array.isArray(list) ? list : []).map((r) => normalizeApiReview(r as Record<string, unknown>));
         if (!cancelled) setReviews(normalized);
       } catch {
-        if (!cancelled) setReviews(FALLBACK_REVIEWS);
+        if (!cancelled) setReviews(EMPTY_REVIEWS);
       } finally {
         if (!cancelled) setReviewsLoading(false);
       }
@@ -264,16 +179,24 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
   }, [template?.id]);
 
   // Rating distribution - memoized
-  const displayTemplate = template ?? FALLBACK_TEMPLATE;
-  const displayReviews = reviews.length ? reviews : FALLBACK_REVIEWS;
+  const displayTemplate = template;
+  const displayReviews = reviews;
 
-  const ratingDistribution = useMemo(() => [
-    { stars: 5, count: 62, percentage: 70 },
-    { stars: 4, count: 18, percentage: 20 },
-    { stars: 3, count: 6, percentage: 7 },
-    { stars: 2, count: 2, percentage: 2 },
-    { stars: 1, count: 1, percentage: 1 },
-  ], []);
+  const ratingDistribution = useMemo(() => {
+    const total = displayReviews?.length ?? 0;
+    if (total === 0) {
+      return [5, 4, 3, 2, 1].map((stars) => ({ stars, count: 0, percentage: 0 }));
+    }
+    const counts = [0, 0, 0, 0, 0];
+    displayReviews.forEach((r) => {
+      const idx = Math.min(4, Math.max(0, Math.round(r.rating) - 1));
+      counts[idx] += 1;
+    });
+    return [5, 4, 3, 2, 1].map((stars, i) => {
+      const count = counts[i] ?? 0;
+      return { stars, count, percentage: total ? Math.round((count / total) * 100) : 0 };
+    });
+  }, [displayReviews]);
 
   const formatDate = useCallback((timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('fr-FR', {
@@ -288,17 +211,19 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }, []);
 
+  const imageCount = displayTemplate?.previewImages?.length ?? 0;
+
   const handlePreviousImage = useCallback(() => {
     setCurrentImageIndex((prev) =>
-      prev === 0 ? displayTemplate.previewImages.length - 1 : prev - 1
+      prev === 0 ? Math.max(imageCount - 1, 0) : prev - 1
     );
-  }, [displayTemplate.previewImages.length]);
+  }, [imageCount]);
 
   const handleNextImage = useCallback(() => {
     setCurrentImageIndex((prev) =>
-      prev === displayTemplate.previewImages.length - 1 ? 0 : prev + 1
+      prev >= imageCount - 1 ? 0 : prev + 1
     );
-  }, [displayTemplate.previewImages.length]);
+  }, [imageCount]);
 
   const handleImageSelect = useCallback((index: number) => {
     setCurrentImageIndex(index);
@@ -311,7 +236,18 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="text-slate-400">Chargement du template...</div>
+        <div className="text-slate-400">{t('public.marketplace.loadingTemplate')}</div>
+      </div>
+    );
+  }
+
+  if (!displayTemplate) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-4">
+        <div className="text-slate-400 text-lg">{t('public.marketplace.templateNotFound')}</div>
+        <Link href="/marketplace" className="text-purple-400 hover:text-purple-300 underline">
+          {t('public.marketplace.backToMarketplace')}
+        </Link>
       </div>
     );
   }
@@ -627,7 +563,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
             {/* Creator Card */}
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader>
-                <CardTitle className="text-lg">Créateur</CardTitle>
+                <CardTitle className="text-lg">{t('public.marketplace.creator')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 mb-4">
@@ -649,7 +585,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                 </div>
                 <Button variant="outline" className="w-full border-slate-700">
                   <User className="w-4 h-4 mr-2" />
-                  Voir le profil
+                  {t('public.marketplace.viewProfile')}
                 </Button>
               </CardContent>
             </Card>

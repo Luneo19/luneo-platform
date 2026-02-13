@@ -14,7 +14,15 @@ interface RenderFinalJob {
   designId?: string;
   customizationId?: string;
   type: 'final' | 'ar' | 'manufacturing';
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
+}
+
+interface RenderFinalResult {
+  renderId: string;
+  url: string;
+  thumbnailUrl: string;
+  cached?: boolean;
+  duration?: number;
 }
 
 @Processor('render-final')
@@ -28,7 +36,7 @@ export class RenderFinalProcessor {
   ) {}
 
   @Process('render')
-  async process(job: Job<RenderFinalJob>): Promise<any> {
+  async process(job: Job<RenderFinalJob>): Promise<RenderFinalResult> {
     const { renderId, snapshotId, designId, customizationId, type, options } = job.data;
     const startTime = Date.now();
 
@@ -86,7 +94,7 @@ export class RenderFinalProcessor {
             url: existingRender.url,
             thumbnailUrl: existingRender.thumbnailUrl,
             metadata: {
-              ...(existingRender.metadata as Record<string, any> || {}),
+              ...(existingRender.metadata as Record<string, unknown> || {}),
               cached: true,
             },
           },
@@ -94,8 +102,8 @@ export class RenderFinalProcessor {
 
         return {
           renderId,
-          url: existingRender.url,
-          thumbnailUrl: existingRender.thumbnailUrl,
+          url: existingRender.url || '',
+          thumbnailUrl: existingRender.thumbnailUrl || '',
           cached: true,
         };
       }
@@ -201,11 +209,11 @@ export class RenderFinalProcessor {
         data: {
           status: 'failed',
           metadata: {
-            error: error.message,
+            error: 'Render processing failed',
             failedAt: new Date().toISOString(),
           },
         },
-      }).catch(() => {});
+      }).catch((err) => this.logger.warn('Non-critical error updating render result status', err instanceof Error ? err.message : String(err)));
 
       throw error;
     }

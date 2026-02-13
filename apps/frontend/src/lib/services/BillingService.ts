@@ -217,7 +217,7 @@ export class BillingService {
       }
 
       const raw = await endpoints.billing.subscription();
-      const subscription = this.normalizeSubscription(raw);
+      const subscription = this.normalizeSubscription(raw as Record<string, unknown> | RawSubscription | null);
       if (subscription && useCache) {
         cacheService.set(`subscription:${brandId}`, subscription, { ttl: 300 * 1000 });
       }
@@ -242,7 +242,7 @@ export class BillingService {
         planId: request.plan,
         billingInterval: undefined,
       });
-      const subscription = this.normalizeSubscription(raw ?? { plan: request.plan });
+      const subscription = this.normalizeSubscription((raw ?? { plan: request.plan }) as Record<string, unknown> | RawSubscription | null);
       if (!subscription) throw new Error('Failed to update subscription');
 
       cacheService.delete(`subscription:${brandId}`);
@@ -364,7 +364,7 @@ export class BillingService {
   async getInvoice(invoiceId: string): Promise<Invoice> {
     try {
       const raw = await api.get<{ data?: RawInvoice } | RawInvoice>(`/api/v1/billing/invoices/${invoiceId}`);
-      const inv: RawInvoice = (raw && typeof raw === 'object' && 'data' in raw ? raw.data : raw) ?? {};
+      const inv: RawInvoice = ((raw && typeof raw === 'object' && 'data' in raw ? raw.data : raw) ?? {}) as RawInvoice;
       const lineItems = Array.isArray(inv.lineItems)
         ? inv.lineItems.map((line: RawInvoiceLine) => ({
             id: line.id ?? '',
@@ -576,10 +576,13 @@ export class BillingService {
   async listPaymentMethods(_brandId: string): Promise<PaymentMethod[]> {
     try {
       const data = await endpoints.billing.paymentMethods();
-      const raw = data as RawPaymentMethod[] | { paymentMethods?: RawPaymentMethod[]; data?: RawPaymentMethod[] };
-      const list = Array.isArray(data) ? data : raw?.paymentMethods ?? raw?.data ?? [];
+      const list = Array.isArray(data)
+        ? data
+        : (data as { paymentMethods?: RawPaymentMethod[]; data?: RawPaymentMethod[] }).paymentMethods
+          ?? (data as { data?: RawPaymentMethod[] }).data
+          ?? [];
       return (list as RawPaymentMethod[]).map((pm) => ({
-        id: pm.id,
+        id: String(pm.id ?? ''),
         type: (pm.type ?? 'card') as 'card' | 'bank_account',
         last4: pm.last4 ?? pm.card?.last4,
         brand: pm.brand ?? pm.card?.brand,
@@ -604,13 +607,14 @@ export class BillingService {
       logger.info('Adding payment method', { brandId, paymentMethodId });
       const pm = await endpoints.billing.addPaymentMethod(paymentMethodId);
       const data = (pm as { paymentMethod?: RawPaymentMethod } | RawPaymentMethod)?.paymentMethod ?? (pm as RawPaymentMethod);
+      const d = (data ?? {}) as Record<string, unknown> & { id?: string; type?: string; last4?: string; brand?: string; expiryMonth?: number; exp_month?: number; expiryYear?: number; exp_year?: number };
       return {
-        id: data?.id ?? paymentMethodId,
-        type: (data?.type ?? 'card') as 'card' | 'bank_account',
-        last4: data?.last4,
-        brand: data?.brand,
-        expiryMonth: data?.expiryMonth ?? data?.exp_month,
-        expiryYear: data?.expiryYear ?? data?.exp_year,
+        id: String(d.id ?? paymentMethodId),
+        type: (d.type ?? 'card') as 'card' | 'bank_account',
+        last4: d.last4,
+        brand: d.brand,
+        expiryMonth: d.expiryMonth ?? d.exp_month,
+        expiryYear: d.expiryYear ?? d.exp_year,
         isDefault: false,
       };
     } catch (error: unknown) {

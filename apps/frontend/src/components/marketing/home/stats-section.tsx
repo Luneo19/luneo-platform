@@ -54,7 +54,7 @@ export function StatsSection() {
                 <div className={`text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-2`}>
                   {stat.value}
                 </div>
-                <p className="text-gray-400 text-sm sm:text-base">
+                <p className="text-gray-300 text-sm sm:text-base">
                   {stat.label}
                 </p>
               </FadeIn>

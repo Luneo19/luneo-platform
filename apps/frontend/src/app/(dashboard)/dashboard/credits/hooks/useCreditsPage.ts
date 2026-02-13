@@ -2,9 +2,11 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { endpoints } from '@/lib/api/client';
 import type { CreditPack, CreditTransaction, CreditStats, CreditsTab } from '../components/types';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 const INITIAL_STATS: CreditStats = {
   currentBalance: 0,
@@ -58,7 +60,9 @@ function normalizeTransaction(raw: Record<string, unknown>): CreditTransaction {
 
 export function useCreditsPage() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [creditPacks, setCreditPacks] = useState<CreditPack[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
@@ -72,6 +76,7 @@ export function useCreditsPage() {
   const [autoRefillThreshold, setAutoRefillThreshold] = useState(100);
   const [autoRefillPack, setAutoRefillPack] = useState<string | null>(null);
   const [stats, setStats] = useState<CreditStats>(INITIAL_STATS);
+  const [balanceFromApi, setBalanceFromApi] = useState<number | null>(null);
 
   const fetchPacks = useCallback(async () => {
     try {
@@ -81,12 +86,13 @@ export function useCreditsPage() {
       const normalized = (list || []).map((p) => normalizePack(p as Record<string, unknown>));
       setCreditPacks(normalized);
       return normalized;
-    } catch (error) {
-      logger.error('Failed to fetch credit packs', { error });
+    } catch (err) {
+      logger.error('Failed to fetch credit packs', err);
       setCreditPacks([]);
+      setError(err instanceof Error ? err.message : t('credits.errorLoadPacks'));
       return [];
     }
-  }, []);
+  }, [t]);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -98,26 +104,49 @@ export function useCreditsPage() {
       );
       setTransactions(normalized);
       return normalized;
-    } catch (error) {
-      logger.error('Failed to fetch transactions', { error });
+    } catch (err) {
+      logger.error('Failed to fetch transactions', err);
       setTransactions([]);
+      setError(err instanceof Error ? err.message : t('credits.errorLoadHistory'));
       return [];
     }
+  }, [t]);
+
+  const fetchBalance = useCallback(async () => {
+    try {
+      const balanceData = await endpoints.credits.balance();
+      const data = balanceData as { balance?: number; credits?: number };
+      const balance = data?.balance ?? data?.credits ?? 0;
+      setBalanceFromApi(balance);
+      return balance;
+    } catch (err) {
+      logger.error('Failed to fetch balance', err);
+      setBalanceFromApi(null);
+      return 0;
+    }
   }, []);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    Promise.all([fetchBalance(), fetchPacks(), fetchTransactions()]).finally(() => setLoading(false));
+  }, [fetchBalance, fetchPacks, fetchTransactions]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([fetchPacks(), fetchTransactions()]).finally(() => {
+    setError(null);
+    Promise.all([fetchBalance(), fetchPacks(), fetchTransactions()]).finally(() => {
       if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [fetchPacks, fetchTransactions]);
+  }, [fetchBalance, fetchPacks, fetchTransactions]);
 
   useEffect(() => {
-    const currentBalance = transactions.reduce((acc, t) => acc + t.amount, 0);
+    const currentBalance =
+      balanceFromApi !== null ? balanceFromApi : transactions.reduce((acc, t) => acc + t.amount, 0);
     const totalPurchased = transactions.filter((t) => t.type === 'purchase').reduce((acc, t) => acc + t.amount, 0);
     const totalUsed = Math.abs(transactions.filter((t) => t.type === 'usage').reduce((acc, t) => acc + t.amount, 0));
     const totalRefunded = transactions.filter((t) => t.type === 'refund').reduce((acc, t) => acc + t.amount, 0);
@@ -149,7 +178,7 @@ export function useCreditsPage() {
       byModel,
       trends: [],
     });
-  }, [transactions]);
+  }, [transactions, balanceFromApi]);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -171,31 +200,31 @@ export function useCreditsPage() {
     if (!selectedPack) return;
     const pack = creditPacks.find((p) => p.id === selectedPack);
     if (!pack) {
-      toast({ title: 'Erreur', description: 'Pack introuvable', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('credits.errorPackNotFound'), variant: 'destructive' });
       return;
     }
     try {
       const data = await endpoints.credits.buy({ packSize: pack.credits });
       const payload = data as { url?: string };
       if (payload?.url) window.location.href = payload.url;
-      else toast({ title: 'Erreur', description: 'URL de paiement non disponible', variant: 'destructive' });
+      else toast({ title: t('common.error'), description: t('credits.errorPaymentUrl'), variant: 'destructive' });
     } catch (error: unknown) {
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la création de la session de paiement',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
-  }, [selectedPack, creditPacks, toast]);
+  }, [selectedPack, creditPacks, toast, t]);
 
   const handleEnableAutoRefill = useCallback(() => {
     if (!autoRefillPack) {
-      toast({ title: 'Erreur', description: 'Veuillez sélectionner un pack', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('credits.errorSelectPack'), variant: 'destructive' });
       return;
     }
     setAutoRefillEnabled(true);
     setShowAutoRefillModal(false);
-    toast({ title: 'Succès', description: 'Recharge automatique activée' });
+    toast({ title: t('common.success'), description: t('credits.autoRefillEnabledSuccess') });
   }, [autoRefillPack, toast]);
 
   return {

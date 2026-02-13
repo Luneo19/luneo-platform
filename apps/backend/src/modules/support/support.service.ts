@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { TicketCategory, TicketPriority } from '@prisma/client';
+import { TicketCategory, TicketPriority, TicketStatus } from '@prisma/client';
 
 @Injectable()
 export class SupportService {
@@ -11,14 +12,14 @@ export class SupportService {
     const limit = Math.min(options?.limit || 50, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { userId };
+    const where: Prisma.TicketWhereInput = { userId };
 
     if (options?.status) {
-      where.status = options.status;
+      where.status = options.status as TicketStatus;
     }
 
     if (options?.category) {
-      where.category = options.category;
+      where.category = options.category as unknown as TicketCategory;
     }
 
     const [tickets, total] = await Promise.all([
@@ -222,10 +223,10 @@ export class SupportService {
   async updateTicket(id: string, data: { status?: string; priority?: string; category?: string }, userId: string) {
     const ticket = await this.getTicket(id, userId);
 
-    const updateData: any = {};
-    if (data.status) updateData.status = data.status;
-    if (data.priority) updateData.priority = data.priority;
-    if (data.category) updateData.category = data.category;
+    const updateData: Prisma.TicketUpdateInput = {};
+    if (data.status) updateData.status = data.status as TicketStatus;
+    if (data.priority) updateData.priority = data.priority as TicketPriority;
+    if (data.category) updateData.category = data.category as unknown as TicketCategory;
 
     if (data.status === 'RESOLVED' && !ticket.resolvedAt) {
       updateData.resolvedAt = new Date();
@@ -307,7 +308,7 @@ export class SupportService {
     const limit = Math.min(options?.limit || 20, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { isPublished: true };
+    const where: Prisma.KnowledgeBaseArticleWhereInput = { isPublished: true };
 
     if (options?.category) {
       where.category = options.category;
@@ -375,5 +376,59 @@ export class SupportService {
     });
 
     return article;
+  }
+
+  /**
+   * Submit CSAT (Customer Satisfaction) rating for a resolved/closed ticket
+   */
+  async submitCSAT(ticketId: string, userId: string, data: { rating: number; comment?: string }) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    if (ticket.userId !== userId) {
+      throw new ForbiddenException('Access denied to this ticket');
+    }
+
+    if (ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED') {
+      throw new ForbiddenException('CSAT can only be submitted for resolved or closed tickets');
+    }
+
+    if (data.rating < 1 || data.rating > 5) {
+      throw new ForbiddenException('Rating must be between 1 and 5');
+    }
+
+    // Update ticket with CSAT data
+    const metadata = {
+      ...(ticket.metadata as Record<string, unknown> || {}),
+      csat: {
+        rating: data.rating,
+        comment: data.comment || null,
+        submittedAt: new Date().toISOString(),
+      },
+    };
+
+    await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        metadata: metadata as Prisma.InputJsonValue,
+      },
+    });
+
+    // Create activity
+    await this.prisma.ticketActivity.create({
+      data: {
+        ticketId,
+        action: 'csat_submitted',
+        userId,
+        newValue: `Rating: ${data.rating}/5`,
+      },
+    });
+
+    return { success: true, rating: data.rating };
   }
 }

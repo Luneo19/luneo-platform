@@ -11,14 +11,14 @@ import { z, ZodError } from 'zod';
 /**
  * Interface pour une réponse API standardisée
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
   code?: string;
   timestamp?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -32,7 +32,7 @@ export class ApiResponseBuilder {
     data: T,
     message?: string,
     status: number = 200,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse<T>> {
     return NextResponse.json(
       {
@@ -53,7 +53,7 @@ export class ApiResponseBuilder {
     error: string | Error,
     status: number = 500,
     code?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse> {
     const errorMessage = error instanceof Error ? error.message : error;
     const errorStack = error instanceof Error ? error.stack : undefined;
@@ -83,7 +83,7 @@ export class ApiResponseBuilder {
   static badRequest(
     error: string,
     code?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse> {
     return this.error(error, 400, code || 'BAD_REQUEST', metadata);
   }
@@ -124,7 +124,7 @@ export class ApiResponseBuilder {
   static conflict(
     error: string,
     code?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse> {
     return this.error(error, 409, code || 'CONFLICT', metadata);
   }
@@ -135,7 +135,7 @@ export class ApiResponseBuilder {
   static unprocessable(
     error: string,
     code?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse> {
     return this.error(error, 422, code || 'UNPROCESSABLE_ENTITY', metadata);
   }
@@ -168,9 +168,9 @@ export class ApiResponseBuilder {
    * Réponse 500 Internal Server Error
    */
   static internalError(
-    error: string | Error = 'Erreur serveur',
+    error: string | Error = 'Server error',
     code?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse> {
     return this.error(error, 500, code || 'INTERNAL_ERROR', metadata);
   }
@@ -213,24 +213,27 @@ export class ApiResponseBuilder {
     try {
       const data = await handler();
       return this.success(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (endpoint) {
-        logger.apiError(endpoint, method, error);
+        logger.apiError(endpoint, method, error instanceof Error ? error : new Error(String(error)));
       } else {
         logger.error('API Error', error instanceof Error ? error : new Error(String(error)));
       }
       
       // Gérer les erreurs connues avec status
-      if (error && typeof error === 'object' && 'status' in error) {
+      const errObj = error as { message?: string; status?: number; code?: string } | null;
+      if (errObj && typeof errObj === 'object' && 'status' in errObj) {
         return this.error(
-          error.message || 'Erreur',
-          error.status,
-          error.code
-        );
+          errObj.message ?? 'Error',
+          errObj.status ?? 500,
+          errObj.code
+        ) as NextResponse<ApiResponse<T>>;
       }
 
       // Erreur générique
-      return this.internalError(error);
+      return this.internalError(
+        error instanceof Error ? error : String(error)
+      ) as NextResponse<ApiResponse<T>>;
     }
   }
 
@@ -238,7 +241,7 @@ export class ApiResponseBuilder {
    * Valide le corps de la requête avec un schéma Zod.
    * Si la validation échoue, renvoie une réponse d'erreur 400.
    */
-  static async validateWithZod<T, R = any>(
+  static async validateWithZod<T, R = unknown>(
     schema: z.ZodSchema<T>,
     request: NextRequest,
     handler: (validatedData: T) => Promise<NextResponse<ApiResponse<R>>>
@@ -255,13 +258,13 @@ export class ApiResponseBuilder {
         }));
         logger.warn('Zod validation failed', { errors, url: request.url });
         return ApiResponseBuilder.badRequest(
-          'Erreurs de validation',
+          'Validation errors',
           'VALIDATION_ERROR',
           { details: errors }
-        );
+        ) as NextResponse<ApiResponse<R>>;
       }
       logger.error('Error during Zod validation or handler execution', error instanceof Error ? error : new Error(String(error)), { url: request.url });
-      return ApiResponseBuilder.internalError('Erreur interne du serveur');
+      return ApiResponseBuilder.internalError('Internal server error') as NextResponse<ApiResponse<R>>;
     }
   }
 }
@@ -285,7 +288,7 @@ export function validateWithZodSchema<T>(
  * Helper pour valider les paramètres de requête (méthode legacy)
  */
 export function validateRequest(
-  body: any,
+  body: Record<string, unknown>,
   requiredFields: string[]
 ): { valid: boolean; missing?: string[] } {
   const missing = requiredFields.filter((field) => !body[field]);

@@ -48,8 +48,8 @@ export class StorageService {
       this.logger.log(`File uploaded successfully to Cloudinary: ${result.secure_url}`);
       return result.secure_url;
     } catch (error) {
-      this.logger.error(`Failed to upload file: ${error.message}`);
-      throw new InternalServerErrorException(`Échec de l'upload (Cloudinary): ${error.message}`);
+      this.logger.error('Upload failed', { error });
+      throw new InternalServerErrorException('File upload failed. Please try again.');
     }
   }
 
@@ -88,8 +88,8 @@ export class StorageService {
       
       this.logger.log(`File deleted successfully from Cloudinary: ${key}`);
     } catch (error) {
-      this.logger.error(`Failed to delete file: ${error.message}`);
-      throw new InternalServerErrorException(`Échec de la suppression (Cloudinary): ${error.message}`);
+      this.logger.error('Delete file failed', { error });
+      throw new InternalServerErrorException('File deletion failed. Please try again.');
     }
   }
 
@@ -110,23 +110,43 @@ export class StorageService {
       
       return url;
     } catch (error) {
-      this.logger.error(`Failed to generate signed URL: ${error.message}`);
-      throw new InternalServerErrorException(`Échec de génération d'URL (Cloudinary): ${error.message}`);
+      this.logger.error('Signed URL generation failed', { error });
+      throw new InternalServerErrorException('Failed to generate signed URL. Please try again.');
     }
   }
 
   /**
-   * Liste les fichiers dans un dossier
+   * Liste les fichiers dans un dossier (Cloudinary)
    */
   async listFiles(prefix: string, bucket?: string): Promise<string[]> {
     try {
       this.logger.log(`Listing files with prefix: ${prefix}`);
       
-      // Simulation de liste de fichiers
-      return [];
-    } catch (error) {
-      this.logger.error(`Failed to list files: ${error.message}`);
-      throw error;
+      const folder = bucket ? `${bucket}/${prefix}` : prefix;
+      
+      // Use Cloudinary Search API for listing files in a folder
+      const result = await cloudinary.search
+        .expression(`folder:${folder}/*`)
+        .sort_by('created_at', 'desc')
+        .max_results(500)
+        .execute();
+      
+      const urls: string[] = (result.resources || []).map(
+        (resource: { secure_url: string }) => resource.secure_url,
+      );
+      
+      this.logger.log(`Listed ${urls.length} files from Cloudinary folder: ${folder}`);
+      return urls;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error('List files failed', { error });
+      // Graceful degradation: return empty array instead of throwing
+      // This prevents cascade failures when Cloudinary is misconfigured
+      if (message?.includes('Must supply') || message?.includes('cloud_name')) {
+        this.logger.warn('Cloudinary not configured - returning empty file list');
+        return [];
+      }
+      throw new InternalServerErrorException('Failed to list files. Please try again.');
     }
   }
 }

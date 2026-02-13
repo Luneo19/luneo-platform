@@ -11,28 +11,29 @@ import {
   RenderValidationResult
 } from '../interfaces/render.interface';
 import { JsonValue } from '@/common/types/utility-types';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 
 @Injectable()
 export class Render2DService {
   private readonly logger = new Logger(Render2DService.name);
-  private sharpModule: any = null;
+  private sharpModule: typeof import('sharp') | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
     private readonly cache: SmartCacheService,
+    private readonly quotasService: QuotasService,
+    private readonly usageTrackingService: UsageTrackingService,
   ) {}
 
   /**
    * Lazy load sharp module to reduce cold start time
    */
-  private async getSharp(): Promise<any> {
+  private async getSharp(): Promise<typeof import('sharp')> {
     if (!this.sharpModule) {
-      this.sharpModule = await import('sharp');
-      // Handle both ESM and CommonJS exports
-      if (this.sharpModule.default) {
-        this.sharpModule = this.sharpModule.default;
-      }
+      const sharpImport = await import('sharp') as typeof import('sharp') & { default?: typeof import('sharp') };
+      this.sharpModule = (sharpImport.default ?? sharpImport) as typeof import('sharp');
     }
     return this.sharpModule;
   }
@@ -45,6 +46,9 @@ export class Render2DService {
     
     try {
       this.logger.log(`Starting 2D render for request ${request.id}`);
+
+      const brandId = await this.getBrandIdFromProduct(request.productId);
+      await this.quotasService.enforceQuota(brandId, 'renders_2d');
       
       // Valider la requête
       const validation = await this.validateRenderRequest(request);
@@ -91,20 +95,39 @@ export class Render2DService {
 
       // Mettre en cache le résultat
       await this.cache.setSimple(`render_result:${request.id}`, JSON.stringify(result), 3600);
+
+      await this.usageTrackingService.trackRender2D(
+        brandId,
+        request.designId ?? request.id,
+        request.options?.format ?? 'png',
+      );
       
       this.logger.log(`2D render completed for request ${request.id} in ${renderTime}ms`);
       
       return result;
     } catch (error) {
-      this.logger.error(`2D render failed for request ${request.id}:`, error);
-      
+      this.logger.error(`2D render failed for request ${request.id}:`, error instanceof Error ? error.stack : String(error));
       return {
         id: request.id,
         status: 'failed',
-        error: error.message,
+        error: 'Render failed',
         createdAt: new Date(),
       };
     }
+  }
+
+  /**
+   * Récupère le brandId à partir du productId
+   */
+  private async getBrandIdFromProduct(productId: string): Promise<string> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { brandId: true },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product ${productId} not found`);
+    }
+    return product.brandId;
   }
 
   /**
@@ -246,7 +269,7 @@ export class Render2DService {
     }
 
     // Appliquer les zones personnalisées
-    const designOptions = designData.options as unknown as (RenderOptions & { zones?: any; effects?: any }) | undefined;
+    const designOptions = designData.options as unknown as (RenderOptions & { zones?: Record<string, Record<string, JsonValue>>; effects?: Array<{ type: string; intensity?: number; value?: number }> }) | undefined;
     if (designOptions?.zones) {
       processedCanvas = await this.applyZones(processedCanvas, designOptions.zones, options);
     }
@@ -336,27 +359,32 @@ export class Render2DService {
   /**
    * Applique une zone image
    */
-  private async applyImageZone(canvas: Sharp, zoneData: any): Promise<Sharp> {
+  private async applyImageZone(canvas: Sharp, zoneData: Record<string, JsonValue>): Promise<Sharp> {
     try {
       const sharp = await this.getSharp();
-      const imageBuffer = await this.downloadAsset(zoneData.imageUrl);
-      
+      const imageUrl = typeof zoneData.imageUrl === 'string' ? zoneData.imageUrl : '';
+      const imageBuffer = await this.downloadAsset(imageUrl);
+      const width = typeof zoneData.width === 'number' ? zoneData.width : 200;
+      const height = typeof zoneData.height === 'number' ? zoneData.height : 200;
+
       const positionedImage = await sharp(imageBuffer)
-        .resize(zoneData.width || 200, zoneData.height || 200, {
+        .resize(width, height, {
           fit: 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 },
         })
         .png()
         .toBuffer();
 
+      const left = typeof zoneData.x === 'number' ? zoneData.x : 0;
+      const top = typeof zoneData.y === 'number' ? zoneData.y : 0;
       return canvas.composite([{
         input: positionedImage,
-        left: zoneData.x || 0,
-        top: zoneData.y || 0,
+        left,
+        top,
         blend: 'over',
       }]);
     } catch (error) {
-      this.logger.warn(`Failed to apply image zone: ${error.message}`);
+      this.logger.warn(`Failed to apply image zone: ${error instanceof Error ? error.message : String(error)}`);
       return canvas;
     }
   }
@@ -364,7 +392,7 @@ export class Render2DService {
   /**
    * Applique une zone texte
    */
-  private async applyTextZone(canvas: Sharp, zoneData: any): Promise<Sharp> {
+  private async applyTextZone(canvas: Sharp, zoneData: Record<string, JsonValue>): Promise<Sharp> {
     // Pour le texte, nous créons une image SVG temporaire
     const svgText = this.createTextSVG(zoneData);
     
@@ -374,14 +402,16 @@ export class Render2DService {
         .png()
         .toBuffer();
 
+      const left = typeof zoneData.x === 'number' ? zoneData.x : 0;
+      const top = typeof zoneData.y === 'number' ? zoneData.y : 0;
       return canvas.composite([{
         input: textBuffer,
-        left: zoneData.x || 0,
-        top: zoneData.y || 0,
+        left,
+        top,
         blend: 'over',
       }]);
     } catch (error) {
-      this.logger.warn(`Failed to apply text zone: ${error.message}`);
+      this.logger.warn(`Failed to apply text zone: ${error instanceof Error ? error.message : String(error)}`);
       return canvas;
     }
   }
@@ -389,30 +419,36 @@ export class Render2DService {
   /**
    * Applique une zone couleur
    */
-  private async applyColorZone(canvas: Sharp, zoneData: any): Promise<Sharp> {
+  private async applyColorZone(canvas: Sharp, zoneData: Record<string, JsonValue>): Promise<Sharp> {
     const sharp = await this.getSharp();
+    const width = typeof zoneData.width === 'number' ? zoneData.width : 100;
+    const height = typeof zoneData.height === 'number' ? zoneData.height : 100;
+    const color = typeof zoneData.color === 'string' ? zoneData.color : '#000000';
+    const blend = typeof zoneData.blend === 'string' ? zoneData.blend : 'over';
+    const left = typeof zoneData.x === 'number' ? zoneData.x : 0;
+    const top = typeof zoneData.y === 'number' ? zoneData.y : 0;
+
     const colorOverlay = await sharp({
       create: {
-        width: zoneData.width || 100,
-        height: zoneData.height || 100,
+        width,
+        height,
         channels: 4,
-        background: zoneData.color || '#000000',
+        background: color,
       },
     }).png().toBuffer();
 
     return canvas.composite([{
       input: colorOverlay,
-      left: zoneData.x || 0,
-      top: zoneData.y || 0,
-      blend: zoneData.blend || 'over',
-      // opacity: zoneData.opacity || 1, // Commenté car pas dans OverlayOptions
+      left,
+      top,
+      blend: blend as 'over',
     }]);
   }
 
   /**
    * Applique les effets
    */
-  private async applyEffects(canvas: Sharp, effects: any[]): Promise<Sharp> {
+  private async applyEffects(canvas: Sharp, effects: Array<{ type: string; intensity?: number; value?: number | string }>): Promise<Sharp> {
     let processedCanvas = canvas;
 
     for (const effect of effects) {
@@ -425,17 +461,17 @@ export class Render2DService {
           break;
         case 'brightness':
           processedCanvas = processedCanvas.modulate({
-            brightness: effect.value || 1,
+            brightness: typeof effect.value === 'number' ? effect.value : 1,
           });
           break;
         case 'contrast':
           processedCanvas = processedCanvas.modulate({
-            saturation: effect.value || 1,
+            saturation: typeof effect.value === 'number' ? effect.value : 1,
           });
           break;
         case 'hue':
           processedCanvas = processedCanvas.modulate({
-            hue: effect.value || 0,
+            hue: typeof effect.value === 'number' ? effect.value : 0,
           });
           break;
         case 'grayscale':
@@ -572,13 +608,18 @@ export class Render2DService {
    * Crée un SVG pour le texte
    */
   private createTextSVG(zoneData: Record<string, JsonValue>): string {
-    const { text = 'Sample Text', font = 'Arial', fontSize = 16, color = '#000000' } = zoneData;
-    
+    const text = typeof zoneData.text === 'string' ? zoneData.text : 'Sample Text';
+    const font = typeof zoneData.font === 'string' ? zoneData.font : 'Arial';
+    const fontSize = typeof zoneData.fontSize === 'number' ? zoneData.fontSize : 16;
+    const color = typeof zoneData.color === 'string' ? zoneData.color : '#000000';
+    const width = typeof zoneData.width === 'number' ? zoneData.width : 200;
+    const height = typeof zoneData.height === 'number' ? zoneData.height : 50;
+
     return `
-      <svg width="${zoneData.width || 200}" height="${zoneData.height || 50}" xmlns="http://www.w3.org/2000/svg">
-        <text x="50%" y="50%" font-family="${font}" font-size="${fontSize}" fill="${color}" 
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <text x="50%" y="50%" font-family="${font}" font-size="${fontSize}" fill="${color}"
               text-anchor="middle" dominant-baseline="middle">
-          ${text}
+          ${String(text)}
         </text>
       </svg>
     `;

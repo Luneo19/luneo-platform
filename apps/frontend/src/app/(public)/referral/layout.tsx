@@ -10,6 +10,10 @@ export const metadata: Metadata = generateSEOMetadata({
   keywords: ['parrainage', 'referral', 'crédits', 'programme', 'Luneo'],
   canonicalUrl: `${SEO_BASE_URL}/referral`,
   ogType: 'website',
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/referral` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/referral` },
+  ],
 });
 
 export default function ReferralLayout({ children }: { children: ReactNode }) {

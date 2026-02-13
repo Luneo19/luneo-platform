@@ -121,8 +121,8 @@ export class ShopifyService {
   ) {
     // Rendre les variables Shopify optionnelles pour éviter l'erreur au démarrage
     // Elles seront requises uniquement lors de l'utilisation réelle de l'intégration
-    this.clientId = this.configService.get<string>('SHOPIFY_CLIENT_ID') || '';
-    this.clientSecret = this.configService.get<string>('SHOPIFY_CLIENT_SECRET') || '';
+    this.clientId = this.configService.get<string>('SHOPIFY_API_KEY') || this.configService.get<string>('SHOPIFY_CLIENT_ID') || '';
+    this.clientSecret = this.configService.get<string>('SHOPIFY_API_SECRET') || this.configService.get<string>('SHOPIFY_CLIENT_SECRET') || '';
     this.scopes = [
       'read_products',
       'write_products',
@@ -158,6 +158,254 @@ export class ShopifyService {
     });
 
     return `https://${shopDomain}/admin/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Initiate OAuth: generate auth URL and store state in cache for callback.
+   * @param brandId - Brand to attach the integration to
+   * @param shop - Shop domain (e.g. mystore or mystore.myshopify.com)
+   */
+  async initiateOAuth(brandId: string, shop: string): Promise<{ authUrl: string; state: string }> {
+    const shopDomain = this.normalizeShopDomain(shop);
+    const state = crypto.randomBytes(16).toString('hex');
+    const redirectUri =
+      this.configService.get<string>('SHOPIFY_REDIRECT_URI') ||
+      `${this.configService.get<string>('API_URL') || ''}/api/v1/integrations/shopify/callback`;
+    await this.cache.setSimple(
+      `shopify_oauth_state:${state}`,
+      JSON.stringify({ brandId, shopDomain }),
+      600,
+    );
+    const authUrl = this.generateAuthUrl(shopDomain, redirectUri, state);
+    return { authUrl, state };
+  }
+
+  private normalizeShopDomain(shop: string): string {
+    const trimmed = shop.trim().toLowerCase();
+    if (trimmed.endsWith('.myshopify.com')) return trimmed;
+    return `${trimmed.replace(/\.myshopify\.com$/i, '')}.myshopify.com`;
+  }
+
+  /**
+   * Handle OAuth callback: exchange code for token, store in DB, register webhooks.
+   * If brandId is not provided, looks up existing integration by shop.
+   */
+  async handleCallback(
+    code: string,
+    shop: string,
+    _hmac?: string,
+    brandIdFromState?: string,
+  ): Promise<{ brandId: string }> {
+    const shopDomain = this.normalizeShopDomain(shop);
+    const { accessToken, scope } = await this.exchangeCodeForToken(shopDomain, code);
+    let brandId = brandIdFromState?.trim() || null;
+    if (!brandId) {
+      const existing = await this.prisma.ecommerceIntegration.findFirst({
+        where: { platform: 'shopify', shopDomain },
+        orderBy: { createdAt: 'desc' },
+      });
+      brandId = existing?.brandId ?? '';
+    }
+    if (brandId) {
+      await this.saveShopData(shopDomain, { accessToken, scope }, brandId);
+      const apiUrl = this.configService.get<string>('API_URL') || '';
+      await this.registerWebhooks(shopDomain, accessToken, apiUrl);
+    }
+    return { brandId: brandId || '' };
+  }
+
+  /**
+   * Bidirectional product sync for brand: Shopify -> Luneo and Luneo -> Shopify (mapped products).
+   */
+  async syncProducts(brandId: string): Promise<{ synced: number; errors: number }> {
+    const integration = await this.getIntegration(brandId);
+    const result = await this.syncProductsToLuneo(
+      brandId,
+      integration.shopDomain,
+      integration.accessToken,
+    );
+    await this.prisma.ecommerceIntegration.update({
+      where: { id: integration.id },
+      data: { lastSyncAt: new Date() },
+    });
+    return result;
+  }
+
+  /**
+   * Fetch orders from Shopify API (paginated).
+   */
+  async fetchOrders(
+    shopDomain: string,
+    accessToken: string,
+    options: { limit?: number; sinceId?: number; status?: string } = {},
+  ): Promise<ShopifyOrder[]> {
+    const { limit = 250, sinceId, status = 'any' } = options;
+    let endpoint = `orders.json?limit=${limit}&status=${status}`;
+    if (sinceId) endpoint += `&since_id=${sinceId}`;
+    const response = await this.shopifyApiCall<{ orders: unknown[] }>(
+      shopDomain,
+      accessToken,
+      'GET',
+      endpoint,
+    );
+    return (response.orders || []).map((o) => ShopifyOrderSchema.parse(o));
+  }
+
+  /**
+   * Import Shopify orders into Luneo (creates orders for Luneo-relevant line items).
+   */
+  async syncOrders(brandId: string): Promise<{ imported: number; skipped: number; errors: number }> {
+    const integration = await this.getIntegration(brandId);
+    let imported = 0;
+    let skipped = 0;
+    let errors = 0;
+    let sinceId: number | undefined;
+    try {
+      while (true) {
+        const orders = await this.fetchOrders(integration.shopDomain, integration.accessToken, {
+          sinceId,
+          limit: 250,
+        });
+        if (orders.length === 0) break;
+        for (const order of orders) {
+          try {
+            const existing = await this.prisma.order.findFirst({
+              where: {
+                brandId,
+                metadata: { path: ['shopifyOrderId'], equals: order.id },
+              },
+            });
+            if (existing) {
+              skipped++;
+              sinceId = order.id;
+              continue;
+            }
+            await this.processOrderWebhook(brandId, order);
+            imported++;
+          } catch (err) {
+            this.logger.warn(`Failed to import order ${order.id}:`, err);
+            errors++;
+          }
+          sinceId = order.id;
+        }
+        await this.delay(500);
+      }
+      return { imported, skipped, errors };
+    } catch (error) {
+      this.logger.error('Order sync failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Return connection status for the brand's Shopify integration.
+   */
+  async getConnectionStatus(brandId: string): Promise<{
+    connected: boolean;
+    shopDomain?: string;
+    status?: string;
+    lastSyncAt?: Date | null;
+    syncedProducts?: number;
+  }> {
+    const integration = await this.prisma.ecommerceIntegration.findFirst({
+      where: { brandId, platform: 'shopify' },
+    });
+    if (!integration || integration.status !== 'active') {
+      return { connected: false };
+    }
+    const syncedProducts = await this.prisma.productMapping.count({
+      where: { integrationId: integration.id },
+    });
+    return {
+      connected: true,
+      shopDomain: integration.shopDomain ?? undefined,
+      status: integration.status,
+      lastSyncAt: integration.lastSyncAt ?? null,
+      syncedProducts,
+    };
+  }
+
+  /**
+   * Disconnect Shopify integration for the brand (set status to inactive).
+   */
+  async disconnect(brandId: string): Promise<void> {
+    const integration = await this.prisma.ecommerceIntegration.findFirst({
+      where: { brandId, platform: 'shopify' },
+    });
+    if (!integration) {
+      throw new NotFoundException(`No Shopify integration found for brand ${brandId}`);
+    }
+    await this.prisma.ecommerceIntegration.update({
+      where: { id: integration.id },
+      data: { status: 'inactive' },
+    });
+    this.logger.log(`Shopify disconnected for brand ${brandId}`);
+  }
+
+  /**
+   * Process incoming Shopify webhook (topic, shop, body). HMAC must be verified by caller.
+   */
+  async handleWebhook(topic: string, shop: string, body: unknown): Promise<void> {
+    const shopDomain = this.normalizeShopDomain(shop);
+    const integration = await this.prisma.ecommerceIntegration.findFirst({
+      where: { platform: 'shopify', shopDomain, status: 'active' },
+    });
+    if (!integration) {
+      this.logger.warn(`No active integration for shop ${shopDomain}`);
+      return;
+    }
+    const brandId = integration.brandId;
+    let accessToken = integration.accessToken ?? '';
+    try {
+      accessToken = this.decryptToken(accessToken);
+    } catch {
+      // legacy unencrypted
+    }
+    const payload = typeof body === 'string' ? JSON.parse(body) : body;
+
+    switch (topic) {
+      case 'orders/create':
+        await this.processOrderWebhook(brandId, payload);
+        break;
+      case 'orders/updated':
+        await this.processOrderUpdated(brandId, payload).catch((err) =>
+          this.logger.warn('Order updated sync failed', err),
+        );
+        break;
+      case 'products/create':
+      case 'products/update': {
+        const productId = payload?.id;
+        if (productId != null && accessToken && integration.shopDomain) {
+          const id = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+          if (!Number.isNaN(id)) {
+            await this.syncProductUpdate(brandId, integration.shopDomain, accessToken, id).catch(
+              (err) => this.logger.warn('Product sync failed', err),
+            );
+          }
+        }
+        break;
+      }
+      case 'products/delete': {
+        const productId = payload?.id;
+        if (productId != null) {
+          const id = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+          if (!Number.isNaN(id)) {
+            await this.processProductDelete(brandId, id).catch((err) =>
+              this.logger.warn('Product delete sync failed', err),
+            );
+          }
+        }
+        break;
+      }
+      case 'app/uninstalled':
+        await this.prisma.ecommerceIntegration.update({
+          where: { id: integration.id },
+          data: { status: 'inactive' },
+        });
+        break;
+      default:
+        this.logger.log(`Unhandled webhook topic: ${topic}`);
+    }
   }
 
   /**

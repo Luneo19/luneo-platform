@@ -69,12 +69,12 @@ export function RadarChart({
     )
   ) * 1.2;
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name?: string; value?: number; color?: string; payload?: { category?: string } }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-medium text-white mb-2">{payload[0].payload.category}</p>
-          {payload.map((entry: any, index: number) => (
+          <p className="text-sm font-medium text-white mb-2">{payload[0]?.payload?.category}</p>
+          {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {entry.value}
             </p>

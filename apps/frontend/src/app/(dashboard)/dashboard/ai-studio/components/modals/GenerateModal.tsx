@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function GenerateModal({
   progress,
   defaultType = '2d',
 }: GenerateModalProps) {
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState('');
   const [type, setType] = useState<GenerationType>(defaultType);
   const [model, setModel] = useState<AISettings['model']>('dall-e-3');
@@ -68,14 +70,14 @@ export function GenerateModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Générer avec l'IA</DialogTitle>
+          <DialogTitle className="text-white">{t('aiStudio.generateWithAI')}</DialogTitle>
           <DialogDescription className="text-white/60">
-            Décrivez votre idée et l'IA créera un design pour vous
+            {t('aiStudio.describeIdea')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
           <div>
-            <Label className="text-white/80 mb-2 block">Type de génération</Label>
+            <Label className="text-white/80 mb-2 block">{t('aiStudio.generationType')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {GENERATION_TYPES.map((genType) => {
                 const Icon = genType.icon as React.ComponentType<{ className?: string }>;
@@ -92,7 +94,7 @@ export function GenerateModal({
                     {Icon && <Icon className="w-5 h-5 mb-2 text-purple-400" />}
                     <p className="text-sm font-medium text-white">{genType.label}</p>
                     <p className="text-xs text-white/60">{genType.description}</p>
-                    <p className="text-xs text-[#fbbf24] mt-1">{genType.credits} crédits</p>
+                    <p className="text-xs text-[#fbbf24] mt-1">{genType.credits} {t('aiStudio.credits')}</p>
                   </button>
                 );
               })}
@@ -100,23 +102,23 @@ export function GenerateModal({
           </div>
           <div>
             <Label htmlFor="prompt" className="text-white/80">
-              Décrivez votre design
+              {t('aiStudio.describeDesign')}
             </Label>
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ex: Un logo moderne pour une startup tech avec des couleurs bleu et blanc..."
+              placeholder={t('aiStudio.placeholderPrompt')}
               className="dash-input mt-2 min-h-[120px] text-white placeholder:text-white/40 border-white/[0.08] bg-white/[0.04]"
               disabled={isGenerating}
             />
             <p className="text-xs text-white/40 mt-1">
-              {prompt.length} / 1000 caractères • ~{estimatedCredits} crédits estimés
+              {t('aiStudio.charsCredits', { chars: String(prompt.length), credits: String(estimatedCredits) })}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-white/80">Modèle IA</Label>
+              <Label className="text-white/80">{t('aiStudio.aiModel')}</Label>
               <Select value={model} onValueChange={(v) => setModel(v as AISettings['model'])}>
                 <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white mt-2">
                   <SelectValue />
@@ -134,7 +136,7 @@ export function GenerateModal({
               </Select>
             </div>
             <div>
-              <Label className="text-white/80">Taille</Label>
+              <Label className="text-white/80">{t('aiStudio.size')}</Label>
               <Select value={size} onValueChange={setSize}>
                 <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white mt-2">
                   <SelectValue />
@@ -149,7 +151,7 @@ export function GenerateModal({
               </Select>
             </div>
             <div>
-              <Label className="text-white/80">Qualité</Label>
+              <Label className="text-white/80">{t('aiStudio.quality')}</Label>
               <Select value={quality} onValueChange={(v) => setQuality(v as AISettings['quality'])}>
                 <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white mt-2">
                   <SelectValue />
@@ -164,7 +166,7 @@ export function GenerateModal({
               </Select>
             </div>
             <div>
-              <Label className="text-white/80">Style</Label>
+              <Label className="text-white/80">{t('aiStudio.style')}</Label>
               <Select value={style} onValueChange={(v) => setStyle(v as AISettings['style'])}>
                 <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white mt-2">
                   <SelectValue />
@@ -183,14 +185,14 @@ export function GenerateModal({
             <div className="space-y-2">
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-white/40 text-center">
-                Génération en cours... {progress}%
+                {t('aiStudio.generating')} {progress}%
               </p>
             </div>
           )}
         </div>
         <div className="flex items-center justify-end gap-3 mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/[0.08] text-white hover:bg-white/[0.04]" disabled={isGenerating}>
-            Annuler
+            {t('aiStudio.cancel')}
           </Button>
           <Button
             onClick={handleGenerate}
@@ -200,12 +202,12 @@ export function GenerateModal({
             {isGenerating ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Génération...
+                {t('aiStudio.generating')}
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Générer (~{estimatedCredits} crédits)
+                {t('aiStudio.creditsEst', { count: estimatedCredits })}
               </>
             )}
           </Button>

@@ -15,7 +15,7 @@ export interface HealthStatus {
     storage: 'ok' | 'error';
     cache: 'ok' | 'error';
   };
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 class HealthCheckService {

@@ -10,6 +10,8 @@ import {
   Crown, Star, Search, Download, CheckCircle, Clock, Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { TeamSkeleton } from '@/components/ui/skeletons';
 import { formatRelativeTime } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -36,6 +38,7 @@ interface PendingInvite {
 
 function TeamPageContent() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -49,38 +52,38 @@ function TeamPageContent() {
       teamQuery.refetch();
       setShowInviteModal(false);
       setInviteEmail('');
-      toast({ title: 'Succès', description: 'Invitation envoyée' });
+      toast({ title: t('common.success'), description: t('dashboard.team.invitationSent') });
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
   const updateRoleMutation = trpc.team.updateMemberRole.useMutation({
     onSuccess: () => {
       teamQuery.refetch();
       setEditingMember(null);
-      toast({ title: 'Succès', description: 'Rôle mis à jour' });
+      toast({ title: t('common.success'), description: t('dashboard.team.roleUpdated') });
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
   const removeMemberMutation = trpc.team.removeMember.useMutation({
     onSuccess: () => {
       teamQuery.refetch();
-      toast({ title: 'Succès', description: 'Membre supprimé' });
+      toast({ title: t('common.success'), description: t('dashboard.team.memberRemoved') });
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
   const cancelInviteMutation = trpc.team.cancelInvite.useMutation({
     onSuccess: () => {
       teamQuery.refetch();
-      toast({ title: 'Succès', description: 'Invitation annulée' });
+      toast({ title: t('common.success'), description: t('dashboard.team.invitationCancelled') });
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
@@ -120,13 +123,13 @@ function TeamPageContent() {
 
   const handleInvite = useCallback(() => {
     if (!inviteEmail) {
-      toast({ title: "Erreur", description: "Veuillez entrer une adresse email", variant: "destructive" });
+      toast({ title: t('common.error'), description: t('dashboard.team.pleaseEnterEmail'), variant: 'destructive' });
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(inviteEmail)) {
-      toast({ title: "Erreur", description: "Adresse email invalide", variant: "destructive" });
+      toast({ title: t('common.error'), description: t('dashboard.team.invalidEmail'), variant: 'destructive' });
       return;
     }
 

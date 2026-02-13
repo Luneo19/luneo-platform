@@ -6,7 +6,7 @@ declare module 'socket.io-client' {
   export interface SocketOptions extends ManagerOptions {}
 
   export interface Socket {
-    on(event: string, listener: (...args: any[]) => void): Socket;
+    on(event: string, listener: (...args: unknown[]) => void): Socket;
     close(): void;
     connected: boolean;
   }

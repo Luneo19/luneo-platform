@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpStatus, HttpCode, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpStatus, HttpCode, Request, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { WebhookService } from './webhooks.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -13,6 +13,14 @@ import { UpdateWebhookDto } from './dto/update-webhook.dto';
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
+  private requireBrandId(req: Request & { user: CurrentUser }): string {
+    const brandId = req.user?.brandId;
+    if (!brandId) {
+      throw new BadRequestException('Brand ID required. Please complete your brand setup first.');
+    }
+    return brandId;
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new webhook' })
@@ -21,7 +29,7 @@ export class WebhookController {
     @Request() req: Request & { user: CurrentUser },
     @Body() createWebhookDto: CreateWebhookDto,
   ) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.create(brandId, createWebhookDto);
   }
 
@@ -29,7 +37,7 @@ export class WebhookController {
   @ApiOperation({ summary: 'List all webhooks' })
   @ApiResponse({ status: 200, description: 'Webhooks retrieved successfully' })
   async findAll(@Request() req: Request & { user: CurrentUser }) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.findAll(brandId);
   }
 
@@ -39,7 +47,7 @@ export class WebhookController {
   @ApiResponse({ status: 200, description: 'Webhook retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
   async findOne(@Param('id') id: string, @Request() req: Request & { user: CurrentUser }) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.findOne(id, brandId);
   }
 
@@ -53,7 +61,7 @@ export class WebhookController {
     @Body() updateWebhookDto: UpdateWebhookDto,
     @Request() req: Request & { user: CurrentUser },
   ) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.update(id, brandId, updateWebhookDto);
   }
 
@@ -64,7 +72,7 @@ export class WebhookController {
   @ApiResponse({ status: 204, description: 'Webhook deleted successfully' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
   async remove(@Param('id') id: string, @Request() req: Request & { user: CurrentUser }) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.remove(id, brandId);
   }
 
@@ -77,7 +85,7 @@ export class WebhookController {
     @Body('url') url: string,
     @Body('secret') secret?: string,
   ) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.testWebhook(brandId, url, secret);
   }
 
@@ -93,7 +101,7 @@ export class WebhookController {
     @Query('limit') limit: number = 20,
     @Request() req: Request & { user: CurrentUser },
   ) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.getWebhookLogs(id, brandId, page, limit);
   }
 
@@ -107,7 +115,7 @@ export class WebhookController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    const brandId = req.user.brandId || 'default-brand-id';
+    const brandId = this.requireBrandId(req);
     return this.webhookService.getWebhookHistory(brandId, page, limit);
   }
 

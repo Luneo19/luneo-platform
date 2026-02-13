@@ -17,7 +17,7 @@ import { AssetHubCTA } from './components/AssetHubCTA';
 import { AssetHubFAQ } from './components/AssetHubFAQ';
 
 // Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
-const APP_URL = 'https://luneo.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 export default function AssetHubPage() {
   return (

@@ -29,6 +29,7 @@ import {
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { formatPrice, formatDate } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import { CATEGORIES, STATUS_OPTIONS } from '../../constants/products';
 import type { ProductDisplay } from '../../types';
 
@@ -51,6 +52,7 @@ export const ProductCard = memo(function ProductCard({
   onDelete,
   onView,
 }: ProductCardProps) {
+  const { t } = useI18n();
   const categoryConfig =
     CATEGORIES.find((c) => c.value === product.category) || CATEGORIES[0];
   const statusConfig =
@@ -97,7 +99,7 @@ export const ProductCard = memo(function ProductCard({
                 }}
               >
                 <Edit className="w-4 h-4 mr-1" />
-                Modifier
+                {t('products.edit')}
               </Button>
               <Button
                 size="sm"
@@ -135,7 +137,7 @@ export const ProductCard = memo(function ProductCard({
                     : 'bg-gray-500'
               )}
             >
-              {statusConfig.label}
+              {t(`products.${statusConfig.value.toLowerCase()}` as string)}
             </Badge>
           </div>
         </div>
@@ -174,7 +176,7 @@ export const ProductCard = memo(function ProductCard({
                   className="text-gray-900"
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  Voir
+                  {t('products.view')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -184,7 +186,7 @@ export const ProductCard = memo(function ProductCard({
                   className="text-gray-900"
                 >
                   <Edit className="w-4 h-4 mr-2" />
-                  Modifier
+                  {t('products.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -193,7 +195,7 @@ export const ProductCard = memo(function ProductCard({
                   className="text-gray-900"
                 >
                   <Copy className="w-4 h-4 mr-2" />
-                  Dupliquer
+                  {t('products.duplicate')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-gray-200" />
                 <DropdownMenuItem
@@ -204,7 +206,7 @@ export const ProductCard = memo(function ProductCard({
                   className="text-red-400"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Supprimer
+                  {t('products.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -213,7 +215,7 @@ export const ProductCard = memo(function ProductCard({
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
-                {categoryConfig.label}
+                {t(`products.categories.${categoryConfig.value}` as string)}
               </Badge>
             </div>
             {product.price && product.price > 0 && (

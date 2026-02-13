@@ -18,12 +18,13 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "test:unit": "jest --testPathPattern=src/",
-    "test:integration": "RUN_INTEGRATION_TESTS=true jest --testPathPattern=test/",
+    "test:integration": "RUN_INTEGRATION_TESTS=true jest --config jest.config.js --forceExit --detectOpenHandles",
     "test:integration:setup": "docker-compose -f docker-compose.test.yml up -d && npx prisma migrate deploy",
     "test:integration:teardown": "docker-compose -f docker-compose.test.yml down",
     "test:e2e": "pnpm run test:integration:setup && pnpm run test:integration && pnpm run test:integration:teardown",
     "test:mutation": "stryker run stryker.conf.json",
-    "test:mutation:auth": "stryker run stryker.conf.json --mutate src/modules/auth/**/*.ts"
+    "test:mutation:auth": "stryker run stryker.conf.json --mutate src/modules/auth/**/*.ts",
+    "test:load": "k6 run test/load/k6-config.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
@@ -79,6 +80,7 @@
     "passport-local": "^1.0.0",
     "passport-openidconnect": "^0.1.2",
     "pdfkit": "^0.14.0",
+    "prom-client": "^15.1.0",
     "qrcode": "^1.5.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",

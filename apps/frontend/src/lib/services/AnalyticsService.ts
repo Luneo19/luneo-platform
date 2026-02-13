@@ -147,33 +147,35 @@ export class AnalyticsService {
       const end = periodEnd || new Date();
       const period = this.periodToParam(start, end);
 
+      type DashboardApiRes = { metrics?: Record<string, unknown>; charts?: Record<string, unknown> };
+      type UsageApiRes = { totalDesigns?: number; totalRenders?: number } | null;
       const [dashboardRes, usageRes, revenueRes] = await Promise.all([
-        api.get<any>('/api/v1/analytics/dashboard', { params: { period } }),
-        api.get<any>('/api/v1/analytics/usage', { params: { brandId } }).catch(() => null),
+        api.get<DashboardApiRes>('/api/v1/analytics/dashboard', { params: { period } }),
+        api.get<UsageApiRes>('/api/v1/analytics/usage', { params: { brandId } }).catch(() => null),
         endpoints.analytics.revenue({ startDate: start.toISOString(), endDate: end.toISOString() }).catch(() => null),
       ]);
 
-      const metrics = dashboardRes?.metrics ?? dashboardRes ?? {};
-      const charts = dashboardRes?.charts ?? {};
-      const products: ProductStats[] = Array.isArray(metrics.products) ? metrics.products : (charts.designsOverTime ? [] : []);
+      const metrics: Record<string, unknown> = (dashboardRes as DashboardApiRes)?.metrics ?? (dashboardRes as Record<string, unknown>) ?? {};
+      const charts: Record<string, unknown> = (dashboardRes as DashboardApiRes)?.charts ?? {};
+      const products: ProductStats[] = Array.isArray(metrics.products) ? (metrics.products as ProductStats[]) : (charts.designsOverTime ? [] : []);
       const customizations: CustomizationStats = {
-        total: metrics.totalDesigns ?? usageRes?.totalDesigns ?? 0,
-        completed: metrics.totalRenders ?? usageRes?.totalRenders ?? 0,
+        total: Number(metrics.totalDesigns ?? (usageRes as UsageApiRes)?.totalDesigns ?? 0),
+        completed: Number(metrics.totalRenders ?? (usageRes as UsageApiRes)?.totalRenders ?? 0),
         failed: 0,
         averageTime: 0,
         byEffect: {},
         byZone: {},
       };
       const orders: OrderStats = {
-        total: metrics.orders ?? 0,
-        totalRevenue: metrics.revenue ?? (revenueRes as { total?: number } | null)?.total ?? 0,
-        averageOrderValue: metrics.orders ? (metrics.revenue ?? 0) / metrics.orders : 0,
+        total: Number(metrics.orders ?? 0),
+        totalRevenue: Number(metrics.revenue ?? (revenueRes as { total?: number } | null)?.total ?? 0),
+        averageOrderValue: Number(metrics.orders) ? Number(metrics.revenue ?? 0) / Number(metrics.orders) : 0,
         byStatus: {},
         byProduct: {},
         trends: Array.isArray(charts.revenueOverTime) ? (charts.revenueOverTime as Array<{ date?: string | number; x?: string | number; count?: number; revenue?: number; y?: number }>).map((d) => ({ date: new Date(d.date ?? d.x ?? 0), count: d.count ?? 0, revenue: d.revenue ?? d.y ?? 0 })) : [],
       };
       const revenue: RevenueStats = {
-        total: metrics.revenue ?? 0,
+        total: Number(metrics.revenue ?? 0),
         periodStart: start,
         periodEnd: end,
         trends: Array.isArray(charts.revenueOverTime) ? (charts.revenueOverTime as Array<{ date?: string | number; x?: string | number; revenue?: number; y?: number; orders?: number }>).map((d) => ({ date: new Date(d.date ?? d.x ?? 0), revenue: d.revenue ?? d.y ?? 0, orders: d.orders ?? 0 })) : [],
@@ -181,9 +183,9 @@ export class AnalyticsService {
       };
       const ar: ARStats = {
         sessions: 0,
-        uniqueUsers: metrics.activeUsers ?? 0,
+        uniqueUsers: Number(metrics.activeUsers ?? 0),
         averageSessionDuration: 0,
-        conversionRate: metrics.conversionChange ?? 0,
+        conversionRate: Number(metrics.conversionChange ?? 0),
         byDevice: {},
         byProduct: {},
       };
@@ -220,16 +222,17 @@ export class AnalyticsService {
   ): Promise<ProductStats[]> {
     try {
       const period = this.periodToParam(periodStart, periodEnd);
-      const res = await api.get<any>('/api/v1/analytics/dashboard', { params: { period, brandId } });
-      const products = res?.products ?? res?.metrics?.products ?? [];
+      type DashboardListRes = { products?: unknown[]; metrics?: { products?: unknown[] } };
+      const res = await api.get<DashboardListRes>('/api/v1/analytics/dashboard', { params: { period, brandId } });
+      const products = res?.products ?? (res?.metrics?.products ?? []) ?? [];
       const productsList = Array.isArray(products) ? (products as Array<Record<string, unknown>>) : [];
       return productsList.map((p) => ({
-        productId: p.productId ?? p.id,
-        productName: p.productName ?? p.name ?? '',
-        views: p.views ?? 0,
-        customizations: p.customizations ?? 0,
-        orders: p.orders ?? 0,
-        revenue: p.revenue ?? 0,
+        productId: String(p.productId ?? p.id ?? ''),
+        productName: String(p.productName ?? p.name ?? ''),
+        views: Number(p.views ?? 0),
+        customizations: Number(p.customizations ?? 0),
+        orders: Number(p.orders ?? 0),
+        revenue: Number(p.revenue ?? 0),
         conversionRate: Number(p.conversionRate ?? 0),
       }));
     } catch (error: unknown) {
@@ -251,15 +254,16 @@ export class AnalyticsService {
     periodEnd?: Date
   ): Promise<CustomizationStats> {
     try {
-      const res = await api.get<any>('/api/v1/analytics/usage', { params: { brandId } });
-      const u = res?.customizations ?? res ?? {};
+      type UsageRes = { customizations?: Record<string, unknown>; totalDesigns?: number; totalRenders?: number };
+      const res = await api.get<UsageRes & Record<string, unknown>>('/api/v1/analytics/usage', { params: { brandId } });
+      const u: Record<string, unknown> = (res?.customizations as Record<string, unknown>) ?? res ?? {};
       return {
-        total: u.total ?? res?.totalDesigns ?? 0,
-        completed: u.completed ?? res?.totalRenders ?? 0,
-        failed: u.failed ?? 0,
-        averageTime: u.averageTime ?? 0,
-        byEffect: u.byEffect ?? {},
-        byZone: u.byZone ?? {},
+        total: Number(u.total ?? res?.totalDesigns ?? 0),
+        completed: Number(u.completed ?? res?.totalRenders ?? 0),
+        failed: Number(u.failed ?? 0),
+        averageTime: Number(u.averageTime ?? 0),
+        byEffect: (u.byEffect as Record<string, number>) ?? {},
+        byZone: (u.byZone as Record<string, number>) ?? {},
       };
     } catch (error: unknown) {
       logger.error('Error fetching customization stats', { error, brandId });
@@ -285,7 +289,7 @@ export class AnalyticsService {
         startDate: (periodStart ?? new Date()).toISOString(),
         endDate: (periodEnd ?? new Date()).toISOString(),
       });
-      const data = (res as { data?: Record<string, unknown> } | null)?.data ?? (res as Record<string, unknown> | null) ?? {};
+      const data = (res as unknown as { data?: Record<string, unknown> } | null)?.data ?? (res as Record<string, unknown> | null) ?? {};
       const trendsRaw = data.trends as Array<{ date: string | number; count?: number; revenue?: number }> | undefined;
       return {
         total: Number(data.total ?? 0),
@@ -328,7 +332,7 @@ export class AnalyticsService {
         orders: Number(t.orders ?? 0),
       })) : [];
       return {
-        total: data.total ?? 0,
+        total: Number(data.total ?? 0),
         periodStart: start,
         periodEnd: end,
         trends,
@@ -353,15 +357,16 @@ export class AnalyticsService {
     periodEnd?: Date
   ): Promise<ARStats> {
     try {
-      const res = await api.get<any>('/api/v1/analytics/ar', {
+      type ARStatsRes = { sessions?: number; uniqueUsers?: number; averageSessionDuration?: number; conversionRate?: number; byDevice?: Record<string, number>; byProduct?: Record<string, number> };
+      const res = await api.get<ARStatsRes>('/api/v1/analytics/ar', {
         params: { brandId, start: periodStart?.toISOString(), end: periodEnd?.toISOString() },
       }).catch(() => null);
       const data = res ?? {};
       return {
-        sessions: data.sessions ?? 0,
-        uniqueUsers: data.uniqueUsers ?? 0,
-        averageSessionDuration: data.averageSessionDuration ?? 0,
-        conversionRate: data.conversionRate ?? 0,
+        sessions: Number(data.sessions ?? 0),
+        uniqueUsers: Number(data.uniqueUsers ?? 0),
+        averageSessionDuration: Number(data.averageSessionDuration ?? 0),
+        conversionRate: Number(data.conversionRate ?? 0),
         byDevice: data.byDevice ?? {},
         byProduct: data.byProduct ?? {},
       };

@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { ProjectsHeader } from './components/ProjectsHeader';
 import { ProjectsStats } from './components/ProjectsStats';
 import { ProjectsTable } from './components/ProjectsTable';
@@ -13,10 +14,11 @@ import { ProjectsEmptyState } from './components/ProjectsEmptyState';
 import { CreateProjectModal } from './components/modals/CreateProjectModal';
 import { EditProjectModal } from './components/modals/EditProjectModal';
 import { useProjects } from './hooks/useProjects';
-import type { Project, CreateProjectPayload } from './types';
+import type { Project, CreateProjectPayload, UpdateProjectPayload } from './types';
 
 export function ProjectsPageClient() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [filters, setFilters] = useState({ search: '', type: 'all', status: 'all' });
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,30 +40,30 @@ export function ProjectsPageClient() {
     async (data: CreateProjectPayload) => {
       try {
         await createProject(data);
-        toast({ title: 'Projet créé', description: 'Le projet a été créé avec succès.' });
+        toast({ title: t('projects.created'), description: t('projects.createdDesc') });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erreur lors de la création';
-        toast({ title: 'Erreur', description: message, variant: 'destructive' });
+        const message = err instanceof Error ? err.message : t('common.somethingWentWrong');
+        toast({ title: t('common.error'), description: message, variant: 'destructive' });
         throw err;
       }
     },
-    [createProject, toast]
+    [createProject, toast, t]
   );
 
   const handleUpdate = useCallback(
-    async (id: string, data: Parameters<typeof updateProject>[1]) => {
+    async (id: string, data: UpdateProjectPayload) => {
       try {
         await updateProject({ id, data });
-        toast({ title: 'Projet mis à jour', description: 'Les modifications ont été enregistrées.' });
+        toast({ title: t('projects.updated'), description: t('projects.updatedDesc') });
         setShowEditModal(false);
         setEditingProject(null);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour';
-        toast({ title: 'Erreur', description: message, variant: 'destructive' });
+        const message = err instanceof Error ? err.message : t('common.somethingWentWrong');
+        toast({ title: t('common.error'), description: message, variant: 'destructive' });
         throw err;
       }
     },
-    [updateProject, toast]
+    [updateProject, toast, t]
   );
 
   const handleDelete = useCallback(
@@ -69,13 +71,13 @@ export function ProjectsPageClient() {
       if (!confirm(`Supprimer le projet « ${project.name } » ? Cette action est irréversible.`)) return;
       try {
         await deleteProject(project.id);
-        toast({ title: 'Projet supprimé', description: 'Le projet a été archivé.' });
+        toast({ title: t('projects.deleted'), description: t('projects.deletedDesc') });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-        toast({ title: 'Erreur', description: message, variant: 'destructive' });
+        const message = err instanceof Error ? err.message : t('common.somethingWentWrong');
+        toast({ title: t('common.error'), description: message, variant: 'destructive' });
       }
     },
-    [deleteProject, toast]
+    [deleteProject, toast, t]
   );
 
   const handleRegenerateApiKey = useCallback(
@@ -83,14 +85,14 @@ export function ProjectsPageClient() {
       if (!confirm('Régénérer la clé API ? L’ancienne clé ne fonctionnera plus.')) return;
       try {
         await regenerateApiKey(project.id);
-        toast({ title: 'Clé API régénérée', description: 'Une nouvelle clé a été générée.' });
+        toast({ title: t('projects.apiKeyRegenerated'), description: t('projects.apiKeyRegeneratedDesc') });
         refetch();
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erreur';
-        toast({ title: 'Erreur', description: message, variant: 'destructive' });
+        const message = err instanceof Error ? err.message : t('common.error');
+        toast({ title: t('common.error'), description: message, variant: 'destructive' });
       }
     },
-    [regenerateApiKey, toast, refetch]
+    [regenerateApiKey, toast, refetch, t]
   );
 
   const hasFilters = Boolean(filters.search || filters.type !== 'all' || filters.status !== 'all');

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Server-side API URL helper for Next.js API routes.
  *
@@ -10,7 +12,7 @@
 export function getBackendUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url && process.env.NODE_ENV === 'production') {
-    console.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set in production — API calls will fail');
+    logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set in production — API calls will fail');
   }
   return url || 'http://localhost:3001';
 }

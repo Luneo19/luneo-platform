@@ -339,9 +339,9 @@ export class SLOService {
    */
   async saveSLOResults(results: SLOResult[]): Promise<void> {
     const now = new Date();
-    for (const result of results) {
-      await this.prisma.monitoringMetric.create({
-        data: {
+    if (results.length > 0) {
+      await this.prisma.monitoringMetric.createMany({
+        data: results.map((result) => ({
           service: result.service,
           metric: `slo_${result.metric}`,
           value: result.current,
@@ -352,8 +352,10 @@ export class SLOService {
             window: result.window,
           } as object,
           timestamp: now,
-        },
+        })),
       });
+    }
+    for (const result of results) {
       if (result.status === 'breach') {
         this.logger.error(
           `SLO BREACH: ${result.service}.${result.metric} = ${result.current} (target: ${result.target})`,

@@ -3,11 +3,12 @@ import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
 
 // Re-export currency configuration utilities
-export { 
-  currencyConfig, 
-  CurrencyUtils, 
-  SUPPORTED_CURRENCIES, 
-  CURRENCY_SYMBOLS, 
+export {
+  currencyConfig,
+  CurrencyUtils,
+  detectCurrency,
+  SUPPORTED_CURRENCIES,
+  CURRENCY_SYMBOLS,
   STRIPE_CURRENCIES,
   type SupportedCurrency,
 } from './currency.config';
@@ -136,7 +137,7 @@ const baseEnvSchema = z.object({
   FRONTEND_URL: z.string().url().optional(),
   
   // Security
-  ENCRYPTION_KEY: z.string().optional(), // 64 hex chars for AES-256-GCM, required in production
+  ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/, 'Must be 64 hex characters for AES-256-GCM').optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   RATE_LIMIT_TTL: z.string().transform(Number).default('60'),
   RATE_LIMIT_LIMIT: z.string().transform(Number).default('100'),
@@ -148,9 +149,37 @@ const baseEnvSchema = z.object({
   CURRENCY_EXCHANGE_RATE_GBP: z.string().transform(Number).optional(),
   CURRENCY_EXCHANGE_RATE_CHF: z.string().transform(Number).optional(),
   CURRENCY_EXCHANGE_RATE_CAD: z.string().transform(Number).optional(),
+
+  // Print-on-Demand providers (optional)
+  PRINTFUL_API_KEY: z.string().optional(),
+  PRINTIFY_API_KEY: z.string().optional(),
+  GELATO_API_KEY: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof baseEnvSchema>;
+
+/**
+ * NestJS ConfigModule-compatible validate function.
+ * Used as the `validate` option in ConfigModule.forRoot()
+ * to ensure env vars are validated at NestJS bootstrap level.
+ */
+export function validateConfig(config: Record<string, unknown>): EnvConfig {
+  const result = baseEnvSchema.safeParse(config);
+  if (!result.success) {
+    const isProduction = config.NODE_ENV === 'production';
+    const errors = result.error.issues.map(
+      (issue) => `  ${issue.path.join('.')}: ${issue.message}`,
+    );
+    if (isProduction) {
+      throw new Error(
+        `Invalid environment configuration:\n${errors.join('\n')}`,
+      );
+    }
+    // In dev, return partial config
+    return baseEnvSchema.partial().parse(config) as EnvConfig;
+  }
+  return result.data;
+}
 
 /**
  * Variables critiques (tous environnements)
@@ -335,21 +364,21 @@ export const validateEnv = (): EnvConfig => {
     logFeatureStatus();
     
     return config;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Erreur Zod (format invalide)
     logger.error('');
     logger.error('❌ Erreur de validation (format invalide):');
-    
-    if (error.issues) {
-      error.issues.forEach((issue: any) => {
+    const err = error as { issues?: Array<{ path: string[]; message: string }>; message?: string };
+    if (err.issues) {
+      err.issues.forEach((issue: { path: string[]; message: string }) => {
         logger.error(`   ${issue.path.join('.')}: ${issue.message}`);
       });
     } else {
-      logger.error(`   ${error.message}`);
+      logger.error(`   ${err.message ?? String(error)}`);
     }
-    
+    const message = err.message ?? String(error);
     if (isProduction) {
-      throw new Error(`Validation des variables d'environnement échouée: ${error.message}`);
+      throw new Error(`Validation des variables d'environnement échouée: ${message}`);
     }
     
     logger.warn('⚠️  Mode développement: poursuite avec configuration partielle');
@@ -484,6 +513,21 @@ export const aiConfig = registerAs('ai', () => ({
   replicate: {
     apiToken: process.env.REPLICATE_API_TOKEN,
   },
+  // PRODUCTION FIX: Stability AI provider was defined but never received config
+  stability: {
+    apiKey: process.env.STABILITY_API_KEY,
+  },
+  // Additional AI providers for agents
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  },
+  mistral: {
+    apiKey: process.env.MISTRAL_API_KEY,
+  },
+  // 3D/AR providers
+  meshy: {
+    apiKey: process.env.MESHY_API_KEY,
+  },
 }));
 
 // Email configuration
@@ -532,7 +576,7 @@ export const appConfig = registerAs('app', () => {
     port: parseInt(process.env.PORT || process.env.$PORT || '3000', 10),
     apiPrefix: apiPrefix,
     frontendUrl: process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    corsOrigin: process.env.CORS_ORIGIN || '*',
+    corsOrigin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? undefined : '*'),
     rateLimitTtl: parseInt(process.env.RATE_LIMIT_TTL || '60', 10),
     rateLimitLimit: parseInt(process.env.RATE_LIMIT_LIMIT || '100', 10),
   };
@@ -567,4 +611,15 @@ export const referralConfig = registerAs('referral', () => ({
   cookieDurationDays: parseInt(process.env.REFERRAL_COOKIE_DURATION_DAYS || '30', 10),
   // Montant minimum de retrait en centimes (par défaut 50€)
   minWithdrawalCents: parseInt(process.env.REFERRAL_MIN_WITHDRAWAL_CENTS || '5000', 10),
+}));
+
+// Print-on-Demand providers
+export const printfulConfig = registerAs('printful', () => ({
+  apiKey: process.env.PRINTFUL_API_KEY,
+}));
+export const printifyConfig = registerAs('printify', () => ({
+  apiKey: process.env.PRINTIFY_API_KEY,
+}));
+export const gelatoConfig = registerAs('gelato', () => ({
+  apiKey: process.env.GELATO_API_KEY,
 }));

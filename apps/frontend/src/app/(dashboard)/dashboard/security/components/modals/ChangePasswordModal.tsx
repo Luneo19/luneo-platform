@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ export function ChangePasswordModal({
   onChangePassword,
   isChanging = false,
 }: ChangePasswordModalProps) {
+  const { t } = useI18n();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -109,7 +111,7 @@ export function ChangePasswordModal({
             <p className="text-xs text-white/40 mt-1">Au moins 8 caractères</p>
           </div>
           <div>
-            <Label className="text-white/80">Confirmer le nouveau mot de passe</Label>
+            <Label className="text-white/80">{t('settings.security.confirmPassword')}</Label>
             <div className="relative mt-1">
               <Input
                 type={showConfirm ? 'text' : 'password'}

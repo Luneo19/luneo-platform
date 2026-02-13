@@ -46,7 +46,7 @@ export function initSentry() {
 /**
  * Capture une exception
  */
-export function captureException(error: Error, context?: Record<string, any>) {
+export function captureException(error: Error, context?: Record<string, unknown>) {
   Sentry.captureException(error, {
     extra: context,
   });
@@ -73,7 +73,7 @@ export function setUserContext(user: { id: string; email?: string; name?: string
 /**
  * Ajoute du contexte additionnel
  */
-export function setContext(key: string, context: Record<string, any>) {
+export function setContext(key: string, context: Record<string, unknown>) {
   Sentry.setContext(key, context);
 }
 

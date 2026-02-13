@@ -11,7 +11,7 @@ interface Profile {
   bio?: string;
   avatar_url?: string;
   phone?: string;
-  notification_preferences?: any;
+  notification_preferences?: Record<string, unknown>;
   language?: string;
   timezone?: string;
   subscription_tier?: string;
@@ -38,12 +38,10 @@ export function useProfile() {
         ?? (data as { profile?: Profile })?.profile
         ?? (data as Profile);
       setProfile(profileData as Profile);
-    } catch (err: any) {
-      logger.error('Erreur chargement profil', {
-        error: err,
-        message: err.message,
-      });
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur chargement profil', { error: err, message });
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -61,14 +59,11 @@ export function useProfile() {
         setProfile(profileData);
       }
       return { success: true };
-    } catch (err: any) {
-      logger.error('Erreur mise à jour profil', {
-        error: err,
-        updates,
-        message: err.message,
-      });
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur mise à jour profil', { error: err, updates, message });
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -93,15 +88,11 @@ export function useProfile() {
         setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
       }
       return { success: true, avatar_url: avatarUrl };
-    } catch (err: any) {
-      logger.error('Erreur upload avatar', {
-        error: err,
-        fileName: file.name,
-        fileSize: file.size,
-        message: err.message,
-      });
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur upload avatar', { error: err, fileName: file.name, fileSize: file.size, message });
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -118,13 +109,11 @@ export function useProfile() {
         newPassword,
       });
       return { success: true, message: data?.message ?? 'Mot de passe mis à jour' };
-    } catch (err: any) {
-      logger.error('Erreur changement mot de passe', {
-        error: err,
-        message: err.message,
-      });
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error('Erreur changement mot de passe', { error: err, message });
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }

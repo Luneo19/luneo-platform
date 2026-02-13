@@ -2,6 +2,7 @@ import { Injectable, Logger, InternalServerErrorException, BadRequestException }
 import { ConfigService } from '@nestjs/config';
 import { AIGenerationOptions, AIGenerationResult, AIProvider, AIProviderConfig } from '@/libs/ai/providers/ai-provider.interface';
 import { hashPrompt, sanitizePrompt } from '@/libs/ai/ai-safety';
+import { StorageService } from '@/libs/storage/storage.service';
 
 @Injectable()
 export class StabilityProvider implements AIProvider {
@@ -9,8 +10,11 @@ export class StabilityProvider implements AIProvider {
   private readonly apiKey: string | null;
   private readonly config: AIProviderConfig;
 
-  constructor(private readonly configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('ai.stability.apiKey');
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly storageService: StorageService,
+  ) {
+    this.apiKey = this.configService.get<string>('ai.stability.apiKey') ?? null;
 
     this.config = {
       name: 'stability',
@@ -77,8 +81,9 @@ export class StabilityProvider implements AIProvider {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new InternalServerErrorException(`Stability AI API error: ${error.message || response.statusText}`);
+        const error = await response.json().catch(() => ({}));
+        this.logger.error('Stability AI API error', { status: response.status, error });
+        throw new InternalServerErrorException('AI generation failed. Please try again.');
       }
 
       const result = await response.json();
@@ -88,9 +93,21 @@ export class StabilityProvider implements AIProvider {
         throw new InternalServerErrorException('No image returned from Stability AI');
       }
 
-      // Convertir base64 en URL (on pourrait uploader vers storage)
+      // Upload to Cloudinary via StorageService
       const imageBuffer = Buffer.from(imageBase64, 'base64');
-      const imageUrl = `data:image/png;base64,${imageBase64}`; // Temporaire, devrait être uploadé
+      const storageKey = `generations/stability/${Date.now()}-${hashPrompt(sanitized.prompt)}.png`;
+      let imageUrl: string;
+      try {
+        const uploadResult = await this.storageService.uploadBuffer(imageBuffer, storageKey, {
+          contentType: 'image/png',
+          bucket: 'luneo-generations',
+        });
+        imageUrl = typeof uploadResult === 'string' ? uploadResult : (uploadResult as { url?: string }).url ?? '';
+        this.logger.debug('Image uploaded to storage', { storageKey, url: imageUrl });
+      } catch (uploadError) {
+        this.logger.warn('Failed to upload to storage, falling back to data URL', { error: uploadError });
+        imageUrl = `data:image/png;base64,${imageBase64}`;
+      }
 
       const generationTime = Date.now() - startTime;
 
@@ -115,9 +132,9 @@ export class StabilityProvider implements AIProvider {
           costCents: this.estimateCost(options),
         },
       };
-    } catch (error: any) {
-      this.logger.error(`Stability AI generation failed:`, error);
-      throw new InternalServerErrorException(`Stability AI generation failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error('Stability AI generation failed', { error });
+      throw new InternalServerErrorException('AI generation failed. Please try again.');
     }
   }
 

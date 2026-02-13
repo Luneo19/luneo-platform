@@ -14,7 +14,7 @@ import { Request } from 'express';
 export const BrandId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    const brandId = request['brandId'];
+    const brandId = request.brandId;
 
     if (!brandId) {
       throw new UnauthorizedException('Brand context not found - ensure ApiKeyGuard is applied');
@@ -30,7 +30,7 @@ export const BrandId = createParamDecorator(
 export const ValidatedApiKey = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    const apiKey = request['apiKey'];
+    const apiKey = request.apiKey;
 
     if (!apiKey) {
       throw new UnauthorizedException('API key context not found - ensure ApiKeyGuard is applied');

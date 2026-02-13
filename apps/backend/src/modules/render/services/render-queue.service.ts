@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -20,6 +21,7 @@ export class RenderQueueService {
     @InjectQueue('render-preview') private previewQueue: Queue,
     @InjectQueue('render-final') private finalQueue: Queue,
     private prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -149,8 +151,8 @@ export class RenderQueueService {
     const { Queue } = await import('bullmq');
     const printReadyQueue = new Queue('render-print-ready', {
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        host: this.configService.get<string>('REDIS_HOST') || 'localhost',
+        port: parseInt(this.configService.get<string>('REDIS_PORT') || '6379', 10),
       },
     });
 

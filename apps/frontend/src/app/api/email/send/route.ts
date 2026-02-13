@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { sendEmailSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (template) {
       emailData.templateId = process.env[`EMAIL_TEMPLATE_${template.toUpperCase()}`] || null;
       if (!emailData.templateId) {
-        logger.warn('Email template not configured', {
+        serverLogger.warn('Email template not configured', {
           template,
           userId: user.id,
         });
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Error sending email via backend', new Error(errorText), {
+      serverLogger.error('Error sending email via backend', new Error(errorText), {
         to,
         subject,
         userId: user.id,
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Email sent via backend', {
+    serverLogger.info('Email sent via backend', {
       to,
       subject,
       template,

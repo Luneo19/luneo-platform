@@ -213,7 +213,7 @@ export function AutomationBuilder({
                             <div>
                               <Label className="text-zinc-400">Condition</Label>
                               <Select
-                                value={step.condition?.type || ''}
+                                value={typeof step.condition?.type === 'string' ? step.condition.type : ''}
                                 onValueChange={(value) =>
                                   updateStep(step.id, {
                                     condition: { type: value, value: '' },

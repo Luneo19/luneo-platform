@@ -12,9 +12,11 @@ import { OrionService } from './orion.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import { UpdateAgentDto } from './dto/update-agent.dto';
 
-@Controller('api/v1/orion')
+@Controller('orion')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error NestJS decorator typing
 @Roles(UserRole.PLATFORM_ADMIN)
 export class OrionController {
   constructor(private readonly orionService: OrionService) {}
@@ -37,7 +39,7 @@ export class OrionController {
   @Put('agents/:id')
   updateAgent(
     @Param('id') id: string,
-    @Body() body: { status?: string; config?: any },
+    @Body() body: UpdateAgentDto,
   ) {
     return this.orionService.updateAgent(id, body);
   }
@@ -56,5 +58,11 @@ export class OrionController {
       churnRisk,
       limit: limit ? parseInt(limit, 10) : undefined,
     });
+  }
+
+  @Get('analytics/dashboard')
+  async getAnalyticsDashboard() {
+    const overview = await this.orionService.getOverview();
+    return { success: true, data: overview };
   }
 }

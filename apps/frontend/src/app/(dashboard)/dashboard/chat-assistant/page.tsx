@@ -23,6 +23,7 @@ import {
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,8 +35,10 @@ import {
   formatFileSize,
   type ContextFile,
 } from '@/lib/utils/context-files';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function ChatAssistantPage() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'chat' | 'files' | 'settings'>('chat');
   const [contextFiles, setContextFiles] = useState<ContextFile[]>([]);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -57,14 +60,14 @@ export default function ChatAssistantPage() {
       };
       setContextFiles((prev) => [...prev, newFile]);
       toast({
-        title: 'Fichier uploadé',
-        description: 'Le fichier contextuel a été ajouté avec succès',
+        title: t('chatAssistant.fileUploaded'),
+        description: t('chatAssistant.fileUploadedDesc'),
       });
       setShowUploadDialog(false);
     } catch (error) {
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de l\'upload',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -115,7 +118,7 @@ export default function ChatAssistantPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'files' | 'settings' | 'chat')} className="space-y-4">
           <TabsList className="dash-card border-white/[0.06] bg-white/[0.04] p-1">
             <TabsTrigger value="chat" className="data-[state=active]:dash-card-active data-[state=active]:text-white text-white/60 hover:text-white/80 hover:bg-white/[0.04]">
               <Bot className="w-4 h-4 mr-2" />
@@ -292,6 +295,7 @@ function ContextFilesManager({
   files: ContextFile[];
   onFilesChange: (files: ContextFile[]) => void;
 }) {
+  const { t } = useI18n();
   const { toast } = useToast();
 
   const handleDelete = async (fileId: string, fileUrl: string) => {
@@ -299,13 +303,13 @@ function ContextFilesManager({
       await deleteContextFile(fileId, fileUrl);
       onFilesChange(files.filter((f) => f.id !== fileId));
       toast({
-        title: 'Fichier supprimé',
-        description: 'Le fichier a été supprimé avec succès',
+        title: t('chatAssistant.fileDeleted'),
+        description: t('chatAssistant.fileDeletedDesc'),
       });
     } catch (error) {
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la suppression',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
@@ -316,9 +320,9 @@ function ContextFilesManager({
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardContent className="p-12 text-center">
           <FileText className="w-16 h-16 text-white/40 mx-auto mb-4" />
-          <p className="text-white/60 mb-2">Aucun fichier contextuel</p>
+          <p className="text-white/60 mb-2">{t('chatAssistant.noContextFiles')}</p>
           <p className="text-sm text-white/40">
-            Uploadez des fichiers pour fournir du contexte à l'assistant
+            {t('chatAssistant.noContextFilesDesc')}
           </p>
         </CardContent>
       </Card>
@@ -359,7 +363,7 @@ function ContextFilesManager({
                 onClick={() => handleDelete(file.id, file.url)}
                 className="border-red-600 text-red-400 hover:text-red-300"
               >
-                Supprimer
+                {t('common.delete')}
               </Button>
             </div>
           </CardContent>

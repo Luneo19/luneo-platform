@@ -279,7 +279,7 @@ export function Navigation() {
                                   <div className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
                                     {item.label}
                                   </div>
-                                  <div className="text-xs text-slate-200 mt-0.5 leading-relaxed">
+                                  <div className="text-xs text-white/80 mt-0.5 leading-relaxed">
                                     {item.description}
                                   </div>
                                 </div>
@@ -297,7 +297,7 @@ export function Navigation() {
                       <h4 className="text-sm font-semibold text-white mb-1.5">
                         {MENU_DATA[activeMenu].cta.label}
                       </h4>
-                      <p className="text-xs text-slate-200 leading-relaxed">
+                      <p className="text-xs text-white/80 leading-relaxed">
                         {MENU_DATA[activeMenu].cta.description}
                       </p>
                     </div>
@@ -366,7 +366,7 @@ export function Navigation() {
                     {MENU_DATA[key].label}
                   </span>
                   <ChevronRight
-                    className={`w-4 h-4 text-slate-300 transition-transform duration-200 ${
+                    className={`w-4 h-4 text-white/70 transition-transform duration-200 ${
                       mobileAccordion === key ? 'rotate-90' : ''
                     }`}
                   />
@@ -391,7 +391,7 @@ export function Navigation() {
                             <Icon className="w-4 h-4 text-purple-400 shrink-0" />
                             <div>
                               <div className="text-sm font-medium text-white">{item.label}</div>
-                              <div className="text-xs text-slate-300">{item.description}</div>
+                              <div className="text-xs text-white/80">{item.description}</div>
                             </div>
                           </Link>
                         );

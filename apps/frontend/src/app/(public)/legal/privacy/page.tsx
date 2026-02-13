@@ -5,18 +5,18 @@ import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Politique de confidentialité - Luneo',
+  title: 'Politique de confidentialité - Luneo Tech',
   description:
-    'Politique de confidentialité Luneo. Collecte, utilisation et protection de vos données. Conformité RGPD.',
+    'Politique de confidentialité Luneo Tech. Collecte, utilisation et protection de vos données. Conformité RGPD.',
   openGraph: {
-    title: 'Politique de confidentialité - Luneo',
-    description: 'Comment Luneo collecte et protège vos données.',
+    title: 'Politique de confidentialité - Luneo Tech',
+    description: 'Comment Luneo Tech collecte et protège vos données.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Politique de confidentialité - Luneo',
-    description: 'Politique de confidentialité Luneo.',
+    title: 'Politique de confidentialité - Luneo Tech',
+    description: 'Politique de confidentialité Luneo Tech.',
   },
 };
 
@@ -40,7 +40,7 @@ function PrivacyPageContent() {
             <div className="prose prose-invert max-w-none">
               <h2 className="text-2xl font-bold text-white mb-4">1. Collecte des Données</h2>
               <p className="text-slate-300 mb-6">
-                Luneo collecte uniquement les données nécessaires au fonctionnement du service : email, nom, designs créés.
+                Luneo Tech collecte uniquement les données nécessaires au fonctionnement du service : email, nom, designs créés.
               </p>
 
               <h2 className="text-2xl font-bold text-white mb-4">2. Utilisation des Données</h2>

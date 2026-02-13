@@ -46,7 +46,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   totalPrice: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ShippingAddress {
@@ -87,7 +87,7 @@ export interface Order {
   shippingProvider?: string;
   customerNotes?: string;
   internalNotes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   confirmedAt?: Date;
@@ -106,7 +106,7 @@ export interface CreateOrderRequest {
   billingAddress?: BillingAddress;
   paymentMethodId?: string;
   customerNotes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateOrderRequest {
@@ -114,7 +114,7 @@ export interface UpdateOrderRequest {
   trackingNumber?: string;
   shippingProvider?: string;
   notes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface OrderListRequest {
@@ -143,7 +143,7 @@ export interface ProductionFile {
   quality: 'standard' | 'high' | 'print-ready';
   url: string;
   size: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 }
 
@@ -181,7 +181,7 @@ export interface PODOrder {
   podOrderId: string;
   status: string;
   trackingUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }

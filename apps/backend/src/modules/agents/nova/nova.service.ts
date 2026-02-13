@@ -301,8 +301,8 @@ export class NovaService {
         );
       }
 
-      this.logger.error(`Nova chat error: ${error}`);
-      throw error;
+      this.logger.error('Nova agent error', { error });
+      throw new InternalServerErrorException('AI agent processing failed. Please try again.');
     }
   }
 
@@ -349,7 +349,7 @@ export class NovaService {
               { helpful: 'desc' },
               { views: 'desc' },
             ],
-            take: limit,
+            take: Math.min(limit ?? 50, 50),
           });
 
           // ✅ Si aucun résultat, retourner des articles populaires
@@ -388,7 +388,7 @@ export class NovaService {
           { isFeatured: 'desc' },
           { helpful: 'desc' },
         ],
-        take: limit,
+        take: Math.min(limit, 50),
       });
 
       return this.normalizeFAQArticles(popularArticles);
@@ -538,10 +538,8 @@ export class NovaService {
         ticketNumber: ticket.ticketNumber,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown'}`,
-      );
-      throw new InternalServerErrorException(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error('Failed to create ticket', { error });
+      throw new InternalServerErrorException('Failed to create ticket. Please try again.');
     }
   }
 

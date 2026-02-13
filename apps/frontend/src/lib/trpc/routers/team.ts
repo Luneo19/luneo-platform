@@ -22,9 +22,9 @@ export const teamRouter = router({
     ]);
 
     const membersRaw = membersRes as { members?: unknown[]; data?: unknown[] } | unknown[];
-    const members = Array.isArray(membersRes) ? membersRes : (membersRaw && typeof membersRaw === 'object' ? (membersRaw.members ?? membersRaw.data ?? []) : []);
+    const members = Array.isArray(membersRes) ? membersRes : (membersRaw && typeof membersRaw === 'object' && !Array.isArray(membersRaw) ? ((membersRaw as { members?: unknown[]; data?: unknown[] }).members ?? (membersRaw as { data?: unknown[] }).data ?? []) : []);
     const invitesRaw = invitesRes as { invites?: unknown[]; data?: unknown[] } | unknown[];
-    const pendingInvites = Array.isArray(invitesRes) ? invitesRes : (invitesRaw && typeof invitesRaw === 'object' ? (invitesRaw.invites ?? invitesRaw.data ?? []) : []);
+    const pendingInvites = Array.isArray(invitesRes) ? invitesRes : (invitesRaw && typeof invitesRaw === 'object' && !Array.isArray(invitesRaw) ? ((invitesRaw as { invites?: unknown[]; data?: unknown[] }).invites ?? (invitesRaw as { data?: unknown[] }).data ?? []) : []);
 
     type MemberLike = { id: string; email: string; name?: string; role?: string; imageUrl?: string; avatar?: string; createdAt?: unknown; joinedAt?: unknown; lastLoginAt?: unknown; lastActive?: unknown };
     type InviteLike = { id: string; email: string; role?: string; createdAt?: unknown; invitedAt?: unknown; expiresAt?: unknown };
@@ -56,7 +56,7 @@ export const teamRouter = router({
       }
 
       try {
-        const invitation = await endpoints.team.invite(input.email, input.role);
+        const invitation = await endpoints.team.invite(input.email, input.role.toLowerCase());
         const inv = invitation as { id: string; email?: string; role?: string; createdAt?: unknown; invitedAt?: unknown; expiresAt?: unknown };
         logger.info('Team member invited', { invitationId: inv.id, email: input.email });
         return {
@@ -93,7 +93,7 @@ export const teamRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossible de modifier le rôle du propriétaire' });
       }
 
-      const updated = await endpoints.team.update(input.memberId, { role: input.role });
+      const updated = await endpoints.team.update(input.memberId, { role: input.role.toLowerCase() });
       logger.info('Team member role updated', { memberId: input.memberId, newRole: input.role });
       const u = updated as { id: string; email: string; role?: string };
       return { id: u.id, email: u.email, role: u.role ?? input.role };

@@ -12,6 +12,7 @@ import {
   Trophy,
   LayoutGrid,
 } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 // Map industry icon names to Lucide components
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -39,13 +40,16 @@ interface IndustryCardProps {
 
 export function IndustryCard({
   labelFr,
+  labelEn,
   icon,
   accentColor,
   description,
   isSelected,
   onClick,
 }: IndustryCardProps) {
+  const { locale } = useI18n();
   const IconComponent = ICON_MAP[icon] || LayoutGrid;
+  const label = locale === 'en' && labelEn ? labelEn : labelFr;
 
   return (
     <div
@@ -62,7 +66,7 @@ export function IndustryCard({
       >
         <IconComponent className="w-7 h-7" style={{ color: isSelected ? accentColor : 'rgba(255,255,255,0.6)' }} />
       </div>
-      <h3 className="font-semibold text-sm mb-1 text-white">{labelFr}</h3>
+      <h3 className="font-semibold text-sm mb-1 text-white">{label}</h3>
       {description && (
         <p className="text-xs text-white/60 line-clamp-2">{description}</p>
       )}

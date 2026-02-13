@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 
 // Plans Luneo - Tarification 2025 (aligned with backend plan-config.ts)
 const DEFAULT_PLANS = [
@@ -188,18 +188,20 @@ export async function GET(request: NextRequest) {
         });
 
         // Mapper les produits Stripe aux plans
-        const stripePlans = products.data
-          .filter((product: any) => product.metadata?.plan_type)
-          .map((product: any) => {
-            const productPrices = prices.data.filter(
-              (price: any) => price.product === product.id
+        type StripeProductLike = { id: string; name?: string; description?: string | null; metadata?: { plan_type?: string; features?: string; limits?: string; popular?: string } };
+        type StripePriceLike = { product: string; unit_amount: number | null; recurring?: { interval: string }; id?: string };
+        const stripePlans = (products.data as StripeProductLike[])
+          .filter((product) => product.metadata?.plan_type)
+          .map((product) => {
+            const productPrices = (prices.data as StripePriceLike[]).filter(
+              (price) => price.product === product.id
             );
 
             const monthlyPrice = productPrices.find(
-              (p: any) => p.recurring?.interval === 'month'
+              (p) => p.recurring?.interval === 'month'
             );
             const yearlyPrice = productPrices.find(
-              (p: any) => p.recurring?.interval === 'year'
+              (p) => p.recurring?.interval === 'year'
             );
 
             const features = product.metadata?.features
@@ -212,11 +214,11 @@ export async function GET(request: NextRequest) {
 
             return {
               id: product.metadata?.plan_type || product.id,
-              name: product.name,
-              description: product.description,
+              name: product.name ?? '',
+              description: product.description ?? '',
               price: {
-                monthly: monthlyPrice ? monthlyPrice.unit_amount / 100 : null,
-                yearly: yearlyPrice ? yearlyPrice.unit_amount / 100 : null,
+                monthly: monthlyPrice ? (monthlyPrice.unit_amount ?? 0) / 100 : 0,
+                yearly: yearlyPrice ? (yearlyPrice.unit_amount ?? 0) / 100 : 0,
               },
               currency: currency.toUpperCase(),
               features,
@@ -228,16 +230,16 @@ export async function GET(request: NextRequest) {
               },
             };
           })
-          .sort((a: any, b: any) => {
+          .sort((a: { id: string }, b: { id: string }) => {
             const order = ['free', 'starter', 'professional', 'business', 'enterprise'];
             return order.indexOf(a.id) - order.indexOf(b.id);
           });
 
         if (stripePlans.length > 0) {
-          plans = stripePlans;
+          plans = stripePlans as typeof DEFAULT_PLANS;
         }
       } catch (stripeError) {
-        logger.error('Stripe plans fetch error', { error: stripeError });
+        serverLogger.error('Stripe plans fetch error', { error: stripeError });
         // Fallback aux plans par défaut
       }
     }
@@ -257,7 +259,7 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    logger.error('Error fetching plans', { error });
+    serverLogger.error('Error fetching plans', { error });
     return NextResponse.json(
       { success: false, error: 'Erreur lors de la récupération des plans' },
       { status: 500 }

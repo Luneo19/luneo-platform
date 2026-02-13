@@ -1,6 +1,8 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Logger, Post, Query, RawBodyRequest, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, InternalServerErrorException, Logger, Post, Query, RawBodyRequest, Request, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';
 import { Public } from '../../common/decorators/public.decorator';
@@ -10,52 +12,76 @@ import { CreateCheckoutSessionDto, AddPaymentMethodDto, ChangePlanDto, CancelSub
 
 @ApiTags('Billing')
 @Controller('billing')
+@UseGuards(JwtAuthGuard)
 export class BillingController {
   private readonly logger = new Logger(BillingController.name);
 
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  /** @Public: checkout can be started without auth (email in body) */
+  /**
+   * Create a Stripe checkout session.
+   * Supports both authenticated users (JWT) and guest users (email in body).
+   * For authenticated users, the real userId is used in Stripe metadata,
+   * ensuring the webhook can update the correct user/brand after payment.
+   */
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('create-checkout-session')
   @ApiOperation({ summary: 'Créer une session de paiement Stripe avec support des add-ons' })
   @ApiResponse({ status: 200, description: 'Session créée avec succès' })
   @ApiResponse({ status: 400, description: 'Email invalide ou manquant' })
   async createCheckoutSession(
     @Body() body: CreateCheckoutSessionDto,
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Headers('accept-language') acceptLanguage?: string,
   ): Promise<{ success: boolean; url?: string; sessionId?: string; error?: string }> {
     try {
-      // Validation de l'email - obligatoire pour les utilisateurs non connectés
-      if (!body.email || !body.email.includes('@') || body.email.length < 5) {
+      // Determine userId and email from auth context or body
+      let userId: string;
+      let userEmail: string;
+
+      if (req.user?.id) {
+        // Authenticated user - use real userId
+        userId = req.user.id;
+        userEmail = (body.email || req.user.email || '').toLowerCase().trim();
+        this.logger.log(`Creating checkout session for authenticated user: ${userId}`);
+      } else {
+        // Guest user - require email and generate temp userId
+        if (!body.email || !body.email.includes('@') || body.email.length < 5) {
+          throw new BadRequestException('A valid email address is required');
+        }
+        userEmail = body.email.toLowerCase().trim();
+        userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        this.logger.log(`Creating checkout session for guest user: ${userEmail}`);
+      }
+
+      if (!userEmail || !userEmail.includes('@')) {
         throw new BadRequestException('A valid email address is required');
       }
 
-      // Normaliser l'email
-      const userEmail = body.email.toLowerCase().trim();
-      
-      // Générer un userId temporaire unique basé sur timestamp + random
-      // Ce userId sera remplacé par l'ID réel après création du compte via webhook Stripe
-      const tempUserId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-      this.logger.log(`Creating checkout session for guest user: ${userEmail}`);
-
       const result = await this.billingService.createCheckoutSession(
         body.planId,
-        tempUserId,
+        userId,
         userEmail,
         {
           billingInterval: body.billingInterval || 'monthly',
           addOns: body.addOns,
+          country: body.country,
+          locale: acceptLanguage ?? body.country,
         },
       );
 
-      return result;
-    } catch (error) {
-      this.logger.error(`Checkout session creation failed: ${error.message}`);
       return {
-        success: false,
-        error: error.message,
+        success: result.success,
+        url: result.url ?? undefined,
+        sessionId: result.sessionId,
       };
+    } catch (error: unknown) {
+      this.logger.error('Checkout session creation failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('An error occurred while creating the checkout session');
     }
   }
 
@@ -99,6 +125,7 @@ export class BillingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('payment-methods')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Ajouter une méthode de paiement' })
@@ -115,6 +142,7 @@ export class BillingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Delete('payment-methods')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Supprimer une méthode de paiement' })
@@ -143,15 +171,20 @@ export class BillingController {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
+      this.logger.warn('Failed to create customer portal session', {
+        userId: req.user?.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
-        error: error.message,
+        error: 'Unable to create customer portal session. Please try again later.',
       };
     }
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('change-plan')
   @ApiBearerAuth()
   @ApiOperation({ 
@@ -329,6 +362,7 @@ export class BillingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('cancel-downgrade')
   @ApiBearerAuth()
   @ApiOperation({ 
@@ -353,6 +387,7 @@ export class BillingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('cancel-subscription')
   @ApiBearerAuth()
   @ApiOperation({ 
@@ -379,6 +414,7 @@ export class BillingController {
 
   /** @Public: Stripe webhook; verified by stripe-signature */
   @Public()
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Webhook Stripe pour les événements de paiement' })
@@ -390,7 +426,7 @@ export class BillingController {
       throw new BadRequestException('Missing Stripe signature header');
     }
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
       this.logger.error('STRIPE_WEBHOOK_SECRET is not configured');
       throw new BadRequestException('Webhook secret not configured');
@@ -405,9 +441,10 @@ export class BillingController {
         signature,
         webhookSecret,
       );
-    } catch (err: any) {
-      this.logger.warn('Invalid Stripe webhook signature', { error: err.message });
-      throw new BadRequestException(`Webhook signature verification failed: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn('Invalid Stripe webhook signature', { error: message });
+      throw new BadRequestException(`Webhook signature verification failed: ${message}`);
     }
 
     this.logger.log('Stripe webhook received', {

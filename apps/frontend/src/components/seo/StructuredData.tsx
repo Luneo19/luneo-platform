@@ -2,6 +2,8 @@
 
 import React from 'react';
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 interface StructuredDataProps {
   data: Record<string, unknown>;
 }
@@ -29,8 +31,8 @@ interface OrganizationDataProps {
 
 export function OrganizationStructuredData({
   name = 'Luneo',
-  url = 'https://luneo.app',
-  logo = 'https://luneo.app/logo.png',
+  url = APP_URL,
+  logo = `${APP_URL}/logo.png`,
   description = 'Plateforme de personnalisation produits avec éditeur 2D/3D, Virtual Try-On AR, et export print-ready',
   sameAs = [
     'https://twitter.com/luneo_app',
@@ -68,7 +70,7 @@ interface ProductDataProps {
 export function ProductStructuredData({
   name,
   description,
-  image = 'https://luneo.app/og-image.png',
+  image = `${APP_URL}/og-image.png`,
   price = '0',
   priceCurrency = 'EUR',
 }: ProductDataProps) {

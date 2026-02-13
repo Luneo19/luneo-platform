@@ -1,4 +1,5 @@
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import {
     Body,
@@ -8,6 +9,7 @@ import {
     Headers,
     HttpCode,
     HttpStatus,
+    Logger,
     NotFoundException,
     BadRequestException,
     Param,
@@ -18,6 +20,7 @@ import {
     UseGuards
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { MagentoConnector } from '@/modules/ecommerce/connectors/magento/magento.connector';
 import { ShopifyConnector } from '@/modules/ecommerce/connectors/shopify/shopify.connector';
@@ -47,7 +50,10 @@ import { SyncEngineService } from '@/modules/ecommerce/services/sync-engine.serv
 
 @ApiTags('E-commerce Integrations')
 @Controller('ecommerce')
+@UseGuards(JwtAuthGuard)
 export class EcommerceController {
+  private readonly logger = new Logger(EcommerceController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly shopifyConnector: ShopifyConnector,
@@ -66,6 +72,7 @@ export class EcommerceController {
   @Post('shopify/install')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Génère l\'URL d\'installation Shopify' })
   @ApiResponse({ status: 200, description: 'URL générée avec succès' })
   async shopifyInstall(
@@ -76,6 +83,7 @@ export class EcommerceController {
   }
 
   @Get('shopify/callback')
+  @Public()
   @ApiOperation({ summary: 'Callback OAuth Shopify' })
   @ApiResponse({ status: 302, description: 'Redirect après installation' })
   async shopifyCallback(
@@ -125,11 +133,16 @@ export class EcommerceController {
       res.redirect(`${process.env.FRONTEND_URL}/integrations?shopify=success&shop=${encodeURIComponent(shop)}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.redirect(`${process.env.FRONTEND_URL}/integrations?shopify=error&message=${encodeURIComponent(errorMessage)}`);
+      const errorCode = 'shopify_connection_failed';
+      this.logger.error('Shopify connection failed', { error: errorMessage });
+      const frontendUrl = process.env.FRONTEND_URL ?? '';
+      return res.redirect(`${frontendUrl}/dashboard/integrations?error=${errorCode}`);
     }
   }
 
   @Post('shopify/webhook')
+  @Public()
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
   @ApiOperation({ summary: 'Reçoit les webhooks Shopify' })
   @ApiResponse({ status: 200, description: 'Webhook traité' })
   @HttpCode(HttpStatus.OK)
@@ -163,17 +176,19 @@ export class EcommerceController {
   @Post('shopify/:integrationId/sync/products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Synchronise les produits Shopify (import Shopify → Luneo)' })
   @ApiResponse({ status: 200, description: 'Synchronisation lancée' })
   async syncShopifyProducts(
     @Param('integrationId') integrationId: string,
-  ): Promise<any> {
+  ) {
     return this.productSyncService.syncProducts({ integrationId });
   }
 
   @Put('shopify/:integrationId/products/:luneoProductId/sync')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Pousse la mise à jour d\'un produit Luneo vers Shopify (export)' })
   @ApiResponse({ status: 200, description: 'Produit poussé vers Shopify' })
   async pushShopifyProductUpdate(
@@ -191,6 +206,7 @@ export class EcommerceController {
   @Post('woocommerce/connect')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Connecte une boutique WooCommerce' })
   @ApiResponse({ status: 201, description: 'Connexion réussie' })
   async woocommerceConnect(
@@ -210,6 +226,8 @@ export class EcommerceController {
   }
 
   @Post('woocommerce/webhook')
+  @Public()
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
   @ApiOperation({ summary: 'Reçoit les webhooks WooCommerce' })
   @ApiResponse({ status: 200, description: 'Webhook traité' })
   @HttpCode(HttpStatus.OK)
@@ -230,13 +248,15 @@ export class EcommerceController {
   async getWooCommerceProducts(
     @Param('integrationId') integrationId: string,
     @Query('per_page') perPage?: number,
-  ): Promise<any> {
-    return this.woocommerceConnector.getProducts(integrationId, { per_page: perPage });
+  ): Promise<{ products: ShopifyProduct[]; total: number }> {
+    const products = await this.woocommerceConnector.getProducts(integrationId, { per_page: perPage });
+    return { products: products as unknown as ShopifyProduct[], total: products.length };
   }
 
   @Post('woocommerce/:integrationId/sync/products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Synchronise les produits WooCommerce' })
   @ApiResponse({ status: 200, description: 'Synchronisation lancée' })
   async syncWooCommerceProducts(
@@ -257,6 +277,7 @@ export class EcommerceController {
   @Post('magento/connect')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Connecte une boutique Magento' })
   @ApiResponse({ status: 201, description: 'Connexion réussie' })
   async magentoConnect(
@@ -282,13 +303,15 @@ export class EcommerceController {
   async getMagentoProducts(
     @Param('integrationId') integrationId: string,
     @Query('pageSize') pageSize?: number,
-  ): Promise<any> {
-    return this.magentoConnector.getProducts(integrationId, { pageSize });
+  ): Promise<{ products: ShopifyProduct[]; total: number }> {
+    const products = await this.magentoConnector.getProducts(integrationId, { pageSize });
+    return { products: products as unknown as ShopifyProduct[], total: products.length };
   }
 
   @Post('magento/:integrationId/sync/products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Synchronise les produits Magento' })
   @ApiResponse({ status: 200, description: 'Synchronisation lancée' })
   async syncMagentoProducts(
@@ -309,6 +332,7 @@ export class EcommerceController {
   @Put('integrations/:integrationId/products/:luneoProductId/sync')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Pousse la mise à jour d\'un produit Luneo vers la plateforme (export)' })
   @ApiResponse({ status: 200, description: 'Produit poussé vers la plateforme' })
   async pushProductUpdate(
@@ -322,6 +346,7 @@ export class EcommerceController {
   @Post('integrations/:integrationId/sync/products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Synchronise les produits (toutes plateformes)' })
   @ApiResponse({ status: 200, description: 'Synchronisation lancée' })
   async syncProducts(
@@ -352,6 +377,7 @@ export class EcommerceController {
   @Post('integrations/:integrationId/sync/orders')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Synchronise les commandes' })
   @ApiResponse({ status: 200, description: 'Synchronisation lancée' })
   async syncOrders(
@@ -414,7 +440,7 @@ export class EcommerceController {
   async getOrderStats(
     @Param('integrationId') integrationId: string,
     @Query('period') period: 'day' | 'week' | 'month' = 'week',
-  ): Promise<any> {
+  ) {
     return this.orderSyncService.getOrderStats(integrationId, period);
   }
 
@@ -427,7 +453,18 @@ export class EcommerceController {
     @Param('integrationId') integrationId: string,
     @Query('limit') limit: number = 50,
   ): Promise<WebhookHistory[]> {
-    return this.webhookHandlerService.getWebhookHistory(integrationId, limit);
+    const logs = await this.webhookHandlerService.getWebhookHistory(integrationId, limit);
+    return logs.map((log) => ({
+      id: log.id,
+      integrationId,
+      topic: log.event,
+      status: (log.statusCode && log.statusCode >= 200 && log.statusCode < 300 ? 'success' : 'failed') as 'success' | 'failed' | 'pending',
+      payload: (log.payload as Record<string, unknown>) ?? {},
+      response: log.response ? (JSON.parse(log.response) as Record<string, unknown>) : undefined,
+      error: log.error ?? undefined,
+      processedAt: log.createdAt,
+      createdAt: log.createdAt,
+    }));
   }
 
   @Get('integrations/:integrationId/webhooks/stats')
@@ -439,12 +476,13 @@ export class EcommerceController {
     @Param('integrationId') integrationId: string,
     @Query('period') period: 'day' | 'week' | 'month' = 'week',
   ): Promise<SyncStats> {
-    return this.webhookHandlerService.getWebhookStats(integrationId, period) as Promise<SyncStats>;
+    return this.webhookHandlerService.getWebhookStats(integrationId, period) as unknown as Promise<SyncStats>;
   }
 
   @Post('webhooks/:webhookId/retry')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Réessaye un webhook échoué' })
   @ApiResponse({ status: 200, description: 'Webhook réessayé' })
   async retryWebhook(@Param('webhookId') webhookId: string): Promise<{ status: string }> {
@@ -482,6 +520,7 @@ export class EcommerceController {
   @Post('integrations/:integrationId/mappings')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un mapping de produit' })
   @ApiResponse({ status: 201, description: 'Mapping créé' })
   async createProductMapping(
@@ -519,13 +558,26 @@ export class EcommerceController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Liste toutes les intégrations' })
   @ApiResponse({ status: 200, description: 'Intégrations récupérées' })
-  async listIntegrations(@Query('brandId') brandId?: string): Promise<any> {
+  async listIntegrations(@Query('brandId') brandId?: string): Promise<EcommerceIntegration[]> {
     const where = brandId ? { brandId } : {};
     
-    return this.prisma.ecommerceIntegration.findMany({
+    const integrations = await this.prisma.ecommerceIntegration.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     });
+    return integrations.map((i) => ({
+      id: i.id,
+      brandId: i.brandId,
+      platform: i.platform as 'shopify' | 'woocommerce' | 'magento',
+      shopDomain: i.shopDomain,
+      accessToken: i.accessToken ?? undefined,
+      refreshToken: i.refreshToken ?? undefined,
+      config: (i.config as EcommerceIntegration['config']) ?? {},
+      status: i.status as 'active' | 'inactive' | 'error' | 'pending',
+      lastSyncAt: i.lastSyncAt ?? undefined,
+      createdAt: i.createdAt,
+      updatedAt: i.updatedAt,
+    }));
   }
 
   @Get('integrations/:integrationId')
@@ -558,6 +610,7 @@ export class EcommerceController {
   @Put('integrations/:integrationId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Met à jour une intégration' })
   @ApiResponse({ status: 200, description: 'Intégration mise à jour' })
   async updateIntegration(
@@ -581,6 +634,7 @@ export class EcommerceController {
   @Delete('integrations/:integrationId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Supprime une intégration' })
   @ApiResponse({ status: 204, description: 'Intégration supprimée' })
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -597,6 +651,7 @@ export class EcommerceController {
   @Post('sync/queue')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Ajoute un job de sync dans la queue BullMQ' })
   @ApiResponse({ status: 201, description: 'Job ajouté à la queue' })
   async queueSyncJob(
@@ -618,6 +673,7 @@ export class EcommerceController {
   @Post('sync/schedule')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Programme un job de sync récurrent' })
   @ApiResponse({ status: 201, description: 'Job récurrent programmé' })
   async scheduleRecurringSync(
@@ -640,12 +696,12 @@ export class EcommerceController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtient le statut d\'un job de sync' })
   @ApiResponse({ status: 200, description: 'Statut du job' })
-  async getJobStatus(@Param('jobId') jobId: string): Promise<any> {
+  async getJobStatus(@Param('jobId') jobId: string): Promise<Record<string, unknown>> {
     const status = await this.syncEngine.getJobStatus(jobId);
     if (!status) {
       throw new NotFoundException(`Job ${jobId} not found`);
     }
-    return status;
+    return status as unknown as Record<string, unknown>;
   }
 
   @Get('sync/integrations/:integrationId/jobs')
@@ -656,13 +712,14 @@ export class EcommerceController {
   async getIntegrationJobs(
     @Param('integrationId') integrationId: string,
     @Query('limit') limit?: number,
-  ): Promise<any[]> {
-    return this.syncEngine.getIntegrationJobs(integrationId, limit || 50);
+  ): Promise<Record<string, unknown>[]> {
+    return this.syncEngine.getIntegrationJobs(integrationId, limit || 50) as unknown as Record<string, unknown>[];
   }
 
   @Post('sync/jobs/:jobId/cancel')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Annule un job de sync' })
   @ApiResponse({ status: 200, description: 'Job annulé' })
   async cancelJob(@Param('jobId') jobId: string): Promise<{ status: string }> {
@@ -673,6 +730,7 @@ export class EcommerceController {
   @Post('sync/jobs/:jobId/retry')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Réessaie un job échoué' })
   @ApiResponse({ status: 201, description: 'Job réessayé' })
   async retryJob(@Param('jobId') jobId: string): Promise<{ jobId: string; status: string }> {

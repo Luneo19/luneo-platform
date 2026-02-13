@@ -22,6 +22,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 // ========================================
 // COMPOSANT PRINCIPAL
@@ -29,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 
 function WidgetPageContent() {
   const params = useParams();
+  const { t } = useI18n();
   const { toast } = useToast();
   const brandId = params.brandId as string;
   const productId = params.productId as string;
@@ -46,12 +49,13 @@ function WidgetPageContent() {
   );
 
   // Get zones from product (zones are included in product.getById)
-  const zones = product?.zones || [];
+  type ZoneItem = { id: string; name?: string; maxChars?: number };
+  const zones = (product as { zones?: ZoneItem[] } | null | undefined)?.zones ?? ([] as ZoneItem[]);
   const isLoadingZones = false; // Zones are included in product query
 
   // Auto-select first zone
   useCallback(() => {
-    if (zones && zones.length > 0 && !selectedZoneId) {
+    if (zones.length > 0 && !selectedZoneId) {
       setSelectedZoneId(zones[0].id);
     }
   }, [zones, selectedZoneId]);
@@ -69,8 +73,8 @@ function WidgetPageContent() {
   const handleAddToCart = useCallback(async () => {
     if (!customizationId) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez d\'abord générer une personnalisation',
+        title: t('common.error'),
+        description: t('storefront.generateFirst'),
         variant: 'destructive',
       });
       return;
@@ -79,62 +83,48 @@ function WidgetPageContent() {
     setIsAddingToCart(true);
 
     try {
-      // Get customization details
-      const { trpcVanilla } = await import('@/lib/trpc/vanilla-client');
-      const customization = await trpcVanilla.customization.getById.query({ id: customizationId });
-      
-      if (!customization) {
-        throw new Error('Customization not found');
-      }
+      // Import cart store dynamically
+      const { useCartStore } = await import('@/store/cart.store');
+      const cartStore = useCartStore.getState();
 
-      // Create order via tRPC
-      const order = await trpcVanilla.order.create.mutate({
-        items: [
-          {
-            productId,
-            productName: product?.name || 'Product',
-            customizationId,
-            designId: customization.designId || undefined,
-            quantity: 1,
-            price: product?.price || 0,
-            totalPrice: product?.price || 0,
-            metadata: {
-              customizationId,
-              previewUrl: previewUrl || undefined,
-            },
-          },
-        ],
-        shippingAddress: {
-          name: '',
-          street: '',
-          city: '',
-          postalCode: '',
-          country: '',
+      // Add to local cart
+      cartStore.setBrandId(brandId);
+      const p = product as { name?: string; imageUrl?: string; image_url?: string; price?: number; priceCents?: number } | null | undefined;
+      cartStore.addItem({
+        productId,
+        productName: p?.name ?? 'Product',
+        productImage: p?.imageUrl ?? p?.image_url ?? '',
+        customizationId,
+        quantity: 1,
+        priceCents: p?.priceCents ?? Math.round((p?.price ?? 0) * 100),
+        metadata: {
+          customizationId,
+          previewUrl: previewUrl || undefined,
+          modelUrl: modelUrl || undefined,
         },
-        customerNotes: `Customization: ${customizationId}`,
       });
 
-      logger.info('Order created from customization', { orderId: order.id, customizationId });
+      logger.info('Item added to cart', { customizationId, productId });
 
       toast({
-        title: 'Ajouté au panier',
-        description: 'Votre personnalisation a été ajoutée au panier avec succès.',
+        title: t('storefront.addedToCart'),
+        description: t('storefront.addedToCartDesc'),
         variant: 'default',
       });
 
-      // Optionnel: Rediriger vers checkout
-      // window.location.href = `/checkout?order=${order.id}`;
-    } catch (error: any) {
+      // Open cart drawer
+      cartStore.setOpen(true);
+    } catch (error: unknown) {
       logger.error('Error adding to cart', { error, customizationId, productId });
       toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible d\'ajouter au panier',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     } finally {
       setIsAddingToCart(false);
     }
-  }, [customizationId, productId, product, previewUrl, toast]);
+  }, [customizationId, productId, product, previewUrl, modelUrl, brandId, toast, t]);
 
   if (isLoadingProduct || isLoadingZones) {
     return (
@@ -158,7 +148,7 @@ function WidgetPageContent() {
     );
   }
 
-  if (!zones || zones.length === 0) {
+  if (zones.length === 0) {
     return (
       <div className="container mx-auto p-8">
         <Card>
@@ -175,16 +165,17 @@ function WidgetPageContent() {
     );
   }
 
-  const selectedZone = zones.find((z: any) => z.id === selectedZoneId) || zones[0];
-  const baseModelUrl = product.model3dUrl || product.baseAssetUrl || '';
+  const productWithZones = product as { name?: string; description?: string; model3dUrl?: string; baseAssetUrl?: string; category?: string; zones?: ZoneItem[] };
+  const selectedZone = zones.find((z) => z.id === selectedZoneId) ?? zones[0];
+  const baseModelUrl = productWithZones.model3dUrl || productWithZones.baseAssetUrl || '';
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold mb-2">{product.name}</h1>
-        {product.description && (
-          <p className="text-gray-600 text-lg">{product.description}</p>
+        <h1 className="text-4xl font-bold mb-2">{productWithZones.name ?? 'Produit'}</h1>
+        {productWithZones.description && (
+          <p className="text-gray-600 text-lg">{productWithZones.description}</p>
         )}
       </div>
 
@@ -206,14 +197,14 @@ function WidgetPageContent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {zones.map((zone: any) => (
+                  {zones.map((zone: ZoneItem) => (
                     <Button
                       key={zone.id}
                       variant={selectedZoneId === zone.id ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setSelectedZoneId(zone.id)}
                     >
-                      {zone.name}
+                      {zone.name ?? zone.id}
                     </Button>
                   ))}
                 </div>
@@ -229,7 +220,7 @@ function WidgetPageContent() {
               <Preview3D modelUrl={modelUrl} autoRotate={true} />
               <ARButton
                 modelUrl={modelUrl}
-                productType={(product.category?.toLowerCase() as 'glasses' | 'jewelry' | 'watch' | 'ring' | 'earrings' | 'necklace') || 'jewelry'}
+                productType={((productWithZones.category ?? '')?.toLowerCase() as 'glasses' | 'jewelry' | 'watch' | 'ring' | 'earrings' | 'necklace') || 'jewelry'}
                 productId={productId}
                 customizationId={customizationId || undefined}
               />

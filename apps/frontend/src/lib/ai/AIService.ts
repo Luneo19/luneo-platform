@@ -16,6 +16,7 @@ import { endpoints, api } from '@/lib/api/client';
 import type {
   AIOperation,
   AIOperationStatus,
+  AIRequest,
   BackgroundRemovalRequest,
   UpscaleRequest,
   ColorExtractionRequest,
@@ -328,12 +329,12 @@ class AIService {
   }
 
   // Private helpers
-  private addToHistory(request: any): void {
+  private addToHistory(request: AIRequest): void {
     const historyItem: AIHistoryItem = {
       id: request.id,
       operation: request.operation,
       timestamp: request.createdAt,
-      inputPreview: request.input?.imageUrl,
+      inputPreview: (request as AIRequest & { input?: { imageUrl?: string } }).input?.imageUrl,
       status: request.status,
     };
 
@@ -343,13 +344,13 @@ class AIService {
     }
   }
 
-  private updateHistory(request: any): void {
+  private updateHistory(request: AIRequest): void {
     const index = this.history.findIndex((h) => h.id === request.id);
     if (index !== -1) {
       this.history[index] = {
         ...this.history[index],
         status: request.status,
-        outputPreview: request.output?.imageUrl,
+        outputPreview: (request as AIRequest & { output?: { imageUrl?: string } }).output?.imageUrl,
       };
     }
   }

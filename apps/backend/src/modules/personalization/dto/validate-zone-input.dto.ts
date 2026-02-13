@@ -17,7 +17,7 @@ export class ValidateZoneInputDto {
     size?: number;
     effect?: string;
     orientation?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
 }
 

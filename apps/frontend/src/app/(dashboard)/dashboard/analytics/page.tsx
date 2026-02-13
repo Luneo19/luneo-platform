@@ -14,6 +14,7 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AnalyticsPageClient } from './AnalyticsPageClient';
 import { AnalyticsSkeleton } from './components/AnalyticsSkeleton';
+import { NotAuthenticatedMessage } from '../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'Analytics | Luneo',
@@ -31,7 +32,7 @@ export default async function AnalyticsPage() {
     return (
       <ErrorBoundary level="page" componentName="AnalyticsPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

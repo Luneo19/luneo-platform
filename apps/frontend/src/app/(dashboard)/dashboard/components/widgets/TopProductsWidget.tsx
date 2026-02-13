@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useDashboardStore } from '@/store/dashboard.store';
+import { useI18n } from '@/i18n/useI18n';
 import { WidgetWrapper } from './WidgetWrapper';
 import { Eye, ShoppingBag } from 'lucide-react';
 
@@ -18,6 +19,7 @@ interface TopProductsData {
 }
 
 export function TopProductsWidget() {
+  const { t } = useI18n();
   const { widgetData, fetchWidgetData } = useDashboardStore();
   const data = widgetData[WIDGET_SLUG] as TopProductsData | undefined;
   const isLoading = data === undefined && !Object.prototype.hasOwnProperty.call(widgetData, WIDGET_SLUG);
@@ -31,7 +33,7 @@ export function TopProductsWidget() {
 
   return (
     <WidgetWrapper
-      title="Produits populaires"
+      title={t('common.popularProducts')}
       subtitle="Vues et ventes"
       isLoading={isLoading}
       error={data === null ? 'Impossible de charger les données' : undefined}

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { sendProductionReadyEmailSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Production ready email service error', new Error(errorText), {
+      serverLogger.error('Production ready email service error', new Error(errorText), {
         userId: user.id,
         orderId,
         status: backendResponse.status,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Production ready email sent', {
+    serverLogger.info('Production ready email sent', {
       userId: user.id,
       orderId,
       filesCount: productionFiles.length,

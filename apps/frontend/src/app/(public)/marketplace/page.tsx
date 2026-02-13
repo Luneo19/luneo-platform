@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Search,
@@ -52,183 +53,8 @@ import { logger } from '@/lib/logger';
 import { TEMPLATE_CATEGORIES, type TemplateCategory, type Template } from '@/lib/marketplace/types';
 import OptimizedImage from '@/components/optimized/OptimizedImage';
 
-// Fallback mock data when API fails (e.g. unauthenticated or backend down)
-const FALLBACK_TEMPLATES: Template[] = [
-  {
-    id: '1',
-    name: 'T-Shirt Streetwear Pack',
-    description: 'Collection de 12 designs streetwear pour t-shirts',
-    slug: 't-shirt-streetwear-pack',
-    previewImage: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
-    previewImages: [],
-    category: 'apparel',
-    tags: ['streetwear', 'urban', 'fashion'],
-    price: 29,
-    currency: 'EUR',
-    isPremium: true,
-    isFeatured: true,
-    creatorId: 'c1',
-    creator: { id: 'c1', name: 'DesignMaster', username: 'designmaster', verified: true },
-    downloads: 1234,
-    views: 8567,
-    likes: 456,
-    rating: 4.8,
-    reviewCount: 89,
-    format: 'json',
-    dimensions: { width: 4000, height: 4000 },
-    fileSize: 2500000,
-    compatibility: ['luneo', 'photoshop'],
-    createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
-    updatedAt: Date.now(),
-    publishedAt: Date.now() - 28 * 24 * 60 * 60 * 1000,
-    status: 'published',
-  },
-  {
-    id: '2',
-    name: 'Minimalist Logo Kit',
-    description: 'Templates de logos minimalistes éditables',
-    slug: 'minimalist-logo-kit',
-    previewImage: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400',
-    previewImages: [],
-    category: 'digital',
-    tags: ['logo', 'minimal', 'branding'],
-    price: 0,
-    currency: 'EUR',
-    isPremium: false,
-    isFeatured: false,
-    creatorId: 'c2',
-    creator: { id: 'c2', name: 'LogoLab', username: 'logolab', verified: false },
-    downloads: 5678,
-    views: 23456,
-    likes: 1234,
-    rating: 4.5,
-    reviewCount: 234,
-    format: 'svg',
-    dimensions: { width: 1000, height: 1000 },
-    fileSize: 500000,
-    compatibility: ['luneo', 'illustrator'],
-    createdAt: Date.now() - 60 * 24 * 60 * 60 * 1000,
-    updatedAt: Date.now(),
-    publishedAt: Date.now() - 58 * 24 * 60 * 60 * 1000,
-    status: 'published',
-  },
-  {
-    id: '3',
-    name: 'Social Media Bundle',
-    description: '50+ templates pour Instagram, Facebook et LinkedIn',
-    slug: 'social-media-bundle',
-    previewImage: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=400',
-    previewImages: [],
-    category: 'social',
-    tags: ['social', 'instagram', 'marketing'],
-    price: 49,
-    currency: 'EUR',
-    isPremium: true,
-    isFeatured: true,
-    creatorId: 'c3',
-    creator: { id: 'c3', name: 'SocialPro', username: 'socialpro', avatar: '', verified: true },
-    downloads: 3456,
-    views: 15678,
-    likes: 890,
-    rating: 4.9,
-    reviewCount: 167,
-    format: 'json',
-    dimensions: { width: 1080, height: 1080 },
-    fileSize: 8000000,
-    compatibility: ['luneo', 'canva'],
-    createdAt: Date.now() - 14 * 24 * 60 * 60 * 1000,
-    updatedAt: Date.now(),
-    publishedAt: Date.now() - 12 * 24 * 60 * 60 * 1000,
-    status: 'published',
-  },
-  {
-    id: '4',
-    name: 'Packaging Box Templates',
-    description: 'Templates professionnels pour boîtes produits',
-    slug: 'packaging-box-templates',
-    previewImage: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400',
-    previewImages: [],
-    category: 'packaging',
-    tags: ['packaging', 'box', 'product'],
-    price: 39,
-    currency: 'EUR',
-    isPremium: true,
-    isFeatured: false,
-    creatorId: 'c4',
-    creator: { id: 'c4', name: 'PackDesign', username: 'packdesign', verified: true },
-    downloads: 789,
-    views: 4567,
-    likes: 234,
-    rating: 4.7,
-    reviewCount: 45,
-    format: 'json',
-    dimensions: { width: 3000, height: 3000 },
-    fileSize: 5000000,
-    compatibility: ['luneo'],
-    createdAt: Date.now() - 45 * 24 * 60 * 60 * 1000,
-    updatedAt: Date.now(),
-    publishedAt: Date.now() - 43 * 24 * 60 * 60 * 1000,
-    status: 'published',
-  },
-  {
-    id: '5',
-    name: 'Mug & Cup Collection',
-    description: 'Designs créatifs pour mugs et gobelets',
-    slug: 'mug-cup-collection',
-    previewImage: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=400',
-    previewImages: [],
-    category: 'accessories',
-    tags: ['mug', 'cup', 'drinkware'],
-    price: 19,
-    currency: 'EUR',
-    isPremium: false,
-    isFeatured: false,
-    creatorId: 'c5',
-    creator: { id: 'c5', name: 'CupArt', username: 'cupart', verified: false },
-    downloads: 2345,
-    views: 9876,
-    likes: 567,
-    rating: 4.3,
-    reviewCount: 78,
-    format: 'json',
-    dimensions: { width: 2000, height: 2000 },
-    fileSize: 1500000,
-    compatibility: ['luneo', 'photoshop'],
-    createdAt: Date.now() - 90 * 24 * 60 * 60 * 1000,
-    updatedAt: Date.now(),
-    publishedAt: Date.now() - 88 * 24 * 60 * 60 * 1000,
-    status: 'published',
-  },
-  {
-    id: '6',
-    name: 'Business Card Pro',
-    description: 'Templates de cartes de visite premium',
-    slug: 'business-card-pro',
-    previewImage: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400',
-    previewImages: [],
-    category: 'print',
-    tags: ['business', 'card', 'professional'],
-    price: 15,
-    currency: 'EUR',
-    isPremium: false,
-    isFeatured: false,
-    creatorId: 'c6',
-    creator: { id: 'c6', name: 'PrintPro', username: 'printpro', verified: true },
-    downloads: 4567,
-    views: 18765,
-    likes: 987,
-    rating: 4.6,
-    reviewCount: 156,
-    format: 'json',
-    dimensions: { width: 1050, height: 600 },
-    fileSize: 800000,
-    compatibility: ['luneo', 'illustrator', 'indesign'],
-    createdAt: Date.now() - 120 * 24 * 60 * 60 * 1000,
-    updatedAt: Date.now(),
-    publishedAt: Date.now() - 118 * 24 * 60 * 60 * 1000,
-    status: 'published',
-  },
-];
+// Empty state when API fails (no mock data in production)
+const EMPTY_TEMPLATES: Template[] = [];
 
 function normalizeApiTemplate(raw: Record<string, unknown>): Template {
   const creatorId = String(raw.creatorId ?? raw.creator_id ?? '');
@@ -249,7 +75,7 @@ function normalizeApiTemplate(raw: Record<string, unknown>): Template {
     name: String(raw.name ?? ''),
     description: String(raw.description ?? ''),
     slug: String(raw.slug ?? ''),
-    previewImage: previewImage || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+    previewImage: previewImage || '/placeholder-template.svg',
     previewImages,
     category: (raw.category as Template['category']) || 'other',
     tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
@@ -282,6 +108,7 @@ function normalizeApiTemplate(raw: Record<string, unknown>): Template {
 }
 
 function MarketplacePageContent() {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'newest' | 'price_asc' | 'price_desc' | 'rating'>('popular');
@@ -311,7 +138,7 @@ function MarketplacePageContent() {
         if (!cancelled) setTemplates(normalized);
       } catch (error) {
         logger.error('Failed to fetch marketplace templates', { error });
-        if (!cancelled) setTemplates(FALLBACK_TEMPLATES);
+        if (!cancelled) setTemplates(EMPTY_TEMPLATES);
       } finally {
         if (!cancelled) setTemplatesLoading(false);
       }
@@ -367,7 +194,7 @@ function MarketplacePageContent() {
   if (templatesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center">
-        <div className="text-slate-400">Chargement des templates...</div>
+        <div className="text-slate-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -390,16 +217,16 @@ function MarketplacePageContent() {
           >
             <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30">
               <Sparkles className="w-3 h-3 mr-1" />
-              +1000 templates disponibles
+              +1000 {t('marketplace.title').toLowerCase()}
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Marketplace de{' '}
+              {t('marketplace.heroTitle')}{' '}
               <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
                 Templates
               </span>
             </h1>
             <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8">
-              Découvrez des designs professionnels créés par notre communauté de créateurs talentueux
+              {t('marketplace.subtitle')}
             </p>
 
             {/* Search Bar */}
@@ -407,7 +234,7 @@ function MarketplacePageContent() {
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
-                  placeholder="Rechercher des templates..."
+                  placeholder={t('marketplace.search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 pr-4 py-6 text-lg bg-slate-800/50 border-slate-700 rounded-full focus:border-purple-500"
@@ -423,7 +250,7 @@ function MarketplacePageContent() {
         <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 mb-6">
             <Crown className="w-5 h-5 text-amber-400" />
-            <h2 className="text-2xl font-bold">Templates en vedette</h2>
+            <h2 className="text-2xl font-bold">{t('marketplace.featured')}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {featuredTemplates.map((template, index) => (
@@ -446,12 +273,12 @@ function MarketplacePageContent() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             {/* Categories */}
-            <Select value={selectedCategory} onValueChange={(v: any) => setSelectedCategory(v)}>
+            <Select value={selectedCategory} onValueChange={(v: string) => setSelectedCategory(v as TemplateCategory | 'all')}>
               <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700">
-                <SelectValue placeholder="Catégorie" />
+                <SelectValue placeholder={t('marketplace.filters.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toutes catégories</SelectItem>
+                <SelectItem value="all">{t('marketplace.filters.allCategories')}</SelectItem>
                 {Object.entries(TEMPLATE_CATEGORIES).map(([key, { name, icon }]) => (
                   <SelectItem key={key} value={key}>
                     {icon} {name}
@@ -461,29 +288,29 @@ function MarketplacePageContent() {
             </Select>
 
             {/* Sort */}
-            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+            <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as 'popular' | 'newest' | 'price_asc' | 'price_desc' | 'rating')}>
               <SelectTrigger className="w-[160px] bg-slate-800 border-slate-700">
-                <SelectValue placeholder="Trier par" />
+                <SelectValue placeholder={t('marketplace.filters.sortBy')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="popular">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" />
-                    Populaires
+                    {t('marketplace.filters.popular')}
                   </div>
                 </SelectItem>
                 <SelectItem value="newest">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Récents
+                    {t('marketplace.filters.recent')}
                   </div>
                 </SelectItem>
-                <SelectItem value="price_asc">Prix croissant</SelectItem>
-                <SelectItem value="price_desc">Prix décroissant</SelectItem>
+                <SelectItem value="price_asc">{t('marketplace.filters.priceAsc')}</SelectItem>
+                <SelectItem value="price_desc">{t('marketplace.filters.priceDesc')}</SelectItem>
                 <SelectItem value="rating">
                   <div className="flex items-center gap-2">
                     <Star className="w-4 h-4" />
-                    Mieux notés
+                    {t('marketplace.filters.rating')}
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -494,13 +321,13 @@ function MarketplacePageContent() {
               <SheetTrigger asChild>
                 <Button variant="outline" className="lg:hidden border-slate-700">
                   <Filter className="w-4 h-4 mr-2" />
-                  Filtres
+                  {t('marketplace.filters.filters')}
                 </Button>
               </SheetTrigger>
               <SheetContent className="bg-slate-900 border-slate-800">
                 <SheetHeader>
-                  <SheetTitle>Filtres</SheetTitle>
-                  <SheetDescription>Affinez votre recherche</SheetDescription>
+                  <SheetTitle>{t('marketplace.filters.filters')}</SheetTitle>
+                  <SheetDescription>{t('marketplace.filters.refineSearch')}</SheetDescription>
                 </SheetHeader>
                 <FilterPanel
                   priceRange={priceRange}
@@ -515,7 +342,7 @@ function MarketplacePageContent() {
           <div className="flex items-center gap-4">
             {/* Results count */}
             <span className="text-sm text-slate-400">
-              {filteredTemplates.length} résultats
+              {filteredTemplates.length} {t('marketplace.results')}
             </span>
 
             {/* View Mode */}
@@ -547,7 +374,7 @@ function MarketplacePageContent() {
               <CardContent className="p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  Filtres
+                  {t('marketplace.filters.filters')}
                 </h3>
                 <FilterPanel
                   priceRange={priceRange}
@@ -564,9 +391,9 @@ function MarketplacePageContent() {
             {filteredTemplates.length === 0 ? (
               <div className="text-center py-20">
                 <Search className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Aucun template trouvé</h3>
+                <h3 className="text-xl font-semibold mb-2">{t('marketplace.noResults')}</h3>
                 <p className="text-slate-400">
-                  Essayez de modifier vos filtres ou votre recherche
+                  {t('marketplace.noResultsHint')}
                 </p>
               </div>
             ) : (
@@ -617,6 +444,7 @@ function TemplateCard({
   featured?: boolean;
   viewMode?: 'grid' | 'list';
 }) {
+  const { t } = useI18n();
   const [isLiked, setIsLiked] = useState(false);
 
   if (viewMode === 'list') {
@@ -626,7 +454,7 @@ function TemplateCard({
           <div className="w-48 h-32 relative flex-shrink-0">
             <OptimizedImage src={template.previewImage} alt={template.name} className="w-full h-full object-cover" />
             {template.price === 0 && (
-              <Badge className="absolute top-2 left-2 bg-green-500/90">Gratuit</Badge>
+              <Badge className="absolute top-2 left-2 bg-green-500/90">{t('marketplace.filters.free')}</Badge>
             )}
           </div>
           <CardContent className="flex-1 p-4">
@@ -649,7 +477,7 @@ function TemplateCard({
                 {template.price > 0 ? (
                   <p className="text-xl font-bold">{template.price}€</p>
                 ) : (
-                  <Badge variant="outline" className="text-green-400 border-green-400">Gratuit</Badge>
+                  <Badge variant="outline" className="text-green-400 border-green-400">{t('marketplace.filters.free')}</Badge>
                 )}
               </div>
             </div>
@@ -674,12 +502,12 @@ function TemplateCard({
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
           {template.price === 0 && (
-            <Badge className="bg-green-500/90">Gratuit</Badge>
+            <Badge className="bg-green-500/90">{t('marketplace.filters.free')}</Badge>
           )}
           {featured && (
             <Badge className="bg-amber-500/90">
               <Crown className="w-3 h-3 mr-1" />
-              Vedette
+              {t('marketplace.featuredBadge')}
             </Badge>
           )}
         </div>
@@ -704,7 +532,7 @@ function TemplateCard({
           <Link href={`/marketplace/${template.slug}`}>
             <Button className="w-full bg-white/20 border-2 border-white/50 text-white hover:bg-white/30">
               <Eye className="w-4 h-4 mr-2" />
-              Voir le template
+              {t('marketplace.viewTemplate')}
             </Button>
           </Link>
         </div>
@@ -743,7 +571,7 @@ function TemplateCard({
             <span className="text-lg font-bold text-white">{template.price}€</span>
           ) : (
             <Badge variant="outline" className="text-green-400 border-green-400/50">
-              Gratuit
+              {t('marketplace.filters.free')}
             </Badge>
           )}
         </div>
@@ -764,12 +592,13 @@ function FilterPanel({
   freeOnly: boolean;
   setFreeOnly: (value: boolean) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       {/* Price Range */}
       <div>
         <label className="text-sm font-medium mb-3 block">
-          Prix: {priceRange[0]}€ - {priceRange[1]}€
+          {t('marketplace.priceLabel')}: {priceRange[0]}€ - {priceRange[1]}€
         </label>
         <Slider
           value={priceRange}
@@ -789,13 +618,13 @@ function FilterPanel({
           onCheckedChange={(checked) => setFreeOnly(checked as boolean)}
         />
         <label htmlFor="free-only" className="text-sm cursor-pointer">
-          Templates gratuits uniquement
+          {t('marketplace.freeOnlyLabel')}
         </label>
       </div>
 
       {/* Tags */}
       <div>
-        <label className="text-sm font-medium mb-3 block">Tags populaires</label>
+        <label className="text-sm font-medium mb-3 block">{t('marketplace.popularTags')}</label>
         <div className="flex flex-wrap gap-2">
           {['streetwear', 'minimal', 'social', 'logo', 'packaging'].map((tag) => (
             <Badge

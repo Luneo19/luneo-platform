@@ -9,8 +9,10 @@ import Link from 'next/link';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 
 function MaintenancePageContent() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -92,7 +94,7 @@ function MaintenancePageContent() {
             <div className="flex gap-2 max-w-md mx-auto">
               <Input
                 type="email"
-                placeholder="Votre email"
+                placeholder={t('common.yourEmail')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 bg-gray-800 border-gray-700 text-white"

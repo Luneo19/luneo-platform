@@ -17,7 +17,7 @@ export class ExportService {
   /**
    * Exporte des assets
    */
-  async exportAssets(assets: AssetInfo[], options: ExportSettings): Promise<any> {
+  async exportAssets(assets: AssetInfo[], options: ExportSettings): Promise<{ format: string; url: string; size: number; metadata: Record<string, unknown> }> {
     const startTime = Date.now();
     
     try {

@@ -88,7 +88,7 @@ export class CustomizationGuard {
       }
 
       // 2. Parse request body
-      let body: any = {};
+      let body: Record<string, unknown> = {};
       try {
         body = await request.json();
       } catch (error) {
@@ -160,7 +160,7 @@ export class CustomizationGuard {
       }
 
       return { allowed: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error in customization guard', { error });
       return {
         allowed: false,

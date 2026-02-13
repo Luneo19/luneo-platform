@@ -39,7 +39,7 @@ export const designRouter = router({
         });
       }
 
-      const d = design as DesignWithUserId;
+      const d = design as unknown as DesignWithUserId;
       if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',
@@ -55,7 +55,7 @@ export const designRouter = router({
           id: version.id,
           version: index + 1,
           name: version.name || `Version ${index + 1}`,
-          thumbnail: version.previewUrl || version.renderUrl || '/placeholder-design.jpg',
+          thumbnail: version.previewUrl || version.renderUrl || '/placeholder-design.svg',
           createdAt: version.createdAt ? (version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)) : '',
           updatedAt: version.updatedAt ? (version.updatedAt instanceof Date ? version.updatedAt.toISOString() : String(version.updatedAt)) : '',
           metadata: version.metadata ?? {},
@@ -76,7 +76,7 @@ export const designRouter = router({
       z.object({
         designId: z.string().cuid(),
         name: z.string().optional(),
-        metadata: z.record(z.any()).optional(),
+        metadata: z.record(z.unknown()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -90,7 +90,7 @@ export const designRouter = router({
         });
       }
 
-      const d = design as DesignWithUserId;
+      const d = design as unknown as DesignWithUserId;
       if (d.userId !== user.id && user.role !== 'PLATFORM_ADMIN') {
         throw new TRPCError({
           code: 'FORBIDDEN',

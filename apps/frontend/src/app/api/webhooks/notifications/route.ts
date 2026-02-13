@@ -1,5 +1,5 @@
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { webhookNotificationSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Failed to send webhook notifications', {
+      serverLogger.error('Failed to send webhook notifications', {
         userId: user.id,
         status: backendResponse.status,
         error: errorText,
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Webhooks notifications sent', {
+    serverLogger.info('Webhooks notifications sent', {
       userId: user.id,
       event: validation.data.event,
       total: result.total,

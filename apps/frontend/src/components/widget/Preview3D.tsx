@@ -62,7 +62,7 @@ function Preview3DContent({
   const [isAutoRotating, setIsAutoRotating] = useState(autoRotate);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<React.ComponentRef<typeof OrbitControls> | null>(null);
 
   const handleModelLoad = useCallback(() => {
     setIsLoading(false);

@@ -47,7 +47,7 @@ export class SamlStrategy extends PassportStrategy(SamlPassportStrategy, 'saml')
     });
   }
 
-  async validate(profile: any): Promise<any> {
+  async validate(profile: Record<string, unknown>): Promise<{ id: string; email: string; role: string; brandId: string | null }> {
     try {
       if (!profile) {
         throw new UnauthorizedException('SAML authentication failed');
@@ -67,10 +67,10 @@ export class SamlStrategy extends PassportStrategy(SamlPassportStrategy, 'saml')
       // Note: SAML doesn't use access tokens, so we use empty strings
       const oauthData = {
         provider: 'saml',
-        providerId: nameId || email,
-        email: email || nameId,
-        firstName: firstName || '',
-        lastName: lastName || '',
+        providerId: String(nameId ?? email ?? ''),
+        email: String(email ?? nameId ?? ''),
+        firstName: String(firstName ?? ''),
+        lastName: String(lastName ?? ''),
         accessToken: '', // SAML doesn't use access tokens
         refreshToken: undefined,
       };

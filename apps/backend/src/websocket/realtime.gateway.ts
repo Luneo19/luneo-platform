@@ -9,24 +9,26 @@
  */
 
 // Optional: WebSocket support (install with: npm install @nestjs/websockets socket.io)
-let WebSocketGateway: any, WebSocketServer: any, SubscribeMessage: any;
-let OnGatewayConnection: any, OnGatewayDisconnect: any, MessageBody: any, ConnectedSocket: any;
-let Server: any, Socket: any;
+type WebSocketGatewayFn = (options?: object) => ClassDecorator;
+type WebSocketServerFn = () => PropertyDecorator;
+type SubscribeMessageFn = (event: string) => MethodDecorator;
+type ConnectedSocketFn = () => ParameterDecorator;
+type MessageBodyFn = () => ParameterDecorator;
+
+let WebSocketGateway: WebSocketGatewayFn | undefined;
+let WebSocketServer: WebSocketServerFn | undefined;
+let SubscribeMessage: SubscribeMessageFn | undefined;
+let ConnectedSocket: ConnectedSocketFn | undefined;
+let MessageBody: MessageBodyFn | undefined;
 
 try {
   const websockets = require('@nestjs/websockets');
   WebSocketGateway = websockets.WebSocketGateway;
   WebSocketServer = websockets.WebSocketServer;
   SubscribeMessage = websockets.SubscribeMessage;
-  OnGatewayConnection = websockets.OnGatewayConnection;
-  OnGatewayDisconnect = websockets.OnGatewayDisconnect;
   MessageBody = websockets.MessageBody;
   ConnectedSocket = websockets.ConnectedSocket;
-  
-  const socketio = require('socket.io');
-  Server = socketio.Server;
-  Socket = socketio.Socket;
-} catch (e) {
+} catch {
   // WebSocket packages not installed
 }
 
@@ -36,26 +38,48 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 const logger = new Logger('RealtimeGateway');
 
+interface SocketHandshake {
+  query?: Record<string, string | string[] | undefined>;
+  headers?: Record<string, string | string[] | undefined>;
+}
+
 interface AuthenticatedSocket {
   id: string;
   userId?: string;
   brandId?: string;
   userName?: string;
-  handshake?: any;
-  disconnect?: () => void;
-  emit?: (event: string, data: any) => void;
-  join?: (room: string) => void;
-  leave?: (room: string) => void;
-  to?: (room: string) => any;
+  handshake: SocketHandshake;
+  disconnect: () => void;
+  emit: (event: string, data: unknown) => void;
+  join: (room: string) => void;
+  leave: (room: string) => void;
+  to: (room: string) => { emit: (event: string, data: unknown) => void };
+}
+
+interface CursorState {
+  id: string;
+  userId?: string;
+  userName?: string;
+  position: { x: number; y: number };
+  color: string;
+}
+
+interface CollaborationComment {
+  id: string;
+  userId?: string;
+  userName?: string;
+  content: string;
+  position?: { x: number; y: number };
+  createdAt: Date;
 }
 
 interface CollaborationRoom {
   id: string;
   type: 'design' | 'product' | 'order';
   resourceId: string;
-  participants: Map<string, any>;
-  cursors: Map<string, any>;
-  comments: any[];
+  participants: Map<string, AuthenticatedSocket>;
+  cursors: Map<string, CursorState>;
+  comments: CollaborationComment[];
 }
 
 // ========================================
@@ -63,8 +87,8 @@ interface CollaborationRoom {
 // ========================================
 
 // Only decorate if WebSocket packages are available
-let GatewayDecorator: any = (target: any) => target;
-let ServerDecorator: any = () => {};
+let GatewayDecorator: ClassDecorator = ((target: object) => target) as ClassDecorator;
+let ServerDecorator: PropertyDecorator = () => {};
 
 if (WebSocketGateway) {
   GatewayDecorator = WebSocketGateway({
@@ -73,7 +97,7 @@ if (WebSocketGateway) {
       credentials: true,
     },
     namespace: '/realtime',
-  });
+  }) as ClassDecorator;
   if (WebSocketServer) {
     ServerDecorator = WebSocketServer();
   }
@@ -82,7 +106,7 @@ if (WebSocketGateway) {
 @GatewayDecorator
 export class RealtimeGateway {
   @ServerDecorator
-  server: any;
+  server: { to: (room: string) => { emit: (event: string, data: unknown) => void } } | undefined;
 
   private rooms: Map<string, CollaborationRoom> = new Map();
   private connections: Map<string, AuthenticatedSocket> = new Map();
@@ -99,9 +123,11 @@ export class RealtimeGateway {
   async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from query or auth header
+      const queryToken = client.handshake?.query?.token;
+      const authHeader = client.handshake?.headers?.authorization;
       const token =
-        client.handshake.query.token ||
-        client.handshake.headers.authorization?.replace('Bearer ', '');
+        (typeof queryToken === 'string' ? queryToken : Array.isArray(queryToken) ? queryToken[0] : undefined) ||
+        (typeof authHeader === 'string' ? authHeader.replace(/Bearer\s+/i, '') : Array.isArray(authHeader) ? String(authHeader[0] ?? '').replace(/Bearer\s+/i, '') : undefined);
 
       if (!token) {
         logger.warn('Connection rejected: No token');
@@ -124,6 +150,12 @@ export class RealtimeGateway {
 
       this.connections.set(client.id, client);
 
+      // Join user and brand rooms for real-time notifications
+      client.join(`user:${client.userId}`);
+      if (client.brandId) {
+        client.join(`brand:${client.brandId}`);
+      }
+
       // Send connection ID
       client.emit('connection-id', { id: client.id });
 
@@ -132,13 +164,13 @@ export class RealtimeGateway {
         userId: client.userId,
         brandId: client.brandId,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Connection error', { error });
       client.disconnect();
     }
   }
 
-  handleDisconnect = async (client: any) => {
+  handleDisconnect = async (client: AuthenticatedSocket) => {
     logger.log('Client disconnected', {
       socketId: client.id,
       userId: client.userId,
@@ -160,8 +192,8 @@ export class RealtimeGateway {
 
   @(SubscribeMessage ? SubscribeMessage('join-room') : () => {})
   async handleJoinRoom(
-    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: any,
-    @MessageBody() data: { roomId: string; type: string; resourceId: string }
+    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: AuthenticatedSocket,
+    @(MessageBody ? MessageBody() : () => {}) data: { roomId: string; type: string; resourceId: string }
   ) {
     const { roomId, type, resourceId } = data;
 
@@ -194,7 +226,7 @@ export class RealtimeGateway {
       roomId,
       type,
       resourceId,
-      participants: Array.from(room.participants.values()).map((p: any) => ({
+      participants: Array.from(room.participants.values()).map((p: AuthenticatedSocket) => ({
         id: p.userId,
         name: p.userName,
         avatar: null,
@@ -204,7 +236,7 @@ export class RealtimeGateway {
     });
 
     // Notify others
-    this.server.to(roomId).emit('user-joined', {
+    this.server?.to(roomId)?.emit('user-joined', {
       roomId,
       user: {
         id: client.userId,
@@ -225,8 +257,8 @@ export class RealtimeGateway {
 
   @(SubscribeMessage ? SubscribeMessage('leave-room') : () => {})
   async handleLeaveRoom(
-    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: any,
-    @MessageBody() data: { roomId: string }
+    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: AuthenticatedSocket,
+    @(MessageBody ? MessageBody() : () => {}) data: { roomId: string }
   ) {
     const { roomId } = data;
     const room = this.rooms.get(roomId);
@@ -236,7 +268,7 @@ export class RealtimeGateway {
     }
 
     // Remove participant
-    const clientId = (client as AuthenticatedSocket).id;
+    const clientId = client.id;
     if (clientId) {
       room.participants.delete(clientId);
       room.cursors.delete(clientId);
@@ -246,7 +278,7 @@ export class RealtimeGateway {
     client.leave(roomId);
 
     // Notify others
-    this.server.to(roomId).emit('user-left', {
+    this.server?.to(roomId)?.emit('user-left', {
       roomId,
       userId: client.userId,
     });
@@ -268,8 +300,8 @@ export class RealtimeGateway {
 
   @(SubscribeMessage ? SubscribeMessage('cursor-move') : () => {})
   async handleCursorMove(
-    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: any,
-    @MessageBody() data: { roomId: string; position: { x: number; y: number } }
+    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: AuthenticatedSocket,
+    @(MessageBody ? MessageBody() : () => {}) data: { roomId: string; position: { x: number; y: number } }
   ) {
     const { roomId, position } = data;
     const room = this.rooms.get(roomId);
@@ -287,13 +319,13 @@ export class RealtimeGateway {
       color: this.getUserColor(client.userId),
     };
 
-    const clientId = (client as AuthenticatedSocket).id;
+    const clientId = client.id;
     if (clientId) {
       room.cursors.set(clientId, cursor);
     }
 
     // Broadcast to others in room
-    this.server.to(roomId).emit('cursor-moved', {
+    this.server?.to(roomId)?.emit('cursor-moved', {
       roomId,
       cursorId: cursor.id,
       cursor,
@@ -306,8 +338,8 @@ export class RealtimeGateway {
 
   @(SubscribeMessage ? SubscribeMessage('comment-add') : () => {})
   async handleCommentAdd(
-    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: any,
-    @MessageBody()
+    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: AuthenticatedSocket,
+    @(MessageBody ? MessageBody() : () => {})
     data: {
       roomId: string;
       content: string;
@@ -333,7 +365,7 @@ export class RealtimeGateway {
     room.comments.push(comment);
 
     // Broadcast to all in room (including sender)
-    this.server.to(roomId).emit('comment-added', {
+    this.server?.to(roomId)?.emit('comment-added', {
       roomId,
       comment,
     });
@@ -347,8 +379,8 @@ export class RealtimeGateway {
 
   @(SubscribeMessage ? SubscribeMessage('comment-update') : () => {})
   async handleCommentUpdate(
-    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: any,
-    @MessageBody()
+    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: AuthenticatedSocket,
+    @(MessageBody ? MessageBody() : () => {})
     data: { roomId: string; commentId: string; content: string }
   ) {
     const { roomId, commentId, content } = data;
@@ -366,7 +398,7 @@ export class RealtimeGateway {
     comment.content = content;
 
     // Broadcast to all in room
-    this.server.to(roomId).emit('comment-updated', {
+    this.server?.to(roomId)?.emit('comment-updated', {
       roomId,
       commentId,
       comment,
@@ -375,8 +407,8 @@ export class RealtimeGateway {
 
   @(SubscribeMessage ? SubscribeMessage('comment-delete') : () => {})
   async handleCommentDelete(
-    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: any,
-    @MessageBody() data: { roomId: string; commentId: string }
+    @(ConnectedSocket ? ConnectedSocket() : () => {}) client: AuthenticatedSocket,
+    @(MessageBody ? MessageBody() : () => {}) data: { roomId: string; commentId: string }
   ) {
     const { roomId, commentId } = data;
     const room = this.rooms.get(roomId);
@@ -393,7 +425,7 @@ export class RealtimeGateway {
     room.comments = room.comments.filter((c) => c.id !== commentId);
 
     // Broadcast to all in room
-    this.server.to(roomId).emit('comment-deleted', {
+    this.server?.to(roomId)?.emit('comment-deleted', {
       roomId,
       commentId,
     });
@@ -402,6 +434,22 @@ export class RealtimeGateway {
   // ========================================
   // UTILS
   // ========================================
+
+  /**
+   * Emit event to all sockets in a user's room (for real-time notifications)
+   */
+  emitToUser(userId: string, event: string, payload: unknown): void {
+    if (!this.server) return;
+    this.server.to(`user:${userId}`).emit(event, payload);
+  }
+
+  /**
+   * Emit event to all sockets in a brand room
+   */
+  emitToBrand(brandId: string, event: string, payload: unknown): void {
+    if (!this.server) return;
+    this.server.to(`brand:${brandId}`).emit(event, payload);
+  }
 
   /**
    * Génère une couleur pour un utilisateur

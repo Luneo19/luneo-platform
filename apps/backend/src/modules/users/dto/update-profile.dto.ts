@@ -19,4 +19,22 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsUrlOrEmpty({ message: 'Avatar must be a valid URL or empty' })
   avatar?: string;
+
+  @ApiPropertyOptional({ description: 'Téléphone', example: '+33612345678', maxLength: 30 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string;
+
+  @ApiPropertyOptional({ description: 'Site web', example: 'https://example.com', maxLength: 255 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  website?: string;
+
+  @ApiPropertyOptional({ description: 'Fuseau horaire', example: 'Europe/Paris', maxLength: 50 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  timezone?: string;
 }

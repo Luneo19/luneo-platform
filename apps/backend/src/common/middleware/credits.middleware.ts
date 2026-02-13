@@ -13,7 +13,17 @@ export class CreditsMiddleware implements NestMiddleware {
 
   constructor(private readonly creditsService: CreditsService) {}
 
-  async use(req: Request & { user?: any; creditsRequired?: number }, res: Response, next: NextFunction) {
+  async use(
+    req: Request & {
+      user?: { id: string };
+      creditsRequired?: number;
+      creditsBalance?: number;
+      creditsDeducted?: number;
+      creditsNewBalance?: number;
+    },
+    res: Response,
+    next: NextFunction,
+  ) {
     const user = req.user;
     const endpoint = req.path;
 
@@ -54,9 +64,11 @@ export class CreditsMiddleware implements NestMiddleware {
 
     // Attacher info au request pour tracking
     req.creditsRequired = check.required;
-    req['creditsBalance'] = check.balance;
+    req.creditsBalance = check.balance;
 
-    // Déduire crédits automatiquement
+    // Déduire crédits automatiquement AVANT d'autoriser la requête
+    // CRITICAL: Si la déduction échoue, la requête DOIT être bloquée
+    // pour éviter que l'utilisateur obtienne le service gratuitement
     try {
       const result = await this.creditsService.deductCredits(user.id, endpoint, {
         method: req.method,
@@ -65,16 +77,26 @@ export class CreditsMiddleware implements NestMiddleware {
       });
 
       // Attacher résultat au request
-      req['creditsDeducted'] = result.cost;
-      req['creditsNewBalance'] = result.newBalance;
+      req.creditsDeducted = result.cost;
+      req.creditsNewBalance = result.newBalance;
     } catch (error) {
-      // Si déduction échoue, continuer quand même (ne pas bloquer la requête)
-      // Mais logger l'erreur
-      this.logger.error('Failed to deduct credits', error instanceof Error ? error.stack : String(error), {
+      this.logger.error('Failed to deduct credits - BLOCKING REQUEST', error instanceof Error ? error.stack : String(error), {
         userId: user.id,
         endpoint,
         method: req.method,
       });
+
+      // CRITICAL FIX: Block the request if credit deduction fails
+      // This prevents users from getting AI services for free
+      throw new HttpException(
+        {
+          message: 'Erreur lors de la déduction des crédits. Veuillez réessayer.',
+          code: 'CREDIT_DEDUCTION_FAILED',
+          balance: check.balance,
+          required: check.required,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     next();

@@ -36,7 +36,7 @@ export class SvgGeneratorService {
   /**
    * Générer un SVG depuis un snapshot en parsant specData (zones, dimensions, couleurs, texte).
    */
-  async generate(snapshot: any): Promise<Buffer> {
+  async generate(snapshot: { specData?: SpecData }): Promise<Buffer> {
     const specData = (snapshot?.specData ?? {}) as SpecData;
     const zones = specData.zones ?? [];
     const width = Math.max(1, Number(specData.width) || 800);

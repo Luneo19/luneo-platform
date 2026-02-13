@@ -5,11 +5,14 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UnauthorizedException,
   Request,
   Get,
   Res,
+  Logger,
 } from '@nestjs/common';
-import { Response as ExpressResponse } from 'express';
+import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
+import { CurrentUser } from '@/common/types/user.types';
 import {
   ApiTags,
   ApiOperation,
@@ -28,6 +31,7 @@ import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
 import { OnboardingDto } from './dto/onboarding.dto';
 import { CheckPermissionDto } from './dto/check-permission.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { AuthCookiesHelper } from './auth-cookies.helper';
@@ -38,9 +42,18 @@ import { RATE_LIMITS } from '@/common/constants/app.constants';
 import { RBACService } from '@/modules/security/services/rbac.service';
 import { Permission } from '@/modules/security/interfaces/rbac.interface';
 
+/** Request type for auth endpoints: Express request with optional user, ip, cookies */
+export type AuthRequest = ExpressRequest & {
+  user?: CurrentUser;
+  ip?: string;
+  cookies?: Record<string, string>;
+};
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
@@ -67,29 +80,14 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean', example: true },
-        data: {
-          type: 'object',
-          properties: {
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string', example: 'user_123' },
-                email: { type: 'string', example: 'user@example.com' },
-                firstName: { type: 'string', example: 'John' },
-                lastName: { type: 'string', example: 'Doe' },
-                role: { type: 'string', example: 'USER' },
-                emailVerified: { type: 'boolean', example: false },
-              },
-            },
-          },
-        },
-        timestamp: { type: 'string', format: 'date-time' },
+        user: { type: 'object', description: 'User object' },
+        accessToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie access_token' },
+        refreshToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie refresh_token' },
       },
     },
     headers: {
       'Set-Cookie': {
-        description: 'Cookies httpOnly contenant accessToken et refreshToken',
+        description: 'Cookies httpOnly contenant access_token et refresh_token',
         schema: {
           type: 'string',
           example: 'accessToken=...; HttpOnly; Secure; SameSite=Lax',
@@ -135,9 +133,11 @@ export class AuthController {
       this.configService,
     );
     
-    // Return user data only; tokens are set in httpOnly cookies (not exposed in body for security)
+    // Return user + optional tokens in body (deprecated; prefer httpOnly cookies)
     return res.status(HttpStatus.CREATED).json({
       user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -156,16 +156,9 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'user_123' },
-            email: { type: 'string', example: 'user@example.com' },
-            firstName: { type: 'string', example: 'John' },
-            lastName: { type: 'string', example: 'Doe' },
-            role: { type: 'string', example: 'USER' },
-          },
-        },
+        user: { type: 'object', description: 'User object' },
+        accessToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie access_token' },
+        refreshToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie refresh_token' },
       },
     },
     headers: {
@@ -192,10 +185,11 @@ export class AuthController {
   })
   async login(
     @Body() loginDto: LoginDto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Res({ passthrough: false }) res: ExpressResponse,
   ) {
-    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = req.ip || (Array.isArray(forwarded) ? forwarded[0] : forwarded) || 'unknown';
     const result = await this.authService.login(loginDto, ip);
     
     // Si 2FA requis, retourner tempToken sans cookies
@@ -214,11 +208,14 @@ export class AuthController {
         result.accessToken,
         result.refreshToken,
         this.configService,
+        { rememberMe: loginDto.rememberMe },
       );
       
-      // Return user data only; tokens are in httpOnly cookies
+      // Return user + optional tokens (deprecated; prefer httpOnly cookies)
       return res.status(HttpStatus.OK).json({
         user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
       });
     }
     
@@ -234,7 +231,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Connexion avec code 2FA' })
   async loginWith2FA(
     @Body() login2FADto: Login2FADto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Res({ passthrough: false }) res: ExpressResponse,
   ) {
     const result = await this.authService.loginWith2FA(login2FADto, req.ip);
@@ -247,9 +244,11 @@ export class AuthController {
       this.configService,
     );
     
-    // Tokens are in httpOnly cookies
+    // Return user + optional tokens (deprecated; prefer httpOnly cookies)
     return res.status(HttpStatus.OK).json({
       user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -258,8 +257,8 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Configurer l\'authentification à deux facteurs' })
-  async setup2FA(@Request() req: any) {
-    return this.authService.setup2FA(req.user.id);
+  async setup2FA(@Request() req: AuthRequest) {
+    return this.authService.setup2FA(req.user!.id);
   }
 
   @Post('2fa/verify')
@@ -267,8 +266,8 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Vérifier et activer 2FA' })
-  async verify2FA(@Request() req: any, @Body() verify2FADto: Verify2FADto) {
-    return this.authService.verifyAndEnable2FA(req.user.id, verify2FADto);
+  async verify2FA(@Request() req: AuthRequest, @Body() verify2FADto: Verify2FADto) {
+    return this.authService.verifyAndEnable2FA(req.user!.id, verify2FADto);
   }
 
   @Post('2fa/disable')
@@ -276,12 +275,13 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Désactiver 2FA' })
-  async disable2FA(@Request() req: any) {
-    return this.authService.disable2FA(req.user.id);
+  async disable2FA(@Request() req: AuthRequest) {
+    return this.authService.disable2FA(req.user!.id);
   }
 
   @Post('refresh')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Rafraîchir le token d\'accès',
@@ -293,16 +293,9 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'user_123' },
-            email: { type: 'string', example: 'user@example.com' },
-            firstName: { type: 'string', example: 'John' },
-            lastName: { type: 'string', example: 'Doe' },
-            role: { type: 'string', example: 'USER' },
-          },
-        },
+        user: { type: 'object', description: 'User object' },
+        accessToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie access_token' },
+        refreshToken: { type: 'string', description: 'Deprecated: prefer httpOnly cookie refresh_token' },
       },
     },
     headers: {
@@ -328,12 +321,14 @@ export class AuthController {
   })
   async refreshToken(
     @Body() refreshTokenDto: RefreshTokenDto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Res({ passthrough: false }) res: ExpressResponse,
   ) {
-    // ✅ Try to get refresh token from cookie first, then from body
-    // This allows httpOnly cookies (preferred) or body (fallback)
-    const refreshToken = req.cookies?.refreshToken || refreshTokenDto.refreshToken;
+    // Try cookie first (refresh_token scoped to this path, then legacy refreshToken), then body
+    const refreshToken =
+      req.cookies?.refresh_token ||
+      req.cookies?.refreshToken ||
+      refreshTokenDto.refreshToken;
     
     if (!refreshToken) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
@@ -353,9 +348,11 @@ export class AuthController {
       this.configService,
     );
     
-    // Tokens are in httpOnly cookies
+    // Return user + optional tokens (deprecated; prefer httpOnly cookies)
     return res.status(HttpStatus.OK).json({
       user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -391,10 +388,10 @@ export class AuthController {
     description: 'Non authentifié - Token JWT manquant ou invalide',
   })
   async logout(
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Res({ passthrough: false }) res: ExpressResponse,
   ) {
-    const result = await this.authService.logout(req.user.id);
+    const result = await this.authService.logout(req.user!.id);
     
     // Clear httpOnly cookies
     AuthCookiesHelper.clearAuthCookies(res, this.configService);
@@ -409,8 +406,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Complete onboarding step (company, industry, profile)' })
   @ApiResponse({ status: 200, description: 'Onboarding step saved' })
   @ApiResponse({ status: 400, description: 'Invalid step or missing data' })
-  async onboarding(@Request() req: any, @Body() dto: OnboardingDto) {
-    return this.authService.completeOnboardingStep(req.user.id, dto.step, dto.data);
+  async onboarding(@Request() req: AuthRequest, @Body() dto: OnboardingDto) {
+    return this.authService.completeOnboardingStep(req.user!.id, dto.step, dto.data);
   }
 
   @Get('onboarding')
@@ -418,8 +415,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get onboarding status for current user' })
   @ApiResponse({ status: 200, description: 'Onboarding status and current step' })
-  async getOnboarding(@Request() req: any) {
-    return this.authService.getOnboardingStatus(req.user.id);
+  async getOnboarding(@Request() req: AuthRequest) {
+    return this.authService.getOnboardingStatus(req.user!.id);
   }
 
   @Post('check-permission')
@@ -519,6 +516,7 @@ export class AuthController {
 
   @Post('verify-email')
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Vérifier l\'email avec un token' })
   @ApiResponse({
@@ -536,6 +534,25 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  @Post('resend-verification')
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Renvoyer l\'email de vérification' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email de vérification renvoyé (si le compte existe)',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+      },
+    },
+  })
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerificationEmail(dto.email);
   }
 
   // ========================================
@@ -556,29 +573,34 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth callback' })
   @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
-  async googleAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
-    const user = req.user;
-    
-    if (!user) {
-      return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed`);
+  async googleAuthCallback(@Request() req: AuthRequest, @Res() res: ExpressResponse) {
+    try {
+      const user = req.user;
+      
+      if (!user) {
+        return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed&provider=google`);
+      }
+
+      // Generate tokens
+      const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+      
+      // Save refresh token
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+      // Set httpOnly cookies
+      AuthCookiesHelper.setAuthCookies(
+        res,
+        tokens.accessToken,
+        tokens.refreshToken,
+        this.configService,
+      );
+
+      // Redirect to frontend callback
+      return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
+    } catch (error) {
+      const errorCode = error instanceof UnauthorizedException ? 'oauth_unauthorized' : 'oauth_server_error';
+      return res.redirect(`${this.getFrontendUrl()}/login?error=${errorCode}&provider=google`);
     }
-
-    // Generate tokens
-    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
-    
-    // Save refresh token
-    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
-
-    // Set httpOnly cookies
-    AuthCookiesHelper.setAuthCookies(
-      res,
-      tokens.accessToken,
-      tokens.refreshToken,
-      this.configService,
-    );
-
-    // Redirect to frontend callback
-    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   @Get('github')
@@ -596,29 +618,34 @@ export class AuthController {
   @UseGuards(AuthGuard('github'))
   @ApiOperation({ summary: 'GitHub OAuth callback' })
   @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
-  async githubAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
-    const user = req.user;
-    
-    if (!user) {
-      return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed`);
+  async githubAuthCallback(@Request() req: AuthRequest, @Res() res: ExpressResponse) {
+    try {
+      const user = req.user;
+      
+      if (!user) {
+        return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed&provider=github`);
+      }
+
+      // Generate tokens
+      const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+      
+      // Save refresh token
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+      // Set httpOnly cookies
+      AuthCookiesHelper.setAuthCookies(
+        res,
+        tokens.accessToken,
+        tokens.refreshToken,
+        this.configService,
+      );
+
+      // Redirect to frontend callback
+      return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
+    } catch (error) {
+      const errorCode = error instanceof UnauthorizedException ? 'oauth_unauthorized' : 'oauth_server_error';
+      return res.redirect(`${this.getFrontendUrl()}/login?error=${errorCode}&provider=github`);
     }
-
-    // Generate tokens
-    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
-    
-    // Save refresh token
-    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
-
-    // Set httpOnly cookies
-    AuthCookiesHelper.setAuthCookies(
-      res,
-      tokens.accessToken,
-      tokens.refreshToken,
-      this.configService,
-    );
-
-    // Redirect to frontend callback
-    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   // ========================================
@@ -642,29 +669,34 @@ export class AuthController {
   @UseGuards(AuthGuard('saml'))
   @ApiOperation({ summary: 'SAML SSO callback (supports both POST and GET)' })
   @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
-  async samlAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
-    const user = req.user;
-    
-    if (!user) {
-      return res.redirect(`${this.getFrontendUrl()}/login?error=saml_failed`);
+  async samlAuthCallback(@Request() req: AuthRequest, @Res() res: ExpressResponse) {
+    try {
+      const user = req.user;
+      
+      if (!user) {
+        return res.redirect(`${this.getFrontendUrl()}/login?error=saml_failed`);
+      }
+
+      // Generate tokens
+      const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+      
+      // Save refresh token
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+      // Set httpOnly cookies
+      AuthCookiesHelper.setAuthCookies(
+        res,
+        tokens.accessToken,
+        tokens.refreshToken,
+        this.configService,
+      );
+
+      // Redirect to frontend callback
+      return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
+    } catch (error) {
+      this.logger.error('SAML callback error', { error: error instanceof Error ? error.message : String(error) });
+      return res.redirect(`${this.getFrontendUrl()}/login?error=saml_server_error&provider=saml`);
     }
-
-    // Generate tokens
-    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
-    
-    // Save refresh token
-    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
-
-    // Set httpOnly cookies
-    AuthCookiesHelper.setAuthCookies(
-      res,
-      tokens.accessToken,
-      tokens.refreshToken,
-      this.configService,
-    );
-
-    // Redirect to frontend callback
-    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 
   @Get('oidc')
@@ -683,28 +715,33 @@ export class AuthController {
   @UseGuards(AuthGuard('oidc'))
   @ApiOperation({ summary: 'OIDC SSO callback' })
   @ApiResponse({ status: 302, description: 'Redirects to frontend with tokens' })
-  async oidcAuthCallback(@Request() req: any, @Res() res: ExpressResponse) {
-    const user = req.user;
-    
-    if (!user) {
-      return res.redirect(`${this.getFrontendUrl()}/login?error=oidc_failed`);
+  async oidcAuthCallback(@Request() req: AuthRequest, @Res() res: ExpressResponse) {
+    try {
+      const user = req.user;
+      
+      if (!user) {
+        return res.redirect(`${this.getFrontendUrl()}/login?error=oidc_failed`);
+      }
+
+      // Generate tokens
+      const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
+      
+      // Save refresh token
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+
+      // Set httpOnly cookies
+      AuthCookiesHelper.setAuthCookies(
+        res,
+        tokens.accessToken,
+        tokens.refreshToken,
+        this.configService,
+      );
+
+      // Redirect to frontend callback
+      return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
+    } catch (error) {
+      this.logger.error('OIDC callback error', { error: error instanceof Error ? error.message : String(error) });
+      return res.redirect(`${this.getFrontendUrl()}/login?error=oidc_server_error&provider=oidc`);
     }
-
-    // Generate tokens
-    const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
-    
-    // Save refresh token
-    await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
-
-    // Set httpOnly cookies
-    AuthCookiesHelper.setAuthCookies(
-      res,
-      tokens.accessToken,
-      tokens.refreshToken,
-      this.configService,
-    );
-
-    // Redirect to frontend callback
-    return res.redirect(`${this.getFrontendUrl()}/auth/callback?next=/overview`);
   }
 }

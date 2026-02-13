@@ -38,7 +38,7 @@ const CreateProductSchema = z.object({
   price: z.number().positive().optional(),
   currency: z.string().length(3).default('EUR'),
   isActive: z.boolean().default(true),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const UpdateProductSchema = CreateProductSchema.partial().extend({
@@ -101,8 +101,8 @@ export const productRouter = router({
         const result = await endpoints.products.list({
           page: input.page,
           limit: input.limit,
-          search: input.search,
-        });
+          ...(input.search != null && input.search !== '' ? { search: input.search } : {}),
+        } as { page: number; limit: number; search?: string });
 
         const data = result as ProductsListResponse;
         const products = data.products ?? data.data ?? [];
@@ -114,11 +114,11 @@ export const productRouter = router({
             name: p.name,
             description: p.description,
             category: p.category || 'other',
-            image_url: p.imageUrl || `https://picsum.photos/seed/${p.id}/400/400`,
+            image_url: p.imageUrl || '/placeholder-design.svg',
             price: p.price || 0,
             baseCostCents: p.baseCostCents || 0,
-            createdAt: p.createdAt.toISOString(),
-            updatedAt: p.updatedAt.toISOString(),
+            createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt as string | number)).toISOString(),
+            updatedAt: (p.updatedAt instanceof Date ? p.updatedAt : new Date(p.updatedAt as string | number)).toISOString(),
             viewsCount: p.viewsCount || 0,
           })),
           pagination: {
@@ -169,7 +169,7 @@ export const productRouter = router({
         logger.info('Product created', { productId: (product as { id?: string }).id });
 
         return product as Record<string, unknown>;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error creating product', { error, input });
         if (error instanceof TRPCError) {
           throw error;
@@ -214,7 +214,7 @@ export const productRouter = router({
         logger.info('Product updated', { productId: id });
 
         return updated as Record<string, unknown>;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error updating product', { error, input });
         if (error instanceof TRPCError) {
           throw error;
@@ -257,7 +257,7 @@ export const productRouter = router({
         logger.info('Product deleted', { productId: input.id });
 
         return { success: true };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error deleting product', { error, input });
         if (error instanceof TRPCError) {
           throw error;
@@ -294,7 +294,7 @@ export const productRouter = router({
         }
 
         return product as Record<string, unknown>;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error fetching product', { error, input });
         if (error instanceof TRPCError) {
           throw error;
@@ -328,8 +328,8 @@ export const productRouter = router({
         const result = await endpoints.products.list({
           page,
           limit: input?.limit ?? 20,
-          search: input?.search,
-        });
+          ...(input?.search != null && input.search !== '' ? { search: input.search } : {}),
+        } as { page: number; limit: number; search?: string });
 
         const data = result as ProductsListResponse;
         const products = data.products ?? data.data ?? [];
@@ -340,7 +340,7 @@ export const productRouter = router({
           total,
           hasMore: (input?.offset || 0) + (input?.limit || 20) < total,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error listing products', { error, input });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -395,7 +395,7 @@ export const productRouter = router({
         logger.info('Model uploaded', { productId: input.productId });
 
         return updated as Record<string, unknown>;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error uploading model', { error, input });
         if (error instanceof TRPCError) {
           throw error;
@@ -468,7 +468,7 @@ export const productRouter = router({
           zonesCount: statsData.zonesCount ?? 0,
           designsCount: statsData.designsCount ?? 0,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error fetching analytics', { error, input });
         if (error instanceof TRPCError) {
           throw error;

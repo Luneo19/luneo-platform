@@ -6,8 +6,10 @@ import { Zap, Check, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/components/ui/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 interface Pack {
   id: string;
@@ -33,6 +35,7 @@ export function UpsellModal({
   remainingCredits,
   triggerReason = 'low_balance'
 }: UpsellModalProps) {
+  const { t } = useI18n();
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -67,8 +70,8 @@ export function UpsellModal({
   const handleBuy = async (pack: Pack) => {
     if (!pack.stripePriceId && !pack.id) {
       toast({
-        title: 'Erreur',
-        description: 'Pack non configuré. Veuillez contacter le support.',
+        title: t('common.error'),
+        description: t('creditsToast.packNotConfigured'),
         variant: 'destructive',
       });
       return;
@@ -81,16 +84,16 @@ export function UpsellModal({
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('URL de paiement non reçue');
+        throw new Error(t('creditsToast.paymentUrlNotReceived'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Purchase failed', error instanceof Error ? error : new Error(String(error)), {
         component: 'UpsellModal',
         packId: pack.id,
       });
       toast({
-        title: 'Erreur',
-        description: error.message || 'Échec de l\'achat. Veuillez réessayer.',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
       setPurchasing(null);
@@ -100,11 +103,11 @@ export function UpsellModal({
   const getTitle = () => {
     switch (triggerReason) {
       case 'insufficient':
-        return 'Crédits insuffisants';
+        return t('creditsToast.insufficientCredits');
       case 'low_balance':
-        return 'Rechargez vos crédits IA';
+        return t('creditsToast.topUpCredits');
       default:
-        return 'Acheter des crédits IA';
+        return t('credits.buy');
     }
   };
 

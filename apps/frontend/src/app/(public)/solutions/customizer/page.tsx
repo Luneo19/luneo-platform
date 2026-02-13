@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import Link from 'next/link';
+import { useI18n } from '@/i18n/useI18n';
 import dynamic from 'next/dynamic';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -83,7 +84,7 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 
 // Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
-const APP_URL = 'https://luneo.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 // ============================================
 // TYPES
@@ -373,6 +374,7 @@ const COMPARISON_FEATURES = [
 
 // Interactive Demo Canvas
 function DemoCanvas() {
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [activeTool, setActiveTool] = useState('select');
   const [selectedShape, setSelectedShape] = useState('rectangle');
@@ -467,7 +469,8 @@ function DemoCanvas() {
             onClick={() => setCanUndo(false)}
             disabled={!canUndo}
             className="p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Annuler (Ctrl+Z)"
+            title={t('common.undoCtrlZ')}
+            aria-label="Undo"
           >
             <Undo2 className="w-5 h-5" />
           </button>
@@ -475,6 +478,7 @@ function DemoCanvas() {
             disabled={!canRedo}
             className="p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
             title="Rétablir (Ctrl+Y)"
+            aria-label="Redo"
           >
             <Redo2 className="w-5 h-5" />
           </button>
@@ -485,19 +489,19 @@ function DemoCanvas() {
           {/* Canvas Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white" aria-label="Zoom out">
                 <ZoomOut className="w-4 h-4" />
               </button>
               <span className="text-sm text-gray-400 px-2">100%</span>
-              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white" aria-label="Zoom in">
                 <ZoomIn className="w-4 h-4" />
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white" aria-label="Toggle grid">
                 <Grid3X3 className="w-4 h-4" />
               </button>
-              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+              <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white" aria-label="Fullscreen">
                 <Maximize2 className="w-4 h-4" />
               </button>
             </div>
@@ -535,13 +539,13 @@ function DemoCanvas() {
                 }}
                 drag
                 dragMomentum={false}
-                onDragEnd={(_event, info: { offset: { x: number; y: number } }) => {
+                onDragEnd={((_event: React.DragEvent<HTMLElement>, info: { offset: { x: number; y: number } }) => {
                   setElements(prev => prev.map(el =>
                     el.id === element.id
                       ? { ...el, x: el.x + info.offset.x, y: el.y + info.offset.y }
                       : el
                   ));
-                }}
+                }) as (e: React.DragEvent<HTMLElement>) => void}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -886,6 +890,7 @@ function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
 // ============================================
 
 function CustomizerPageContent() {
+  const { t } = useI18n();
   const [showFullDemo, setShowFullDemo] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 

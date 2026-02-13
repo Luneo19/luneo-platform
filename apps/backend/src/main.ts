@@ -19,6 +19,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
 const express = require('express');
 import * as Express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
@@ -59,6 +60,14 @@ function validateRequiredEnvVars() {
 async function bootstrap() {
   validateRequiredEnvVars();
 
+  // OpenTelemetry tracing (before Nest bootstrap, when MONITORING_OPENTELEMETRY_ENDPOINT is set)
+  try {
+    const { initTracing } = require('./libs/tracing/otel.config');
+    initTracing();
+  } catch {
+    // Optional: otel.config or deps may be missing
+  }
+
   const logger = new Logger('Bootstrap');
 
   // Log immédiatement pour confirmer que bootstrap() est appelé
@@ -69,15 +78,16 @@ async function bootstrap() {
     // SVC-04: Validate environment variables at startup
     // This will throw in production if critical variables are missing
     validateEnv();
-  } catch (error) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     if (process.env.NODE_ENV === 'production') {
       // En production, arrêter immédiatement si variables critiques manquantes
-      logger.error(`🚨 FATAL: ${error.message}`);
+      logger.error(`🚨 FATAL: ${message}`);
       logger.error('L\'application ne peut pas démarrer sans les variables critiques.');
       process.exit(1);
     } else {
       // En développement, continuer avec un warning
-      logger.warn(`⚠️ Environment validation warning: ${error.message}`);
+      logger.warn(`⚠️ Environment validation warning: ${message}`);
       logger.warn('Continuing in development mode with partial configuration...');
     }
   }
@@ -108,8 +118,9 @@ async function bootstrap() {
     });
     logger.log(seedOutput);
     logger.log('Database seed completed successfully');
-  } catch (seedError: any) {
-    const seedErrorOutput = seedError.stderr?.toString() || seedError.stdout?.toString() || seedError.message || '';
+  } catch (seedError: unknown) {
+    const err = seedError as { stderr?: { toString(): string }; stdout?: { toString(): string }; message?: string };
+    const seedErrorOutput = err.stderr?.toString() || err.stdout?.toString() || (err.message ?? '') || '';
     
     // If seed script fails, try to create admin directly via Prisma
     logger.warn(`⚠️ Database seed script failed: ${seedErrorOutput.substring(0, 500)}`);
@@ -154,8 +165,9 @@ async function bootstrap() {
       
       logger.log(`✅ Admin user created directly: ${adminUser.email}`);
       await tempPrisma.$disconnect();
-    } catch (directAdminError: any) {
-      logger.error(`Failed to create admin directly: ${directAdminError.message?.substring(0, 300)}`);
+    } catch (directAdminError: unknown) {
+      const msg = directAdminError instanceof Error ? directAdminError.message : String(directAdminError);
+      logger.error(`Failed to create admin directly: ${msg.substring(0, 300)}`);
       logger.warn('Admin user may already exist or database connection failed');
     }
   }
@@ -172,11 +184,15 @@ async function bootstrap() {
     // This prevents the ERR_ERL_PERMISSIVE_TRUST_PROXY warning
     server.set('trust proxy', 1);
     
-    // Preserve raw body for Stripe webhook signature verification
+    // Preserve raw body for webhook signature verification
     // This must be done BEFORE NestJS/JSON body parsing
-    // Single consolidated Stripe webhook endpoint: /api/v1/billing/webhook
+    // Stripe webhook
     server.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
-    
+    // WooCommerce webhook (raw body for HMAC verification)
+    server.use('/api/v1/ecommerce/woocommerce/webhook', express.raw({ type: 'application/json' }));
+    // Shopify webhooks (raw body for HMAC-SHA256 verification)
+    server.use('/api/v1/integrations/shopify/webhooks', express.raw({ type: 'application/json' }));
+
     // Parse JSON and URL-encoded bodies for all other routes
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
@@ -192,7 +208,7 @@ async function bootstrap() {
     
     // Correlation ID middleware — attaches X-Request-Id to every request
     const { randomUUID } = require('crypto');
-    server.use((req: any, res: any, next: any) => {
+    server.use((req: Request, res: Response, next: NextFunction) => {
       const correlationId = req.headers['x-request-id'] || randomUUID();
       req.headers['x-request-id'] = correlationId;
       res.setHeader('X-Request-Id', correlationId);
@@ -217,6 +233,19 @@ async function bootstrap() {
     });
     const configService = app.get(ConfigService);
     logger.log('NestJS application created');
+
+    // Production: require explicit CORS configuration (no wildcard)
+    const nodeEnv = configService.get('app.nodeEnv') || 'development';
+    const corsOriginFromConfig = configService.get<string>('app.corsOrigin');
+    const hasCorsOrigins = process.env.CORS_ORIGINS && process.env.CORS_ORIGINS.trim().length > 0;
+    if (
+      nodeEnv === 'production' &&
+      !hasCorsOrigins &&
+      (!corsOriginFromConfig || corsOriginFromConfig === '*')
+    ) {
+      logger.error('FATAL: CORS_ORIGIN or CORS_ORIGINS must be explicitly configured in production (cannot be undefined or *)');
+      throw new Error('CORS_ORIGIN or CORS_ORIGINS must be explicitly configured in production.');
+    }
     
     // CORS - Configuration sécurisée avec liste d'origines explicites
     // IMPORTANT: Ne JAMAIS utiliser '*' en production avec credentials
@@ -224,7 +253,6 @@ async function bootstrap() {
       ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
       : [];
     const corsOriginEnv = configService.get('app.corsOrigin') || '';
-    const nodeEnv = configService.get('app.nodeEnv') || 'development';
     
     // Fallback: origines en dur si CORS_ORIGINS non défini
     const productionOrigins = [
@@ -255,7 +283,7 @@ async function bootstrap() {
           : [...productionOrigins, ...developmentOrigins];
     
     if (corsOriginEnv && corsOriginEnv !== '*' && allowedOrigins.length > 0) {
-      const envOrigins = corsOriginEnv.split(',').map(o => o.trim()).filter(Boolean);
+      const envOrigins = corsOriginEnv.split(',').map((o: string) => o.trim()).filter(Boolean);
       allowedOrigins = [...new Set([...allowedOrigins, ...envOrigins])];
     }
     
@@ -269,7 +297,7 @@ async function bootstrap() {
     logger.debug(`CORS Origins: ${allowedOrigins.join(', ')}`);
     
   // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
-  server.use((req, res, next): void => {
+  server.use((req: import('express').Request, res: import('express').Response, next: import('express').NextFunction): void => {
     const origin = req.headers.origin as string | undefined;
     
     // Vérifier si l'origine est autorisée (liste exacte + patterns wildcard)
@@ -280,7 +308,8 @@ async function bootstrap() {
       res.setHeader('Access-Control-Allow-Origin', origin!);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, X-Request-Time, x-request-time, X-Request-Id');
+      // PRODUCTION FIX: Added X-CSRF-Token for CSRF protection
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, X-Request-Time, x-request-time, X-Request-Id, X-CSRF-Token, x-csrf-token');
       res.setHeader('Access-Control-Max-Age', '86400');
     } else if (origin && nodeEnv === 'production') {
       // Logger les tentatives d'accès non autorisées en production
@@ -327,10 +356,15 @@ async function bootstrap() {
       },
     }));
     logger.log('Security middleware configured');
+
+    // Compression for all environments (reduces response size)
+    app.use(compression());
+
+    // ETags for conditional GET / cache validation
+    app.getHttpAdapter().getInstance().set('etag', 'strong');
     
-    // Enable compression and security middleware in production
+    // Additional security middleware in production
     if (configService.get('app.nodeEnv') === 'production') {
-      app.use(compression());
       app.use(hpp());
 
       // Rate limiting for production (skip health checks)
@@ -343,7 +377,7 @@ async function bootstrap() {
       },
       standardHeaders: true,
       legacyHeaders: false,
-      skip: (req) => {
+      skip: (req: import('express').Request) => {
         // Skip rate limiting for health checks and CORS preflight
         if (req.method === 'OPTIONS') return true;
         return req.path === '/health' || req.path === '/api/v1/health';
@@ -354,7 +388,7 @@ async function bootstrap() {
       windowMs: 15 * 60 * 1000, // 15 minutes
       delayAfter: 100, // Allow 100 requests per 15 minutes, then...
       delayMs: () => 500, // Begin adding 500ms of delay per request above 100
-      skip: (req) => {
+      skip: (req: import('express').Request) => {
         // Skip speed limiting for health checks and CORS preflight
         if (req.method === 'OPTIONS') return true;
         return req.path === '/health' || req.path === '/api/v1/health';
@@ -432,8 +466,10 @@ async function bootstrap() {
   logger.log(`📚 Swagger documentation: http://0.0.0.0:${port}${apiPrefixFinal}/docs`);
   logger.log(`🔍 Health check: http://0.0.0.0:${port}/health`);
   logger.log(`🔍 API Health check: http://0.0.0.0:${port}${apiPrefixFinal}/health`);
-  } catch (error) {
-    logger.error(`Failed to start application: ${error.message}`, error.stack);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error(`Failed to start application: ${msg}`, stack);
     throw error;
   }
 }

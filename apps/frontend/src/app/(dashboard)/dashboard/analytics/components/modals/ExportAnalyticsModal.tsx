@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Download, FileSpreadsheet, FileJson } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import { EXPORT_FORMATS } from '../../constants/analytics';
 
 interface ExportAnalyticsModalProps {
@@ -32,6 +33,7 @@ export function ExportAnalyticsModal({
   onFormatChange,
   onExport,
 }: ExportAnalyticsModalProps) {
+  const { t } = useI18n();
   const formats = [
     { value: 'csv' as const, label: 'CSV', icon: FileSpreadsheet },
     { value: 'json' as const, label: 'JSON', icon: FileJson },
@@ -41,9 +43,9 @@ export function ExportAnalyticsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>Exporter les analytics</DialogTitle>
+          <DialogTitle>{t('analytics.exportAnalytics')}</DialogTitle>
           <DialogDescription className="text-gray-600">
-            Choisissez le format d'export pour vos données analytics
+            {t('analytics.chooseExportFormat')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -74,14 +76,14 @@ export function ExportAnalyticsModal({
             onClick={() => onOpenChange(false)}
             className="border-gray-200"
           >
-            Annuler
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={onExport}
             className="bg-cyan-600 hover:bg-cyan-700"
           >
             <Download className="w-4 h-4 mr-2" />
-            Exporter
+            {t('analytics.export')}
           </Button>
         </DialogFooter>
       </DialogContent>

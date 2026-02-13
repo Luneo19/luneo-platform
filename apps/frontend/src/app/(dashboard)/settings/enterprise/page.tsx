@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Shield, Users, Lock, Settings } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 
 function EnterpriseSettingsPageContent() {
   return (
@@ -52,7 +54,21 @@ const MemoizedEnterpriseSettingsPageContent = memo(EnterpriseSettingsPageContent
 export default function EnterpriseSettingsPage() {
   return (
     <ErrorBoundary level="page" componentName="EnterpriseSettingsPage">
-      <MemoizedEnterpriseSettingsPageContent />
+      <PlanGate
+        minimumPlan="enterprise"
+        showUpgradePrompt
+        fallback={
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <UpgradePrompt
+              requiredPlan="enterprise"
+              feature="Paramètres Enterprise (SSO, limites personnalisées)"
+              description="SSO/SAML et les paramètres enterprise sont disponibles sur le plan Enterprise."
+            />
+          </div>
+        }
+      >
+        <MemoizedEnterpriseSettingsPageContent />
+      </PlanGate>
     </ErrorBoundary>
   );
 }

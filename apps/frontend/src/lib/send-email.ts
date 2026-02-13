@@ -57,12 +57,12 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
       subject,
     });
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Failed to send email', {
       error,
       to,
       subject,
-      message: error.message,
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
     return false;
   }

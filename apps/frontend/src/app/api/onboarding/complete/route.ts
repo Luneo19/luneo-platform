@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 
 const API_URL = getBackendUrl();
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       // Mark onboarding complete
       await backendFetch('/complete', 'POST');
     } catch (err) {
-      logger.error('Onboarding complete failed', { error: err, userId: user.id });
+      serverLogger.error('Onboarding complete failed', { error: err, userId: user.id });
       throw {
         status: 500,
         message: err instanceof Error ? err.message : 'Erreur lors de la configuration',

@@ -13,12 +13,15 @@ import {
   Logger,
   BadRequestException,
   UnauthorizedException,
+  Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { WooCommerceWebhookService } from '../services/woocommerce-webhook.service';
 import { WooCommerceWebhookPayloadDto } from '../dto/woocommerce-webhook.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import * as crypto from 'crypto';
+import { Request as ExpressRequest } from 'express';
 
 type WooCommerceProductPayload = Parameters<WooCommerceWebhookService['handleProductCreate']>[1];
 type WooCommerceOrderPayload = Parameters<WooCommerceWebhookService['handleOrderCreate']>[1];
@@ -32,6 +35,7 @@ export class WooCommerceWebhookController {
 
   constructor(
     private readonly webhookService: WooCommerceWebhookService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -68,6 +72,7 @@ export class WooCommerceWebhookController {
   @ApiResponse({ status: 200, description: 'Webhook processed successfully' })
   async handleWebhook(
     @Body() payload: WooCommerceWebhookPayloadDto,
+    @Req() req: ExpressRequest & { rawBody?: Buffer },
     @Headers('x-wc-webhook-signature') signature: string | undefined,
     @Headers('x-wc-webhook-topic') topic: string | undefined,
     @Headers('x-wc-webhook-source') source: string | undefined,
@@ -86,10 +91,13 @@ export class WooCommerceWebhookController {
 
       const integrationId = integrationIdMatch[1];
 
-      // Verify webhook signature
-      const webhookSecret = process.env.WOOCOMMERCE_WEBHOOK_SECRET;
+      // Verify webhook signature using raw body for accurate HMAC
+      const webhookSecret = this.configService.get<string>('WOOCOMMERCE_WEBHOOK_SECRET');
       if (webhookSecret) {
-        const bodyString = JSON.stringify(payload);
+        // Prefer raw body for HMAC verification (avoids JSON.stringify ordering issues)
+        const bodyString = req.rawBody
+          ? req.rawBody.toString('utf8')
+          : JSON.stringify(payload);
         const isValid = this.verifySignature(bodyString, signature, webhookSecret);
         
         if (!isValid) {

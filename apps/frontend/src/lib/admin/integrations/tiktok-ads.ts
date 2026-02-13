@@ -62,7 +62,7 @@ export class TikTokAdsClient {
       throw new Error(`TikTok API Error: ${data.message}`);
     }
 
-    return (data.data?.list || []).map((campaign: any) => ({
+    return (data.data?.list || []).map((campaign: Record<string, unknown>) => ({
       id: campaign.campaign_id,
       name: campaign.campaign_name,
       status: campaign.operation_status,

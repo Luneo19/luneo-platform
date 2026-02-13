@@ -6,9 +6,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 import { SellerHeader } from './components/SellerHeader';
 import { SellerStats } from './components/SellerStats';
 import { useSellerData } from './hooks/useSellerData';
@@ -24,6 +27,7 @@ function formatPriceFromCents(value: number): string {
 }
 
 export function SellerPageClient() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<
     'overview' | 'products' | 'orders' | 'reviews' | 'payouts' | 'analytics' | 'settings'
@@ -49,8 +53,8 @@ export function SellerPageClient() {
     } catch (error: unknown) {
       logger.error('Failed to connect Stripe', { error });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de créer le compte vendeur',
+        title: t('common.error'),
+        description: t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -72,6 +76,19 @@ export function SellerPageClient() {
   }
 
   return (
+    <PlanGate
+      minimumPlan="business"
+      showUpgradePrompt
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <UpgradePrompt
+            requiredPlan="business"
+            feature="Marketplace Seller"
+            description="Le dashboard vendeur Marketplace est disponible à partir du plan Business."
+          />
+        </div>
+      }
+    >
     <div className="space-y-6 pb-10">
       <SellerHeader
         sellerStatus={sellerStatus}
@@ -375,6 +392,7 @@ export function SellerPageClient() {
         </TabsContent>
       </Tabs>
     </div>
+    </PlanGate>
   );
 }
 

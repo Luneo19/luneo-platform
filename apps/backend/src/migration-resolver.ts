@@ -42,11 +42,12 @@ export function runDatabaseMigrations(logger: Logger): void {
     logger.log(output);
     logger.log('✅ Database migrations completed successfully');
     return;
-  } catch (migrationError: any) {
+  } catch (migrationError: unknown) {
+    const err = migrationError as { stderr?: { toString: () => string }; stdout?: { toString: () => string }; message?: string };
     const errorOutput =
-      migrationError.stderr?.toString() ||
-      migrationError.stdout?.toString() ||
-      migrationError.message ||
+      err.stderr?.toString() ||
+      err.stdout?.toString() ||
+      err.message ||
       '';
 
     logger.warn(`Migration error output: ${errorOutput.substring(0, 500)}`);
@@ -90,7 +91,7 @@ export function runDatabaseMigrations(logger: Logger): void {
               '✅ Database migrations completed successfully after resolving missing migration'
             );
             return;
-          } catch (resolveError: any) {
+          } catch (resolveError: unknown) {
             logger.warn(
               `⚠️ Could not resolve migration ${missingMigration}, continuing anyway`
             );
@@ -98,9 +99,10 @@ export function runDatabaseMigrations(logger: Logger): void {
         } else {
           logger.warn('⚠️ Could not extract migration name from P3015 error');
         }
-      } catch (resolveError: any) {
+      } catch (resolveError: unknown) {
+        const re = resolveError as { message?: string };
         logger.warn(
-          `⚠️ Failed to auto-resolve P3015: ${resolveError.message?.substring(0, 100)}`
+          `⚠️ Failed to auto-resolve P3015: ${re.message?.substring(0, 100) ?? 'unknown'}`
         );
       }
       return;
@@ -151,11 +153,12 @@ export function runDatabaseMigrations(logger: Logger): void {
               '✅ Database migrations completed successfully after auto-resolution'
             );
             return;
-          } catch (retryError: any) {
+          } catch (retryError: unknown) {
+            const re = retryError as { stderr?: { toString: () => string }; stdout?: { toString: () => string }; message?: string };
             const retryErrorOutput =
-              retryError.stderr?.toString() ||
-              retryError.stdout?.toString() ||
-              retryError.message ||
+              re.stderr?.toString() ||
+              re.stdout?.toString() ||
+              re.message ||
               '';
 
             if (
@@ -214,9 +217,10 @@ export function runDatabaseMigrations(logger: Logger): void {
           );
           throw migrationError;
         }
-      } catch (resolveError: any) {
+      } catch (resolveError: unknown) {
+        const re = resolveError as { message?: string };
         logger.error(
-          `❌ Failed to auto-resolve migration: ${resolveError.message}`
+          `❌ Failed to auto-resolve migration: ${re.message ?? 'unknown'}`
         );
         logger.error(
           '⚠️ Manual intervention may be required to resolve failed migrations'
@@ -364,16 +368,18 @@ export async function ensureCriticalColumns(
   try {
     await prisma.$executeRawUnsafe(createColumnsQuery);
     logger.log('✅ All critical columns created in single transaction');
-  } catch (columnError: any) {
+  } catch (columnError: unknown) {
+    const ce = columnError as { message?: string };
     logger.warn(
-      `⚠️ Batch column creation failed, trying individual queries: ${columnError.message?.substring(0, 100)}`
+      `⚠️ Batch column creation failed, trying individual queries: ${ce.message?.substring(0, 100) ?? 'unknown'}`
     );
     for (const query of columnQueries) {
       try {
         await prisma.$executeRawUnsafe(query);
-      } catch (queryError: any) {
+      } catch (queryError: unknown) {
+        const qe = queryError as { message?: string };
         logger.debug(
-          `Column check: ${queryError.message?.substring(0, 100)}`
+          `Column check: ${qe.message?.substring(0, 100) ?? 'unknown'}`
         );
       }
     }
@@ -382,17 +388,19 @@ export async function ensureCriticalColumns(
   for (const query of enumQueries) {
     try {
       await prisma.$executeRawUnsafe(query);
-    } catch (queryError: any) {
-      logger.debug(`Enum check: ${queryError.message?.substring(0, 100)}`);
+    } catch (queryError: unknown) {
+      const qe = queryError as { message?: string };
+      logger.debug(`Enum check: ${qe.message?.substring(0, 100) ?? 'unknown'}`);
     }
   }
 
   for (const query of enumColumnQueries) {
     try {
       await prisma.$executeRawUnsafe(query);
-    } catch (queryError: any) {
+    } catch (queryError: unknown) {
+      const qe = queryError as { message?: string };
       logger.debug(
-        `Enum column check: ${queryError.message?.substring(0, 100)}`
+        `Enum column check: ${qe.message?.substring(0, 100) ?? 'unknown'}`
       );
     }
   }

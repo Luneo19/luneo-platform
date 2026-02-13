@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useI18n } from '@/i18n/useI18n';
 import { formatNumber } from '@/lib/utils/formatters';
 import type { CreditStats } from './types';
 import { Plus, Zap, RefreshCw, Gift, Sparkles, DollarSign, TrendingUp, BarChart3 } from 'lucide-react';
@@ -10,21 +11,22 @@ interface CreditsStatsTabProps {
 }
 
 const STAT_ITEMS = [
-  { label: 'Achetés', valueKey: 'totalPurchased', icon: Plus, color: 'text-green-400', bg: 'bg-green-500/10' },
-  { label: 'Utilisés', valueKey: 'totalUsed', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-  { label: 'Remboursés', valueKey: 'totalRefunded', icon: RefreshCw, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  { label: 'Bonus', valueKey: 'totalBonus', icon: Gift, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  { label: 'Générations', valueKey: 'totalGenerations', icon: Sparkles, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-  { label: 'Coût moyen / génération', valueKey: 'avgCostPerGeneration', icon: DollarSign, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+  { labelKey: 'credits.stats.purchased', valueKey: 'totalPurchased', icon: Plus, color: 'text-green-400', bg: 'bg-green-500/10' },
+  { labelKey: 'credits.stats.used', valueKey: 'totalUsed', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  { labelKey: 'credits.stats.refunded', valueKey: 'totalRefunded', icon: RefreshCw, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  { labelKey: 'credits.stats.bonus', valueKey: 'totalBonus', icon: Gift, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  { labelKey: 'credits.stats.generations', valueKey: 'totalGenerations', icon: Sparkles, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+  { labelKey: 'credits.stats.avgCostPerGeneration', valueKey: 'avgCostPerGeneration', icon: DollarSign, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
 ] as const;
 
 export function CreditsStatsTab({ stats }: CreditsStatsTabProps) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Statistiques d&apos;utilisation</CardTitle>
-          <CardDescription className="text-gray-600">Vue détaillée de vos crédits et consommations</CardDescription>
+          <CardTitle className="text-gray-900">{t('credits.stats.usageStats')}</CardTitle>
+          <CardDescription className="text-gray-600">{t('credits.stats.usageStatsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -35,10 +37,10 @@ export function CreditsStatsTab({ stats }: CreditsStatsTabProps) {
                   ? `${Math.round(stats[item.valueKey])}`
                   : formatNumber(Number(stats[item.valueKey]));
               return (
-                <Card key={item.label} className="p-4 bg-gray-50 border-gray-200">
+                <Card key={item.labelKey} className="p-4 bg-gray-50 border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">{item.label}</p>
+                      <p className="text-sm text-gray-600">{t(item.labelKey)}</p>
                       <p className={`text-2xl font-bold mt-1 ${item.color}`}>{value}</p>
                     </div>
                     <div className={`p-3 rounded-lg ${item.bg}`}>
@@ -57,15 +59,15 @@ export function CreditsStatsTab({ stats }: CreditsStatsTabProps) {
           <CardHeader>
             <CardTitle className="text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              Répartition et tendances
+              {t('credits.stats.distributionTrends')}
             </CardTitle>
-            <CardDescription className="text-gray-600">Taux d&apos;utilisation et tendances récentes</CardDescription>
+            <CardDescription className="text-gray-600">{t('credits.stats.usageRateTrends')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-cyan-600" />
-                <span className="text-gray-700">Taux d&apos;utilisation</span>
+                <span className="text-gray-700">{t('credits.stats.usageRate')}</span>
                 <span className="font-bold text-cyan-600">{Math.round(stats.usageRate)}%</span>
               </div>
               {stats.byType && Object.entries(stats.byType).map(([type, count]) => (

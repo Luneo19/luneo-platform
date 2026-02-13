@@ -7,7 +7,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CronJobsService } from './cron-jobs.service';
 import { Public } from '@/common/decorators/public.decorator';
@@ -17,18 +19,31 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 @Controller('cron')
 @UseGuards(JwtAuthGuard)
 export class CronJobsController {
-  constructor(private readonly cronJobsService: CronJobsService) {}
+  private readonly logger = new Logger(CronJobsController.name);
+
+  constructor(
+    private readonly cronJobsService: CronJobsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Vérifie si la requête provient d'un service de cron autorisé
    */
-  private verifyCronSecret(authHeader: string | null): boolean {
-    const cronSecret = process.env.CRON_SECRET;
+  private verifyCronSecret(secret: string): boolean {
+    const cronSecret = this.configService.get<string>('CRON_SECRET') || process.env.CRON_SECRET;
+
+    // In production, CRON_SECRET must be set
     if (!cronSecret) {
-      // Si pas de secret configuré, permettre l'accès (pour développement)
+      const nodeEnv = this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV;
+      if (nodeEnv === 'production') {
+        this.logger.error('CRON_SECRET is not configured in production');
+        return false;
+      }
+      // Allow in development without secret
       return true;
     }
-    return authHeader === `Bearer ${cronSecret}`;
+
+    return secret === cronSecret;
   }
 
   /** @Public: called by cron scheduler; verified by Bearer secret */
@@ -39,7 +54,8 @@ export class CronJobsController {
   @ApiOperation({ summary: 'Génère un résumé analytique hebdomadaire' })
   @ApiResponse({ status: 200, description: 'Résumé généré avec succès' })
   async analyticsDigest(@Headers('authorization') authHeader: string | null) {
-    if (!this.verifyCronSecret(authHeader)) {
+    const secret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader ?? '';
+    if (!this.verifyCronSecret(secret)) {
       throw new UnauthorizedException('Unauthorized cron job');
     }
 
@@ -54,7 +70,8 @@ export class CronJobsController {
   @ApiOperation({ summary: 'Nettoie les anciennes données' })
   @ApiResponse({ status: 200, description: 'Nettoyage terminé' })
   async cleanup(@Headers('authorization') authHeader: string | null) {
-    if (!this.verifyCronSecret(authHeader)) {
+    const secret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader ?? '';
+    if (!this.verifyCronSecret(secret)) {
       throw new UnauthorizedException('Unauthorized cron job');
     }
 

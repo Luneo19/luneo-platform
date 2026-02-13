@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { api } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
 import {
   Palette,
   Sparkles,
@@ -29,6 +33,7 @@ import Image from 'next/image';
  * Création de designs 2D avec IA
  */
 export default function AIStudio2DPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('realistic');
@@ -40,8 +45,8 @@ export default function AIStudio2DPage() {
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez entrer une description',
+        title: t('common.error'),
+        description: t('aiStudio.enterDescription'),
         variant: 'destructive',
       });
       return;
@@ -55,21 +60,13 @@ export default function AIStudio2DPage() {
       const width = Math.round((baseSize * widthRatio) / Math.max(widthRatio, heightRatio));
       const height = Math.round((baseSize * heightRatio) / Math.max(widthRatio, heightRatio));
 
-      const res = await fetch('/api/v1/ai/generate-2d', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, style, width, height, quality: quality[0] }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'Generation failed' }));
-        throw new Error(errorData.message || 'Generation failed');
-      }
-
-      const data = await res.json();
-      const result = data.data || data;
-      const imageUrl = result.imageUrl || result.url || result.image;
+      type Generate2DResponse = { data?: { imageUrl?: string; url?: string; image?: string }; imageUrl?: string; url?: string; image?: string };
+      const data = await api.post<Generate2DResponse>(
+        '/api/v1/ai/generate-2d',
+        { prompt, style, width, height, quality: quality[0] }
+      );
+      const result = (data as { data?: { imageUrl?: string; url?: string; image?: string } })?.data ?? (data as { imageUrl?: string; url?: string; image?: string });
+      const imageUrl = result?.imageUrl ?? result?.url ?? result?.image;
 
       if (!imageUrl) {
         throw new Error('No image URL returned from API');
@@ -78,20 +75,21 @@ export default function AIStudio2DPage() {
       setGeneratedImages((prev) => [imageUrl, ...prev]);
       
       toast({
-        title: 'Succès',
-        description: 'Design généré avec succès',
+        title: t('common.success'),
+        description: t('aiStudio.generationSuccess'),
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la génération';
+      logger.error('AI 2D generation failed', { error });
+      const errorMessage = getErrorDisplayMessage(error);
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, toast]);
+  }, [prompt, toast, t]);
 
   return (
     <ErrorBoundary componentName="AIStudio2D">
@@ -103,16 +101,16 @@ export default function AIStudio2DPage() {
               <Link href="/dashboard/ai-studio">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Retour
+                  {t('aiStudio.back')}
                 </Button>
               </Link>
             </div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-3">
               <Palette className="w-8 h-8 text-purple-400" />
-              Générateur 2D
+              {t('aiStudio.generator2d')}
             </h1>
             <p className="text-white/60 mt-2">
-              Créez des designs 2D uniques avec l'intelligence artificielle
+              {t('aiStudio.create2dDesc')}
             </p>
           </div>
         </div>
@@ -124,21 +122,21 @@ export default function AIStudio2DPage() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Wand2 className="w-5 h-5 text-purple-400" />
-                  Paramètres de génération
+                  {t('aiStudio.generationParams')}
                 </CardTitle>
                 <CardDescription className="text-white/60">
-                  Configurez votre design 2D
+                  {t('aiStudio.configure2d')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Prompt */}
                 <div className="space-y-2">
                   <Label htmlFor="prompt" className="text-white/80">
-                    Description du design
+                    {t('aiStudio.designDescription')}
                   </Label>
                   <Input
                     id="prompt"
-                    placeholder="Ex: Logo moderne avec dégradé bleu et violet..."
+                    placeholder={t('aiStudio.placeholderDesc')}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     className="dash-input border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/40"
@@ -147,7 +145,7 @@ export default function AIStudio2DPage() {
 
                 {/* Style */}
                 <div className="space-y-2">
-                  <Label className="text-white/80">Style</Label>
+                  <Label className="text-white/80">{t('aiStudio.style')}</Label>
                   <Select value={style} onValueChange={setStyle}>
                     <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                       <SelectValue />
@@ -165,7 +163,7 @@ export default function AIStudio2DPage() {
 
                 {/* Aspect Ratio */}
                 <div className="space-y-2">
-                  <Label className="text-white/80">Format</Label>
+                  <Label className="text-white/80">{t('aiStudio.format')}</Label>
                   <Select value={aspectRatio} onValueChange={setAspectRatio}>
                     <SelectTrigger className="dash-input border-white/[0.08] bg-white/[0.04] text-white">
                       <SelectValue />
@@ -204,12 +202,12 @@ export default function AIStudio2DPage() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Génération en cours...
+                      {t('aiStudio.generating')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Générer le design
+                      {t('aiStudio.generateDesign')}
                     </>
                   )}
                 </Button>
@@ -221,15 +219,15 @@ export default function AIStudio2DPage() {
               <CardHeader>
                 <CardTitle className="text-purple-400 text-sm flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Conseils
+                  {t('aiStudio.tips')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-xs text-white/60 space-y-2">
-                  <li>• Soyez précis dans votre description</li>
-                  <li>• Mentionnez les couleurs souhaitées</li>
-                  <li>• Indiquez le style artistique</li>
-                  <li>• Spécifiez l'ambiance recherchée</li>
+                  <li>• {t('aiStudio.tip1')}</li>
+                  <li>• {t('aiStudio.tip2')}</li>
+                  <li>• {t('aiStudio.tip3')}</li>
+                  <li>• {t('aiStudio.tip4')}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -244,10 +242,10 @@ export default function AIStudio2DPage() {
                     <ImageIcon className="w-12 h-12 text-purple-400" />
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-2">
-                    Aucun design généré
+                    {t('aiStudio.noDesignGenerated')}
                   </h3>
                   <p className="text-white/60 text-center max-w-md">
-                    Configurez vos paramètres et cliquez sur "Générer le design" pour créer votre premier design 2D
+                    {t('aiStudio.configureAndClick')}
                   </p>
                 </CardContent>
               </Card>
@@ -257,7 +255,7 @@ export default function AIStudio2DPage() {
                   <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                     <CardContent className="flex flex-col items-center justify-center py-16">
                       <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
-                      <p className="text-white/60">Génération en cours...</p>
+                      <p className="text-white/60">{t('aiStudio.generating')}</p>
                     </CardContent>
                   </Card>
                 )}
@@ -282,7 +280,7 @@ export default function AIStudio2DPage() {
                         <div className="flex items-center justify-between">
                           <span className="dash-badge dash-badge-new flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" />
-                            Généré
+                            {t('aiStudio.generated')}
                           </span>
                           <div className="flex gap-2">
                             <Button variant="ghost" size="sm">

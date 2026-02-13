@@ -2,6 +2,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import Stripe from 'stripe';
 import { UsageMetric, UsageMetricType } from '../interfaces/usage.interface';
@@ -19,8 +20,9 @@ export class UsageMeteringService {
     private readonly prisma: PrismaService,
     private readonly cache: SmartCacheService,
     @InjectQueue('usage-metering') private usageQueue: Queue,
+    private readonly configService: ConfigService,
   ) {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+    this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
   }
@@ -239,7 +241,7 @@ export class UsageMeteringService {
   async getCurrentUsage(brandId: string): Promise<Record<UsageMetricType, number>> {
     try {
       // Check cache
-      const cached = await this.cache.get(`usage:${brandId}:current`, null, null);
+      const cached = await this.cache.getSimple<string>(`usage:${brandId}:current`);
       if (cached) {
         return JSON.parse(cached as string);
       }
@@ -315,7 +317,7 @@ export class UsageMeteringService {
       // Sommer les quantités dans la période
       let total = 0;
       for (const record of usageRecords.data) {
-        const recordDate = new Date(record.period.start * 1000);
+        const recordDate = new Date((record.period.start ?? 0) * 1000);
         if (recordDate >= startDate && recordDate <= endDate) {
           total += record.total_usage;
         }

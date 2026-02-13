@@ -3,6 +3,7 @@ import { Cacheable } from '@/libs/cache/cacheable.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { ZapierService } from '@/modules/integrations/zapier/zapier.service';
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, PaymentStatus, UserRole, Prisma, CommissionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
@@ -11,6 +12,7 @@ import { DiscountService } from './services/discount.service';
 import { ReferralService } from '../referral/referral.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { NotificationsService } from '@/modules/notifications/notifications.service';
+import { NotificationDispatcherService } from '@/modules/notifications/notification-dispatcher.service';
 
 @Injectable()
 export class OrdersService {
@@ -25,6 +27,8 @@ export class OrdersService {
     private commissionService: CommissionService,
     @Optional() private referralService?: ReferralService, // Optional to avoid DI issues in unit tests
     @Optional() private notificationsService?: NotificationsService,
+    @Optional() private notificationDispatcher?: NotificationDispatcherService,
+    @Optional() private zapierService?: ZapierService,
   ) {}
 
   /**
@@ -35,8 +39,8 @@ export class OrdersService {
       if (!this.stripeModule) {
         this.stripeModule = await import('stripe');
       }
-      this.stripeInstance = new this.stripeModule.default(this.configService.get('stripe.secretKey'), {
-        apiVersion: '2023-10-16',
+      this.stripeInstance = new this.stripeModule.default(this.configService.get<string>('stripe.secretKey') || '', {
+        apiVersion: '2023-10-16' as const,
       });
     }
     return this.stripeInstance;
@@ -45,7 +49,7 @@ export class OrdersService {
   @Cacheable({ 
     type: 'orders', 
     ttl: 300,
-    keyGenerator: (args) => `orders:list:${args[0]?.id || 'all'}`,
+    keyGenerator: (args) => `orders:list:${(args[0] as { id?: string } | undefined)?.id ?? 'all'}`,
     tags: () => ['orders:list'],
   })
   async findAll(currentUser: CurrentUser, query?: { page?: number; limit?: number; status?: string; search?: string }) {
@@ -142,9 +146,9 @@ export class OrdersService {
     const items = createOrderDto.items;
     
     const designId = createOrderDto.designId; // Legacy support
-    const customerEmail = createOrderDto.customerEmail;
-    const customerName = createOrderDto.customerName;
-    const customerPhone = createOrderDto.customerPhone;
+    const customerEmail = createOrderDto.customerEmail || '';
+    const customerName = createOrderDto.customerName || '';
+    const customerPhone = createOrderDto.customerPhone || '';
     const shippingAddress = createOrderDto.shippingAddress;
     const shippingMethod = createOrderDto.shippingMethod;
     const discountCode = createOrderDto.discountCode;
@@ -155,7 +159,7 @@ export class OrdersService {
       quantity: number;
       priceCents: number;
       totalCents: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }> = [];
     let subtotalCents = 0;
     let brandId = currentUser.brandId || '';
@@ -327,10 +331,7 @@ export class OrdersService {
         };
         this.logger.log(`Applied discount code ${discountCode}: ${discountCents} cents off`);
       } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-        this.logger.warn(`Failed to apply discount code ${discountCode}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
+        this.logger.warn(`Failed to apply discount code ${discountCode}:`, error instanceof Error ? error.message : 'Unknown error');
         throw error; // Re-throw pour que l'utilisateur soit informé du code invalide
       }
     }
@@ -351,134 +352,138 @@ export class OrdersService {
     const commissionPercent = await this.commissionService.getCommissionPercent(brandId);
     const commissionCents = this.commissionService.calculateCommissionCents(taxableAmountCents, commissionPercent);
 
-    // Create order with items
-    const order = await this.prisma.order.create({
-      data: {
-        orderNumber: this.generateOrderNumber(),
-        customerEmail,
-        customerName,
-        customerPhone,
-        shippingAddress: shippingAddress as unknown as Prisma.InputJsonValue,
-        subtotalCents,
-        taxCents,
-        shippingCents,
-        totalCents,
-        commissionPercent,
-        commissionCents,
-        userId: currentUser.id,
-        brandId,
-        designId: orderItems.length === 1 && orderItems[0].designId ? orderItems[0].designId : null, // Legacy support
-        productId: orderItems.length === 1 ? orderItems[0].productId : null, // Legacy support
-        metadata: discountMetadata ? { discount: discountMetadata } as Prisma.InputJsonValue : undefined,
-        items: {
-          create: orderItems.map(item => ({
-            productId: item.productId,
-            designId: item.designId,
-            quantity: item.quantity,
-            priceCents: item.priceCents,
-            totalCents: item.totalCents,
-            metadata: item.metadata as Prisma.InputJsonValue,
-          })),
+    // Create order + record discount usage atomically to prevent race conditions
+    // (e.g., two orders using the same single-use discount code)
+    const order = await this.prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          orderNumber: this.generateOrderNumber(),
+          customerEmail,
+          customerName,
+          customerPhone,
+          shippingAddress: shippingAddress as unknown as Prisma.InputJsonValue,
+          subtotalCents,
+          taxCents,
+          shippingCents,
+          totalCents,
+          commissionPercent,
+          commissionCents,
+          userId: currentUser.id,
+          brandId,
+          designId: orderItems.length === 1 && orderItems[0].designId ? orderItems[0].designId : null, // Legacy support
+          productId: orderItems.length === 1 ? orderItems[0].productId : null, // Legacy support
+          metadata: discountMetadata ? { discount: discountMetadata } as Prisma.InputJsonValue : undefined,
+          items: {
+            create: orderItems.map(item => ({
+              productId: item.productId,
+              designId: item.designId,
+              quantity: item.quantity,
+              priceCents: item.priceCents,
+              totalCents: item.totalCents,
+              metadata: item.metadata as Prisma.InputJsonValue,
+            })),
+          },
         },
-      },
-      select: {
-        id: true,
-        orderNumber: true,
-        customerEmail: true,
-        customerName: true,
-        customerPhone: true,
-        shippingAddress: true,
-        subtotalCents: true,
-        taxCents: true,
-        shippingCents: true,
-        totalCents: true,
-        status: true,
-        paymentStatus: true,
-        userId: true,
-        brandId: true,
-        designId: true,
-        productId: true,
-        createdAt: true,
-        items: {
-          select: {
-            id: true,
-            productId: true,
-            designId: true,
-            quantity: true,
-            priceCents: true,
-            totalCents: true,
-            metadata: true,
-            product: {
-              select: {
-                id: true,
-                name: true,
-                price: true,
+        select: {
+          id: true,
+          orderNumber: true,
+          customerEmail: true,
+          customerName: true,
+          customerPhone: true,
+          shippingAddress: true,
+          subtotalCents: true,
+          taxCents: true,
+          shippingCents: true,
+          totalCents: true,
+          status: true,
+          paymentStatus: true,
+          userId: true,
+          brandId: true,
+          designId: true,
+          productId: true,
+          createdAt: true,
+          items: {
+            select: {
+              id: true,
+              productId: true,
+              designId: true,
+              quantity: true,
+              priceCents: true,
+              totalCents: true,
+              metadata: true,
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                },
               },
-            },
-            design: {
-              select: {
-                id: true,
-                prompt: true,
-                previewUrl: true,
+              design: {
+                select: {
+                  id: true,
+                  prompt: true,
+                  previewUrl: true,
+                },
               },
             },
           },
-        },
-        brand: {
-          select: {
-            id: true,
-            name: true,
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
+      });
+
+      // Record discount usage atomically within the same transaction
+      if (discountResultForRecording?.discountId) {
+        // Re-verify usage limit inside transaction to prevent race conditions
+        const discount = await tx.discount.findUnique({
+          where: { id: discountResultForRecording.discountId },
+          select: { usageLimit: true, usageCount: true },
+        });
+
+        if (discount?.usageLimit && discount.usageCount >= discount.usageLimit) {
+          throw new BadRequestException('Discount code has reached its usage limit');
+        }
+
+        await tx.discountUsage.create({
+          data: {
+            discountId: discountResultForRecording.discountId,
+            orderId: newOrder.id,
+            userId: currentUser.id,
+          },
+        });
+
+        await tx.discount.update({
+          where: { id: discountResultForRecording.discountId },
+          data: { usageCount: { increment: 1 } },
+        });
+
+        this.logger.log(`Recorded discount usage for order ${newOrder.orderNumber}`);
+      }
+
+      return newOrder;
+    }, {
+      timeout: 10000,
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
     });
 
-    // Record discount usage if a discount code was applied
-    if (discountResultForRecording) {
-      try {
-        await this.discountService.recordDiscountUsage(
-          discountResultForRecording.discountId,
-          order.id,
-          currentUser.id,
-        );
-        this.logger.log(`Recorded discount usage for order ${order.orderNumber}`);
-      } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+    this.zapierService?.triggerEvent(brandId, 'new_order', order as unknown as Record<string, unknown>).catch((err) => this.logger.warn('Non-critical error triggering Zapier new_order', err instanceof Error ? err.message : String(err)));
 
-        // Log error but don't fail the order creation
-        this.logger.warn(
-          `Failed to record discount usage for order ${order.orderNumber}: ${error instanceof Error ? errorMessage : 'Unknown error'}`,
-        );
-      }
-    }
+    this.notificationDispatcher?.dispatchOrderCreated({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      totalCents: order.totalCents,
+      userId: currentUser.id,
+      brandId,
+    }).catch((err) => this.logger.warn('Non-critical error dispatching order created', err instanceof Error ? err.message : String(err)));
 
-    // ✅ Créer une commission automatiquement si l'utilisateur a été référé
-    // Commission de referral : configurable, appliquée sur le subtotal net (comme la commission plateforme)
-    const referralCommissionPercent = this.configService.get<number>('referral.commissionPercent') || 10;
-    if (this.referralService && currentUser.id) {
-      try {
-        const commission = await this.referralService.createCommissionFromOrder(
-          order.id,
-          currentUser.id,
-          taxableAmountCents, // ✅ Commission referral sur subtotal net, pas totalCents
-          referralCommissionPercent,
-        );
-        if (commission) {
-          this.logger.log(
-            `Commission created for order ${order.orderNumber}: ${commission.amountCents / 100}€`,
-          );
-        }
-      } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-        // Log error but don't fail the order creation
-        this.logger.warn(
-          `Failed to create commission for order ${order.orderNumber}: ${error instanceof Error ? errorMessage : 'Unknown error'}`,
-        );
-      }
-    }
+    // NOTE: Referral commission is now created AFTER payment confirmation in the Stripe webhook
+    // (stripe-webhook.service.ts → handleCheckoutSessionCompleted) to avoid creating
+    // commissions for unpaid orders. The order metadata (userId, taxableAmountCents) is
+    // stored and used by the webhook handler.
 
     // Create Stripe checkout session with all items
     const stripe = await this.getStripe();
@@ -506,7 +511,7 @@ export class OrdersService {
     );
 
     // Create Stripe session with retry logic for resilience
-    let session: Stripe.Checkout.Session;
+    let session: Stripe.Checkout.Session | undefined;
     let retryCount = 0;
     const maxRetries = 3;
     
@@ -516,32 +521,37 @@ export class OrdersService {
           payment_method_types: ['card'],
           line_items: lineItems,
           mode: 'payment',
-          success_url: `${this.configService.get('app.frontendUrl')}/orders/${order.id}/success`,
-          cancel_url: `${this.configService.get('app.frontendUrl')}/orders/${order.id}/cancel`,
+          success_url: `${this.configService.get('app.frontendUrl')}/checkout/success?orderId=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${this.configService.get('app.frontendUrl')}/checkout?cancelled=true`,
           metadata: {
             orderId: order.id,
           },
         });
         break; // Success, exit loop
-      } catch (stripeError: any) {
+      } catch (stripeError: unknown) {
         retryCount++;
-        const isRetryable = stripeError.type === 'StripeConnectionError' || 
-                           stripeError.type === 'StripeAPIError' ||
-                           stripeError.statusCode === 429 ||
-                           stripeError.statusCode >= 500;
+        const err = stripeError as { type?: string; statusCode?: number };
+        const statusCode = err.statusCode ?? 0;
+        const isRetryable = err.type === 'StripeConnectionError' ||
+                           err.type === 'StripeAPIError' ||
+                           statusCode === 429 ||
+                           statusCode >= 500;
         
         if (!isRetryable || retryCount >= maxRetries) {
-          this.logger.error(`Stripe checkout session creation failed after ${retryCount} attempts: ${stripeError.message}`);
-          throw new BadRequestException(`Payment initialization failed: ${stripeError.message}`);
+          this.logger.error(`Stripe checkout session creation failed after ${retryCount} attempts`, stripeError instanceof Error ? stripeError.stack : String(stripeError));
+          throw new BadRequestException('Payment initialization failed');
         }
         
         // Exponential backoff: 1s, 2s, 4s
         const delay = Math.pow(2, retryCount - 1) * 1000;
-        this.logger.warn(`Stripe error (attempt ${retryCount}/${maxRetries}), retrying in ${delay}ms: ${stripeError.message}`);
+        this.logger.warn(`Stripe error (attempt ${retryCount}/${maxRetries}), retrying in ${delay}ms`, stripeError instanceof Error ? stripeError.message : String(stripeError));
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
+    if (!session) {
+      throw new BadRequestException('Failed to create checkout session');
+    }
     // Update order with session ID
     await this.prisma.order.update({
       where: { id: order.id },
@@ -550,7 +560,7 @@ export class OrdersService {
 
     return {
       ...order,
-      checkoutUrl: session.url,
+      checkoutUrl: session.url ?? undefined,
     };
   }
 
@@ -692,27 +702,31 @@ export class OrdersService {
     });
   }
 
-  async cancel(id: string, currentUser: CurrentUser) {
+  async cancel(id: string, currentUser: CurrentUser, reason?: string) {
     const order = await this.findOne(id, currentUser);
 
-    // ✅ FIX: Permettre l'annulation aussi pour PENDING_PAYMENT
-    if (order.status !== OrderStatus.CREATED && order.status !== OrderStatus.PENDING_PAYMENT) {
-      throw new ForbiddenException('Order can only be cancelled when in CREATED or PENDING_PAYMENT status');
+    const cancellableStatuses: OrderStatus[] = [
+      OrderStatus.CREATED,
+      OrderStatus.PENDING_PAYMENT,
+      OrderStatus.PROCESSING,
+    ];
+    if (!cancellableStatuses.includes(order.status)) {
+      throw new BadRequestException(
+        `Cannot cancel order with status "${order.status}". Only CREATED, PENDING_PAYMENT or PROCESSING orders can be cancelled.`,
+      );
     }
 
-    // ✅ FIX: Reverser l'utilisation du code promo si applicable
+    // ✅ Reverser l'utilisation du code promo si applicable
     try {
       const discountUsage = await this.prisma.discountUsage.findFirst({
         where: { orderId: id },
       });
 
       if (discountUsage) {
-        // Supprimer l'enregistrement d'utilisation
         await this.prisma.discountUsage.delete({
           where: { id: discountUsage.id },
         });
 
-        // Décrémenter le compteur d'utilisation du discount
         await this.prisma.discount.update({
           where: { id: discountUsage.discountId },
           data: { usageCount: { decrement: 1 } },
@@ -720,17 +734,51 @@ export class OrdersService {
 
         this.logger.log(`Reversed discount usage for cancelled order ${id}`);
       }
-    } catch (error: any) {
-      this.logger.warn(`Failed to reverse discount usage for order ${id}: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Failed to reverse discount usage for order ${id}: ${msg}`);
     }
 
-    return this.prisma.order.update({
+    const existingMetadata = (order.metadata as Record<string, unknown>) || {};
+    const updatedOrder = await this.prisma.order.update({
       where: { id },
       data: {
         status: OrderStatus.CANCELLED,
         paymentStatus: PaymentStatus.CANCELLED,
+        metadata: {
+          ...existingMetadata,
+          cancelledAt: new Date().toISOString(),
+          cancellationReason: reason ?? 'Customer requested',
+        } as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        paymentStatus: true,
+        metadata: true,
+        updatedAt: true,
       },
     });
+
+    // Create notification for cancellation (non-blocking, requires userId)
+    if (order.userId) {
+      try {
+        await this.prisma.notification.create({
+          data: {
+            userId: order.userId,
+            type: 'ORDER_CANCELLED',
+            title: 'Order Cancelled',
+            message: `Order #${order.orderNumber ?? id.slice(0, 8)} has been cancelled.`,
+            data: { orderId: id } as Prisma.InputJsonValue,
+          },
+        });
+      } catch {
+        // Non-blocking
+      }
+    }
+
+    return updatedOrder;
   }
 
   /**
@@ -936,9 +984,8 @@ export class OrdersService {
         };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to process refund for order ${order.orderNumber}: ${errorMessage}`);
-      throw new BadRequestException(`Failed to process refund: ${errorMessage}`);
+      this.logger.error(`Failed to process refund for order ${order.orderNumber}`, error instanceof Error ? error.stack : String(error));
+      throw new BadRequestException('Failed to process refund');
     }
   }
 
@@ -972,8 +1019,9 @@ export class OrdersService {
 
         this.logger.log(`Reversed discount usage for order ${orderNumber}`);
       }
-    } catch (error: any) {
-      this.logger.warn(`Failed to reverse discount usage for order ${orderNumber}: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Failed to reverse discount usage for order ${orderNumber}: ${msg}`);
     }
 
     // 2. Annuler les commissions non-payées liées à cette commande
@@ -989,8 +1037,9 @@ export class OrdersService {
         });
         this.logger.log(`Cancelled ${commissions.length} pending commissions for order ${orderNumber}`);
       }
-    } catch (error: any) {
-      this.logger.warn(`Failed to cancel commissions for order ${orderNumber}: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Failed to cancel commissions for order ${orderNumber}: ${msg}`);
     }
   }
 

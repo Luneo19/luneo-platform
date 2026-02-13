@@ -13,6 +13,7 @@ import { NormalizeTextDto } from './dto/normalize-text.dto';
 import { AutoFitDto } from './dto/auto-fit.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
+import { RequestWithUser } from '@/common/types/user.types';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
@@ -33,7 +34,7 @@ export class PersonalizationController {
   @ApiResponse({ status: 403, description: 'Product does not belong to brand' })
   async validate(
     @Body() dto: ValidateZoneInputDto,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     // SEC-12: Vérifier que le product appartient au brand de l'utilisateur
     const brandId = req.brandId;

@@ -14,10 +14,15 @@ import { HttpService } from '@nestjs/axios';
 import { getQueueToken } from '@nestjs/bull';
 import { DesignStatus, UserRole } from '@prisma/client';
 import { of } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
+import { PlansService } from '@/modules/plans/plans.service';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
+import { CreditsService } from '@/libs/credits/credits.service';
 
 describe('DesignsService', () => {
   let service: DesignsService;
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     product: { findUnique: jest.fn() },
     design: {
       create: jest.fn(),
@@ -52,6 +57,23 @@ describe('DesignsService', () => {
     ),
   };
 
+  const mockPlansService = {
+    enforceDesignLimit: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockQuotasService = {
+    enforceQuota: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockUsageTrackingService = {
+    trackDesignCreated: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockCreditsService = {
+    deductCredits: jest.fn().mockResolvedValue(undefined),
+    getBalance: jest.fn().mockResolvedValue(100),
+  };
+
   const brandUser = {
     id: 'user-1',
     role: UserRole.BRAND_ADMIN as UserRole,
@@ -72,6 +94,18 @@ describe('DesignsService', () => {
         { provide: getQueueToken('ai-generation'), useValue: mockAiQueue },
         { provide: StorageService, useValue: mockStorageService },
         { provide: HttpService, useValue: mockHttpService },
+        { provide: PlansService, useValue: mockPlansService },
+        { provide: QuotasService, useValue: mockQuotasService },
+        { provide: UsageTrackingService, useValue: mockUsageTrackingService },
+        { provide: CreditsService, useValue: mockCreditsService },
+        { provide: ConfigService, useValue: { get: jest.fn((key: string) => {
+          const config: Record<string, string> = {
+            FRONTEND_URL: 'http://localhost:3000',
+            APP_URL: 'http://localhost:3000',
+            NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+          };
+          return config[key] ?? undefined;
+        }) } },
       ],
     }).compile();
 
@@ -358,6 +392,140 @@ describe('DesignsService', () => {
         service.delete('design-1', brandUser as any),
       ).rejects.toThrow(/blocked due to an IP claim/);
       expect(mockPrisma.design.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createVersion', () => {
+    it('should create a version snapshot for a design', async () => {
+      const designForFindOne = {
+        id: 'design-1',
+        brandId: 'brand-1',
+        isBlocked: false,
+        product: {},
+        brand: {},
+        user: {},
+      } as any;
+      mockPrisma.design.findUnique
+        .mockResolvedValueOnce(designForFindOne)
+        .mockResolvedValueOnce({
+          name: 'Design',
+          description: null,
+          prompt: 'Prompt',
+          options: null,
+          status: DesignStatus.COMPLETED,
+          previewUrl: null,
+          highResUrl: null,
+          imageUrl: null,
+          renderUrl: null,
+          metadata: null,
+          designData: null,
+          canvasWidth: null,
+          canvasHeight: null,
+          canvasBackgroundColor: null,
+        });
+      mockPrisma.designVersion.findFirst.mockResolvedValue({ versionNumber: 1 });
+      const createdVersion = {
+        id: 'ver-1',
+        versionNumber: 2,
+        name: 'v2',
+        description: null,
+        previewUrl: null,
+        highResUrl: null,
+        imageUrl: null,
+        isAutoSave: false,
+        createdAt: new Date(),
+      };
+      mockPrisma.designVersion.create.mockResolvedValue(createdVersion);
+
+      const result = await service.createVersion(
+        'design-1',
+        { name: 'v2' },
+        brandUser as any,
+      );
+
+      expect(result.id).toBe('ver-1');
+      expect(result.version_number).toBe(2);
+      expect(result.name).toBe('v2');
+      expect(mockPrisma.designVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            designId: 'design-1',
+            versionNumber: 2,
+            name: 'v2',
+            isAutoSave: false,
+            createdBy: 'user-1',
+          }),
+        }),
+      );
+    });
+
+    it('should throw NotFoundException when design not found for createVersion', async () => {
+      mockPrisma.design.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.createVersion('nonexistent', {}, brandUser as any),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.designVersion.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('share', () => {
+    it('should generate share token and return share URL', async () => {
+      const design = {
+        id: 'design-1',
+        name: 'My Design',
+        brandId: 'brand-1',
+        metadata: null,
+        isBlocked: false,
+        product: {},
+        brand: {},
+        user: {},
+      } as any;
+      mockPrisma.design.findUnique.mockResolvedValue(design);
+      mockPrisma.design.update.mockResolvedValue({
+        id: 'design-1',
+        name: 'My Design',
+        metadata: {
+          shareToken: 'abc123',
+          shareTokenExpiresAt: new Date().toISOString(),
+          sharedAt: new Date().toISOString(),
+        },
+      });
+
+      const result = await service.share('design-1', { expiresInDays: 7 }, brandUser as any);
+
+      expect(result.shareToken).toBeDefined();
+      expect(result.shareUrl).toContain('/designs/shared/');
+      expect(result.expiresAt).toBeDefined();
+      expect(result.design.id).toBe('design-1');
+      expect(mockPrisma.design.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'design-1' },
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({
+              shareToken: expect.any(String),
+              shareTokenExpiresAt: expect.any(String),
+              sharedAt: expect.any(String),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should throw ForbiddenException when design is blocked', async () => {
+      mockPrisma.design.findUnique.mockResolvedValue({
+        id: 'design-1',
+        brandId: 'brand-1',
+        isBlocked: true,
+        product: {},
+        brand: {},
+        user: {},
+      } as any);
+
+      await expect(
+        service.share('design-1', {}, brandUser as any),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrisma.design.update).not.toHaveBeenCalled();
     });
   });
 

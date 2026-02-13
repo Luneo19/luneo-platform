@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
 
@@ -57,6 +58,7 @@ interface ClipartBrowserProps {
 }
 
 export function ClipartBrowser({ className, onClipartSelect, showUploadButton = true }: ClipartBrowserProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [cliparts, setCliparts] = useState<Clipart[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,14 +102,14 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
     } catch (error) {
       logger.error('Failed to load cliparts', { error });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les cliparts',
+        title: t('common.error'),
+        description: t('clipart.loadError'),
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  }, [page, sortBy, selectedCategory, toast]);
+  }, [page, sortBy, selectedCategory, toast, t]);
 
   // Optimisé: utiliser useMemo au lieu de useEffect pour le filtrage
   const filteredCliparts = useMemo(() => {
@@ -142,8 +144,8 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
           tags: [],
         });
         toast({
-          title: 'Clipart uploadé',
-          description: 'Votre clipart a été ajouté avec succès',
+          title: t('clipart.uploadSuccess'),
+          description: t('clipart.uploadSuccessDesc'),
         });
         loadCliparts();
       };
@@ -151,20 +153,20 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
     } catch (error) {
       logger.error('Upload error', { error });
       toast({
-        title: 'Erreur',
-        description: 'Impossible d\'uploader le clipart',
+        title: t('common.error'),
+        description: t('clipart.uploadError'),
         variant: 'destructive',
       });
     } finally {
       setIsUploading(false);
     }
-  }, [toast, loadCliparts]);
+  }, [toast, loadCliparts, t]);
 
   const handleSelectClipart = (clipart: Clipart) => {
     onClipartSelect?.(clipart);
     toast({
-      title: 'Clipart sélectionné',
-      description: `Clipart "${clipart.name}" prêt à être utilisé`,
+      title: t('clipart.selected'),
+      description: t('clipart.selectedDesc', { name: clipart.name }),
     });
   };
 
@@ -173,14 +175,14 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
       await api.delete(`/api/v1/cliparts/${clipartId}`);
       setCliparts(cliparts.filter((c) => c.id !== clipartId));
       toast({
-        title: 'Supprimé',
-        description: 'Clipart supprimé avec succès',
+        title: t('clipart.deleteSuccess'),
+        description: t('clipart.deleteSuccessDesc'),
       });
     } catch (error) {
       logger.error('Delete error', { error, clipartId });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de supprimer le clipart',
+        title: t('common.error'),
+        description: t('clipart.deleteError'),
         variant: 'destructive',
       });
     }

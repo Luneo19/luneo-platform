@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Failed to save customization', {
+      serverLogger.error('Failed to save customization', {
         userId: user.id,
         status: backendResponse.status,
         error: errorText,
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('Bracelet customization saved', { id: result.id, userId: user.id });
+    serverLogger.info('Bracelet customization saved', { id: result.id, userId: user.id });
 
     return result;
   }, '/api/bracelet/customizations', 'POST');

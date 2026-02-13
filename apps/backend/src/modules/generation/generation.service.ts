@@ -7,6 +7,8 @@ import { PromptBuilderService } from './services/prompt-builder.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { GenerationStatus, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 
 // Helper pour générer un ID unique (remplace nanoid)
 function generatePublicId(): string {
@@ -22,9 +24,11 @@ export class GenerationService {
     private promptBuilder: PromptBuilderService,
     private eventEmitter: EventEmitter2,
     @InjectQueue('generation') private generationQueue: Queue,
+    private readonly quotasService: QuotasService,
+    private readonly usageTrackingService: UsageTrackingService,
   ) {}
 
-  async create(dto: CreateGenerationDto & { clientId: string; metadata?: any }) {
+  async create(dto: CreateGenerationDto & { clientId: string; metadata?: Record<string, unknown> }) {
     // 1. Vérifier le produit existe et appartient au client
     const product = await this.prisma.product.findFirst({
       where: {
@@ -50,8 +54,11 @@ export class GenerationService {
       throw new BadRequestException('Monthly generation limit reached');
     }
 
+    // Enforce usage-billing quota (ai_generations)
+    await this.quotasService.enforceQuota(dto.clientId, 'ai_generations');
+
     // 3. Valider les personnalisations
-    this.validateCustomizations(dto.customizations, product.customizationZones);
+    this.validateCustomizations(dto.customizations, product.customizationZones as Array<{ id: string; name: string; required?: boolean; type?: string; maxLength?: number }>);
 
     // 4. Construire le prompt final
     const { finalPrompt, negativePrompt } = await this.promptBuilder.build({
@@ -74,13 +81,20 @@ export class GenerationService {
         model: this.getModelForProvider(product.aiProvider),
         quality: product.generationQuality,
         status: GenerationStatus.PENDING,
-        ipAddress: dto.metadata?.ipAddress,
-        userAgent: dto.metadata?.userAgent,
-        referrer: dto.metadata?.referrer,
+        ipAddress: dto.metadata?.ipAddress as string | undefined,
+        userAgent: dto.metadata?.userAgent as string | undefined,
+        referrer: dto.metadata?.referrer as string | undefined,
         sessionId: dto.sessionId,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
       },
     });
+
+    await this.usageTrackingService.trackAIGeneration(
+      dto.clientId,
+      generation.id,
+      generation.model,
+      0,
+    );
 
     // 6. Incrémenter le compteur
     await this.prisma.brand.update({
@@ -194,6 +208,22 @@ export class GenerationService {
     };
   }
 
+  async deleteGeneration(idOrPublicId: string, brandId: string) {
+    const generation = await this.prisma.generation.findFirst({
+      where: {
+        OR: [{ id: idOrPublicId }, { publicId: idOrPublicId }],
+        brandId,
+      },
+    });
+    if (!generation) {
+      throw new NotFoundException('Generation not found');
+    }
+    await this.prisma.generation.delete({
+      where: { id: generation.id },
+    });
+    return { success: true };
+  }
+
   async getArData(publicId: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { publicId },
@@ -280,7 +310,7 @@ export class GenerationService {
     };
   }
 
-  private validateCustomizations(customizations: any, zones: any[]) {
+  private validateCustomizations(customizations: Record<string, unknown>, zones: Array<{ id: string; name: string; required?: boolean; type?: string; maxLength?: number }>) {
     for (const zone of zones) {
       if (zone.required && !customizations[zone.id]) {
         throw new BadRequestException(`Zone ${zone.name} is required`);
@@ -288,7 +318,7 @@ export class GenerationService {
       
       const value = customizations[zone.id];
       if (value) {
-        if (zone.type === 'TEXT' && zone.maxLength && value.text?.length > zone.maxLength) {
+        if (zone.type === 'TEXT' && zone.maxLength && (value as { text?: string }).text && (value as { text: string }).text.length > zone.maxLength) {
           throw new BadRequestException(`Text too long for zone ${zone.name}`);
         }
       }

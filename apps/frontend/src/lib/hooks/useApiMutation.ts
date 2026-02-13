@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 
 interface ApiError {
@@ -84,6 +85,7 @@ export function useApiMutation<T, V = void>(
   options: MutationOptions<T, V> = {}
 ): MutationResult<T, V> {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [state, setState] = useState<MutationState<T>>({
     data: null,
     error: null,
@@ -192,7 +194,7 @@ export function useApiMutation<T, V = void>(
           : successMessage;
         
         toast({
-          title: 'Succès',
+          title: t('common.success'),
           description: message,
           // Use default variant for success (green styling via CSS)
         });
@@ -223,7 +225,7 @@ export function useApiMutation<T, V = void>(
           : apiError.message;
 
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: message,
           variant: 'destructive',
         });
@@ -246,6 +248,7 @@ export function useApiMutation<T, V = void>(
     onSuccess,
     onError,
     toast,
+    t,
   ]);
 
   const mutate = useCallback(async (variables: V): Promise<T | null> => {

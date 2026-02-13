@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     // Vérifier le cache
     const cached = await cacheService.get(cacheKey);
     if (cached) {
-      logger.info('Integrations data served from cache', { integrationId, category });
+      serverLogger.info('Integrations data served from cache', { integrationId, category });
       const response = NextResponse.json({ success: true, data: cached });
       response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
       response.headers.set('X-Cache', 'HIT');
@@ -136,13 +136,13 @@ export async function GET(request: NextRequest) {
       const backendResponse = await fetch(url.toString());
 
       if (!backendResponse.ok) {
-        logger.error('Error fetching integrations from backend', { error: backendResponse.status, integrationId });
+        serverLogger.error('Error fetching integrations from backend', { error: backendResponse.status, integrationId });
       } else {
         const result = await backendResponse.json();
         data = result.data || null;
       }
     } catch (error) {
-      logger.error('Error fetching integrations from backend', { error, integrationId });
+      serverLogger.error('Error fetching integrations from backend', { error, integrationId });
     }
 
     // Fallback aux données statiques si le backend échoue
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
         }
         data = integrations;
       }
-      logger.info('Integrations using fallback data', { integrationId });
+      serverLogger.info('Integrations using fallback data', { integrationId });
     }
 
     // Mettre en cache

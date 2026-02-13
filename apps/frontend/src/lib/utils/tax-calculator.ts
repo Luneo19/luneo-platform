@@ -69,7 +69,7 @@ export function calculateTax(
     });
 
     return Math.round(tax * 100) / 100; // Round to 2 decimals
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error calculating tax', { error, address, subtotal });
     // Return default tax on error (20%)
     return Math.round(subtotal * 0.20 * 100) / 100;

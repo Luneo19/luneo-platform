@@ -26,7 +26,7 @@ export interface PODWebhookEvent {
   shippingCarrier?: string;
   estimatedDelivery?: string;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -94,7 +94,7 @@ export class PODWebhookHandler {
    */
   public async handleWebhook(
     provider: string,
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string
   ): Promise<PODWebhookResponse> {
     try {
@@ -146,7 +146,7 @@ export class PODWebhookHandler {
    */
   private async verifySignature(
     provider: string,
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string
   ): Promise<boolean> {
     const providerConfig = this.providers.get(provider);
@@ -174,7 +174,7 @@ export class PODWebhookHandler {
    * Verify Printful webhook signature
    */
   private async verifyPrintfulSignature(
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string,
     secret: string
   ): Promise<boolean> {
@@ -191,7 +191,7 @@ export class PODWebhookHandler {
    * Verify Printify webhook signature
    */
   private async verifyPrintifySignature(
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string,
     secret: string
   ): Promise<boolean> {
@@ -203,7 +203,7 @@ export class PODWebhookHandler {
    * Verify Gelato webhook signature
    */
   private async verifyGelatoSignature(
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string,
     secret: string
   ): Promise<boolean> {
@@ -215,7 +215,7 @@ export class PODWebhookHandler {
    * Verify Gooten webhook signature
    */
   private async verifyGootenSignature(
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string,
     secret: string
   ): Promise<boolean> {
@@ -226,7 +226,7 @@ export class PODWebhookHandler {
    * Verify Teespring webhook signature
    */
   private async verifyTeespringSignature(
-    payload: any,
+    payload: Record<string, unknown>,
     signature: string,
     secret: string
   ): Promise<boolean> {
@@ -236,7 +236,7 @@ export class PODWebhookHandler {
   /**
    * Parse webhook event from different providers
    */
-  private parseWebhookEvent(provider: string, payload: any): PODWebhookEvent | null {
+  private parseWebhookEvent(provider: string, payload: Record<string, unknown>): PODWebhookEvent | null {
     try {
       switch (provider) {
         case 'printful':
@@ -265,24 +265,24 @@ export class PODWebhookHandler {
   /**
    * Parse Printful webhook event
    */
-  private parsePrintfulEvent(payload: any): PODWebhookEvent {
-    const data = payload.data || {};
-    const order = data.order || {};
-    
+  private parsePrintfulEvent(payload: Record<string, unknown>): PODWebhookEvent {
+    const data = (payload.data as Record<string, unknown>) || {};
+    const order = (data.order as Record<string, unknown>) || {};
+    const shipment = data.shipment as Record<string, unknown> | undefined;
     return {
       provider: 'printful',
-      eventType: this.mapPrintfulEventType(payload.type),
-      orderId: order.external_id || '',
-      externalOrderId: order.id?.toString() || '',
-      status: order.status || '',
-      trackingNumber: data.shipment?.tracking_number || '',
-      trackingUrl: data.shipment?.tracking_url || '',
-      shippingCarrier: data.shipment?.carrier || '',
-      estimatedDelivery: data.shipment?.estimated_delivery || '',
+      eventType: this.mapPrintfulEventType((payload.type as string) ?? ''),
+      orderId: (order.external_id as string) || '',
+      externalOrderId: order.id != null ? String(order.id) : '',
+      status: (order.status as string) || '',
+      trackingNumber: (shipment?.tracking_number as string) || '',
+      trackingUrl: (shipment?.tracking_url as string) || '',
+      shippingCarrier: (shipment?.carrier as string) || '',
+      estimatedDelivery: (shipment?.estimated_delivery as string) || '',
       metadata: {
-        costs: order.costs || {},
-        recipient: order.recipient || {},
-        items: order.items || []
+        costs: (order.costs as Record<string, unknown>) || {},
+        recipient: (order.recipient as Record<string, unknown>) || {},
+        items: (order.items as unknown[]) || []
       },
       timestamp: new Date().toISOString()
     };
@@ -304,17 +304,20 @@ export class PODWebhookHandler {
   /**
    * Parse Printify webhook event
    */
-  private parsePrintifyEvent(payload: any): PODWebhookEvent {
+  private parsePrintifyEvent(payload: Record<string, unknown>): PODWebhookEvent {
+    const resource = payload.resource as Record<string, unknown> | undefined;
+    const shipments = resource?.shipments as Array<Record<string, unknown>> | undefined;
+    const firstShipment = shipments?.[0];
     return {
       provider: 'printify',
-      eventType: this.mapPrintifyEventType(payload.type),
-      orderId: payload.resource?.metadata?.external_id || '',
-      externalOrderId: payload.resource?.id || '',
-      status: payload.resource?.status || '',
-      trackingNumber: payload.resource?.shipments?.[0]?.tracking_number || '',
-      trackingUrl: payload.resource?.shipments?.[0]?.tracking_url || '',
-      metadata: payload.resource || {},
-      timestamp: payload.created_at || new Date().toISOString()
+      eventType: this.mapPrintifyEventType((payload.type as string) ?? ''),
+      orderId: (resource?.metadata as Record<string, unknown>)?.external_id as string || '',
+      externalOrderId: (resource?.id as string) || '',
+      status: (resource?.status as string) || '',
+      trackingNumber: (firstShipment?.tracking_number as string) || '',
+      trackingUrl: (firstShipment?.tracking_url as string) || '',
+      metadata: (resource || {}) as Record<string, unknown>,
+      timestamp: (payload.created_at as string) || new Date().toISOString()
     };
   }
 
@@ -334,17 +337,19 @@ export class PODWebhookHandler {
   /**
    * Parse Gelato webhook event
    */
-  private parseGelatoEvent(payload: any): PODWebhookEvent {
+  private parseGelatoEvent(payload: Record<string, unknown>): PODWebhookEvent {
+    const order = payload.order as Record<string, unknown> | undefined;
+    const shipment = payload.shipment as Record<string, unknown> | undefined;
     return {
       provider: 'gelato',
-      eventType: this.mapGelatoEventType(payload.event_type),
-      orderId: payload.order?.external_id || '',
-      externalOrderId: payload.order?.id || '',
-      status: payload.order?.status || '',
-      trackingNumber: payload.shipment?.tracking_code || '',
-      trackingUrl: payload.shipment?.tracking_url || '',
-      metadata: payload || {},
-      timestamp: payload.timestamp || new Date().toISOString()
+      eventType: this.mapGelatoEventType((payload.event_type as string) ?? ''),
+      orderId: (order?.external_id as string) || '',
+      externalOrderId: (order?.id as string) || '',
+      status: (order?.status as string) || '',
+      trackingNumber: (shipment?.tracking_code as string) || '',
+      trackingUrl: (shipment?.tracking_url as string) || '',
+      metadata: (payload || {}) as Record<string, unknown>,
+      timestamp: (payload.timestamp as string) || new Date().toISOString()
     };
   }
 
@@ -364,32 +369,33 @@ export class PODWebhookHandler {
   /**
    * Parse Gooten webhook event
    */
-  private parseGootenEvent(payload: any): PODWebhookEvent {
+  private parseGootenEvent(payload: Record<string, unknown>): PODWebhookEvent {
     return {
       provider: 'gooten',
       eventType: 'order.updated',
-      orderId: payload.PartnerOrderId || '',
-      externalOrderId: payload.Id || '',
-      status: payload.OrderStatus || '',
-      trackingNumber: payload.TrackingNumber || '',
+      orderId: String(payload.PartnerOrderId || ''),
+      externalOrderId: String(payload.Id || ''),
+      status: String(payload.OrderStatus || ''),
+      trackingNumber: String(payload.TrackingNumber || ''),
       metadata: payload || {},
-      timestamp: payload.CreatedAt || new Date().toISOString()
+      timestamp: String(payload.CreatedAt || new Date().toISOString())
     };
   }
 
   /**
    * Parse Teespring webhook event
    */
-  private parseTeespringEvent(payload: any): PODWebhookEvent {
+  private parseTeespringEvent(payload: Record<string, unknown>): PODWebhookEvent {
+    const data = payload.data as Record<string, unknown> | undefined;
     return {
       provider: 'teespring',
-      eventType: this.mapTeespringEventType(payload.event),
-      orderId: payload.data?.external_order_id || '',
-      externalOrderId: payload.data?.id || '',
-      status: payload.data?.status || '',
-      trackingNumber: payload.data?.tracking_number || '',
-      metadata: payload.data || {},
-      timestamp: payload.timestamp || new Date().toISOString()
+      eventType: this.mapTeespringEventType((payload.event as string) ?? ''),
+      orderId: (data?.external_order_id as string) || '',
+      externalOrderId: (data?.id as string) || '',
+      status: (data?.status as string) || '',
+      trackingNumber: (data?.tracking_number as string) || '',
+      metadata: (data || {}) as Record<string, unknown>,
+      timestamp: (payload.timestamp as string) || new Date().toISOString()
     };
   }
 
@@ -544,7 +550,7 @@ export const podWebhookHandler = new PODWebhookHandler();
 // Export utility functions
 export const handlePODWebhook = async (
   provider: string,
-  payload: any,
+  payload: Record<string, unknown>,
   signature: string
 ): Promise<PODWebhookResponse> => {
   return podWebhookHandler.handleWebhook(provider, payload, signature);

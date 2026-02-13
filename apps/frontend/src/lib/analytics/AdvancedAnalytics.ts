@@ -231,9 +231,10 @@ export class AdvancedAnalyticsService {
       // Map criteria to Prisma where clause
       if (criteria.email) whereClause.email = { contains: criteria.email };
       if (criteria.role) whereClause.role = criteria.role;
-      if (criteria.createdAt) {
-        if (criteria.createdAt.gte) whereClause.createdAt = { gte: new Date(criteria.createdAt.gte) };
-        if (criteria.createdAt.lte) whereClause.createdAt = { ...whereClause.createdAt, lte: new Date(criteria.createdAt.lte) };
+      const createdAtCriteria = criteria.createdAt as { gte?: string; lte?: string } | undefined;
+      if (createdAtCriteria) {
+        if (createdAtCriteria.gte) whereClause.createdAt = { gte: new Date(createdAtCriteria.gte) };
+        if (createdAtCriteria.lte) whereClause.createdAt = { ...(typeof whereClause.createdAt === 'object' && whereClause.createdAt ? whereClause.createdAt : {}), lte: new Date(createdAtCriteria.lte) };
       }
 
       const segmentRes = await api.get<{ users?: Array<{ id: string; email?: string; role?: string; createdAt: string }> }>('/api/v1/analytics-advanced/segments/query', {
@@ -251,11 +252,12 @@ export class AdvancedAnalyticsService {
 
       if (users.length > 0) {
         const now = new Date();
-        const totalAge = users.reduce((sum: number, user: { id: string; createdAt: Date | string; role?: string | null }) => {
-          const created = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
+        const totalAge = users.reduce((sum: number, user: { id: string; createdAt?: Date | string; role?: string | null }) => {
+          const raw = user.createdAt;
+          const created = raw == null ? now : raw instanceof Date ? raw : new Date(raw);
           return sum + (now.getTime() - created.getTime());
         }, 0);
-        characteristics.avgAccountAge = Math.round(totalAge / users.length / (1000 * 60 * 60 * 24)); // days
+        characteristics.avgAccountAge = Math.round(Number(totalAge) / users.length / (1000 * 60 * 60 * 24)); // days
 
         users.forEach((user) => {
           const roleKey = (user.role || 'USER') as string;

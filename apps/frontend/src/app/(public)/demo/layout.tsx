@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
+
 export const metadata: Metadata = {
   title: 'Demander une Démo | Luneo - Personnalisation Produit',
   description: 'Planifiez une démonstration personnalisée de Luneo avec notre équipe. Découvrez comment transformer votre e-commerce avec la personnalisation IA.',
@@ -8,7 +10,7 @@ export const metadata: Metadata = {
     title: 'Demander une Démo | Luneo',
     description: 'Planifiez une démonstration personnalisée de Luneo avec notre équipe.',
     type: 'website',
-    url: 'https://luneo.app/demo',
+    url: `${APP_URL}/demo`,
     siteName: 'Luneo',
   },
   robots: {
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
     follow: true,
   },
   alternates: {
-    canonical: 'https://luneo.app/demo',
+    canonical: `${APP_URL}/demo`,
   },
 };
 

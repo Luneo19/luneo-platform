@@ -4,7 +4,7 @@ export interface ApiError {
   message: string;
   statusCode: number;
   error: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -25,19 +25,23 @@ export function getErrorMessage(error: unknown): string {
 
 /**
  * Handle API error with toast notification
+ * @param error - The error to handle
+ * @param customMessage - Optional custom message
+ * @param options - Optional title override (e.g. from i18n t('common.error'))
  */
-export function handleApiError(error: unknown, customMessage?: string) {
+export function handleApiError(error: unknown, customMessage?: string, options?: { title?: string }) {
   const message = customMessage || getErrorMessage(error);
-  
+  const errorTitle = options?.title ?? 'Error';
+
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
-    
+
     switch (status) {
       case 400:
         toast.error('Données invalides', { description: message });
         break;
       case 401:
-        toast.error('Non authentifié', { 
+        toast.error('Non authentifié', {
           description: 'Veuillez vous reconnecter'
         });
         // Redirect to login will be handled by axios interceptor
@@ -61,15 +65,15 @@ export function handleApiError(error: unknown, customMessage?: string) {
       case 500:
       case 502:
       case 503:
-        toast.error('Erreur serveur', {
+        toast.error(errorTitle, {
           description: 'Une erreur technique est survenue. Veuillez réessayer.'
         });
         break;
       default:
-        toast.error('Erreur', { description: message });
+        toast.error(errorTitle, { description: message });
     }
   } else {
-    toast.error('Erreur', { description: message });
+    toast.error(errorTitle, { description: message });
   }
 }
 
@@ -101,8 +105,8 @@ export function getFormErrors(error: unknown): Record<string, string> {
   if (axios.isAxiosError(error)) {
     const apiError = error.response?.data as ApiError;
     
-    if (apiError?.details && typeof apiError.details === 'object') {
-      return apiError.details;
+    if (apiError?.details && typeof apiError.details === 'object' && apiError.details !== null) {
+      return apiError.details as Record<string, string>;
     }
   }
   

@@ -90,7 +90,7 @@ describe('LoginPage', () => {
       expect(screen.getByTestId('login-title')).toBeInTheDocument();
       expect(screen.getByText(/bon retour/i)).toBeInTheDocument();
       expect(screen.getByTestId('login-subtitle')).toBeInTheDocument();
-      expect(screen.getByText(/connectez-vous à votre espace luneo/i)).toBeInTheDocument();
+      expect(screen.getByText(/connectez-vous [aà] votre espace [Ll]uneo/i)).toBeInTheDocument();
     });
 
     it('should render email input field', () => {

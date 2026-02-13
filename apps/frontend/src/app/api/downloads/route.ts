@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { createDownloadSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const data = await res.json();
     const downloads = data.downloads ?? data.data ?? [];
     const pagination = data.pagination ?? {};
-    logger.info('Downloads fetched', { count: downloads.length, ...pagination });
+    serverLogger.info('Downloads fetched', { count: downloads.length, ...pagination });
     return {
       downloads,
       pagination: {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       };
     }
     const data = await res.json();
-    logger.info('Download recorded', { resourceId: validatedData.resource_id, resourceType: validatedData.resource_type });
+    serverLogger.info('Download recorded', { resourceId: validatedData.resource_id, resourceType: validatedData.resource_type });
     return ApiResponseBuilder.success(
       { download: data.download ?? data },
       'Téléchargement enregistré avec succès',

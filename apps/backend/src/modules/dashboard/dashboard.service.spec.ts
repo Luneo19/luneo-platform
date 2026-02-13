@@ -45,7 +45,7 @@ describe('DashboardService', () => {
   };
 
   beforeEach(async () => {
-    const mockPrisma = {
+    const mockPrisma: Record<string, any> = {
       brand: {
         findUnique: jest.fn(),
       },
@@ -53,6 +53,12 @@ describe('DashboardService', () => {
         findUnique: jest.fn(),
         upsert: jest.fn(),
         deleteMany: jest.fn(),
+      },
+      order: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      product: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
     };
 
@@ -203,7 +209,7 @@ describe('DashboardService', () => {
         widgetOverrides: { revenue: { visible: true } },
       });
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(prisma.userDashboardPreference.upsert).toHaveBeenCalledWith({
         where: { userId_organizationId: { userId, organizationId: orgId } },
         create: expect.objectContaining({
@@ -226,7 +232,7 @@ describe('DashboardService', () => {
 
       const result = await service.resetPreferences(userId, orgId);
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(prisma.userDashboardPreference.deleteMany).toHaveBeenCalledWith({
         where: { userId, organizationId: orgId },
       });

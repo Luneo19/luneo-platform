@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, ChevronRight } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { Order } from '../types';
 
 interface OrderRowProps {
@@ -34,20 +35,13 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getStatusConfig(status: string) {
-  const configs: Record<
-    string,
-    { label: string; color: string; bgColor: string }
-  > = {
-    pending: { label: 'En attente', color: 'yellow', bgColor: 'yellow-500/20' },
-    processing: {
-      label: 'En traitement',
-      color: 'blue',
-      bgColor: 'blue-500/20',
-    },
-    shipped: { label: 'Expédiée', color: 'cyan', bgColor: 'cyan-500/20' },
-    delivered: { label: 'Livrée', color: 'green', bgColor: 'green-500/20' },
-    cancelled: { label: 'Annulée', color: 'red', bgColor: 'red-500/20' },
+function getStatusConfig(status: string): { color: string; bgColor: string } {
+  const configs: Record<string, { color: string; bgColor: string }> = {
+    pending: { color: 'yellow', bgColor: 'yellow-500/20' },
+    processing: { color: 'blue', bgColor: 'blue-500/20' },
+    shipped: { color: 'cyan', bgColor: 'cyan-500/20' },
+    delivered: { color: 'green', bgColor: 'green-500/20' },
+    cancelled: { color: 'red', bgColor: 'red-500/20' },
   };
   return configs[status] || configs.pending;
 }
@@ -58,7 +52,9 @@ export function OrderRow({
   onSelect,
   onViewOrder,
 }: OrderRowProps) {
+  const { t } = useI18n();
   const statusConfig = getStatusConfig(order.status);
+  const statusLabel = t(`orders.statuses.${order.status}` as string) || order.status;
 
   return (
     <Card
@@ -82,7 +78,7 @@ export function OrderRow({
               <Badge
                 className={`bg-${statusConfig.bgColor} text-${statusConfig.color}-400 border-${statusConfig.color}-500/30`}
               >
-                {statusConfig.label}
+                {statusLabel}
               </Badge>
             </div>
             <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -103,7 +99,7 @@ export function OrderRow({
                 {formatPrice(order.total_amount, order.currency)}
               </p>
               <p className="text-xs text-gray-500">
-                {order.payment_status === 'paid' ? 'Payé' : 'Non payé'}
+                {order.payment_status === 'paid' ? t('orders.paid') : t('orders.unpaid')}
               </p>
             </div>
             <Button
@@ -113,7 +109,7 @@ export function OrderRow({
               className="border-gray-200"
             >
               <Eye className="w-4 h-4 mr-2" />
-              Voir
+              {t('orders.details')}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>

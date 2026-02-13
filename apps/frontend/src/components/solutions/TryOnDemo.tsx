@@ -27,6 +27,7 @@ import { Hands } from '@mediapipe/hands';
 import { Camera as CameraUtils } from '@mediapipe/camera_utils';
 import { ARErrorBoundary } from '@/components/ErrorBoundary';
 import { drawGlassesOverlay, drawWatchOverlay, clearCanvas } from '@/lib/utils/overlay-renderer';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TryOnDemoProps {
   category?: 'glasses' | 'watch' | 'jewelry' | 'all';
@@ -42,12 +43,22 @@ interface TrackedPoint {
   confidence: number;
 }
 
+/** MediaPipe face mesh / hands result shape */
+interface FaceMeshResult {
+  multiFaceLandmarks?: Array<Array<{ x: number; y: number; z: number }>>;
+}
+
+interface HandsResult {
+  multiHandLandmarks?: Array<Array<{ x: number; y: number; z: number }>>;
+}
+
 function TryOnDemo({
   category = 'all',
   modelUrl,
   showControls = true,
   onPhotoTaken,
 }: TryOnDemoProps) {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const faceMeshRef = useRef<FaceMesh | null>(null);
@@ -74,7 +85,7 @@ function TryOnDemo({
   ];
 
   // Draw face overlay (utilise utilitaire overlay-renderer)
-  const drawFaceOverlay = useCallback((results: any) => {
+  const drawFaceOverlay = useCallback((results: FaceMeshResult) => {
     if (!canvasRef.current || !videoRef.current) return;
 
     const canvas = canvasRef.current;
@@ -99,7 +110,7 @@ function TryOnDemo({
       
       if (landmarks.length >= 468) {
         // Convert landmarks to overlay points format
-        const overlayPoints = landmarks.map((landmark: any) => ({
+        const overlayPoints = landmarks.map((landmark: { x: number; y: number; z: number }) => ({
           x: landmark.x * canvas.width,
           y: landmark.y * canvas.height,
         }));
@@ -116,7 +127,7 @@ function TryOnDemo({
   }, [selectedCategory]);
 
   // Draw hand overlay (utilise utilitaire overlay-renderer)
-  const drawHandOverlay = useCallback((results: any) => {
+  const drawHandOverlay = useCallback((results: HandsResult) => {
     if (!canvasRef.current || !videoRef.current) return;
 
     const canvas = canvasRef.current;
@@ -194,7 +205,7 @@ function TryOnDemo({
                 }
                 clearCanvas(ctx, canvas.width, canvas.height);
                 if (selectedCategory === 'glasses' && landmarks.length >= 468) {
-                  const overlayPoints = landmarks.map((landmark: any) => ({
+                  const overlayPoints = landmarks.map((landmark: { x: number; y: number; z: number }) => ({
                     x: landmark.x * canvas.width,
                     y: landmark.y * canvas.height,
                   }));
@@ -220,7 +231,7 @@ function TryOnDemo({
       logger.info('FaceMesh initialized successfully');
     } catch (err) {
       logger.error('FaceMesh initialization error', { error: err });
-      setError('Erreur lors de l\'initialisation du tracking facial. Veuillez rafraîchir la page.');
+      setError(t('common.trackingErrorRefresh'));
     }
   }, [selectedCategory]);
 
@@ -268,7 +279,7 @@ function TryOnDemo({
       logger.info('Hands initialized successfully');
     } catch (err) {
       logger.error('Hands initialization error', { error: err });
-      setError('Erreur lors de l\'initialisation du tracking main. Veuillez rafraîchir la page.');
+      setError(t('common.trackingErrorRefresh'));
     }
   }, [drawHandOverlay]);
 
@@ -306,7 +317,7 @@ function TryOnDemo({
       initializeFaceMesh();
       initializeHands();
 
-      // Wait a bit for MediaPipe to initialize
+      // Demo simulation - replace with real API in production. Wait for MediaPipe to initialize.
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Check if MediaPipe initialized correctly
@@ -401,11 +412,11 @@ function TryOnDemo({
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           errorMessage = isMobile
             ? 'Permission caméra refusée. Sur mobile, autorisez l\'accès caméra dans les paramètres de votre navigateur, puis rechargez la page.'
-            : 'Permission caméra refusée. Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur.';
+            : t('common.cameraPermissionDenied');
         } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
           errorMessage = isMobile
             ? 'Aucune caméra trouvée. Sur mobile, cette fonctionnalité fonctionne mieux avec l\'application native. Essayez sur desktop pour une meilleure expérience.'
-            : 'Aucune caméra trouvée. Veuillez connecter une caméra.';
+            : t('common.cameraNotFound');
         } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
           errorMessage = 'La caméra est déjà utilisée par une autre application.';
         } else {
@@ -762,6 +773,7 @@ function TryOnDemo({
               <button
                 onClick={stopCamera}
                 className="absolute top-4 right-4 mt-12 w-10 h-10 bg-black/60 backdrop-blur-sm border border-gray-500/30 rounded-lg flex items-center justify-center hover:bg-black/80 transition-colors"
+                aria-label="Close camera"
               >
                 <X className="w-5 h-5 text-white" />
               </button>
@@ -810,6 +822,7 @@ function TryOnDemo({
                 onClick={takePhoto}
                 variant="outline"
                 className="border-cyan-500/50 hover:bg-cyan-500/10"
+                aria-label="Take screenshot"
               >
                 <Download className="mr-2 w-4 h-4" />
                 Photo

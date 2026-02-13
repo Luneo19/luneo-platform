@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { deleteAccountSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -38,11 +38,11 @@ export async function POST(request: NextRequest) {
       if (res.status === 401) {
         throw { status: 401, message: 'Mot de passe incorrect', code: 'INVALID_PASSWORD' };
       }
-      logger.warn('Account deletion failed', { status: res.status, errBody });
+      serverLogger.warn('Account deletion failed', { status: res.status, errBody });
       throw { status: res.status, message, code: 'ACCOUNT_DELETION_ERROR' };
     }
 
-    logger.warn('Account deleted successfully (via backend)');
+    serverLogger.warn('Account deleted successfully (via backend)');
     return ApiResponseBuilder.success({
       message: 'Compte supprimé définitivement avec succès',
     });

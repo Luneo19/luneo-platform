@@ -3,7 +3,9 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type {
@@ -65,6 +67,7 @@ function createObject(
 }
 
 export function useEditor() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const stageRef = useRef<{ toDataURL: (opts?: { mimeType?: string; quality?: number }) => string } | null>(null);
 
@@ -108,7 +111,7 @@ export function useEditor() {
       return next;
     });
     setSelectedId(obj.id);
-    toast({ title: 'Added', description: `${obj.type} added to canvas` });
+    toast({ title: t('editor.added'), description: t('editor.addedToCanvas', { type: obj.type }) });
   }, [objects.length, pushHistory, toast]);
 
   const addText = useCallback(() => {
@@ -160,7 +163,7 @@ export function useEditor() {
       return next;
     });
     if (selectedId === id) setSelectedId(null);
-    toast({ title: 'Deleted', description: 'Object removed' });
+    toast({ title: t('editor.deleted'), description: t('editor.objectRemoved') });
   }, [pushHistory, selectedId, toast]);
 
   const reorderObject = useCallback((id: string, direction: 'up' | 'down') => {
@@ -200,7 +203,7 @@ export function useEditor() {
       pushHistory(next);
       return next;
     });
-    toast({ title: 'Template applied', description: template.name });
+    toast({ title: t('editor.templateApplied'), description: template.name });
   }, [objects.length, pushHistory, toast]);
 
   const handleUndo = useCallback(() => {
@@ -223,7 +226,7 @@ export function useEditor() {
     async (format: ExportFormat) => {
       const stage = stageRef.current;
       if (!stage?.toDataURL) {
-        toast({ title: 'Error', description: 'Canvas not ready', variant: 'destructive' });
+        toast({ title: t('common.error'), description: t('editor.canvasNotReady'), variant: 'destructive' });
         return;
       }
       try {
@@ -282,26 +285,26 @@ export function useEditor() {
               </body></html>
             `);
             printWindow.document.close();
-            toast({ title: 'Exported', description: 'PDF ready to print' });
+            toast({ title: t('editor.exported'), description: t('editor.pdfReadyToPrint') });
           } else {
             downloadDataUrl(dataUrl, `${fileName}.png`);
-            toast({ title: 'Info', description: 'PDF blocked: PNG downloaded. Allow popups for PDF.' });
+            toast({ title: t('common.error'), description: t('editor.pdfBlockedUsePng') });
           }
           return;
         }
-        toast({ title: 'Exported', description: `${format.toUpperCase()} downloaded` });
+        toast({ title: t('editor.exported'), description: t('editor.formatDownloaded', { format: format.toUpperCase() }) });
       } catch (e) {
         logger.error('Export failed', { error: e });
-        toast({ title: 'Export failed', variant: 'destructive' });
+        toast({ title: t('editor.exportFailed'), variant: 'destructive' });
       }
     },
-    [fileName, objects, toast]
+    [fileName, objects, toast, t]
   );
 
   const handleSaveToLibrary = useCallback(async () => {
     const stage = stageRef.current;
     if (!stage?.toDataURL) {
-      toast({ title: 'Error', description: 'Canvas not ready', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('editor.canvasNotReady'), variant: 'destructive' });
       return { success: false };
     }
     try {
@@ -311,13 +314,13 @@ export function useEditor() {
         prompt: fileName,
         previewUrl: dataUrl,
         status: 'COMPLETED',
-      } as any);
-      toast({ title: 'Saved', description: 'Design saved to library' });
+      } as { name: string; prompt: string; previewUrl: string; status: string });
+      toast({ title: t('common.saved'), description: t('editor.designSavedToLibrary') });
       return { success: true, design: res };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Save failed';
+      const message = getErrorDisplayMessage(error);
       logger.error('Save to library failed', { error });
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
       return { success: false };
     }
   }, [fileName, toast]);

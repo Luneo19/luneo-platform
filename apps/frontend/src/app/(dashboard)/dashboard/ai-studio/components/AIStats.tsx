@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, Loader2, XCircle, Zap, TrendingUp } from 'lucide-react';
 
@@ -22,44 +23,45 @@ export function AIStats({
   failed,
   totalCredits,
 }: AIStatsProps) {
+  const { t } = useI18n();
   const stats = [
     {
-      label: 'Total',
+      label: t('aiStudio.stats.total'),
       value: total,
       icon: TrendingUp,
       color: 'text-[#3b82f6]',
       bgColor: 'bg-[#3b82f6]/10',
     },
     {
-      label: 'Réussies',
+      label: t('aiStudio.stats.completed'),
       value: completed,
       icon: CheckCircle2,
       color: 'text-[#4ade80]',
       bgColor: 'bg-[#4ade80]/10',
     },
     {
-      label: 'En cours',
+      label: t('aiStudio.stats.processing'),
       value: processing,
       icon: Loader2,
       color: 'text-[#fbbf24]',
       bgColor: 'bg-[#fbbf24]/10',
     },
     {
-      label: 'Échouées',
+      label: t('aiStudio.stats.failed'),
       value: failed,
       icon: XCircle,
       color: 'text-[#f87171]',
       bgColor: 'bg-[#f87171]/10',
     },
     {
-      label: 'Crédits utilisés',
+      label: t('aiStudio.stats.creditsUsed'),
       value: totalCredits.toLocaleString('fr-FR'),
       icon: Zap,
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10',
     },
     {
-      label: 'Taux de succès',
+      label: t('aiStudio.stats.successRate'),
       value: total > 0 ? `${((completed / total) * 100).toFixed(1)}%` : '0%',
       icon: TrendingUp,
       color: 'text-cyan-400',

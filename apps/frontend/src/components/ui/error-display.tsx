@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { Button } from './button';
 
 interface ErrorDisplayProps {
@@ -18,7 +19,7 @@ export function ErrorDisplay({
   onRetry,
   className = '',
 }: ErrorDisplayProps) {
-  const errorMessage = message || (error instanceof Error ? error.message : String(error || 'Erreur inconnue'));
+  const errorMessage = message || (error != null ? getErrorDisplayMessage(error) : 'Erreur inconnue');
 
   return (
     <div className={`flex flex-col items-center justify-center p-6 text-center ${className}`}>

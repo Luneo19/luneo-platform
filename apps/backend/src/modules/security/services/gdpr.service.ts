@@ -19,11 +19,11 @@ export class GDPRService {
    * Exporter toutes les données d'un utilisateur (Right to access)
    */
   async exportUserData(userId: string): Promise<{
-    user: any;
-    designs: any[];
-    orders: any[];
-    auditLogs: any[];
-    usageMetrics: any[];
+    user: Record<string, unknown> | null;
+    designs: import('@prisma/client').Design[];
+    orders: import('@prisma/client').Order[];
+    auditLogs: unknown[];
+    usageMetrics: import('@prisma/client').UsageMetric[];
     exportedAt: Date;
   }> {
     try {
@@ -77,7 +77,7 @@ export class GDPRService {
       const sanitizedUser = { ...user };
 
       const exportData = {
-        user: sanitizedUser,
+        user: sanitizedUser as Record<string, unknown>,
         designs,
         orders,
         auditLogs,
@@ -163,7 +163,7 @@ export class GDPRService {
         {
           userId,
           userEmail: user.email,
-          brandId: user.brandId,
+          brandId: user.brandId ?? undefined,
           metadata: {
             reason,
             itemsDeleted: {
@@ -285,7 +285,7 @@ export class GDPRService {
   /**
    * Récupérer l'historique des consentements
    */
-  async getConsentHistory(userId: string): Promise<any[]> {
+  async getConsentHistory(userId: string): Promise<import('@prisma/client').UserConsent[]> {
     try {
       return await this.prisma.userConsent.findMany({
         where: { userId },
@@ -304,7 +304,7 @@ export class GDPRService {
    * Générer un rapport de conformité GDPR pour un brand
    */
   async generateComplianceReport(brandId: string): Promise<{
-    brand: any;
+    brand: import('@prisma/client').Brand | null;
     usersCount: number;
     consentsCount: number;
     dataExportsCount: number;

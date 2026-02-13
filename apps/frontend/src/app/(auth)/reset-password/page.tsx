@@ -1,9 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useState, useMemo, useCallback, memo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import {
   Lock,
@@ -38,7 +39,12 @@ interface PasswordStrength {
   };
 }
 
-const checkPasswordStrength = (password: string): PasswordStrength => {
+const RESET_STRENGTH_KEYS = ['veryWeak', 'weak', 'medium', 'strong'] as const;
+
+const checkPasswordStrength = (
+  password: string,
+  t: (key: string) => string
+): PasswordStrength => {
   const requirements = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -47,19 +53,19 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
   };
 
   const score = Object.values(requirements).filter(Boolean).length;
-
-  const labels = ['Tres faible', 'Faible', 'Moyen', 'Fort'];
+  const idx = Math.min(Math.max(score - 1, 0), 3);
   const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
 
   return {
     score: Math.min(score, 4),
-    label: labels[Math.min(score - 1, 3)] || labels[0],
-    color: colors[Math.min(score - 1, 3)] || colors[0],
+    label: t(`auth.resetPassword.passwordStrength.${RESET_STRENGTH_KEYS[idx]}`),
+    color: colors[idx] || colors[0],
     requirements,
   };
 };
 
 function ResetPasswordPageContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -71,7 +77,7 @@ function ResetPasswordPageContent() {
   const [isReady, setIsReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const passwordStrength = useMemo(() => checkPasswordStrength(password), [password]);
+  const passwordStrength = useMemo(() => checkPasswordStrength(password, t), [password, t]);
   const passwordsMatch = useMemo(
     () => password === confirmPassword && confirmPassword.length > 0,
     [password, confirmPassword],
@@ -90,7 +96,7 @@ function ResetPasswordPageContent() {
         const token = urlParams.get('token');
 
         if (!token) {
-          throw new Error("Token manquant dans l'URL");
+          throw new Error(t('auth.resetPassword.tokenMissing'));
         }
 
         if (isMounted) {
@@ -103,9 +109,7 @@ function ResetPasswordPageContent() {
           message: err instanceof Error ? err.message : 'Unknown error',
         });
         if (isMounted) {
-          setError(
-            'Le lien de reinitialisation est invalide ou a expire. Veuillez demander un nouveau lien.',
-          );
+          setError(t('auth.resetPassword.linkInvalidOrExpired'));
         }
       } finally {
         if (isMounted) {
@@ -118,7 +122,7 @@ function ResetPasswordPageContent() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -127,13 +131,13 @@ function ResetPasswordPageContent() {
       setError('');
 
       if (passwordStrength.score < 3) {
-        setError('Veuillez choisir un mot de passe plus securise');
+        setError(t('auth.resetPassword.errors.weakPassword'));
         setLoading(false);
         return;
       }
 
       if (password !== confirmPassword) {
-        setError('Les mots de passe ne correspondent pas');
+        setError(t('auth.resetPassword.errors.passwordsMismatch'));
         setLoading(false);
         return;
       }
@@ -145,7 +149,7 @@ function ResetPasswordPageContent() {
           (window as Window & { __resetToken?: string }).__resetToken;
 
         if (!token) {
-          setError('Token de reinitialisation manquant');
+          setError(t('auth.resetPassword.tokenInvalid'));
           setLoading(false);
           return;
         }
@@ -160,7 +164,7 @@ function ResetPasswordPageContent() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || 'Une erreur est survenue');
+          throw new Error(data.message || t('auth.resetPassword.errors.generic'));
         }
 
         setSuccess(true);
@@ -170,52 +174,52 @@ function ResetPasswordPageContent() {
         }, 3000);
       } catch (err: unknown) {
         setError(
-          err instanceof Error ? err.message : 'Une erreur est survenue. Veuillez reessayer.',
+          err instanceof Error ? err.message : t('auth.resetPassword.errors.generic'),
         );
       } finally {
         setLoading(false);
       }
     },
-    [password, confirmPassword, passwordStrength.score, router],
+    [password, confirmPassword, passwordStrength.score, router, t],
   );
 
   // Success state
   if (success) {
     return (
-      <motion
+      <LazyMotionDiv
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
         className="text-center"
       >
         <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/10 rounded-2xl mb-5">
-          <motion.div
+          <LazyMotionDiv
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           >
             <ShieldCheck className="w-7 h-7 text-green-400" />
-          </motion.div>
+          </LazyMotionDiv>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Mot de passe modifie !</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('auth.resetPassword.successTitle')}</h1>
         <p className="text-slate-400 mb-6 leading-relaxed">
-          Votre mot de passe a ete reinitialise avec succes.
+          {t('auth.resetPassword.successMessage')}
           <br />
-          Redirection vers la connexion...
+          {t('auth.resetPassword.redirecting')}
         </p>
         <Link href="/login">
           <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-11 px-6 shadow-lg shadow-purple-500/25">
-            Se connecter maintenant
+            {t('auth.resetPassword.signInNow')}
           </Button>
         </Link>
-      </motion>
+      </LazyMotionDiv>
     );
   }
 
   // Error state (invalid link)
   if (!isInitializing && !isReady && error) {
     return (
-      <motion
+      <LazyMotionDiv
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
@@ -224,12 +228,12 @@ function ResetPasswordPageContent() {
         <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/10 rounded-2xl mb-5">
           <AlertCircle className="w-7 h-7 text-red-400" />
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Lien expire</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('auth.resetPassword.expireTitle')}</h1>
         <p className="text-slate-400 mb-6 leading-relaxed">{error}</p>
         <div className="space-y-3">
           <Link href="/forgot-password">
             <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-11 shadow-lg shadow-purple-500/25">
-              Demander un nouveau lien
+              {t('auth.resetPassword.requestNewLink')}
             </Button>
           </Link>
           <Link href="/login">
@@ -238,16 +242,16 @@ function ResetPasswordPageContent() {
               className="w-full border-white/[0.08] text-slate-300 hover:bg-white/[0.04] hover:text-white h-11"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour a la connexion
+              {t('auth.resetPassword.backToLogin')}
             </Button>
           </Link>
         </div>
-      </motion>
+      </LazyMotionDiv>
     );
   }
 
   return (
-    <motion
+    <LazyMotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -259,7 +263,7 @@ function ResetPasswordPageContent() {
           className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Retour a la connexion
+          {t('auth.resetPassword.backToLogin')}
         </Link>
       </FadeIn>
 
@@ -272,12 +276,12 @@ function ResetPasswordPageContent() {
         </FadeIn>
         <SlideUp delay={0.2}>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Nouveau mot de passe
+            {t('auth.resetPassword.title')}
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
           <p className="text-slate-400">
-            Choisissez un mot de passe securise pour votre compte.
+            {t('auth.resetPassword.subtitle')}
           </p>
         </FadeIn>
       </div>
@@ -298,7 +302,7 @@ function ResetPasswordPageContent() {
         <SlideUp delay={0.4}>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-slate-300">
-              Nouveau mot de passe
+              {t('auth.resetPassword.newPassword')}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
@@ -309,7 +313,7 @@ function ResetPasswordPageContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                placeholder="Creez un mot de passe securise"
+                placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
                 className="pl-10 pr-12 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                 disabled={loading || !isReady}
               />
@@ -325,7 +329,7 @@ function ResetPasswordPageContent() {
 
             {/* Password Strength Indicator */}
             {password && (
-              <motion
+              <LazyMotionDiv
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 className="space-y-2"
@@ -356,11 +360,11 @@ function ResetPasswordPageContent() {
 
                 <div className="grid grid-cols-2 gap-1 text-xs">
                   {[
-                    { key: 'length', label: '8 caracteres min.' },
-                    { key: 'uppercase', label: '1 majuscule' },
-                    { key: 'lowercase', label: '1 minuscule' },
-                    { key: 'number', label: '1 chiffre' },
-                  ].map(({ key, label }) => (
+                    { key: 'length', labelKey: 'auth.resetPassword.requirements.minLength' },
+                    { key: 'uppercase', labelKey: 'auth.resetPassword.requirements.uppercase' },
+                    { key: 'lowercase', labelKey: 'auth.resetPassword.requirements.lowercase' },
+                    { key: 'number', labelKey: 'auth.resetPassword.requirements.number' },
+                  ].map(({ key, labelKey }) => (
                     <div
                       key={key}
                       className={`flex items-center gap-1 ${
@@ -378,11 +382,11 @@ function ResetPasswordPageContent() {
                       ) : (
                         <X className="w-3 h-3" />
                       )}
-                      {label}
+                      {t(labelKey)}
                     </div>
                   ))}
                 </div>
-              </motion>
+              </LazyMotionDiv>
             )}
           </div>
         </SlideUp>
@@ -391,7 +395,7 @@ function ResetPasswordPageContent() {
         <SlideUp delay={0.5}>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">
-              Confirmer le mot de passe
+              {t('auth.resetPassword.confirmPassword')}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
@@ -401,7 +405,7 @@ function ResetPasswordPageContent() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                placeholder="Confirmez votre mot de passe"
+                placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
                 className={`pl-10 pr-12 bg-white/[0.04] text-white placeholder:text-slate-600 focus:ring-purple-500/20 h-12 ${
                   confirmPassword && !passwordsMatch
                     ? 'border-red-500/30 focus:border-red-400/50'
@@ -423,11 +427,11 @@ function ResetPasswordPageContent() {
               </button>
             </div>
             {confirmPassword && !passwordsMatch && (
-              <p className="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
+              <p className="text-xs text-red-400">{t('auth.resetPassword.passwordsDoNotMatch')}</p>
             )}
             {passwordsMatch && (
               <p className="text-xs text-green-400 flex items-center gap-1">
-                <Check className="w-3 h-3" /> Les mots de passe correspondent
+                <Check className="w-3 h-3" /> {t('auth.resetPassword.passwordsMatch')}
               </p>
             )}
           </div>
@@ -443,19 +447,24 @@ function ResetPasswordPageContent() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Reinitialisation...
+                {t('auth.resetPassword.submitting')}
               </>
             ) : (
-              'Reinitialiser mon mot de passe'
+              t('auth.resetPassword.submit')
             )}
           </Button>
         </SlideUp>
       </form>
-    </motion>
+    </LazyMotionDiv>
   );
 }
 
 const ResetPasswordPageContentMemo = memo(ResetPasswordPageContent);
+
+function ResetPasswordFallback() {
+  const { t } = useI18n();
+  return <p className="text-slate-400">{t('auth.resetPassword.verifyingLink')}</p>;
+}
 
 export default function ResetPasswordPage() {
   return (
@@ -464,7 +473,7 @@ export default function ResetPasswordPage() {
         fallback={
           <div className="flex flex-col items-center justify-center min-h-[400px]">
             <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
-            <p className="text-slate-400">Verification du lien...</p>
+            <ResetPasswordFallback />
           </div>
         }
       >

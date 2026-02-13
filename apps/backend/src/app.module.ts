@@ -16,11 +16,17 @@ import {
     databaseConfig,
     emailConfig,
     emailDomainConfig,
+    gelatoConfig,
     jwtConfig,
+    marketplaceConfig,
     monitoringConfig,
     oauthConfig,
+    printfulConfig,
+    printifyConfig,
     redisConfig,
+    referralConfig,
     stripeConfig,
+    validateConfig,
 } from './config/configuration';
 
 // Modules
@@ -44,6 +50,7 @@ import { EnterpriseModule } from './modules/enterprise/enterprise.module'; // �
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { OrionModule } from './modules/orion/orion.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { CartModule } from './modules/cart/cart.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { ProductEngineModule } from './modules/product-engine/product-engine.module';
@@ -58,6 +65,7 @@ import { UsersModule } from './modules/users/users.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { SupportModule } from './modules/support/support.module';
+import { SearchModule } from './modules/search/search.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { SpecsModule } from './modules/specs/specs.module';
@@ -81,9 +89,11 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TryOnModule } from './modules/try-on/try-on.module';
+import { ExperimentsModule } from './modules/experiments/experiments.module';
 import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.module';
 import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module';
 import { AssetHubModule } from './modules/asset-hub/asset-hub.module';
+import { PrintOnDemandModule } from './modules/print-on-demand/print-on-demand.module';
 
 // Integration modules (e-commerce - also used by IntegrationsModule)
 import { PrestaShopModule } from './modules/integrations/prestashop/prestashop.module';
@@ -108,6 +118,7 @@ import { GrafanaModule } from './modules/monitoring/grafana/grafana.module';
 // Common
 import { CommonModule } from './common/common.module';
 import { TIMEOUTS } from './common/constants/app.constants';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 // i18n & Timezone
 import { I18nModule } from './libs/i18n/i18n.module';
@@ -116,6 +127,7 @@ import { TimezoneModule } from './libs/timezone/timezone.module';
 // Jobs
 import { JobsModule } from './jobs/jobs.module';
 import { CacheableInterceptor } from './libs/cache/cacheable.interceptor';
+import { CacheControlInterceptor } from './common/interceptors/cache-control.interceptor';
 
 // WebSocket
 import { WebSocketModule } from './websocket/websocket.module';
@@ -140,6 +152,10 @@ import { ResilienceModule } from './libs/resilience/resilience.module';
 // Crypto (AES-256-GCM encryption)
 import { CryptoModule } from './libs/crypto/crypto.module';
 
+// PRODUCTION FIX: Redis-backed ThrottlerStorage for multi-instance
+import { ThrottlerRedisStorageService } from './libs/rate-limit/throttler-redis-storage.service';
+import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
+
 @Module({
   imports: [
     // Sentry for error monitoring
@@ -161,20 +177,29 @@ import { CryptoModule } from './libs/crypto/crypto.module';
         emailDomainConfig,
         appConfig,
         monitoringConfig,
+        // PRODUCTION FIX: These configs were defined but never loaded
+        marketplaceConfig,
+        referralConfig,
+        printfulConfig,
+        printifyConfig,
+        gelatoConfig,
       ],
+      validate: validateConfig,
       cache: true,
     }),
 
-    // Rate limiting
+    // PRODUCTION FIX: Rate limiting with Redis-backed storage for multi-instance deployments
+    // Falls back to in-memory if Redis is unavailable
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService, redisService: RedisOptimizedService) => ({
         throttlers: [{
-          ttl: configService.get('app.rateLimitTtl') * 1000,
-          limit: configService.get('app.rateLimitLimit'),
+          ttl: (configService.get('app.rateLimitTtl') ?? 60) * 1000,
+          limit: configService.get<number>('app.rateLimitLimit') ?? 100,
         }],
+        storage: new ThrottlerRedisStorageService(redisService),
       }),
-      inject: [ConfigService],
+      inject: [ConfigService, RedisOptimizedService],
     }),
 
     // Health checks
@@ -257,6 +282,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     ProductsModule,
     DesignsModule,
     OrdersModule,
+    CartModule,
     AiModule,
     // NOUVEAU: Modules 3D/AR + Personalization
     SpecsModule,
@@ -273,15 +299,9 @@ import { CryptoModule } from './libs/crypto/crypto.module';
         PlansModule,
         PricingModule, // ✅ PHASE 6 - Pricing & Rentabilité IA
         ProductEngineModule,
-    // DISABLED: RenderModule
-    // Reason: Requires native canvas/sharp dependencies not available in current Docker image
-    // Impact: Server-side rendering (SSR previews, PDF generation) not available
-    // Re-enable:
-    //   1. Add to Dockerfile: RUN apk add --no-cache cairo-dev pango-dev jpeg-dev giflib-dev
-    //   2. Add to package.json: "canvas": "^2.11.2", "sharp": "^0.33.0"
-    //   3. Uncomment RenderModule below
-    //   4. Run: pnpm install && pnpm build
-    // RenderModule,
+    // PRODUCTION FIX: RenderModule requires native canvas/sharp deps (available in Docker)
+    // Conditionally loaded to avoid failures in dev environments without native deps
+    ...(process.env.ENABLE_RENDER_MODULE === 'true' || process.env.NODE_ENV === 'production' ? [RenderModule] : []),
     EcommerceModule,
     UsageBillingModule,
     WidgetModule,
@@ -298,6 +318,7 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     CreditsModule,
     MonitoringModule,
     SupportModule,
+    SearchModule,
     NotificationsModule,
     CollectionsModule,
     TeamModule,
@@ -314,9 +335,11 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     FeatureFlagsModule,
     ProjectsModule,
     TryOnModule,
+    ExperimentsModule,
     Configurator3DModule,
     VisualCustomizerModule,
     AssetHubModule,
+    PrintOnDemandModule,
 
     // Integration modules (e-commerce)
     PrestaShopModule,
@@ -345,6 +368,9 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     // Cache Module (Global)
     CacheModule,
 
+    // Audit logging
+    AuditModule,
+
     // Common utilities
     CommonModule,
 
@@ -358,23 +384,13 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     I18nModule,
     TimezoneModule,
 
-    // DISABLED: JobsModule
-    // Reason: Depends on RenderModule (canvas/sharp); build/runtime fails when native deps are missing
-    // Impact: Background jobs (design, render, production, AI studio, outbox) are not processed
-    // Re-enable:
-    //   1. Re-enable RenderModule first (see RenderModule comment above)
-    //   2. Uncomment the line below (and keep VERCEL guard if frontend runs on Vercel)
-    //   3. Ensure Redis/BullMQ is configured for the deployment
-    // ...(process.env.VERCEL ? [] : [JobsModule]),
+    // PRODUCTION FIX: Re-enabled JobsModule for Railway deployment (long-lived process with Redis)
+    // Guarded by VERCEL env var (disabled on Vercel) and DISABLE_BULL (explicit opt-out)
+    ...(process.env.VERCEL || process.env.DISABLE_BULL === 'true' ? [] : [JobsModule]),
 
-    // DISABLED: WebSocketModule
-    // Reason: Serverless (e.g. Vercel) does not support persistent WebSocket connections
-    // Impact: No WebSocket support for real-time collaboration/notifications on this server
-    // Re-enable:
-    //   1. Deploy backend to a long-lived process (e.g. Railway) that supports persistent connections
-    //   2. Set NEXT_PUBLIC_WS_URL on frontend to backend WS URL (e.g. wss://api.luneo.app)
-    //   3. Uncomment WebSocketModule below
-    // WebSocketModule,
+    // PRODUCTION FIX: Re-enabled WebSocketModule for Railway deployment (supports persistent connections)
+    // Disabled on Vercel (serverless) and in test environment
+    ...(process.env.VERCEL || process.env.NODE_ENV === 'test' ? [] : [WebSocketModule]),
 
     // Outbox & Budgets
     OutboxModule,
@@ -395,7 +411,15 @@ import { CryptoModule } from './libs/crypto/crypto.module';
     },
     {
       provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
       useClass: CacheableInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CacheControlInterceptor,
     },
     {
       provide: APP_GUARD,

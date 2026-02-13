@@ -25,7 +25,7 @@ export class UpdateProjectDto {
   @ApiProperty({ description: 'Layers', required: false })
   @IsArray()
   @IsOptional()
-  layers?: any[];
+  layers?: Record<string, unknown>[];
 }
 
 

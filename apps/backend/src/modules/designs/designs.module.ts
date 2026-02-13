@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { HttpModule } from '@nestjs/axios';
 import { DesignsController } from '@/modules/designs/designs.controller';
@@ -9,12 +10,17 @@ import { DesignCollectionsService } from '@/modules/designs/services/design-coll
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { PlansModule } from '@/modules/plans/plans.module';
+import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
+import { ZapierModule } from '@/modules/integrations/zapier/zapier.module';
 
 @Module({
   imports: [
+    ConfigModule,
     PrismaModule,
     StorageModule,
     forwardRef(() => PlansModule),
+    UsageBillingModule,
+    ZapierModule,
     HttpModule.register({
       timeout: 60000,
       maxRedirects: 3,

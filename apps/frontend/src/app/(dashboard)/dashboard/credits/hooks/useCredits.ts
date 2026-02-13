@@ -5,6 +5,7 @@
  */
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 import type {
@@ -16,6 +17,7 @@ import type {
 
 export function useCredits() {
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // State - UI
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,7 @@ export function useCredits() {
   const [creditPacks, setCreditPacks] = useState<CreditPack[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [balance, setBalance] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
   // State - Stats
   const [stats, setStats] = useState<CreditStats>({
@@ -95,48 +98,11 @@ export function useCredits() {
         badge: p.badge,
       }));
       setCreditPacks(formattedPacks);
-    } catch (error) {
-      logger.error('Failed to fetch credit packs:', error);
-      // Fallback to default packs
-      setCreditPacks([
-        {
-          id: 'pack-100',
-          name: 'Pack 100',
-          credits: 100,
-          priceCents: 1900,
-          price: 19.0,
-          isActive: true,
-          isFeatured: false,
-          description: 'Idéal pour tester',
-          features: ['100 crédits', 'Valable 6 mois', 'Support email'],
-        },
-        {
-          id: 'pack-500',
-          name: 'Pack 500',
-          credits: 500,
-          priceCents: 7900,
-          price: 79.0,
-          isActive: true,
-          isFeatured: true,
-          savings: 20,
-          badge: 'Meilleur rapport',
-          description: 'Le plus populaire',
-          features: ['500 crédits', 'Valable 12 mois', 'Support prioritaire', 'Économie de 20%'],
-        },
-        {
-          id: 'pack-1000',
-          name: 'Pack 1000',
-          credits: 1000,
-          priceCents: 13900,
-          price: 139.0,
-          isActive: true,
-          isFeatured: false,
-          savings: 30,
-          badge: 'Meilleure valeur',
-          description: 'Pour les utilisateurs intensifs',
-          features: ['1000 crédits', 'Valable 12 mois', 'Support prioritaire', 'Économie de 30%'],
-        },
-      ]);
+      setError(null);
+    } catch (err) {
+      logger.error('Failed to fetch credit packs:', err);
+      setCreditPacks([]);
+      setError('Unable to load credit packs. Please try again later.');
     }
   }, []);
 
@@ -309,8 +275,8 @@ export function useCredits() {
     const pack = creditPacks.find(p => p.id === selectedPack);
     if (!pack) {
       toast({
-        title: 'Erreur',
-        description: 'Pack introuvable',
+        title: t('common.error'),
+        description: t('credits.errorPackNotFound'),
         variant: 'destructive',
       });
       return;
@@ -321,35 +287,35 @@ export function useCredits() {
         window.location.href = data.url;
       } else {
         toast({
-          title: 'Erreur',
-          description: 'URL de paiement non disponible',
+          title: t('common.error'),
+          description: t('credits.errorPaymentUrl'),
           variant: 'destructive',
         });
       }
     } catch (error: unknown) {
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description:
           (error instanceof Error ? error.message : null) ||
-          'Erreur lors de la création de la session de paiement',
+          t('credits.errorPaymentSession'),
         variant: 'destructive',
       });
     }
-  }, [selectedPack, creditPacks, toast]);
+  }, [selectedPack, creditPacks, toast, t]);
 
   const handleEnableAutoRefill = useCallback(() => {
     if (!autoRefillPack) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez sélectionner un pack',
+        title: t('common.error'),
+        description: t('credits.errorSelectPack'),
         variant: 'destructive',
       });
       return;
     }
     setAutoRefillEnabled(true);
     setShowAutoRefillModal(false);
-    toast({ title: 'Succès', description: 'Recharge automatique activée' });
-  }, [autoRefillPack, toast]);
+    toast({ title: t('common.success'), description: t('credits.autoRefillEnabledSuccess') });
+  }, [autoRefillPack, toast, t]);
 
   const handleExportCSV = useCallback(() => {
     try {
@@ -391,18 +357,18 @@ export function useCredits() {
       link.click();
       document.body.removeChild(link);
       toast({
-        title: 'Export CSV',
-        description: 'Export CSV réussi !',
+        title: t('common.success'),
+        description: t('credits.exportCsvSuccess'),
       });
       setShowExportModal(false);
     } catch (error: unknown) {
       toast({
-        title: 'Erreur',
-        description: "Échec de l'export CSV",
+        title: t('common.error'),
+        description: t('credits.exportCsvFailed'),
         variant: 'destructive',
       });
     }
-  }, [transactions, filterType, toast]);
+  }, [transactions, filterType, toast, t]);
 
   const handleExportJSON = useCallback(() => {
     try {
@@ -440,18 +406,18 @@ export function useCredits() {
       link.click();
       document.body.removeChild(link);
       toast({
-        title: 'Export JSON',
-        description: 'Export JSON réussi !',
+        title: t('common.success'),
+        description: t('credits.exportJsonSuccess'),
       });
       setShowExportModal(false);
     } catch (error: unknown) {
       toast({
-        title: 'Erreur',
-        description: "Échec de l'export JSON",
+        title: t('common.error'),
+        description: t('credits.exportJsonFailed'),
         variant: 'destructive',
       });
     }
-  }, [transactions, filterType, toast]);
+  }, [transactions, filterType, toast, t]);
 
   // Refresh data
   const refreshData = useCallback(async () => {
@@ -486,6 +452,7 @@ export function useCredits() {
     transactions,
     stats,
     balance,
+    error,
 
     // Computed
     filteredTransactions,

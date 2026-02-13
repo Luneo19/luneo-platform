@@ -73,6 +73,9 @@ export class CacheManager {
   private memoryCache: Map<string, CacheItem<any>> = new Map();
   private memorySizeBytes: number = 0;
   
+  // Cleanup interval reference
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  
   // Stats
   private hits: number = 0;
   private misses: number = 0;
@@ -95,7 +98,7 @@ export class CacheManager {
     }
     
     // Cleanup expired items périodiquement
-    setInterval(() => this.cleanupExpired(), 60000); // Every minute
+    this.cleanupInterval = setInterval(() => this.cleanupExpired(), 60000); // Every minute
   }
 
   /**
@@ -321,6 +324,12 @@ export class CacheManager {
    * Dispose
    */
   async dispose(): Promise<void> {
+    // Clear cleanup interval to prevent memory leak
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    
     this.memoryCache.clear();
     this.memorySizeBytes = 0;
     

@@ -20,8 +20,8 @@ describe('OrdersController', () => {
     role: 'USER',
   };
 
-  // Mock request object
-  const mockRequest = (user = mockUser) => ({ user });
+  // Mock request object (cast to any for Express Request type)
+  const mockRequest = (user = mockUser) => ({ user }) as any;
 
   beforeEach(async () => {
     const mockOrdersService = {
@@ -127,10 +127,10 @@ describe('OrdersController', () => {
   describe('POST /orders', () => {
     const createOrderDto = {
       items: [
-        { productId: 'prod_1', designId: 'design_1', quantity: 2, unitPriceCents: 2500 },
+        { product_id: 'prod_1', design_id: 'design_1', quantity: 2 },
       ],
       shippingAddress: {
-        street: '123 Main St',
+        line1: '123 Main St',
         city: 'Paris',
         postalCode: '75001',
         country: 'FR',
@@ -163,7 +163,7 @@ describe('OrdersController', () => {
       );
 
       const req = mockRequest();
-      await expect(controller.create({ items: [] }, req)).rejects.toThrow(
+      await expect(controller.create({ items: [] } as any, req)).rejects.toThrow(
         BadRequestException
       );
     });
@@ -227,7 +227,7 @@ describe('OrdersController', () => {
   describe('PUT /orders/:id', () => {
     const updateDto = {
       shippingAddress: {
-        street: '456 New St',
+        line1: '456 New St',
         city: 'Lyon',
         postalCode: '69001',
         country: 'FR',
@@ -286,9 +286,9 @@ describe('OrdersController', () => {
       ordersService.cancel.mockResolvedValue(mockCancelledOrder as any);
 
       const req = mockRequest();
-      const result = await controller.cancel('order_123', req);
+      const result = await controller.cancel('order_123', {}, req);
 
-      expect(ordersService.cancel).toHaveBeenCalledWith('order_123', mockUser);
+      expect(ordersService.cancel).toHaveBeenCalledWith('order_123', mockUser, undefined);
       expect(result.status).toBe('CANCELLED');
     });
 
@@ -298,7 +298,7 @@ describe('OrdersController', () => {
       );
 
       const req = mockRequest();
-      await expect(controller.cancel('nonexistent', req)).rejects.toThrow(
+      await expect(controller.cancel('nonexistent', {}, req)).rejects.toThrow(
         NotFoundException
       );
     });
@@ -309,7 +309,7 @@ describe('OrdersController', () => {
       );
 
       const req = mockRequest();
-      await expect(controller.cancel('shipped_order', req)).rejects.toThrow(
+      await expect(controller.cancel('shipped_order', {}, req)).rejects.toThrow(
         BadRequestException
       );
     });
@@ -320,7 +320,7 @@ describe('OrdersController', () => {
       );
 
       const req = mockRequest();
-      await expect(controller.cancel('other_user_order', req)).rejects.toThrow(
+      await expect(controller.cancel('other_user_order', {}, req)).rejects.toThrow(
         ForbiddenException
       );
     });

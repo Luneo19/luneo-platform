@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { ARPreviewHeader } from './components/ARPreviewHeader';
 import { ARPreviewStats } from './components/ARPreviewStats';
@@ -20,6 +21,7 @@ import { Search, Filter, QrCode } from 'lucide-react';
 import type { ARMode } from './types';
 
 export function ARStudioPreviewPageClient() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -43,8 +45,8 @@ export function ARStudioPreviewPageClient() {
   const handleStartPreview = async () => {
     if (!selectedModel) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez sélectionner un modèle',
+        title: t('common.error'),
+        description: t('arStudio.noModelsDesc'),
         variant: 'destructive',
       });
       return;
@@ -56,8 +58,8 @@ export function ARStudioPreviewPageClient() {
   const handleGenerateQR = async () => {
     if (!selectedModel) {
       toast({
-        title: 'Erreur',
-        description: 'Veuillez sélectionner un modèle',
+        title: t('common.error'),
+        description: t('arStudio.noModelsDesc'),
         variant: 'destructive',
       });
       return;

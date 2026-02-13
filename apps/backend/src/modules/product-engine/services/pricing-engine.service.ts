@@ -141,12 +141,12 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone image
    */
-  private calculateImageZonePrice(options: any): number {
+  private calculateImageZonePrice(options: Record<string, unknown>): number {
     let price = 0;
 
     // Prix basé sur la complexité de l'image
     if (options.complexity) {
-      switch (options.complexity) {
+      switch (options.complexity as string) {
         case 'simple':
           price += 50; // 0.50€
           break;
@@ -161,14 +161,14 @@ export class PricingEngine {
 
     // Prix basé sur la résolution
     if (options.width && options.height) {
-      const megapixels = (options.width * options.height) / 1000000;
+      const megapixels = (Number(options.width) * Number(options.height)) / 1000000;
       if (megapixels > 10) {
         price += 50; // Prix supplémentaire pour haute résolution
       }
     }
 
     // Prix pour effets spéciaux
-    if (options.effects) {
+    if (Array.isArray(options.effects)) {
       price += options.effects.length * 25; // 0.25€ par effet
     }
 
@@ -178,22 +178,24 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone texte
    */
-  private calculateTextZonePrice(options: any): number {
+  private calculateTextZonePrice(options: Record<string, unknown>): number {
     let price = 0;
 
     // Prix basé sur la longueur du texte
-    if (options.text && options.text.length > 10) {
-      price += Math.ceil(options.text.length / 10) * 25; // 0.25€ par 10 caractères
+    const text = String(options.text ?? '');
+    if (text.length > 10) {
+      price += Math.ceil(text.length / 10) * 25; // 0.25€ par 10 caractères
     }
 
     // Prix pour polices premium
-    if (options.font && this.isPremiumFont(options.font)) {
+    if (options.font && this.isPremiumFont(String(options.font))) {
       price += 75; // 0.75€ pour police premium
     }
 
     // Prix pour effets de texte
-    if (options.effects) {
-      price += options.effects.length * 30; // 0.30€ par effet
+    const effects = Array.isArray(options.effects) ? options.effects : [];
+    if (effects.length > 0) {
+      price += effects.length * 30; // 0.30€ par effet
     }
 
     return price;
@@ -202,11 +204,11 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone couleur
    */
-  private calculateColorZonePrice(options: any): number {
+  private calculateColorZonePrice(options: Record<string, unknown>): number {
     let price = 0;
 
     // Prix pour couleurs métalliques ou spéciales
-    if (options.color && this.isSpecialColor(options.color)) {
+    if (options.color && this.isSpecialColor(options.color as string)) {
       price += 100; // 1.00€ pour couleur spéciale
     }
 
@@ -221,11 +223,11 @@ export class PricingEngine {
   /**
    * Calcule le prix d'une zone de sélection
    */
-  private calculateSelectZonePrice(options: any): number {
+  private calculateSelectZonePrice(options: Record<string, unknown>): number {
     let price = 0;
 
     // Prix pour options premium
-    if (options.value && this.isPremiumOption(options.value)) {
+    if (options.value && this.isPremiumOption(options.value as string)) {
       price += 75; // 0.75€ pour option premium
     }
 
@@ -360,9 +362,9 @@ export class PricingEngine {
    */
   async getPricingSuggestions(productId: string): Promise<{
     recommendedBasePrice: number;
-    competitiveAnalysis: any;
-    marginAnalysis: any;
-    priceHistory: any[];
+    competitiveAnalysis: Record<string, unknown>;
+    marginAnalysis: Record<string, unknown>;
+    priceHistory: Array<{ month: Date; price: number; sales: number }>;
   }> {
     const cacheKey = `pricing_suggestions:${productId}`;
     
@@ -370,9 +372,9 @@ export class PricingEngine {
     if (cached) {
       return JSON.parse(cached) as {
         recommendedBasePrice: number;
-        competitiveAnalysis: any;
-        marginAnalysis: any;
-        priceHistory: any[];
+        competitiveAnalysis: Record<string, unknown>;
+        marginAnalysis: Record<string, unknown>;
+        priceHistory: Array<{ month: Date; price: number; sales: number }>;
       };
     }
 
@@ -541,7 +543,7 @@ export class PricingEngine {
     // Ajuster la marge selon la complexité
     if (options.zones) {
       const complexZones = Object.values(options.zones).filter(
-        (zone: any) => zone.complexity === 'complex'
+        (zone: Record<string, unknown>) => zone.complexity === 'complex'
       ).length;
       
       if (complexZones > 2) {

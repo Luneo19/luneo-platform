@@ -1,8 +1,7 @@
 /**
  * Google Analytics Component
  * GA4 Integration pour le tracking des conversions
- * Measurement ID: G-BDF4K1YYEF
- * Stream: Luneo production (https://www.luneo.app)
+ * Configure via NEXT_PUBLIC_GA_MEASUREMENT_ID environment variable
  */
 
 'use client';
@@ -12,7 +11,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-BDF4K1YYEF';
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 function GoogleAnalyticsContent() {
   const pathname = usePathname();
@@ -109,9 +108,9 @@ declare global {
     gtag: (
       command: 'event' | 'set' | 'config' | 'js',
       targetId: string | Date,
-      config?: Record<string, any>
+      config?: Record<string, unknown>
     ) => void;
-    dataLayer: any[];
+    dataLayer: Array<unknown>;
   }
 }
 

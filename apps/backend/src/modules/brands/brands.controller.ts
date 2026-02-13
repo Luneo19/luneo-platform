@@ -25,6 +25,8 @@ import { JsonValue } from '@/common/types/utility-types';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { CurrentUser } from '@/common/types/user.types';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('brands')
 @Controller('brands')
@@ -37,22 +39,24 @@ export class BrandsController {
   @ApiOperation({ summary: 'Get brand settings for the authenticated user' })
   @ApiResponse({ status: 200, description: 'Brand settings' })
   @ApiResponse({ status: 404, description: 'User has no brand' })
-  async getSettings(@Request() req) {
-    if (!req.user.brandId) {
+  async getSettings(@Request() req: ExpressRequest) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user?.brandId) {
       throw new NotFoundException('No brand associated with this user');
     }
-    return this.brandsService.findOne(req.user.brandId, req.user);
+    return this.brandsService.findOne(user.brandId, user);
   }
 
   @Put('settings')
   @ApiOperation({ summary: 'Update brand settings for the authenticated user' })
   @ApiResponse({ status: 200, description: 'Brand settings updated' })
   @ApiResponse({ status: 404, description: 'User has no brand' })
-  async updateSettings(@Request() req, @Body() updateBrandDto: UpdateBrandDto) {
-    if (!req.user.brandId) {
+  async updateSettings(@Request() req: ExpressRequest, @Body() updateBrandDto: UpdateBrandDto) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user?.brandId) {
       throw new NotFoundException('No brand associated with this user');
     }
-    return this.brandsService.update(req.user.brandId, updateBrandDto as unknown as Record<string, JsonValue>, req.user);
+    return this.brandsService.update(user.brandId, updateBrandDto as unknown as Record<string, JsonValue>, user);
   }
 
   @Get()
@@ -79,39 +83,49 @@ export class BrandsController {
   @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @ApiOperation({ summary: 'Créer une nouvelle marque' })
   @ApiResponse({ status: 201, description: 'Marque créée avec succès' })
-  async create(@Body() createBrandDto: CreateBrandDto, @Request() req) {
-    return this.brandsService.create(createBrandDto as unknown as Record<string, JsonValue>, req.user.id);
+  async create(@Body() createBrandDto: CreateBrandDto, @Request() req: ExpressRequest) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user) throw new NotFoundException('User not found');
+    return this.brandsService.create(createBrandDto as unknown as Record<string, JsonValue>, user.id);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtenir les détails d\'une marque' })
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 200, description: 'Détails de la marque' })
-  async findOne(@Param('id') id: string, @Request() req) {
-    return this.brandsService.findOne(id, req.user);
+  async findOne(@Param('id') id: string, @Request() req: ExpressRequest) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user) throw new NotFoundException('User not found');
+    return this.brandsService.findOne(id, user);
   }
 
   @Get(':id/stats')
   @ApiOperation({ summary: 'Obtenir les statistiques d\'une marque' })
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 200, description: 'Statistiques de la marque' })
-  async getStats(@Param('id') id: string, @Request() req) {
-    return this.brandsService.getBrandStats(id, req.user);
+  async getStats(@Param('id') id: string, @Request() req: ExpressRequest) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user) throw new NotFoundException('User not found');
+    return this.brandsService.getBrandStats(id, user);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Mettre à jour une marque' })
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 200, description: 'Marque mise à jour' })
-  async update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto, @Request() req) {
-    return this.brandsService.update(id, updateBrandDto as unknown as Record<string, JsonValue>, req.user);
+  async update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto, @Request() req: ExpressRequest) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user) throw new NotFoundException('User not found');
+    return this.brandsService.update(id, updateBrandDto as unknown as Record<string, JsonValue>, user);
   }
 
   @Post(':id/webhooks')
   @ApiOperation({ summary: 'Ajouter un webhook pour une marque' })
   @ApiParam({ name: 'id', description: 'ID de la marque' })
   @ApiResponse({ status: 201, description: 'Webhook ajouté' })
-  async addWebhook(@Param('id') id: string, @Body() webhookData: AddWebhookDto, @Request() req) {
-    return this.brandsService.addWebhook(id, webhookData as unknown as Record<string, JsonValue>, req.user);
+  async addWebhook(@Param('id') id: string, @Body() webhookData: AddWebhookDto, @Request() req: ExpressRequest) {
+    const user = req.user as CurrentUser | undefined;
+    if (!user) throw new NotFoundException('User not found');
+    return this.brandsService.addWebhook(id, webhookData as unknown as Record<string, JsonValue>, user);
   }
 }

@@ -12,9 +12,11 @@ import { RetentionService } from './retention.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import { RetentionActionDto } from './dto/retention-action.dto';
 
-@Controller('api/v1/orion/retention')
+@Controller('orion/retention')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error NestJS decorator typing
 @Roles(UserRole.PLATFORM_ADMIN)
 export class RetentionController {
   constructor(private readonly retentionService: RetentionService) {}
@@ -50,9 +52,10 @@ export class RetentionController {
       signals?: unknown;
     },
   ) {
-    const data = {
-      ...body,
-      lastActivityAt: body.lastActivityAt ? new Date(body.lastActivityAt) : body.lastActivityAt,
+    const { lastActivityAt, ...rest } = body;
+    const data: Parameters<RetentionService['updateHealthScore']>[1] = {
+      ...rest,
+      lastActivityAt: lastActivityAt ? new Date(lastActivityAt) : undefined,
     };
     return this.retentionService.updateHealthScore(userId, data);
   }
@@ -68,7 +71,7 @@ export class RetentionController {
   }
 
   @Post('win-back/trigger')
-  triggerWinBack(@Body() body: { userIds: string[] }) {
-    return this.retentionService.triggerWinBack(body.userIds ?? []);
+  triggerWinBack(@Body() dto: RetentionActionDto) {
+    return this.retentionService.triggerWinBack(dto.userIds ?? []);
   }
 }

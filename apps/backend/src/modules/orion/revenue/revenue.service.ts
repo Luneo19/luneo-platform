@@ -50,6 +50,14 @@ export type UpdateExperimentDto = {
   targetAudience?: Record<string, unknown>;
 };
 
+const PLAN_PRICES: Record<string, number> = {
+  FREE: 0,
+  STARTER: 29,
+  PROFESSIONAL: 79,
+  BUSINESS: 149,
+  ENTERPRISE: 299,
+};
+
 @Injectable()
 export class RevenueService {
   private readonly logger = new Logger(RevenueService.name);
@@ -120,6 +128,17 @@ export class RevenueService {
         const usage = Math.round(
           (brand.monthlyGenerations / brand.maxMonthlyGenerations) * 100,
         );
+        const currentPrice =
+          PLAN_PRICES[brand.subscriptionPlan?.toString() ?? 'FREE'] ?? 0;
+        const nextPlanPrice =
+          usage >= 90
+            ? currentPrice < 149
+              ? 149
+              : 299
+            : currentPrice < 79
+              ? 79
+              : 149;
+        const potentialMrr = Math.max(0, nextPlanPrice - currentPrice);
         const customerName =
           brand.name ||
           brand.users[0]?.email ||
@@ -133,7 +152,7 @@ export class RevenueService {
           customerName,
           currentPlan: brand.subscriptionPlan?.toString() ?? 'FREE',
           usagePercent: usage,
-          potentialMrr: 0,
+          potentialMrr,
           confidence:
             usage >= 90 ? 'high' : usage >= 70 ? 'medium' : ('low' as const),
         };
@@ -178,12 +197,19 @@ export class RevenueService {
       const status: 'hot' | 'warm' | 'cold' =
         score >= 80 ? 'hot' : score >= 60 ? 'warm' : 'cold';
 
+      const source =
+        user.brand?.subscriptionPlan && user.brand.subscriptionPlan !== 'FREE'
+          ? 'Referral'
+          : hasLoggedIn && hasBrand
+            ? 'Direct'
+            : 'Organic';
+
       return {
         id: user.id,
         userId: user.id,
         email: user.email ?? '',
         score: Math.min(score, 100),
-        source: 'Organic',
+        source,
         lastActivity: (
           user.lastLoginAt
             ? new Date(user.lastLoginAt)
@@ -197,8 +223,20 @@ export class RevenueService {
   async getExperiments() {
     return this.prisma.experiment.findMany({
       orderBy: { updatedAt: 'desc' },
+      take: 50,
       include: { _count: { select: { assignments: true } } },
     });
+  }
+
+  async getExperiment(id: string) {
+    const experiment = await this.prisma.experiment.findUnique({
+      where: { id },
+      include: { _count: { select: { assignments: true } } },
+    });
+    if (!experiment) {
+      throw new NotFoundException('Experiment not found');
+    }
+    return experiment;
   }
 
   async createExperiment(data: CreateExperimentDto) {

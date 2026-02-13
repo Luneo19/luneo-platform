@@ -8,6 +8,7 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TeamFiltersProps {
   searchTerm: string;
@@ -22,6 +23,7 @@ export function TeamFilters({
   roleFilter,
   onRoleFilterChange,
 }: TeamFiltersProps) {
+  const { t } = useI18n();
   return (
     <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col md:flex-row gap-4">
@@ -29,7 +31,7 @@ export function TeamFilters({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
             <Input
-              placeholder="Rechercher par nom ou email..."
+              placeholder={t('dashboard.team.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className="bg-white border-gray-200 text-gray-900 pl-10"
@@ -39,14 +41,14 @@ export function TeamFilters({
         <div className="w-full md:w-48">
           <Select value={roleFilter} onValueChange={onRoleFilterChange}>
             <SelectTrigger className="bg-white border-gray-200 text-gray-900">
-              <SelectValue placeholder="Tous les rôles" />
+              <SelectValue placeholder={t('dashboard.team.allRoles')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous les rôles</SelectItem>
-              <SelectItem value="OWNER">Propriétaire</SelectItem>
-              <SelectItem value="ADMIN">Administrateur</SelectItem>
-              <SelectItem value="MEMBER">Membre</SelectItem>
-              <SelectItem value="VIEWER">Observateur</SelectItem>
+              <SelectItem value="all">{t('dashboard.team.allRoles')}</SelectItem>
+              <SelectItem value="OWNER">{t('dashboard.team.roles.owner')}</SelectItem>
+              <SelectItem value="ADMIN">{t('dashboard.team.roles.admin')}</SelectItem>
+              <SelectItem value="MEMBER">{t('dashboard.team.roles.member')}</SelectItem>
+              <SelectItem value="VIEWER">{t('dashboard.team.roles.viewer')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

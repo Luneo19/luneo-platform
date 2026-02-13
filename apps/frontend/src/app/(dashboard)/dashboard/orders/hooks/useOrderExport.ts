@@ -4,11 +4,13 @@
 
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import type { Order } from '../types';
 
 export function useOrderExport() {
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const exportOrders = useCallback(
     async (
@@ -74,17 +76,17 @@ export function useOrderExport() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        toast({ title: 'Succès', description: 'Export réussi' });
+        toast({ title: t('common.success'), description: t('orders.exportSuccess') });
       } catch (error) {
         logger.error('Error exporting orders', { error });
         toast({
-          title: 'Erreur',
-          description: 'Erreur lors de l\'export',
+          title: t('common.error'),
+          description: t('orders.exportError'),
           variant: 'destructive',
         });
       }
     },
-    [toast]
+    [toast, t]
   );
 
   return { exportOrders };

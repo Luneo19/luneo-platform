@@ -3,6 +3,31 @@ import { Stage } from 'konva/lib/Stage';
 import { Layer } from 'konva/lib/Layer';
 import { logger } from '@/lib/logger';
 
+type KonvaImageNode = {
+  stroke(color?: string): string | void;
+  strokeWidth(width?: number): number | void;
+  width(val?: number): number | void;
+  height(val?: number): number | void;
+  scaleX(val?: number): number | void;
+  scaleY(val?: number): number | void;
+  rotation(angle?: number): number | void;
+  opacity(val?: number): number | void;
+  x(val?: number): number | void;
+  y(val?: number): number | void;
+  brightness(val?: number): void;
+  contrast(val?: number): void;
+  blurRadius(val?: number): void;
+  crop(rect: { x: number; y: number; width: number; height: number }): void;
+  mask(shape: unknown): void;
+  cache(): void;
+  filters: unknown[];
+  id(val?: string): string | void;
+  clone(): KonvaImageNode;
+  destroy(): void;
+  image(): HTMLImageElement;
+  getClientRect(): { x: number; y: number; width: number; height: number };
+};
+
 export interface ImageOptions {
   src: string;
   x?: number;
@@ -147,7 +172,7 @@ export class ImageTool {
       }
 
       // Add to layer
-      this.designLayer.add(imageElement as any);
+      this.designLayer.add(imageElement as unknown as Konva.Image);
       this.designLayer.batchDraw();
 
       // Select the new image
@@ -172,8 +197,9 @@ export class ImageTool {
     this.selectedImage = imageElement;
     
     // Add selection visual feedback
-    (imageElement as any).stroke('#007bff');
-    (imageElement as any).strokeWidth(2);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    konvaImage.stroke('#007bff');
+    konvaImage.strokeWidth(2);
     this.designLayer.batchDraw();
   }
 
@@ -182,8 +208,9 @@ export class ImageTool {
    */
   deselectImage() {
     if (this.selectedImage) {
-      (this.selectedImage as any).stroke('');
-      (this.selectedImage as any).strokeWidth(0);
+      const konvaImage = this.selectedImage as unknown as KonvaImageNode;
+      konvaImage.stroke('');
+      konvaImage.strokeWidth(0);
       this.selectedImage = null;
       this.designLayer.batchDraw();
     }
@@ -193,12 +220,13 @@ export class ImageTool {
    * Update image properties
    */
   updateImageProperties(imageElement: ImageElement, properties: Partial<ImageOptions>) {
-    if (properties.width !== undefined) (imageElement as any).width(properties.width);
-    if (properties.height !== undefined) (imageElement as any).height(properties.height);
-    if (properties.scaleX !== undefined) (imageElement as any).scaleX(properties.scaleX);
-    if (properties.scaleY !== undefined) (imageElement as any).scaleY(properties.scaleY);
-    if (properties.rotation !== undefined) (imageElement as any).rotation(properties.rotation);
-    if (properties.opacity !== undefined) (imageElement as any).opacity(properties.opacity);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    if (properties.width !== undefined) konvaImage.width(properties.width);
+    if (properties.height !== undefined) konvaImage.height(properties.height);
+    if (properties.scaleX !== undefined) konvaImage.scaleX(properties.scaleX);
+    if (properties.scaleY !== undefined) konvaImage.scaleY(properties.scaleY);
+    if (properties.rotation !== undefined) konvaImage.rotation(properties.rotation);
+    if (properties.opacity !== undefined) konvaImage.opacity(properties.opacity);
 
     this.designLayer.batchDraw();
   }
@@ -207,11 +235,12 @@ export class ImageTool {
    * Apply brightness filter
    */
   applyBrightness(imageElement: ImageElement, brightness: number) {
-    (imageElement as any).brightness(brightness);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    konvaImage.brightness(brightness);
     if (!imageElement.filters.includes('Brighten')) {
-      (imageElement as any).filters([...imageElement.filters, 'Brighten']);
+      konvaImage.filters = [...imageElement.filters, 'Brighten'];
     }
-    (imageElement as any).cache();
+    konvaImage.cache();
     this.designLayer.batchDraw();
   }
 
@@ -219,11 +248,12 @@ export class ImageTool {
    * Apply contrast filter
    */
   applyContrast(imageElement: ImageElement, contrast: number) {
-    (imageElement as any).contrast(contrast);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    konvaImage.contrast(contrast);
     if (!imageElement.filters.includes('Contrast')) {
-      (imageElement as any).filters([...imageElement.filters, 'Contrast']);
+      konvaImage.filters = [...imageElement.filters, 'Contrast'];
     }
-    (imageElement as any).cache();
+    konvaImage.cache();
     this.designLayer.batchDraw();
   }
 
@@ -231,11 +261,12 @@ export class ImageTool {
    * Apply blur filter
    */
   applyBlur(imageElement: ImageElement, blur: number) {
-    (imageElement as any).blurRadius(blur);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    konvaImage.blurRadius(blur);
     if (!imageElement.filters.includes('Blur')) {
-      (imageElement as any).filters([...imageElement.filters, 'Blur']);
+      konvaImage.filters = [...imageElement.filters, 'Blur'];
     }
-    (imageElement as any).cache();
+    konvaImage.cache();
     this.designLayer.batchDraw();
   }
 
@@ -243,7 +274,8 @@ export class ImageTool {
    * Apply crop to image
    */
   applyCrop(imageElement: ImageElement, crop: { x: number; y: number; width: number; height: number }) {
-    (imageElement as any).crop({
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    konvaImage.crop({
       x: crop.x,
       y: crop.y,
       width: crop.width,
@@ -259,21 +291,31 @@ export class ImageTool {
     // Create mask shape
     let maskShape: Konva.Shape;
     
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    const rawX = konvaImage.x();
+    const rawY = konvaImage.y();
+    const rawW = konvaImage.width();
+    const rawH = konvaImage.height();
+    const imageX = typeof rawX === 'number' ? rawX : 0;
+    const imageY = typeof rawY === 'number' ? rawY : 0;
+    const imageWidth = typeof rawW === 'number' ? rawW : 0;
+    const imageHeight = typeof rawH === 'number' ? rawH : 0;
+    
     switch (mask.type) {
       case 'circle':
         maskShape = new Konva.Circle({
-          x: (imageElement as any).x() + (imageElement as any).width() / 2,
-          y: (imageElement as any).y() + (imageElement as any).height() / 2,
-          radius: Math.min((imageElement as any).width(), (imageElement as any).height()) / 2,
+          x: imageX + imageWidth / 2,
+          y: imageY + imageHeight / 2,
+          radius: Math.min(imageWidth, imageHeight) / 2,
           fill: 'black',
         });
         break;
       case 'rectangle':
         maskShape = new Konva.Rect({
-          x: (imageElement as any).x(),
-          y: (imageElement as any).y(),
-          width: (imageElement as any).width(),
-          height: (imageElement as any).height(),
+          x: imageX,
+          y: imageY,
+          width: imageWidth,
+          height: imageHeight,
           fill: 'black',
         });
         break;
@@ -301,7 +343,8 @@ export class ImageTool {
     }
 
     // Apply mask
-    (imageElement as any).mask(maskShape);
+    const konvaImageForMask = imageElement as unknown as KonvaImageNode;
+    konvaImageForMask.mask(maskShape);
     this.designLayer.batchDraw();
   }
 
@@ -309,11 +352,12 @@ export class ImageTool {
    * Remove all filters
    */
   removeAllFilters(imageElement: ImageElement) {
-    (imageElement as any).filters([]);
-    (imageElement as any).brightness(0);
-    (imageElement as any).contrast(0);
-    (imageElement as any).blurRadius(0);
-    (imageElement as any).cache();
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    konvaImage.filters = [];
+    konvaImage.brightness(0);
+    konvaImage.contrast(0);
+    konvaImage.blurRadius(0);
+    konvaImage.cache();
     this.designLayer.batchDraw();
   }
 
@@ -321,7 +365,10 @@ export class ImageTool {
    * Flip image horizontally
    */
   flipHorizontal(imageElement: ImageElement) {
-    (imageElement as any).scaleX(-(imageElement as any).scaleX());
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    const rawScaleX = konvaImage.scaleX();
+    const currentScaleX = typeof rawScaleX === 'number' ? rawScaleX : 1;
+    konvaImage.scaleX(-currentScaleX);
     this.designLayer.batchDraw();
   }
 
@@ -329,7 +376,10 @@ export class ImageTool {
    * Flip image vertically
    */
   flipVertical(imageElement: ImageElement) {
-    (imageElement as any).scaleY(-(imageElement as any).scaleY());
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    const rawScaleY = konvaImage.scaleY();
+    const currentScaleY = typeof rawScaleY === 'number' ? rawScaleY : 1;
+    konvaImage.scaleY(-currentScaleY);
     this.designLayer.batchDraw();
   }
 
@@ -337,7 +387,10 @@ export class ImageTool {
    * Rotate image by angle
    */
   rotateImage(imageElement: ImageElement, angle: number) {
-    (imageElement as any).rotation((imageElement as any).rotation() + angle);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    const rawRotation = konvaImage.rotation();
+    const currentRotation = typeof rawRotation === 'number' ? rawRotation : 0;
+    konvaImage.rotation(currentRotation + angle);
     this.designLayer.batchDraw();
   }
 
@@ -346,7 +399,8 @@ export class ImageTool {
    */
   deleteSelectedImage() {
     if (this.selectedImage) {
-      (this.selectedImage as any).destroy();
+      const konvaImage = this.selectedImage as unknown as KonvaImageNode;
+      konvaImage.destroy();
       this.selectedImage = null;
       this.designLayer.batchDraw();
     }
@@ -356,11 +410,17 @@ export class ImageTool {
    * Duplicate image element
    */
   duplicateImage(imageElement: ImageElement): ImageElement {
-    const cloned = (imageElement as any).clone() as ImageElement;
-    (cloned as any).x((imageElement as any).x() + 20);
-    (cloned as any).y((imageElement as any).y() + 20);
-    (cloned as any).id(`image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-    this.designLayer.add(cloned as any);
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    const cloned = konvaImage.clone() as unknown as ImageElement;
+    const clonedKonva = cloned as unknown as KonvaImageNode;
+    const dupRawX = konvaImage.x();
+    const dupRawY = konvaImage.y();
+    const currentX = typeof dupRawX === 'number' ? dupRawX : 0;
+    const currentY = typeof dupRawY === 'number' ? dupRawY : 0;
+    clonedKonva.x(currentX + 20);
+    clonedKonva.y(currentY + 20);
+    clonedKonva.id(`image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    this.designLayer.add(cloned as unknown as Konva.Image);
     this.designLayer.batchDraw();
     return cloned;
   }
@@ -403,11 +463,14 @@ export class ImageTool {
       throw new Error('Could not get canvas context');
     }
 
-    canvas.width = (imageElement as any).width();
-    canvas.height = (imageElement as any).height();
+    const konvaImage = imageElement as unknown as KonvaImageNode;
+    const expW = konvaImage.width();
+    const expH = konvaImage.height();
+    canvas.width = typeof expW === 'number' ? expW : 0;
+    canvas.height = typeof expH === 'number' ? expH : 0;
 
     // Draw image to canvas
-    const img = (imageElement as any).image();
+    const img = konvaImage.image();
     if (img) {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Palette, Box, Glasses, BarChart3 } from 'lucide-react';
 import { ScrollReveal, AnimatedCounter, useParallax } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder, AnimatedBorderCTA } from '@/components/ui/animated-border';
+import { FireflyCTA } from '@/components/ui/firefly-cta';
 import { PartnerLogos } from '@/components/marketing/shared/partner-logos';
 import { Showcase3D } from './showcase-3d';
 
@@ -82,13 +83,13 @@ export function HeroSectionNew() {
         {/* Main Heading */}
         <ScrollReveal animation="fade-up" delay={100} duration={700}>
           <div className="max-w-4xl mx-auto text-center mb-6 sm:mb-8">
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-5 sm:mb-6">
-              <span className="text-white">Creez des </span>
+            <h1 className="heading-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-5 sm:mb-6">
+              <span className="text-white text-glow-white">Creez des </span>
               <span className="italic text-gradient-purple">experiences produit</span>
-              <span className="text-white block mt-1">exceptionnelles</span>
+              <span className="text-white text-glow-white block mt-1">exceptionnelles</span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-8 sm:mb-10 px-2">
+            <p className="text-base sm:text-lg md:text-xl text-slate-300 body-text max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
               La plateforme tout-en-un qui aide les marques a concevoir, developper et livrer
               des experiences de personnalisation avec une rapidite et une qualite inegalees.
             </p>
@@ -96,15 +97,17 @@ export function HeroSectionNew() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-14">
               <Link href="/register" className="w-full sm:w-auto">
-                <AnimatedBorderCTA speed="normal">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                  >
-                    Essai gratuit
-                    <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
-                  </Button>
-                </AnimatedBorderCTA>
+                <FireflyCTA color="purple" speed="normal">
+                  <AnimatedBorderCTA speed="normal">
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                    >
+                      Essai gratuit
+                      <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                    </Button>
+                  </AnimatedBorderCTA>
+                </FireflyCTA>
               </Link>
               <Link href="/demo" className="w-full sm:w-auto">
                 <Button

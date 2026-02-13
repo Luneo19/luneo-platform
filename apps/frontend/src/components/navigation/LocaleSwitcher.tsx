@@ -6,13 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useI18n, useTranslations } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import type { Locale } from '@/i18n';
 
 interface LocaleSwitcherProps {
   className?: string;
 }
 
 function LocaleSwitcherContent({ className }: LocaleSwitcherProps) {
-  const { locale, availableLocales } = useI18n();
+  const { locale, availableLocales, setLocale } = useI18n();
   const t = useTranslations('localeSwitcher');
   const [isPending, startTransition] = useTransition();
 
@@ -20,12 +21,10 @@ function LocaleSwitcherContent({ className }: LocaleSwitcherProps) {
     (value: string) => {
       if (value === locale) return;
       startTransition(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('lang', value);
-        window.location.href = url.toString();
+        setLocale(value as Locale);
       });
     },
-    [locale],
+    [locale, setLocale],
   );
 
   return (

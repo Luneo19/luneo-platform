@@ -23,7 +23,7 @@ import type {
 
 export class ARService {
   private static instance: ARService;
-  private activeSessions: Map<string, any> = new Map();
+  private activeSessions: Map<string, { startTime: Date; interactions?: number; [key: string]: unknown }> = new Map();
 
   private constructor() {}
 
@@ -55,7 +55,7 @@ export class ARService {
         deviceInfo,
         isSupported: isSupported && serverCheck.isARSupported,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking AR support', { error });
       return {
         isARSupported: false,
@@ -95,7 +95,7 @@ export class ARService {
       logger.info('AR session created', { sessionId: session.sessionId });
 
       return session;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error creating AR session', { error, request });
       throw error;
     }
@@ -111,7 +111,7 @@ export class ARService {
   /**
    * Met à jour une session active
    */
-  updateActiveSession(sessionId: string, updates: any) {
+  updateActiveSession(sessionId: string, updates: Record<string, unknown>) {
     const session = this.activeSessions.get(sessionId);
     if (session) {
       this.activeSessions.set(sessionId, { ...session, ...updates });
@@ -147,7 +147,7 @@ export class ARService {
       }
 
       logger.info('AR interaction tracked', { type: request.type, sessionId: request.sessionId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error tracking AR interaction', { error, request });
       // Don't throw, tracking is not critical
     }
@@ -164,7 +164,7 @@ export class ARService {
     try {
       const client = getTRPCClient();
       return await client.ar.getAnalytics.query(request);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching AR analytics', { error, request });
       throw error;
     }

@@ -9,6 +9,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import {
   Sparkles,
   ImageIcon,
@@ -43,6 +44,8 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { logger } from '@/lib/logger';
 import { endpoints, api } from '@/lib/api/client';
 import OptimizedImage from '@/components/optimized/OptimizedImage';
 import Image from 'next/image';
@@ -101,6 +104,7 @@ const AI_TOOLS = [
 
 function AIStudioPageContent() {
   const { toast } = useToast();
+  const { t } = useI18n();
   interface AIStudioResult {
     output?: { imageUrl?: string };
   }
@@ -164,8 +168,8 @@ function AIStudioPageContent() {
       const requiredCredits = selectedTool === 'upscale' && upscaleScale === '4' ? 4 : selectedToolConfig.credits;
       if (credits < requiredCredits) {
         toast({
-          title: 'Crédits insuffisants',
-          description: `Vous avez ${credits} crédits, ${requiredCredits} requis.`,
+          title: t('aiStudio.insufficientCredits'),
+          description: t('aiStudio.insufficientCreditsDesc', { current: String(credits), required: String(requiredCredits) }),
           variant: 'destructive',
         });
         return;
@@ -181,8 +185,8 @@ function AIStudioPageContent() {
       if (selectedTool === 'text_to_design') {
         if (!designPrompt.trim()) {
           toast({
-            title: 'Prompt requis',
-            description: 'Veuillez entrer une description',
+            title: t('aiStudio.promptRequired'),
+            description: t('aiStudio.promptRequiredDesc'),
             variant: 'destructive',
           });
           setIsProcessing(false);
@@ -197,8 +201,8 @@ function AIStudioPageContent() {
       } else {
         if (!uploadedImage) {
           toast({
-            title: 'Image requise',
-            description: 'Veuillez télécharger une image',
+            title: t('aiStudio.imageRequired'),
+            description: t('aiStudio.imageRequiredDesc'),
             variant: 'destructive',
           });
           setIsProcessing(false);
@@ -225,7 +229,7 @@ function AIStudioPageContent() {
 
       if (selectedTool === 'color_extraction') {
         setExtractedColors(data.colors || []);
-        setResult(data);
+        setResult({ output: { imageUrl: data.imageUrl || data.outputUrl || data.url } });
       } else {
         setResult({
           output: {
@@ -243,13 +247,14 @@ function AIStudioPageContent() {
       }
 
       toast({
-        title: 'Succès',
-        description: 'Traitement terminé avec succès',
+        title: t('common.success'),
+        description: t('aiStudio.processingCompleteDesc'),
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      const message = getErrorDisplayMessage(error);
+      logger.error('AI Studio processing error', { error, tool: selectedTool });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });
@@ -267,16 +272,17 @@ function AIStudioPageContent() {
     cropRatio,
     credits,
     toast,
+    t,
   ]);
 
   // Copy color to clipboard
   const copyColor = useCallback((hex: string) => {
     navigator.clipboard.writeText(hex);
     toast({
-      title: 'Copié',
-      description: `Couleur ${hex} copiée dans le presse-papier`,
+      title: t('aiStudio.colorCopied'),
+      description: t('aiStudio.colorCopiedDesc', { hex }),
     });
-  }, [toast]);
+  }, [toast, t]);
 
   const selectedToolConfig = AI_TOOLS.find((t) => t.id === selectedTool);
 
@@ -529,7 +535,7 @@ function AIStudioPageContent() {
                       <Label className="mb-4 block text-white/80">Résultat</Label>
                       <div className="relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
                         <OptimizedImage
-                          src={result.output.imageUrl}
+                          src={result.output!.imageUrl}
                           alt="Generated design"
                           className="w-full h-auto"
                         />
@@ -537,8 +543,10 @@ function AIStudioPageContent() {
                           size="sm"
                           className="absolute top-4 right-4 bg-[#12121a]/90 border border-white/[0.08] text-white hover:bg-white/[0.06]"
                           onClick={() => {
+                            const url = result?.output?.imageUrl;
+                            if (!url) return;
                             const link = document.createElement('a');
-                            link.href = result.output.imageUrl;
+                            link.href = url;
                             link.download = `luneo-design-${Date.now()}.png`;
                             link.click();
                           }}
@@ -672,8 +680,10 @@ function AIStudioPageContent() {
                           variant="outline"
                           className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                           onClick={() => {
+                            const url = result?.output?.imageUrl;
+                            if (!url) return;
                             const link = document.createElement('a');
-                            link.href = result.output.imageUrl;
+                            link.href = url;
                             link.download = `luneo-${selectedTool}-${Date.now()}.png`;
                             link.click();
                           }}
@@ -684,7 +694,7 @@ function AIStudioPageContent() {
                       </div>
                       <div className="relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
                         <Image
-                          src={result.output.imageUrl}
+                          src={result.output!.imageUrl}
                           alt="Résultat de la génération IA"
                           width={1024}
                           height={1024}

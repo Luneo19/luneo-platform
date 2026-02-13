@@ -18,7 +18,7 @@ export interface EditorConfig {
 export interface DesignElement {
   id: string;
   type: 'text' | 'image' | 'shape' | 'clipart';
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export class CanvasEditor {
@@ -428,7 +428,7 @@ export class CanvasEditor {
   /**
    * Update selected node properties
    */
-  updateSelected(props: any): void {
+  updateSelected(props: Record<string, unknown>): void {
     if (!this.selectedNode) return;
     
     this.selectedNode.setAttrs(props);
@@ -531,11 +531,11 @@ export class CanvasEditor {
     this.backgroundLayer.destroyChildren();
     
     // Recreate nodes
-    const mainLayerData = stageData.children.find((c: any) => c.className === 'Layer' && c.attrs.name !== 'background');
-    const backgroundLayerData = stageData.children.find((c: any) => c.attrs.name === 'background');
+    const mainLayerData = stageData.children.find((c: { className?: string; attrs?: { name?: string } }) => c.className === 'Layer' && c.attrs?.name !== 'background');
+    const backgroundLayerData = stageData.children.find((c: { attrs?: { name?: string } }) => c.attrs?.name === 'background');
     
-    if (mainLayerData) {
-      mainLayerData.children.forEach((nodeData: any) => {
+    if (mainLayerData && 'children' in mainLayerData && Array.isArray(mainLayerData.children)) {
+      mainLayerData.children.forEach((nodeData: Record<string, unknown>) => {
         if (nodeData.className === 'Transformer') return;
         
         const node = Konva.Node.create(nodeData);
@@ -543,8 +543,8 @@ export class CanvasEditor {
       });
     }
     
-    if (backgroundLayerData) {
-      backgroundLayerData.children.forEach((nodeData: any) => {
+    if (backgroundLayerData && 'children' in backgroundLayerData && Array.isArray(backgroundLayerData.children)) {
+      backgroundLayerData.children.forEach((nodeData: Record<string, unknown>) => {
         const node = Konva.Node.create(nodeData);
         this.backgroundLayer.add(node);
       });
@@ -640,7 +640,7 @@ export class CanvasEditor {
       elements.push({
         id: node.id() || node._id.toString(),
         type,
-        data: node.toJSON(),
+        data: JSON.parse(node.toJSON()) as Record<string, unknown>,
       });
     });
     

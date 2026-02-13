@@ -55,11 +55,16 @@ function SupportPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [newTicket, setNewTicket] = useState({
+  const [newTicket, setNewTicket] = useState<{
+    subject: string;
+    description: string;
+    category: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+  }>({
     subject: '',
     description: '',
     category: 'technical',
-    priority: 'medium' as const,
+    priority: 'medium',
   });
 
   useEffect(() => {

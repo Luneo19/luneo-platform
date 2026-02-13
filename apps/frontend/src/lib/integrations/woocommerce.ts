@@ -18,6 +18,101 @@ interface WooCommerceConfig {
   version?: string;
 }
 
+// Raw API response types
+interface WooCommerceRawSystemStatus {
+  environment?: {
+    site_title?: string;
+    version?: string;
+    server_info?: {
+      timezone?: string;
+    };
+  };
+  settings?: {
+    currency?: string;
+    store_name?: string;
+  };
+}
+
+interface WooCommerceRawCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface WooCommerceRawImage {
+  id?: number;
+  src?: string;
+  alt?: string;
+}
+
+interface WooCommerceRawAttribute {
+  id?: number;
+  name?: string;
+  options?: string[];
+  visible?: boolean;
+  variation?: boolean;
+}
+
+interface WooCommerceRawProduct {
+  id: number;
+  name?: string;
+  slug?: string;
+  type?: string;
+  status?: string;
+  description?: string;
+  short_description?: string;
+  sku?: string;
+  price?: string;
+  regular_price?: string;
+  sale_price?: string;
+  stock_quantity?: number;
+  stock_status?: string;
+  categories?: WooCommerceRawCategory[];
+  images?: WooCommerceRawImage[];
+  attributes?: WooCommerceRawAttribute[];
+  variations?: number[];
+}
+
+interface WooCommerceRawLineItem {
+  id?: number;
+  product_id?: number;
+  variation_id?: number;
+  name?: string;
+  quantity?: number;
+  total?: string;
+  sku?: string;
+  meta_data?: Array<{ key?: string; value?: string }>;
+}
+
+interface WooCommerceRawOrder {
+  id: number;
+  number?: string;
+  status?: string;
+  currency?: string;
+  total?: string;
+  billing?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    address_1?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  };
+  shipping?: {
+    first_name?: string;
+    last_name?: string;
+    address_1?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  };
+  line_items?: WooCommerceRawLineItem[];
+  date_created?: string;
+}
+
+
 class WooCommerceService {
   private siteUrl: string;
   private consumerKey: string;
@@ -72,7 +167,7 @@ class WooCommerceService {
     currency: string;
     timezone: string;
   }> {
-    const data = await this.request<any>('/system_status');
+    const data = await this.request<WooCommerceRawSystemStatus>('/system_status');
     
     return {
       name: data.environment?.site_title || 'WooCommerce Store',
@@ -122,7 +217,7 @@ class WooCommerceService {
    * Get single product
    */
   async getProduct(productId: number): Promise<WooCommerceProduct> {
-    const data = await this.request<any>(`/products/${productId}`);
+    const data = await this.request<WooCommerceRawProduct>(`/products/${productId}`);
     return this.mapProduct(data);
   }
 
@@ -151,7 +246,7 @@ class WooCommerceService {
       })),
     };
 
-    const data = await this.request<any>('/products', {
+    const data = await this.request<WooCommerceRawProduct>('/products', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -166,7 +261,7 @@ class WooCommerceService {
     productId: number,
     updates: Partial<WooCommerceProduct>
   ): Promise<WooCommerceProduct> {
-    const payload: any = {};
+    const payload: Partial<WooCommerceRawProduct> = {};
 
     if (updates.name) payload.name = updates.name;
     if (updates.description) payload.description = updates.description;
@@ -178,7 +273,7 @@ class WooCommerceService {
     if (updates.stockStatus) payload.stock_status = updates.stockStatus;
     if (updates.status) payload.status = updates.status;
 
-    const data = await this.request<any>(`/products/${productId}`, {
+    const data = await this.request<WooCommerceRawProduct>(`/products/${productId}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
@@ -235,7 +330,7 @@ class WooCommerceService {
    * Get single order
    */
   async getOrder(orderId: number): Promise<WooCommerceOrder> {
-    const data = await this.request<any>(`/orders/${orderId}`);
+    const data = await this.request<WooCommerceRawOrder>(`/orders/${orderId}`);
     return this.mapOrder(data);
   }
 
@@ -243,7 +338,7 @@ class WooCommerceService {
    * Update order status
    */
   async updateOrderStatus(orderId: number, status: string): Promise<WooCommerceOrder> {
-    const data = await this.request<any>(`/orders/${orderId}`, {
+    const data = await this.request<WooCommerceRawOrder>(`/orders/${orderId}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
@@ -254,7 +349,7 @@ class WooCommerceService {
    * Get categories
    */
   async getCategories(): Promise<WooCommerceCategory[]> {
-    const data = await this.request<any[]>('/products/categories?per_page=100');
+    const data = await this.request<WooCommerceRawCategory[]>('/products/categories?per_page=100');
     
     return data.map((c) => ({
       id: c.id,
@@ -310,13 +405,13 @@ class WooCommerceService {
   /**
    * Map API product to our type
    */
-  private mapProduct(p: any): WooCommerceProduct {
+  private mapProduct(p: WooCommerceRawProduct): WooCommerceProduct {
     return {
       id: p.id,
-      name: p.name,
-      slug: p.slug,
-      type: p.type,
-      status: p.status,
+      name: p.name || '',
+      slug: p.slug || '',
+      type: (p.type || 'simple') as 'simple' | 'variable' | 'grouped',
+      status: (p.status || 'draft') as 'publish' | 'draft' | 'pending',
       description: p.description || '',
       shortDescription: p.short_description || '',
       sku: p.sku || '',
@@ -324,23 +419,23 @@ class WooCommerceService {
       regularPrice: p.regular_price || '0',
       salePrice: p.sale_price || '',
       stockQuantity: p.stock_quantity || 0,
-      stockStatus: p.stock_status || 'instock',
-      categories: (p.categories || []).map((c: any) => ({
+      stockStatus: (p.stock_status || 'instock') as 'instock' | 'outofstock' | 'onbackorder',
+      categories: (p.categories || []).map((c: WooCommerceRawCategory) => ({
         id: c.id,
-        name: c.name,
-        slug: c.slug,
+        name: c.name || '',
+        slug: c.slug || '',
       })),
-      images: (p.images || []).map((img: any) => ({
-        id: img.id,
-        src: img.src,
+      images: (p.images || []).map((img: WooCommerceRawImage) => ({
+        id: img.id || 0,
+        src: img.src || '',
         alt: img.alt || '',
       })),
-      attributes: (p.attributes || []).map((attr: any) => ({
-        id: attr.id,
-        name: attr.name,
+      attributes: (p.attributes || []).map((attr: WooCommerceRawAttribute) => ({
+        id: attr.id || 0,
+        name: attr.name || '',
         options: attr.options || [],
-        visible: attr.visible,
-        variation: attr.variation,
+        visible: attr.visible ?? false,
+        variation: attr.variation ?? false,
       })),
       variations: p.variations || [],
     };
@@ -349,13 +444,13 @@ class WooCommerceService {
   /**
    * Map API order to our type
    */
-  private mapOrder(o: any): WooCommerceOrder {
+  private mapOrder(o: WooCommerceRawOrder): WooCommerceOrder {
     return {
       id: o.id,
-      number: o.number,
-      status: o.status,
-      currency: o.currency,
-      total: o.total,
+      number: o.number || '',
+      status: o.status || 'pending',
+      currency: o.currency || 'USD',
+      total: o.total || '0',
       billing: {
         firstName: o.billing?.first_name || '',
         lastName: o.billing?.last_name || '',
@@ -374,20 +469,20 @@ class WooCommerceService {
         postcode: o.shipping?.postcode || '',
         country: o.shipping?.country || '',
       },
-      lineItems: (o.line_items || []).map((item: any) => ({
-        id: item.id,
-        productId: item.product_id,
-        variationId: item.variation_id,
-        name: item.name,
-        quantity: item.quantity,
-        total: item.total,
+      lineItems: (o.line_items || []).map((item: WooCommerceRawLineItem) => ({
+        id: item.id || 0,
+        productId: item.product_id || 0,
+        variationId: item.variation_id || 0,
+        name: item.name || '',
+        quantity: item.quantity || 0,
+        total: item.total || '0',
         sku: item.sku || '',
-        meta: (item.meta_data || []).map((m: any) => ({
-          key: m.key,
-          value: m.value,
+        meta: (item.meta_data || []).map((m: { key?: string; value?: string }) => ({
+          key: m.key || '',
+          value: m.value || '',
         })),
       })),
-      dateCreated: o.date_created,
+      dateCreated: o.date_created || '',
     };
   }
 }

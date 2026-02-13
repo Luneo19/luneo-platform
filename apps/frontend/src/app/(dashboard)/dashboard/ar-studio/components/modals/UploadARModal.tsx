@@ -5,6 +5,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export function UploadARModal({
   onUpload,
   uploadProgress,
 }: UploadARModalProps) {
+  const { t } = useI18n();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [modelName, setModelName] = useState('');
   const [modelType, setModelType] = useState('glasses');
@@ -51,7 +53,7 @@ export function UploadARModal({
 
     const file = files[0];
     if (file.size > MAX_FILE_SIZE) {
-      setError(`Le fichier dépasse la taille maximale de ${MAX_FILE_SIZE / 1024 / 1024} MB`);
+      setError(t('arStudio.fileTooBig', { max: String(MAX_FILE_SIZE / 1024 / 1024) }));
       return;
     }
 
@@ -82,9 +84,9 @@ export function UploadARModal({
       setModelType('glasses');
       setTimeout(() => onOpenChange(false), 2000);
     } else {
-      setError(result.error || 'Erreur lors de l\'upload');
+      setError(result.error || t('arStudio.uploadError'));
     }
-  }, [selectedFile, modelName, modelType, onUpload, onOpenChange]);
+  }, [selectedFile, modelName, modelType, onUpload, onOpenChange, t]);
 
   const currentProgress = uploadProgress.find((p) => p.file === selectedFile);
 
@@ -92,9 +94,9 @@ export function UploadARModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Upload Modèle AR</DialogTitle>
+          <DialogTitle>{t('arStudio.uploadModel')}</DialogTitle>
           <DialogDescription>
-            Téléchargez vos modèles 3D pour Virtual Try-On (GLB, GLTF, USDZ, OBJ, FBX, STL)
+            {t('arStudio.uploadModelDesc')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -124,20 +126,20 @@ export function UploadARModal({
                   <div className="mt-4">
                     <Progress value={currentProgress.progress} className="h-2" />
                     <p className="text-xs text-gray-400 mt-2">
-                      {currentProgress.progress}% - Upload en cours...
+                      {currentProgress.progress}% - {t('arStudio.uploading')}
                     </p>
                   </div>
                 )}
                 {currentProgress && currentProgress.status === 'processing' && (
                   <div className="mt-4 flex items-center justify-center gap-2 text-cyan-400">
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Traitement en cours...</span>
+                    <span className="text-sm">{t('arStudio.processing')}</span>
                   </div>
                 )}
                 {currentProgress && currentProgress.status === 'complete' && (
                   <div className="mt-4 flex items-center justify-center gap-2 text-green-400">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span className="text-sm">Upload terminé !</span>
+                    <span className="text-sm">{t('arStudio.uploadComplete')}</span>
                   </div>
                 )}
                 {currentProgress && currentProgress.status === 'error' && (
@@ -153,16 +155,16 @@ export function UploadARModal({
                   className="mt-2 text-red-400 hover:text-red-300"
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Supprimer
+                  {t('aiStudio.delete')}
                 </Button>
               </div>
             ) : (
               <>
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400 mb-2">
-                  Glissez-déposez votre fichier ici ou{' '}
+                  {t('arStudio.dragDrop')}{' '}
                   <label className="text-cyan-400 cursor-pointer hover:underline">
-                    cliquez pour sélectionner
+                    {t('arStudio.clickToSelect')}
                     <input
                       type="file"
                       accept=".glb,.gltf,.usdz,.obj,.fbx,.stl"
@@ -172,7 +174,7 @@ export function UploadARModal({
                   </label>
                 </p>
                 <p className="text-xs text-gray-500">
-                  Maximum {MAX_FILE_SIZE / 1024 / 1024} MB
+                  {t('arStudio.maxSize', { max: String(MAX_FILE_SIZE / 1024 / 1024) })}
                 </p>
               </>
             )}
@@ -186,7 +188,7 @@ export function UploadARModal({
           {selectedFile && (
             <div className="space-y-4">
               <div>
-                <Label className="text-gray-300">Nom du modèle</Label>
+                <Label className="text-gray-300">{t('arStudio.modelName')}</Label>
                 <Input
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
@@ -195,7 +197,7 @@ export function UploadARModal({
                 />
               </div>
               <div>
-                <Label className="text-gray-700">Type de produit</Label>
+                <Label className="text-gray-700">{t('arStudio.productType')}</Label>
                 <Select value={modelType} onValueChange={setModelType}>
                   <SelectTrigger className="bg-white border-gray-200 text-gray-900 mt-2">
                     <SelectValue />
@@ -220,7 +222,7 @@ export function UploadARModal({
         </div>
         <div className="flex items-center justify-end gap-3 mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
-            Annuler
+            {t('aiStudio.cancel')}
           </Button>
           <Button
             onClick={handleUpload}
@@ -230,12 +232,12 @@ export function UploadARModal({
             {currentProgress?.status === 'uploading' ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Upload...
+                {t('arStudio.uploading')}
               </>
             ) : (
               <>
                 <Upload className="w-4 h-4 mr-2" />
-                Uploader
+                {t('arStudio.uploadBtn')}
               </>
             )}
           </Button>

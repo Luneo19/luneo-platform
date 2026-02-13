@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs } from '@/components/ui/tabs';
 import { memo } from 'react';
@@ -14,6 +15,7 @@ import { PendingPayoutAlert } from './components/PendingPayoutAlert';
 import { useAffiliatePage } from './components/hooks/useAffiliatePage';
 
 function AffiliatePageContent() {
+  const { t } = useI18n();
   const {
     loading,
     activeTab,
@@ -38,7 +40,7 @@ function AffiliatePageContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto" />
-          <p className="mt-4 text-white/60">Chargement du programme d&apos;affiliation...</p>
+          <p className="mt-4 text-white/60">{t('affiliate.loading')}</p>
         </div>
       </div>
     );

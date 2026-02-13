@@ -16,14 +16,17 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, UpdateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { RequestRefundDto } from './dto/request-refund.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole, OrderStatus } from '@prisma/client';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -74,13 +77,13 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
   @ApiResponse({ status: 400, description: 'Paramètres de requête invalides' })
   async findAll(
-    @Request() req,
+    @Request() req: ExpressRequest,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
-    return this.ordersService.findAll(req.user, {
+    return this.ordersService.findAll(req.user! as import('@/common/types/user.types').CurrentUser, {
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       status,
@@ -89,6 +92,7 @@ export class OrdersController {
   }
 
   @Post()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ 
     summary: 'Créer une nouvelle commande',
     description: 'Crée une nouvelle commande avec les items spécifiés. Génère automatiquement une session de paiement Stripe et retourne l\'URL de paiement. Les items doivent inclure productId, designId, quantité et prix unitaire.',
@@ -112,8 +116,8 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
   @ApiResponse({ status: 404, description: 'Produit ou design non trouvé - Un des IDs fournis n\'existe pas' })
   @ApiResponse({ status: 500, description: 'Erreur lors de la création de la session Stripe' })
-  async create(@Body() createOrderDto: CreateOrderDto, @Request() req) {
-    return this.ordersService.create(createOrderDto, req.user);
+  async create(@Body() createOrderDto: CreateOrderDto, @Request() req: ExpressRequest) {
+    return this.ordersService.create(createOrderDto, req.user! as import('@/common/types/user.types').CurrentUser);
   }
 
   @Get(':id')
@@ -123,72 +127,86 @@ export class OrdersController {
     status: 200,
     description: 'Détails de la commande',
   })
-  async findOne(@Param('id') id: string, @Request() req) {
-    return this.ordersService.findOne(id, req.user);
+  async findOne(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.ordersService.findOne(id, req.user! as import('@/common/types/user.types').CurrentUser);
   }
 
   @Put(':id')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Mettre à jour une commande' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
   @ApiResponse({
     status: 200,
     description: 'Commande mise à jour',
   })
-  async update(@Param('id') id: string, @Body() updateDto: UpdateOrderDto, @Request() req) {
+  async update(@Param('id') id: string, @Body() updateDto: UpdateOrderDto, @Request() req: ExpressRequest) {
     return this.ordersService.update(
       id,
       updateDto as unknown as { status?: OrderStatus; trackingNumber?: string; notes?: string },
-      req.user,
+      req.user! as import('@/common/types/user.types').CurrentUser,
     );
   }
 
   @Post(':id/cancel')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Annuler une commande' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
   @ApiResponse({ status: 200, description: 'Commande annulée' })
-  async cancel(@Param('id') id: string, @Request() req) {
-    return this.ordersService.cancel(id, req.user);
+  @ApiResponse({ status: 400, description: 'Commande non annulable (statut invalide)' })
+  async cancel(
+    @Param('id') id: string,
+    @Body() body: CancelOrderDto,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.ordersService.cancel(
+      id,
+      req.user! as import('@/common/types/user.types').CurrentUser,
+      body?.reason,
+    );
   }
 
   @Put(':id/status')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Mettre à jour le statut d\'une commande' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
   @ApiResponse({ status: 200, description: 'Statut mis à jour' })
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
-    @Request() req,
+    @Request() req: ExpressRequest,
   ) {
-    return this.ordersService.updateStatus(id, dto.status, req.user);
+    return this.ordersService.updateStatus(id, dto.status, req.user! as import('@/common/types/user.types').CurrentUser);
   }
 
   @Get(':id/tracking')
   @ApiOperation({ summary: 'Obtenir le suivi d\'une commande' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
   @ApiResponse({ status: 200, description: 'Informations de suivi' })
-  async getTracking(@Param('id') id: string, @Request() req) {
-    return this.ordersService.getTracking(id, req.user);
+  async getTracking(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.ordersService.getTracking(id, req.user! as import('@/common/types/user.types').CurrentUser);
   }
 
   @Post(':id/refund')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Demander un remboursement' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
   @ApiResponse({ status: 200, description: 'Demande de remboursement créée' })
   async requestRefund(
     @Param('id') id: string,
     @Body() dto: RequestRefundDto,
-    @Request() req,
+    @Request() req: ExpressRequest,
   ) {
-    return this.ordersService.requestRefund(id, dto.reason ?? '', req.user);
+    return this.ordersService.requestRefund(id, dto.reason ?? '', req.user! as import('@/common/types/user.types').CurrentUser);
   }
 
   @Post(':id/refund/process')
   @UseGuards(RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Traiter un remboursement (admin)' })
   @ApiParam({ name: 'id', description: 'ID de la commande' })
   @ApiResponse({ status: 200, description: 'Remboursement traité' })
-  async processRefund(@Param('id') id: string, @Request() req) {
-    return this.ordersService.processRefund(id, req.user);
+  async processRefund(@Param('id') id: string, @Request() req: ExpressRequest) {
+    return this.ordersService.processRefund(id, req.user! as import('@/common/types/user.types').CurrentUser);
   }
 }

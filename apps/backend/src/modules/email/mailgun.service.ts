@@ -18,7 +18,7 @@ export interface MailgunEmailOptions {
     contentType?: string;
   }>;
   template?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>;
   tags?: string[];
   headers?: Record<string, string>;
 }
@@ -26,7 +26,7 @@ export interface MailgunEmailOptions {
 @Injectable()
 export class MailgunService {
   private readonly logger = new Logger(MailgunService.name);
-  private mailgun: any;
+  private mailgun: Mailgun | null = null;
   private domain: string;
   private defaultFrom: string;
 
@@ -46,8 +46,8 @@ export class MailgunService {
     }
 
     try {
-      this.mailgun = new Mailgun(FormData);
-      this.domain = domain;
+      this.mailgun = new Mailgun(FormData) as Mailgun;
+      this.domain = domain as string;
       
       this.logger.log(`Mailgun initialized for domain: ${domain}`);
     } catch (error) {
@@ -58,7 +58,7 @@ export class MailgunService {
   /**
    * Envoyer un email simple
    */
-  async sendSimpleMessage(options: MailgunEmailOptions): Promise<any> {
+  async sendSimpleMessage(options: MailgunEmailOptions): Promise<unknown> {
     if (!this.mailgun) {
       throw new InternalServerErrorException('Mailgun not initialized. Check your configuration.');
     }
@@ -66,11 +66,11 @@ export class MailgunService {
     try {
       const mg = this.mailgun.client({
         username: 'api',
-        key: this.configService.get<string>('email.mailgunApiKey'),
+        key: this.configService.get<string>('email.mailgunApiKey') ?? '',
         url: this.configService.get<string>('email.mailgunUrl'),
       });
 
-      const messageData: any = {
+      const messageData: Record<string, unknown> = {
         from: options.from || this.defaultFrom,
         to: Array.isArray(options.to) ? options.to : [options.to],
         subject: options.subject,
@@ -127,7 +127,7 @@ export class MailgunService {
 
       // TIMEOUT-01: Timeout de 30s pour l'envoi d'email
       const result = await withTimeout(
-        mg.messages.create(this.domain, messageData),
+        mg.messages.create(this.domain, messageData as import('mailgun.js').MailgunMessageData),
         DEFAULT_TIMEOUTS.MAILGUN_SEND,
         'Mailgun.send',
       );
@@ -146,7 +146,7 @@ export class MailgunService {
   /**
    * Envoyer un email de bienvenue
    */
-  async sendWelcomeEmail(userEmail: string, userName: string): Promise<any> {
+  async sendWelcomeEmail(userEmail: string, userName: string): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject: 'Bienvenue chez Luneo ! 🎉',
@@ -174,7 +174,7 @@ export class MailgunService {
   /**
    * Envoyer un email de réinitialisation de mot de passe
    */
-  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string): Promise<any> {
+  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject: 'Réinitialisation de votre mot de passe',
@@ -201,7 +201,7 @@ export class MailgunService {
   /**
    * Envoyer un email de confirmation
    */
-  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string): Promise<any> {
+  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject: 'Confirmez votre adresse email',
@@ -228,7 +228,7 @@ export class MailgunService {
   /**
    * Envoyer un email de notification
    */
-  async sendNotificationEmail(userEmail: string, title: string, message: string, actionUrl?: string, actionText?: string): Promise<any> {
+  async sendNotificationEmail(userEmail: string, title: string, message: string, actionUrl?: string, actionText?: string): Promise<unknown> {
     let html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">${title}</h1>
@@ -269,7 +269,7 @@ export class MailgunService {
   /**
    * Obtenir les statistiques d'envoi
    */
-  async getStats(): Promise<any> {
+  async getStats(): Promise<unknown> {
     if (!this.mailgun) {
       throw new InternalServerErrorException('Mailgun not initialized');
     }
@@ -277,11 +277,11 @@ export class MailgunService {
     try {
       const mg = this.mailgun.client({
         username: 'api',
-        key: this.configService.get<string>('email.mailgunApiKey'),
+        key: this.configService.get<string>('email.mailgunApiKey') ?? '',
         url: this.configService.get<string>('email.mailgunUrl'),
       });
 
-      const stats = await mg.stats.get(this.domain, {});
+      const stats = await (mg.stats as unknown as { get: (domain: string, options: Record<string, unknown>) => Promise<unknown> }).get(this.domain, {});
       return stats;
     } catch (error) {
       this.logger.error('Failed to get Mailgun stats:', error);

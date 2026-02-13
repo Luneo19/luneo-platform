@@ -244,7 +244,16 @@ function ZakekeStyleNavContent() {
     ]
   }), []);
 
-  const MegaMenu = useCallback(({ items, type }: { items: any[], type: string }) => (
+  interface NavItem {
+    icon?: React.ReactNode;
+    logo?: string;
+    title: string;
+    description?: string;
+    href: string;
+    badge?: string;
+  }
+
+  const MegaMenu = useCallback(({ items, type }: { items: NavItem[], type: string }) => (
     <AnimatePresence>
       {activeMenu === type && (
         <motion.div

@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { useSessions } from '../hooks/useSessions';
 import type { SecuritySession } from '../types';
 
 export function SessionsSection() {
+  const { t } = useI18n();
   const { sessions, isLoading, revokeSession, revokeAllSessions } = useSessions();
 
   const getDeviceIcon = (deviceType?: string) => {
@@ -32,10 +34,10 @@ export function SessionsSection() {
     return (
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Sessions actives</CardTitle>
+          <CardTitle className="text-white">{t('security.sessions')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-white/60">Chargement...</p>
+          <p className="text-white/60">{t('monitoring.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -46,7 +48,7 @@ export function SessionsSection() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white">Sessions actives</CardTitle>
+            <CardTitle className="text-white">{t('security.sessions')}</CardTitle>
             <CardDescription className="text-white/60 mt-1">
               Gérez les appareils connectés à votre compte
             </CardDescription>
@@ -58,7 +60,7 @@ export function SessionsSection() {
               className="border-red-500/50 text-red-400 hover:bg-red-500/10"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Révoquer toutes
+              {t('security.revokeAll')}
             </Button>
           )}
         </div>
@@ -82,11 +84,11 @@ export function SessionsSection() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-white font-medium">
-                          {session.device || 'Appareil inconnu'}
+                          {session.device || t('security.device')}
                         </p>
                         {session.isCurrent && (
                           <Badge variant="outline" className="border-green-500/50 text-green-400">
-                            Session actuelle
+                            {t('security.currentSession')}
                           </Badge>
                         )}
                       </div>
@@ -95,7 +97,7 @@ export function SessionsSection() {
                       </p>
                       <p className="text-xs text-white/40 mt-1">
                         {session.ipAddress && `${session.ipAddress} • `}
-                        {session.lastActive && `Dernière activité ${formatRelativeDate(session.lastActive.toISOString())}`}
+                        {session.lastActive && `${t('security.lastActivity')} ${formatRelativeDate(session.lastActive.toISOString())}`}
                       </p>
                     </div>
                   </div>

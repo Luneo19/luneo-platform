@@ -5,18 +5,18 @@ import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Conditions d\'utilisation - Luneo',
+  title: 'Conditions d\'utilisation - Luneo Tech',
   description:
-    'Conditions d\'utilisation de la plateforme Luneo. Licence, propriété intellectuelle et responsabilités.',
+    'Conditions d\'utilisation de la plateforme Luneo Tech. Licence, propriété intellectuelle et responsabilités.',
   openGraph: {
-    title: 'Conditions d\'utilisation - Luneo',
-    description: 'Conditions d\'utilisation de la plateforme Luneo.',
+    title: 'Conditions d\'utilisation - Luneo Tech',
+    description: 'Conditions d\'utilisation de la plateforme Luneo Tech.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Conditions d\'utilisation - Luneo',
-    description: 'Conditions d\'utilisation de la plateforme Luneo.',
+    title: 'Conditions d\'utilisation - Luneo Tech',
+    description: 'Conditions d\'utilisation de la plateforme Luneo Tech.',
   },
 };
 
@@ -40,7 +40,7 @@ function TermsPageContent() {
             <div className="prose prose-invert max-w-none">
               <h2 className="text-2xl font-bold text-white mb-4">1. Acceptation des Conditions</h2>
               <p className="text-slate-300 mb-6">
-                En utilisant Luneo, vous acceptez ces conditions d'utilisation.
+                En utilisant Luneo Tech, vous acceptez ces conditions d'utilisation.
               </p>
 
               <h2 className="text-2xl font-bold text-white mb-4">2. Licence d'Utilisation</h2>
@@ -50,7 +50,7 @@ function TermsPageContent() {
 
               <h2 className="text-2xl font-bold text-white mb-4">3. Propriété Intellectuelle</h2>
               <p className="text-slate-300 mb-6">
-                Vous conservez tous les droits sur vos designs. Luneo conserve les droits sur la plateforme.
+                Vous conservez tous les droits sur vos designs. Luneo Tech conserve les droits sur la plateforme.
               </p>
 
               <h2 className="text-2xl font-bold text-white mb-4">4. Responsabilités</h2>

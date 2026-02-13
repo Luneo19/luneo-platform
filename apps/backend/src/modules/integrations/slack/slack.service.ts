@@ -11,7 +11,7 @@ export class SlackService {
   /**
    * Test Slack connection
    */
-  async testConnection(config: Record<string, any>): Promise<{ success: boolean; message: string }> {
+  async testConnection(config: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
     try {
       if (!config.webhookUrl) {
         return {
@@ -21,7 +21,7 @@ export class SlackService {
       }
 
       const response = await firstValueFrom(
-        this.httpService.post(config.webhookUrl, {
+        this.httpService.post(config.webhookUrl as string, {
           text: '🎉 Luneo Enterprise - Test de connexion Slack réussi !',
           attachments: [{
             color: '#4CAF50',
@@ -50,9 +50,9 @@ export class SlackService {
    * Send message to Slack
    */
   async sendMessage(
-    config: Record<string, any>,
+    config: Record<string, unknown>,
     event: string,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     try {
       if (!config.webhookUrl || !config.enabled) {
@@ -62,7 +62,7 @@ export class SlackService {
       const message = this.formatMessage(event, data);
 
       await firstValueFrom(
-        this.httpService.post(config.webhookUrl, message, {
+        this.httpService.post(config.webhookUrl as string, message, {
           timeout: 5000,
         }),
       );
@@ -77,7 +77,7 @@ export class SlackService {
   /**
    * Format message for Slack
    */
-  private formatMessage(event: string, data: Record<string, any>): any {
+  private formatMessage(event: string, data: Record<string, unknown>): unknown {
     const eventConfig = {
       'design.created': {
         color: '#2196F3',
@@ -101,7 +101,7 @@ export class SlackService {
       },
     };
 
-    const config = eventConfig[event] || {
+    const config = (eventConfig as Record<string, { color: string; title: string; emoji: string }>)[event] || {
       color: '#9E9E9E',
       title: `📢 ${event}`,
       emoji: ':bell:',

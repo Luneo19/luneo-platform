@@ -27,6 +27,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Save, Info, Package } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { CATEGORIES, STATUS_OPTIONS } from '../../constants/products';
 import { ProductVariantsTab } from '../ProductVariantsTab';
 import type { Product, ProductCategory, ProductStatus } from '@/lib/types/product';
@@ -44,6 +45,7 @@ export function EditProductModal({
   product,
   onUpdate,
 }: EditProductModalProps) {
+  const { t } = useI18n();
   const [formData, setFormData] = useState<Partial<Product>>(product);
   const [saving, setSaving] = useState(false);
 
@@ -68,26 +70,26 @@ export function EditProductModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Modifier le produit</DialogTitle>
+          <DialogTitle>{t('products.editTitle')}</DialogTitle>
           <DialogDescription>
-            Modifiez les informations de votre produit et gérez les variantes
+            {t('products.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="infos" className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="infos" className="flex items-center gap-2">
               <Info className="h-4 w-4" />
-              Infos
+              {t('products.infos')}
             </TabsTrigger>
             <TabsTrigger value="variantes" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Variantes
+              {t('products.variants')}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="infos" className="mt-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label className="text-gray-700">Nom du produit *</Label>
+                <Label className="text-gray-700">{t('products.name')} *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) =>
@@ -98,7 +100,7 @@ export function EditProductModal({
                 />
               </div>
               <div>
-                <Label className="text-gray-700">Description</Label>
+                <Label className="text-gray-700">{t('products.description')}</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) =>
@@ -110,7 +112,7 @@ export function EditProductModal({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-700">Catégorie *</Label>
+                  <Label className="text-gray-700">{t('products.category')} *</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) =>
@@ -130,7 +132,7 @@ export function EditProductModal({
                           <SelectItem key={cat.value} value={cat.value}>
                             <div className="flex items-center gap-2">
                               <Icon className="w-4 h-4" />
-                              {cat.label}
+                              {t(`products.categories.${cat.value}` as string)}
                             </div>
                           </SelectItem>
                         );
@@ -139,7 +141,7 @@ export function EditProductModal({
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-gray-700">Prix</Label>
+                  <Label className="text-gray-700">{t('products.price')}</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -156,7 +158,7 @@ export function EditProductModal({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-700">Statut</Label>
+                  <Label className="text-gray-700">{t('products.status')}</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value) =>
@@ -170,7 +172,7 @@ export function EditProductModal({
                       {STATUS_OPTIONS.filter((s) => s.value !== 'all').map(
                         (status) => (
                           <SelectItem key={status.value} value={status.value}>
-                            {status.label}
+                            {t(`products.${status.value.toLowerCase()}` as string)}
                           </SelectItem>
                         )
                       )}
@@ -193,7 +195,7 @@ export function EditProductModal({
                       htmlFor="is-active-edit"
                       className="text-gray-700 cursor-pointer"
                     >
-                      Produit actif
+                      {t('products.productActive')}
                     </Label>
                   </div>
                 </div>
@@ -205,7 +207,7 @@ export function EditProductModal({
                   onClick={() => onOpenChange(false)}
                   className="border-gray-200"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -215,12 +217,12 @@ export function EditProductModal({
                   {saving ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Enregistrement...
+                      {t('products.saving')}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
-                      Enregistrer
+                      {t('common.save')}
                     </>
                   )}
                 </Button>
@@ -232,7 +234,7 @@ export function EditProductModal({
               <ProductVariantsTab productId={product.id} />
             ) : (
               <p className="text-sm text-muted-foreground py-4">
-                Enregistrez d’abord le produit pour gérer les variantes.
+                {t('products.saveFirstVariants')}
               </p>
             )}
           </TabsContent>

@@ -92,12 +92,13 @@ export class PrintReadyExporter {
     return pdf.output('blob');
   }
   
-  /**
-   * Add crop marks to PDF
-   * BUNDLE-01: Type any car jsPDF est importé dynamiquement
-   */
+  /** Minimal type for dynamically imported jsPDF instance */
   private addCropMarks(
-    pdf: any,
+    pdf: {
+      setDrawColor: (r: number, g: number, b: number) => void;
+      setLineWidth: (w: number) => void;
+      line: (x1: number, y1: number, x2: number, y2: number) => void;
+    },
     widthMM: number,
     heightMM: number,
     bleed: number

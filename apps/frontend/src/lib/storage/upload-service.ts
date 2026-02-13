@@ -45,7 +45,7 @@ export async function uploadFileToStorage(
       default:
         throw new Error(`Unsupported storage provider: ${provider}`);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error uploading file to storage', { error, fileName });
     throw error;
   }
@@ -105,7 +105,7 @@ async function uploadToS3(
       size: fileBuffer.length,
       contentType,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error uploading to S3/R2', { error, fileName });
     throw error;
   }
@@ -164,7 +164,7 @@ async function uploadToCloudinary(
       size: result.bytes,
       contentType: result.format,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error uploading to Cloudinary', { error, fileName });
     throw error;
   }

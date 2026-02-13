@@ -61,7 +61,7 @@ export interface UserActivityData {
   userId: string;
   action: string;
   page: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ConnectionState {

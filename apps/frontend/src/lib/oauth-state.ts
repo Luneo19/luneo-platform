@@ -14,7 +14,7 @@ interface OAuthState {
   userId: string;
   provider: string;
   redirectUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: number;
   expiresAt: number;
 }
@@ -32,7 +32,7 @@ export function generateOAuthState(
   userId: string,
   provider: string,
   redirectUrl?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): string {
   const state = crypto.randomBytes(32).toString('hex');
   const createdAt = Date.now();

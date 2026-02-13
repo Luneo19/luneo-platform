@@ -43,10 +43,10 @@ export function CohortChart({
 
     // Transform to chart format
     const periods = Math.max(...data.map((d) => d.period)) + 1;
-    const result: any[] = [];
+    const result: Array<Record<string, string | number>> = [];
 
     cohorts.forEach((items, cohort) => {
-      const row: any = { cohort };
+      const row: Record<string, string | number> = { cohort };
       for (let i = 0; i < periods; i++) {
         const item = items.find((it) => it.period === i);
         row[`period_${i}`] = item?.retention || 0;
@@ -139,7 +139,7 @@ export function CohortChart({
                 {row.cohort}
               </td>
               {Array.from({ length: periods }, (_, i) => {
-                const value = row[`period_${i}`] || 0;
+                const value = Number(row[`period_${i}`] ?? 0);
                 return (
                   <td
                     key={i}

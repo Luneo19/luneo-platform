@@ -13,49 +13,37 @@ export class ReferralService {
     private emailService: EmailService,
   ) {}
 
+  /** Alphanumeric chars for LUNEO-XXXXXX (no ambiguous 0/O, 1/I) */
+  private static readonly REFERRAL_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
   /**
-   * Crée ou récupère le code de referral pour un utilisateur
+   * Crée ou récupère le code de referral pour un utilisateur (format LUNEO-XXXXXX)
    * @param userId - ID de l'utilisateur
    * @returns Code de referral unique
    */
   private async getOrCreateReferralCode(userId: string): Promise<string> {
-    // Vérifier si l'utilisateur a déjà un referral actif (en tant que referrer)
     const existingReferral = await this.prisma.referral.findFirst({
-      where: {
-        referrerId: userId,
-      },
-      select: {
-        referralCode: true,
-      },
+      where: { referrerId: userId },
+      select: { referralCode: true },
     });
-
     if (existingReferral) {
       return existingReferral.referralCode;
     }
 
-    // Générer un nouveau code de referral unique
-    const baseCode = `REF-${userId.substring(0, 8).toUpperCase()}`;
-    let referralCode = baseCode;
+    const crypto = require('crypto');
     let attempts = 0;
-
-    // Vérifier l'unicité du code
-    while (attempts < 10) {
+    while (attempts < 20) {
+      const chars = Array.from({ length: 6 }, () =>
+        ReferralService.REFERRAL_CHARS[crypto.randomInt(0, ReferralService.REFERRAL_CHARS.length)],
+      );
+      const referralCode = `LUNEO-${chars.join('')}`;
       const existing = await this.prisma.referral.findFirst({
         where: { referralCode },
       });
-
-      if (!existing) {
-        break; // Code unique trouvé
-      }
-
-      // Générer un nouveau code avec un suffixe cryptographiquement sécurisé
-      const randomBytes = require('crypto').randomBytes(3);
-      const suffix = randomBytes.toString('hex').toUpperCase();
-      referralCode = `${baseCode}-${suffix}`;
+      if (!existing) return referralCode;
       attempts++;
     }
-
-    return referralCode;
+    return `LUNEO-${crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 6)}`;
   }
 
   /**
@@ -136,7 +124,7 @@ export class ReferralService {
       totalEarnings,
       pendingEarnings,
       referralCode,
-      referralLink: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000'}/signup?ref=${userId.substring(0, 8)}`,
+      referralLink: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000'}/ref/${referralCode}`,
       recentReferrals,
     };
   }

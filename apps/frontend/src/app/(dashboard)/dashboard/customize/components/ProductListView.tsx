@@ -8,6 +8,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { Box, Eye, Heart, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,11 +29,12 @@ interface ProductListViewProps {
 
 export function ProductListView({ products }: ProductListViewProps) {
   const router = useRouter();
+  const { t } = useI18n();
 
   return (
     <div className="space-y-2">
       {products.map((product, index) => {
-        const thumbnail = product.images?.[0] || `https://picsum.photos/seed/${product.id}/400/400`;
+        const thumbnail = product.images?.[0] || '/placeholder-design.svg';
         const views = (product.metadata?.views as number) || 0;
         const favorites = (product.metadata?.favorites as number) || 0;
 
@@ -66,9 +68,9 @@ export function ProductListView({ products }: ProductListViewProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Modifier</DropdownMenuItem>
-                          <DropdownMenuItem>Dupliquer</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-400">Supprimer</DropdownMenuItem>
+                          <DropdownMenuItem>{t('common.edit')}</DropdownMenuItem>
+                          <DropdownMenuItem>{t('designs.duplicate')}</DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-400">{t('common.delete')}</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

@@ -314,7 +314,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -535,6 +537,7 @@ const CATEGORIES = [
 // ========================================
 
 function IntegrationsDashboardPageContent() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -550,6 +553,12 @@ function IntegrationsDashboardPageContent() {
   const [showWebhooksModal, setShowWebhooksModal] = useState(false);
   const [showAPIKeysModal, setShowAPIKeysModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'integrations' | 'webhooks' | 'api-keys' | 'logs' | 'analytics'>('overview');
+
+  // WooCommerce credentials (for connect modal)
+  const [wooStoreUrl, setWooStoreUrl] = useState('');
+  const [wooConsumerKey, setWooConsumerKey] = useState('');
+  const [wooConsumerSecret, setWooConsumerSecret] = useState('');
+  const [wooConnecting, setWooConnecting] = useState(false);
 
   // Stats
   const [stats, setStats] = useState({
@@ -602,20 +611,21 @@ function IntegrationsDashboardPageContent() {
   const handleDisconnect = useCallback(async (integration: Integration) => {
     try {
       await endpoints.integrations.disable(integration.id);
-      toast({ title: 'Succès', description: `${integration.name} déconnecté` });
+      toast({ title: t('integrations.success'), description: `${integration.name} ${t('integrations.disconnect').toLowerCase()}` });
       // Refresh integrations list
       if (integrationsQuery.refetch) {
         await integrationsQuery.refetch();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       logger.error('Failed to disconnect integration', { error, integrationId: integration.id });
       toast({
-        title: 'Erreur',
-        description: error.message || 'Erreur lors de la déconnexion',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
-  }, [toast, integrationsQuery]);
+  }, [t, toast, integrationsQuery]);
 
   const handleSettings = useCallback((integration: Integration) => {
     setSelectedIntegration(integration);
@@ -624,35 +634,48 @@ function IntegrationsDashboardPageContent() {
 
   const handleTestConnection = useCallback(async (integration: Integration) => {
     try {
-      toast({ title: 'Test en cours', description: `Test de connexion pour ${integration.name}...` });
+      toast({ title: t('integrations.testing'), description: `Test de connexion pour ${integration.name}...` });
       
       // Get integration config from query data if available, otherwise use empty object
-      const integrationData = integrationsQuery.data?.find((i: any) => i.id === integration.id);
+      const integrationData = integrationsQuery.data?.find((i: { id: string }) => i.id === integration.id);
       const config = integrationData?.config || {};
       
       const result = await endpoints.integrations.test(integration.id, config) as { success: boolean; message?: string };
       
       if (result.success) {
         toast({
-          title: 'Succès',
+          title: t('integrations.success'),
           description: result.message || `Connexion ${integration.name} réussie`,
         });
       } else {
         toast({
-          title: 'Échec',
+          title: t('common.failed'),
           description: result.message || `Échec du test de connexion pour ${integration.name}`,
           variant: 'destructive',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       logger.error('Failed to test integration', { error, integrationId: integration.id });
       toast({
-        title: 'Erreur',
-        description: error.message || 'Erreur lors du test de connexion',
+        title: t('integrations.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
-  }, [toast, integrations]);
+  }, [t, toast, integrationsQuery]);
+
+  // Error state
+  if (integrationsQuery.isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-red-400 mb-4">{t('integrations.error')}</p>
+        <Button variant="outline" onClick={() => integrationsQuery.refetch()} className="border-gray-600">
+          {t('common.retry')}
+        </Button>
+      </div>
+    );
+  }
 
   // Loading state
   if (integrationsQuery.isLoading || analyticsQuery.isLoading) {
@@ -660,7 +683,7 @@ function IntegrationsDashboardPageContent() {
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
-          <p className="mt-4 text-gray-300">Chargement des intégrations...</p>
+          <p className="mt-4 text-gray-300">{t('dashboard.common.loading')}</p>
         </div>
       </div>
     );
@@ -673,10 +696,10 @@ function IntegrationsDashboardPageContent() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
             <Plug className="w-8 h-8 text-cyan-400" />
-            Intégrations
+            {t('integrations.title')}
           </h1>
           <p className="text-gray-400 mt-1">
-            Connectez vos outils préférés pour automatiser vos workflows
+            {t('integrations.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -686,7 +709,7 @@ function IntegrationsDashboardPageContent() {
             className="border-gray-700"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
-            Documentation
+            {t('integrations.tabs.docs')}
           </Button>
           <Button
             variant="outline"
@@ -694,7 +717,7 @@ function IntegrationsDashboardPageContent() {
             className="border-gray-700"
           >
             <Key className="w-4 h-4 mr-2" />
-            API Keys
+            {t('integrations.apiKeys')}
           </Button>
         </div>
       </div>
@@ -702,12 +725,12 @@ function IntegrationsDashboardPageContent() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Total', value: stats.total, icon: Plug, color: 'cyan' },
-          { label: 'Connectées', value: stats.connected, icon: CheckCircle, color: 'green' },
-          { label: 'En attente', value: stats.pending, icon: Clock, color: 'yellow' },
-          { label: 'Erreurs', value: stats.errors, icon: AlertTriangle, color: 'red' },
-          { label: 'Syncs totales', value: formatNumber(stats.totalSyncs), icon: RefreshCw, color: 'blue' },
-          { label: 'Taux succès', value: `${stats.successRate}%`, icon: TrendingUp, color: 'purple' },
+          { label: t('integrations.stats.total'), value: stats.total, icon: Plug, color: 'cyan' },
+          { label: t('integrations.stats.connected'), value: stats.connected, icon: CheckCircle, color: 'green' },
+          { label: t('integrations.stats.pending'), value: stats.pending, icon: Clock, color: 'yellow' },
+          { label: t('integrations.stats.errors'), value: stats.errors, icon: AlertTriangle, color: 'red' },
+          { label: t('integrations.stats.syncs'), value: formatNumber(stats.totalSyncs), icon: RefreshCw, color: 'blue' },
+          { label: t('integrations.stats.successRate'), value: `${stats.successRate}%`, icon: TrendingUp, color: 'purple' },
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -734,22 +757,22 @@ function IntegrationsDashboardPageContent() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as string)} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'integrations' | 'webhooks' | 'analytics' | 'overview' | 'logs' | 'api-keys')} className="space-y-6">
         <TabsList className="bg-gray-900/50 border border-gray-700">
           <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-600">
-            Vue d'ensemble
+            {t('integrations.tabs.overview')}
           </TabsTrigger>
           <TabsTrigger value="integrations" className="data-[state=active]:bg-cyan-600">
-            Intégrations
+            {t('integrations.title')}
           </TabsTrigger>
           <TabsTrigger value="webhooks" className="data-[state=active]:bg-cyan-600">
-            Webhooks
+            {t('integrations.webhooks')}
           </TabsTrigger>
           <TabsTrigger value="api-keys" className="data-[state=active]:bg-cyan-600">
-            API Keys
+            {t('integrations.apiKeys')}
           </TabsTrigger>
           <TabsTrigger value="logs" className="data-[state=active]:bg-cyan-600">
-            Logs
+            {t('integrations.syncLogs')}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="data-[state=active]:bg-cyan-600">
             Analytics
@@ -761,7 +784,7 @@ function IntegrationsDashboardPageContent() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="bg-gray-800/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Intégrations populaires</CardTitle>
+                <CardTitle className="text-white">{t('integrations.popular')}</CardTitle>
                 <CardDescription className="text-gray-400">
                   Les intégrations les plus utilisées
                 </CardDescription>
@@ -782,7 +805,7 @@ function IntegrationsDashboardPageContent() {
                           </div>
                         </div>
                             <Badge variant={integration.status === 'connected' ? 'default' : 'secondary'}>
-                              {integration.status === 'connected' ? 'Connecté' : 'Non connecté'}
+                              {integration.status === 'connected' ? t('integrations.connected') : t('integrations.notConnected')}
                             </Badge>
                       </div>
                     );
@@ -793,7 +816,7 @@ function IntegrationsDashboardPageContent() {
 
             <Card className="bg-gray-800/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Activité récente</CardTitle>
+                <CardTitle className="text-white">{t('integrations.recentActivity')}</CardTitle>
                 <CardDescription className="text-gray-400">
                   Dernières synchronisations
                 </CardDescription>
@@ -813,7 +836,7 @@ function IntegrationsDashboardPageContent() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
-                  placeholder="Rechercher une intégration..."
+                  placeholder={t('integrations.search')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-gray-900 border-gray-600 text-white"
@@ -821,7 +844,7 @@ function IntegrationsDashboardPageContent() {
               </div>
               <Select value={filterCategory} onValueChange={setFilterCategory}>
                 <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
-                  <SelectValue placeholder="Catégorie" />
+                  <SelectValue placeholder={t('integrations.category')} />
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((cat) => (
@@ -833,14 +856,14 @@ function IntegrationsDashboardPageContent() {
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-[180px] bg-gray-900 border-gray-600 text-white">
-                  <SelectValue placeholder="Statut" />
+                  <SelectValue placeholder={t('integrations.status')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="connected">Connecté</SelectItem>
-                  <SelectItem value="disconnected">Non connecté</SelectItem>
-                  <SelectItem value="pending">En attente</SelectItem>
-                  <SelectItem value="error">Erreur</SelectItem>
+                  <SelectItem value="connected">{t('integrations.connected')}</SelectItem>
+                  <SelectItem value="disconnected">{t('integrations.notConnected')}</SelectItem>
+                  <SelectItem value="pending">{t('integrations.stats.pending')}</SelectItem>
+                  <SelectItem value="error">{t('integrations.error')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -897,10 +920,10 @@ function IntegrationsDashboardPageContent() {
                                 {integration.status === 'error' && <XCircle className="w-4 h-4 text-red-400" />}
                                 {integration.status === 'disconnected' && <XCircle className="w-4 h-4 text-gray-400" />}
                                 <span className="text-xs text-gray-400">
-                                  {integration.status === 'connected' && 'Connecté'}
-                                  {integration.status === 'pending' && 'En attente'}
-                                  {integration.status === 'error' && 'Erreur'}
-                                  {integration.status === 'disconnected' && 'Non connecté'}
+                                  {integration.status === 'connected' && t('integrations.connected')}
+                                  {integration.status === 'pending' && t('integrations.stats.pending')}
+                                  {integration.status === 'error' && t('integrations.error')}
+                                  {integration.status === 'disconnected' && t('integrations.notConnected')}
                                 </span>
                               </div>
                             </div>
@@ -931,7 +954,7 @@ function IntegrationsDashboardPageContent() {
                                 className="flex-1 border-gray-600"
                               >
                                 <Settings className="w-4 h-4 mr-2" />
-                                Paramètres
+                                {t('integrations.configure')}
                               </Button>
                               <Button
                                 variant="outline"
@@ -949,7 +972,7 @@ function IntegrationsDashboardPageContent() {
                               className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500"
                             >
                               <Plus className="w-4 h-4 mr-2" />
-                              Connecter
+                              {t('integrations.connect')}
                             </Button>
                           )}
                         </div>
@@ -968,8 +991,8 @@ function IntegrationsDashboardPageContent() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white">Webhooks</CardTitle>
-                  <CardDescription className="text-gray-400">
+<CardTitle className="text-white">{t('integrations.webhooks')}</CardTitle>
+              <CardDescription className="text-gray-400">
                     Gérez vos webhooks pour recevoir des notifications en temps réel
                   </CardDescription>
                 </div>
@@ -978,7 +1001,7 @@ function IntegrationsDashboardPageContent() {
                   className="bg-gradient-to-r from-cyan-600 to-blue-600"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Créer un webhook
+                  {t('integrations.createWebhook')}
                 </Button>
               </div>
             </CardHeader>
@@ -994,8 +1017,8 @@ function IntegrationsDashboardPageContent() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white">API Keys</CardTitle>
-                  <CardDescription className="text-gray-400">
+<CardTitle className="text-white">{t('integrations.apiKeys')}</CardTitle>
+              <CardDescription className="text-gray-400">
                     Gérez vos clés API pour accéder à notre API REST
                   </CardDescription>
                 </div>
@@ -1004,7 +1027,7 @@ function IntegrationsDashboardPageContent() {
                   className="bg-gradient-to-r from-cyan-600 to-blue-600"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Créer une clé API
+                      {t('integrations.createApiKey')}
                     </Button>
               </div>
             </CardHeader>
@@ -1018,7 +1041,7 @@ function IntegrationsDashboardPageContent() {
         <TabsContent value="logs" className="space-y-6">
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Logs de synchronisation</CardTitle>
+              <CardTitle className="text-white">{t('integrations.syncLogs')}</CardTitle>
               <CardDescription className="text-gray-400">
                 Historique des synchronisations et erreurs
               </CardDescription>
@@ -1046,40 +1069,125 @@ function IntegrationsDashboardPageContent() {
       </Tabs>
 
       {/* Connect Modal */}
-      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
+      <Dialog open={showConnectModal} onOpenChange={(open) => {
+        setShowConnectModal(open);
+        if (!open) {
+          setWooStoreUrl('');
+          setWooConsumerKey('');
+          setWooConsumerSecret('');
+        }
+      }}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
           <DialogHeader>
             <DialogTitle>Connecter {selectedIntegration?.name}</DialogTitle>
             <DialogDescription>
-              Suivez les étapes pour connecter votre compte
+              {selectedIntegration?.id === 'woocommerce'
+                ? 'Entrez les identifiants API de votre boutique WooCommerce'
+                : 'Suivez les étapes pour connecter votre compte'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
-            {selectedIntegration?.setupSteps?.map((step, index) => (
-              <div key={index} className="flex items-start gap-3 p-4 bg-gray-900/50 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-cyan-400 font-bold">{index + 1}</span>
-                </div>
-                <p className="text-white">{step}</p>
+          {selectedIntegration?.id === 'woocommerce' ? (
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="woo-store-url">{t('integrations.woocommerce.storeUrl')}</Label>
+                <Input
+                  id="woo-store-url"
+                  type="url"
+                  placeholder="https://mystore.com"
+                  value={wooStoreUrl}
+                  onChange={(e) => setWooStoreUrl(e.target.value)}
+                  className="bg-gray-900 border-gray-600 text-white"
+                />
               </div>
-            ))}
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="woo-consumer-key">{t('integrations.woocommerce.consumerKey')}</Label>
+                <Input
+                  id="woo-consumer-key"
+                  type="text"
+                  placeholder="ck_..."
+                  value={wooConsumerKey}
+                  onChange={(e) => setWooConsumerKey(e.target.value)}
+                  className="bg-gray-900 border-gray-600 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="woo-consumer-secret">{t('integrations.woocommerce.consumerSecret')}</Label>
+                <Input
+                  id="woo-consumer-secret"
+                  type="password"
+                  placeholder="cs_..."
+                  value={wooConsumerSecret}
+                  onChange={(e) => setWooConsumerSecret(e.target.value)}
+                  className="bg-gray-900 border-gray-600 text-white"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 mt-4">
+              {selectedIntegration?.setupSteps?.map((step, index) => (
+                <div key={index} className="flex items-start gap-3 p-4 bg-gray-900/50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-cyan-400 font-bold">{index + 1}</span>
+                  </div>
+                  <p className="text-white">{step}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConnectModal(false)} className="border-gray-600">
               Annuler
             </Button>
-            <Button
-              onClick={() => {
-                if (selectedIntegration?.connectUrl) {
-                  window.location.href = selectedIntegration.connectUrl;
-                } else {
-                  toast({ title: 'Info', description: 'URL de connexion non disponible' });
-                }
-              }}
-              className="bg-cyan-600 hover:bg-cyan-700"
-            >
-              Continuer
-            </Button>
+            {selectedIntegration?.id === 'woocommerce' ? (
+              <Button
+                disabled={!wooStoreUrl.trim() || !wooConsumerKey.trim() || !wooConsumerSecret.trim() || wooConnecting}
+                onClick={async () => {
+                  setWooConnecting(true);
+                  try {
+                    await endpoints.integrations.enable('woocommerce', {
+                      storeUrl: wooStoreUrl.trim(),
+                      consumerKey: wooConsumerKey.trim(),
+                      consumerSecret: wooConsumerSecret.trim(),
+                    });
+                    toast({ title: t('integrations.success'), description: t('integrations.woocommerceConnected') });
+                    setShowConnectModal(false);
+                    if (integrationsQuery.refetch) await integrationsQuery.refetch();
+                  } catch (error: unknown) {
+                    logger.error('Failed to connect WooCommerce', { error });
+                    toast({
+                      title: t('integrations.error'),
+                      description: getErrorDisplayMessage(error),
+                      variant: 'destructive',
+                    });
+                  } finally {
+                    setWooConnecting(false);
+                  }
+                }}
+                className="bg-cyan-600 hover:bg-cyan-700"
+              >
+                {wooConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('integrations.connecting')}
+                  </>
+                ) : (
+                  t('integrations.connect')
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  if (selectedIntegration?.connectUrl) {
+                    window.location.href = selectedIntegration.connectUrl;
+                  } else {
+                    toast({ title: t('common.error'), description: t('integrations.connectionUrlNotAvailable') });
+                  }
+                }}
+                className="bg-cyan-600 hover:bg-cyan-700"
+              >
+                Continuer
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1091,7 +1199,7 @@ function IntegrationsDashboardPageContent() {
             <HelpCircle className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white mb-2">Besoin d'aide ?</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('integrations.needHelp')}</h3>
             <p className="text-sm text-gray-400 mb-4">
               Consultez notre documentation pour configurer vos intégrations ou contactez notre support.
             </p>

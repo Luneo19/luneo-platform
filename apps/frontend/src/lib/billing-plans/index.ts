@@ -71,7 +71,6 @@ interface PlanCatalog {
 // This is a workaround for Next.js build-time requirements
 let billingPlansModule: unknown;
 try {
-  // @ts-expect-error -- Workspace package @luneo/billing-plans may not resolve at build time in all environments
   billingPlansModule = require('@luneo/billing-plans');
 } catch (error) {
   // In Vercel/build environment, the package should be available via workspace

@@ -6,6 +6,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { WooCommerceService } from './woocommerce.service';
+import { WooCommerceController } from './woocommerce.controller';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { EcommerceModule } from '@/modules/ecommerce/ecommerce.module';
@@ -19,6 +20,7 @@ import { EcommerceModule } from '@/modules/ecommerce/ecommerce.module';
       name: 'ecommerce-sync',
     }),
   ],
+  controllers: [WooCommerceController],
   providers: [WooCommerceService],
   exports: [WooCommerceService],
 })

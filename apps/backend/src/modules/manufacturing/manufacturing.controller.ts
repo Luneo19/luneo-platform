@@ -12,6 +12,7 @@ import { ManufacturingService } from './manufacturing.service';
 import { GenerateExportPackDto } from './dto/generate-export-pack.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandScopedGuard } from '@/common/guards/brand-scoped.guard';
+import { RequestWithUser } from '@/common/types/user.types';
 import { BrandScoped } from '@/common/decorators/brand-scoped.decorator';
 
 @ApiTags('manufacturing')
@@ -27,7 +28,7 @@ export class ManufacturingController {
   @ApiResponse({ status: 201, description: 'Export pack generated' })
   async generateExportPack(
     @Body() dto: GenerateExportPackDto,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     // Brand access is enforced by BrandScopedGuard
     return this.manufacturingService.generateExportPack(dto);
@@ -38,7 +39,7 @@ export class ManufacturingController {
   @ApiResponse({ status: 200, description: 'Production bundles' })
   async getProductionBundle(
     @Param('orderId') orderId: string,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     // Brand access is enforced by BrandScopedGuard
     return this.manufacturingService.getProductionBundle(orderId);

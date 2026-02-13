@@ -15,9 +15,10 @@ export function useApiKeys() {
       setLoading(true);
       setError(null);
 
-      const data = await endpoints.publicApi.keys.list();
-      const raw = data as { data?: { api_keys?: ApiKey[] }; api_keys?: ApiKey[] };
-      setApiKeys(raw?.data?.api_keys ?? raw?.api_keys ?? []);
+      const raw = await endpoints.publicApi.keys.list();
+      // List: backend returns array directly
+      const keys = Array.isArray(raw) ? raw : (raw as { data?: { api_keys?: ApiKey[] }; api_keys?: ApiKey[] })?.data?.api_keys ?? (raw as { api_keys?: ApiKey[] }).api_keys ?? (raw as { data?: ApiKey[] }).data ?? [];
+      setApiKeys(Array.isArray(keys) ? keys : []);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       logger.error('Erreur chargement API keys', {
@@ -30,18 +31,27 @@ export function useApiKeys() {
     }
   }, []);
 
-  const createApiKey = useCallback(async (name: string, permissions: string[] = ['read'], rate_limit: number = 1000) => {
+  const createApiKey = useCallback(async (name: string, permissions: string[] = ['read']) => {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await endpoints.publicApi.keys.create({ name, permissions, rate_limit });
-      const raw = data as { data?: { api_key?: string; key_info?: unknown }; api_key?: string; key_info?: unknown; message?: string };
+      // Send rateLimit as object, not rate_limit as number
+      const response = await endpoints.publicApi.keys.create({
+        name,
+        permissions: permissions || ['read'],
+        rateLimit: { requestsPerMinute: 60, requestsPerDay: 1000, requestsPerMonth: 30000 },
+      });
+      // Backend returns { apiKey, secret }
+      const raw = response as { apiKey?: string; api_key?: string; secret?: string; key_info?: unknown; message?: string };
+      const newKey = raw.apiKey ?? raw.api_key ?? (raw as unknown as { api_key?: string }).api_key ?? (raw as unknown);
+      const secret = raw.secret;
       await loadApiKeys();
       return {
         success: true,
-        api_key: raw?.data?.api_key ?? raw?.api_key,
-        key_info: raw?.data?.key_info ?? raw?.key_info,
+        api_key: typeof newKey === 'string' ? newKey : (newKey as { apiKey?: string })?.apiKey ?? (newKey as { api_key?: string })?.api_key,
+        key_info: raw.key_info,
+        secret,
         message: raw?.message ?? 'Clé créée',
       };
     } catch (err: unknown) {
@@ -50,7 +60,6 @@ export function useApiKeys() {
         error: err,
         name,
         permissions,
-        rate_limit,
         message,
       });
       setError(message);

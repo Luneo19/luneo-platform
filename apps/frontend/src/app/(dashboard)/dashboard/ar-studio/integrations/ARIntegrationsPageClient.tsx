@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { IntegrationsHeader } from './components/IntegrationsHeader';
 import { IntegrationsStats } from './components/IntegrationsStats';
 import { useIntegrations } from './hooks/useIntegrations';
@@ -25,6 +26,7 @@ import type { IntegrationCategory } from './types';
 
 export function ARIntegrationsPageClient() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'integrations' | 'logs'>('integrations');
 
   const {
@@ -44,13 +46,13 @@ export function ARIntegrationsPageClient() {
     const result = await toggleIntegration(integrationId, enabled);
     if (result.success) {
       toast({
-        title: 'Succès',
-        description: `Intégration ${enabled ? 'activée' : 'désactivée'}`,
+        title: t('common.success'),
+        description: enabled ? t('integrations.integrationEnabled') : t('integrations.integrationDisabled'),
       });
     } else {
       toast({
-        title: 'Erreur',
-        description: result.error || 'Erreur lors de la modification',
+        title: t('common.error'),
+        description: result.error || t('integrations.modifyError'),
         variant: 'destructive',
       });
     }
@@ -60,13 +62,13 @@ export function ARIntegrationsPageClient() {
     const result = await testConnection(integrationId);
     if (result.success) {
       toast({
-        title: 'Succès',
-        description: 'Connexion testée avec succès',
+        title: t('common.success'),
+        description: t('integrations.testSuccess'),
       });
     } else {
       toast({
-        title: 'Erreur',
-        description: result.error || 'Erreur lors du test',
+        title: t('common.error'),
+        description: result.error || t('integrations.testError'),
         variant: 'destructive',
       });
     }
@@ -87,10 +89,10 @@ export function ARIntegrationsPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
-      <IntegrationsHeader onAddIntegration={() => toast({ title: 'Fonctionnalité à venir' })} />
+      <IntegrationsHeader onAddIntegration={() => toast({ title: t('common.comingSoon') })} />
       <IntegrationsStats {...stats} />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "integrations" | "logs")}>
         <TabsList className="bg-gray-800 border-gray-700">
           <TabsTrigger value="integrations" className="data-[state=active]:bg-gray-700">
             Intégrations

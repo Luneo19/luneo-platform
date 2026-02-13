@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 export interface UseProductOptions {
   productId?: string;
   autoFetch?: boolean;
-  onUpdate?: (product: any) => void;
+  onUpdate?: (product: unknown) => void;
   onDelete?: () => void;
 }
 
@@ -80,7 +80,7 @@ export function useProduct(options: UseProductOptions = {}) {
   // ========================================
 
   const update = useCallback(
-    async (data: any) => {
+    async (data: Record<string, unknown>) => {
       if (!productId) return;
       return updateMutation.mutateAsync({ id: productId, ...data });
     },
@@ -167,7 +167,7 @@ export function useProductList(options: UseProductListOptions = {}) {
   const listQuery = trpc.product.list.useQuery(
     {
       brandId,
-      category: category ?? undefined,
+      category: (category as 'OTHER' | 'JEWELRY' | 'WATCHES' | 'GLASSES' | 'ACCESSORIES' | 'HOME' | 'TECH') ?? undefined,
       search,
       limit,
       offset,

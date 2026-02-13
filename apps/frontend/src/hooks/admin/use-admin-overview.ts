@@ -101,7 +101,7 @@ export interface AdminOverviewData {
     customerName?: string;
     customerEmail?: string;
     timestamp: Date | string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   recentCustomers: Array<{
     id: string;

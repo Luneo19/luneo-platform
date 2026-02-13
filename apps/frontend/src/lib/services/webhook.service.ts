@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 interface WebhookPayload {
   event: string;
   timestamp: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   user_id?: string;
   resource_type?: string;
   resource_id?: string;
@@ -65,16 +65,16 @@ export class WebhookService {
       }
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Erreur envoi webhook', {
         error,
         url: config.url,
         event: payload.event,
-        message: error.message || 'Erreur lors de l\'envoi du webhook',
+        message: error instanceof Error ? error.message : 'Erreur lors de l\'envoi du webhook',
       });
       return {
         success: false,
-        error: error.message || 'Erreur lors de l\'envoi du webhook',
+        error: error instanceof Error ? error.message : 'Erreur lors de l\'envoi du webhook',
       };
     }
   }

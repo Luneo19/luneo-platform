@@ -4,8 +4,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { GeneratedAnimation, AnimationStyle, AnimationTemplate } from '../types';
 
 export function useAnimations(
@@ -14,6 +16,7 @@ export function useAnimations(
   filterDuration: string
 ) {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [animations, setAnimations] = useState<GeneratedAnimation[]>([]);
   const [templates, setTemplates] = useState<AnimationTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,16 +114,17 @@ export function useAnimations(
           isFavorite: false,
         };
         setAnimations((prev) => [newAnimation, ...prev]);
-        toast({ title: 'Succès', description: 'Animation générée avec succès' });
+        toast({ title: t('common.success'), description: t('aiStudioAnimations.animationGenerated') });
         return { success: true, animation: newAnimation };
     } catch (error: unknown) {
       logger.error('Failed to generate animation', { error });
+      const errorMessage = getErrorDisplayMessage(error);
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : 'Erreur lors de la génération',
+        title: t('common.error'),
+        description: errorMessage,
         variant: 'destructive',
       });
-      return { success: false, error: error instanceof Error ? error.message : 'Erreur' };
+      return { success: false, error: errorMessage };
     } finally {
       setIsGenerating(false);
       setGenerationProgress(0);
@@ -129,17 +133,28 @@ export function useAnimations(
 
   const toggleFavorite = async (animationId: string) => {
     try {
-      await api.post(`/api/v1/ai-studio/animations/${animationId}/favorite`);
+      const anim = animations.find((a) => a.id === animationId);
+      const isFav = anim?.isFavorite;
+      if (isFav) {
+        await api.delete('/api/v1/library/favorites/by-resource', {
+          params: { resourceId: animationId, resourceType: 'animation' },
+        });
+      } else {
+        await api.post('/api/v1/library/favorites', {
+          resourceId: animationId,
+          resourceType: 'animation',
+        });
+      }
       setAnimations((prev) =>
         prev.map((a) => (a.id === animationId ? { ...a, isFavorite: !a.isFavorite } : a))
       );
-      toast({ title: 'Succès', description: 'Favori mis à jour' });
+      toast({ title: t('common.success'), description: t('animations.favoriteUpdated') });
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur lors de la mise à jour';
+      const message = error instanceof Error ? error.message : t('animations.updateErrorDesc');
       logger.error('Failed to toggle favorite', { error });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });
@@ -151,13 +166,13 @@ export function useAnimations(
     try {
       await api.delete(`/api/v1/ai-studio/animations/${animationId}`);
       setAnimations((prev) => prev.filter((a) => a.id !== animationId));
-      toast({ title: 'Succès', description: 'Animation supprimée' });
+      toast({ title: t('common.success'), description: t('animations.deleted') });
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur lors de la suppression';
+      const message = error instanceof Error ? error.message : t('animations.deleteErrorDesc');
       logger.error('Failed to delete animation', { error });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });

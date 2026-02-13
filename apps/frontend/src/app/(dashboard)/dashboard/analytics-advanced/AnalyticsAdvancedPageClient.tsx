@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { AnalyticsAdvancedHeader } from './components/AnalyticsAdvancedHeader';
 import { FunnelAnalysis } from './components/FunnelAnalysis';
@@ -35,10 +36,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatPrice } from '@/lib/utils/formatters';
-import { SoftPlanGate } from '@/components/shared/SoftPlanGate';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 import type { TimeRange, AnalyticsView } from './types';
 
 export function AnalyticsAdvancedPageClient() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [activeView, setActiveView] = useState<AnalyticsView>('overview');
@@ -60,8 +63,8 @@ export function AnalyticsAdvancedPageClient() {
 
   const handleExport = () => {
     toast({
-      title: 'Export',
-      description: 'Export des données en cours...',
+      title: t('common.export'),
+      description: t('analytics.exportInProgress'),
     });
   };
 
@@ -79,7 +82,19 @@ export function AnalyticsAdvancedPageClient() {
   }
 
   return (
-    <SoftPlanGate minimumPlan="business" featureName="Analytics Avancées">
+    <PlanGate
+      minimumPlan="business"
+      showUpgradePrompt
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <UpgradePrompt
+            requiredPlan="business"
+            feature="Analytics Avancées"
+            description="Les analytics avancées et l'export sont disponibles à partir du plan Business."
+          />
+        </div>
+      }
+    >
       <div className="min-h-screen dash-bg space-y-6 pb-10">
         <AnalyticsAdvancedHeader onExport={handleExport} />
 
@@ -267,7 +282,7 @@ export function AnalyticsAdvancedPageClient() {
         </TabsContent>
       </Tabs>
       </div>
-    </SoftPlanGate>
+    </PlanGate>
   );
 }
 

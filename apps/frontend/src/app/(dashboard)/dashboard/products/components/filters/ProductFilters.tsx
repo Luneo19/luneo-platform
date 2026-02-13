@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Search, X } from 'lucide-react';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { useI18n } from '@/i18n/useI18n';
 import { CATEGORIES, STATUS_OPTIONS, SORT_OPTIONS, VIEW_MODES } from '../../constants/products';
 import { cn } from '@/lib/utils';
 import type { ProductFilters, SortOption } from '../../types';
@@ -43,6 +44,7 @@ export function ProductFilters({
   onViewModeChange,
   onResetFilters,
 }: ProductFiltersProps) {
+  const { t } = useI18n();
   const handleSort = (value: string) => {
     const [field, direction] = value.split('-');
     onSortChange({
@@ -62,7 +64,7 @@ export function ProductFilters({
             onChange={(e) =>
               onFiltersChange({ ...filters, search: e.target.value })
             }
-            placeholder="Rechercher par nom, description, SKU, tags..."
+            placeholder={t('products.searchPlaceholder')}
             className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
@@ -75,7 +77,7 @@ export function ProductFilters({
           }
         >
           <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Catégorie" />
+            <SelectValue placeholder={t('products.categoryPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {CATEGORIES.map((cat) => {
@@ -84,7 +86,7 @@ export function ProductFilters({
                 <SelectItem key={cat.value} value={cat.value}>
                   <div className="flex items-center gap-2">
                     <Icon className="w-4 h-4" />
-                    {cat.label}
+                    {t(`products.categories.${cat.value}` as string)}
                   </div>
                 </SelectItem>
               );
@@ -100,7 +102,7 @@ export function ProductFilters({
           }
         >
           <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Statut" />
+            <SelectValue placeholder={t('products.statusPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((status) => (
@@ -109,7 +111,7 @@ export function ProductFilters({
                   <div
                     className={`w-2 h-2 rounded-full bg-${status.color}-500`}
                   />
-                  {status.label}
+                  {status.value === 'all' ? t('products.filters.all') : t(`products.${status.value.toLowerCase()}` as string)}
                 </div>
               </SelectItem>
             ))}
@@ -122,12 +124,12 @@ export function ProductFilters({
           onValueChange={handleSort}
         >
           <SelectTrigger className="w-[200px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Trier par" />
+            <SelectValue placeholder={t('products.sortPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {SORT_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                {t(`products.sortOptions.${option.value}` as string)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -168,7 +170,7 @@ export function ProductFilters({
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <Label className="text-gray-700">Prix minimum</Label>
+                <Label className="text-gray-700">{t('products.priceMin')}</Label>
                 <Input
                   type="number"
                   value={filters.priceMin || ''}
@@ -185,7 +187,7 @@ export function ProductFilters({
                 />
               </div>
               <div>
-                <Label className="text-gray-700">Prix maximum</Label>
+                <Label className="text-gray-700">{t('products.priceMax')}</Label>
                 <Input
                   type="number"
                   value={filters.priceMax || ''}
@@ -202,7 +204,7 @@ export function ProductFilters({
                 />
               </div>
               <div>
-                <Label className="text-gray-700">Date de début</Label>
+                <Label className="text-gray-700">{t('products.dateFrom')}</Label>
                 <Input
                   type="date"
                   value={filters.dateFrom || ''}
@@ -216,7 +218,7 @@ export function ProductFilters({
                 />
               </div>
               <div>
-                <Label className="text-gray-700">Date de fin</Label>
+                <Label className="text-gray-700">{t('products.dateTo')}</Label>
                 <Input
                   type="date"
                   value={filters.dateTo || ''}
@@ -242,7 +244,7 @@ export function ProductFilters({
                     }
                   />
                   <Label htmlFor="active-only" className="text-gray-700 cursor-pointer">
-                    Actifs uniquement
+                    {t('products.activeOnly')}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -257,7 +259,7 @@ export function ProductFilters({
                     }
                   />
                   <Label htmlFor="public-only" className="text-gray-700 cursor-pointer">
-                    Publics uniquement
+                    {t('products.publicOnly')}
                   </Label>
                 </div>
               </div>
@@ -269,7 +271,7 @@ export function ProductFilters({
                   className="border-gray-200"
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Réinitialiser
+                  {t('products.resetFilters')}
                 </Button>
               </div>
             </div>

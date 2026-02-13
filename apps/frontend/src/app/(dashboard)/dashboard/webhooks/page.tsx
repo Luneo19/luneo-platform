@@ -5,8 +5,9 @@
  * Complete webhook management interface
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,7 @@ import {
   Check
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { endpoints } from '@/lib/api/client';
 import { CreateWebhookModal } from './components/CreateWebhookModal';
 import { EditWebhookModal } from './components/EditWebhookModal';
@@ -63,23 +65,27 @@ export default function WebhooksPage() {
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   // Fetch webhooks
-  const { data: webhooks, isLoading } = useQuery<Webhook[]>({
+  const { data: webhooks, isLoading, isError: isWebhooksError, error: webhooksError, refetch: refetchWebhooks } = useQuery<Webhook[]>({
     queryKey: ['webhooks'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Webhook[]> => {
       const response = await endpoints.webhooks.list();
-      return (response as { data?: unknown })?.data ?? response;
+      const raw = (response as { data?: Webhook[] })?.data;
+      return Array.isArray(raw) ? raw : (Array.isArray(response) ? (response as Webhook[]) : []);
     },
   });
 
   // Fetch webhook history
-  const { data: history, isLoading: isLoadingHistory } = useQuery({
+  const { data: history, isLoading: isLoadingHistory } = useQuery<{ data: WebhookLog[] }>({
     queryKey: ['webhook-history'],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ data: WebhookLog[] }> => {
       const response = await endpoints.webhooks.history({ page: 1, limit: 50 });
-      return (response as { data?: unknown })?.data ?? response;
+      const raw = (response as { data?: WebhookLog[] })?.data ?? response;
+      const list = Array.isArray(raw) ? raw : (raw as { data?: WebhookLog[] })?.data ?? [];
+      return { data: Array.isArray(list) ? list : [] };
     },
   });
 
@@ -93,21 +99,22 @@ export default function WebhooksPage() {
       isActive?: boolean;
     }) => {
       const response = await endpoints.webhooks.create(data);
-      return (response as { data?: unknown })?.data ?? response;
+      const payload = (response as { data?: Webhook })?.data;
+      return payload ?? (response as Webhook);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       setShowCreateModal(false);
       toast({
-        title: 'Webhook créé',
-        description: 'Le webhook a été créé avec succès.',
+        title: t('webhooks.created'),
+        description: t('webhooks.createdDesc'),
       });
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
       toast({
-        title: 'Erreur',
-        description: err.response?.data?.message || 'Impossible de créer le webhook',
+        title: t('common.error'),
+        description: err.response?.data?.message || t('webhooks.createError'),
         variant: 'destructive',
       });
     },
@@ -117,22 +124,23 @@ export default function WebhooksPage() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
       const response = await endpoints.webhooks.update(id, data);
-      return (response as { data?: unknown })?.data ?? response;
+      const payload = (response as { data?: Webhook })?.data;
+      return payload ?? (response as Webhook);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       setShowEditModal(false);
       setSelectedWebhook(null);
       toast({
-        title: 'Webhook mis à jour',
-        description: 'Le webhook a été mis à jour avec succès.',
+        title: t('webhooks.updated'),
+        description: t('webhooks.updatedDesc'),
       });
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
       toast({
-        title: 'Erreur',
-        description: err.response?.data?.message || 'Impossible de mettre à jour le webhook',
+        title: t('common.error'),
+        description: err.response?.data?.message || t('webhooks.updateError'),
         variant: 'destructive',
       });
     },
@@ -146,15 +154,15 @@ export default function WebhooksPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       toast({
-        title: 'Webhook supprimé',
-        description: 'Le webhook a été supprimé avec succès.',
+        title: t('webhooks.deleted'),
+        description: t('webhooks.deletedDesc'),
       });
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
       toast({
-        title: 'Erreur',
-        description: err.response?.data?.message || 'Impossible de supprimer le webhook',
+        title: t('common.error'),
+        description: err.response?.data?.message || t('webhooks.deleteError'),
         variant: 'destructive',
       });
     },
@@ -164,20 +172,21 @@ export default function WebhooksPage() {
   const retryMutation = useMutation({
     mutationFn: async (logId: string) => {
       const response = await endpoints.webhooks.retry(logId);
-      return (response as { data?: unknown })?.data ?? response;
+      const payload = (response as { data?: WebhookLog })?.data;
+      return payload ?? (response as WebhookLog);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhook-history'] });
       toast({
-        title: 'Webhook relancé',
-        description: 'Le webhook a été relancé avec succès.',
+        title: t('webhooks.retried'),
+        description: t('webhooks.retriedDesc'),
       });
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
       toast({
-        title: 'Erreur',
-        description: err.response?.data?.message || 'Impossible de relancer le webhook',
+        title: t('common.error'),
+        description: err.response?.data?.message || t('webhooks.retryError'),
         variant: 'destructive',
       });
     },
@@ -207,12 +216,13 @@ export default function WebhooksPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: 'Copié',
-      description: 'URL copiée dans le presse-papiers',
+      title: t('common.copied'),
+      description: t('webhooks.urlCopied'),
     });
   };
 
   return (
+    <ErrorBoundary level="page" componentName="WebhooksPage">
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -247,7 +257,7 @@ export default function WebhooksPage() {
             </div>
           ) : webhooks && webhooks.length > 0 ? (
             <div className="grid gap-4">
-              {webhooks.map((webhook) => (
+              {webhooks.map((webhook: Webhook) => (
                 <Card key={webhook.id} className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -295,7 +305,7 @@ export default function WebhooksPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEdit(webhook)}
-                          title="Modifier"
+                          title={t('common.edit')}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -303,7 +313,7 @@ export default function WebhooksPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(webhook)}
-                          title="Supprimer"
+                          title={t('common.delete')}
                           className="text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -316,7 +326,7 @@ export default function WebhooksPage() {
                       <div>
                         <p className="text-sm text-white/60 mb-1">Événements</p>
                         <div className="flex flex-wrap gap-2">
-                          {webhook.events.map((event) => (
+                          {webhook.events.map((event: string) => (
                             <Badge key={event} variant="outline" className="text-xs">
                               {event}
                             </Badge>
@@ -390,7 +400,7 @@ export default function WebhooksPage() {
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
               <p className="text-white/60 mt-4">Chargement...</p>
             </div>
-          ) : history && history.data && history.data.length > 0 ? (
+          ) : history?.data?.length ? (
             <div className="space-y-4">
               {history.data.map((log: WebhookLog) => (
                 <Card key={log.id} className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
@@ -501,6 +511,7 @@ export default function WebhooksPage() {
           webhook={selectedWebhook}
         />
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

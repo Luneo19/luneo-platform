@@ -10,6 +10,8 @@ import type { TabValue } from './MainTabsSection';
 import { CTASection } from './CTASection';
 import type { InstallationStep } from './SetupTab';
 import type { PricingPlan } from './PricingTab';
+import { endpoints } from '@/lib/api/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { Package, TrendingUp, Zap, MessageSquare, Settings, Copy } from 'lucide-react';
 
 const WOO_FEATURES: FeatureItem[] = [
@@ -111,10 +113,17 @@ export function WooCommerceIntegrationContent() {
     setTestConnectionLoading(true);
     setTestConnectionResult(null);
     try {
-      await new Promise((r) => setTimeout(r, 800));
-      setTestConnectionResult({ success: true, message: 'Connexion WooCommerce OK.' });
-    } catch {
-      setTestConnectionResult({ success: false, message: 'Impossible de vérifier la connexion.' });
+      const res = await endpoints.integrations.test('woocommerce', {});
+      const data = res as { success?: boolean; message?: string };
+      setTestConnectionResult({
+        success: data?.success !== false,
+        message: data?.message ?? 'Connexion WooCommerce OK.',
+      });
+    } catch (error: unknown) {
+      setTestConnectionResult({
+        success: false,
+        message: getErrorDisplayMessage(error),
+      });
     } finally {
       setTestConnectionLoading(false);
     }

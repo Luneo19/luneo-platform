@@ -6,6 +6,7 @@
 
 import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/useI18n';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,11 @@ export function AnalyticsFilters({
   onCustomDateFromChange,
   onCustomDateToChange,
 }: AnalyticsFiltersProps) {
+  const { t } = useI18n();
+  const getPeriodLabel = (value: string) => {
+    const key = value === '24h' ? 'analytics.period.24h' : value === '7d' ? 'analytics.period.7d' : value === '30d' ? 'analytics.period.30d' : value === '90d' ? 'analytics.period.90d' : value === '1y' ? 'analytics.period.1y' : 'analytics.period.custom';
+    return t(key);
+  };
   return (
     <Card className="p-4 bg-white border-gray-200">
       <div className="flex flex-col lg:flex-row gap-4">
@@ -52,7 +58,7 @@ export function AnalyticsFilters({
                   : 'border-gray-200 text-gray-700'
               )}
             >
-              {range.label}
+              {getPeriodLabel(range.value)}
             </Button>
           ))}
           <Button
@@ -66,7 +72,7 @@ export function AnalyticsFilters({
               )}
           >
             <Calendar className="w-4 h-4 mr-2" />
-            Personnalisé
+            {t('analytics.period.custom')}
           </Button>
         </div>
 
@@ -86,7 +92,7 @@ export function AnalyticsFilters({
             onCheckedChange={(checked) => onCompareChange(checked as boolean)}
           />
           <Label htmlFor="compare" className="text-gray-700 cursor-pointer">
-            Comparer avec période précédente
+            {t('analytics.compareWithPrevious')}
           </Label>
         </div>
       </div>

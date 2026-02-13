@@ -7,6 +7,7 @@ import { Roles } from '@/common/guards/roles.guard';
 
 @Controller('admin/dlq')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error TS1270 - NestJS guard decorators return object
 @Roles('PLATFORM_ADMIN')
 export class DLQController {
   constructor(private readonly dlqService: DLQService) {}

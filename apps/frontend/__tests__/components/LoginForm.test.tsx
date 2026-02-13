@@ -33,6 +33,8 @@ vi.mock('next/navigation', () => ({
     prefetch: vi.fn(),
     back: vi.fn(),
   }),
+  usePathname: () => '/login',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 describe('LoginForm Component', () => {
@@ -188,7 +190,7 @@ describe('LoginForm Component', () => {
       await user.click(submitButton);
       
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard');
+        expect(mockPush).toHaveBeenCalledWith('/overview');
       });
     });
   });

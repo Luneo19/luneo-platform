@@ -128,9 +128,9 @@ export default function ExperimentsPage() {
       </div>
 
       {isError && (
-        <Card className="bg-red-950/30 border-red-800">
-          <CardContent className="py-4 text-red-200">
-            {error?.message ?? 'Failed to load experiments'}
+        <Card className="bg-zinc-800/80 border-zinc-600">
+          <CardContent className="py-4 text-zinc-400">
+            No data available. Experiments API is not available. Showing empty state.
           </CardContent>
         </Card>
       )}

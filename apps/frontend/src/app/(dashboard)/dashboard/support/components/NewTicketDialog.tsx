@@ -1,6 +1,7 @@
 'use client';
 
 import { Send } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -30,29 +31,30 @@ export function NewTicketDialog({
   setNewTicket,
   onSubmit,
 }: NewTicketDialogProps) {
+  const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl bg-white border-gray-200 text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouveau ticket</DialogTitle>
+          <DialogTitle>{t('support.newTicketTitle')}</DialogTitle>
           <DialogDescription className="text-gray-600">
-            Créez un nouveau ticket de support. Notre équipe vous répondra dans les plus brefs délais.
+            {t('support.newTicketDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <Label className="text-sm font-medium text-gray-600 mb-2 block">Sujet *</Label>
+            <Label className="text-sm font-medium text-gray-600 mb-2 block">{t('support.subject')} *</Label>
             <Input
               value={newTicket.subject}
               onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
-              placeholder="Décrivez brièvement votre problème"
+              placeholder={t('support.subjectPlaceholder')}
               className="bg-white border-gray-200 text-gray-900"
               required
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-600 mb-2 block">Catégorie *</Label>
+              <Label className="text-sm font-medium text-gray-600 mb-2 block">{t('support.category')} *</Label>
               <Select
                 value={newTicket.category}
                 onValueChange={(value) => setNewTicket({ ...newTicket, category: value as string })}
@@ -72,7 +74,7 @@ export function NewTicketDialog({
               </Select>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-600 mb-2 block">Priorité *</Label>
+              <Label className="text-sm font-medium text-gray-600 mb-2 block">{t('support.priority')} *</Label>
               <Select
                 value={newTicket.priority}
                 onValueChange={(value) => setNewTicket({ ...newTicket, priority: value as 'low' | 'medium' | 'high' })}
@@ -81,20 +83,20 @@ export function NewTicketDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-gray-200 text-gray-900">
-                  <SelectItem value="LOW">Basse</SelectItem>
-                  <SelectItem value="MEDIUM">Moyenne</SelectItem>
-                  <SelectItem value="HIGH">Haute</SelectItem>
-                  <SelectItem value="URGENT">Urgente</SelectItem>
+                  <SelectItem value="LOW">{t('support.priorities.low')}</SelectItem>
+                  <SelectItem value="MEDIUM">{t('support.priorities.medium')}</SelectItem>
+                  <SelectItem value="HIGH">{t('support.priorities.high')}</SelectItem>
+                  <SelectItem value="URGENT">{t('support.priorities.urgent')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div>
-            <Label className="text-sm font-medium text-gray-600 mb-2 block">Description *</Label>
+            <Label className="text-sm font-medium text-gray-600 mb-2 block">{t('support.description')} *</Label>
             <Textarea
               value={newTicket.description ?? ''}
               onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-              placeholder="Décrivez votre problème en détail. Plus vous fournissez d'informations, plus nous pourrons vous aider rapidement."
+              placeholder={t('support.descriptionPlaceholder')}
               rows={6}
               className="bg-white border-gray-200 text-gray-900 resize-none"
               required
@@ -107,11 +109,11 @@ export function NewTicketDialog({
               onClick={() => onOpenChange(false)}
               className="flex-1 border-gray-200"
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button type="submit" className="flex-1 bg-cyan-600 hover:bg-cyan-700">
               <Send className="w-4 h-4 mr-2" />
-              Créer le ticket
+              {t('support.createTicketSubmit')}
             </Button>
           </div>
         </form>

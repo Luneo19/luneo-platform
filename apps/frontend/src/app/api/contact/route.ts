@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { z } from 'zod';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Log de la requête
-    logger.info('Contact form request', {
+    serverLogger.info('Contact form request', {
       ip: identifier,
       userAgent: request.headers.get('user-agent'),
       timestamp: new Date().toISOString(),
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch (parseError) {
-      logger.error('Contact form JSON parse error', { error: parseError });
+      serverLogger.error('Contact form JSON parse error', parseError instanceof Error ? parseError : undefined, { error: parseError });
       throw {
         status: 400,
         message: 'Format de données invalide',
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
           const data = await response.json();
 
           if (!data.success) {
-            logger.warn('CAPTCHA verification failed', {
+            serverLogger.warn('CAPTCHA verification failed', {
               errors: data['error-codes'],
               email,
             });
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
           // Verify action matches
           if (data.action !== 'contact') {
-            logger.warn('CAPTCHA action mismatch', {
+            serverLogger.warn('CAPTCHA action mismatch', {
               expected: 'contact',
               received: data.action,
             });
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
           // Verify score meets threshold (0.5 minimum)
           if (data.score < 0.5) {
-            logger.warn('CAPTCHA score too low', {
+            serverLogger.warn('CAPTCHA score too low', {
               score: data.score,
               email,
             });
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
             };
           }
 
-          logger.debug('CAPTCHA verification successful', {
+          serverLogger.debug('CAPTCHA verification successful', {
             action: data.action,
             score: data.score,
             email,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         } else {
           // In development, allow requests without CAPTCHA if not configured
           if (process.env.NODE_ENV === 'development') {
-            logger.warn('CAPTCHA secret key not configured, skipping verification in development');
+            serverLogger.warn('CAPTCHA secret key not configured, skipping verification in development');
           } else {
             throw {
               status: 400,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         if (typeof error === 'object' && error !== null && 'status' in error) {
           throw error;
         }
-        logger.error('CAPTCHA verification error', { error });
+        serverLogger.error('CAPTCHA verification error', error instanceof Error ? error : undefined, { error });
         throw {
           status: 400,
           message: 'Erreur lors de la vérification CAPTCHA. Veuillez réessayer.',
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log du message de contact
-    logger.info('Contact form submission', {
+    serverLogger.info('Contact form submission', {
       name,
       email,
       company,
@@ -218,12 +218,12 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
           const errorText = await response.text();
-          logger.warn('SendGrid API error', { status: response.status, error: errorText });
+          serverLogger.warn('SendGrid API error', { status: response.status, error: errorText });
         } else {
-          logger.info('Contact email sent via SendGrid', { to: 'contact@luneo.app', from: email });
+          serverLogger.info('Contact email sent via SendGrid', { to: 'contact@luneo.app', from: email });
         }
       } catch (emailError) {
-        logger.error('Email sending failed', { error: emailError });
+        serverLogger.error('Email sending failed', emailError instanceof Error ? emailError : undefined, { error: emailError });
         // Continue anyway - message is logged
       }
     }
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ name, email, company, subject, message, type }),
       });
     } catch (dbError) {
-      logger.warn('Backend contact storage failed', { error: dbError });
+      serverLogger.warn('Backend contact storage failed', { error: dbError });
       // Continue anyway - message is logged and email was sent
     }
 

@@ -9,6 +9,7 @@ import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { cn } from '@/lib/utils';
 import { formatPrice, formatNumber, formatPercentage } from '@/lib/utils/formatters';
+import { useI18n } from '@/i18n/useI18n';
 import type { AnalyticsMetric } from '../types';
 
 interface AnalyticsKPIsProps {
@@ -17,6 +18,7 @@ interface AnalyticsKPIsProps {
 }
 
 export function AnalyticsKPIs({ metrics, selectedMetrics }: AnalyticsKPIsProps) {
+  const { t } = useI18n();
   const visibleMetrics = metrics.filter((m) => selectedMetrics.has(m.id));
 
   return (
@@ -71,7 +73,7 @@ export function AnalyticsKPIs({ metrics, selectedMetrics }: AnalyticsKPIsProps) 
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">{metric.name}</p>
+                <p className="text-sm text-gray-600 mb-1">{t(`analytics.metrics.${metric.id}` as 'analytics.metrics.revenue')}</p>
                 <p className={cn(
                   'text-2xl font-bold',
                   metric.color === 'green' && 'text-green-400',

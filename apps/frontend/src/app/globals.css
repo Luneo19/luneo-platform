@@ -209,9 +209,99 @@
 }
 
 @layer utilities {
-  /* Text utilities */
+  /* ===== PREMIUM TYPOGRAPHY SYSTEM ===== */
+
+  /* Display heading - optimized for large sizes */
+  .heading-display {
+    font-family: var(--font-display), 'Inter', ui-sans-serif, system-ui;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+
+  /* Section heading */
+  .heading-section {
+    font-family: var(--font-display), 'Inter', ui-sans-serif, system-ui;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  /* Card heading */
+  .heading-card {
+    font-family: var(--font-display), 'Inter', ui-sans-serif, system-ui;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  /* Body text - optimized for readability on dark backgrounds */
+  .body-text {
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+  }
+
+  /* Label text - uppercase tracking */
+  .label-text {
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  /* Text balance utility */
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Text pretty for better line breaks */
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* ===== MICRO-INTERACTION UTILITIES ===== */
+
+  /* Smooth lift on hover */
+  .hover-lift {
+    transition: transform 400ms cubic-bezier(0.03, 0.98, 0.52, 0.99),
+                box-shadow 400ms cubic-bezier(0.03, 0.98, 0.52, 0.99);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Spring press effect */
+  .press-spring {
+    transition: transform 200ms cubic-bezier(0.03, 0.98, 0.52, 0.99);
+  }
+
+  .press-spring:active {
+    transform: scale(0.97);
+  }
+
+  /* Border glow on hover */
+  .border-glow {
+    position: relative;
+  }
+
+  .border-glow::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.1));
+    opacity: 0;
+    transition: opacity 400ms ease;
+    z-index: -1;
+    filter: blur(8px);
+  }
+
+  .border-glow:hover::after {
+    opacity: 1;
   }
 
   /* Gradient text */
@@ -428,11 +518,113 @@
     transform: perspective(1000px) rotateX(0deg);
   }
 
+  /* ===== PREMIUM TEXT ANIMATIONS ===== */
+
+  /* Text shimmer - animated gradient across text */
+  @keyframes text-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .text-shimmer {
+    background: linear-gradient(
+      90deg,
+      #a855f7 0%,
+      #ec4899 25%,
+      #a855f7 50%,
+      #ec4899 75%,
+      #a855f7 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: text-shimmer 4s linear infinite;
+  }
+
+  /* Subtle text glow */
+  .text-glow {
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 0 40px rgba(168, 85, 247, 0.1);
+  }
+
+  .text-glow-white {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.15), 0 0 40px rgba(255, 255, 255, 0.05);
+  }
+
   /* GPU acceleration for animated elements */
   .gpu-accelerated {
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+  }
+
+  /* ===== FIREFLY CTA - Orbiting particles around buttons ===== */
+  @keyframes firefly-orbit {
+    0% {
+      transform: translate(var(--orbit-rx, 60px), 0px);
+      opacity: 0.3;
+    }
+    6% {
+      opacity: 0.9;
+    }
+    12.5% {
+      transform: translate(
+        calc(var(--orbit-rx, 60px) * 0.707),
+        calc(var(--orbit-ry, 30px) * -0.707)
+      );
+      opacity: 0.95;
+    }
+    25% {
+      transform: translate(0px, calc(var(--orbit-ry, 30px) * -1));
+      opacity: 0.6;
+    }
+    37.5% {
+      transform: translate(
+        calc(var(--orbit-rx, 60px) * -0.707),
+        calc(var(--orbit-ry, 30px) * -0.707)
+      );
+      opacity: 1;
+    }
+    50% {
+      transform: translate(calc(var(--orbit-rx, 60px) * -1), 0px);
+      opacity: 0.4;
+    }
+    56% {
+      opacity: 0.85;
+    }
+    62.5% {
+      transform: translate(
+        calc(var(--orbit-rx, 60px) * -0.707),
+        calc(var(--orbit-ry, 30px) * 0.707)
+      );
+      opacity: 0.9;
+    }
+    75% {
+      transform: translate(0px, var(--orbit-ry, 30px));
+      opacity: 0.5;
+    }
+    87.5% {
+      transform: translate(
+        calc(var(--orbit-rx, 60px) * 0.707),
+        calc(var(--orbit-ry, 30px) * 0.707)
+      );
+      opacity: 0.8;
+    }
+    100% {
+      transform: translate(var(--orbit-rx, 60px), 0px);
+      opacity: 0.3;
+    }
+  }
+
+  .firefly-dot {
+    will-change: transform, opacity;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .firefly-dot {
+      animation: none !important;
+      opacity: 0 !important;
+    }
   }
 
   /* Responsive scrollbar-hide for horizontal scroll containers */

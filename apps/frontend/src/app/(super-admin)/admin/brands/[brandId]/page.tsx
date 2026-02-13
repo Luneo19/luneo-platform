@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Users, Package, Palette, ShoppingCart, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Package, Palette, ShoppingCart, FileText, Loader2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,12 @@ export default function BrandDetailPage() {
         <Card className="bg-red-500/10 border-red-500/20">
           <CardContent className="p-6 text-center">
             <p className="text-red-400">Marque introuvable</p>
-            <Link href="/admin/brands"><Button variant="outline" className="mt-4">Retour</Button></Link>
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button variant="outline" onClick={() => refresh()} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                Réessayer
+              </Button>
+              <Link href="/admin/brands"><Button variant="outline">Retour</Button></Link>
+            </div>
           </CardContent>
         </Card>
       </div>

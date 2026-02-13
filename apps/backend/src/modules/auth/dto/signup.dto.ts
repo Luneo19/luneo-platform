@@ -27,6 +27,12 @@ export class SignupDto {
   @MaxLength(50, { message: 'Last name must not exceed 50 characters' })
   lastName!: string;
 
+  @ApiPropertyOptional({ description: 'Nom de l\'entreprise', example: 'Acme Corp' })
+  @IsOptional()
+  @IsString({ message: 'Company must be a string' })
+  @MaxLength(100, { message: 'Company name must not exceed 100 characters' })
+  company?: string;
+
   @ApiPropertyOptional({ description: 'Rôle utilisateur', enum: UserRole })
   @IsOptional()
   @IsEnum(UserRole, { message: 'Role must be a valid UserRole enum value' })
@@ -36,4 +42,10 @@ export class SignupDto {
   @IsOptional()
   @IsString()
   captchaToken?: string;
+
+  @ApiPropertyOptional({ description: 'Code de parrainage', example: 'REF-ABC12345' })
+  @IsOptional()
+  @IsString({ message: 'Referral code must be a string' })
+  @MaxLength(50, { message: 'Referral code must not exceed 50 characters' })
+  referralCode?: string;
 }

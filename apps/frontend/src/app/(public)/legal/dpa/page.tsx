@@ -4,18 +4,18 @@ import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Accord de traitement des données (DPA) - Luneo',
+  title: 'Accord de traitement des données (DPA) - Luneo Tech',
   description:
-    'Data Processing Agreement Luneo conforme au RGPD Article 28. Sous-traitance et sécurité des données.',
+    'Data Processing Agreement Luneo Tech conforme au RGPD Article 28. Sous-traitance et sécurité des données.',
   openGraph: {
-    title: 'DPA - Accord de traitement des données - Luneo',
+    title: 'DPA - Accord de traitement des données - Luneo Tech',
     description: 'Data Processing Agreement conforme RGPD Article 28.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DPA - Luneo',
-    description: 'Accord de traitement des données (DPA) Luneo.',
+    title: 'DPA - Luneo Tech',
+    description: 'Accord de traitement des données (DPA) Luneo Tech.',
   },
 };
 
@@ -58,11 +58,11 @@ function DPAPageContent() {
               <dl className="space-y-4">
                 <div>
                   <dt className="font-semibold text-white">Responsable du traitement :</dt>
-                  <dd className="text-slate-300 ml-4">Vous, le client utilisant les services Luneo</dd>
+                  <dd className="text-slate-300 ml-4">Vous, le client utilisant les services Luneo Tech</dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-white">Sous-traitant :</dt>
-                  <dd className="text-slate-300 ml-4">Luneo SAS, fournisseur de la plateforme</dd>
+                  <dd className="text-slate-300 ml-4">Luneo Tech, fournisseur de la plateforme</dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-white">Données personnelles :</dt>
@@ -74,7 +74,7 @@ function DPAPageContent() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-white mb-4">2. Objet du Traitement</h2>
               <p className="text-slate-300 leading-relaxed">
-                Luneo agit en qualité de sous-traitant pour traiter les données personnelles nécessaires à :
+                Luneo Tech agit en qualité de sous-traitant pour traiter les données personnelles nécessaires à :
               </p>
               <ul className="list-disc pl-6 mt-4 text-slate-300 space-y-2">
                 <li>La génération de designs personnalisés</li>
@@ -92,14 +92,14 @@ function DPAPageContent() {
                   <li>✓ Identifiants clients (email, nom)</li>
                   <li>✓ Données de création (designs, images, textes)</li>
                   <li>✓ Métadonnées techniques (IP, user-agent)</li>
-                  <li>✓ Données de paiement (via Stripe - pas stockées par Luneo)</li>
+                  <li>✓ Données de paiement (via Stripe - pas stockées par Luneo Tech)</li>
                   <li>✗ Pas de données sensibles (santé, religion, etc.)</li>
                 </ul>
               </div>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-4">4. Obligations du Sous-Traitant (Luneo)</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">4. Obligations du Sous-Traitant (Luneo Tech)</h2>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <span className="text-green-400 font-bold">✓</span>
@@ -137,7 +137,7 @@ function DPAPageContent() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-white mb-4">5. Sous-Traitants Ultérieurs</h2>
               <p className="text-slate-300 mb-4">
-                Luneo peut faire appel à des sous-traitants autorisés :
+                Luneo Tech peut faire appel à des sous-traitants autorisés :
               </p>
               <table className="min-w-full border border-white/[0.04]">
                 <thead className="bg-dark-card/60">
@@ -150,7 +150,7 @@ function DPAPageContent() {
                 <tbody className="divide-y divide-white/[0.04]">
                   <tr>
                     <td className="px-4 py-3 text-sm text-slate-300">AWS (hosting)</td>
-                    <td className="px-4 py-3 text-sm text-slate-300">🇪🇺 EU (Paris)</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">🇪🇺 EU / Suisse</td>
                     <td className="px-4 py-3 text-sm text-slate-300">Certifié ISO 27001</td>
                   </tr>
                   <tr>
@@ -183,7 +183,7 @@ function DPAPageContent() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-white mb-4">7. Suppression des Données</h2>
               <p className="text-slate-300 leading-relaxed">
-                À la fin du contrat, Luneo s'engage à :
+                À la fin du contrat, Luneo Tech s'engage à :
               </p>
               <ul className="list-disc pl-6 mt-4 text-slate-300 space-y-2">
                 <li>Supprimer toutes les données dans les 30 jours</li>
@@ -221,7 +221,7 @@ function DPAPageContent() {
               <p className="mb-4 text-purple-100">
                 Pour les clients Enterprise, un DPA personnalisé et signé est disponible sur demande.
               </p>
-              <button className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
+              <button className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors" aria-label="Request signed DPA">
                 Demander le DPA signé
               </button>
             </div>

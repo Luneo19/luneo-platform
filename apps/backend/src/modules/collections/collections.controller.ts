@@ -24,6 +24,7 @@ import { AddCollectionItemDto } from './dto/add-collection-item.dto';
 import { FindAllCollectionsQueryDto } from './dto/find-all-collections-query.dto';
 import { RemoveItemQueryDto } from './dto/remove-item-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('collections')
 @Controller('collections')
@@ -39,10 +40,11 @@ export class CollectionsController {
   @ApiQuery({ name: 'includePublic', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'Liste des collections' })
   async findAll(
-    @Request() req,
+    @Request() req: ExpressRequest,
     @Query() query: FindAllCollectionsQueryDto,
   ) {
-    return this.collectionsService.findAll(req.user.id, req.user.brandId || '', {
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.findAll(u.id, u.brandId || '', {
       page: query.page,
       limit: query.limit,
       includePublic: query.includePublic === 'true',
@@ -53,39 +55,44 @@ export class CollectionsController {
   @ApiOperation({ summary: 'Obtenir une collection avec ses items' })
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiResponse({ status: 200, description: 'Détails de la collection' })
-  async findOne(@Param('id') id: string, @Request() req) {
-    return this.collectionsService.findOne(id, req.user.id, req.user.brandId || '');
+  async findOne(@Param('id') id: string, @Request() req: ExpressRequest) {
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.findOne(id, u.id, u.brandId || '');
   }
 
   @Post()
   @ApiOperation({ summary: 'Créer une nouvelle collection' })
   @ApiResponse({ status: 201, description: 'Collection créée' })
-  async create(@Body() createCollectionDto: CreateCollectionDto, @Request() req) {
-    return this.collectionsService.create(createCollectionDto, req.user.id, req.user.brandId || '');
+  async create(@Body() createCollectionDto: CreateCollectionDto, @Request() req: ExpressRequest) {
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.create(createCollectionDto, u.id, u.brandId || '');
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Mettre à jour une collection' })
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiResponse({ status: 200, description: 'Collection mise à jour' })
-  async update(@Param('id') id: string, @Body() updateCollectionDto: UpdateCollectionDto, @Request() req) {
-    return this.collectionsService.update(id, updateCollectionDto, req.user.id, req.user.brandId || '');
+  async update(@Param('id') id: string, @Body() updateCollectionDto: UpdateCollectionDto, @Request() req: ExpressRequest) {
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.update(id, updateCollectionDto, u.id, u.brandId || '');
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Supprimer une collection' })
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiResponse({ status: 200, description: 'Collection supprimée' })
-  async delete(@Param('id') id: string, @Request() req) {
-    return this.collectionsService.delete(id, req.user.id, req.user.brandId || '');
+  async delete(@Param('id') id: string, @Request() req: ExpressRequest) {
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.delete(id, u.id, u.brandId || '');
   }
 
   @Post(':id/items')
   @ApiOperation({ summary: 'Ajouter un design à une collection' })
   @ApiParam({ name: 'id', description: 'ID de la collection' })
   @ApiResponse({ status: 201, description: 'Design ajouté à la collection' })
-  async addItem(@Param('id') id: string, @Body() dto: AddCollectionItemDto, @Request() req) {
-    return this.collectionsService.addItem(id, dto.designId, dto.notes, req.user.id, req.user.brandId || '');
+  async addItem(@Param('id') id: string, @Body() dto: AddCollectionItemDto, @Request() req: ExpressRequest) {
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.addItem(id, dto.designId, dto.notes, u.id, u.brandId || '');
   }
 
   @Delete(':id/items')
@@ -96,8 +103,9 @@ export class CollectionsController {
   async removeItem(
     @Param('id') id: string,
     @Query() query: RemoveItemQueryDto,
-    @Request() req,
+    @Request() req: ExpressRequest,
   ) {
-    return this.collectionsService.removeItem(id, query.designId, req.user.id, req.user.brandId || '');
+    const u = req.user as { id: string; brandId?: string | null };
+    return this.collectionsService.removeItem(id, query.designId, u.id, u.brandId || '');
   }
 }

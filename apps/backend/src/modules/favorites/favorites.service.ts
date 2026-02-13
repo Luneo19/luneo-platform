@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 
 @Injectable()
 export class FavoritesService {
@@ -10,7 +11,7 @@ export class FavoritesService {
     const limit = Math.min(options?.limit || 50, 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { userId };
+    const where: Prisma.LibraryFavoriteWhereInput = { userId };
     if (options?.type) {
       where.resourceType = options.type;
     }

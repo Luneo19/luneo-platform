@@ -88,7 +88,7 @@ export const LazyAdvancedForm = dynamic(
 /**
  * Helper to create lazy-loaded component with custom loading state
  */
-export function createLazyComponent<T = any>(
+export function createLazyComponent<T = unknown>(
   importFn: () => Promise<{ default: React.ComponentType<T> }>,
   options?: {
     loading?: React.ComponentType | (() => React.ReactElement);

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      logger.error('Failed to process WooCommerce webhook', {
+      serverLogger.error('Failed to process WooCommerce webhook', {
         status: backendResponse.status,
         error: errorText,
         topic: headers.get('x-wc-webhook-topic'),
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await backendResponse.json();
-    logger.info('WooCommerce webhook processed successfully', {
+    serverLogger.info('WooCommerce webhook processed successfully', {
       topic: result.topic,
       resourceId: result.resourceId,
     });

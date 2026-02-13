@@ -43,7 +43,8 @@ export class AiGenerationWorker {
     private configService: ConfigService,
   ) {
     this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
-    this.replicateApiKey = this.configService.get<string>('REPLICATE_API_KEY') || '';
+    // PRODUCTION FIX: Standardize on REPLICATE_API_TOKEN (matches configuration.ts)
+    this.replicateApiKey = this.configService.get<string>('REPLICATE_API_TOKEN') || this.configService.get<string>('ai.replicate.apiToken') || '';
   }
 
   @Process('generate-design')
@@ -75,8 +76,8 @@ export class AiGenerationWorker {
       const quality = options.quality || 'standard';
       const style = options.style || 'vivid';
 
-      let generatedUrl: string;
-      let aiProvider: string;
+      let generatedUrl: string | undefined;
+      let aiProvider: string | undefined;
       let revisedPrompt: string | undefined;
 
       // Try providers in order: Replicate -> OpenAI
@@ -101,7 +102,7 @@ export class AiGenerationWorker {
         }
       }
 
-      if (!generatedUrl) {
+      if (!generatedUrl || !aiProvider) {
         throw new Error(
           'No AI provider available. Configure REPLICATE_API_KEY or OPENAI_API_KEY.',
         );
@@ -192,8 +193,8 @@ export class AiGenerationWorker {
 
       await this.aiService.checkBudgetOrThrow(design.brandId, estimatedCost);
 
-      let highResUrl: string;
-      let aiProvider: string;
+      let highResUrl: string | undefined;
+      let aiProvider: string | undefined;
 
       // Option 1: If we have original preview, upscale it
       if (design.previewUrl && this.replicateApiKey) {
@@ -218,7 +219,7 @@ export class AiGenerationWorker {
         aiProvider = 'openai-dalle3-hd';
       }
 
-      if (!highResUrl) {
+      if (!highResUrl || !aiProvider) {
         throw new Error('No AI provider available for high-res generation');
       }
 

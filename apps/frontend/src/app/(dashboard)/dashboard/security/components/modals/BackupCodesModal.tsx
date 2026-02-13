@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Copy, Download, AlertTriangle } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 
 interface BackupCodesModalProps {
@@ -28,13 +29,14 @@ export function BackupCodesModal({
   onOpenChange,
   backupCodes = [],
 }: BackupCodesModalProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const handleCopy = (code: string, index: number) => {
     navigator.clipboard.writeText(code);
     setCopiedIndex(index);
-    toast({ title: 'Copié', description: 'Code copié dans le presse-papiers' });
+    toast({ title: t('common.copied'), description: t('security.backupCodeCopied') });
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
@@ -49,7 +51,7 @@ export function BackupCodesModal({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast({ title: 'Téléchargé', description: 'Codes de secours téléchargés' });
+    toast({ title: t('common.download'), description: t('security.backupCodesDownloaded') });
   };
 
   return (

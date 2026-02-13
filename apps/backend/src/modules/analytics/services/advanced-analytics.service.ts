@@ -60,81 +60,69 @@ export class AdvancedAnalyticsService {
       return cached;
     }
 
-    const stepCounts: FunnelStep[] = [];
-    let previousCount = 0;
-
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      let count = 0;
-
-      // Mapper les étapes aux tables de données
+    const countPromises = steps.map((step) => {
       switch (step.toLowerCase()) {
         case 'visit':
         case 'view':
-          count = await this.prisma.usageMetric.count({
+          return this.prisma.usageMetric.count({
             where: {
               brandId,
               metric: 'PAGE_VIEW',
               timestamp: { gte: startDate, lte: endDate },
             },
           });
-          break;
-
         case 'customize':
         case 'create':
-          count = await this.prisma.customization.count({
+          return this.prisma.customization.count({
             where: {
               brandId,
               createdAt: { gte: startDate, lte: endDate },
             },
           });
-          break;
-
         case 'add_to_cart':
-          count = await this.prisma.order.count({
+          return this.prisma.order.count({
             where: {
               brandId,
               status: { in: ['CREATED', 'PENDING_PAYMENT'] },
               createdAt: { gte: startDate, lte: endDate },
             },
           });
-          break;
-
         case 'checkout':
-          count = await this.prisma.order.count({
+          return this.prisma.order.count({
             where: {
               brandId,
               status: { in: ['PENDING_PAYMENT', 'PAID'] },
               createdAt: { gte: startDate, lte: endDate },
             },
           });
-          break;
-
         case 'purchase':
         case 'order':
-          count = await this.prisma.order.count({
+          return this.prisma.order.count({
             where: {
               brandId,
               status: 'PAID',
               createdAt: { gte: startDate, lte: endDate },
             },
           });
-          break;
-
         default:
           this.logger.warn(`Unknown funnel step: ${step}`);
+          return Promise.resolve(0);
       }
+    });
 
+    const counts = await Promise.all(countPromises);
+    const stepCounts: FunnelStep[] = [];
+    let previousCount = 0;
+    for (let i = 0; i < steps.length; i++) {
+      const count = counts[i];
       const percentage = previousCount > 0 ? (count / previousCount) * 100 : 100;
       const dropoff = previousCount > 0 ? ((previousCount - count) / previousCount) * 100 : 0;
-
       stepCounts.push({
-        name: step,
+        name: steps[i],
         count,
         percentage: Math.round(percentage * 100) / 100,
         dropoff: Math.round(dropoff * 100) / 100,
       });
-
       previousCount = count;
     }
 
@@ -174,25 +162,47 @@ export class AdvancedAnalyticsService {
       return cached;
     }
 
-    // Récupérer tous les utilisateurs avec leur première commande
     const users = await this.prisma.user.findMany({
       where: {
         brandId,
         createdAt: { gte: startDate, lte: endDate },
       },
-      include: {
-        orders: {
-          orderBy: { createdAt: 'asc' },
-          take: 1,
-        },
+      select: { id: true },
+    });
+    const userIds = users.map((u) => u.id);
+    if (userIds.length === 0) {
+      await this.cache.set(cacheKey, [], 'analytics', { ttl: 600 });
+      return [];
+    }
+
+    const userOrders = await this.prisma.order.findMany({
+      where: {
+        userId: { in: userIds },
+        brandId,
+        status: 'PAID',
       },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, userId: true, createdAt: true, totalCents: true },
     });
 
-    // Grouper par cohorte (mois de première commande)
+    const ordersByUser = new Map<string, typeof userOrders>();
+    for (const order of userOrders) {
+      const uid = order.userId;
+      if (uid == null) continue;
+      const list = ordersByUser.get(uid) ?? [];
+      list.push(order);
+      ordersByUser.set(uid, list);
+    }
+
+    const firstOrderByUser = new Map<string, (typeof userOrders)[0]>();
+    for (const [uid, orders] of ordersByUser) {
+      if (orders.length > 0) firstOrderByUser.set(uid, orders[0]);
+    }
+
     const cohortsMap = new Map<string, CohortData>();
 
     for (const user of users) {
-      const firstOrder = user.orders[0];
+      const firstOrder = firstOrderByUser.get(user.id);
       if (!firstOrder) continue;
 
       const cohortMonth = firstOrder.createdAt.toISOString().substring(0, 7); // YYYY-MM
@@ -216,25 +226,16 @@ export class AdvancedAnalyticsService {
       const cohort = cohortsMap.get(cohortMonth)!;
       cohort.users++;
 
-      // Calculer la rétention
-      const userOrders = await this.prisma.order.findMany({
-        where: {
-          userId: user.id,
-          brandId,
-          status: 'PAID',
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-
-      if (userOrders.length > 0) {
-        const firstOrderDate = userOrders[0].createdAt;
+      const userOrderList = ordersByUser.get(user.id) ?? [];
+      if (userOrderList.length > 0) {
+        const firstOrderDate = userOrderList[0].createdAt;
         const weeks = [1, 2, 4, 8, 12];
 
         for (const week of weeks) {
           const weekDate = new Date(firstOrderDate);
           weekDate.setDate(weekDate.getDate() + week * 7);
 
-          const hasOrderInWeek = userOrders.some(
+          const hasOrderInWeek = userOrderList.some(
             (order) => order.createdAt >= firstOrderDate && order.createdAt <= weekDate,
           );
 
@@ -243,9 +244,8 @@ export class AdvancedAnalyticsService {
           }
         }
 
-        // Revenus et commandes (convertir totalCents en euros)
-        cohort.revenue += userOrders.reduce((sum, order) => sum + (order.totalCents / 100 || 0), 0);
-        cohort.orders += userOrders.length;
+        cohort.revenue += userOrderList.reduce((sum, order) => sum + (order.totalCents / 100 || 0), 0);
+        cohort.orders += userOrderList.length;
       }
     }
 

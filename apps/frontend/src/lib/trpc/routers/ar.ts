@@ -10,7 +10,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../server';
 import { TRPCError } from '@trpc/server';
-import { endpoints } from '@/lib/api/client';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
 // ========================================
@@ -44,7 +44,7 @@ const ARInteractionSchema = z.object({
     'screenshot',
     'share',
   ]),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 // ========================================
@@ -257,6 +257,7 @@ export const arRouter = router({
 
   /**
    * Liste tous les modèles AR
+   * Wired to: GET /api/v1/ar-studio/models (backend returns all models for brand; pagination applied client-side)
    */
   listModels: protectedProcedure
     .input(
@@ -265,21 +266,28 @@ export const arRouter = router({
         offset: z.number().min(0).default(0),
         type: z.string().optional(),
         status: z.string().optional(),
+        search: z.string().optional(),
       }).optional()
     )
     .query(async ({ input, ctx }) => {
       try {
-        const limit = input?.limit || 50;
-        const offset = input?.offset || 0;
+        const limit = input?.limit ?? 50;
+        const offset = input?.offset ?? 0;
 
-        // Pour l'instant, retourner des données mockées
-        // En production, cela devrait interroger une table ARModel ou similaire
-        const models: Array<{ id: string; name: string; url: string }> = [];
+        const res = await api.get<{ data?: { models?: Array<{ id: string; name: string; glbUrl?: string; usdzUrl?: string; thumbnailUrl?: string; status?: string }> }; success?: boolean }>('/api/v1/ar-studio/models').catch(() => ({ data: { models: [] } }));
+        const raw = res?.data?.models ?? [];
+        const models = raw.map((m) => ({
+          id: m.id,
+          name: m.name,
+          url: m.glbUrl ?? m.usdzUrl ?? '',
+        }));
+        const total = models.length;
+        const paginated = models.slice(offset, offset + limit);
 
         return {
-          models,
-          total: 0,
-          hasMore: false,
+          models: paginated,
+          total,
+          hasMore: offset + paginated.length < total,
         };
       } catch (error) {
         logger.error('Error listing AR models', { error, input });
@@ -292,15 +300,14 @@ export const arRouter = router({
 
   /**
    * Supprimer un modèle AR
+   * Wired to: DELETE /api/v1/ar-studio/models/:id
    */
   deleteModel: protectedProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        // Pour l'instant, retourner un succès
-        // En production, cela devrait supprimer le modèle de la base de données
+        await api.delete(`/api/v1/ar-studio/models/${input.id}`);
         logger.info('AR model deleted', { modelId: input.id, userId: ctx.user?.id });
-
         return { success: true };
       } catch (error) {
         logger.error('Error deleting AR model', { error, input });
@@ -313,18 +320,32 @@ export const arRouter = router({
 
   /**
    * Analytics AR pour le dashboard
+   * Wired to: GET /api/v1/ar-studio/analytics?period=7d|30d|90d
    */
   getAnalytics: protectedProcedure
     .input(
       z.object({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
+        period: z.string().optional(),
       }).optional()
     )
     .query(async ({ input, ctx }) => {
       try {
-        // Pour l'instant, retourner des données mockées
-        // En production, cela devrait agréger les données depuis la base
+        const res = await api.get<{ totalViews?: number; totalTryOns?: number; totalConversions?: number; averageSessionDuration?: number; topModels?: unknown[]; deviceBreakdown?: Record<string, unknown>; platformBreakdown?: Record<string, unknown> }>('/api/v1/ar-studio/analytics', {
+          params: input?.period ? { period: input.period } : undefined,
+        }).catch(() => null);
+        if (res && (res.totalViews !== undefined || res.topModels !== undefined)) {
+          return {
+            totalViews: res.totalViews ?? 0,
+            totalTryOns: res.totalTryOns ?? 0,
+            totalConversions: res.totalConversions ?? 0,
+            averageSessionDuration: res.averageSessionDuration ?? 0,
+            topModels: res.topModels ?? [],
+            deviceBreakdown: res.deviceBreakdown ?? {},
+            platformBreakdown: res.platformBreakdown ?? {},
+          };
+        }
         return {
           totalViews: 0,
           totalTryOns: 0,
@@ -345,6 +366,7 @@ export const arRouter = router({
 
   /**
    * Liste les sessions AR
+   * Wired to: GET /api/v1/ar-studio/sessions?page=&limit=
    */
   listSessions: protectedProcedure
     .input(
@@ -356,17 +378,20 @@ export const arRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const limit = input?.limit || 50;
-        const offset = input?.offset || 0;
+        const limit = input?.limit ?? 50;
+        const offset = input?.offset ?? 0;
+        const page = Math.floor(offset / limit) + 1;
 
-        // Pour l'instant, retourner des données mockées
-        // En production, cela devrait interroger une table ARSession ou similaire
-        const sessions: Array<Record<string, any>> = [];
-
+        const res = await api.get<{ sessions?: unknown[]; total?: number; data?: { sessions?: unknown[]; total?: number } }>('/api/v1/ar-studio/sessions', {
+          params: { page, limit },
+        }).catch(() => null);
+        const sessions = res?.sessions ?? (res?.data?.sessions ?? []) as Array<Record<string, unknown>>;
+        const total = res?.total ?? res?.data?.total ?? 0;
+        const totalNum = typeof total === 'number' ? total : sessions.length;
         return {
           sessions,
-          total: 0,
-          hasMore: false,
+          total: totalNum,
+          hasMore: offset + sessions.length < totalNum,
         };
       } catch (error) {
         logger.error('Error listing AR sessions', { error, input });

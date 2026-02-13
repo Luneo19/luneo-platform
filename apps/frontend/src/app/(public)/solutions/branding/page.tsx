@@ -71,6 +71,7 @@ export default function BrandingPage() {
 
   const handleGenerateKit = () => {
     setIsGenerating(true);
+    // Demo simulation - replace with real API in production
     setTimeout(() => {
       setPalette((prev) =>
         prev.map((color, index) =>
@@ -98,7 +99,8 @@ export default function BrandingPage() {
         customMessage: JSON.stringify({ palette, values, keywords, tagline }),
       });
       setKitStatus('saved');
-      setTimeout(() => setKitStatus('idle'), 3000);
+      // Demo simulation - replace with real API in production
+      setTimeout(() => setKitStatus('idle'), 1000);
     } catch (error) {
       logger.error('Save brand kit failed', {
         error,

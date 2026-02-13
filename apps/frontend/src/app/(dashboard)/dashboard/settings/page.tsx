@@ -14,6 +14,7 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SettingsPageClient } from './SettingsPageClient';
 import { SettingsSkeleton } from './components/SettingsSkeleton';
+import { NotAuthenticatedMessage } from '../components/NotAuthenticatedMessage';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { cookies } from 'next/headers';
 
@@ -33,7 +34,7 @@ export default async function SettingsPage() {
     return (
       <ErrorBoundary level="page" componentName="SettingsPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

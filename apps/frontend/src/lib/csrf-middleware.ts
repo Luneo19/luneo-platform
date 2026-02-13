@@ -67,7 +67,7 @@ export async function csrfMiddleware(
     }
 
     return null; // CSRF valide, continuer
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('CSRF middleware error', error);
     return NextResponse.json(
       {

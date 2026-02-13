@@ -4,7 +4,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface OutboxEventData {
   eventType: string;
-  payload: any;
+  payload: unknown;
 }
 
 @Injectable()
@@ -16,7 +16,7 @@ export class OutboxService {
   /**
    * Publie un événement dans l'outbox (transaction-safe)
    */
-  async publish(eventType: string, payload: any): Promise<string> {
+  async publish(eventType: string, payload: unknown): Promise<string> {
     try {
       const event = await this.prisma.outboxEvent.create({
         data: {
@@ -37,7 +37,7 @@ export class OutboxService {
   /**
    * Récupère les événements en attente de publication
    */
-  async getPendingEvents(limit: number = 100): Promise<any[]> {
+  async getPendingEvents(limit: number = 100): Promise<Array<{ id: string; eventType: string; payload: unknown; attempts: number }>> {
     return this.prisma.outboxEvent.findMany({
       where: {
         status: 'pending',

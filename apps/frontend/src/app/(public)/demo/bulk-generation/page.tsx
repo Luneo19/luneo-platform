@@ -1,5 +1,6 @@
 /** * Démo Interactive - Bulk Generation * 1000+ designs/heure avec BullMQ */ 'use client';
 import React, { useState, memo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import Link from 'next/link';
@@ -15,6 +16,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 function BulkGenerationDemoPageContent() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'demo' | 'code' | 'performance'>(
     'demo'
   );
@@ -55,7 +57,7 @@ function BulkGenerationDemoPageContent() {
                 { value: '1200', label: 'Designs/h', sublabel: 'Théorique' },
                 { value: '1000+', label: 'Designs/h', sublabel: 'Réaliste' },
                 { value: '10', label: 'Workers', sublabel: 'Parallèles' },
-                { value: '98%', label: 'Success', sublabel: 'Rate' },
+                { value: '98%', label: t('common.success'), sublabel: 'Rate' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   {' '}

@@ -179,8 +179,8 @@ export function isValidCustomization(customization: {
  */
 export function prepareCustomizationOptions(
   options: CustomizationOptions
-): Record<string, any> {
-  const prepared: Record<string, any> = {};
+): Record<string, unknown> {
+  const prepared: Record<string, unknown> = {};
 
   if (options.font) prepared.font = options.font;
   if (options.color) prepared.color = options.color;
@@ -195,14 +195,14 @@ export function prepareCustomizationOptions(
  * Parse les options depuis un objet
  */
 export function parseCustomizationOptions(
-  options: Record<string, any>
+  options: Record<string, unknown>
 ): CustomizationOptions {
   return {
-    font: options.font,
-    color: options.color,
-    size: options.size,
-    effect: options.effect,
-    orientation: options.orientation,
+    font: options.font as string | undefined,
+    color: options.color as string | undefined,
+    size: typeof options.size === 'number' ? options.size : (options.size ? Number(options.size) : undefined),
+    effect: options.effect as CustomizationOptions['effect'],
+    orientation: options.orientation as CustomizationOptions['orientation'],
   };
 }
 

@@ -4,11 +4,13 @@
 
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import type { ProductDisplay } from '../types';
 
 export function useProductExport() {
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const exportProducts = useCallback(
     async (
@@ -67,8 +69,8 @@ export function useProductExport() {
           case 'pdf':
             // PDF export would require a library like jsPDF
             toast({
-              title: 'Info',
-              description: 'Export PDF à implémenter',
+              title: t('common.success'),
+              description: t('products.pdfExportComingSoon'),
             });
             return;
         }
@@ -82,17 +84,17 @@ export function useProductExport() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        toast({ title: 'Succès', description: 'Export réussi' });
+        toast({ title: t('common.success'), description: t('products.exportSuccess') });
       } catch (error) {
         logger.error('Error exporting products', { error });
         toast({
-          title: 'Erreur',
-          description: 'Erreur lors de l\'export',
+          title: t('common.error'),
+          description: t('products.exportError'),
           variant: 'destructive',
         });
       }
     },
-    [toast]
+    [toast, t]
   );
 
   return { exportProducts };

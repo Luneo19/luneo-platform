@@ -19,8 +19,8 @@ interface GenerationJobData {
   outputWidth: number;
   outputHeight: number;
   baseImage: string;
-  customizations: Record<string, any>;
-  customizationZones: any[];
+  customizations: Record<string, unknown>;
+  customizationZones: Array<{ id: string; positionX?: number; positionY?: number; width?: number; height?: number; renderStyle?: string }>;
 }
 
 @Processor('generation')
@@ -84,7 +84,7 @@ export class GenerationProcessor {
           ? await this.imageProcessor.compose({
               baseImage: baseImageBuffer,
               generatedOverlay: generatedImageBuffer,
-              customizationZones: data.customizationZones,
+              customizationZones: data.customizationZones as import('./services/image-processor.service').ComposeZone[],
               customizations: data.customizations,
               outputFormat: data.outputFormat,
             })
@@ -161,22 +161,23 @@ export class GenerationProcessor {
 
       return { success: true, imageUrl, processingTime };
 
-    } catch (error: any) {
-      this.logger.error(`Generation ${generationId} failed: ${error.message}`);
-      
+    } catch (error: unknown) {
+      this.logger.error('Generation processing failed', { generationId, error });
+
       await this.prisma.generation.update({
         where: { id: generationId },
         data: {
           status: GenerationStatus.FAILED,
-          errorMessage: error.message,
-          errorCode: error.code || 'UNKNOWN_ERROR',
+          errorMessage: 'Generation processing failed',
+          errorCode: 'GENERATION_FAILED',
           retryCount: { increment: 1 },
         },
       });
 
       this.eventEmitter.emit('generation.failed', {
         generationId,
-        error: error.message,
+        errorMessage: 'Generation processing failed',
+        errorCode: 'GENERATION_FAILED',
       });
 
       throw error;
@@ -185,16 +186,17 @@ export class GenerationProcessor {
 
   @OnQueueFailed()
   async onFailed(job: Job, error: Error) {
-    this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
+    this.logger.error('Generation processing failed', { jobId: job.id, error });
 
     this.eventEmitter.emit('generation.failed', {
       generationId: job.data.generationId,
-      error: error.message,
+      errorMessage: 'Generation processing failed',
+      errorCode: 'GENERATION_FAILED',
     });
   }
 
   @OnQueueCompleted()
-  async onCompleted(job: Job, result: any) {
+  async onCompleted(job: Job, result: unknown) {
     this.logger.log(`Job ${job.id} completed`);
   }
 }

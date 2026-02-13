@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useI18n } from '@/i18n/useI18n';
 import {
   LayoutGrid,
   List,
@@ -67,6 +68,7 @@ import {
   SORT_OPTIONS,
 } from './constants/design-library';
 import { logger } from '@/lib/logger';
+import { endpoints } from '@/lib/api/client';
 
 // Types
 type ViewMode = 'grid' | 'list';
@@ -157,6 +159,7 @@ function sortDesigns(designs: Design[], sort: string): Design[] {
 }
 
 export function DesignLibraryPageClient() {
+  const { t } = useI18n();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -176,17 +179,14 @@ export function DesignLibraryPageClient() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set('page', '1');
-      params.set('limit', '100');
-      if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (search.trim()) params.set('search', search.trim());
-      const res = await fetch(`/api/designs?${params.toString()}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message ?? 'Failed to fetch designs');
-      const list = Array.isArray(data.designs) ? data.designs : data.data ?? [];
-      setDesigns(list);
-      setPagination(data.pagination ?? { page: 1, limit: 100, total: list.length, totalPages: 1, hasNext: false, hasPrev: false });
+      const data = await endpoints.designs.list({
+        limit: 100,
+        ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+        ...(search.trim() ? { search: search.trim() } : {}),
+      });
+      const list = Array.isArray(data) ? data : (data as { designs?: unknown[] }).designs ?? (data as { data?: unknown[] }).data ?? [];
+      setDesigns(list as Design[]);
+      setPagination((data as { pagination?: DesignsResponse['pagination'] })?.pagination ?? { page: 1, limit: 100, total: list.length, totalPages: 1, hasNext: false, hasPrev: false });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erreur lors du chargement';
       setError(message);
@@ -230,7 +230,7 @@ export function DesignLibraryPageClient() {
     setBulkActionLoading(true);
     try {
       for (const id of selectedIds) {
-        await fetch(`/api/designs/${id}`, { method: 'DELETE' });
+        await endpoints.designs.delete(id);
       }
       setSelectedIds(new Set());
       await fetchDesigns();
@@ -252,7 +252,7 @@ export function DesignLibraryPageClient() {
 
   const handleDeleteDesign = async (id: string) => {
     try {
-      await fetch(`/api/designs/${id}`, { method: 'DELETE' });
+      await endpoints.designs.delete(id);
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
@@ -297,7 +297,7 @@ export function DesignLibraryPageClient() {
       <div className="p-6 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive">
         <p>{error}</p>
         <Button variant="outline" size="sm" className="mt-4" onClick={() => fetchDesigns()}>
-          Réessayer
+          {t('common.retry')}
         </Button>
       </div>
     );
@@ -308,9 +308,9 @@ export function DesignLibraryPageClient() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Bibliothèque</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t('library.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gérez et retrouvez tous vos designs générés par l’IA
+            {t('library.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -339,7 +339,7 @@ export function DesignLibraryPageClient() {
             onClick={handleExportSelected}
           >
             <Download className="h-4 w-4 mr-2" />
-            Exporter la sélection
+            {t('common.export')}
           </Button>
         </div>
       </div>
@@ -351,7 +351,7 @@ export function DesignLibraryPageClient() {
             <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher..."
+                placeholder={t('library.search')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 bg-background"
@@ -359,12 +359,12 @@ export function DesignLibraryPageClient() {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[160px] bg-background">
-                <SelectValue placeholder="Statut" />
+                <SelectValue placeholder={t('support.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="all">{t('library.filters.all')}</SelectItem>
                 <SelectItem value="PENDING">Brouillon</SelectItem>
-                <SelectItem value="PROCESSING">En cours</SelectItem>
+                <SelectItem value="PROCESSING">{t('common.inProgress')}</SelectItem>
                 <SelectItem value="COMPLETED">Terminés</SelectItem>
                 <SelectItem value="FAILED">Échoués</SelectItem>
                 <SelectItem value="CANCELLED">Archivés</SelectItem>
@@ -372,7 +372,7 @@ export function DesignLibraryPageClient() {
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-[160px] bg-background">
-                <SelectValue placeholder="Catégorie" />
+                <SelectValue placeholder={t('common.category')} />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORY_FILTER_OPTIONS.map((o) => (
@@ -384,7 +384,7 @@ export function DesignLibraryPageClient() {
             </Select>
             <Select value={dateRange} onValueChange={setDateRange}>
               <SelectTrigger className="w-[180px] bg-background">
-                <SelectValue placeholder="Période" />
+                <SelectValue placeholder={t('common.period')} />
               </SelectTrigger>
               <SelectContent>
                 {DATE_RANGE_OPTIONS.map((o) => (
@@ -396,7 +396,7 @@ export function DesignLibraryPageClient() {
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px] bg-background">
-                <SelectValue placeholder="Trier par" />
+                <SelectValue placeholder={t('library.sortBy')} />
               </SelectTrigger>
               <SelectContent>
                 {SORT_OPTIONS.map((o) => (
@@ -474,7 +474,7 @@ export function DesignLibraryPageClient() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleExportSelected}>
                 <Download className="h-4 w-4 mr-2" />
-                Exporter
+                {t('common.export')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setCreateCollectionOpen(true)}>
                 <FolderPlus className="h-4 w-4 mr-2" />
@@ -513,7 +513,7 @@ export function DesignLibraryPageClient() {
       ) : filteredDesigns.length === 0 ? (
         <Card className="border-border">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground mb-2">Aucun design trouvé</p>
+            <p className="text-muted-foreground mb-2">{t('library.noItems')}</p>
             <Button asChild>
               <Link href="/dashboard/ai-studio">
                 <Plus className="h-4 w-4 mr-2" />
@@ -573,7 +573,7 @@ export function DesignLibraryPageClient() {
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Share2 className="h-4 w-4 mr-2" />
-                        Partager
+                        {t('common.share')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
@@ -592,7 +592,7 @@ export function DesignLibraryPageClient() {
                 </p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <Badge variant={STATUS_VARIANTS[d.status]} className="text-xs">
-                    {STATUS_LABELS[d.status]}
+                    {d.status === 'PROCESSING' ? t('common.inProgress') : STATUS_LABELS[d.status]}
                   </Badge>
                   {d.product?.name && (
                     <span className="text-xs text-muted-foreground truncate">{d.product.name}</span>
@@ -619,7 +619,7 @@ export function DesignLibraryPageClient() {
                 <TableHead className="w-16">Image</TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead>Catégorie</TableHead>
+                <TableHead>{t('common.category')}</TableHead>
                 <TableHead>Créé le</TableHead>
                 <TableHead className="w-24">Taille</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
@@ -656,7 +656,7 @@ export function DesignLibraryPageClient() {
                     {d.name ?? d.prompt?.slice(0, 50) ?? '—'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANTS[d.status]}>{STATUS_LABELS[d.status]}</Badge>
+                    <Badge variant={STATUS_VARIANTS[d.status]}>{d.status === 'PROCESSING' ? t('common.inProgress') : STATUS_LABELS[d.status]}</Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {d.product?.name ?? '—'}

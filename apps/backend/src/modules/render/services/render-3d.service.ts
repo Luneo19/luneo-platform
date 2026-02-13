@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { TIMEOUTS, RENDER_DEFAULTS } from '@/common/constants/app.constants';
 import { RenderRequest, RenderResult } from '../interfaces/render.interface';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 
 interface Product3DConfiguration {
   id: string;
@@ -30,11 +32,28 @@ export class Render3DService {
     private readonly cache: SmartCacheService,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly quotasService: QuotasService,
+    private readonly usageTrackingService: UsageTrackingService,
   ) {
     this.renderServiceUrl = this.configService.get<string>('RENDER_3D_SERVICE_URL') || '';
-    this.replicateApiKey = this.configService.get<string>('REPLICATE_API_KEY') || '';
+    // PRODUCTION FIX: Standardize on REPLICATE_API_TOKEN (matches configuration.ts)
+    this.replicateApiKey = this.configService.get<string>('REPLICATE_API_TOKEN') || this.configService.get<string>('ai.replicate.apiToken') || '';
     this.replicateApiBase =
       process.env.REPLICATE_API_URL || this.configService.get<string>('REPLICATE_API_URL') || 'https://api.replicate.com/v1';
+  }
+
+  /**
+   * Récupère le brandId à partir du productId (configurationId)
+   */
+  private async getBrandIdFromProduct(productId: string): Promise<string> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { brandId: true },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product ${productId} not found`);
+    }
+    return product.brandId;
   }
 
   /**
@@ -119,6 +138,9 @@ export class Render3DService {
     try {
       this.logger.log(`Starting 3D render for request ${request.id}`);
 
+      const brandId = await this.getBrandIdFromProduct(request.productId);
+      await this.quotasService.enforceQuota(brandId, 'renders_3d');
+
       if (serviceUrl && serviceUrl.trim()) {
         try {
           const res = await firstValueFrom(
@@ -146,6 +168,11 @@ export class Render3DService {
               createdAt: new Date(),
               completedAt: new Date(),
             };
+            await this.usageTrackingService.trackRender3D(
+              brandId,
+              request.designId ?? request.id,
+              request.options?.exportFormat ?? 'gltf',
+            );
             this.logger.log(`3D render (external) completed for request ${request.id} in ${renderTime}ms`);
             return result;
           }
@@ -176,12 +203,11 @@ export class Render3DService {
         completedAt: new Date(),
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`3D render failed for request ${request.id}:`, error);
+      this.logger.error('Render failed', { error });
       return {
         id: request.id,
         status: 'failed',
-        error: errorMessage,
+        error: 'Render processing failed',
         createdAt: new Date(),
       };
     }
@@ -199,7 +225,7 @@ export class Render3DService {
     quality?: number;
     transparent?: boolean;
     watermark?: string;
-  }, userId: string): Promise<{
+  }, _userId: string): Promise<{
     renderUrl: string;
     width: number;
     height: number;
@@ -209,6 +235,9 @@ export class Render3DService {
   }> {
     try {
       this.logger.log(`Starting 3D high-res render for configuration ${body.configurationId}`);
+
+      const brandId = await this.getBrandIdFromProduct(body.configurationId);
+      await this.quotasService.enforceQuota(brandId, 'renders_3d');
 
       // Récupérer la configuration depuis Prisma
       const configuration = await this.getConfiguration(body.configurationId);
@@ -233,6 +262,11 @@ export class Render3DService {
           });
 
           if (externalResult.success) {
+            await this.usageTrackingService.trackRender3D(
+              brandId,
+              body.configurationId,
+              body.format || 'png',
+            );
             this.logger.log(`3D high-res render completed via external service`);
             return {
               renderUrl: externalResult.url,
@@ -257,6 +291,11 @@ export class Render3DService {
             dimensions.height,
           );
           if (replicateResult) {
+            await this.usageTrackingService.trackRender3D(
+              brandId,
+              body.configurationId,
+              body.format || 'png',
+            );
             // Return Replicate URL directly (already hosted)
             return {
               renderUrl: replicateResult,
@@ -277,6 +316,11 @@ export class Render3DService {
       
       // Si on a un modelUrl, l'utiliser directement
       if (configuration.modelUrl) {
+        await this.usageTrackingService.trackRender3D(
+          brandId,
+          body.configurationId,
+          body.format || 'png',
+        );
         this.logger.log(`3D high-res render using modelUrl for configuration ${body.configurationId}`);
         return {
           renderUrl: configuration.modelUrl,
@@ -349,9 +393,10 @@ export class Render3DService {
   private async renderViaReplicate(modelUrl: string, width: number, height: number): Promise<string | null> {
     try {
       // Utiliser un modèle de rendu 3D sur Replicate (ex: zero123, dreamgaussian)
+      const replicatePredictionsUrl = `${this.replicateApiBase.replace(/\/$/, '')}/predictions`;
       const response = await firstValueFrom(
         this.httpService.post(
-          'https://api.replicate.com/v1/predictions',
+          replicatePredictionsUrl,
           {
             version: 'b54d027e8d9e8f7f0f8c6c8b8a1e8f7a8b9c0d1e', // Placeholder version
             input: {
@@ -424,14 +469,21 @@ export class Render3DService {
     try {
       this.logger.log(`Starting AR export for configuration ${body.configurationId}, platform: ${body.platform}`);
 
+      const brandId = await this.getBrandIdFromProduct(body.configurationId);
+      const formatConfig = this.getARFormatConfig(body.platform);
+      if (body.platform === 'ios') {
+        await this.quotasService.enforceQuota(brandId, 'exports_usdz');
+      } else {
+        await this.quotasService.enforceQuota(brandId, 'exports_gltf');
+      }
+
       // Récupérer la configuration depuis Prisma
       const configuration = await this.getConfiguration(body.configurationId);
       if (!configuration) {
         throw new NotFoundException(`Configuration ${body.configurationId} not found`);
       }
 
-      // Déterminer le format selon la plateforme
-      const formatConfig = this.getARFormatConfig(body.platform);
+      // Déterminer le format selon la plateforme (formatConfig already set above)
       const exportId = `ar-export-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
       let exportUrl = '';
@@ -488,6 +540,12 @@ export class Render3DService {
 
       // Générer les liens AR universels
       const arLinks = this.generateARLinks(exportId, exportUrl, body.platform);
+
+      if (body.platform === 'ios') {
+        await this.usageTrackingService.trackExportUSDZ(brandId, body.configurationId);
+      } else {
+        await this.usageTrackingService.trackExportGLTF(brandId, body.configurationId);
+      }
 
       this.logger.log(`AR export completed for configuration ${body.configurationId}`);
 
@@ -553,7 +611,12 @@ export class Render3DService {
     exportUrl: string,
     primaryPlatform: 'ios' | 'android' | 'web',
   ): { ios?: string; android?: string; web?: string } {
-    const baseUrl = this.configService.get<string>('app.frontendUrl') || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const renderBaseUrl = this.configService.get<string>('RENDER_BASE_URL') || process.env.RENDER_BASE_URL || '';
+    const baseUrl =
+      renderBaseUrl ||
+      this.configService.get<string>('app.frontendUrl') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
     
     return {
       ios: primaryPlatform === 'ios' ? `${baseUrl}/ar/view/${exportId}?platform=ios` : undefined,

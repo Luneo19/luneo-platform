@@ -188,7 +188,7 @@ export class LogSanitizerService {
   /**
    * Sanitize a string by masking sensitive information
    */
-  sanitize(input: string | any): string {
+  sanitize(input: string | unknown): string {
     if (typeof input !== 'string') {
       // For objects, recursively sanitize
       if (input === null || input === undefined) {
@@ -205,8 +205,8 @@ export class LogSanitizerService {
       }
       
       if (typeof input === 'object') {
-        const sanitized: any = {};
-        for (const [key, value] of Object.entries(input)) {
+        const sanitized: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
           // Skip sensitive keys entirely or sanitize their values
           if (this.isSensitiveKey(key)) {
             const maskOptions = this.getMaskOptionsForKey(key);
@@ -325,7 +325,7 @@ export class LogSanitizerService {
   /**
    * Mask a value based on options
    */
-  private maskValue(value: any, options: SanitizeOptions = {}): string {
+  private maskValue(value: unknown, options: SanitizeOptions = {}): string {
     if (value === null || value === undefined) {
       return '[null]';
     }
@@ -414,7 +414,7 @@ export class LogSanitizerService {
   /**
    * Sanitize an object recursively
    */
-  sanitizeObject(obj: any): any {
+  sanitizeObject(obj: unknown): unknown {
     if (obj === null || obj === undefined) {
       return obj;
     }
@@ -432,8 +432,8 @@ export class LogSanitizerService {
       return obj.map(item => this.sanitizeObject(item));
     }
 
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (this.isSensitiveKey(key)) {
         // Determine mask options based on key type
         const maskOptions = this.getMaskOptionsForKey(key);

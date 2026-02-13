@@ -32,8 +32,13 @@ export class EncryptionService {
         this.logger.error('ENCRYPTION_KEY is required in production');
         throw new InternalServerErrorException('ENCRYPTION_KEY environment variable is required');
       }
-      // En développement, utiliser une clé dérivée du JWT secret
-      const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'dev-secret';
+      // In development, derive key from JWT_SECRET (no fallback - must be configured)
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      if (!jwtSecret) {
+        throw new InternalServerErrorException(
+          'JWT_SECRET must be configured when ENCRYPTION_KEY is not set (required for encryption service)',
+        );
+      }
       this.encryptionKey = crypto.scryptSync(jwtSecret, 'luneo-salt', this.keyLength);
       this.logger.warn('Using derived encryption key for development - set ENCRYPTION_KEY for production');
       return;

@@ -25,7 +25,7 @@ export class QuotasService {
    */
   private readonly planLimits: Record<string, PlanLimits> = (() => {
     const result: Record<string, PlanLimits> = {};
-    for (const tier of [PlanTier.STARTER, PlanTier.PROFESSIONAL, PlanTier.BUSINESS, PlanTier.ENTERPRISE]) {
+    for (const tier of [PlanTier.FREE, PlanTier.STARTER, PlanTier.PROFESSIONAL, PlanTier.BUSINESS, PlanTier.ENTERPRISE]) {
       const config = PLAN_CONFIGS[tier];
       result[tier] = {
         plan: tier as PlanLimits['plan'],
@@ -268,9 +268,7 @@ export class QuotasService {
    */
   getPlanLimits(plan: string): PlanLimits {
     const tier = normalizePlanTier(plan);
-    // Free tier uses starter quotas (free has no usage-billing quotas)
-    const effectiveTier = tier === PlanTier.FREE ? PlanTier.STARTER : tier;
-    return this.planLimits[effectiveTier] || this.planLimits.starter;
+    return this.planLimits[tier] || this.planLimits[PlanTier.FREE] || this.planLimits.starter;
   }
 
   /**

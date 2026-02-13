@@ -230,7 +230,7 @@ describe('IndustryService', () => {
 
       const result = await service.delete('jewelry');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(prisma.industry.update).toHaveBeenCalledWith({
         where: { slug: 'jewelry' },
         data: { isActive: false },

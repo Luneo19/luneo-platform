@@ -44,7 +44,7 @@ export interface Product {
   currency: string;
   isActive: boolean;
   status: ProductStatus;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   brandId: string;
@@ -82,7 +82,7 @@ export interface CreateProductRequest {
   price?: number;
   currency?: string;
   isActive?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {

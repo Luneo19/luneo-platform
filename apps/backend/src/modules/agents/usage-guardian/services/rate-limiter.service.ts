@@ -173,10 +173,9 @@ export class RateLimiterService {
 
       await this.prisma.aIRateLimit.upsert({
         where: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma composite allows null but types are strict
           brandId_userId_windowStart: (entityType === 'brand'
             ? { brandId: entityId, userId: null, windowStart }
-            : { brandId: null, userId: entityId, windowStart }) as any,
+            : { brandId: null, userId: entityId, windowStart }) as unknown as import('@prisma/client').Prisma.AIRateLimitBrandIdUserIdWindowStartCompoundUniqueInput,
         },
         create: {
           [entityType === 'brand' ? 'brandId' : 'userId']: entityId,

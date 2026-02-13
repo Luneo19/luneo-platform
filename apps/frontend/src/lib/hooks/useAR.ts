@@ -10,6 +10,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { detectWebXRSupport, detectDeviceInfo, generateARSessionId } from '@/lib/utils/ar';
 import type { ARDeviceInfo } from '@/lib/utils/ar';
@@ -136,8 +137,8 @@ export function useAR(options: UseAROptions = {}) {
 
       onSessionStart?.(session.sessionId);
       logger.info('AR session started', { sessionId: session.sessionId });
-    } catch (error: any) {
-      const errorMessage = error.message || 'Erreur lors du démarrage de la session AR';
+    } catch (error: unknown) {
+      const errorMessage = getErrorDisplayMessage(error);
       onError?.(errorMessage);
       logger.error('Error starting AR session', { error });
     }
@@ -191,7 +192,7 @@ export function useAR(options: UseAROptions = {}) {
         | 'placement_failed'
         | 'screenshot'
         | 'share',
-      metadata?: Record<string, any>
+      metadata?: Record<string, unknown>
     ) => {
       if (!currentSession) return;
 

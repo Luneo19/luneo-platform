@@ -8,7 +8,7 @@ export class PdfGeneratorService {
    * Générer un PDF depuis un snapshot
    * Implémentation basique sans dépendance externe (format PDF brut)
    */
-  async generate(snapshot: any): Promise<Buffer> {
+  async generate(snapshot: { specData?: Record<string, unknown>; id?: string }): Promise<Buffer> {
     try {
       const specData = snapshot.specData as Record<string, unknown> | null | undefined;
       const productName = (specData?.productName as string | undefined) || 'Design';

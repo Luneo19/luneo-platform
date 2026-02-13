@@ -11,12 +11,11 @@ export class AiService {
     private budgetService: BudgetService,
   ) {}
 
-  async estimateCost(prompt: string, options: any): Promise<number> {
+  async estimateCost(prompt: string, options: Record<string, unknown> = {}): Promise<number> {
     // Simple cost estimation based on prompt length and options
     const baseCost = 0.01; // 1 cent per character
     const promptCost = prompt.length * baseCost;
-    const optionsCost = options.highRes ? 0.05 : 0.02; // High-res costs more
-    
+    const optionsCost = (options as { highRes?: boolean }).highRes ? 0.05 : 0.02;
     return Math.round((promptCost + optionsCost) * 100); // Return in cents
   }
 
@@ -48,16 +47,17 @@ export class AiService {
     });
   }
 
-  async recordAICost(brandId: string, provider: string, model: string, cost: number, metadata: any): Promise<void> {
-    // Enregistrer le coût dans AICost (pour analytics)
+  async recordAICost(brandId: string, provider: string, model: string, cost: number, metadata?: Record<string, unknown>): Promise<void> {
+    const tokens = metadata != null && metadata.tokens != null ? Number(metadata.tokens) : null;
+    const duration = metadata != null && metadata.duration != null ? Number(metadata.duration) : null;
     await this.prisma.aICost.create({
       data: {
         brandId,
         provider,
         model,
         costCents: cost,
-        tokens: metadata.tokens,
-        duration: metadata.duration,
+        tokens,
+        duration,
       },
     });
 

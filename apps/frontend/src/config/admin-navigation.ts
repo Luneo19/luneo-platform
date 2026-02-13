@@ -28,6 +28,7 @@ import {
   ClipboardList,
   Beaker,
   Target,
+  Bot,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -52,36 +53,17 @@ export const adminNavigation: NavigationGroup[] = [
         href: '/admin/orion',
         icon: Sparkles,
         children: [
-          {
-            title: 'Health Dashboard',
-            href: '/admin/orion/retention',
-            icon: Activity,
-          },
-          {
-            title: 'Segments',
-            href: '/admin/orion/segments',
-            icon: Target,
-          },
-          {
-            title: 'Experiments',
-            href: '/admin/orion/experiments',
-            icon: Beaker,
-          },
-          {
-            title: 'Quick Wins',
-            href: '/admin/orion/quick-wins',
-            icon: Zap,
-          },
-          {
-            title: 'Notifications',
-            href: '/admin/orion/notifications',
-            icon: Bell,
-          },
-          {
-            title: 'Exports',
-            href: '/admin/orion/export',
-            icon: Download,
-          },
+          { title: 'Overview', href: '/admin/orion', icon: LayoutDashboard },
+          { title: 'Agents', href: '/admin/orion/agents', icon: Bot },
+          { title: 'Automations', href: '/admin/orion/automations', icon: Zap },
+          { title: 'Communications', href: '/admin/orion/communications', icon: Mail },
+          { title: 'Health Dashboard', href: '/admin/orion/retention', icon: Activity },
+          { title: 'Segments', href: '/admin/orion/segments', icon: Target },
+          { title: 'Experiments', href: '/admin/orion/experiments', icon: Beaker },
+          { title: 'Analytics', href: '/admin/orion/analytics', icon: BarChart3 },
+          { title: 'Quick Wins', href: '/admin/orion/quick-wins', icon: Zap },
+          { title: 'Notifications', href: '/admin/orion/notifications', icon: Bell },
+          { title: 'Exports', href: '/admin/orion/export', icon: Download },
         ],
       },
     ],

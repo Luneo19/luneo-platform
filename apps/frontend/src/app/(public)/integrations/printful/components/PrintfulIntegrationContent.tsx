@@ -28,6 +28,8 @@ import { PrintfulTabsSection, type PrintfulTabValue } from './PrintfulTabsSectio
 import { CTASection } from './CTASection';
 import type { FeatureItem } from './FeaturesSection';
 import type { InstallationStep } from './SetupTab';
+import { endpoints } from '@/lib/api/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 function PrintfulIntegrationContentInner() {
   const [activeTab, setActiveTab] = useState<PrintfulTabValue>('overview');
@@ -50,19 +52,20 @@ function PrintfulIntegrationContentInner() {
     setTestConnectionLoading(true);
     setTestConnectionResult(null);
     try {
-      await new Promise((r) => setTimeout(r, 2500));
+      const res = await endpoints.integrations.test('printful', {});
+      const data = res as { success?: boolean; message?: string };
       setTestConnectionResult({
-        success: true,
-        message: 'Connexion Printful réussie ! Votre intégration est opérationnelle.',
+        success: data?.success !== false,
+        message: data?.message ?? 'Connexion Printful réussie ! Votre intégration est opérationnelle.',
         details: [
           { name: 'Clé API Printful', status: 'success', message: 'Clé API valide' },
           { name: 'Connexion API', status: 'success', message: 'Connexion réussie' },
         ],
       });
-    } catch {
+    } catch (error: unknown) {
       setTestConnectionResult({
         success: false,
-        message: 'Erreur. Vérifiez vos clés API.',
+        message: getErrorDisplayMessage(error),
         details: [{ name: 'Connexion API', status: 'error', message: 'Impossible de se connecter' }],
       });
     } finally {

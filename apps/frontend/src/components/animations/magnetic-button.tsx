@@ -8,7 +8,7 @@ interface MagneticButtonProps {
   children: ReactNode;
   className?: string;
   intensity?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

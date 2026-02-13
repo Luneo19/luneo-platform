@@ -8,11 +8,13 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { AICostAuditService, AuditOptions } from './services/ai-cost-audit.service';
 import { PricingPlansService, PricingOptions, PlanType } from './services/pricing-plans.service';
 
 @ApiTags('Pricing')
 @Controller('pricing')
+@UseGuards(JwtAuthGuard)
 export class PricingController {
   constructor(
     private readonly aiCostAuditService: AICostAuditService,
@@ -24,7 +26,6 @@ export class PricingController {
   // ==========================================================================
 
   @Get('audit/ai-costs')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Audit des coûts IA' })
   @ApiResponse({ status: 200, description: 'Audit des coûts IA récupéré' })
@@ -46,7 +47,6 @@ export class PricingController {
   }
 
   @Get('audit/plan-profitability/:planId')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Analyse de rentabilité par plan' })
   @ApiResponse({ status: 200, description: 'Analyse de rentabilité récupérée' })
@@ -68,6 +68,7 @@ export class PricingController {
   // ==========================================================================
 
   @Get('plans')
+  @Public()
   @ApiOperation({ summary: 'Obtient tous les plans disponibles' })
   @ApiResponse({ status: 200, description: 'Plans récupérés' })
   async getAllPlans() {
@@ -75,6 +76,7 @@ export class PricingController {
   }
 
   @Get('plans/:planId')
+  @Public()
   @ApiOperation({ summary: 'Obtient un plan spécifique' })
   @ApiResponse({ status: 200, description: 'Plan récupéré' })
   async getPlan(@Param('planId') planId: string) {
@@ -82,13 +84,23 @@ export class PricingController {
   }
 
   @Get('plans/:planId/add-ons')
+  @Public()
   @ApiOperation({ summary: 'Obtient les add-ons disponibles pour un plan' })
   @ApiResponse({ status: 200, description: 'Add-ons récupérés' })
   async getAvailableAddOns(@Param('planId') planId: string) {
     return this.pricingPlansService.getAvailableAddOns(planId as PlanType);
   }
 
+  @Get('plans/:planId/addons')
+  @Public()
+  @ApiOperation({ summary: 'Alias - Obtient les add-ons disponibles pour un plan' })
+  @ApiResponse({ status: 200, description: 'Add-ons récupérés' })
+  async getAvailableAddOnsAlias(@Param('planId') planId: string) {
+    return this.pricingPlansService.getAvailableAddOns(planId as PlanType);
+  }
+
   @Post('calculate')
+  @Public()
   @ApiOperation({ summary: 'Calcule le prix avec add-ons' })
   @ApiResponse({ status: 200, description: 'Prix calculé' })
   async calculatePricing(@Body() options: PricingOptions) {

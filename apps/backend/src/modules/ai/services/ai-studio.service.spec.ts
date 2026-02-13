@@ -7,6 +7,9 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AIGenerationType } from '../interfaces/ai-studio.interface';
+import { MeshyProviderService } from './meshy-provider.service';
+import { RunwayProviderService } from './runway-provider.service';
+import { PlansService } from '@/modules/plans/plans.service';
 
 describe('AIStudioService', () => {
   let service: AIStudioService;
@@ -68,6 +71,10 @@ describe('AIStudioService', () => {
     }),
   };
 
+  const mockMeshyProvider = { generate: jest.fn() };
+  const mockRunwayProvider = { generate: jest.fn() };
+  const mockPlansService = { enforceDesignLimit: jest.fn().mockResolvedValue(undefined) };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -79,6 +86,9 @@ describe('AIStudioService', () => {
         { provide: AIStudioQueueService, useValue: mockQueueService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: MeshyProviderService, useValue: mockMeshyProvider },
+        { provide: RunwayProviderService, useValue: mockRunwayProvider },
+        { provide: PlansService, useValue: mockPlansService },
       ],
     }).compile();
 
@@ -307,11 +317,11 @@ describe('AIStudioService', () => {
 
   describe('optimizePrompt', () => {
     it('should use fallback when OpenAI API key is not configured', async () => {
-      // Override config to return empty key
-      mockConfigService.get.mockImplementation((key: string) => {
+      // Override config to return empty key (use any to bypass strict mock typing)
+      mockConfigService.get.mockImplementation(((key: string) => {
         if (key === 'OPENAI_API_KEY') return '';
         return null;
-      });
+      }) as any);
 
       // Recreate service with new config
       const module: TestingModule = await Test.createTestingModule({
@@ -322,6 +332,9 @@ describe('AIStudioService', () => {
           { provide: AIStudioQueueService, useValue: mockQueueService },
           { provide: HttpService, useValue: mockHttpService },
           { provide: ConfigService, useValue: mockConfigService },
+          { provide: MeshyProviderService, useValue: mockMeshyProvider },
+          { provide: RunwayProviderService, useValue: mockRunwayProvider },
+          { provide: PlansService, useValue: mockPlansService },
         ],
       }).compile();
 

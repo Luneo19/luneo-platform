@@ -19,7 +19,7 @@ export interface CacheEntry<T> {
   timestamp: number;
   ttl: number;
   hits: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CacheStats {
@@ -33,7 +33,7 @@ export interface CacheStats {
 export interface CacheOptions {
   ttl?: number; // Time to live in milliseconds
   maxSize?: number; // Maximum number of entries
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ========================================
@@ -42,17 +42,18 @@ export interface CacheOptions {
 
 export class CacheService {
   private static instance: CacheService;
-  private cache: Map<string, CacheEntry<any>> = new Map();
+  private cache: Map<string, CacheEntry<unknown>> = new Map();
   private stats = {
     hits: 0,
     misses: 0,
   };
   private maxSize: number = 1000;
   private defaultTTL: number = 5 * 60 * 1000; // 5 minutes
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     // Cleanup expired entries every minute
-    setInterval(() => this.cleanup(), 60 * 1000);
+    this.cleanupInterval = setInterval(() => this.cleanup(), 60 * 1000);
   }
 
   static getInstance(): CacheService {
@@ -317,6 +318,19 @@ export class CacheService {
   // ========================================
   // CONFIGURATION
   // ========================================
+
+  /**
+   * Détruit l'instance et nettoie les intervalles
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.cache.clear();
+    this.stats = { hits: 0, misses: 0 };
+    logger.info('CacheService destroyed');
+  }
 
   /**
    * Configure le cache

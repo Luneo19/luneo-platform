@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface PromptTemplateContext {
@@ -31,8 +32,8 @@ export class PromptTemplatesService {
     occasion?: string,
     style?: string,
     version?: number,
-  ): Promise<any | null> {
-    const where: any = {
+  ): Promise<unknown> {
+    const where: Record<string, unknown> = {
       isActive: true,
     };
 
@@ -59,7 +60,7 @@ export class PromptTemplatesService {
   /**
    * Rendu un template avec le contexte
    */
-  renderTemplate(template: any, context: PromptTemplateContext): string {
+  renderTemplate(template: { prompt: string; variables?: Record<string, unknown> }, context: PromptTemplateContext): string {
     let rendered = template.prompt;
 
     // Remplacer les variables {{variable}}
@@ -136,10 +137,10 @@ export class PromptTemplatesService {
     occasion?: string;
     style?: string;
     prompt: string;
-    variables?: any;
-    constraints?: any;
-    brandKit?: any;
-  }): Promise<any> {
+    variables?: Record<string, unknown>;
+    constraints?: Record<string, unknown>;
+    brandKit?: Record<string, unknown>;
+  }): Promise<unknown> {
     // Trouver la dernière version
     const lastVersion = await this.prisma.promptTemplate.findFirst({
       where: { name: data.name },
@@ -152,6 +153,9 @@ export class PromptTemplatesService {
       data: {
         ...data,
         version,
+        variables: data.variables as Prisma.InputJsonValue | undefined,
+        constraints: data.constraints as Prisma.InputJsonValue | undefined,
+        brandKit: data.brandKit as Prisma.InputJsonValue | undefined,
       },
     });
   }
@@ -163,8 +167,8 @@ export class PromptTemplatesService {
     occasion?: string;
     style?: string;
     isActive?: boolean;
-  }): Promise<any[]> {
-    const where: any = {};
+  }): Promise<unknown[]> {
+    const where: Record<string, unknown> = {};
 
     if (filters?.occasion) {
       where.occasion = filters.occasion;

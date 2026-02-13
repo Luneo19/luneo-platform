@@ -1,4 +1,5 @@
 import { Public } from '@/common/decorators/public.decorator';
+import { SkipRateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 import { PrometheusService } from '@/libs/metrics/prometheus.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
@@ -9,6 +10,7 @@ import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/term
 import { HealthService, EnrichedHealthResponse } from './health.service';
 
 @ApiTags('Health')
+@SkipRateLimit()
 @Controller('health') // Will be /health (excluded from global prefix) OR /api/v1/health
 export class HealthController {
   constructor(

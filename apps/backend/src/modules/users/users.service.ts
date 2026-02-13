@@ -65,6 +65,13 @@ export class UsersService {
                 resetAt: true,
               },
             },
+            userProfile: {
+              select: {
+                phone: true,
+                website: true,
+                timezone: true,
+              },
+            },
           },
         });
       },
@@ -82,15 +89,36 @@ export class UsersService {
    * CACHE-01: Met à jour le profil et invalide le cache
    */
   async updateProfile(userId: string, updateData: UpdateProfileDto) {
-    const { firstName, lastName, avatar } = updateData;
+    const { firstName, lastName, avatar, phone, website, timezone } = updateData;
 
-    const user = await this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          firstName,
+          lastName,
+          avatar,
+        },
+      });
+      const profilePayload =
+        phone !== undefined || website !== undefined || timezone !== undefined
+          ? { phone: phone ?? undefined, website: website ?? undefined, timezone: timezone ?? undefined }
+          : undefined;
+      if (profilePayload) {
+        await tx.userProfile.upsert({
+          where: { userId },
+          create: { userId, ...profilePayload },
+          update: profilePayload,
+        });
+      }
+    });
+
+    // CACHE-01: Invalider le cache utilisateur après modification
+    await this.cache.invalidate(userId, 'user');
+    this.logger.debug(`Cache invalidated for user:${userId}`);
+
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      data: {
-        firstName,
-        lastName,
-        avatar,
-      },
       select: {
         id: true,
         email: true,
@@ -101,13 +129,7 @@ export class UsersService {
         brandId: true,
         createdAt: true,
         updatedAt: true,
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            logo: true,
-          },
-        },
+        brand: { select: { id: true, name: true, logo: true } },
         userQuota: {
           select: {
             id: true,
@@ -118,13 +140,12 @@ export class UsersService {
             resetAt: true,
           },
         },
+        userProfile: {
+          select: { phone: true, website: true, timezone: true },
+        },
       },
     });
-
-    // CACHE-01: Invalider le cache utilisateur après modification
-    await this.cache.invalidate(userId, 'user');
-    this.logger.debug(`Cache invalidated for user:${userId}`);
-
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
@@ -195,6 +216,7 @@ export class UsersService {
         expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: 'desc' },
+      take: 50,
       select: {
         id: true,
         createdAt: true,
@@ -233,7 +255,7 @@ export class UsersService {
   }
 
   async deleteAllSessions(userId: string, currentTokenId?: string) {
-    const where: any = { userId };
+    const where: { userId: string; NOT?: { id: string } } = { userId };
     if (currentTokenId) {
       where.NOT = { id: currentTokenId };
     }

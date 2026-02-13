@@ -54,7 +54,7 @@ export interface TextElement {
   shadowOffsetX(): number;
   shadowOffsetY(): number;
   shadowOpacity(): number;
-  filters(): any[];
+  filters(): unknown[];
   cache(): void;
   destroy(): void;
   clone(): TextElement;
@@ -137,17 +137,18 @@ export class TextTool {
     }) as unknown as TextElement;
 
     // Add background if specified
+    const konvaText = textElement as unknown as Konva.Text;
     if (options.background) {
-      (textElement as any).fill(options.background);
-      (textElement as any).opacity(options.backgroundOpacity || 1);
+      konvaText.fill(options.background);
+      konvaText.opacity(options.backgroundOpacity ?? 1);
     }
 
     // Add shadow if specified
     if (options.shadowColor) {
-      (textElement as any).shadowColor(options.shadowColor);
-      (textElement as any).shadowBlur(options.shadowBlur || 5);
-      (textElement as any).shadowOffset(options.shadowOffset || { x: 2, y: 2 });
-      (textElement as any).shadowOpacity(options.shadowOpacity || 0.5);
+      konvaText.shadowColor(options.shadowColor);
+      konvaText.shadowBlur(options.shadowBlur ?? 5);
+      konvaText.shadowOffset(options.shadowOffset ?? { x: 2, y: 2 });
+      konvaText.shadowOpacity(options.shadowOpacity ?? 0.5);
     }
 
     // Store original text for editing
@@ -155,7 +156,7 @@ export class TextTool {
     textElement.type = 'text';
 
     // Add to layer
-    this.designLayer.add(textElement as any);
+    this.designLayer.add(textElement as unknown as Konva.Shape);
     this.designLayer.batchDraw();
 
     // Select the new text
@@ -178,21 +179,22 @@ export class TextTool {
     document.body.appendChild(textarea);
 
     // Position textarea
-    const textPosition = (textElement as any).absolutePosition();
+    const node = textElement as unknown as Konva.Text;
+    const textPosition = node.absolutePosition();
     const stageBox = this.stage.container().getBoundingClientRect();
-    const scaleX = this.stage.scaleX();
-    const scaleY = this.stage.scaleY();
+    const scaleX = Number(this.stage.scaleX()) || 1;
+    const scaleY = Number(this.stage.scaleY()) || 1;
 
-    textarea.value = (textElement as any).text();
+    textarea.value = textElement.text();
     textarea.style.position = 'absolute';
     textarea.style.top = textPosition.y * scaleY + stageBox.top + 'px';
     textarea.style.left = textPosition.x * scaleX + stageBox.left + 'px';
-    textarea.style.width = (textElement as any).width() * scaleX + 'px';
-    textarea.style.height = (textElement as any).height() * scaleY + 'px';
-    textarea.style.fontSize = (textElement as any).fontSize() * scaleX + 'px';
-    textarea.style.fontFamily = (textElement as any).fontFamily();
-    textarea.style.fontStyle = (textElement as any).fontStyle();
-    textarea.style.fontWeight = (textElement as any).fontStyle().includes('bold') ? 'bold' : 'normal';
+    textarea.style.width = (Number(textElement.width()) || 100) * scaleX + 'px';
+    textarea.style.height = (Number(textElement.height()) || 20) * scaleY + 'px';
+    textarea.style.fontSize = textElement.fontSize() * scaleX + 'px';
+    textarea.style.fontFamily = textElement.fontFamily();
+    textarea.style.fontStyle = textElement.fontStyle();
+    textarea.style.fontWeight = textElement.fontStyle().includes('bold') ? 'bold' : 'normal';
     textarea.style.border = 'none';
     textarea.style.padding = '0px';
     textarea.style.margin = '0px';
@@ -200,10 +202,10 @@ export class TextTool {
     textarea.style.background = 'transparent';
     textarea.style.outline = 'none';
     textarea.style.resize = 'none';
-    textarea.style.lineHeight = (textElement as any).lineHeight().toString();
-    textarea.style.color = (textElement as any).fill();
-    textarea.style.textAlign = (textElement as any).align();
-    textarea.style.letterSpacing = (textElement as any).letterSpacing() + 'px';
+    textarea.style.lineHeight = textElement.lineHeight().toString();
+    textarea.style.color = textElement.fill();
+    textarea.style.textAlign = node.align();
+    textarea.style.letterSpacing = textElement.letterSpacing() + 'px';
 
     // Focus and select
     textarea.focus();
@@ -219,7 +221,7 @@ export class TextTool {
     textarea.addEventListener('keydown', (e) => {
       // Hide on Enter (without Shift)
       if (e.keyCode === 13 && !e.shiftKey) {
-        (textElement as any).text(textarea.value);
+        (textElement as unknown as Konva.Text).text(textarea.value);
         this.designLayer.batchDraw();
         removeTextarea();
       }
@@ -230,7 +232,7 @@ export class TextTool {
     });
 
     textarea.addEventListener('blur', () => {
-      (textElement as any).text(textarea.value);
+      (textElement as unknown as Konva.Text).text(textarea.value);
       this.designLayer.batchDraw();
       removeTextarea();
     });
@@ -251,10 +253,9 @@ export class TextTool {
   selectText(textElement: TextElement) {
     this.deselectText();
     this.selectedText = textElement;
-    
-    // Add selection visual feedback
-    (textElement as any).stroke('#007bff');
-    (textElement as any).strokeWidth(2);
+    const node = textElement as unknown as Konva.Text;
+    node.stroke('#007bff');
+    node.strokeWidth(2);
     this.designLayer.batchDraw();
   }
 
@@ -263,8 +264,9 @@ export class TextTool {
    */
   deselectText() {
     if (this.selectedText) {
-      (this.selectedText as any).stroke('');
-      (this.selectedText as any).strokeWidth(0);
+      const node = this.selectedText as unknown as Konva.Text;
+      node.stroke('');
+      node.strokeWidth(0);
       this.selectedText = null;
       this.designLayer.batchDraw();
     }
@@ -274,24 +276,24 @@ export class TextTool {
    * Update text properties
    */
   updateTextProperties(textElement: TextElement, properties: Partial<TextOptions>) {
-    if (properties.fontSize !== undefined) (textElement as any).fontSize(properties.fontSize);
-    if (properties.fontFamily !== undefined) (textElement as any).fontFamily(properties.fontFamily);
-    if (properties.fill !== undefined) (textElement as any).fill(properties.fill);
-    if (properties.stroke !== undefined) (textElement as any).stroke(properties.stroke);
-    if (properties.strokeWidth !== undefined) (textElement as any).strokeWidth(properties.strokeWidth);
-    if (properties.align !== undefined) (textElement as any).align(properties.align);
-    if (properties.verticalAlign !== undefined) (textElement as any).verticalAlign(properties.verticalAlign);
-    if (properties.fontStyle !== undefined) (textElement as any).fontStyle(properties.fontStyle);
-    if (properties.textDecoration !== undefined) (textElement as any).textDecoration(properties.textDecoration);
-    if (properties.letterSpacing !== undefined) (textElement as any).letterSpacing(properties.letterSpacing);
-    if (properties.lineHeight !== undefined) (textElement as any).lineHeight(properties.lineHeight);
-    if (properties.padding !== undefined) (textElement as any).padding(properties.padding);
+    const node = textElement as unknown as Konva.Text;
+    if (properties.fontSize !== undefined) node.fontSize(properties.fontSize);
+    if (properties.fontFamily !== undefined) node.fontFamily(properties.fontFamily);
+    if (properties.fill !== undefined) node.fill(properties.fill);
+    if (properties.stroke !== undefined) node.stroke(properties.stroke);
+    if (properties.strokeWidth !== undefined) node.strokeWidth(properties.strokeWidth);
+    if (properties.align !== undefined) node.align(properties.align);
+    if (properties.verticalAlign !== undefined) node.verticalAlign(properties.verticalAlign);
+    if (properties.fontStyle !== undefined) node.fontStyle(properties.fontStyle);
+    if (properties.textDecoration !== undefined) node.textDecoration(properties.textDecoration);
+    if (properties.letterSpacing !== undefined) node.letterSpacing(properties.letterSpacing);
+    if (properties.lineHeight !== undefined) node.lineHeight(properties.lineHeight);
+    if (properties.padding !== undefined) node.padding(properties.padding);
 
-    // Update shadow
-    if (properties.shadowColor !== undefined) (textElement as any).shadowColor(properties.shadowColor);
-    if (properties.shadowBlur !== undefined) (textElement as any).shadowBlur(properties.shadowBlur);
-    if (properties.shadowOffset !== undefined) (textElement as any).shadowOffset(properties.shadowOffset);
-    if (properties.shadowOpacity !== undefined) (textElement as any).shadowOpacity(properties.shadowOpacity);
+    if (properties.shadowColor !== undefined) node.shadowColor(properties.shadowColor);
+    if (properties.shadowBlur !== undefined) node.shadowBlur(properties.shadowBlur);
+    if (properties.shadowOffset !== undefined) node.shadowOffset(properties.shadowOffset);
+    if (properties.shadowOpacity !== undefined) node.shadowOpacity(properties.shadowOpacity);
 
     this.designLayer.batchDraw();
   }
@@ -301,7 +303,7 @@ export class TextTool {
    */
   deleteSelectedText() {
     if (this.selectedText) {
-      (this.selectedText as any).destroy();
+      (this.selectedText as unknown as Konva.Text).destroy();
       this.selectedText = null;
       this.designLayer.batchDraw();
     }
@@ -334,30 +336,31 @@ export class TextTool {
    * Apply text effects
    */
   applyTextEffect(textElement: TextElement, effect: 'bold' | 'italic' | 'underline' | 'strikethrough') {
+    const node = textElement as unknown as Konva.Text;
     switch (effect) {
       case 'bold': {
-        const currentStyle = (textElement as any).fontStyle();
+        const currentStyle = textElement.fontStyle();
         if (currentStyle.includes('bold')) {
-          (textElement as any).fontStyle(currentStyle.replace('bold', '').trim() || 'normal');
+          node.fontStyle(currentStyle.replace('bold', '').trim() || 'normal');
         } else {
-          (textElement as any).fontStyle(currentStyle ? `${currentStyle} bold` : 'bold');
+          node.fontStyle(currentStyle ? `${currentStyle} bold` : 'bold');
         }
         break;
       }
       case 'italic': {
-        const currentStyleItalic = (textElement as any).fontStyle();
+        const currentStyleItalic = textElement.fontStyle();
         if (currentStyleItalic.includes('italic')) {
-          (textElement as any).fontStyle(currentStyleItalic.replace('italic', '').trim() || 'normal');
+          node.fontStyle(currentStyleItalic.replace('italic', '').trim() || 'normal');
         } else {
-          (textElement as any).fontStyle(currentStyleItalic ? `${currentStyleItalic} italic` : 'italic');
+          node.fontStyle(currentStyleItalic ? `${currentStyleItalic} italic` : 'italic');
         }
         break;
       }
       case 'underline':
-        (textElement as any).textDecoration((textElement as any).textDecoration() === 'underline' ? 'none' : 'underline');
+        node.textDecoration(textElement.textDecoration() === 'underline' ? 'none' : 'underline');
         break;
       case 'strikethrough':
-        (textElement as any).textDecoration((textElement as any).textDecoration() === 'line-through' ? 'none' : 'line-through');
+        node.textDecoration(textElement.textDecoration() === 'line-through' ? 'none' : 'line-through');
         break;
     }
     this.designLayer.batchDraw();
@@ -367,11 +370,13 @@ export class TextTool {
    * Duplicate text element
    */
   duplicateText(textElement: TextElement): TextElement {
-    const cloned = (textElement as any).clone() as TextElement;
-    (cloned as any).x((textElement as any).x() + 20);
-    (cloned as any).y((textElement as any).y() + 20);
-    (cloned as any).id(`text_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-    this.designLayer.add(cloned as any);
+    const node = textElement as unknown as Konva.Text;
+    const cloned = node.clone() as unknown as TextElement;
+    const cloneNode = cloned as unknown as Konva.Text;
+    cloneNode.x((Number(node.x()) || 0) + 20);
+    cloneNode.y((Number(node.y()) || 0) + 20);
+    cloneNode.id(`text_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    this.designLayer.add(cloneNode);
     this.designLayer.batchDraw();
     return cloned;
   }

@@ -93,36 +93,39 @@ export const analyticsRouter = router({
         ]);
 
         const currRaw = ordersCurrent as unknown[] | { orders?: unknown[]; data?: unknown[] };
-        const currentOrders = Array.isArray(ordersCurrent) ? ordersCurrent : (currRaw && typeof currRaw === 'object' ? (currRaw.orders ?? currRaw.data ?? []) : []);
+        const currentOrders = Array.isArray(ordersCurrent) ? ordersCurrent : (currRaw && typeof currRaw === 'object' && !Array.isArray(currRaw) ? ((currRaw as { orders?: unknown[]; data?: unknown[] }).orders ?? (currRaw as { data?: unknown[] }).data ?? []) : []);
         const prevRaw = ordersPrevious as unknown[] | { orders?: unknown[]; data?: unknown[] };
-        const previousOrders = Array.isArray(ordersPrevious) ? ordersPrevious : (prevRaw && typeof prevRaw === 'object' ? (prevRaw.orders ?? prevRaw.data ?? []) : []);
+        const previousOrders = Array.isArray(ordersPrevious) ? ordersPrevious : (prevRaw && typeof prevRaw === 'object' && !Array.isArray(prevRaw) ? ((prevRaw as { orders?: unknown[]; data?: unknown[] }).orders ?? (prevRaw as { data?: unknown[] }).data ?? []) : []);
 
+        type OrderLike = { totalCents?: number | null; userId?: string | null; status?: string; createdAt?: Date | string };
+        const currentTyped = currentOrders as OrderLike[];
+        const previousTyped = previousOrders as OrderLike[];
         // Calculate metrics
         const revenue =
-          currentOrders.reduce(
-            (sum: number, o: { totalCents?: number | null }) => sum + (o.totalCents || 0),
+          currentTyped.reduce(
+            (sum: number, o: OrderLike) => sum + (o.totalCents || 0),
             0
           ) / 100;
         const previousRevenue =
-          previousOrders.reduce(
-            (sum: number, o: { totalCents?: number | null }) => sum + (o.totalCents || 0),
+          previousTyped.reduce(
+            (sum: number, o: OrderLike) => sum + (o.totalCents || 0),
             0
           ) / 100;
         const revenueChange = previousRevenue > 0 ? ((revenue - previousRevenue) / previousRevenue) * 100 : 0;
 
-        const orders = currentOrders.length;
-        const previousOrdersCount = previousOrders.length;
+        const orders = currentTyped.length;
+        const previousOrdersCount = previousTyped.length;
         const ordersChange = previousOrdersCount > 0 ? ((orders - previousOrdersCount) / previousOrdersCount) * 100 : 0;
 
         // Get unique users
         const currentUserIds = new Set(
-          currentOrders
-            .map((o: { userId?: string | null }) => o.userId)
+          currentTyped
+            .map((o: OrderLike) => o.userId)
             .filter((id: string | null | undefined): id is string => !!id)
         );
         const previousUserIds = new Set(
-          previousOrders
-            .map((o: { userId?: string | null }) => o.userId)
+          previousTyped
+            .map((o: OrderLike) => o.userId)
             .filter((id: string | null | undefined): id is string => !!id)
         );
         const users = currentUserIds.size;
@@ -130,8 +133,8 @@ export const analyticsRouter = router({
         const usersChange = previousUsers > 0 ? ((users - previousUsers) / previousUsers) * 100 : 0;
 
         // Calculate conversions (paid orders)
-        const conversions = currentOrders.filter((o: { status?: string }) => o.status === 'PAID').length;
-        const previousConversions = previousOrders.filter((o: { status?: string }) => o.status === 'PAID').length;
+        const conversions = currentTyped.filter((o: OrderLike) => o.status === 'PAID').length;
+        const previousConversions = previousTyped.filter((o: OrderLike) => o.status === 'PAID').length;
         const conversionsChange =
           previousConversions > 0 ? ((conversions - previousConversions) / previousConversions) * 100 : 0;
 
@@ -162,8 +165,9 @@ export const analyticsRouter = router({
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        currentOrders.forEach((order: { createdAt: Date | string; totalCents?: number | null }) => {
-          const d = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+        currentTyped.forEach((order: OrderLike) => {
+          const raw = order.createdAt;
+          const d = raw != null ? (raw instanceof Date ? raw : new Date(raw)) : new Date(0);
           const dateKey = d.toISOString().split('T')[0];
           const current = dailyData.get(dateKey) || 0;
           dailyData.set(dateKey, current + (order.totalCents || 0) / 100);
@@ -210,9 +214,9 @@ export const analyticsRouter = router({
               }
             : undefined,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error fetching analytics dashboard', { error, input });
-        throw new Error('Erreur lors de la récupération des analytics');
+        throw new Error(error instanceof Error ? error.message : 'Erreur lors de la récupération des analytics');
       }
     }),
 
@@ -228,14 +232,95 @@ export const analyticsRouter = router({
         dateTo: z.string().optional(),
       })
     )
-    .query(async ({ input, ctx }) => {
+    .query(async ({ input }) => {
       try {
-        // Implementation for detailed metrics
+        const { metric, timeRange, dateFrom, dateTo } = input;
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date;
+        let endDate: Date = now;
+
+        switch (timeRange) {
+          case '24h': startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); break;
+          case '7d': startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+          case '30d': startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+          case '90d': startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+          case '1y': startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+          case 'custom':
+            startDate = dateFrom ? new Date(dateFrom) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            endDate = dateTo ? new Date(dateTo) : now;
+            break;
+          default: startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
+
+        const startStr = startDate.toISOString().split('T')[0];
+        const endStr = endDate.toISOString().split('T')[0];
+
+        // Fetch the appropriate data based on the metric
+        let rawData: unknown[] = [];
+
+        if (metric === 'revenue' || metric === 'orders' || metric === 'conversions' || metric === 'avgOrderValue') {
+          const orderResult = await endpoints.analytics.orders({ startDate: startStr, endDate: endStr }).catch(() => []);
+          const ordersArr = Array.isArray(orderResult) ? orderResult : ((orderResult as Record<string, unknown>)?.orders ?? (orderResult as Record<string, unknown>)?.data ?? []) as unknown[];
+
+          type OrderLike = { totalCents?: number | null; status?: string; createdAt?: Date | string };
+          const orders = ordersArr as OrderLike[];
+
+          // Group by day
+          const dailyMap = new Map<string, { revenue: number; count: number; conversions: number }>();
+          const currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            const key = currentDate.toISOString().split('T')[0];
+            dailyMap.set(key, { revenue: 0, count: 0, conversions: 0 });
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          orders.forEach((order) => {
+            const d = order.createdAt ? (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt as string)) : new Date(0);
+            const key = d.toISOString().split('T')[0];
+            const entry = dailyMap.get(key);
+            if (entry) {
+              entry.revenue += (order.totalCents || 0) / 100;
+              entry.count += 1;
+              if (order.status === 'PAID') entry.conversions += 1;
+            }
+          });
+
+          rawData = Array.from(dailyMap.entries()).sort().map(([date, vals]) => ({
+            date,
+            value: metric === 'revenue' ? vals.revenue
+              : metric === 'orders' ? vals.count
+              : metric === 'conversions' ? vals.conversions
+              : vals.count > 0 ? vals.revenue / vals.count : 0,
+          }));
+        } else if (metric === 'designs') {
+          const designResult = await endpoints.analytics.designs({ startDate: startStr, endDate: endStr }).catch(() => ({ data: [] }));
+          const designsArr = Array.isArray(designResult) ? designResult : ((designResult as Record<string, unknown>)?.data ?? []) as unknown[];
+          type DesignLike = { createdAt?: Date | string };
+          const designs = designsArr as DesignLike[];
+
+          const dailyMap = new Map<string, number>();
+          const currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            dailyMap.set(currentDate.toISOString().split('T')[0], 0);
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          designs.forEach((d) => {
+            const dt = d.createdAt ? (d.createdAt instanceof Date ? d.createdAt : new Date(d.createdAt as string)) : new Date(0);
+            const key = dt.toISOString().split('T')[0];
+            dailyMap.set(key, (dailyMap.get(key) || 0) + 1);
+          });
+
+          rawData = Array.from(dailyMap.entries()).sort().map(([date, value]) => ({ date, value }));
+        }
+
         return {
           metric: input.metric,
-          data: [],
+          data: rawData,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error fetching metrics', { error, input });
         throw new Error('Erreur lors de la récupération des métriques');
       }
@@ -250,16 +335,70 @@ export const analyticsRouter = router({
         format: z.enum(['csv', 'json', 'pdf', 'excel']),
         timeRange: TimeRangeSchema,
         metrics: z.array(z.string()).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       try {
-        // Implementation for export
-        return {
-          url: `/api/analytics/export?format=${input.format}`,
-          expiresAt: new Date(Date.now() + 3600000).toISOString(), // 1 hour
+        const { format, timeRange, metrics } = input;
+        const metricsStr = metrics?.join(',') || 'revenue,orders,conversions';
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date;
+        let endDate: Date = now;
+
+        switch (timeRange) {
+          case '24h': startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); break;
+          case '7d': startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+          case '30d': startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+          case '90d': startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+          case '1y': startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+          case 'custom':
+            startDate = input.startDate ? new Date(input.startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            endDate = input.endDate ? new Date(input.endDate) : now;
+            break;
+          default: startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
+
+        const params = {
+          metrics: metricsStr,
+          timeRange,
+          startDate: input.startDate || startDate.toISOString().split('T')[0],
+          endDate: input.endDate || endDate.toISOString().split('T')[0],
         };
-      } catch (error: any) {
+
+        let result: unknown;
+
+        if (format === 'csv') {
+          result = await endpoints.analytics.export.csv(params);
+        } else if (format === 'excel') {
+          result = await endpoints.analytics.export.excel(params);
+        } else if (format === 'pdf') {
+          result = await endpoints.analytics.export.pdf(params);
+        } else {
+          // JSON: aggregate locally from orders data
+          const orderResult = await endpoints.analytics.orders({
+            startDate: params.startDate,
+            endDate: params.endDate,
+          }).catch(() => []);
+
+          return {
+            url: '',
+            data: orderResult,
+            expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          };
+        }
+
+        const rawResult = result as Record<string, unknown>;
+        const url = (rawResult?.url as string) || (rawResult?.downloadUrl as string) || '';
+
+        return {
+          url,
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        };
+      } catch (error: unknown) {
         logger.error('Error exporting analytics', { error, input });
         throw new Error('Erreur lors de l\'export');
       }

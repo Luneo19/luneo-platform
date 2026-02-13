@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/i18n/useI18n';
 import { PROJECT_TYPE_LABELS } from '../../types';
 import type { CreateProjectPayload } from '../../types';
 
@@ -47,6 +48,7 @@ export function CreateProjectModal({
   onOpenChange,
   onCreate,
 }: CreateProjectModalProps) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [type, setType] = useState('DESIGN');
@@ -89,7 +91,7 @@ export function CreateProjectModal({
             <Input
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Mon projet"
+              placeholder={t('common.myProject')}
               className="bg-gray-800 border-gray-700 text-white mt-1"
               required
             />
@@ -125,7 +127,7 @@ export function CreateProjectModal({
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description optionnelle"
+              placeholder={t('common.optionalDescription')}
               className="bg-gray-800 border-gray-700 text-white mt-1 min-h-[80px]"
               rows={3}
             />

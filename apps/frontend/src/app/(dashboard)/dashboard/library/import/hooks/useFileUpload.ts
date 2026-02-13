@@ -5,28 +5,30 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { MAX_FILE_SIZE, MAX_FILES, ACCEPTED_FILE_TYPES } from '../constants/import';
 import type { UploadedFile } from '../types';
 
 export function useFileUpload() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileMapRef = useRef<Map<string, File>>(new Map());
 
   const validateFile = useCallback((file: File): { valid: boolean; error?: string } => {
-    // Vérifier la taille
+    const maxMb = MAX_FILE_SIZE / 1024 / 1024;
     if (file.size > MAX_FILE_SIZE) {
       return {
         valid: false,
-        error: `Le fichier ${file.name} dépasse la taille maximale de ${MAX_FILE_SIZE / 1024 / 1024} MB`,
+        error: t('library.fileTooBig', { max: String(maxMb) }),
       };
     }
 
-    // Vérifier le type
     const allAcceptedTypes = [
       ...ACCEPTED_FILE_TYPES.image,
       ...ACCEPTED_FILE_TYPES.document,
@@ -35,12 +37,12 @@ export function useFileUpload() {
     if (!allAcceptedTypes.includes(file.type)) {
       return {
         valid: false,
-        error: `Le type de fichier ${file.type} n'est pas supporté`,
+        error: t('library.fileTypeNotSupported', { type: file.type }),
       };
     }
 
     return { valid: true };
-  }, []);
+  }, [t]);
 
   const addFiles = useCallback(
     (newFiles: FileList | File[]) => {
@@ -50,8 +52,8 @@ export function useFileUpload() {
       // Vérifier le nombre maximum
       if (files.length + fileArray.length > MAX_FILES) {
         toast({
-          title: 'Erreur',
-          description: `Maximum ${MAX_FILES} fichiers autorisés`,
+          title: t('common.error'),
+          description: t('library.maxFilesAllowed', { max: String(MAX_FILES) }),
           variant: 'destructive',
         });
         return;
@@ -77,7 +79,7 @@ export function useFileUpload() {
           });
         } else {
           toast({
-            title: 'Erreur',
+            title: t('common.error'),
             description: validation.error,
             variant: 'destructive',
           });
@@ -86,7 +88,7 @@ export function useFileUpload() {
 
       setFiles((prev) => [...prev, ...validFiles]);
     },
-    [files.length, validateFile, toast]
+    [files.length, validateFile, toast, t]
   );
 
   const removeFile = useCallback((id: string) => {
@@ -103,8 +105,8 @@ export function useFileUpload() {
   const uploadFiles = useCallback(async (): Promise<{ success: boolean }> => {
     if (files.length === 0) {
       toast({
-        title: 'Erreur',
-        description: 'Aucun fichier à uploader',
+        title: t('common.error'),
+        description: t('library.noFilesToUpload'),
         variant: 'destructive',
       });
       return { success: false };
@@ -162,12 +164,12 @@ export function useFileUpload() {
               fileMapRef.current.delete(file.id);
               resolve({ success: true });
             } else {
-              reject(new Error('Erreur lors de l\'upload'));
+              reject(new Error(t('library.uploadError')));
             }
           };
 
           xhr.onerror = () => {
-            reject(new Error('Erreur réseau lors de l\'upload'));
+            reject(new Error(t('library.uploadNetworkError')));
           };
 
           xhr.open('POST', '/api/library/upload');
@@ -176,32 +178,34 @@ export function useFileUpload() {
 
         try {
           await uploadPromise;
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
           setFiles((prev) =>
             prev.map((f) =>
               f.id === file.id
-                ? { ...f, status: 'error', error: error.message }
+                ? { ...f, status: 'error', error: message }
                 : f
             )
           );
         }
       }
 
-      toast({ title: 'Succès', description: 'Fichiers uploadés avec succès' });
+      toast({ title: t('common.success'), description: t('library.filesUploadedSuccess') });
       router.refresh();
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       logger.error('Error uploading files', { error });
       toast({
-        title: 'Erreur',
-        description: error.message || 'Erreur lors de l\'upload',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
       return { success: false };
     } finally {
       setIsUploading(false);
     }
-  }, [files, toast, router]);
+  }, [files, toast, router, t]);
 
   const clearFiles = useCallback(() => {
     files.forEach((file) => {

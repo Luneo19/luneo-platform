@@ -42,7 +42,8 @@ export function useARUpload() {
       file: File,
       name: string,
       type: string,
-      onProgress?: (progress: number) => void
+      onProgress?: (progress: number) => void,
+      projectId?: string
     ): Promise<{ success: boolean; error?: string; modelId?: string }> => {
       const validation = validateFile(file);
       if (!validation.valid) {
@@ -62,6 +63,7 @@ export function useARUpload() {
         formData.append('file', file);
         formData.append('name', name);
         formData.append('type', type);
+        if (projectId) formData.append('projectId', projectId);
 
         // Update progress manually since axios doesn't support upload progress easily
         // For now, we'll simulate progress updates
@@ -79,11 +81,8 @@ export function useARUpload() {
         }, 200);
 
         try {
-          const data = await api.post<{ data?: { model?: { id?: string } } }>('/api/v1/ar-studio/models', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
+          // FormData: do not set Content-Type - axios sets multipart/form-data with boundary
+          const data = await api.post<{ success?: boolean; data?: { model?: { id?: string } } }>('/api/v1/ar-studio/models', formData);
 
           clearInterval(progressInterval);
           setUploadProgress((prev) =>

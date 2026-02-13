@@ -43,6 +43,7 @@ export class CommissionService {
     FREE: 15,          // 15% - Plan gratuit
     STARTER: 12,       // 12% - Plan de démarrage
     PROFESSIONAL: 10,  // 10% - Plan professionnel
+    BUSINESS: 7,       // 7% - Plan business (from plan-config.ts)
     ENTERPRISE: 5,     // 5% - Enterprise (grands comptes, négociable)
   };
 

@@ -24,7 +24,7 @@ export interface PrintReadyResult {
   dpi: number;
   colorMode: string;
   fileSize: number;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 export class PrintReadyGenerator {
@@ -37,7 +37,7 @@ export class PrintReadyGenerator {
   }
 
   async generatePNG(
-    _designData: any,
+    _designData: Record<string, unknown>,
     _options: { width: number; height: number; dpi: number } = { width: 800, height: 600, dpi: 300 }
   ): Promise<{ success: boolean; imageData?: Buffer; fileSize?: number; error?: string }> {
     try {
@@ -59,7 +59,7 @@ export class PrintReadyGenerator {
   }
 
   async generateSVG(
-    _designData: any
+    _designData: Record<string, unknown>
   ): Promise<{ success: boolean; svgContent?: string; fileSize?: number; error?: string }> {
     try {
       // Create a simple placeholder SVG for now
@@ -268,7 +268,7 @@ export class PrintReadyGenerator {
     valid: boolean;
     errors: string[];
     warnings: string[];
-    info: any;
+    info: Record<string, unknown> | null;
   }> {
     const errors: string[] = [];
     const warnings: string[] = [];

@@ -1,6 +1,7 @@
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RequestWithUser } from '@/common/types/user.types';
 import { FeatureFlagsService } from './feature-flags.service';
 
 @ApiTags('feature-flags')
@@ -13,7 +14,7 @@ export class FeatureFlagsController {
   @Get()
   @ApiOperation({ summary: 'Get feature flags for the authenticated brand' })
   @ApiResponse({ status: 200, description: 'Map of flag key to enabled' })
-  async getFlags(@Request() req: any) {
+  async getFlags(@Request() req: RequestWithUser) {
     const brandId = req.user?.brandId ?? null;
     const flags = await this.featureFlagsService.getFlagsForBrand(brandId);
     return {

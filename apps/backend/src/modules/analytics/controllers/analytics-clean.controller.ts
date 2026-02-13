@@ -16,7 +16,8 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsCleanService } from '../services/analytics-clean.service';
-import { TrackEventDto, TrackEventsBatchDto, EventType } from '../dto/track-event.dto';
+import { TrackEventDto, EventType } from '../dto/track-event.dto';
+import { TrackEventRequestDto } from '../dto/track-event-request.dto';
 import { AnalyticsQueryDto } from '../dto/analytics-query.dto';
 import { CurrentUser } from '@/common/types/user.types';
 
@@ -39,6 +40,7 @@ function normalizeEventType(dto: TrackEventDto): EventType {
  */
 @ApiTags('analytics')
 @Controller('analytics-clean')
+@UseGuards(JwtAuthGuard)
 export class AnalyticsCleanController {
   constructor(private readonly analyticsService: AnalyticsCleanService) {}
 
@@ -50,17 +52,17 @@ export class AnalyticsCleanController {
   @ApiResponse({ status: 201, description: 'Event(s) tracked successfully' })
   async trackEvent(
     @Request() req: Express.Request & { user?: CurrentUser },
-    @Body() body: any,
+    @Body() body: TrackEventRequestDto,
   ) {
-    const brandId = (req as any).user?.brandId || 'anonymous';
-    const userId = (req as any).user?.id || 'anonymous';
+    const brandId = req.user?.brandId || 'anonymous';
+    const userId = req.user?.id || 'anonymous';
 
     // Support both formats:
     // 1. { events: [...] } - batch from frontend AnalyticsService.flush()
     // 2. { eventType, ... } - single event
     const events: TrackEventDto[] = Array.isArray(body?.events)
       ? body.events
-      : [body];
+      : [body as unknown as TrackEventDto];
 
     for (const event of events) {
       const normalized: TrackEventDto = {
@@ -83,36 +85,40 @@ export class AnalyticsCleanController {
   }
 
   @Get('metrics')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get basic analytics metrics' })
   @ApiResponse({ status: 200, description: 'Metrics retrieved successfully' })
   async getMetrics(
     @Request() req: Express.Request & { user: CurrentUser },
     @Query() query: AnalyticsQueryDto,
   ) {
-    return this.analyticsService.getMetrics(req.user.brandId, query);
+    return this.analyticsService.getMetrics(req.user.brandId ?? '', query);
   }
 
   @Get('time-series')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get time series data' })
   @ApiResponse({ status: 200, description: 'Time series data retrieved' })
   async getTimeSeries(
     @Request() req: Express.Request & { user: CurrentUser },
     @Query() query: AnalyticsQueryDto,
   ) {
-    return this.analyticsService.getTimeSeries(req.user.brandId, query);
+    return this.analyticsService.getTimeSeries(req.user.brandId ?? '', query);
   }
 
   @Get('top-events')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get top events by count' })
   @ApiResponse({ status: 200, description: 'Top events retrieved' })
   async getTopEvents(
     @Request() req: Express.Request & { user: CurrentUser },
     @Query() query: AnalyticsQueryDto,
   ) {
-    return this.analyticsService.getTopEvents(req.user.brandId, query, 10);
+    return this.analyticsService.getTopEvents(req.user.brandId ?? '', query, 10);
   }
 
   @Get('export')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Export events to CSV' })
   @ApiResponse({ status: 200, description: 'CSV export generated' })
   async exportEvents(
@@ -121,7 +127,7 @@ export class AnalyticsCleanController {
     @Res() res: Response,
   ) {
     const csv = await this.analyticsService.exportEvents(
-      req.user.brandId,
+      req.user.brandId ?? '',
       query,
     );
 

@@ -150,7 +150,7 @@ export class IntegrationService {
         brandId: request.brandId,
         shopDomain: request.shopDomain,
       });
-      const raw = await api.post<any>('/api/v1/ecommerce/integrations', {
+      const raw = await api.post<RawIntegrationRecord>('/api/v1/ecommerce/integrations', {
         platform: 'shopify',
         brandId: request.brandId,
         shopDomain: request.shopDomain,
@@ -175,13 +175,14 @@ export class IntegrationService {
     try {
       logger.info('Syncing Shopify', { integrationId, options });
       const results: SyncResult[] = [];
+      type SyncApiResponse = { success?: boolean; itemsProcessed?: number; itemsFailed?: number; errors?: string[]; duration?: number };
       if (options.products !== false) {
-        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/products`, options);
-        if (r) results.push(r);
+        const r = await api.post<SyncApiResponse>(`/api/v1/ecommerce/integrations/${integrationId}/sync/products`, options);
+        if (r) results.push({ success: r.success ?? true, itemsProcessed: r.itemsProcessed ?? 0, itemsFailed: r.itemsFailed ?? 0, errors: r.errors, duration: r.duration ?? 0 });
       }
       if (options.orders !== false) {
-        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/orders`, options);
-        if (r) results.push(r);
+        const r = await api.post<SyncApiResponse>(`/api/v1/ecommerce/integrations/${integrationId}/sync/orders`, options);
+        if (r) results.push({ success: r.success ?? true, itemsProcessed: r.itemsProcessed ?? 0, itemsFailed: r.itemsFailed ?? 0, errors: r.errors, duration: r.duration ?? 0 });
       }
       const combined: SyncResult = {
         success: results.every((x) => x.success),
@@ -213,7 +214,7 @@ export class IntegrationService {
         brandId: request.brandId,
         shopDomain: request.shopDomain,
       });
-      const raw = await api.post<any>('/api/v1/ecommerce/integrations', {
+      const raw = await api.post<RawIntegrationRecord>('/api/v1/ecommerce/integrations', {
         platform: 'woocommerce',
         brandId: request.brandId,
         shopDomain: request.shopDomain,
@@ -222,7 +223,7 @@ export class IntegrationService {
       });
       cacheService.delete(`integrations:${request.brandId}`);
       logger.info('WooCommerce integration created', { integrationId: raw?.id, brandId: request.brandId });
-      return this.mapIntegration(raw);
+      return this.mapIntegration(raw as RawIntegrationRecord);
     } catch (error: unknown) {
       logger.error('Error creating WooCommerce integration', { error, request });
       throw error;
@@ -239,13 +240,14 @@ export class IntegrationService {
     try {
       logger.info('Syncing WooCommerce', { integrationId, options });
       const results: SyncResult[] = [];
+      type SyncApiResponse = { success?: boolean; itemsProcessed?: number; itemsFailed?: number; errors?: string[]; duration?: number };
       if (options.products !== false) {
-        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/products`, options);
-        if (r) results.push(r);
+        const r = await api.post<SyncApiResponse>(`/api/v1/ecommerce/integrations/${integrationId}/sync/products`, options);
+        if (r) results.push({ success: r.success ?? true, itemsProcessed: r.itemsProcessed ?? 0, itemsFailed: r.itemsFailed ?? 0, errors: r.errors, duration: r.duration ?? 0 });
       }
       if (options.orders !== false) {
-        const r = await api.post<any>(`/api/v1/ecommerce/integrations/${integrationId}/sync/orders`, options);
-        if (r) results.push(r);
+        const r = await api.post<SyncApiResponse>(`/api/v1/ecommerce/integrations/${integrationId}/sync/orders`, options);
+        if (r) results.push({ success: r.success ?? true, itemsProcessed: r.itemsProcessed ?? 0, itemsFailed: r.itemsFailed ?? 0, errors: r.errors, duration: r.duration ?? 0 });
       }
       const combined: SyncResult = {
         success: results.every((x) => x.success),

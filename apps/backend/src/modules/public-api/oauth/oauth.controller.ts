@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Query, UseGuards, HttpStatus, HttpCode, Re
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { OAuthService } from './oauth.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RequestWithUser } from '@/common/types/user.types';
 
 /**
  * OAuth Controller
@@ -20,7 +21,7 @@ export class OAuthController {
   @ApiQuery({ name: 'redirect_uri', description: 'Redirect URI after authorization' })
   @ApiQuery({ name: 'scopes', description: 'Requested scopes (comma-separated)', required: false })
   async authorize(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Query('redirect_uri') redirectUri: string,
     @Query('scopes') scopes?: string,
   ) {
@@ -62,7 +63,7 @@ export class OAuthController {
   @Get('config')
   @ApiOperation({ summary: 'Get OAuth client configuration' })
   @ApiResponse({ status: 200, description: 'Client configuration retrieved successfully' })
-  async getConfig(@Request() req: any) {
+  async getConfig(@Request() req: RequestWithUser) {
     const brandId = this.getBrandIdFromRequest(req);
     return this.oauthService.getClientConfig(brandId);
   }
@@ -80,7 +81,7 @@ export class OAuthController {
    * API-04: Extrait brandId de l'utilisateur authentifié via JWT
    * L'utilisateur doit être associé à une marque
    */
-  private getBrandIdFromRequest(req: any): string {
+  private getBrandIdFromRequest(req: RequestWithUser): string {
     const user = req.user;
     if (!user?.brandId) {
       throw new BadRequestException('User is not associated with a brand');

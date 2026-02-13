@@ -75,7 +75,7 @@ export class AntiFraudeService {
       const velocityCheck = await this.checkVelocity(check);
       if (!velocityCheck.passed) {
         riskScore += 30;
-        reasons.push(velocityCheck.reason);
+        if (velocityCheck.reason) reasons.push(velocityCheck.reason);
         checks.velocity = true;
       }
     }
@@ -85,7 +85,7 @@ export class AntiFraudeService {
       const deviceCheck = await this.checkDevice(check);
       if (!deviceCheck.passed) {
         riskScore += 20;
-        reasons.push(deviceCheck.reason);
+        if (deviceCheck.reason) reasons.push(deviceCheck.reason);
         checks.device = true;
       }
     }
@@ -95,7 +95,7 @@ export class AntiFraudeService {
       const emailCheck = this.checkEmail(check.email);
       if (!emailCheck.passed) {
         riskScore += 25;
-        reasons.push(emailCheck.reason);
+        if (emailCheck.reason) reasons.push(emailCheck.reason);
         checks.email = true;
       }
     }
@@ -105,7 +105,7 @@ export class AntiFraudeService {
       const ipCheck = await this.checkIP(check.ipAddress);
       if (!ipCheck.passed) {
         riskScore += 15;
-        reasons.push(ipCheck.reason);
+        if (ipCheck.reason) reasons.push(ipCheck.reason);
         checks.ip = true;
       }
     }
@@ -115,7 +115,7 @@ export class AntiFraudeService {
       const valueCheck = this.checkOrderValue(check.orderValue);
       if (!valueCheck.passed) {
         riskScore += 10;
-        reasons.push(valueCheck.reason);
+        if (valueCheck.reason) reasons.push(valueCheck.reason);
         checks.value = true;
       }
     }

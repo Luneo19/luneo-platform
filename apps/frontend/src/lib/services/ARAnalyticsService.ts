@@ -29,7 +29,7 @@ export interface ARInteraction {
   id: string;
   sessionId: string;
   type: 'session_start' | 'session_end' | 'model_loaded' | 'model_error' | 'placement_success' | 'placement_failed' | 'screenshot' | 'share';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -63,7 +63,7 @@ export class ARAnalyticsService {
     productId: string;
     customizationId?: string;
     userId?: string;
-    deviceInfo?: any;
+    deviceInfo?: Record<string, unknown>;
   }): Promise<ARSession> {
     const sessionId = `ar-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const session: ARSession = {
@@ -94,7 +94,7 @@ export class ARAnalyticsService {
   async trackInteraction(data: {
     sessionId: string;
     type: ARInteraction['type'];
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }): Promise<void> {
     const interaction: ARInteraction = {
       id: `interaction-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,

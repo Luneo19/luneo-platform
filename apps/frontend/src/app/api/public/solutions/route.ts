@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { cacheService, cacheTTL } from '@/lib/cache/redis';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -50,8 +50,8 @@ interface SolutionData {
   integrations: string[];
 }
 
-// Fallback solutions data
-const FALLBACK_SOLUTIONS: Record<string, SolutionData> = {
+// Static CMS content for solutions pages (served when backend is unavailable)
+const STATIC_SOLUTIONS: Record<string, SolutionData> = {
   customizer: {
     id: 'customizer',
     name: 'Customizer 2D',
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
     // Vérifier le cache
     const cached = await cacheService.get(cacheKey);
     if (cached) {
-      logger.info('Solutions data served from cache', { solutionId });
+      serverLogger.info('Solutions data served from cache', { solutionId });
       const response = NextResponse.json({ success: true, data: cached });
       response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
       response.headers.set('X-Cache', 'HIT');
@@ -164,19 +164,19 @@ export async function GET(request: NextRequest) {
       const backendResponse = await fetch(url.toString());
 
       if (!backendResponse.ok) {
-        logger.error('Error fetching solutions from backend', { error: backendResponse.status, solutionId });
+        serverLogger.error('Error fetching solutions from backend', { error: backendResponse.status, solutionId });
       } else {
         const result = await backendResponse.json();
         data = result.data || null;
       }
     } catch (error) {
-      logger.error('Error fetching solutions from backend', { error, solutionId });
+      serverLogger.error('Error fetching solutions from backend', { error, solutionId });
     }
 
     // Fallback aux données statiques si le backend échoue
     if (!data) {
       if (solutionId) {
-        data = FALLBACK_SOLUTIONS[solutionId] || null;
+        data = STATIC_SOLUTIONS[solutionId] || null;
         if (!data) {
           return NextResponse.json(
             { success: false, error: 'Solution not found' },
@@ -184,9 +184,9 @@ export async function GET(request: NextRequest) {
           );
         }
       } else {
-        data = Object.values(FALLBACK_SOLUTIONS);
+        data = Object.values(STATIC_SOLUTIONS);
       }
-      logger.info('Solutions using fallback data', { solutionId });
+      serverLogger.info('Solutions using static CMS content', { solutionId });
     }
 
     // Mettre en cache

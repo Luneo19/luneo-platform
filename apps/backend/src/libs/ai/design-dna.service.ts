@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { createHash } from 'crypto';
 
@@ -6,7 +7,7 @@ export interface DesignDNAData {
   designId: string;
   story?: string;
   tags?: string[];
-  parameters?: any; // Paramètres retenus (ce qui a été cliqué)
+  parameters?: Record<string, unknown>; // Paramètres retenus (ce qui a été cliqué)
   conversionData?: {
     clicks?: number;
     timeSpent?: number;
@@ -29,7 +30,7 @@ export class DesignDNAService {
   /**
    * Crée ou met à jour le Design DNA
    */
-  async saveDNA(data: DesignDNAData): Promise<any> {
+  async saveDNA(data: DesignDNAData): Promise<unknown> {
     try {
       const existing = await this.prisma.designDNA.findUnique({
         where: { designId: data.designId },
@@ -42,9 +43,9 @@ export class DesignDNAService {
           data: {
             story: data.story,
             tags: data.tags || [],
-            parameters: data.parameters || {},
-            conversionData: data.conversionData || {},
-            productionData: data.productionData || {},
+            parameters: (data.parameters || {}) as Prisma.InputJsonValue,
+            conversionData: (data.conversionData || {}) as Prisma.InputJsonValue,
+            productionData: (data.productionData || {}) as Prisma.InputJsonValue,
           },
         });
       } else {
@@ -54,9 +55,9 @@ export class DesignDNAService {
             designId: data.designId,
             story: data.story,
             tags: data.tags || [],
-            parameters: data.parameters || {},
-            conversionData: data.conversionData || {},
-            productionData: data.productionData || {},
+            parameters: (data.parameters || {}) as Prisma.InputJsonValue,
+            conversionData: (data.conversionData || {}) as Prisma.InputJsonValue,
+            productionData: (data.productionData || {}) as Prisma.InputJsonValue,
           },
         });
       }
@@ -69,7 +70,7 @@ export class DesignDNAService {
   /**
    * Récupère le Design DNA
    */
-  async getDNA(designId: string): Promise<any | null> {
+  async getDNA(designId: string): Promise<unknown> {
     return this.prisma.designDNA.findUnique({
       where: { designId },
     });
@@ -78,8 +79,8 @@ export class DesignDNAService {
   /**
    * Recherche des designs similaires par tags/paramètres
    */
-  async findSimilarDesigns(designId: string, limit: number = 10): Promise<any[]> {
-    const dna = await this.getDNA(designId);
+  async findSimilarDesigns(designId: string, limit: number = 10): Promise<unknown[]> {
+    const dna = await this.getDNA(designId) as { tags?: string[] } | null;
     if (!dna) {
       return [];
     }

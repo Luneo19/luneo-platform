@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +54,7 @@ function downloadCSV(rows: Record<string, unknown>[], filename: string) {
 }
 
 function TryOnAnalyticsContent() {
+  const { t } = useI18n();
   const [period, setPeriod] = useState<Period>(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ function TryOnAnalyticsContent() {
           categoryBreakdown: d.categoryBreakdown ?? [],
         });
       })
-      .catch(() => setError('Impossible de charger les analytics try-on'))
+      .catch(() => setError(t('analytics.errorLoadTryOn')))
       .finally(() => setLoading(false));
   }, [period]);
 
@@ -95,7 +97,7 @@ function TryOnAnalyticsContent() {
       <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center">
         <p className="text-red-400">{error}</p>
         <Button variant="outline" className="mt-4 border-gray-600" onClick={() => setError(null)}>
-          Réessayer
+          {t('analytics.retry')}
         </Button>
       </div>
     );
@@ -145,8 +147,8 @@ function TryOnAnalyticsContent() {
           <div className="flex items-center gap-2">
             <Camera className="w-8 h-8 text-cyan-400" />
             <div>
-              <h1 className="text-2xl font-bold text-white">Analytics Virtual Try-On</h1>
-              <p className="text-sm text-gray-400">Sessions AR et conversions</p>
+              <h1 className="text-2xl font-bold text-white">{t('analytics.tryOnPageTitle')}</h1>
+              <p className="text-sm text-gray-400">{t('analytics.tryOnPageSubtitle')}</p>
             </div>
           </div>
         </div>
@@ -164,7 +166,7 @@ function TryOnAnalyticsContent() {
           ))}
           <Button variant="outline" size="sm" className="border-gray-600" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            {t('analytics.exportCsv')}
           </Button>
         </div>
       </div>
@@ -172,25 +174,25 @@ function TryOnAnalyticsContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Total sessions</p>
+            <p className="text-sm text-gray-400">{t('analytics.totalSessions')}</p>
             <p className="text-2xl font-bold text-white">{d.totalSessions}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Produits essayés</p>
+            <p className="text-sm text-gray-400">{t('analytics.productsTried')}</p>
             <p className="text-2xl font-bold text-white">{d.totalProductsTried}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Captures d’écran</p>
+            <p className="text-sm text-gray-400">{t('analytics.screenshots')}</p>
             <p className="text-2xl font-bold text-white">{d.totalScreenshots}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-400">Taux de conversion</p>
+            <p className="text-sm text-gray-400">{t('analytics.conversionRate')}</p>
             <p className="text-2xl font-bold text-white">{d.conversionRate}%</p>
           </CardContent>
         </Card>
@@ -199,11 +201,11 @@ function TryOnAnalyticsContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Sessions dans le temps</CardTitle>
+            <CardTitle className="text-white">{t('analytics.sessionsOverTime')}</CardTitle>
           </CardHeader>
           <CardContent>
             {d.sessionsOverTime.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune session sur la période</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noSessionData')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={d.sessionsOverTime}>
@@ -219,11 +221,11 @@ function TryOnAnalyticsContent() {
         </Card>
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Répartition par catégorie</CardTitle>
+            <CardTitle className="text-white">{t('analytics.byCategory')}</CardTitle>
           </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Aucune donnée</p>
+              <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noDataAvailable')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -250,17 +252,17 @@ function TryOnAnalyticsContent() {
 
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Produits les plus essayés</CardTitle>
+          <CardTitle className="text-white">{t('analytics.topTried')}</CardTitle>
         </CardHeader>
         <CardContent>
           {d.topProducts.length === 0 ? (
-            <p className="text-gray-400 text-sm py-8 text-center">Aucun produit pour l’instant</p>
+            <p className="text-gray-400 text-sm py-8 text-center">{t('analytics.noProductsYet')}</p>
           ) : (
             <ul className="space-y-2">
               {d.topProducts.map((p, i) => (
                 <li key={p.productId || i} className="flex justify-between text-sm">
                   <span className="text-white">{p.productName}</span>
-                  <span className="text-gray-400">{p.tryCount} essais</span>
+                  <span className="text-gray-400">{p.tryCount}</span>
                 </li>
               ))}
             </ul>

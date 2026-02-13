@@ -13,6 +13,8 @@ import {
   Trash2,
   ArrowLeft,
 } from 'lucide-react';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -76,18 +78,20 @@ export function MarketplaceSellerPageClient() {
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const brandId = typeof window !== 'undefined' ? localStorage.getItem('brandId') : null;
-      const headers: Record<string, string> = {};
-      if (brandId) headers['X-Brand-Id'] = brandId;
       const res = await fetch('/api/marketplace/seller/dashboard', {
         credentials: 'include',
-        headers,
+        headers: typeof window !== 'undefined' && localStorage.getItem('brandId')
+          ? { 'X-Brand-Id': localStorage.getItem('brandId')! }
+          : {},
       });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { message?: string }).message || `API error: ${res.status}`);
+      }
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to load');
       setData(json);
     } catch (e) {
-      logger.error('Seller dashboard error', e);
+      logger.error('Seller dashboard error', { error: e });
       setData(null);
     } finally {
       setLoading(false);
@@ -123,37 +127,52 @@ export function MarketplaceSellerPageClient() {
     }
   };
 
+  const fallback = (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <UpgradePrompt
+        requiredPlan="business"
+        feature="Marketplace Seller"
+        description="Le dashboard vendeur Marketplace est disponible à partir du plan Business."
+      />
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="space-y-6 p-6">
-        <div className="h-8 w-48 rounded bg-white/10 animate-pulse" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="border-white/10">
-              <CardContent className="pt-6">
-                <div className="h-6 w-20 rounded bg-white/10 animate-pulse" />
-                <div className="h-8 w-16 mt-2 rounded bg-white/10 animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
+      <PlanGate minimumPlan="business" showUpgradePrompt fallback={fallback}>
+        <div className="space-y-6 p-6">
+          <div className="h-8 w-48 rounded bg-white/10 animate-pulse" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="border-white/10">
+                <CardContent className="pt-6">
+                  <div className="h-6 w-20 rounded bg-white/10 animate-pulse" />
+                  <div className="h-8 w-16 mt-2 rounded bg-white/10 animate-pulse" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+      </PlanGate>
     );
   }
 
   if (!data) {
     return (
-      <div className="p-6">
-        <Card className="border-white/10 bg-white/5">
-          <CardContent className="py-12 text-center text-white/60">
-            Failed to load seller dashboard. Make sure you have a brand selected.
-          </CardContent>
-        </Card>
-      </div>
+      <PlanGate minimumPlan="business" showUpgradePrompt fallback={fallback}>
+        <div className="p-6">
+          <Card className="border-white/10 bg-white/5">
+            <CardContent className="py-12 text-center text-white/60">
+              Failed to load seller dashboard. Make sure you have a brand selected.
+            </CardContent>
+          </Card>
+        </div>
+      </PlanGate>
     );
   }
 
   return (
+    <PlanGate minimumPlan="business" showUpgradePrompt fallback={fallback}>
     <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -324,5 +343,6 @@ export function MarketplaceSellerPageClient() {
         </DialogContent>
       </Dialog>
     </div>
+    </PlanGate>
   );
 }

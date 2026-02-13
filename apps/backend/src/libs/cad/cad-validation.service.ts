@@ -179,7 +179,7 @@ export class CADValidationService {
     if (setting.type === 'claw') {
       const minClawThickness =
         constraints?.minClawThickness || this.CONSTANTS.MIN_CLAW_THICKNESS;
-      const clawThickness = setting.parameters?.clawThickness || 0;
+      const clawThickness = Number((setting.parameters as Record<string, unknown>)?.clawThickness) || 0;
 
       if (clawThickness < minClawThickness) {
         errors.push({
@@ -409,7 +409,7 @@ export class CADValidationService {
   private estimateWeight(parameters: CADValidationRequest['parameters']): number {
     // Estimation basique basée sur volume et densité métal
     const metal = parameters.metal || 'gold';
-    const density = this.CONSTANTS.METAL_DENSITY[metal] || 19.32; // g/cm³
+    const density = (this.CONSTANTS.METAL_DENSITY as Record<string, number>)[metal] ?? 19.32; // g/cm³
 
     // Volume estimé (simplifié)
     // Pour un anneau: volume = π * (R² - r²) * h

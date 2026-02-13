@@ -27,6 +27,7 @@ import { Plus, Pencil, Trash2, Coins } from 'lucide-react';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 
 const API_BASE = '/api/v1/credits';
 
@@ -53,6 +54,7 @@ function formatPrice(priceCents: number): string {
 }
 
 function AdminCreditPacksContent() {
+  const { t } = useI18n();
   const [packs, setPacks] = useState<CreditPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
@@ -195,7 +197,7 @@ function AdminCreditPacksContent() {
   const formFields = (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="name" className="text-white/80">Name</Label>
+        <Label htmlFor="name" className="text-white/80">{t('admin.creditPacks.nameLabel')}</Label>
         <Input
           id="name"
           value={form.name}
@@ -205,7 +207,7 @@ function AdminCreditPacksContent() {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="credits" className="text-white/80">Credits</Label>
+        <Label htmlFor="credits" className="text-white/80">{t('admin.creditPacks.credits')}</Label>
         <Input
           id="credits"
           type="number"
@@ -216,7 +218,7 @@ function AdminCreditPacksContent() {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="priceCents" className="text-white/80">Price (cents)</Label>
+        <Label htmlFor="priceCents" className="text-white/80">{t('admin.creditPacks.priceCentsLabel')}</Label>
         <Input
           id="priceCents"
           type="number"
@@ -226,11 +228,11 @@ function AdminCreditPacksContent() {
           className="dash-input border-white/[0.08] bg-white/[0.04] text-white"
         />
         <p className="text-xs text-white/40">
-          Display: {formatPrice(form.priceCents)} EUR
+          {t('admin.creditPacks.displayPrice')}: {formatPrice(form.priceCents)} EUR
         </p>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="stripePriceId" className="text-white/80">Stripe Price ID</Label>
+        <Label htmlFor="stripePriceId" className="text-white/80">{t('admin.creditPacks.stripePriceIdLabel')}</Label>
         <Input
           id="stripePriceId"
           value={form.stripePriceId}
@@ -240,7 +242,7 @@ function AdminCreditPacksContent() {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="badge" className="text-white/80">Badge / Description</Label>
+        <Label htmlFor="badge" className="text-white/80">{t('admin.creditPacks.badgeLabel')}</Label>
         <Input
           id="badge"
           value={form.badge || form.description}
@@ -250,7 +252,7 @@ function AdminCreditPacksContent() {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="savings" className="text-white/80">Savings %</Label>
+        <Label htmlFor="savings" className="text-white/80">{t('admin.creditPacks.savingsLabel')}</Label>
         <Input
           id="savings"
           type="number"
@@ -266,7 +268,7 @@ function AdminCreditPacksContent() {
           checked={form.isActive}
           onCheckedChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
         />
-        <Label htmlFor="isActive" className="text-white/80">Active</Label>
+        <Label htmlFor="isActive" className="text-white/80">{t('admin.creditPacks.active')}</Label>
       </div>
       <div className="flex items-center gap-2">
         <Switch
@@ -274,7 +276,7 @@ function AdminCreditPacksContent() {
           checked={form.isFeatured}
           onCheckedChange={(v) => setForm((f) => ({ ...f, isFeatured: v }))}
         />
-        <Label htmlFor="isFeatured" className="text-white/80">Featured</Label>
+        <Label htmlFor="isFeatured" className="text-white/80">{t('admin.creditPacks.featuredLabel')}</Label>
       </div>
     </>
   );
@@ -285,33 +287,33 @@ function AdminCreditPacksContent() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2 text-white">
             <Coins className="h-6 w-6" />
-            Credit Packs
+            {t('admin.creditPacks.title')}
           </h1>
           <p className="text-white/60">
-            Manage credit packs available for purchase. Prices in EUR (stored as cents).
+            {t('admin.creditPacks.subtitle')}
           </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreate} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
               <Plus className="h-4 w-4 mr-2" />
-              Create Pack
+              {t('admin.creditPacks.addNewPack')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md dash-card border-white/[0.06] bg-[#12121a] text-white">
             <DialogHeader>
-              <DialogTitle className="text-white">Create credit pack</DialogTitle>
+              <DialogTitle className="text-white">{t('admin.creditPacks.createPackTitle')}</DialogTitle>
               <DialogDescription className="text-white/60">
-                Add a new pack. Link a Stripe Price ID for checkout.
+                {t('admin.creditPacks.createPackDescription')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">{formFields}</div>
             <DialogFooter>
               <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setCreateOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleCreate} disabled={saving || !form.name} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
-                {saving ? 'Creating…' : 'Create'}
+                {saving ? t('admin.creditPacks.creating') : t('common.create')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -320,29 +322,29 @@ function AdminCreditPacksContent() {
 
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white">Packs</CardTitle>
-          <CardDescription className="text-white/60">All credit packs. Toggle active to hide from store.</CardDescription>
+          <CardTitle className="text-white">{t('admin.creditPacks.packs')}</CardTitle>
+          <CardDescription className="text-white/60">{t('admin.creditPacks.allPacksDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-white/40">
-              Loading…
+              {t('common.loading')}
             </div>
           ) : packs.length === 0 ? (
             <div className="text-center py-12 text-white/40">
-              No packs yet. Create one to get started.
+              {t('admin.creditPacks.noPacksYet')}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-white/[0.02]">
-                  <TableHead className="text-white/60 border-white/[0.06]">Name</TableHead>
-                  <TableHead className="text-white/60 border-white/[0.06]">Credits</TableHead>
-                  <TableHead className="text-white/60 border-white/[0.06]">Price (EUR)</TableHead>
-                  <TableHead className="text-white/60 border-white/[0.06]">Stripe Price ID</TableHead>
-                  <TableHead className="text-white/60 border-white/[0.06]">Badge / Savings</TableHead>
-                  <TableHead className="text-white/60 border-white/[0.06]">Active</TableHead>
-                  <TableHead className="w-[120px] text-white/60 border-white/[0.06]">Actions</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">{t('admin.creditPacks.name')}</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">{t('admin.creditPacks.credits')}</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">{t('admin.creditPacks.price')} (EUR)</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">{t('admin.creditPacks.stripePriceIdLabel')}</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">{t('admin.creditPacks.badgeLabel')}</TableHead>
+                  <TableHead className="text-white/60 border-white/[0.06]">{t('admin.creditPacks.active')}</TableHead>
+                  <TableHead className="w-[120px] text-white/60 border-white/[0.06]">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -351,7 +353,7 @@ function AdminCreditPacksContent() {
                     <TableCell className="font-medium text-white border-white/[0.06]">
                       {pack.name}
                       {pack.isFeatured && (
-                        <span className="dash-badge dash-badge-enterprise ml-2">Featured</span>
+                        <span className="dash-badge dash-badge-enterprise ml-2">{t('admin.creditPacks.featured')}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-white border-white/[0.06]">{pack.credits}</TableCell>
@@ -363,7 +365,7 @@ function AdminCreditPacksContent() {
                       {pack.badge && <span className="dash-badge dash-badge-pro">{pack.badge}</span>}
                       {pack.savings != null && pack.savings > 0 && (
                         <span className="text-white/60 text-sm ml-1">
-                          {pack.savings}% off
+                          {t('admin.creditPacks.percentOff', { value: pack.savings })}
                         </span>
                       )}
                       {!pack.badge && (pack.savings == null || pack.savings === 0) && <span className="text-white/40">—</span>}
@@ -381,7 +383,7 @@ function AdminCreditPacksContent() {
                           size="icon"
                           className="text-white/80 hover:bg-white/[0.04] hover:text-white"
                           onClick={() => openEdit(pack)}
-                          aria-label="Edit"
+                          aria-label={t('admin.creditPacks.edit')}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -390,7 +392,7 @@ function AdminCreditPacksContent() {
                           size="icon"
                           className="text-[#f87171] hover:bg-[#f87171]/10"
                           onClick={() => setDeleteId(pack.id)}
-                          aria-label="Delete"
+                          aria-label={t('admin.creditPacks.delete')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -407,18 +409,18 @@ function AdminCreditPacksContent() {
       <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
         <DialogContent className="max-w-md dash-card border-white/[0.06] bg-[#12121a] text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit credit pack</DialogTitle>
+            <DialogTitle className="text-white">{t('admin.creditPacks.editPackTitle')}</DialogTitle>
             <DialogDescription className="text-white/60">
-              Update name, price, Stripe Price ID, and visibility.
+              {t('admin.creditPacks.editPackDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">{formFields}</div>
           <DialogFooter>
             <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setEditId(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleUpdate} disabled={saving || !form.name} className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:opacity-90">
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? t('admin.creditPacks.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -427,22 +429,21 @@ function AdminCreditPacksContent() {
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent className="dash-card border-white/[0.06] bg-[#12121a] text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">Delete pack?</DialogTitle>
+            <DialogTitle className="text-white">{t('admin.creditPacks.deletePackTitle')}</DialogTitle>
             <DialogDescription className="text-white/60">
-              This will permanently remove this credit pack. Existing transactions will keep
-              the pack reference but the pack will no longer be listed.
+              {t('admin.creditPacks.deletePackDescription')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" className="border-white/[0.08] text-white hover:bg-white/[0.04]" onClick={() => setDeleteId(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               className="bg-[#f87171]/20 text-[#f87171] border border-[#f87171]/30 hover:bg-[#f87171]/30"
               onClick={handleDelete}
               disabled={saving}
             >
-              {saving ? 'Deleting…' : 'Delete'}
+              {saving ? t('admin.creditPacks.deleting') : t('admin.creditPacks.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

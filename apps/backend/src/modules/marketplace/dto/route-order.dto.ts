@@ -57,7 +57,7 @@ export class RouteOrderDto {
   quote: {
     priceCents: number;
     leadTime: number;
-    breakdown?: any;
+    breakdown?: Record<string, unknown>;
   };
 }
 

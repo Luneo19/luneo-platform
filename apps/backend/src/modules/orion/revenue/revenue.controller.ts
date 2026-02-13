@@ -13,8 +13,9 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 
-@Controller('api/v1/orion')
+@Controller('orion')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error NestJS decorator typing
 @Roles(UserRole.PLATFORM_ADMIN)
 export class RevenueController {
   constructor(private readonly revenueService: RevenueService) {}
@@ -39,6 +40,11 @@ export class RevenueController {
   @Get('experiments')
   getExperiments() {
     return this.revenueService.getExperiments();
+  }
+
+  @Get('experiments/:id')
+  getExperiment(@Param('id') id: string) {
+    return this.revenueService.getExperiment(id);
   }
 
   @Post('experiments')
@@ -69,10 +75,10 @@ export class RevenueController {
       targetAudience?: Record<string, unknown>;
     },
   ) {
-    const data = {
+    const data: import('./revenue.service').UpdateExperimentDto = {
       ...body,
-      ...(body.startDate && { startDate: new Date(body.startDate) }),
-      ...(body.endDate && { endDate: new Date(body.endDate) }),
+      startDate: body.startDate != null ? (typeof body.startDate === 'string' ? new Date(body.startDate) : body.startDate) : undefined,
+      endDate: body.endDate != null ? (typeof body.endDate === 'string' ? new Date(body.endDate) : body.endDate) : undefined,
     };
     return this.revenueService.updateExperiment(id, data);
   }

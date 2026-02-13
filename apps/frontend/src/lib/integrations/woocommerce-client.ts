@@ -25,6 +25,11 @@ export interface WooCommerceProduct {
   }>;
 }
 
+export interface WooCommerceRawOrder {
+  id: number;
+  [key: string]: unknown;
+}
+
 /**
  * Vérifie les credentials WooCommerce
  */
@@ -54,7 +59,7 @@ export async function verifyWooCommerceCredentials(
       version: data.environment?.version || 'unknown',
       currency: data.settings?.currency || 'USD',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error verifying WooCommerce credentials', { error, shopDomain });
     throw error;
   }
@@ -88,7 +93,7 @@ export async function getWooCommerceProducts(
 
     const products = await response.json();
     return products || [];
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching WooCommerce products', { error, shopDomain });
     throw error;
   }
@@ -102,7 +107,7 @@ export async function getWooCommerceOrders(
   consumerKey: string,
   consumerSecret: string,
   limit: number = 50
-): Promise<any[]> {
+): Promise<WooCommerceRawOrder[]> {
   try {
     const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
 
@@ -122,9 +127,8 @@ export async function getWooCommerceOrders(
 
     const orders = await response.json();
     return orders || [];
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching WooCommerce orders', { error, shopDomain });
     throw error;
   }
 }
-

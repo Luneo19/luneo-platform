@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { RequestWithUser, RequestWithOptionalUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsService } from '../services/analytics.service';
@@ -75,12 +77,16 @@ export class AnalyticsController {
 
   @Post('web-vitals')
   @Public() // Web vitals are sent from all pages including unauthenticated ones
+  @Throttle({ default: { limit: 100, ttl: 60000 } })
   @ApiOperation({ summary: 'Record a web vital metric' })
   @ApiResponse({ status: 201, description: 'Web vital recorded successfully' })
-  async recordWebVital(@Body() dto: RecordWebVitalDto, @Request() req: any) {
+  async recordWebVital(@Body() dto: RecordWebVitalDto, @Request() req: RequestWithOptionalUser) {
     const userId = req?.user?.id || null;
     const brandId = req?.user?.brandId || null;
-    return this.analyticsService.recordWebVital(userId, brandId, dto);
+    return this.analyticsService.recordWebVital(userId, brandId, {
+      ...dto,
+      timestamp: dto.timestamp ?? Date.now(),
+    });
   }
 
   @Get('web-vitals')
@@ -90,10 +96,10 @@ export class AnalyticsController {
   @ApiQuery({ name: 'endDate', required: false, description: 'End date filter' })
   @ApiResponse({ status: 200, description: 'Web vitals retrieved successfully' })
   async getWebVitals(
+    @Request() req: RequestWithUser,
     @Query('name') name?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req?: any,
   ) {
     return this.analyticsService.getWebVitals(req.user.id, { name, startDate, endDate });
   }
@@ -213,9 +219,9 @@ export class AnalyticsController {
   async getDesignsAnalytics(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req?: { user?: { brandId?: string } },
+    @Request() req?: RequestWithOptionalUser,
   ) {
-    const brandId = req?.user?.brandId;
+    const brandId = req?.user?.brandId ?? undefined;
     return this.analyticsService.getDesignsAnalytics(brandId, startDate, endDate);
   }
 
@@ -227,9 +233,9 @@ export class AnalyticsController {
   async getOrdersAnalytics(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Request() req?: { user?: { brandId?: string } },
+    @Request() req?: RequestWithOptionalUser,
   ) {
-    const brandId = req?.user?.brandId;
+    const brandId = req?.user?.brandId ?? undefined;
     return this.analyticsService.getOrdersAnalytics(brandId, startDate, endDate);
   }
 }

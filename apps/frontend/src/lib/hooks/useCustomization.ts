@@ -9,6 +9,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { trpc } from '@/lib/trpc/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { validatePrompt, sanitizePrompt } from '@/lib/utils/customization';
 import type { CustomizationOptions } from '@/lib/utils/customization';
@@ -161,8 +162,8 @@ export function useCustomization(options: UseCustomizationOptions) {
         });
 
         logger.info('Customization generation started', { customizationId: result.id });
-      } catch (error: any) {
-        const errorMessage = error.message || 'Erreur lors de la génération';
+      } catch (error: unknown) {
+        const errorMessage = getErrorDisplayMessage(error);
         setState({
           status: 'error',
           customizationId: null,

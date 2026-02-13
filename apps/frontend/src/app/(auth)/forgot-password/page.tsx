@@ -1,8 +1,9 @@
 'use client';
 
 import React, { memo, useState, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import Link from 'next/link';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import {
   ArrowLeft,
@@ -16,10 +17,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getBackendUrl } from '@/lib/api/server-url';
+import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function ForgotPasswordPageContent() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -36,14 +38,13 @@ function ForgotPasswordPageContent() {
       setError('');
 
       if (!isValidEmail(email)) {
-        setError('Veuillez entrer une adresse email valide');
+        setError(t('auth.forgotPassword.errors.invalidEmail'));
         setLoading(false);
         return;
       }
 
       try {
-        const apiUrl = getBackendUrl();
-        const response = await fetch(`${apiUrl}/api/v1/auth/forgot-password`, {
+        const response = await fetch(`/api/v1/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email }),
@@ -52,41 +53,40 @@ function ForgotPasswordPageContent() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || 'Une erreur est survenue');
+          throw new Error(data.message || t('auth.forgotPassword.errors.generic'));
         }
 
         setSent(true);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+        setError(err instanceof Error ? err.message : t('auth.forgotPassword.errors.generic'));
       } finally {
         setLoading(false);
       }
     },
-    [email, isValidEmail],
+    [email, isValidEmail, t],
   );
 
   // Success state
   if (sent) {
     return (
-      <motion
+      <LazyMotionDiv
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
         className="w-full text-center"
       >
         <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-2xl mb-5">
-          <motion.div
+          <LazyMotionDiv
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           >
             <Send className="w-7 h-7 text-green-400" />
-          </motion.div>
+          </LazyMotionDiv>
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2 font-display">Email envoye !</h2>
+        <h2 className="text-2xl font-bold text-white mb-2 font-display">{t('auth.forgotPassword.successTitle')}</h2>
         <p className="text-slate-500 mb-8 leading-relaxed">
-          Verifiez votre boite mail <span className="font-medium text-white">{email}</span> pour
-          reinitialiser votre mot de passe.
+          {t('auth.forgotPassword.successMessage', { email })}
         </p>
         <Link href="/login">
           <Button
@@ -94,15 +94,15 @@ function ForgotPasswordPageContent() {
             className="border-white/[0.08] text-slate-300 hover:bg-white/[0.04] h-11 px-6"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour a la connexion
+            {t('auth.forgotPassword.backToLogin')}
           </Button>
         </Link>
-      </motion>
+      </LazyMotionDiv>
     );
   }
 
   return (
-    <motion
+    <LazyMotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -117,12 +117,12 @@ function ForgotPasswordPageContent() {
         </FadeIn>
         <SlideUp delay={0.2}>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display">
-            Mot de passe oublie ?
+            {t('auth.forgotPassword.title')}
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
           <p className="text-slate-500">
-            Entrez votre email et nous vous enverrons un lien de reinitialisation.
+            {t('auth.forgotPassword.subtitle')}
           </p>
         </FadeIn>
       </div>
@@ -141,7 +141,7 @@ function ForgotPasswordPageContent() {
         <SlideUp delay={0.4}>
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-slate-300">
-              Adresse email
+              {t('auth.forgotPassword.email')}
             </Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
@@ -150,7 +150,7 @@ function ForgotPasswordPageContent() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="votre@email.com"
+                placeholder={t('auth.forgotPassword.emailPlaceholder')}
                 className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                 required
                 disabled={loading}
@@ -171,12 +171,12 @@ function ForgotPasswordPageContent() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Envoi en cours...
+                {t('auth.forgotPassword.submitting')}
               </>
             ) : (
               <>
                 <Mail className="w-5 h-5 mr-2" />
-                Envoyer le lien
+                {t('auth.forgotPassword.submit')}
               </>
             )}
           </Button>
@@ -191,11 +191,11 @@ function ForgotPasswordPageContent() {
             className="inline-flex items-center text-sm text-slate-500 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour a la connexion
+            {t('auth.forgotPassword.backToLogin')}
           </Link>
         </div>
       </FadeIn>
-    </motion>
+    </LazyMotionDiv>
   );
 }
 

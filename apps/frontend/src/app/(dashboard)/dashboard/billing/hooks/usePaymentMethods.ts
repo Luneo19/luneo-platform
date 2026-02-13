@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import { api, endpoints } from '@/lib/api/client';
 import type { PaymentMethod } from '../types';
@@ -12,6 +13,7 @@ import type { PaymentMethod } from '../types';
 export function usePaymentMethods() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,10 +24,10 @@ export function usePaymentMethods() {
       const raw = data as { paymentMethods?: PaymentMethod[] };
       setPaymentMethods(raw.paymentMethods || []);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur lors de la récupération des méthodes de paiement';
+      const message = error instanceof Error ? error.message : t('billing.fetchPaymentMethodsError');
       logger.error('Error fetching payment methods', { error });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });
@@ -51,16 +53,16 @@ export function usePaymentMethods() {
 
       return { success: false };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur lors de l\'ajout de la méthode de paiement';
+      const message = error instanceof Error ? error.message : t('billing.addPaymentMethodError');
       logger.error('Error adding payment method', { error });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });
       return { success: false };
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const deletePaymentMethod = useCallback(
     async (paymentMethodId: string): Promise<{ success: boolean }> => {
@@ -69,15 +71,15 @@ export function usePaymentMethods() {
           params: { id: paymentMethodId },
         });
 
-        toast({ title: 'Succès', description: 'Méthode de paiement supprimée' });
+        toast({ title: t('common.success'), description: t('billing.paymentMethodDeleted') });
         router.refresh();
         await fetchPaymentMethods();
         return { success: true };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Erreur lors de la suppression de la méthode de paiement';
+        const message = error instanceof Error ? error.message : t('billing.deletePaymentMethodError');
         logger.error('Error deleting payment method', { error });
         toast({
-          title: 'Erreur',
+          title: t('common.error'),
           description: message,
           variant: 'destructive',
         });

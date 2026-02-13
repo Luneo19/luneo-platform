@@ -4,8 +4,9 @@
  * Respecte la Bible Luneo : pas de any, types stricts, logging professionnel
  */
 
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException, Optional } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { NotificationDispatcherService } from '@/modules/notifications/notification-dispatcher.service';
 import type { ARProject as PrismaARProject, ARProjectMember as PrismaARProjectMember, ARProjectComment as PrismaARProjectComment } from '@prisma/client';
 
 export interface ARProject {
@@ -120,7 +121,10 @@ function mapToARComment(c: PrismaARProjectComment): ARComment {
 export class ArCollaborationService {
   private readonly logger = new Logger(ArCollaborationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly notificationDispatcher?: NotificationDispatcherService,
+  ) {}
 
   /**
    * Liste tous les projets AR d'une marque
@@ -292,6 +296,131 @@ export class ArCollaborationService {
   }
 
   /**
+   * Liste les membres d'un projet avec détails utilisateur
+   */
+  async getProjectMembers(projectId: string, brandId: string, userId?: string): Promise<Array<ARProjectMember & { user?: { id: string; email?: string; firstName?: string; lastName?: string } }>> {
+    try {
+      this.logger.log(`Getting members for project: ${projectId}`);
+
+      const project = await this.prisma.aRProject.findFirst({
+        where: { id: projectId, brandId },
+        select: { id: true },
+      });
+
+      if (!project) {
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+
+      const members = await this.prisma.aRProjectMember.findMany({
+        where: { projectId },
+        include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+      });
+
+      return members.map((m) => ({
+        userId: m.userId,
+        role: m.role as 'owner' | 'editor' | 'viewer',
+        joinedAt: m.joinedAt,
+        user: m.user ? {
+          id: m.user.id,
+          email: m.user.email ?? undefined,
+          firstName: m.user.firstName ?? undefined,
+          lastName: m.user.lastName ?? undefined,
+        } : undefined,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to get project members: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Invite un membre par email (cherche l'utilisateur existant)
+   */
+  async inviteMemberByEmail(
+    projectId: string,
+    brandId: string,
+    userId: string,
+    data: { email: string; role: 'editor' | 'viewer' },
+  ): Promise<ARProject> {
+    try {
+      this.logger.log(`Inviting member by email to project: ${projectId}`);
+
+      const invitedUser = await this.prisma.user.findFirst({
+        where: { email: data.email },
+        select: { id: true },
+      });
+
+      if (!invitedUser) {
+        throw new BadRequestException('No user found with this email. The user must register first.');
+      }
+
+      return this.addMember(projectId, brandId, userId, { userId: invitedUser.id, role: data.role });
+    } catch (error) {
+      this.logger.error(`Failed to invite member: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Liste les activités d'un projet (commentaires + membres rejoints)
+   */
+  async getProjectActivities(projectId: string, brandId: string, userId?: string): Promise<Array<{ id: string; type: string; userId: string; content?: string; createdAt: Date; metadata?: Record<string, unknown> }>> {
+    try {
+      this.logger.log(`Getting activities for project: ${projectId}`);
+
+      const project = await this.prisma.aRProject.findFirst({
+        where: { id: projectId, brandId },
+        select: { id: true },
+      });
+
+      if (!project) {
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+
+      const [comments, members] = await Promise.all([
+        this.prisma.aRProjectComment.findMany({
+          where: { projectId },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: { id: true, userId: true, content: true, createdAt: true },
+        }),
+        this.prisma.aRProjectMember.findMany({
+          where: { projectId },
+          orderBy: { joinedAt: 'desc' },
+          take: 50,
+          select: { id: true, userId: true, role: true, joinedAt: true },
+        }),
+      ]);
+
+      const commentActivities = comments.map((c) => ({
+        id: c.id,
+        type: 'comment',
+        userId: c.userId,
+        content: c.content,
+        createdAt: c.createdAt,
+        metadata: {},
+      }));
+
+      const memberActivities = members.map((m) => ({
+        id: m.id,
+        type: 'member_joined',
+        userId: m.userId,
+        createdAt: m.joinedAt,
+        metadata: { role: m.role },
+      }));
+
+      const combined = [...commentActivities, ...memberActivities].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+
+      return combined.slice(0, 50);
+    } catch (error) {
+      this.logger.error(`Failed to get project activities: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
    * Ajoute un membre à un projet
    */
   async addMember(projectId: string, brandId: string, userId: string, newMember: { userId: string; role: 'editor' | 'viewer' }): Promise<ARProject> {
@@ -415,6 +544,14 @@ export class ArCollaborationService {
           content: data.content,
         },
       });
+
+      this.notificationDispatcher?.dispatchCommentAdded({
+        projectId,
+        commentId: comment.id,
+        brandId,
+        userId,
+        content: data.content,
+      }).catch((err) => this.logger.warn('Non-critical error dispatching comment added', err instanceof Error ? err.message : String(err)));
 
       return mapToARComment(comment);
     } catch (error) {

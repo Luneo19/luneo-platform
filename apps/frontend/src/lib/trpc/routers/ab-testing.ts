@@ -60,11 +60,12 @@ async function getVariantStats(
   if (variantIds.length === 0) return result;
 
   const statsRes = await api.get<{ variants?: Record<string, { visitors?: number; conversions?: number; revenue?: number }>; data?: Record<string, { visitors?: number; conversions?: number; revenue?: number }> }>(
-    `/api/v1/analytics/experiments/${experimentId}/variant-stats`,
+    `/api/v1/orion/experiments/${experimentId}/variant-stats`,
     { params: { variantIds: variantIds.join(',') } }
   ).catch(() => ({}));
 
-  const variantsData = statsRes?.variants ?? statsRes?.data ?? {};
+  const stats = statsRes as { variants?: Record<string, { visitors?: number; conversions?: number; revenue?: number }>; data?: Record<string, { visitors?: number; conversions?: number; revenue?: number }> };
+  const variantsData = stats?.variants ?? stats?.data ?? {};
 
   for (const variantId of variantIds) {
     const v = variantsData[variantId] ?? {};
@@ -174,18 +175,19 @@ export const abTestingRouter = router({
           where.status = input.status;
         }
 
-        const listRes = await api.get<{ experiments?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } }>('/api/v1/analytics/experiments', {
+        const listRes = await api.get<{ experiments?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } }>('/api/v1/orion/experiments', {
           params: { brandId: user.brandId, status: input.status, offset: input.offset, limit: input.limit },
         }).catch(() => ({ experiments: [], total: 0 }));
-        const experiments = listRes?.experiments ?? listRes?.data ?? [];
-        const total = listRes?.total ?? listRes?.pagination?.total ?? (Array.isArray(experiments) ? experiments.length : 0);
+        const list = listRes as { experiments?: unknown[]; data?: unknown[]; total?: number; pagination?: { total?: number } };
+        const experiments = list?.experiments ?? list?.data ?? [];
+        const total = list?.total ?? list?.pagination?.total ?? (Array.isArray(experiments) ? experiments.length : 0);
 
         // Transformer en format attendu avec stats réelles
         const experimentsWithStats = await Promise.all(
-          experiments.map(async (exp: any) => {
+          ((Array.isArray(experiments) ? experiments : []) as Record<string, unknown>[]).map(async (exp) => {
             const variants = (exp.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
             const variantIds = variants.map((v) => v.id);
-            const stats = await getVariantStats(exp.id, variantIds);
+            const stats = await getVariantStats(String(exp.id ?? ''), variantIds);
             const { winnerId, confidence } = getWinner(variants, stats);
 
             const variantsWithStats = variants.map((variant) => {
@@ -214,8 +216,8 @@ export const abTestingRouter = router({
               status: exp.status as 'draft' | 'running' | 'paused' | 'completed',
               metric: getExperimentMetric(exp),
               confidence,
-              startDate: exp.startDate ? new Date(exp.startDate) : new Date(),
-              endDate: exp.endDate ? new Date(exp.endDate) : undefined,
+              startDate: exp.startDate != null ? new Date(exp.startDate as string | number | Date) : new Date(),
+              endDate: exp.endDate != null ? new Date(exp.endDate as string | number | Date) : undefined,
               variants: variantsWithStats,
             };
           })
@@ -253,7 +255,7 @@ export const abTestingRouter = router({
       try {
         // Créer l'expérience dans Prisma
         // Note: Experiment n'a pas de brandId direct, utiliser targetAudience
-        const experiment = await api.post<any>('/api/v1/analytics/experiments', {
+        const experiment = await api.post<Record<string, unknown>>('/api/v1/orion/experiments', {
           name: input.name,
           description: input.description || '',
           type: 'variants',
@@ -267,19 +269,21 @@ export const abTestingRouter = router({
           targetAudience: { brands: [user.brandId] },
         });
 
-        logger.info('AB test created', { experimentId: experiment.id, userId: user.id });
+        type ExperimentApiShape = { id?: string; name?: string; description?: string; status?: string; startDate?: string | number | Date; endDate?: string | number | Date; variants?: unknown[] };
+        const exp = experiment as ExperimentApiShape;
+        logger.info('AB test created', { experimentId: exp.id, userId: user.id });
 
         // Transformer en format attendu
-        const variants = (experiment.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+        const variants = (exp.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
         return {
-          id: experiment.id,
-          name: experiment.name,
-          description: experiment.description || '',
-          status: experiment.status as 'draft' | 'running' | 'paused' | 'completed',
+          id: String(exp.id ?? ''),
+          name: exp.name ?? '',
+          description: exp.description || '',
+          status: (exp.status as 'draft' | 'running' | 'paused' | 'completed') ?? 'draft',
           metric: input.metric,
           confidence: 0,
-          startDate: experiment.startDate ? new Date(experiment.startDate) : new Date(),
-          endDate: experiment.endDate ? new Date(experiment.endDate) : undefined,
+          startDate: exp.startDate != null ? new Date(exp.startDate) : new Date(),
+          endDate: exp.endDate != null ? new Date(exp.endDate) : undefined,
           variants: variants.map((v) => ({
             id: v.id,
             name: v.name,
@@ -330,7 +334,7 @@ export const abTestingRouter = router({
 
       try {
         // Récupérer l'expérience
-        const experiment = await api.get<any>(`/api/v1/analytics/experiments/${input.id}`).catch(() => null);
+        const experiment = await api.get<Record<string, unknown>>(`/api/v1/orion/experiments/${input.id}`).catch(() => null);
 
         if (!experiment) {
           throw new TRPCError({
@@ -352,25 +356,27 @@ export const abTestingRouter = router({
           });
         }
 
-        const updated = await api.put<any>(`/api/v1/analytics/experiments/${input.id}`, updateData);
+        const updated = await api.put<Record<string, unknown>>(`/api/v1/orion/experiments/${input.id}`, updateData);
 
+        type UpdatedExperimentShape = { id?: string; name?: string; description?: string; status?: string; startDate?: string | number | Date; endDate?: string | number | Date; variants?: unknown[] };
+        const upd = updated as UpdatedExperimentShape;
         logger.info('AB test updated', { experimentId: input.id, userId: user.id });
 
         // Transformer en format attendu avec stats réelles
-        const variants = (updated.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
+        const variants = (upd.variants as Array<{ id: string; name: string; traffic: number; isControl: boolean }>) || [];
         const variantIds = variants.map((v) => v.id);
-        const stats = await getVariantStats(updated.id, variantIds);
+        const stats = await getVariantStats(String(upd.id ?? input.id), variantIds);
         const { winnerId, confidence } = getWinner(variants, stats);
 
         return {
-          id: updated.id,
-          name: updated.name,
-          description: updated.description || '',
-          status: updated.status as 'draft' | 'running' | 'paused' | 'completed',
-          metric: getExperimentMetric(updated),
+          id: String(upd.id ?? input.id),
+          name: upd.name ?? '',
+          description: upd.description || '',
+          status: (upd.status as 'draft' | 'running' | 'paused' | 'completed') ?? 'draft',
+          metric: getExperimentMetric(upd),
           confidence,
-          startDate: updated.startDate ? new Date(updated.startDate) : new Date(),
-          endDate: updated.endDate ? new Date(updated.endDate) : undefined,
+          startDate: upd.startDate != null ? new Date(upd.startDate) : new Date(),
+          endDate: upd.endDate != null ? new Date(upd.endDate) : undefined,
           variants: variants.map((v) => {
             const stat = stats.get(v.id) ?? { visitors: 0, conversions: 0, revenue: 0, conversionRate: 0 };
             return {

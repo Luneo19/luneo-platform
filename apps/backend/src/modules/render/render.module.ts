@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { RenderController } from './render.controller';
 import { Render2DService } from './services/render-2d.service';
@@ -17,12 +18,15 @@ import { RenderQueueService } from './services/render-queue.service';
 import { RenderStatusService } from './services/render-status.service';
 import { RenderPrintReadyService } from './services/render-print-ready.service';
 import { PrintReadyWorker } from './workers/print-ready.worker';
+import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
 
 @Module({
   imports: [
+    ConfigModule,
     PrismaModule,
     SmartCacheModule,
     StorageModule,
+    UsageBillingModule,
     CADValidationModule,
     LODModule,
     MarketingRenderModule,

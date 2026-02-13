@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { createWebhookSchema } from '@/lib/validation/zod-schemas';
 import crypto from 'crypto';
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la création du webhook' }));
-      logger.error('Failed to create webhook via backend', {
+      serverLogger.error('Failed to create webhook via backend', {
         userId: user.id,
         webhookName: name,
         status: response.status,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const createdWebhook = await response.json();
 
-    logger.info('Webhook created', {
+    serverLogger.info('Webhook created', {
       userId: user.id,
       webhookId: createdWebhook.id,
       webhookName: name,

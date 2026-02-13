@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
 import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
@@ -17,11 +18,13 @@ import { ARModelsGrid } from './components/ARModelsGrid';
 import { UploadARModal } from './components/modals/UploadARModal';
 import { ARPreviewModal } from './components/modals/ARPreviewModal';
 import { QRCodeModal } from './components/modals/QRCodeModal';
+import { Button } from '@/components/ui/button';
 import { useARModels } from './hooks/useARModels';
 import { useARUpload } from './hooks/useARUpload';
 import type { ARModel } from './types';
 
 export function ARStudioPageClient() {
+  const { t } = useI18n();
   return (
     <PlanGate
       minimumPlan="professional"
@@ -30,7 +33,7 @@ export function ARStudioPageClient() {
         <UpgradeRequiredPage
           feature="AR Studio"
           requiredPlan="professional"
-          description="L'AR Studio et le Virtual Try-On sont disponibles a partir du plan Professional."
+          description={t('arStudio.upgradeDesc')}
         />
       }
     >
@@ -41,6 +44,7 @@ export function ARStudioPageClient() {
 
 function ARStudioPageContent() {
   const router = useRouter();
+  const { t } = useI18n();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -51,7 +55,7 @@ function ARStudioPageContent() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ARModel | null>(null);
 
-  const { models, stats, isLoading, deleteModel, isDeleting, refetch } = useARModels(
+  const { models, stats, isLoading, error, refetch, deleteModel, isDeleting } = useARModels(
     searchTerm,
     filterType,
     filterStatus
@@ -71,7 +75,7 @@ function ARStudioPageContent() {
   };
 
   const handleDelete = (modelId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?')) {
+    if (confirm(t('arStudio.deleteConfirm'))) {
       deleteModel(modelId);
     }
   };
@@ -86,8 +90,8 @@ function ARStudioPageContent() {
     const embedCode = `<iframe src="${window.location.origin}/ar/viewer?model=${model.glbUrl || model.usdzUrl}" width="100%" height="600px" frameborder="0"></iframe>`;
     navigator.clipboard.writeText(embedCode);
     toast({
-      title: 'Code copié',
-      description: 'Code embed copié dans le presse-papiers',
+      title: t('arStudio.copyCodeTitle'),
+      description: t('arStudio.copyCodeDesc'),
     });
   };
 
@@ -100,8 +104,8 @@ function ARStudioPageContent() {
     const result = await uploadFile(file, name, type, onProgress);
     if (result.success) {
       toast({
-        title: 'Succès',
-        description: 'Modèle uploadé avec succès',
+        title: t('common.success'),
+        description: t('arStudio.uploadSuccess'),
       });
       setTimeout(() => {
         refetch();
@@ -110,13 +114,24 @@ function ARStudioPageContent() {
       return { success: true };
     } else {
       toast({
-        title: 'Erreur',
-        description: result.error || 'Erreur lors de l\'upload',
+        title: t('common.error'),
+        description: result.error || t('arStudio.uploadError'),
         variant: 'destructive',
       });
       return { success: false, error: result.error };
     }
   };
+
+  if (error) {
+    return (
+      <div className="space-y-6 pb-10 flex flex-col items-center justify-center min-h-[40vh]">
+        <p className="text-red-400 mb-4">{t('arStudio.loadError')}</p>
+        <Button variant="outline" onClick={() => refetch()} className="border-gray-600">
+          {t('aiStudio.retry')}
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

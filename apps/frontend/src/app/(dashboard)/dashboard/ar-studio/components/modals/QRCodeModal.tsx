@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ interface QRCodeModalProps {
 }
 
 export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
@@ -43,14 +45,14 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
     link.href = qrCodeUrl;
     link.download = `qr-ar-${model?.name || 'model'}.png`;
     link.click();
-    toast({ title: 'QR Code téléchargé' });
+    toast({ title: t('arStudio.qrDownloaded') });
   };
 
   const handleCopyLink = () => {
     if (!model) return;
     const arLink = `${window.location.origin}/ar/viewer?model=${model.glbUrl || model.usdzUrl}`;
     navigator.clipboard.writeText(arLink);
-    toast({ title: 'Lien copié', description: 'Lien AR copié dans le presse-papiers' });
+    toast({ title: t('aiStudio.linkCopied'), description: t('arStudio.arLinkCopied') });
   };
 
   if (!model) return null;
@@ -59,9 +61,9 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>QR Code AR - {model.name}</DialogTitle>
+          <DialogTitle>{t('arStudio.qrTitle')} - {model.name}</DialogTitle>
           <DialogDescription className="text-gray-600">
-            Scannez ce code pour ouvrir le modèle en AR
+            {t('arStudio.qrDesc')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -74,16 +76,16 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
             </div>
           )}
           <p className="text-sm text-gray-600 text-center">
-            Scannez ce QR code avec votre appareil pour voir le modèle en AR
+            {t('arStudio.scanQR')}
           </p>
           <div className="flex gap-3">
             <Button variant="outline" onClick={handleCopyLink} className="flex-1 border-gray-200">
               <Copy className="w-4 h-4 mr-2" />
-              Copier le lien
+              {t('arStudio.copyLink')}
             </Button>
             <Button onClick={handleDownload} className="flex-1 bg-cyan-600 hover:bg-cyan-700">
               <Download className="w-4 h-4 mr-2" />
-              Télécharger QR
+              {t('arStudio.downloadQR')}
             </Button>
           </div>
         </div>

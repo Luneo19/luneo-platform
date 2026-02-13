@@ -181,7 +181,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           });
         }
       } catch (sentryError) {
-        logger.warn('Failed to send error to Sentry', sentryError as Error);
+        logger.warn('Failed to send error to Sentry', { error: sentryError });
       }
     }
   }

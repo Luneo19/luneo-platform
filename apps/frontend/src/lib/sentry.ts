@@ -96,7 +96,7 @@ export function clearUser(): void {
 }
 
 // Set custom context
-export function setContext(name: string, context: Record<string, any>): void {
+export function setContext(name: string, context: Record<string, unknown>): void {
   Sentry.setContext(name, context);
 }
 
@@ -105,7 +105,7 @@ export function addBreadcrumb(breadcrumb: {
   category: string;
   message: string;
   level?: 'debug' | 'info' | 'warning' | 'error';
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }): void {
   Sentry.addBreadcrumb({
     category: breadcrumb.category,
@@ -120,7 +120,7 @@ export function captureException(
   error: Error,
   context?: {
     tags?: Record<string, string>;
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
     level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
   }
 ): string {
@@ -140,12 +140,12 @@ export function captureMessage(
 }
 
 // Start transaction for performance monitoring
-export function startTransaction(name: string, op: string): any {
+export function startTransaction(name: string, op: string): unknown {
   return Sentry.startSpan({ name, op }, () => {});
 }
 
 // Wrap async function with error handling
-export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
+export function withErrorTracking<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   name: string
 ): T {

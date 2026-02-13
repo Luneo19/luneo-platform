@@ -1,7 +1,11 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { endpoints } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { AffiliateLink, AffiliateStats, Commission, Referral } from '../types';
 import { MIN_PAYOUT_THRESHOLD } from '../constants';
 
@@ -22,6 +26,7 @@ const initialStats: AffiliateStats = {
 };
 
 export function useAffiliatePage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -29,134 +34,168 @@ export function useAffiliatePage() {
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [stats, setStats] = useState<AffiliateStats>(initialStats);
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
 
-  const affiliateLinks: AffiliateLink[] = useMemo(
-    () => [
-      {
-        id: '1',
-        code: 'REF123',
-        url: `${APP_BASE_URL}?ref=REF123`,
-        name: 'Lien principal',
-        clicks: 1250,
-        conversions: 45,
-        revenue: 2250,
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        isActive: true,
-      },
-      {
-        id: '2',
-        code: 'REF456',
-        url: `${APP_BASE_URL}?ref=REF456`,
-        name: 'Lien blog',
-        clicks: 890,
-        conversions: 28,
-        revenue: 1400,
-        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-        isActive: true,
-      },
-    ],
-    []
-  );
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await endpoints.referral.stats();
+      const raw = data as Record<string, unknown>;
 
-  const referrals: Referral[] = useMemo(
-    () => [
-      {
-        id: '1',
-        email: 'user1@example.com',
-        name: 'Jean Dupont',
-        status: 'converted',
-        signupDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-        conversionDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        revenue: 500,
-        commission: 100,
-        linkCode: 'REF123',
-      },
-      {
-        id: '2',
-        email: 'user2@example.com',
-        name: 'Marie Martin',
-        status: 'active',
-        signupDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        revenue: 0,
-        commission: 0,
-        linkCode: 'REF123',
-      },
-    ],
-    []
-  );
+      // Map backend response to frontend types
+      const referralCode = (raw.referralCode as string) || '';
+      const referralLink = (raw.referralLink as string) || `${APP_BASE_URL}?ref=${referralCode}`;
+      const totalReferrals = (raw.totalReferrals as number) || 0;
+      const activeReferrals = (raw.activeReferrals as number) || 0;
+      const totalEarnings = (raw.totalEarnings as number) || 0;
+      const pendingEarnings = (raw.pendingEarnings as number) || 0;
+      const recentReferrals = (raw.recentReferrals as Array<Record<string, unknown>>) || [];
 
-  const commissions: Commission[] = useMemo(
-    () => [
-      {
-        id: '1',
-        referralId: '1',
-        referralEmail: 'user1@example.com',
-        amount: 100,
-        status: 'paid',
-        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        paidAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        description: 'Commission pour conversion',
-      },
-      {
-        id: '2',
-        referralId: '2',
-        referralEmail: 'user2@example.com',
-        amount: 50,
-        status: 'pending',
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        description: 'Commission en attente',
-      },
-    ],
-    []
-  );
+      // Build affiliate link from referral code
+      if (referralCode) {
+        setAffiliateLinks([
+          {
+            id: 'main',
+            code: referralCode,
+            url: referralLink,
+            name: 'Lien principal',
+            clicks: 0,
+            conversions: totalReferrals - activeReferrals,
+            revenue: totalEarnings,
+            createdAt: new Date(),
+            isActive: true,
+          },
+        ]);
+      }
+
+      // Map recent referrals
+      const mappedReferrals: Referral[] = recentReferrals.map((r, index) => ({
+        id: (r.id as string) || String(index),
+        email: (r.email as string) || '',
+        name: (r.name as string) || 'Utilisateur',
+        status: ((r.status as string) || 'active') as Referral['status'],
+        signupDate: r.signupDate ? new Date(r.signupDate as string) : new Date(),
+        conversionDate: r.conversionDate ? new Date(r.conversionDate as string) : undefined,
+        revenue: (r.revenue as number) || 0,
+        commission: (r.commission as number) || 0,
+        linkCode: referralCode,
+      }));
+      setReferrals(mappedReferrals);
+
+      // Calculate stats
+      const totalConversions = mappedReferrals.filter((r) => r.status === 'converted').length;
+      const conversionRate = totalReferrals > 0 ? (totalConversions / totalReferrals) * 100 : 0;
+      const totalCommissions = totalEarnings + pendingEarnings;
+      const averageCommission = totalReferrals > 0 ? totalCommissions / totalReferrals : 0;
+
+      setStats({
+        totalReferrals,
+        activeReferrals,
+        totalConversions,
+        totalRevenue: totalEarnings,
+        totalCommissions,
+        pendingCommissions: pendingEarnings,
+        paidCommissions: totalEarnings,
+        conversionRate,
+        averageCommission,
+        clickThroughRate: 0,
+        topReferral: mappedReferrals.length > 0
+          ? mappedReferrals.reduce((top, r) => (r.revenue > (top?.revenue || 0) ? r : top), null as Referral | null)
+          : null,
+      });
+
+      // Map commissions from referrals
+      const mappedCommissions: Commission[] = mappedReferrals
+        .filter((r) => r.commission > 0)
+        .map((r) => ({
+          id: `comm-${r.id}`,
+          referralId: r.id,
+          referralEmail: r.email,
+          amount: r.commission,
+          status: r.status === 'converted' ? ('paid' as const) : ('pending' as const),
+          createdAt: r.signupDate,
+          paidAt: r.conversionDate,
+          description: `Commission pour ${r.name}`,
+        }));
+      setCommissions(mappedCommissions);
+    } catch (error: unknown) {
+      logger.error('Error fetching affiliate data', { error });
+      toast({
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast, t]);
 
   useEffect(() => {
-    const totalReferrals = referrals.length;
-    const activeReferrals = referrals.filter((r) => r.status === 'active' || r.status === 'converted').length;
-    const totalConversions = referrals.filter((r) => r.status === 'converted').length;
-    const totalRevenue = referrals.reduce((acc, r) => acc + r.revenue, 0);
-    const totalCommissions = commissions.reduce((acc, c) => acc + c.amount, 0);
-    const pendingCommissions = commissions.filter((c) => c.status === 'pending').reduce((acc, c) => acc + c.amount, 0);
-    const paidCommissions = commissions.filter((c) => c.status === 'paid').reduce((acc, c) => acc + c.amount, 0);
-    const conversionRate = totalReferrals > 0 ? (totalConversions / totalReferrals) * 100 : 0;
-    const averageCommission = commissions.length > 0 ? totalCommissions / commissions.length : 0;
-    const totalClicks = affiliateLinks.reduce((acc, l) => acc + l.clicks, 0);
-    const clickThroughRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
-    const topReferral = referrals.reduce((top, r) => (r.revenue > (top?.revenue || 0) ? r : top), null as Referral | null);
-
-    setStats({
-      totalReferrals,
-      activeReferrals,
-      totalConversions,
-      totalRevenue,
-      totalCommissions,
-      pendingCommissions,
-      paidCommissions,
-      conversionRate,
-      averageCommission,
-      clickThroughRate,
-      topReferral,
-    });
-  }, [referrals, commissions, affiliateLinks]);
+    fetchData();
+  }, [fetchData]);
 
   const handleCopyLink = useCallback(
     (link: AffiliateLink) => {
       navigator.clipboard.writeText(link.url);
       toast({
-        title: 'Lien copié',
-        description: "Le lien de parrainage a été copié dans le presse-papiers",
+        title: t('affiliate.linkCopied'),
+        description: t('common.copied'),
       });
     },
-    [toast]
+    [t, toast]
   );
 
-  const handleCreateLink = useCallback(() => {
-    toast({
-      title: 'Lien créé',
-      description: "Votre nouveau lien de parrainage a été créé",
-    });
-    setShowCreateLinkModal(false);
-  }, [toast]);
+  const handleCreateLink = useCallback(async () => {
+    try {
+      // Refresh stats which auto-creates the referral code if needed
+      const data = await endpoints.referral.stats();
+      const raw = data as Record<string, unknown>;
+      const referralCode = (raw.referralCode as string) || '';
+      const referralLink = (raw.referralLink as string) || `${APP_BASE_URL}?ref=${referralCode}`;
+
+      if (referralLink) {
+        await navigator.clipboard.writeText(referralLink);
+      }
+
+      toast({
+        title: t('affiliate.linkCopied'),
+        description: referralLink || t('affiliate.createLink'),
+      });
+
+      // Refresh all data to update the UI
+      await fetchData();
+      setShowCreateLinkModal(false);
+    } catch (error: unknown) {
+      logger.error('Error creating affiliate link', { error });
+      toast({
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
+      });
+    }
+  }, [toast, t, fetchData]);
+
+  const handleRequestPayout = useCallback(async () => {
+    try {
+      await endpoints.referral.withdraw();
+      toast({
+        title: t('common.success'),
+        description: t('affiliate.payoutRequested'),
+      });
+      setShowPayoutModal(false);
+      // Refresh data
+      fetchData();
+    } catch (error: unknown) {
+      logger.error('Error requesting payout', { error });
+      toast({
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
+      });
+    }
+  }, [toast, t, fetchData]);
 
   return {
     loading,
@@ -174,6 +213,7 @@ export function useAffiliatePage() {
     commissions,
     handleCopyLink,
     handleCreateLink,
+    handleRequestPayout,
     minPayoutThreshold: MIN_PAYOUT_THRESHOLD,
   };
 }

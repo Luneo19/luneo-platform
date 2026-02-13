@@ -44,3 +44,32 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch brand detail' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ brandId: string }> }
+) {
+  try {
+    const adminUser = await getAdminUser();
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { brandId } = await params;
+    const body = await request.json().catch(() => ({}));
+    const res = await fetch(`${API_URL}/api/v1/admin/brands/${brandId}`, {
+      method: 'PATCH',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(body),
+    });
+    const raw = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json(raw.error ?? raw.message ?? { error: 'Failed to update brand' }, { status: res.status });
+    }
+    const data = raw.data ?? raw;
+    return NextResponse.json(data);
+  } catch (error) {
+    serverLogger.apiError('/api/admin/brands/[brandId]', 'PATCH', error, 500);
+    return NextResponse.json({ error: 'Failed to update brand' }, { status: 500 });
+  }
+}

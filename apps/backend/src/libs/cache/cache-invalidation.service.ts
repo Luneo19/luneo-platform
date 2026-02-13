@@ -21,9 +21,11 @@ export class CacheInvalidationService {
    */
   async invalidateByTags(tags: string[]): Promise<void> {
     try {
+      const client = this.redisService.client;
+      if (!client) return;
       for (const tag of tags) {
         const tagKey = `cache:tag:${tag}`;
-        const keys = await this.redisService.client.smembers(tagKey);
+        const keys = await client.smembers(tagKey);
 
         if (keys && keys.length > 0) {
           // Delete all cached keys for this tag
@@ -48,7 +50,9 @@ export class CacheInvalidationService {
    */
   async invalidateByPattern(pattern: string): Promise<void> {
     try {
-      const keys = await this.redisService.client.keys(pattern);
+      const client = this.redisService.client;
+      if (!client) return;
+      const keys = await client.keys(pattern);
       
       if (keys && keys.length > 0) {
         for (const key of keys) {
@@ -79,7 +83,9 @@ export class CacheInvalidationService {
    */
   async clearAll(): Promise<void> {
     try {
-      const keys = await this.redisService.client.keys('cache:*');
+      const client = this.redisService.client;
+      if (!client) return;
+      const keys = await client.keys('cache:*');
       
       if (keys && keys.length > 0) {
         for (const key of keys) {

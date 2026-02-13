@@ -13,6 +13,7 @@ import { Suspense } from 'react';
 import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AIStudioAnimationsPageClient } from './AIStudioAnimationsPageClient';
+import { NotAuthenticatedMessage } from '../../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'Animations IA | Luneo',
@@ -30,7 +31,7 @@ export default async function AIStudioAnimationsPage() {
     return (
       <ErrorBoundary level="page" componentName="AIStudioAnimationsPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

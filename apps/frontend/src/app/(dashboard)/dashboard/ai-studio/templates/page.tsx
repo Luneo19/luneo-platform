@@ -13,6 +13,7 @@ import { Suspense } from 'react';
 import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AITemplatesPageClient } from './AITemplatesPageClient';
+import { NotAuthenticatedMessage } from '../../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'AI Studio Templates | Luneo',

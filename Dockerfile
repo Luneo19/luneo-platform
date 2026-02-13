@@ -1,3 +1,7 @@
+# Luneo Platform - Backend (NestJS) Docker Build
+# Used by: docker-compose.production.yml, CI/CD deployment
+# For frontend: see apps/frontend/Dockerfile.production
+#
 # Dockerfile optimisé pour Railway - Monorepo Luneo Platform
 # Build multi-stage pour réduire la taille de l'image (objectif: < 4.0 GB)
 
@@ -69,10 +73,9 @@ RUN echo "Checking for Prisma Client..." && \
     fi
 
 # Build the application using tsconfig.docker.json (relaxed strict checks, rootDir: ".")
-# Note: tsc may report warnings/errors but still emits JS (noEmitOnError defaults to false).
-# The || true allows the build to continue; the post-build check ensures main.js was produced.
+# PRODUCTION FIX: Removed || true - build must succeed for production deployment
 WORKDIR /app/apps/backend
-RUN nest build --tsc -p tsconfig.docker.json || true
+RUN nest build --tsc -p tsconfig.docker.json
 # Verify build output exists (fail fast if compilation produced no output)
 RUN test -f dist/src/main.js || (echo "ERROR: dist/src/main.js not found after build" && ls -R dist/ 2>/dev/null && exit 1)
 

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Save, FileSpreadsheet, FileJson } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import type { Notification } from './types';
 import { NotificationsPreferencesTab } from './NotificationsPreferencesTab';
@@ -39,6 +40,7 @@ export function NotificationsModals({
   filteredNotifications,
 }: NotificationsModalsProps) {
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const handleExportCsv = () => {
     try {
@@ -62,11 +64,11 @@ export function NotificationsModals({
       a.download = `notifications_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: 'Succès', description: 'Export CSV réussi' });
+      toast({ title: t('common.success'), description: t('notifications.exportCsvSuccess') });
       setShowExportModal(false);
     } catch (error) {
       logger.error('Error exporting CSV', { error });
-      toast({ title: 'Erreur', description: "Erreur lors de l'export CSV", variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('notifications.exportCsvError'), variant: 'destructive' });
     }
   };
 
@@ -100,11 +102,11 @@ export function NotificationsModals({
       a.download = `notifications_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: 'Succès', description: 'Export JSON réussi' });
+      toast({ title: t('common.success'), description: t('notifications.exportJsonSuccess') });
       setShowExportModal(false);
     } catch (error) {
       logger.error('Error exporting JSON', { error });
-      toast({ title: 'Erreur', description: "Erreur lors de l'export JSON", variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('notifications.exportJsonError'), variant: 'destructive' });
     }
   };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,11 +22,12 @@ interface PayoutModalProps {
 }
 
 export function PayoutModal({ open, onOpenChange, pendingCommissions }: PayoutModalProps) {
+  const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle>Demander un paiement</DialogTitle>
+          <DialogTitle>{t('affiliate.requestPayout')}</DialogTitle>
           <DialogDescription>Demandez le paiement de vos commissions en attente</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -55,7 +57,7 @@ export function PayoutModal({ open, onOpenChange, pendingCommissions }: PayoutMo
           </Button>
           <Button className="bg-green-600 hover:bg-green-700">
             <CreditCard className="w-4 h-4 mr-2" />
-            Demander le paiement
+            {t('affiliate.requestPayout')}
           </Button>
         </DialogFooter>
       </DialogContent>

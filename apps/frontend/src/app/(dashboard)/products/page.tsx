@@ -13,8 +13,30 @@ import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { trpc } from '@/lib/trpc/client';
+import { useI18n } from '@/i18n/useI18n';
+
+interface ProductListItem {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+  image_url: string;
+  price: number;
+}
+
+/** Raw product from trpc product.list */
+interface RawProductItem {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  imageUrl?: string;
+  images?: string[];
+  price?: number;
+}
 
 function ProductsPageContent() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -23,20 +45,20 @@ function ProductsPageContent() {
   // Query products from tRPC
   const productsQuery = trpc.product.list.useQuery({
     search: searchTerm || undefined,
-    category: categoryFilter !== 'all' ? (categoryFilter.toUpperCase() as string) : undefined,
+    category: categoryFilter !== 'all' ? (categoryFilter.toUpperCase() as 'OTHER' | 'JEWELRY' | 'WATCHES' | 'GLASSES' | 'ACCESSORIES' | 'HOME' | 'TECH') : undefined,
     limit: 20,
     offset: (page - 1) * 20,
   });
 
   // Transform data
-  const products = useMemo(() => {
-    const apiProducts = productsQuery.data?.products || [];
-    return apiProducts.map((p: any) => ({
+  const products = useMemo((): ProductListItem[] => {
+    const apiProducts = (productsQuery.data?.products || []) as unknown as RawProductItem[];
+    return apiProducts.map((p: RawProductItem) => ({
       id: p.id,
       name: p.name,
       description: p.description,
       category: p.category || 'other',
-      image_url: p.imageUrl || p.images?.[0] || '/placeholder-product.png',
+      image_url: p.imageUrl || p.images?.[0] || '/placeholder-product.svg',
       price: p.price || 0,
     }));
   }, [productsQuery.data]);
@@ -45,7 +67,7 @@ function ProductsPageContent() {
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return products;
-    return products.filter((p: any) => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+    return products.filter((p: ProductListItem) => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [products, searchTerm]);
 
   const handleRetry = useCallback(() => {
@@ -108,12 +130,12 @@ function ProductsPageContent() {
       ) : filteredProducts.length === 0 ? (
         <EmptyState
           icon={<Package className="w-16 h-16 text-white/40" />}
-          title={searchTerm ? "Aucun produit trouvé" : "Aucun produit"}
+          title={searchTerm ? t('common.noProductFound') : t('common.noProduct')}
           description={searchTerm
-            ? `Aucun produit ne correspond à "${searchTerm}". Essayez avec d'autres mots-clés.`
-            : "Créez votre premier produit pour commencer à personnaliser et vendre."}
+            ? t('common.noProductMatchDescription', { search: searchTerm })
+            : t('common.noProductCreateDescription')}
           action={{
-            label: searchTerm ? "Effacer la recherche" : "Créer un produit",
+            label: searchTerm ? t('common.clearSearch') : t('common.createProduct'),
             onClick: () => {
               if (searchTerm) {
                 setSearchTerm('');
@@ -125,7 +147,7 @@ function ProductsPageContent() {
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product: any) => (
+          {filteredProducts.map((product: ProductListItem) => (
             <Card
               key={product.id}
               className="rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.10] transition-all group"

@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { ARModel, ARSession, ARMode, ARPreviewStats } from '../types';
@@ -13,6 +14,7 @@ export function useARPreview(
   filterCategory: string
 ) {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [models, setModels] = useState<ARModel[]>([]);
   const [sessions, setSessions] = useState<ARSession[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -92,15 +94,15 @@ export function useARPreview(
       setIsPreviewing(true);
       await api.post('/api/v1/ar-studio/preview/start', { modelId, mode });
       toast({
-        title: 'Prévisualisation AR',
-        description: 'Ouvrez votre appareil mobile pour voir le modèle en AR',
+        title: t('arStudio.previewTitle'),
+        description: t('arStudio.previewStarted'),
       });
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur lors du démarrage';
+      const message = error instanceof Error ? error.message : t('arStudio.startError');
       logger.error('Failed to start preview', { error });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: message,
         variant: 'destructive',
       });
@@ -115,8 +117,9 @@ export function useARPreview(
 
   const generateQRCode = async (modelId: string) => {
     try {
-      const data = await api.get<{ qrCode?: string; url?: string }>(`/api/v1/ar-studio/preview/qr/${modelId}`);
-      return { success: true, qrCode: data?.qrCode, url: data?.url };
+      const res = await api.post<{ data?: { qrCodeUrl?: string; url?: string }; qrCode?: string; url?: string }>(`/api/v1/ar-studio/models/${modelId}/qr-code`, {});
+      const data = (res?.data ?? res) as { qrCodeUrl?: string; qrCode?: string; url?: string } | undefined;
+      return { success: true, qrCode: data?.qrCodeUrl ?? data?.qrCode, url: data?.url };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to generate QR code';
       logger.error('Failed to generate QR code', { error });

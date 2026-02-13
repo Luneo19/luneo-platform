@@ -1,7 +1,7 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { z } from 'zod';
 import { idSchema } from '@/lib/validation/zod-schemas';
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit';
@@ -81,7 +81,7 @@ export async function POST(
         throw { status: 404, message: 'Design non trouvé', code: 'DESIGN_NOT_FOUND' };
       }
       const errorText = await backendResponse.text();
-      logger.error('Failed to create auto version', {
+      serverLogger.error('Failed to create auto version', {
         designId,
         userId: user.id,
         status: backendResponse.status,
@@ -97,7 +97,7 @@ export async function POST(
     }
 
     const result = await backendResponse.json();
-    logger.info('Auto design version created', {
+    serverLogger.info('Auto design version created', {
       designId,
       versionId: result.version_id,
       versionNumber: result.version_number,

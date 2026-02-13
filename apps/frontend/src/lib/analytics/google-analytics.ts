@@ -8,9 +8,9 @@ declare global {
     gtag: (
       command: 'config' | 'event' | 'set' | 'js',
       targetId: string | Date,
-      config?: Record<string, any>,
+      config?: Record<string, unknown>,
     ) => void;
-    dataLayer: any[];
+    dataLayer: Array<unknown>;
   }
 }
 
@@ -61,7 +61,7 @@ export function trackPageView(path: string, title?: string): void {
  */
 export function trackEvent(
   eventName: string,
-  parameters?: Record<string, any>,
+  parameters?: Record<string, unknown>,
 ): void {
   if (typeof window === 'undefined' || !window.gtag) {
     return;
@@ -93,7 +93,7 @@ export function trackConversion(
 /**
  * Set user properties
  */
-export function setUserProperties(properties: Record<string, any>): void {
+export function setUserProperties(properties: Record<string, unknown>): void {
   if (typeof window === 'undefined' || !window.gtag) {
     return;
   }
@@ -109,5 +109,5 @@ export function setUserId(userId: string): void {
     return;
   }
 
-  window.gtag('config', 'GA_MEASUREMENT_ID', { user_id: userId });
+  window.gtag('config', GA_MEASUREMENT_ID, { user_id: userId });
 }

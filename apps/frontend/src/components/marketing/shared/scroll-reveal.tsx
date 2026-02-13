@@ -119,13 +119,10 @@ function ScrollRevealInner({
   };
 
   return (
-    <Tag
-      ref={ref as React.Ref<HTMLDivElement>}
-      className={className}
-      style={style}
-    >
-      {children}
-    </Tag>
+    <div ref={ref} style={{ display: 'contents' }}>
+      {/* Tag may be any intrinsic element; we only pass className/style/children for scroll-reveal usage */}
+      {React.createElement(Tag, { className, style, children } as React.Attributes & { className?: string; style?: React.CSSProperties })}
+    </div>
   );
 }
 

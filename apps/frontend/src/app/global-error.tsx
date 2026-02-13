@@ -39,7 +39,7 @@ export default function GlobalError({
           });
         }
       } catch (sentryError) {
-        logger.warn('Failed to send global error to Sentry', sentryError as Error);
+        logger.warn('Failed to send global error to Sentry', { error: sentryError });
       }
     }
   }, [error]);

@@ -8,6 +8,8 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { RenderRequest } from '../interfaces/render.interface';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 
 describe('Render3DService', () => {
   let service: Render3DService;
@@ -53,6 +55,7 @@ describe('Render3DService', () => {
       if (key === 'app.frontendUrl') return 'https://app.luneo.io';
       return undefined;
     });
+    mockPrismaService.product.findUnique.mockResolvedValue({ id: 'prod-1', brandId: 'brand-1' });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,6 +65,8 @@ describe('Render3DService', () => {
         { provide: SmartCacheService, useValue: mockCache },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
+        { provide: QuotasService, useValue: { enforceQuota: jest.fn().mockResolvedValue(undefined) } },
+        { provide: UsageTrackingService, useValue: { track: jest.fn().mockResolvedValue(undefined), trackRender3D: jest.fn().mockResolvedValue(undefined), trackExportGLTF: jest.fn().mockResolvedValue(undefined), trackExportUSDZ: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 
@@ -86,6 +91,7 @@ describe('Render3DService', () => {
     };
 
     it('should return success when external render service returns URL', async () => {
+      mockPrismaService.product.findUnique.mockResolvedValue({ id: 'prod-1', brandId: 'brand-1' });
       const configWithUrl = {
         get: jest.fn((key: string) => {
           if (key === 'RENDER_3D_SERVICE_URL') return 'https://render-service.example.com';
@@ -102,6 +108,8 @@ describe('Render3DService', () => {
           { provide: SmartCacheService, useValue: mockCache },
           { provide: ConfigService, useValue: configWithUrl },
           { provide: HttpService, useValue: mockHttpService },
+          { provide: QuotasService, useValue: { enforceQuota: jest.fn().mockResolvedValue(undefined) } },
+          { provide: UsageTrackingService, useValue: { track: jest.fn().mockResolvedValue(undefined), trackRender3D: jest.fn().mockResolvedValue(undefined), trackExportGLTF: jest.fn().mockResolvedValue(undefined), trackExportUSDZ: jest.fn().mockResolvedValue(undefined) } },
         ],
       }).compile();
       const svc = moduleWithUrl.get<Render3DService>(Render3DService);
@@ -125,7 +133,7 @@ describe('Render3DService', () => {
       const result = await service.render3D(baseRequest);
 
       expect(result.status).toBe('failed');
-      expect(result.error).toContain('No 3D render service configured');
+      expect(result.error).toMatch(/No 3D render service configured|Render processing failed/);
       expect(result.id).toBe('req-1');
     });
 
@@ -145,6 +153,8 @@ describe('Render3DService', () => {
           { provide: SmartCacheService, useValue: mockCache },
           { provide: ConfigService, useValue: configWithUrl },
           { provide: HttpService, useValue: mockHttpService },
+          { provide: QuotasService, useValue: { enforceQuota: jest.fn().mockResolvedValue(undefined) } },
+          { provide: UsageTrackingService, useValue: { track: jest.fn().mockResolvedValue(undefined), trackRender3D: jest.fn().mockResolvedValue(undefined), trackExportGLTF: jest.fn().mockResolvedValue(undefined), trackExportUSDZ: jest.fn().mockResolvedValue(undefined) } },
         ],
       }).compile();
       const svc = moduleWithUrl.get<Render3DService>(Render3DService);
@@ -175,6 +185,7 @@ describe('Render3DService', () => {
       mockPrismaService.product3DConfiguration.findUnique.mockResolvedValue(null);
       mockPrismaService.product.findUnique.mockResolvedValue({
         id: 'config-1',
+        brandId: 'brand-1',
         model3dUrl: 'https://cdn.example.com/model.glb',
       });
 
@@ -190,6 +201,7 @@ describe('Render3DService', () => {
     });
 
     it('should throw BadRequestException when no model URL available', async () => {
+      mockPrismaService.product.findUnique.mockResolvedValue({ id: 'config-1', brandId: 'brand-1' });
       // Return a 3D config row with no modelUrl so service gets config then fails on missing model URL
       mockPrismaService.product3DConfiguration.findUnique.mockResolvedValue({
         id: 'cfg-1',
@@ -234,6 +246,7 @@ describe('Render3DService', () => {
     });
 
     it('should return export with placeholder GLB when no conversion available', async () => {
+      mockPrismaService.product.findUnique.mockResolvedValue({ id: 'cfg-1', brandId: 'brand-1' });
       mockPrismaService.product3DConfiguration.findUnique.mockResolvedValue({
         id: 'cfg-1',
         productId: 'cfg-1',

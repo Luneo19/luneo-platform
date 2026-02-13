@@ -138,7 +138,7 @@ export class ARExporter {
   /**
    * Export GLTF format
    */
-  async exportGLTF(options: Partial<ARExportOptions> = {}): Promise<{ json: any; textures: Map<string, Blob> }> {
+  async exportGLTF(options: Partial<ARExportOptions> = {}): Promise<{ json: Record<string, unknown>; textures: Map<string, Blob> }> {
     const model = this.configurator.getModel();
     
     if (!model) {
@@ -152,8 +152,12 @@ export class ARExporter {
         this.gltfExporter.parse(
           optimizedModel,
           (result) => {
+            if (result instanceof ArrayBuffer) {
+              reject(new Error('Unexpected binary result in GLTF JSON export'));
+              return;
+            }
             resolve({
-              json: result,
+              json: result as Record<string, unknown>,
               textures: new Map(),
             });
           },

@@ -10,7 +10,7 @@ export interface DXFEntity {
   layer: string;
   color: number;
   lineType: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export interface DXFLayer {
@@ -152,7 +152,10 @@ export class DXFExporter {
   /**
    * Convert Konva.js shapes to DXF entities
    */
-  public convertKonvaToDXF(konvaData: any, settings: DXFSettings = this.defaultSettings): DXFResult {
+  public convertKonvaToDXF(
+    konvaData: Record<string, unknown> & { children?: Array<Record<string, unknown>> },
+    settings: DXFSettings = this.defaultSettings
+  ): DXFResult {
     try {
       const entities = this.parseKonvaShapes(konvaData);
       return this.generateDXF(entities, settings);
@@ -224,35 +227,37 @@ export class DXFExporter {
    * Get bounding box for a single entity
    */
   private getEntityBounds(entity: DXFEntity): { minX: number; minY: number; maxX: number; maxY: number } {
+    const d = entity.data as Record<string, number>;
     switch (entity.type) {
       case 'LINE':
         return {
-          minX: Math.min(entity.data.x1, entity.data.x2),
-          minY: Math.min(entity.data.y1, entity.data.y2),
-          maxX: Math.max(entity.data.x1, entity.data.x2),
-          maxY: Math.max(entity.data.y1, entity.data.y2)
+          minX: Math.min(d.x1, d.x2),
+          minY: Math.min(d.y1, d.y2),
+          maxX: Math.max(d.x1, d.x2),
+          maxY: Math.max(d.y1, d.y2)
         };
       case 'CIRCLE':
         return {
-          minX: entity.data.centerX - entity.data.radius,
-          minY: entity.data.centerY - entity.data.radius,
-          maxX: entity.data.centerX + entity.data.radius,
-          maxY: entity.data.centerY + entity.data.radius
+          minX: d.centerX - d.radius,
+          minY: d.centerY - d.radius,
+          maxX: d.centerX + d.radius,
+          maxY: d.centerY + d.radius
         };
       case 'ARC':
         // Simplified arc bounds calculation
         return {
-          minX: entity.data.centerX - entity.data.radius,
-          minY: entity.data.centerY - entity.data.radius,
-          maxX: entity.data.centerX + entity.data.radius,
-          maxY: entity.data.centerY + entity.data.radius
+          minX: d.centerX - d.radius,
+          minY: d.centerY - d.radius,
+          maxX: d.centerX + d.radius,
+          maxY: d.centerY + d.radius
         };
       case 'POLYLINE': {
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
         let maxY = -Infinity;
-        entity.data.points.forEach((point: { x: number; y: number }) => {
+        const points = entity.data.points as Array<{ x: number; y: number }>;
+        points.forEach((point) => {
           minX = Math.min(minX, point.x);
           minY = Math.min(minY, point.y);
           maxX = Math.max(maxX, point.x);
@@ -461,15 +466,15 @@ ${entity.lineType}
     switch (entity.type) {
       case 'LINE':
         entityStr += `10
-${this.formatNumber(entity.data.x1, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.x1)), settings.precision)}
 20
-${this.formatNumber(entity.data.y1, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.y1)), settings.precision)}
 30
 0.0
 11
-${this.formatNumber(entity.data.x2, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.x2)), settings.precision)}
 21
-${this.formatNumber(entity.data.y2, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.y2)), settings.precision)}
 31
 0.0
 `;
@@ -477,37 +482,38 @@ ${this.formatNumber(entity.data.y2, settings.precision)}
 
       case 'CIRCLE':
         entityStr += `10
-${this.formatNumber(entity.data.centerX, settings.precision)}
+${this.formatNumber(Number(entity.data.centerX), settings.precision)}
 20
-${this.formatNumber(entity.data.centerY, settings.precision)}
+${this.formatNumber(Number(entity.data.centerY), settings.precision)}
 30
 0.0
 40
-${this.formatNumber(entity.data.radius, settings.precision)}
+${this.formatNumber(Number(entity.data.radius), settings.precision)}
 `;
         break;
 
       case 'ARC':
         entityStr += `10
-${this.formatNumber(entity.data.centerX, settings.precision)}
+${this.formatNumber(Number(entity.data.centerX), settings.precision)}
 20
-${this.formatNumber(entity.data.centerY, settings.precision)}
+${this.formatNumber(Number(entity.data.centerY), settings.precision)}
 30
 0.0
 40
-${this.formatNumber(entity.data.radius, settings.precision)}
+${this.formatNumber(Number(entity.data.radius), settings.precision)}
 50
-${this.formatNumber(entity.data.startAngle, settings.precision)}
+${this.formatNumber(Number(entity.data.startAngle), settings.precision)}
 51
-${this.formatNumber(entity.data.endAngle, settings.precision)}
+${this.formatNumber(Number(entity.data.endAngle), settings.precision)}
 `;
         break;
 
       case 'POLYLINE':
         entityStr += `70
-${entity.data.closed ? 1 : 0}
+${(entity.data.closed as boolean) ? 1 : 0}
 `;
-        entity.data.points.forEach((point: { x: number; y: number }) => {
+        const points = entity.data.points as Array<{ x: number; y: number }>;
+        points.forEach((point) => {
           entityStr += `0
 VERTEX
 10
@@ -525,15 +531,15 @@ SEQEND
 
       case 'TEXT':
         entityStr += `10
-${this.formatNumber(entity.data.x, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.x)), settings.precision)}
 20
-${this.formatNumber(entity.data.y, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.y)), settings.precision)}
 30
 0.0
 40
-${this.formatNumber(entity.data.height, settings.precision)}
+${this.formatNumber(Number(Number(entity.data.height)), settings.precision)}
 1
-${entity.data.text}
+${String(entity.data.text || '')}
 `;
         break;
     }
@@ -641,11 +647,11 @@ ENDSEC
   /**
    * Parse Konva.js shapes to DXF entities
    */
-  private parseKonvaShapes(konvaData: any): DXFEntity[] {
+  private parseKonvaShapes(konvaData: Record<string, unknown> & { children?: Array<Record<string, unknown>> }): DXFEntity[] {
     const entities: DXFEntity[] = [];
     
     if (konvaData.children) {
-      konvaData.children.forEach((child: any) => {
+      konvaData.children.forEach((child: Record<string, unknown>) => {
         const childEntities = this.parseKonvaShape(child);
         entities.push(...childEntities);
       });
@@ -657,7 +663,9 @@ ENDSEC
   /**
    * Parse individual Konva shape
    */
-  private parseKonvaShape(shape: any): DXFEntity[] {
+  private parseKonvaShape(shape: Record<string, unknown>): DXFEntity[] {
+    const attrs = (shape.attrs ?? {}) as Record<string, unknown>;
+    const attrPoints = (attrs.points ?? []) as number[];
     const entities: DXFEntity[] = [];
     
     switch (shape.className) {
@@ -668,10 +676,10 @@ ENDSEC
           color: 1,
           lineType: 'CONTINUOUS',
           data: {
-            x1: shape.attrs.points[0],
-            y1: shape.attrs.points[1],
-            x2: shape.attrs.points[2],
-            y2: shape.attrs.points[3]
+            x1: attrPoints[0],
+            y1: attrPoints[1],
+            x2: attrPoints[2],
+            y2: attrPoints[3]
           }
         });
         break;
@@ -683,18 +691,18 @@ ENDSEC
           color: 1,
           lineType: 'CONTINUOUS',
           data: {
-            centerX: shape.attrs.x,
-            centerY: shape.attrs.y,
-            radius: shape.attrs.radius
+            centerX: Number(attrs.x ?? 0),
+            centerY: Number(attrs.y ?? 0),
+            radius: Number(attrs.radius ?? 0)
           }
         });
         break;
         
       case 'Rect': {
-        const x = shape.attrs.x;
-        const y = shape.attrs.y;
-        const width = shape.attrs.width;
-        const height = shape.attrs.height;
+        const x = Number(attrs.x ?? 0);
+        const y = Number(attrs.y ?? 0);
+        const width = Number(attrs.width ?? 0);
+        const height = Number(attrs.height ?? 0);
         
         entities.push({
           type: 'POLYLINE',
@@ -788,7 +796,7 @@ export const convertSVGToDXF = (
 };
 
 export const convertKonvaToDXF = (
-  konvaData: any,
+  konvaData: Record<string, unknown> & { children?: Array<Record<string, unknown>> },
   settings?: DXFSettings
 ): DXFResult => {
   return dxfExporter.convertKonvaToDXF(konvaData, settings);

@@ -61,6 +61,50 @@ export type RealtimeEvent =
   | 'user-left'
   | 'presence-updated';
 
+/** WebSocket outbound message (sent to server) */
+export interface RealtimeOutMessage {
+  type: string;
+  payload?: Record<string, unknown>;
+}
+
+/** WebSocket inbound message (received from server) */
+export interface RealtimeInMessage {
+  type: string;
+  payload?: Record<string, unknown>;
+}
+
+/** Payload shapes for known message types */
+export interface RoomJoinedPayload {
+  roomId: string;
+  type: 'design' | 'product' | 'order';
+  resourceId: string;
+  participants?: RealtimeConnection[];
+  cursors?: SharedCursor[];
+  comments?: LiveComment[];
+}
+
+export interface RoomLeftPayload {
+  roomId: string;
+}
+
+export interface CursorMovedPayload {
+  roomId: string;
+  cursorId: string;
+  cursor: SharedCursor;
+}
+
+export interface CommentPayload {
+  roomId: string;
+  commentId?: string;
+  comment?: LiveComment;
+}
+
+export interface UserPresencePayload {
+  roomId: string;
+  userId?: string;
+  user?: RealtimeConnection;
+}
+
 // ========================================
 // SERVICE
 // ========================================
@@ -102,7 +146,7 @@ export class RealtimeService extends EventEmitter {
     this.isConnecting = true;
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || (typeof window !== 'undefined' ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:3001` : 'ws://127.0.0.1:3001');
       this.ws = new WebSocket(`${wsUrl}/realtime?userId=${userId}&brandId=${brandId || ''}`);
 
       this.ws.onopen = () => {
@@ -132,7 +176,7 @@ export class RealtimeService extends EventEmitter {
         this.isConnecting = false;
         this.handleReconnect(userId, brandId);
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error connecting WebSocket', { error });
       this.isConnecting = false;
       throw error;
@@ -183,7 +227,7 @@ export class RealtimeService extends EventEmitter {
   /**
    * Envoie un message au serveur
    */
-  private send(message: any): void {
+  private send(message: RealtimeOutMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {
@@ -194,48 +238,48 @@ export class RealtimeService extends EventEmitter {
   /**
    * Gère les messages reçus
    */
-  private handleMessage(data: any): void {
+  private handleMessage(data: RealtimeInMessage): void {
     const { type, payload } = data;
 
     switch (type) {
       case 'connection-id':
-        this.connectionId = payload.id;
+        this.connectionId = payload != null && typeof payload === 'object' ? (payload as { id?: string }).id ?? null : null;
         break;
 
       case 'room-joined':
-        this.handleRoomJoined(payload);
+        this.handleRoomJoined(payload as unknown as RoomJoinedPayload);
         break;
 
       case 'room-left':
-        this.handleRoomLeft(payload);
+        this.handleRoomLeft(payload as unknown as RoomLeftPayload);
         break;
 
       case 'cursor-moved':
-        this.handleCursorMoved(payload);
+        this.handleCursorMoved(payload as unknown as CursorMovedPayload);
         break;
 
       case 'comment-added':
-        this.handleCommentAdded(payload);
+        this.handleCommentAdded(payload as unknown as CommentPayload);
         break;
 
       case 'comment-updated':
-        this.handleCommentUpdated(payload);
+        this.handleCommentUpdated(payload as unknown as CommentPayload);
         break;
 
       case 'comment-deleted':
-        this.handleCommentDeleted(payload);
+        this.handleCommentDeleted(payload as unknown as CommentPayload);
         break;
 
       case 'user-joined':
-        this.handleUserJoined(payload);
+        this.handleUserJoined(payload as unknown as UserPresencePayload);
         break;
 
       case 'user-left':
-        this.handleUserLeft(payload);
+        this.handleUserLeft(payload as unknown as UserPresencePayload);
         break;
 
       case 'presence-updated':
-        this.handlePresenceUpdated(payload);
+        this.handlePresenceUpdated(payload as unknown as UserPresencePayload);
         break;
 
       default:
@@ -272,7 +316,7 @@ export class RealtimeService extends EventEmitter {
     this.rooms.delete(roomId);
   }
 
-  private handleRoomJoined(payload: any): void {
+  private handleRoomJoined(payload: RoomJoinedPayload): void {
     const room: CollaborationRoom = {
       id: payload.roomId,
       type: payload.type,
@@ -285,7 +329,7 @@ export class RealtimeService extends EventEmitter {
     this.emit('room-joined', room);
   }
 
-  private handleRoomLeft(payload: any): void {
+  private handleRoomLeft(payload: RoomLeftPayload): void {
     this.rooms.delete(payload.roomId);
     this.emit('room-left', payload.roomId);
   }
@@ -307,7 +351,7 @@ export class RealtimeService extends EventEmitter {
     });
   }
 
-  private handleCursorMoved(payload: any): void {
+  private handleCursorMoved(payload: CursorMovedPayload): void {
     const room = this.rooms.get(payload.roomId);
     if (room) {
       const existingIndex = room.cursors.findIndex((c) => c.id === payload.cursorId);
@@ -369,17 +413,17 @@ export class RealtimeService extends EventEmitter {
     });
   }
 
-  private handleCommentAdded(payload: any): void {
+  private handleCommentAdded(payload: CommentPayload): void {
     const room = this.rooms.get(payload.roomId);
-    if (room) {
+    if (room && payload.comment) {
       room.comments.push(payload.comment);
       this.emit('comment-added', payload);
     }
   }
 
-  private handleCommentUpdated(payload: any): void {
+  private handleCommentUpdated(payload: CommentPayload): void {
     const room = this.rooms.get(payload.roomId);
-    if (room) {
+    if (room && payload.comment) {
       const index = room.comments.findIndex((c) => c.id === payload.commentId);
       if (index >= 0) {
         room.comments[index] = payload.comment;
@@ -388,7 +432,7 @@ export class RealtimeService extends EventEmitter {
     }
   }
 
-  private handleCommentDeleted(payload: any): void {
+  private handleCommentDeleted(payload: CommentPayload): void {
     const room = this.rooms.get(payload.roomId);
     if (room) {
       room.comments = room.comments.filter((c) => c.id !== payload.commentId);
@@ -400,15 +444,15 @@ export class RealtimeService extends EventEmitter {
   // PRESENCE
   // ========================================
 
-  private handleUserJoined(payload: any): void {
+  private handleUserJoined(payload: UserPresencePayload): void {
     const room = this.rooms.get(payload.roomId);
-    if (room) {
+    if (room && payload.user) {
       room.participants.push(payload.user);
       this.emit('user-joined', payload);
     }
   }
 
-  private handleUserLeft(payload: any): void {
+  private handleUserLeft(payload: UserPresencePayload): void {
     const room = this.rooms.get(payload.roomId);
     if (room) {
       room.participants = room.participants.filter(
@@ -419,7 +463,7 @@ export class RealtimeService extends EventEmitter {
     }
   }
 
-  private handlePresenceUpdated(payload: any): void {
+  private handlePresenceUpdated(payload: UserPresencePayload): void {
     this.emit('presence-updated', payload);
   }
 

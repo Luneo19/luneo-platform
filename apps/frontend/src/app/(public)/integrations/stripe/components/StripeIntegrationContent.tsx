@@ -7,6 +7,8 @@ import { HeroSection } from './HeroSection';
 import { StatsSection } from './StatsSection';
 import { FeaturesSection } from './FeaturesSection';
 import type { FeatureItem } from './FeaturesSection';
+import { endpoints } from '@/lib/api/client';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { OverviewTab } from './OverviewTab';
 import { SetupTab } from './SetupTab';
 import type { InstallationStep } from './SetupTab';
@@ -110,10 +112,17 @@ export function StripeIntegrationContent() {
     setTestConnectionLoading(true);
     setTestConnectionResult(null);
     try {
-      await new Promise((r) => setTimeout(r, 800));
-      setTestConnectionResult({ success: true, message: 'Connexion Stripe OK. Les clés sont valides.' });
-    } catch {
-      setTestConnectionResult({ success: false, message: 'Impossible de vérifier la connexion.' });
+      const res = await endpoints.integrations.test('stripe', {});
+      const data = res as { success?: boolean; message?: string };
+      setTestConnectionResult({
+        success: data?.success !== false,
+        message: data?.message ?? 'Connexion Stripe OK. Les clés sont valides.',
+      });
+    } catch (error: unknown) {
+      setTestConnectionResult({
+        success: false,
+        message: getErrorDisplayMessage(error),
+      });
     } finally {
       setTestConnectionLoading(false);
     }

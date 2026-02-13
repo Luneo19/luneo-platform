@@ -28,11 +28,12 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { useI18n } from '@/i18n/useI18n';
 
-// Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
-const APP_URL = 'https://luneo.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 export default function EcommercePage() {
+  const { t } = useI18n();
   const [selectedPlatform, setSelectedPlatform] = useState('Shopify');
   const [contact, setContact] = useState({ email: '', brand: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +66,7 @@ export default function EcommercePage() {
         email: contact.email,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
-      setSubmitError("Impossible d'envoyer la demande. Reessayez dans un instant.");
+      setSubmitError(t('common.sendError'));
     } finally {
       setIsSubmitting(false);
     }

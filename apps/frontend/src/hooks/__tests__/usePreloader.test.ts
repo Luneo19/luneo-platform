@@ -20,7 +20,12 @@ const mockPrefetch = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     prefetch: mockPrefetch,
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
   }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 describe('usePreloader', () => {

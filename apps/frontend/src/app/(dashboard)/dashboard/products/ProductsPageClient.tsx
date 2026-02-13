@@ -7,6 +7,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/useI18n';
 import { QuotaWarningBanner } from '@/components/shared/QuotaWarningBanner';
 import { ProductsHeader } from './components/ProductsHeader';
 import { ProductsStats } from './components/ProductsStats';
@@ -18,6 +20,7 @@ import { ProductsEmptyState } from './components/ProductsEmptyState';
 import { CreateProductModal } from './components/modals/CreateProductModal';
 import { EditProductModal } from './components/modals/EditProductModal';
 import { ExportModal } from './components/modals/ExportModal';
+import { ProductsSkeleton } from './components/ProductsSkeleton';
 import { useProducts } from './hooks/useProducts';
 import { useProductActions } from './hooks/useProductActions';
 import { useProductExport } from './hooks/useProductExport';
@@ -26,6 +29,7 @@ import type { ProductFilters as ProductFiltersType, SortOption } from './types';
 import type { Product } from '@/lib/types/product';
 
 export function ProductsPageClient() {
+  const { t } = useI18n();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +64,7 @@ export function ProductsPageClient() {
   );
 
   // Hooks
-  const { products, stats, isLoading, refetch } = useProducts(
+  const { products, stats, isLoading, isError, error, refetch } = useProducts(
     filters,
     sortOption,
     page
@@ -167,7 +171,27 @@ export function ProductsPageClient() {
 
   // Loading state
   if (isLoading && products.length === 0) {
-    return <div>Loading...</div>;
+    return <ProductsSkeleton />;
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="space-y-6 pb-10">
+        <div className="dash-card rounded-2xl p-8 border border-white/[0.06] text-center">
+          <p className="text-red-400 mb-4">
+            {error?.message ?? t('products.errorLoading')}
+          </p>
+          <Button
+            variant="outline"
+            className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
+            onClick={() => refetch()}
+          >
+            {t('products.retry')}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

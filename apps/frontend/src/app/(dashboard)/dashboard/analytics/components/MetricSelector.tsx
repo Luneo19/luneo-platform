@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import { METRIC_TYPES } from '../constants/analytics';
 
 interface MetricSelectorProps {
@@ -23,16 +24,17 @@ export function MetricSelector({
   onSelectAll,
   onDeselectAll,
 }: MetricSelectorProps) {
+  const { t } = useI18n();
   return (
     <Card className="p-4 bg-white border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <Label className="text-gray-700">Métriques à afficher</Label>
+        <Label className="text-gray-700">{t('analytics.metricsToShow')}</Label>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onSelectAll}>
-            Tout sélectionner
+            {t('analytics.selectAll')}
           </Button>
           <Button variant="ghost" size="sm" onClick={onDeselectAll}>
-            Tout désélectionner
+            {t('analytics.deselectAll')}
           </Button>
         </div>
       </div>
@@ -73,7 +75,7 @@ export function MetricSelector({
                     selectedMetrics.has(metric.value) ? 'text-gray-900' : 'text-gray-600'
                   )}
                 >
-                  {String(metric.label)}
+                  {t(`analytics.metrics.${metric.value}` as 'analytics.metrics.revenue')}
                 </span>
               </div>
             </button>

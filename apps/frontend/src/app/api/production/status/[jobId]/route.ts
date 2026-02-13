@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { productionService } from '@/lib/services/ProductionService';
 
 // ========================================
@@ -19,7 +19,7 @@ export async function GET(
   return ApiResponseBuilder.handle(async () => {
     const { jobId } = params;
 
-    logger.info('Checking production status', { jobId });
+    serverLogger.info('Checking production status', { jobId });
 
     // Fetch job status from ProductionService (cache or queue)
     const { productionService } = await import('@/lib/services/ProductionService');

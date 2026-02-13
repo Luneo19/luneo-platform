@@ -317,4 +317,22 @@ export class WhiteLabelService {
       throw error;
     }
   }
+
+  /**
+   * Get active theme by custom domain (for frontend theme provider on domain match)
+   */
+  async getActiveThemeByDomain(domain: string): Promise<CustomTheme | null> {
+    if (!domain || typeof domain !== 'string') return null;
+    const cleanDomain = domain.trim().toLowerCase();
+    const customDomain = await this.prisma.customDomain.findFirst({
+      where: { domain: cleanDomain, isActive: true },
+      select: { brandId: true },
+    });
+    if (!customDomain) return null;
+    try {
+      return await this.getActiveTheme(customDomain.brandId);
+    } catch {
+      return null;
+    }
+  }
 }

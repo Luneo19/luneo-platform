@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -21,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { OAuthService } from '../services/oauth.service';
+import { CurrentUser } from '@/common/types/user.types';
 
 @ApiTags('OAuth')
 @ApiBearerAuth()
@@ -58,7 +60,7 @@ export class OAuthController {
     status: 200,
     description: 'Linked accounts retrieved successfully',
   })
-  async getLinkedAccounts(@Request() req: any) {
+  async getLinkedAccounts(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const accounts = await this.oauthService.getLinkedAccounts(req.user.id);
     return {
       success: true,
@@ -80,7 +82,7 @@ export class OAuthController {
     status: 404,
     description: 'OAuth account not found',
   })
-  async unlinkAccount(@Request() req: any, @Param('provider') provider: string) {
+  async unlinkAccount(@Request() req: ExpressRequest & { user: CurrentUser }, @Param('provider') provider: string) {
     const result = await this.oauthService.unlinkOAuthAccount(req.user.id, provider);
     return {
       success: true,

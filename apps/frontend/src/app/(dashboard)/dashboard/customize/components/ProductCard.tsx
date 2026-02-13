@@ -20,14 +20,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Product } from '@/lib/types/product';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { t } = useI18n();
   const router = useRouter();
-  const thumbnail = product.images?.[0] || `https://picsum.photos/seed/${product.id}/400/400`;
+  const thumbnail = product.images?.[0] || '/placeholder-design.svg';
   const views = (product.metadata?.views as number) || 0;
   const favorites = (product.metadata?.favorites as number) || 0;
 
@@ -48,7 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
               className="bg-cyan-600 hover:bg-cyan-700"
             >
               <Box className="w-4 h-4 mr-2" />
-              Configurer
+              {t('common.configure')}
             </Button>
           </div>
           <Badge className="absolute top-2 right-2 bg-cyan-600">
@@ -65,9 +67,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Modifier</DropdownMenuItem>
-                <DropdownMenuItem>Dupliquer</DropdownMenuItem>
-                <DropdownMenuItem className="text-red-400">Supprimer</DropdownMenuItem>
+                <DropdownMenuItem>{t('common.edit')}</DropdownMenuItem>
+                <DropdownMenuItem>{t('products.duplicate')}</DropdownMenuItem>
+                <DropdownMenuItem className="text-red-400">{t('common.delete')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -91,7 +93,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-200 text-gray-600'
               )}
             >
-              {product.isActive ? 'Actif' : 'Inactif'}
+              {product.isActive ? t('products.active') : t('products.inactive')}
             </Badge>
           </div>
         </div>

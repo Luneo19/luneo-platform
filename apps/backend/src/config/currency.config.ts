@@ -105,6 +105,28 @@ export const currencyConfig = registerAs('currency', () => {
 });
 
 /**
+ * Detect currency from user locale/region for checkout and display.
+ * CH -> chf, European countries -> eur, else usd (Stripe lowercase).
+ */
+export function detectCurrency(country?: string, locale?: string): string {
+  const code = (country ?? locale ?? '').toUpperCase().trim();
+  if (!code) return 'usd';
+
+  // Country code: from locale (e.g. fr-CH -> CH), or single code (e.g. CH, DE)
+  const parts = code.split(/[-_]/);
+  const countryPart =
+    parts.length > 1 && parts[1]!.length === 2
+      ? parts[1]
+      : code.length === 2
+        ? code
+        : parts[0]?.toUpperCase().slice(0, 2) ?? '';
+  if (countryPart === 'CH') return 'chf';
+  const eurCountries = ['DE', 'FR', 'IT', 'ES', 'AT', 'BE', 'NL', 'PT', 'IE', 'FI', 'GR', 'LU'];
+  if (eurCountries.includes(countryPart)) return 'eur';
+  return 'usd';
+}
+
+/**
  * Utilitaires pour la gestion des devises
  */
 export class CurrencyUtils {

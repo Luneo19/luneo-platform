@@ -14,6 +14,8 @@ export interface Template {
   thumbnail: string;
   isPremium: boolean;
   isFavorite: boolean;
+  /** ID of the LibraryFavorite record when favorited (required for DELETE) */
+  favoriteId?: string;
   downloads: number;
   views: number;
   rating: number;

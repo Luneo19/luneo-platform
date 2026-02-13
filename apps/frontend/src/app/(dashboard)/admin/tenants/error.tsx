@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function AdminTenantsError({
   error,
@@ -11,6 +12,8 @@ export default function AdminTenantsError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
+
   useEffect(() => {
     logger.error('Admin Tenants page error:', error);
   }, [error]);
@@ -18,10 +21,10 @@ export default function AdminTenantsError({
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-4">Erreur - Tenants</h2>
-        <p className="text-gray-400 mb-6">{error.message || 'Une erreur est survenue sur la page Tenants'}</p>
+        <h2 className="text-2xl font-bold text-white mb-4">{t('admin.tenants.errorTitle')}</h2>
+        <p className="text-gray-400 mb-6">{error.message || t('admin.tenants.errorMessage')}</p>
         <Button onClick={reset} className="bg-cyan-600 hover:bg-cyan-700">
-          Réessayer
+          {t('common.retry')}
         </Button>
       </div>
     </div>

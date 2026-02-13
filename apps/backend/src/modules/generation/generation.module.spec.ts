@@ -20,17 +20,22 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { ApiKeysService } from '../public-api/api-keys/api-keys.service';
 import { HttpService } from '@nestjs/axios';
+import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 
 // ============================================================================
 // MOCKS
 // ============================================================================
 
-const mockPrismaService = {
+const mockPrismaService: Record<string, any> = {
   product: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
   design: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
   brand: { update: jest.fn(), findUnique: jest.fn() },
   apiKey: { findFirst: jest.fn() },
-  $transaction: jest.fn((fn) => fn(mockPrismaService)),
+  $transaction: jest.fn((fn: any): Promise<any> => {
+    if (Array.isArray(fn)) return Promise.all(fn);
+    return fn(mockPrismaService);
+  }),
 };
 
 const mockStorageService = {
@@ -40,7 +45,7 @@ const mockStorageService = {
   getSignedUrl: jest.fn(),
 };
 
-const mockConfigService = {
+const mockConfigService: Record<string, any> = {
   get: jest.fn((key: string) => {
     const config: Record<string, string | number> = {
       'OPENAI_API_KEY': 'test-openai-key',
@@ -53,7 +58,7 @@ const mockConfigService = {
     };
     return config[key] || undefined;
   }),
-  getOrThrow: jest.fn((key: string) => {
+  getOrThrow: jest.fn((key: string): string | number => {
     const value = mockConfigService.get(key);
     if (!value) throw new Error(`Config ${key} not found`);
     return value;
@@ -115,6 +120,8 @@ describe('GenerationModule', () => {
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: ApiKeysService, useValue: mockApiKeysService },
         { provide: HttpService, useValue: mockHttpService },
+        { provide: QuotasService, useValue: { enforceQuota: jest.fn().mockResolvedValue(undefined) } },
+        { provide: UsageTrackingService, useValue: { track: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

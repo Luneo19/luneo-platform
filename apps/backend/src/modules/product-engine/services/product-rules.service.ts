@@ -158,7 +158,7 @@ export class ProductRulesService {
   /**
    * Valide une zone spécifique
    */
-  private validateZone(zone: ProductZone, options: any): {
+  private validateZone(zone: ProductZone, options: Record<string, unknown>): {
     errors: ValidationError[];
     warnings: ValidationWarning[];
   } {
@@ -248,7 +248,7 @@ export class ProductRulesService {
    */
   private validateImageZone(
     zone: ProductZone,
-    options: any,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -301,7 +301,7 @@ export class ProductRulesService {
    */
   private validateColorZone(
     zone: ProductZone,
-    options: any,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -333,7 +333,7 @@ export class ProductRulesService {
    */
   private validateSelectZone(
     zone: ProductZone,
-    options: any,
+    options: Record<string, unknown>,
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
@@ -348,7 +348,7 @@ export class ProductRulesService {
     }
 
     // Vérifier que la valeur est dans les options autorisées
-    const allowedOptions = zone.metadata?.options || [];
+    const allowedOptions = (Array.isArray(zone.metadata?.options) ? zone.metadata.options : []) as string[];
     if (allowedOptions.length > 0 && !allowedOptions.includes(options.value as string)) {
       errors.push({
         code: 'INVALID_SELECTION',

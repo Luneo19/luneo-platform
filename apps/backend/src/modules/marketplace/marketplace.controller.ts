@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { CurrentUser } from '@/common/types/user.types';
@@ -51,6 +52,7 @@ import { MarketplaceService } from './marketplace.service';
 import { CreateMarketplaceItemDto } from './dto/create-marketplace-item.dto';
 import { UpdateMarketplaceItemDto } from './dto/update-marketplace-item.dto';
 import { ReviewItemDto } from './dto/review-item.dto';
+import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
 
 @ApiTags('Marketplace')
 @Controller('marketplace')
@@ -75,6 +77,7 @@ export class MarketplaceController {
   // ========================================
 
   @Get()
+  @CacheTTL(300)
   @ApiOperation({ summary: 'List marketplace items with filters' })
   @ApiResponse({ status: 200, description: 'Items list' })
   async listItems(
@@ -108,6 +111,85 @@ export class MarketplaceController {
     return this.marketplaceService.getSellerDashboard(brandId);
   }
 
+  @Get('seller/connect')
+  @ApiOperation({ summary: 'Récupère le statut du compte Connect d\'un seller' })
+  @ApiResponse({ status: 200, description: 'Statut récupéré' })
+  async getSellerConnectStatus(@Request() req: ExpressRequest & { user: { id: string } }) {
+    return this.stripeConnect.getSellerConnectStatus(req.user.id);
+  }
+
+  @Get('seller/stats')
+  @ApiOperation({ summary: 'Get seller statistics' })
+  @ApiResponse({ status: 200, description: 'Seller stats' })
+  async getSellerStats(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getSellerStats(brandId);
+  }
+
+  @Get('seller/products')
+  @ApiOperation({ summary: 'Get seller products' })
+  @ApiResponse({ status: 200, description: 'Seller products' })
+  async getSellerProducts(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getSellerProducts(brandId);
+  }
+
+  @Get('seller/orders')
+  @ApiOperation({ summary: 'Get seller orders' })
+  @ApiResponse({ status: 200, description: 'Seller orders' })
+  async getSellerOrders(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getSellerOrders(brandId);
+  }
+
+  @Get('seller/reviews')
+  @ApiOperation({ summary: 'Get seller reviews' })
+  @ApiResponse({ status: 200, description: 'Seller reviews' })
+  async getSellerReviews(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getSellerReviews(brandId);
+  }
+
+  @Get('seller/payouts')
+  @ApiOperation({ summary: 'Get seller payouts' })
+  @ApiResponse({ status: 200, description: 'Seller payouts' })
+  async getSellerPayouts(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('User must have a brand context');
+    return this.marketplaceService.getSellerPayouts(brandId);
+  }
+
+  @Get('templates')
+  @CacheTTL(600)
+  @ApiOperation({ summary: 'Recherche des templates marketplace' })
+  @ApiResponse({ status: 200, description: 'Templates récupérés' })
+  async searchTemplates(@Query() dto: SearchTemplatesDto) {
+    return this.marketplaceTemplate.searchTemplates(dto as SearchTemplatesOptions);
+  }
+
+  @Get('templates/featured')
+  @CacheTTL(600)
+  @ApiOperation({ summary: 'Get featured marketplace templates' })
+  @ApiResponse({ status: 200, description: 'Featured templates' })
+  async getFeaturedTemplates(@Query('limit') limit?: string) {
+    const result = await this.marketplaceTemplate.searchTemplates({
+      featured: true,
+      limit: limit !== undefined ? Number(limit) : 8,
+    });
+    return { items: result.templates };
+  }
+
+  @Get('collections')
+  @ApiOperation({ summary: 'Get marketplace collections' })
+  @ApiResponse({ status: 200, description: 'Collections' })
+  async getCollections(@Query('featured') featured?: string) {
+    return { items: [] };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get marketplace item by id' })
   @ApiResponse({ status: 200, description: 'Item details' })
@@ -116,6 +198,7 @@ export class MarketplaceController {
   }
 
   @Post()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Create marketplace item (seller)' })
   @ApiResponse({ status: 201, description: 'Item created' })
   async createItem(@Body() dto: CreateMarketplaceItemDto, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -125,6 +208,7 @@ export class MarketplaceController {
   }
 
   @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Update marketplace item (seller)' })
   @ApiResponse({ status: 200, description: 'Item updated' })
   async updateItem(
@@ -138,6 +222,7 @@ export class MarketplaceController {
   }
 
   @Delete(':id')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Delete marketplace item (seller, soft)' })
   @ApiResponse({ status: 200, description: 'Item deleted' })
   async deleteItem(@Param('id') id: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -147,6 +232,7 @@ export class MarketplaceController {
   }
 
   @Post(':id/purchase')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Purchase marketplace item' })
   @ApiResponse({ status: 201, description: 'Purchase completed' })
   async purchaseItem(@Param('id') id: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -156,6 +242,7 @@ export class MarketplaceController {
   }
 
   @Post(':id/review')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Review marketplace item' })
   @ApiResponse({ status: 201, description: 'Review created/updated' })
   async reviewItem(
@@ -173,6 +260,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('upload')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Upload a file for marketplace item' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'File uploaded, URL returned' })
@@ -203,6 +291,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('artisans')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un artisan et démarre l\'onboarding' })
   @ApiResponse({ status: 201, description: 'Artisan créé' })
   async createArtisan(
@@ -219,6 +308,7 @@ export class MarketplaceController {
   }
 
   @Post('artisans/:artisanId/kyc')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Soumet des documents KYC' })
   @ApiResponse({ status: 200, description: 'Documents soumis' })
   async submitKYCDocuments(
@@ -230,6 +320,7 @@ export class MarketplaceController {
 
   @Put('artisans/:artisanId/verify')
   @Roles('PLATFORM_ADMIN')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Vérifie un artisan (admin)' })
   @ApiResponse({ status: 200, description: 'Artisan vérifié' })
   async verifyArtisan(
@@ -240,6 +331,7 @@ export class MarketplaceController {
   }
 
   @Post('artisans/:artisanId/capabilities')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Ajoute une capacité à un artisan' })
   @ApiResponse({ status: 201, description: 'Capacité ajoutée' })
   async addCapability(@Param('artisanId') artisanId: string, @Body() dto: AddCapabilityDto) {
@@ -256,6 +348,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('orders/:orderId/routing')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Trouve les meilleurs artisans pour une commande' })
   @ApiResponse({ status: 200, description: 'Artisans trouvés' })
   async findBestArtisans(
@@ -267,6 +360,7 @@ export class MarketplaceController {
   }
 
   @Post('orders/:orderId/route')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Route une commande vers un artisan' })
   @ApiResponse({ status: 201, description: 'Commande routée' })
   async routeOrder(@Param('orderId') orderId: string, @Body() dto: RouteOrderDto) {
@@ -281,6 +375,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('seller/connect')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un compte Stripe Connect pour un seller' })
   @ApiResponse({ status: 201, description: 'Compte Connect créé' })
   async createSellerConnect(
@@ -294,14 +389,8 @@ export class MarketplaceController {
     );
   }
 
-  @Get('seller/connect')
-  @ApiOperation({ summary: 'Récupère le statut du compte Connect d\'un seller' })
-  @ApiResponse({ status: 200, description: 'Statut récupéré' })
-  async getSellerConnectStatus(@Request() req: ExpressRequest & { user: { id: string } }) {
-    return this.stripeConnect.getSellerConnectStatus(req.user.id);
-  }
-
   @Post('payouts')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un payout pour un artisan' })
   @ApiResponse({ status: 201, description: 'Payout créé' })
   async createPayout(@Body() dto: CreatePayoutDto) {
@@ -313,6 +402,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('sla/:workOrderId/evaluate')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Évalue le SLA d\'un work order' })
   @ApiResponse({ status: 200, description: 'SLA évalué' })
   async evaluateSLA(@Param('workOrderId') workOrderId: string) {
@@ -320,6 +410,7 @@ export class MarketplaceController {
   }
 
   @Post('payouts/:payoutId/apply-sla')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Applique les pénalités/bonus SLA au payout' })
   @ApiResponse({ status: 200, description: 'SLA appliqué' })
   async applySLAToPayout(@Param('payoutId') payoutId: string) {
@@ -331,6 +422,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('creators')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un profil créateur' })
   @ApiResponse({ status: 201, description: 'Profil créateur créé' })
   async createCreatorProfile(@Body() dto: CreateCreatorProfileDto) {
@@ -352,6 +444,7 @@ export class MarketplaceController {
   }
 
   @Put('creators/:userId')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Met à jour un profil créateur' })
   @ApiResponse({ status: 200, description: 'Profil créateur mis à jour' })
   async updateCreatorProfile(@Param('userId') userId: string, @Body() dto: UpdateCreatorProfileDto) {
@@ -360,6 +453,7 @@ export class MarketplaceController {
 
   @Post('creators/:userId/verify')
   @Roles('PLATFORM_ADMIN')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Vérifie un créateur (admin)' })
   @ApiResponse({ status: 200, description: 'Créateur vérifié' })
   async verifyCreator(@Param('userId') userId: string, @Body() dto: VerifyCreatorDto) {
@@ -371,18 +465,11 @@ export class MarketplaceController {
   // ========================================
 
   @Post('templates')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un template marketplace' })
   @ApiResponse({ status: 201, description: 'Template créé' })
   async createTemplate(@Body() dto: CreateMarketplaceTemplateDto) {
     return this.marketplaceTemplate.createTemplate(dto);
-  }
-
-  @Get('templates')
-  @ApiOperation({ summary: 'Recherche des templates marketplace' })
-  @ApiResponse({ status: 200, description: 'Templates récupérés' })
-  async searchTemplates(@Query() dto: SearchTemplatesDto) {
-    // Cast DTO to SearchTemplatesOptions for proper type alignment
-    return this.marketplaceTemplate.searchTemplates(dto as SearchTemplatesOptions);
   }
 
   @Get('templates/:slug')
@@ -393,6 +480,7 @@ export class MarketplaceController {
   }
 
   @Post('templates/:templateId/publish')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Publie un template' })
   @ApiResponse({ status: 200, description: 'Template publié' })
   async publishTemplate(@Param('templateId') templateId: string) {
@@ -404,6 +492,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('templates/:templateId/purchase')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Achète un template' })
   @ApiResponse({ status: 201, description: 'Achat traité' })
   async purchaseTemplate(@Param('templateId') templateId: string, @Body() dto: PurchaseTemplateDto) {
@@ -416,6 +505,7 @@ export class MarketplaceController {
   }
 
   @Post('purchases/:purchaseId/confirm')
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
   @ApiOperation({ summary: 'Confirme un achat (webhook Stripe)' })
   @ApiResponse({ status: 200, description: 'Achat confirmé' })
   async confirmPurchase(
@@ -433,6 +523,7 @@ export class MarketplaceController {
   }
 
   @Post('creators/:creatorId/payouts')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un payout pour un créateur' })
   @ApiResponse({ status: 201, description: 'Payout créé' })
   async createCreatorPayout(@Param('creatorId') creatorId: string, @Body() dto: CreateCreatorPayoutDto) {
@@ -444,6 +535,7 @@ export class MarketplaceController {
   }
 
   @Post('creator-payouts/:payoutId/process')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Traite un payout créateur via Stripe Connect' })
   @ApiResponse({ status: 200, description: 'Payout traité' })
   async processCreatorPayout(
@@ -458,6 +550,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('templates/:templateId/like')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Like/unlike un template' })
   @ApiResponse({ status: 200, description: 'Like toggled' })
   async toggleLike(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -465,6 +558,7 @@ export class MarketplaceController {
   }
 
   @Post('creators/:creatorId/follow')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Follow/unfollow un créateur' })
   @ApiResponse({ status: 200, description: 'Follow toggled' })
   async toggleFollow(@Param('creatorId') creatorId: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -472,6 +566,7 @@ export class MarketplaceController {
   }
 
   @Post('templates/:templateId/reviews')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée ou met à jour une review' })
   @ApiResponse({ status: 201, description: 'Review créée/mise à jour' })
   async createOrUpdateReview(@Param('templateId') templateId: string, @Body() dto: CreateReviewDto, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -485,6 +580,7 @@ export class MarketplaceController {
   }
 
   @Post('templates/:templateId/favorite')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Ajoute/retire un template des favoris' })
   @ApiResponse({ status: 200, description: 'Favorite toggled' })
   async toggleFavorite(@Param('templateId') templateId: string, @Request() req: ExpressRequest & { user: CurrentUser }) {
@@ -496,6 +592,7 @@ export class MarketplaceController {
   // ========================================
 
   @Post('qc/reports')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Crée un rapport QC' })
   @ApiResponse({ status: 201, description: 'Rapport QC créé' })
   async createQCReport(@Body() dto: CreateQCReportDto) {

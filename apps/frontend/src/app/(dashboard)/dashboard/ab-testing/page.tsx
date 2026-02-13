@@ -13,6 +13,7 @@ import { Suspense } from 'react';
 import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ABTestingPageClient } from './ABTestingPageClient';
+import { NotAuthenticatedMessage } from '../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'A/B Testing | Luneo',

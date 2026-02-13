@@ -22,7 +22,7 @@ export class ExportPackProcessor {
   ) {}
 
   @Process('export')
-  async process(job: Job<ExportPackJob>): Promise<any> {
+  async process(job: Job<ExportPackJob>): Promise<{ snapshotId: string; url?: string; cached?: boolean; duration?: number }> {
     const { snapshotId, formats, includeMetadata, compression } = job.data;
     const startTime = Date.now();
 

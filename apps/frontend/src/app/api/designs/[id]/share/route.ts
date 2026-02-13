@@ -1,6 +1,6 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { ApiResponseBuilder } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
+import { serverLogger } from '@/lib/logger-server';
 import { shareDesignSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
 
@@ -58,7 +58,7 @@ export async function POST(request: Request, { params }: DesignShareRouteContext
     }
 
     const data = await backendResponse.json();
-    logger.info('Design share created', { designId, userId: user.id });
+    serverLogger.info('Design share created', { designId, userId: user.id });
 
     return ApiResponseBuilder.success(
       data.share ? { share: data.share } : data,

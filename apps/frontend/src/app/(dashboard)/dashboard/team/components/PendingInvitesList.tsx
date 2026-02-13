@@ -11,6 +11,7 @@ import { Mail, X, Clock } from 'lucide-react';
 import { formatDate, formatRelativeDate } from '@/lib/utils/formatters';
 import { ROLES } from '../constants/team';
 import type { PendingInvite } from '../types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface PendingInvitesListProps {
   invites: PendingInvite[];
@@ -18,6 +19,7 @@ interface PendingInvitesListProps {
 }
 
 export function PendingInvitesList({ invites, onCancel }: PendingInvitesListProps) {
+  const { t } = useI18n();
   if (invites.length === 0) {
     return null;
   }
@@ -25,9 +27,9 @@ export function PendingInvitesList({ invites, onCancel }: PendingInvitesListProp
   return (
     <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-gray-900">Invitations en attente</CardTitle>
+        <CardTitle className="text-gray-900">{t('dashboard.team.pendingInvitesTitle')}</CardTitle>
         <CardDescription className="text-gray-600">
-          {invites.length} invitation{invites.length > 1 ? 's' : ''} en attente
+          {invites.length} {t('dashboard.team.subtitleInvitesPending')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -46,16 +48,16 @@ export function PendingInvitesList({ invites, onCancel }: PendingInvitesListProp
                   <div className="flex items-center gap-2">
                     <p className="text-gray-900 font-medium">{invite.email}</p>
                     <Badge variant="outline" className="border-gray-200 text-gray-600">
-                      {roleInfo.name}
+                      {t(`dashboard.team.roles.${(roleInfo.id || 'member').toLowerCase()}`)}
                     </Badge>
                     {isExpired && (
                       <Badge variant="outline" className="border-red-500/50 text-red-400">
-                        Expirée
+                        {t('dashboard.team.expired')}
                       </Badge>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Invitée {formatRelativeDate(invite.invitedAt.toISOString())} • Expire{' '}
+                    {t('dashboard.team.invited')} {formatRelativeDate(invite.invitedAt.toISOString())} • {t('dashboard.team.expires')}{' '}
                     {formatRelativeDate(invite.expiresAt.toISOString())}
                   </p>
                 </div>

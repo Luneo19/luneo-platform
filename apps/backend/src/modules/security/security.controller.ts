@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { RequestWithUser } from '@/common/types/user.types';
 import { RBACService } from './services/rbac.service';
 import { AuditLogsService, AuditEventType } from './services/audit-logs.service';
 import { GDPRService } from './services/gdpr.service';
@@ -20,6 +21,7 @@ import { AuthService } from '@/modules/auth/auth.service';
  */
 @ApiTags('Security & Compliance')
 @Controller('security')
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class SecurityController {
   constructor(
@@ -65,6 +67,8 @@ export class SecurityController {
   }
 
   @Get('users/:userId/permissions')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get all permissions for a user' })
   @ApiResponse({ status: 200, description: 'Permissions retrieved' })
   async getUserPermissions(@Param('userId') userId: string) {
@@ -77,6 +81,8 @@ export class SecurityController {
   }
 
   @Get('roles/stats')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get role statistics' })
   @ApiResponse({ status: 200, description: 'Stats retrieved' })
   async getRoleStats(@Query('brandId') brandId?: string) {
@@ -127,6 +133,8 @@ export class SecurityController {
   }
 
   @Get('audit/user/:userId')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.AUDIT_READ)
   @ApiOperation({ summary: 'Get user activity log' })
   @ApiResponse({ status: 200, description: 'User activity retrieved' })
   async getUserActivity(
@@ -158,7 +166,16 @@ export class SecurityController {
   @ApiOperation({ summary: 'Export audit logs to CSV' })
   @ApiResponse({ status: 200, description: 'CSV exported' })
   async exportAuditLogsCSV(@Query() dto: ExportAuditLogsDto) {
-    const csv = await this.auditLogs.exportToCSV(dto);
+    const filters = {
+      userId: dto.userId,
+      brandId: dto.brandId,
+      eventType: dto.eventType,
+      resourceType: dto.resourceType,
+      resourceId: dto.resourceId,
+      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+    };
+    const csv = await this.auditLogs.exportToCSV(filters);
     return {
       csv,
       filename: `audit-logs-${new Date().toISOString()}.csv`,
@@ -181,11 +198,13 @@ export class SecurityController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Export current user data (GDPR Right to Access)' })
   @ApiResponse({ status: 200, description: 'User data exported' })
-  async exportMyData(@Request() req: any) {
+  async exportMyData(@Request() req: RequestWithUser) {
     return this.gdprService.exportUserData(req.user.id);
   }
 
   @Get('gdpr/export/:userId')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Export all user data by userId (admin / support)' })
   @ApiResponse({ status: 200, description: 'User data exported' })
   async exportUserData(@Param('userId') userId: string) {
@@ -197,7 +216,7 @@ export class SecurityController {
   @ApiOperation({ summary: 'Delete current user account (GDPR Right to Erasure)' })
   @ApiResponse({ status: 200, description: 'Account deleted' })
   @ApiResponse({ status: 401, description: 'Invalid password' })
-  async deleteMyAccount(@Request() req: any, @Body() dto: DeleteAccountDto) {
+  async deleteMyAccount(@Request() req: RequestWithUser, @Body() dto: DeleteAccountDto) {
     const valid = await this.authService.verifyUserPassword(req.user.id, dto.password);
     if (!valid) {
       throw new UnauthorizedException('Invalid password');
@@ -228,6 +247,7 @@ export class SecurityController {
   }
 
   @Post('gdpr/consent')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Record user consent' })
   @ApiResponse({ status: 201, description: 'Consent recorded' })
   async recordConsent(@Body() dto: RecordConsentDto) {
@@ -246,6 +266,8 @@ export class SecurityController {
   }
 
   @Get('gdpr/consent/:userId')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get consent history for a user' })
   @ApiResponse({ status: 200, description: 'Consent history retrieved' })
   async getConsentHistory(@Param('userId') userId: string) {

@@ -45,8 +45,10 @@ export function useExport() {
       }
 
       if (options.format === 'json') {
-        const data = await api.post<{ data?: unknown }>('/api/v1/analytics/export', options);
-        const blob = new Blob([JSON.stringify((data as { data?: unknown })?.data ?? data, null, 2)], { type: 'application/json' });
+        type JsonExportResponse = { data?: unknown };
+        const data = await api.post<JsonExportResponse>('/api/v1/analytics/export', options);
+        const payload: unknown = data?.data ?? data;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const filename = `luneo-analytics-${options.dateRange}.json`;
         
         downloadBlob(blob, filename);
@@ -79,8 +81,8 @@ export function useExport() {
       }
 
       return { success: false, error: 'Format non supporté' };
-    } catch (err: any) {
-      const errorMessage = err.message || 'Erreur lors de l\'export';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'export';
       setError(errorMessage);
       logger.error('Export error', { error: err, options });
       return { success: false, error: errorMessage };

@@ -2,6 +2,7 @@
  * AdminService unit tests
  */
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -10,7 +11,7 @@ import { UserRole } from '@prisma/client';
 
 describe('AdminService', () => {
   let service: AdminService;
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     user: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -38,12 +39,17 @@ describe('AdminService', () => {
     sendEmail: jest.fn(),
   };
 
+  const mockConfigService = {
+    get: jest.fn((key: string) => undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -117,7 +123,7 @@ describe('AdminService', () => {
 
       const result = await service.getCustomerById('c1');
 
-      expect(result).toEqual(customer);
+      expect(result).toEqual(expect.objectContaining({ id: 'c1', email: 'c1@test.com' }));
       expect(result.id).toBe('c1');
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'c1' } }),

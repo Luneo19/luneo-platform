@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { SEO_BASE_URL } from '@/lib/seo/constants';
+import { generateFAQSchema } from '@/lib/seo/structured-data';
+import { FAQS } from './data';
 
 export const metadata: Metadata = {
   title: 'Tarifs & Plans | Luneo - Personnalisation Produit',
@@ -48,11 +50,17 @@ export default function PricingLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const faqPageJsonLd = generateFAQSchema(FAQS);
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd) }}
       />
       {children}
     </>

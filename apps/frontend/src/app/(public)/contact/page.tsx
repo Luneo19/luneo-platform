@@ -9,47 +9,40 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
-
-const contactInfo = [
-  {
-    icon: <Mail className="w-6 h-6" />,
-    title: 'Email',
-    details: 'contact@luneo.app',
-    description: 'Réponse sous 24h',
-    color: 'blue' as const
-  },
-  {
-    icon: <Phone className="w-6 h-6" />,
-    title: 'Téléphone',
-    details: '+33 1 23 45 67 89',
-    description: 'Lun-Ven 9h-18h',
-    color: 'green' as const
-  },
-  {
-    icon: <MapPin className="w-6 h-6" />,
-    title: 'Adresse',
-    details: 'Paris, France',
-    description: 'Bureau principal',
-    color: 'purple' as const
-  }
-];
-
-const faqs = [
-  {
-    question: 'Comment puis-je commencer avec Luneo ?',
-    answer: 'Créez simplement un compte gratuit sur notre plateforme et commencez à créer vos premiers designs en quelques minutes.'
-  },
-  {
-    question: 'Quels types de designs puis-je créer ?',
-    answer: 'Vous pouvez créer des logos, bannières, cartes de visite, posts pour réseaux sociaux, et bien plus encore.'
-  },
-  {
-    question: 'Y a-t-il une limite sur le plan gratuit ?',
-    answer: 'Le plan gratuit vous permet de créer 10 designs par mois avec accès aux templates de base.'
-  }
-];
+import { useI18n } from '@/i18n/useI18n';
 
 function ContactPageContent() {
+  const { t } = useI18n();
+
+  const contactInfo = [
+    {
+      icon: <Mail className="w-6 h-6" />,
+      title: t('public.contact.contactInfo.supportEmail'),
+      details: 'support@luneo.app',
+      description: t('public.contact.contactInfo.response24h'),
+      color: 'blue' as const
+    },
+    {
+      icon: <Mail className="w-6 h-6" />,
+      title: t('public.contact.contactInfo.commercialEmail'),
+      details: 'contact@luneo.app',
+      description: t('public.contact.contactInfo.response24h'),
+      color: 'green' as const
+    },
+    {
+      icon: <MapPin className="w-6 h-6" />,
+      title: t('public.contact.contactInfo.location'),
+      details: 'Neuchâtel, Suisse',
+      description: t('public.contact.contactInfo.mainOffice'),
+      color: 'purple' as const
+    }
+  ];
+
+  const faqs = [
+    { question: t('public.contact.faq.q1'), answer: t('public.contact.faq.a1') },
+    { question: t('public.contact.faq.q2'), answer: t('public.contact.faq.a2') },
+    { question: t('public.contact.faq.q3'), answer: t('public.contact.faq.a3') }
+  ];
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -75,7 +68,7 @@ function ContactPageContent() {
       } catch (captchaError) {
         // In development, continue without CAPTCHA if not configured
         if (process.env.NODE_ENV === 'production') {
-          setError('Vérification CAPTCHA requise. Veuillez réessayer.');
+          setError(t('public.contact.captchaRequired'));
           setIsSubmitting(false);
           return;
         }
@@ -88,7 +81,7 @@ function ContactPageContent() {
       });
 
       if (!data.success) {
-        throw new Error(data.error || data.message || 'Erreur lors de l\'envoi');
+        throw new Error(data.error || data.message || t('public.contact.error'));
       }
 
       setIsSubmitted(true);
@@ -96,13 +89,13 @@ function ContactPageContent() {
       
       setTimeout(() => setIsSubmitted(false), 5000);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
+      const errorMessage = err instanceof Error ? err.message : t('common.somethingWentWrong');
       logger.error('Contact form error', { error: err, formData: { ...formData, message: '[REDACTED]' } });
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData]);
+  }, [formData, t]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -112,9 +105,9 @@ function ContactPageContent() {
   return (
     <>
       <PageHero
-        title="Contactez-nous"
-        description="Nous sommes là pour vous aider. N'hésitez pas à nous contacter pour toute question ou pour discuter de vos besoins en design."
-        badge="Contact"
+        title={t('public.contact.title')}
+        description={t('public.contact.description')}
+        badge={t('public.contact.badge')}
         gradient="from-blue-600 via-purple-600 to-pink-600"
       />
 
@@ -122,61 +115,61 @@ function ContactPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Form */}
           <Card className="p-5 sm:p-8 bg-dark-card/60 border-white/[0.04]">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">Envoyez-nous un message</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">{t('public.contact.sendMessage')}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Nom</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t('public.contact.name')}</label>
                   <Input
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Votre nom"
+                    placeholder={t('public.contact.namePlaceholder')}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t('public.contact.email')}</label>
                   <Input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="votre@email.com"
+                    placeholder={t('public.contact.emailPlaceholder')}
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Entreprise (optionnel)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t('public.contact.companyOptional')}</label>
                 <Input
                   name="company"
                   value={formData.company}
                   onChange={handleChange}
-                  placeholder="Nom de votre entreprise"
+                  placeholder={t('public.contact.companyPlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Sujet</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t('public.contact.subject')}</label>
                 <Input
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  placeholder="Sujet de votre message"
+                  placeholder={t('public.contact.subjectPlaceholder')}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Message</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t('public.contact.message')}</label>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
-                  placeholder="Décrivez votre projet ou votre question..."
+                  placeholder={t('public.contact.messagePlaceholderProject')}
                   rows={6}
                   required
                   className="w-full px-3 py-2 border border-dark-border bg-dark-surface text-white placeholder:text-slate-600 rounded-lg focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20 resize-none"
@@ -194,8 +187,8 @@ function ContactPageContent() {
                 <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-green-300">Message envoye avec succes !</p>
-                    <p className="text-xs text-green-400 mt-1">Nous vous repondrons sous 24h.</p>
+                    <p className="text-sm font-medium text-green-300">{t('public.contact.successMessage')}</p>
+                    <p className="text-xs text-green-400 mt-1">{t('public.contact.successDesc')}</p>
                   </div>
                 </div>
               )}
@@ -208,17 +201,17 @@ function ContactPageContent() {
                 {isSubmitting ? (
                   <span className="flex items-center justify-center">
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Envoi en cours...
+                    {t('public.contact.sending')}
                   </span>
                 ) : isSubmitted ? (
                   <span className="flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Message envoyé !
+                    {t('public.contact.success')}
                   </span>
                 ) : (
                   <span className="flex items-center justify-center">
                     <Send className="w-5 h-5 mr-2" />
-                    Envoyer le message
+                    {t('public.contact.sendMessage')}
                   </span>
                 )}
               </Button>
@@ -242,7 +235,7 @@ function ContactPageContent() {
             <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-white/[0.04]">
               <h3 className="font-bold mb-4 flex items-center text-white">
                 <MessageSquare className="w-5 h-5 mr-2" />
-                Questions fréquentes
+                {t('public.contact.faqTitle')}
               </h3>
               <div className="space-y-3">
                 {faqs.map((faq, i) => (
@@ -250,7 +243,7 @@ function ContactPageContent() {
                     <summary className="cursor-pointer text-sm font-medium text-slate-300 hover:text-purple-400 transition-colors">
                       {faq.question}
                     </summary>
-                    <p className="mt-2 text-xs text-slate-500 pl-4">{faq.answer}</p>
+                    <p className="mt-2 text-xs text-slate-300 pl-4">{faq.answer}</p>
                   </details>
                 ))}
               </div>

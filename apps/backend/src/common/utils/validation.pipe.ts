@@ -1,7 +1,8 @@
 import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';
 import { validate, ValidationError } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import * as sanitizeHtml from 'sanitize-html';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const sanitizeHtml = require('sanitize-html') as (html: string, options?: { allowedTags?: string[] }) => string;
 import xss from 'xss';
 import { JsonValue } from '../types/utility-types';
 

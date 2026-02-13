@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Save } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { formatNumber, formatPrice } from '@/lib/utils/formatters';
 import type { CreditPack } from './types';
 
@@ -32,18 +33,19 @@ export function CreditsSettingsTab({
   creditPacks,
   onSaveAutoRefill,
 }: CreditsSettingsTabProps) {
+  const { t } = useI18n();
   return (
     <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-gray-900">Paramètres de crédits</CardTitle>
-        <CardDescription className="text-gray-600">Configurez vos préférences de crédits</CardDescription>
+        <CardTitle className="text-gray-900">{t('credits.settingsTitle')}</CardTitle>
+        <CardDescription className="text-gray-600">{t('credits.settingsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Recharge automatique</h3>
-              <p className="text-sm text-gray-600">Rechargez automatiquement vos crédits quand le solde est faible</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('credits.autoRefillLabel')}</h3>
+              <p className="text-sm text-gray-600">{t('credits.autoRefillDesc')}</p>
             </div>
             <Checkbox checked={autoRefillEnabled} onCheckedChange={(checked) => setAutoRefillEnabled(checked === true)} id="auto-refill" />
           </div>
@@ -51,20 +53,20 @@ export function CreditsSettingsTab({
             <div className="p-4 bg-gray-50 rounded-lg space-y-4">
               <div>
                 <Label htmlFor="threshold" className="text-gray-700 mb-2 block">
-                  Seuil de recharge ({autoRefillThreshold} crédits)
+                  {t('credits.thresholdLabel', { count: autoRefillThreshold })}
                 </Label>
                 <Slider id="threshold" value={[autoRefillThreshold]} onValueChange={(value) => setAutoRefillThreshold(value[0])} min={10} max={500} step={10} className="w-full" />
               </div>
               <div>
-                <Label htmlFor="pack" className="text-gray-700 mb-2 block">Pack à acheter</Label>
+                <Label htmlFor="pack" className="text-gray-700 mb-2 block">{t('credits.packToBuy')}</Label>
                 <Select value={autoRefillPack || ''} onValueChange={(v) => setAutoRefillPack(v || null)}>
                   <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Sélectionner un pack" />
+                    <SelectValue placeholder={t('credits.selectPack')} />
                   </SelectTrigger>
                   <SelectContent>
                     {creditPacks.map((pack) => (
                       <SelectItem key={pack.id} value={pack.id}>
-                        {pack.name} - {formatNumber(pack.credits)} crédits ({formatPrice(pack.price)})
+                        {t('credits.packCreditsPrice', { name: pack.name, credits: formatNumber(pack.credits), price: formatPrice(pack.price) })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -72,26 +74,26 @@ export function CreditsSettingsTab({
               </div>
               <Button onClick={onSaveAutoRefill} className="w-full bg-cyan-600 hover:bg-cyan-700">
                 <Save className="w-4 h-4 mr-2" />
-                Enregistrer
+                {t('credits.save')}
               </Button>
             </div>
           )}
         </div>
         <Separator className="bg-gray-200" />
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Alertes</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('credits.alerts')}</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-900">Alerte solde faible</p>
-                <p className="text-xs text-gray-600">Notifier quand le solde est inférieur à 50 crédits</p>
+                <p className="text-sm font-medium text-gray-900">{t('credits.lowBalanceAlert')}</p>
+                <p className="text-xs text-gray-600">{t('credits.lowBalanceAlertDesc')}</p>
               </div>
               <Checkbox defaultChecked id="low-balance-alert" />
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-900">Alerte expiration</p>
-                <p className="text-xs text-gray-600">Notifier avant expiration des crédits</p>
+                <p className="text-sm font-medium text-gray-900">{t('credits.expirationAlert')}</p>
+                <p className="text-xs text-gray-600">{t('credits.expirationAlertDesc')}</p>
               </div>
               <Checkbox defaultChecked id="expiration-alert" />
             </div>

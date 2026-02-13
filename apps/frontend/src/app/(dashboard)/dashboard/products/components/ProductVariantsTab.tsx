@@ -33,6 +33,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { endpoints } from '@/lib/api/client';
 
 export interface Variant {
@@ -59,6 +60,7 @@ function getStockIndicator(stock: number, threshold: number) {
 }
 
 export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,15 +102,15 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       );
     } catch {
       toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les variantes.',
+        title: t('common.error'),
+        description: t('common.somethingWentWrong'),
         variant: 'destructive',
       });
       setVariants([]);
     } finally {
       setLoading(false);
     }
-  }, [productId, toast]);
+  }, [productId, toast, t]);
 
   useEffect(() => {
     fetchVariants();
@@ -122,7 +124,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       if (k && v) attrs[k] = v;
     });
     if (!newName.trim()) {
-      toast({ title: 'Nom requis', variant: 'destructive' });
+      toast({ title: t('products.variantNameRequired'), variant: 'destructive' });
       return;
     }
     setAdding(true);
@@ -134,7 +136,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
         price: newPrice ? parseFloat(newPrice) : undefined,
         stock: parseInt(newStock, 10) || 0,
       });
-      toast({ title: 'Variante ajoutée' });
+      toast({ title: t('products.variantAdded') });
       setAddModalOpen(false);
       setNewName('');
       setNewSku('');
@@ -144,8 +146,8 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       fetchVariants();
     } catch {
       toast({
-        title: 'Erreur',
-        description: 'Impossible d’ajouter la variante.',
+        title: t('common.error'),
+        description: t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -158,13 +160,13 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
     setDeleting(true);
     try {
       await endpoints.products.variants.delete(productId, deleteTarget.id);
-      toast({ title: 'Variante supprimée' });
+      toast({ title: t('products.variantDeleted') });
       setDeleteTarget(null);
       fetchVariants();
     } catch {
       toast({
-        title: 'Erreur',
-        description: 'Impossible de supprimer la variante.',
+        title: t('common.error'),
+        description: t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -185,8 +187,8 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
     }
     if (Object.keys(attributeOptions).length === 0) {
       toast({
-        title: 'Saisie requise',
-        description: 'Renseignez au moins un type et des valeurs (séparées par des virgules).',
+        title: t('common.required'),
+        description: t('errors.validation'),
         variant: 'destructive',
       });
       return;
@@ -198,12 +200,12 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
         basePrice: basePrice ? parseFloat(basePrice) : undefined,
         baseStock: baseStock ? parseInt(baseStock, 10) : undefined,
       });
-      toast({ title: 'Variantes générées', description: 'La matrice a été créée.' });
+      toast({ title: t('common.success'), description: t('common.success') });
       fetchVariants();
     } catch {
       toast({
-        title: 'Erreur',
-        description: 'Impossible de générer les variantes.',
+        title: t('common.error'),
+        description: t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -220,7 +222,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
     if (editingStockId == null) return;
     const value = parseInt(editingStockValue, 10);
     if (Number.isNaN(value) || value < 0) {
-      toast({ title: 'Stock invalide', variant: 'destructive' });
+      toast({ title: t('common.error'), variant: 'destructive' });
       return;
     }
     setSavingStock(true);
@@ -231,11 +233,11 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       );
       setEditingStockId(null);
       setEditingStockValue('');
-      toast({ title: 'Stock mis à jour' });
+      toast({ title: t('common.success') });
     } catch {
       toast({
-        title: 'Erreur',
-        description: 'Impossible de mettre à jour le stock.',
+        title: t('common.error'),
+        description: t('common.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -257,7 +259,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2 text-base">
             <Package className="h-4 w-4" />
-            Variantes
+            {t('products.variants')}
           </CardTitle>
           <Button
             type="button"
@@ -266,7 +268,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
             className="bg-cyan-600 hover:bg-cyan-700"
           >
             <Plus className="h-4 w-4 mr-1" />
-            Ajouter une variante
+            {t('products.addVariant')}
           </Button>
         </CardHeader>
         <CardContent>
@@ -276,19 +278,19 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
             </div>
           ) : variants.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">
-              Aucune variante. Ajoutez-en une ou utilisez le générateur de matrice ci-dessous.
+              {t('products.noVariants')}
             </p>
           ) : (
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nom</TableHead>
+                    <TableHead>{t('products.name')}</TableHead>
                     <TableHead>SKU</TableHead>
                     <TableHead>Attributs</TableHead>
-                    <TableHead>Prix</TableHead>
+                    <TableHead>{t('products.price')}</TableHead>
                     <TableHead>Stock</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
+                    <TableHead className="w-[80px]">{t('products.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -436,10 +438,10 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
           <div className="flex flex-wrap gap-4 items-center">
             <Button type="button" variant="outline" size="sm" onClick={addMatrixRow}>
               <Plus className="h-4 w-4 mr-1" />
-              Ajouter un type
+              {t('products.addType')}
             </Button>
             <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">Prix de base</Label>
+              <Label className="text-sm whitespace-nowrap">{t('products.basePrice')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -450,7 +452,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">Stock de base</Label>
+              <Label className="text-sm whitespace-nowrap">{t('products.baseStock')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -470,7 +472,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               ) : (
                 <Grid3X3 className="h-4 w-4 mr-2" />
               )}
-              Générer
+              {t('products.generate')}
             </Button>
           </div>
         </CardContent>
@@ -480,14 +482,14 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent className="max-w-md bg-white border-gray-200 text-gray-900">
           <DialogHeader>
-            <DialogTitle>Ajouter une variante</DialogTitle>
+            <DialogTitle>{t('products.addVariant')}</DialogTitle>
             <DialogDescription>
               Renseignez le nom et les attributs. Optionnel : SKU, prix, stock.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddVariant} className="space-y-4">
             <div>
-              <Label>Nom *</Label>
+              <Label>{t('products.name')} *</Label>
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -505,7 +507,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               />
             </div>
             <div>
-              <Label>Attributs (clé: valeur, séparés par des virgules)</Label>
+              <Label>{t('products.attributesKeyValue')}</Label>
               <Input
                 value={newAttributes}
                 onChange={(e) => setNewAttributes(e.target.value)}
@@ -538,11 +540,11 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAddModalOpen(false)}>
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={adding} className="bg-cyan-600 hover:bg-cyan-700">
                 {adding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Ajouter
+                {t('products.add')}
               </Button>
             </DialogFooter>
           </form>
@@ -553,15 +555,14 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm bg-white border-gray-200 text-gray-900">
           <DialogHeader>
-            <DialogTitle>Supprimer la variante</DialogTitle>
+            <DialogTitle>{t('products.deleteVariantTitle')}</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer la variante « {deleteTarget?.name} » ? Cette
-              action est irréversible.
+              {t('products.deleteVariantConfirm', { name: deleteTarget?.name ?? '' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -569,7 +570,7 @@ export function ProductVariantsTab({ productId }: ProductVariantsTabProps) {
               disabled={deleting}
             >
               {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Supprimer
+              {t('products.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

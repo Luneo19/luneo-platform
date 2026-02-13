@@ -42,7 +42,7 @@ export interface CustomerActivity {
   id: string;
   type: string;
   action: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date | string;
 }
 

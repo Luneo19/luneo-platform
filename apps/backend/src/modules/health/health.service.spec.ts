@@ -77,7 +77,7 @@ describe('HealthService', () => {
 
       expect(result.status).toBe('unavailable');
       expect(result.dependencies.database.status).toBe('unavailable');
-      expect(result.dependencies.database.message).toContain('Connection refused');
+      expect(result.dependencies.database.message).toContain('Service unavailable');
     });
 
     it('should return degraded when Redis fails', async () => {

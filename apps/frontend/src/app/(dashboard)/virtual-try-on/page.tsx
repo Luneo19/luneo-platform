@@ -34,6 +34,8 @@ import {
   ToggleRight,
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 import { logger } from '@/lib/logger';
 import { drawGlassesOverlay, drawWatchOverlay, clearCanvas } from '@/lib/utils/overlay-renderer';
 import { FaceMesh } from '@mediapipe/face_mesh';
@@ -49,6 +51,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { endpoints } from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
 
 type ProductCategory = 'glasses' | 'watch' | 'jewelry';
 
@@ -84,6 +87,8 @@ interface TryOnAnalytics {
   avgSessionDurationSeconds: number;
   sessionsOverTime: { date: string; count: number }[];
   topProducts: { name: string; count: number }[];
+  conversionRate?: number;
+  categoryBreakdown?: unknown[];
 }
 
 const AVAILABLE_MODELS: Record<ProductCategory, Model[]> = {
@@ -161,8 +166,8 @@ function TryOnTab({
             const pts = results.multiFaceLandmarks[0].map((l: { x: number; y: number }) => ({ x: l.x * w, y: l.y * h }));
             if (pts.length >= 468) drawGlassesOverlay(ctx, pts, { color: '#06b6d4', lineWidth: 6, fill: true, fillOpacity: 0.25 });
             setIsTracking(true);
-          } else if (results.multiHandLandmarks?.[0] && (selectedCategory === 'watch' || selectedCategory === 'jewelry')) {
-            const landmarks = results.multiHandLandmarks[0];
+          } else if ((results as unknown as { multiHandLandmarks?: { x: number; y: number }[][] }).multiHandLandmarks?.[0] && (selectedCategory === 'watch' || selectedCategory === 'jewelry')) {
+            const landmarks = (results as unknown as { multiHandLandmarks: { x: number; y: number }[][] }).multiHandLandmarks[0];
             const wristPoints = [{ x: landmarks[0].x * w, y: landmarks[0].y * h }];
             drawWatchOverlay(ctx, wristPoints, { color: '#3B82F6', lineWidth: 4, fill: true, fillOpacity: 0.2 });
             setIsTracking(true);
@@ -485,6 +490,7 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
 }
 
 function CapturesTab({ screenshots, onRemove }: { screenshots: TryOnScreenshot[]; onRemove: (id: string) => void }) {
+  const { t } = useI18n();
   const [preview, setPreview] = useState<string | null>(null);
 
   if (screenshots.length === 0) {
@@ -510,11 +516,12 @@ function CapturesTab({ screenshots, onRemove }: { screenshots: TryOnScreenshot[]
         const res = await fetch(s.dataUrl);
         const blob = await res.blob();
         const file = new File([blob], `capture-${s.timestamp}.png`, { type: 'image/png' });
-        await navigator.share({ title: 'Luneo Try-On', files: [file] });
+        await navigator.share({ title: t('virtualTryOn.shareTitle'), files: [file] });
       } else {
         handleDownload(s);
       }
-    } catch (_) {
+    } catch (err) {
+      logger.error('Try-on share failed', { error: err });
       handleDownload(s);
     }
   };
@@ -553,6 +560,7 @@ function CapturesTab({ screenshots, onRemove }: { screenshots: TryOnScreenshot[]
 }
 
 function AnalyticsTab() {
+  const { t } = useI18n();
   const [data, setData] = useState<TryOnAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -572,7 +580,7 @@ function AnalyticsTab() {
             screenshotsTaken: raw.totalScreenshots ?? raw.screenshotsTaken ?? 0,
             avgSessionDurationSeconds: raw.avgSessionDuration ?? raw.avgSessionDurationSeconds ?? 0,
             sessionsOverTime: raw.sessionsOverTime ?? [],
-            topProducts: (raw.topProducts ?? []).map((p: any) => ({
+            topProducts: (raw.topProducts ?? []).map((p: { productName?: string; name?: string; tryCount?: number; count?: number }) => ({
               name: p.productName ?? p.name ?? 'Unknown',
               count: p.tryCount ?? p.count ?? 0,
             })),
@@ -592,7 +600,7 @@ function AnalyticsTab() {
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Erreur');
+          setError(e instanceof Error ? e.message : t('common.error'));
           setData(null);
         }
       } finally {
@@ -635,7 +643,7 @@ function AnalyticsTab() {
     return (
       <Card className="p-6 bg-gray-800/50 border-gray-700">
         <AlertCircle className="w-10 h-10 text-amber-400 mb-3" />
-        <p className="text-white font-medium mb-1">Erreur</p>
+        <p className="text-white font-medium mb-1">{t('common.error')}</p>
         <p className="text-sm text-gray-400">{error}</p>
       </Card>
     );
@@ -654,24 +662,24 @@ function AnalyticsTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 bg-gray-800/50 border-gray-700">
-          <p className="text-sm text-gray-400 mb-1">Sessions totales</p>
+          <p className="text-sm text-gray-400 mb-1">{t('virtualTryOn.totalSessions')}</p>
           <p className="text-2xl font-bold text-white">{stats.totalSessions}</p>
         </Card>
         <Card className="p-4 bg-gray-800/50 border-gray-700">
-          <p className="text-sm text-gray-400 mb-1">Produits essayés</p>
+          <p className="text-sm text-gray-400 mb-1">{t('virtualTryOn.productsTried')}</p>
           <p className="text-2xl font-bold text-white">{stats.productsTried}</p>
         </Card>
         <Card className="p-4 bg-gray-800/50 border-gray-700">
-          <p className="text-sm text-gray-400 mb-1">Captures</p>
+          <p className="text-sm text-gray-400 mb-1">{t('virtualTryOn.screenshots')}</p>
           <p className="text-2xl font-bold text-white">{stats.screenshotsTaken}</p>
         </Card>
         <Card className="p-4 bg-gray-800/50 border-gray-700">
-          <p className="text-sm text-gray-400 mb-1">Durée moy. session</p>
+          <p className="text-sm text-gray-400 mb-1">{t('virtualTryOn.avgSessionDuration')}</p>
           <p className="text-2xl font-bold text-white">{stats.avgSessionDurationSeconds ? `${Math.round(stats.avgSessionDurationSeconds)}s` : '—'}</p>
         </Card>
       </div>
       <Card className="p-6 bg-gray-800/50 border-gray-700">
-        <h3 className="font-semibold text-white mb-4">Sessions dans le temps</h3>
+        <h3 className="font-semibold text-white mb-4">{t('virtualTryOn.sessionsOverTime')}</h3>
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
             <defs>
@@ -690,7 +698,7 @@ function AnalyticsTab() {
       </Card>
       {stats.topProducts?.length > 0 && (
         <Card className="p-6 bg-gray-800/50 border-gray-700">
-          <h3 className="font-semibold text-white mb-4">Produits les plus essayés</h3>
+          <h3 className="font-semibold text-white mb-4">{t('virtualTryOn.topProductsTried')}</h3>
           <ul className="space-y-2">
             {stats.topProducts.slice(0, 10).map((item, i) => (
               <li key={i} className="flex justify-between text-sm">
@@ -783,7 +791,21 @@ const MemoizedContent = memo(VirtualTryOnPageContent);
 export default function VirtualTryOnPage() {
   return (
     <ErrorBoundary level="page" componentName="VirtualTryOnPage">
-      <MemoizedContent />
+      <PlanGate
+        minimumPlan="professional"
+        showUpgradePrompt
+        fallback={
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <UpgradePrompt
+              requiredPlan="professional"
+              feature="Virtual Try-On"
+              description="Le Virtual Try-On est disponible à partir du plan Professional."
+            />
+          </div>
+        }
+      >
+        <MemoizedContent />
+      </PlanGate>
     </ErrorBoundary>
   );
 }

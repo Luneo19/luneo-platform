@@ -39,10 +39,12 @@ import { randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
 import { CurrentUser } from '@/common/types/user.types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
+import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { ShopifyService } from './shopify.service';
 
 // ============================================================================
@@ -60,12 +62,18 @@ const OAuthCallbackSchema = z.object({
   hmac: z.string().optional(),
 });
 
+const InstallQuerySchema = z.object({
+  shop: z.string().min(1),
+});
+
+
 // ============================================================================
 // CONTROLLER
 // ============================================================================
 
 @ApiTags('Integrations - Shopify')
 @Controller('integrations/shopify')
+@UseGuards(JwtAuthGuard)
 export class ShopifyController {
   private readonly logger = new Logger(ShopifyController.name);
   private readonly frontendUrl: string;
@@ -75,13 +83,23 @@ export class ShopifyController {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly encryptionService: EncryptionService,
+    private readonly cache: SmartCacheService,
   ) {
     this.frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
   }
 
-  /**
-   * Initie le flow OAuth Shopify
-   */
+  /** Start Shopify OAuth - GET /integrations/shopify/install?shop=mystore */
+  @Get('install')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Start Shopify OAuth (install)' })
+  async install(@Query() query: unknown, @CurrentBrand() brand: { id: string } | null, @Res() res: Response) {
+    if (!brand) throw new BadRequestException('Brand not found');
+    const { shop } = InstallQuerySchema.parse(query);
+    const { authUrl } = await this.shopifyService.initiateOAuth(brand.id, shop);
+    res.redirect(authUrl);
+  }
+  /** Initie le flow OAuth Shopify */
   @Get('auth')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -116,9 +134,9 @@ export class ShopifyController {
     res.redirect(authUrl);
   }
 
-  /**
-   * Callback OAuth Shopify
-   */
+  /** Callback OAuth Shopify */
+  @Public()
+
   @Get('callback')
   @ApiOperation({ summary: 'Callback OAuth Shopify' })
   async handleOAuthCallback(
@@ -128,9 +146,17 @@ export class ShopifyController {
     try {
       const { code, shop, state } = OAuthCallbackSchema.parse(query);
 
-      // Verify OAuth state to prevent CSRF attacks
+      // Resolve brandId from cache (install flow) or OAuthState table
       let brandId: string | null = null;
-      try {
+      const statePayload = await this.cache.getSimple<string>(`shopify_oauth_state:${state}`);
+      if (statePayload) {
+        try {
+          const data = JSON.parse(statePayload) as { brandId?: string };
+          brandId = data.brandId ?? null;
+          await this.cache.delSimple(`shopify_oauth_state:${state}`);
+        } catch {}
+      }
+      if (!brandId) try {
         const oauthState = await this.prisma.$queryRaw<Array<{ brand_id: string }>>`
           SELECT brand_id FROM "OAuthState"
           WHERE state = ${state} AND shop_domain = ${shop} AND expires_at > NOW()
@@ -203,13 +229,15 @@ export class ShopifyController {
       await this.shopifyService.registerWebhooks(shop, accessToken, callbackUrl);
 
       // Rediriger vers le dashboard
-      res.redirect(`${this.frontendUrl}/dashboard/integrations?success=shopify`);
+      res.redirect(`${this.frontendUrl}/dashboard/integrations-dashboard?success=shopify`);
     } catch (error) {
       this.logger.error('OAuth callback failed:', error);
-      res.redirect(`${this.frontendUrl}/dashboard/integrations?error=shopify`);
+      res.redirect(`${this.frontendUrl}/dashboard/integrations-dashboard?error=shopify`);
     }
   }
 
+  /** @Public: Shopify webhooks; verified by HMAC in handler */
+  @Public()
   /**
    * Reçoit les webhooks Shopify
    */
@@ -247,67 +275,61 @@ export class ShopifyController {
 
     this.logger.log(`Received Shopify webhook: ${topic} from ${shopDomain}`);
 
-    // Traiter selon le topic
-    const payload = JSON.parse(rawBody);
-
-    const brandId = integration.brandId;
-    let accessToken = integration.accessToken ?? '';
-    try {
-      accessToken = this.encryptionService.decrypt(accessToken);
-    } catch {
-      // Legacy unencrypted token
-    }
-
-    switch (topic) {
-      case 'orders/create':
-        await this.shopifyService.processOrderWebhook(brandId, payload);
-        break;
-
-      case 'orders/updated':
-        await this.shopifyService.processOrderUpdated(brandId, payload).catch((err) =>
-          this.logger.warn('Order updated sync failed', err),
-        );
-        break;
-
-      case 'products/create':
-      case 'products/update': {
-        const productId = payload?.id;
-        if (productId != null && accessToken && integration.shopDomain) {
-          const id = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
-          if (!Number.isNaN(id)) {
-            await this.shopifyService
-              .syncProductUpdate(brandId, integration.shopDomain, accessToken, id)
-              .catch((err) => this.logger.warn('Product sync failed', err));
-          }
-        }
-        break;
-      }
-
-      case 'products/delete': {
-        const productId = payload?.id;
-        if (productId != null) {
-          const id = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
-          if (!Number.isNaN(id)) {
-            await this.shopifyService.processProductDelete(brandId, id).catch((err) =>
-              this.logger.warn('Product delete sync failed', err),
-            );
-          }
-        }
-        break;
-      }
-
-      case 'app/uninstalled':
-        await this.prisma.ecommerceIntegration.update({
-          where: { id: integration.id },
-          data: { status: 'inactive' },
-        });
-        break;
-
-      default:
-        this.logger.log(`Unhandled webhook topic: ${topic}`);
-    }
+    await this.shopifyService.handleWebhook(topic, shopDomain, rawBody);
 
     return { received: true };
+  }
+
+    /**
+   * Get connection status - GET /integrations/shopify/status
+   */
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Shopify connection status' })
+  async getStatus(@CurrentBrand() brand: { id: string } | null) {
+    if (!brand) throw new BadRequestException('Brand not found');
+    return this.shopifyService.getConnectionStatus(brand.id);
+  }
+
+  /**
+   * Trigger product sync - POST /integrations/shopify/sync/products
+   */
+  @Post('sync/products')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Trigger product sync' })
+  async syncProducts(@CurrentBrand() brand: { id: string } | null) {
+    if (!brand) throw new BadRequestException('Brand not found');
+    return this.shopifyService.syncProducts(brand.id);
+  }
+
+  /**
+   * Trigger order sync - POST /integrations/shopify/sync/orders
+   */
+  @Post('sync/orders')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Trigger order sync' })
+  async syncOrders(@CurrentBrand() brand: { id: string } | null) {
+    if (!brand) throw new BadRequestException('Brand not found');
+    return this.shopifyService.syncOrders(brand.id);
+  }
+
+  /**
+   * Disconnect Shopify - DELETE /integrations/shopify/disconnect
+   */
+  @Delete('disconnect')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Disconnect Shopify integration' })
+  async disconnect(@CurrentBrand() brand: { id: string } | null) {
+    if (!brand) throw new BadRequestException('Brand not found');
+    await this.shopifyService.disconnect(brand.id);
+    return { success: true };
   }
 
   /**
@@ -325,6 +347,7 @@ export class ShopifyController {
   }
 
   /**
+  @Public()
    * Sync a single Luneo product to Shopify (create or update)
    */
   @Post('sync/product/:productId')
@@ -353,6 +376,7 @@ export class ShopifyController {
   }
 
   /**
+  @Public()
    * Delete a product from Shopify (when deleted in Luneo). externalId = Shopify product id.
    */
   @Delete('product/:externalId')
@@ -381,6 +405,7 @@ export class ShopifyController {
   }
 
   /**
+  @Public()
    * Lance une synchronisation manuelle
    */
   @Post('sync')

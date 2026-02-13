@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
-import { 
-  Eye, 
-  EyeOff, 
-  Mail, 
-  Lock, 
-  User, 
-  ArrowRight, 
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
   Loader2,
   Building,
   AlertCircle,
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -71,7 +72,12 @@ interface PasswordStrength {
   };
 }
 
-const checkPasswordStrength = (password: string): PasswordStrength => {
+const STRENGTH_KEYS = ['veryWeak', 'weak', 'medium', 'strong', 'veryStrong'] as const;
+
+const checkPasswordStrength = (
+  password: string,
+  t: (key: string) => string
+): PasswordStrength => {
   const requirements = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -81,19 +87,21 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
   };
 
   const score = Object.values(requirements).filter(Boolean).length;
-
-  const labels = ['Très faible', 'Faible', 'Moyen', 'Fort', 'Très fort'];
+  const idx = Math.min(score, 4);
   const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-400', 'bg-green-500'];
 
   return {
-    score: Math.min(score, 4),
-    label: labels[Math.min(score, 4)],
-    color: colors[Math.min(score, 4)],
+    score: idx,
+    label: t(`auth.register.passwordStrength.${STRENGTH_KEYS[idx]}`),
+    color: colors[idx],
     requirements,
   };
 };
 
 function RegisterPageContent() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,6 +109,7 @@ function RegisterPageContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [planFromUrl, setPlanFromUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -108,12 +117,21 @@ function RegisterPageContent() {
     password: '',
     confirmPassword: '',
   });
-  const router = useRouter();
+
+  // Plan preselection from URL params (?plan=xxx)
+  // Referral code from URL params (?ref=xxx)
+  const [referralCode, setReferralCode] = useState('');
+  useEffect(() => {
+    const plan = searchParams.get('plan');
+    if (plan) setPlanFromUrl(plan);
+    const ref = searchParams.get('ref') || searchParams.get('referralCode');
+    if (ref) setReferralCode(ref);
+  }, [searchParams]);
 
   // Password strength
   const passwordStrength = useMemo(() => 
-    checkPasswordStrength(formData.password), 
-    [formData.password]
+    checkPasswordStrength(formData.password, t), 
+    [formData.password, t]
   );
 
   // Email validation
@@ -147,53 +165,50 @@ function RegisterPageContent() {
 
     // Validation
     if (!formData.fullName.trim()) {
-      setError('Veuillez entrer votre nom complet');
+      setError(t('auth.register.errors.fullNameRequired'));
       setIsLoading(false);
       return;
     }
 
     if (!isValidEmail(formData.email)) {
-      setError('Veuillez entrer une adresse email valide');
+      setError(t('auth.register.errors.invalidEmail'));
       setIsLoading(false);
       return;
     }
 
     if (passwordStrength.score < 2) {
-      setError('Veuillez choisir un mot de passe plus sécurisé');
+      setError(t('auth.register.errors.weakPassword'));
       setIsLoading(false);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError(t('auth.register.errors.passwordsMismatch'));
       setIsLoading(false);
       return;
     }
 
     if (!acceptedTerms) {
-      setError("Veuillez accepter les conditions d'utilisation");
+      setError(t('auth.register.errors.acceptTerms'));
       setIsLoading(false);
       return;
     }
 
     try {
-      const { endpoints } = await import('@/lib/api/client');
-      
       // Split fullName into firstName and lastName
       const nameParts = formData.fullName.trim().split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-        // Get CAPTCHA token
+        // Get CAPTCHA token (optional - continue without it if not configured)
         let captchaToken = '';
         try {
           const { executeRecaptcha } = await import('@/lib/captcha/recaptcha');
           captchaToken = await executeRecaptcha('register');
-        } catch (captchaError) {
-          // In development, continue without CAPTCHA if not configured
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error('CAPTCHA verification required');
-          }
+        } catch {
+          // CAPTCHA not configured or failed to load — proceed without it
+          // The backend will skip CAPTCHA verification if no token is provided
+          captchaToken = '';
         }
 
         // Use relative URL so the request goes through the Vercel proxy (same-origin).
@@ -208,6 +223,9 @@ function RegisterPageContent() {
             firstName,
             lastName,
             captchaToken,
+            ...(formData.company && { company: formData.company }),
+            ...(planFromUrl && { plan: planFromUrl }),
+            ...(referralCode && { referralCode }),
           }),
         });
 
@@ -220,9 +238,7 @@ function RegisterPageContent() {
 
       // Success: user in body; tokens are in httpOnly cookies (set by backend via Set-Cookie)
       if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user)); // Keep user data for UI
-        
-        setSuccess('Compte créé avec succès ! Verification de la session...');
+        setSuccess(t('auth.register.accountCreated'));
         
         // Small delay to let browser process Set-Cookie headers
         await new Promise(r => setTimeout(r, 300));
@@ -230,15 +246,21 @@ function RegisterPageContent() {
         try {
           const verifyResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
           if (verifyResp.ok) {
-            setSuccess('Session verifiee ! Redirection...');
+            setSuccess(t('auth.register.sessionVerified'));
           }
         } catch {
           // Verification failed silently — continue with navigation
         }
-        
-        window.location.href = '/overview';
+
+        // If a paid plan was selected, redirect to onboarding first, then billing
+        // For free plan or no plan, just go to onboarding
+        const isPaidPlan = planFromUrl && planFromUrl !== 'free';
+        const redirectTo = isPaidPlan
+          ? `/onboarding?plan=${encodeURIComponent(planFromUrl)}`
+          : '/onboarding';
+        window.location.href = redirectTo;
       } else {
-        setError('Réponse invalide du serveur');
+        setError(t('auth.register.errors.invalidResponse'));
       }
     } catch (err: unknown) {
       logger.error('Registration error', {
@@ -250,17 +272,17 @@ function RegisterPageContent() {
       // Handle specific error messages
       if (err instanceof Error) {
         if (err.message.includes('already exists') || err.message.includes('409')) {
-          setError('Un compte existe déjà avec cette adresse email. Essayez de vous connecter.');
+          setError(t('auth.register.errors.emailExists'));
         } else {
-          setError(err.message || "Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+          setError(err.message || t('auth.register.errors.generic'));
         }
       } else {
-        setError("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+        setError(t('auth.register.errors.generic'));
       }
     } finally {
       setIsLoading(false);
     }
-  }, [formData, passwordStrength.score, acceptedTerms, router]);
+  }, [formData, passwordStrength.score, acceptedTerms, planFromUrl]);
 
   // OAuth register - ✅ Migré vers NestJS backend
   const handleOAuthRegister = useCallback(async (provider: 'google' | 'github') => {
@@ -280,7 +302,7 @@ function RegisterPageContent() {
         provider,
         message: err instanceof Error ? err.message : 'Unknown error',
       });
-      setError(`Erreur d'inscription ${provider}. Veuillez réessayer.`);
+      setError(t('auth.register.oauthError'));
       setOauthLoading(null);
     }
   }, []);
@@ -301,12 +323,12 @@ function RegisterPageContent() {
         </FadeIn>
         <SlideUp delay={0.2}>
           <h1 data-testid="register-title" className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display">
-            Creer un compte
+            {t('auth.register.title')}
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
           <p className="text-slate-500">
-            Commencez gratuitement, sans engagement
+            {t('auth.register.subtitle')}
           </p>
         </FadeIn>
           </div>
@@ -328,7 +350,7 @@ function RegisterPageContent() {
             <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-green-600">{success}</p>
-              <p className="text-xs text-green-600/70 mt-1">Redirection vers la connexion...</p>
+              <p className="text-xs text-green-600/70 mt-1">{t('auth.register.redirecting')}</p>
             </div>
           </div>
         </FadeIn>
@@ -340,7 +362,7 @@ function RegisterPageContent() {
         <SlideUp delay={0.4}>
         <div className="space-y-2">
           <Label htmlFor="fullName" className="text-sm font-medium text-slate-300 block mb-1.5">
-            Nom complet <span className="text-red-400">*</span>
+            {t('auth.register.name')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
@@ -348,7 +370,7 @@ function RegisterPageContent() {
                   id="fullName"
                   data-testid="register-name"
                   type="text"
-                  placeholder="Jean Dupont"
+                  placeholder={t('auth.register.namePlaceholder')}
               className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -366,7 +388,7 @@ function RegisterPageContent() {
         <SlideUp delay={0.5}>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-300 block mb-1.5">
-            Email professionnel <span className="text-red-400">*</span>
+            {t('auth.register.email')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
@@ -374,7 +396,7 @@ function RegisterPageContent() {
                   id="email"
                   data-testid="register-email"
                   type="email"
-              placeholder="votre@entreprise.com"
+              placeholder={t('auth.register.emailPlaceholder')}
               className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -392,14 +414,14 @@ function RegisterPageContent() {
         <SlideUp delay={0.6}>
         <div className="space-y-2">
           <Label htmlFor="company" className="text-sm font-medium text-slate-300 block mb-1.5">
-            Entreprise <span className="text-gray-500">(optionnel)</span>
+            {t('auth.register.company')} <span className="text-gray-500">{t('auth.register.companyOptional')}</span>
               </Label>
           <div className="relative">
             <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
                 <Input
                   id="company"
                   type="text"
-                  placeholder="Votre entreprise"
+                  placeholder={t('auth.register.company')}
               className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
@@ -413,7 +435,7 @@ function RegisterPageContent() {
         <SlideUp delay={0.7}>
         <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-slate-300 block mb-1.5">
-            Mot de passe <span className="text-red-400">*</span>
+            {t('auth.register.password')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
@@ -421,8 +443,8 @@ function RegisterPageContent() {
                   id="password"
                   data-testid="register-password"
                   type={showPassword ? 'text' : 'password'}
-              placeholder="Créez un mot de passe sécurisé"
-              className="pl-10 pr-12 bg-white border-2 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 h-12 text-base"
+              placeholder={t('auth.register.passwordPlaceholder')}
+              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -469,17 +491,17 @@ function RegisterPageContent() {
               {/* Requirements checklist */}
               <div className="grid grid-cols-2 gap-1 text-xs">
                 {[
-                  { key: 'length', label: '8 caractères min.' },
-                  { key: 'uppercase', label: '1 majuscule' },
-                  { key: 'lowercase', label: '1 minuscule' },
-                  { key: 'number', label: '1 chiffre' },
-                ].map(({ key, label }) => (
+                  { key: 'length', labelKey: 'auth.register.requirements.minLength' },
+                  { key: 'uppercase', labelKey: 'auth.register.requirements.uppercase' },
+                  { key: 'lowercase', labelKey: 'auth.register.requirements.lowercase' },
+                  { key: 'number', labelKey: 'auth.register.requirements.number' },
+                ].map(({ key, labelKey }) => (
                   <div 
                     key={key} 
                     className={`flex items-center gap-1 ${
-                      passwordStrength.requirements[key as keyof typeof passwordStrength.requirements] 
-                        ? 'text-green-400' 
-                        : 'text-gray-500'
+                      passwordStrength.requirements[key as keyof typeof passwordStrength.requirements]
+                        ? 'text-green-400'
+                        : 'text-slate-500'
                     }`}
                   >
                     {passwordStrength.requirements[key as keyof typeof passwordStrength.requirements] ? (
@@ -487,7 +509,7 @@ function RegisterPageContent() {
                     ) : (
                       <X className="w-3 h-3" />
                     )}
-                    {label}
+                    {t(labelKey)}
                   </div>
                 ))}
               </div>
@@ -500,7 +522,7 @@ function RegisterPageContent() {
         <SlideUp delay={0.8}>
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300 block mb-1.5">
-            Confirmer le mot de passe <span className="text-red-400">*</span>
+            {t('auth.register.confirmPassword')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
@@ -508,7 +530,7 @@ function RegisterPageContent() {
                   id="confirmPassword"
                   data-testid="register-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="Confirmez votre mot de passe"
+              placeholder={t('auth.register.confirmPasswordPlaceholder')}
               className={`pl-10 pr-12 bg-dark-surface border text-white placeholder:text-slate-600 focus:ring-1 focus:ring-purple-500/20 h-12 text-base ${
                 formData.confirmPassword && !passwordsMatch 
                   ? 'border-red-500/50 focus:border-red-500/50' 
@@ -529,11 +551,11 @@ function RegisterPageContent() {
             </button>
               </div>
           {formData.confirmPassword && !passwordsMatch && (
-            <p className="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
+            <p className="text-xs text-red-400">{t('auth.register.passwordsDoNotMatch')}</p>
           )}
           {passwordsMatch && (
             <p className="text-xs text-green-400 flex items-center gap-1">
-              <Check className="w-3 h-3" /> Les mots de passe correspondent
+              <Check className="w-3 h-3" /> {t('auth.register.passwordsMatch')}
             </p>
           )}
             </div>
@@ -551,13 +573,13 @@ function RegisterPageContent() {
                 required
               />
           <Label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer leading-relaxed flex-1">
-            J&apos;accepte les{' '}
+            {t('auth.register.acceptPrefix')}
             <Link href="/legal/terms" className="text-purple-400 hover:text-purple-300 underline font-medium">
-              conditions d&apos;utilisation
-                </Link>{' '}
-                et la{' '}
+              {t('auth.register.termsAndPrivacy')}
+                </Link>
+            {t('auth.register.andThe')}
             <Link href="/legal/privacy" className="text-purple-400 hover:text-purple-300 underline font-medium">
-                  politique de confidentialité
+                  {t('auth.register.privacyPolicy')}
                 </Link>
               </Label>
             </div>
@@ -574,11 +596,11 @@ function RegisterPageContent() {
               {isLoading ? (
                 <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Création du compte...
+                  {t('auth.register.submitting')}
                 </>
               ) : (
                 <>
-              Créer mon compte gratuit
+              {t('auth.register.submit')}
               <ArrowRight className="w-5 h-5 ml-2" />
                 </>
               )}
@@ -593,7 +615,7 @@ function RegisterPageContent() {
           <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-dark-bg text-slate-600">ou s&apos;inscrire avec</span>
+          <span className="px-4 bg-dark-bg text-slate-600">{t('auth.register.orRegisterWith')}</span>
             </div>
           </div>
         </FadeIn>
@@ -605,7 +627,7 @@ function RegisterPageContent() {
               type="button"
               variant="outline"
               data-testid="register-oauth-google"
-              aria-label="S'inscrire avec Google"
+              aria-label={t('auth.register.signUpWithGoogle')}
           className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
@@ -624,7 +646,7 @@ function RegisterPageContent() {
               type="button"
               variant="outline"
               data-testid="register-oauth-github"
-              aria-label="S'inscrire avec GitHub"
+              aria-label={t('auth.register.signUpWithGithub')}
           className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
@@ -645,13 +667,13 @@ function RegisterPageContent() {
         <FadeIn delay={1.3}>
       <div className="mt-6 text-center">
         <p className="text-sm text-slate-500">
-              Vous avez deja un compte ?{' '}
+              {t('auth.register.hasAccount')}{' '}
           <Link
             href="/login"
             data-testid="register-switch-login"
             className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
           >
-                Se connecter
+                {t('auth.register.login')}
               </Link>
             </p>
           </div>
@@ -663,11 +685,11 @@ function RegisterPageContent() {
         <div className="flex items-center justify-center gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>Plan gratuit inclus</span>
+            <span>{t('auth.register.freePlanIncluded')}</span>
           </div>
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>Sans carte bancaire</span>
+            <span>{t('auth.register.noCreditCard')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Shield className="w-3 h-3 text-green-400" />

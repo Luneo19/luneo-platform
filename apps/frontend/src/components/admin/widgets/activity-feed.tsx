@@ -21,7 +21,7 @@ export interface ActivityItem {
   customerName?: string;
   customerEmail?: string;
   timestamp: Date | string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ActivityFeedProps {

@@ -135,7 +135,7 @@ export interface ShopifyLineItem {
   quantity: number;
   price: string;
   sku: string;
-  customizations?: Record<string, any>;
+  customizations?: Record<string, unknown>;
 }
 
 export interface ShopifyCustomer {
@@ -253,7 +253,7 @@ export interface SyncError {
   itemId: string;
   itemType: string;
   error: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // Webhook events
@@ -271,7 +271,7 @@ export interface WebhookPayload {
   event: WebhookEvent;
   platform: EcommercePlatform;
   integrationId: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: number;
 }
 

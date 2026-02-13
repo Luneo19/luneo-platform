@@ -15,15 +15,25 @@ class FetcherError extends Error {
   }
 }
 
-async function fetcher(url: string) {
+async function fetcher(url: string): Promise<Experiment[]> {
   const response = await fetch(url, { credentials: 'include' });
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
+    let info: unknown;
+    try {
+      info = await response.json();
+    } catch {
+      info = null;
+    }
     throw new FetcherError('An error occurred while fetching the data.', {
-      info: await response.json(),
+      info,
       status: response.status,
     });
   }
-  return response.json();
+  const data: unknown = await response.json();
+  return (Array.isArray(data) ? data : (data as { data?: Experiment[] })?.data ?? []) as Experiment[];
 }
 
 export interface Experiment {

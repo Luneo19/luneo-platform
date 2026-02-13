@@ -147,7 +147,7 @@ describe('Configurator3DService', () => {
 
       const result = await service.remove('cfg1', projectId);
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(mockPrisma.configurator3DConfiguration.delete).toHaveBeenCalledWith({
         where: { id: 'cfg1' },
       });
@@ -191,7 +191,7 @@ describe('Configurator3DService', () => {
 
       const result = await service.removeOption('cfg1', projectId, 'opt1');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toMatchObject({ success: true });
       expect(mockPrisma.configurator3DOption.delete).toHaveBeenCalledWith({
         where: { id: 'opt1' },
       });

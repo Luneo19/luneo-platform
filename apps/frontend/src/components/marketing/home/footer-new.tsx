@@ -86,7 +86,7 @@ export function FooterNew() {
                 <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white font-display mb-1.5 sm:mb-2">
                   Restez informe des nouveautes
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-300">
                   Recevez nos dernieres fonctionnalites, tutoriels et offres directement dans votre boite mail.
                 </p>
               </div>
@@ -114,7 +114,7 @@ export function FooterNew() {
             {/* Brand column */}
             <div>
               <Logo variant="dark" size="default" href="/" className="mb-4 sm:mb-5" />
-              <p className="text-slate-400 leading-relaxed mb-5 sm:mb-6 max-w-xs text-xs sm:text-sm">
+              <p className="text-slate-300 leading-relaxed mb-5 sm:mb-6 max-w-xs text-xs sm:text-sm">
                 Construire l&apos;avenir de la personnalisation de produits, une fonctionnalite a la fois.
               </p>
               <div className="flex gap-2.5 sm:gap-3">
@@ -126,7 +126,7 @@ export function FooterNew() {
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-9 sm:w-10 h-9 sm:h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center justify-center text-slate-400 hover:bg-purple-500/20 hover:border-purple-500/30 hover:text-purple-400 transition-all"
+                      className="w-9 sm:w-10 h-9 sm:h-10 bg-white/[0.04] border border-white/[0.06] rounded-xl flex items-center justify-center text-slate-300 hover:bg-purple-500/20 hover:border-purple-500/30 hover:text-purple-400 transition-all"
                       aria-label={social.label}
                     >
                       <Icon className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
@@ -140,7 +140,7 @@ export function FooterNew() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
               {Object.values(footerLinks).map((section) => (
                 <div key={section.title}>
-                  <h4 className="text-[10px] sm:text-xs font-semibold text-slate-400 mb-3 sm:mb-5 uppercase tracking-wider">
+                  <h4 className="text-[10px] sm:text-xs font-semibold text-slate-300 mb-3 sm:mb-5 uppercase tracking-wider">
                     {section.title}
                   </h4>
                   <ul className="space-y-2 sm:space-y-3">
@@ -148,7 +148,7 @@ export function FooterNew() {
                       <li key={link.label}>
                         <Link
                           href={link.href}
-                          className="text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
+                          className="text-xs sm:text-sm text-slate-300 hover:text-white transition-colors"
                         >
                           {link.label}
                         </Link>
@@ -163,19 +163,19 @@ export function FooterNew() {
 
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-6 sm:pt-8 border-t border-white/[0.04] gap-4 sm:gap-0">
-          <p className="text-[10px] sm:text-xs text-slate-400">
+          <p className="text-[10px] sm:text-xs text-slate-300">
             &copy; {new Date().getFullYear()} Luneo. Tous droits reserves.
           </p>
           <div className="flex gap-4 sm:gap-6 flex-wrap justify-center">
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               SOC 2 Certifie
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               Conforme RGPD
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
               SSL 256-bit
             </span>

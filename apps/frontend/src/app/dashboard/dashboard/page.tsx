@@ -8,7 +8,8 @@ function DashboardDashboardPageContent() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push('/overview');
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    router.push(search ? `/overview${search}` : '/overview');
   }, [router]);
 
   return null;

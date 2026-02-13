@@ -132,15 +132,15 @@ export class ArtisanOnboardingService {
         select: { id: true },
       });
 
-      for (const admin of adminUsers) {
-        await this.prisma.notification.create({
-          data: {
+      if (adminUsers.length > 0) {
+        await this.prisma.notification.createMany({
+          data: adminUsers.map((admin) => ({
             userId: admin.id,
             type: 'SYSTEM',
             title: 'Nouvel artisan inscrit',
             message: `Un nouvel artisan "${request.businessName}" s'est inscrit et attend la vérification KYC.`,
-            data: { artisanId: artisan.id, businessName: request.businessName },
-          },
+            data: { artisanId: artisan.id, businessName: request.businessName } as import('@prisma/client').Prisma.InputJsonValue,
+          })),
         });
       }
     } catch (notifError) {

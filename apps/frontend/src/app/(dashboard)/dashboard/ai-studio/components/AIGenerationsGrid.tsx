@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,20 +45,21 @@ export function AIGenerationsGrid({
   onDelete,
   onShare,
 }: AIGenerationsGridProps) {
+  const { t } = useI18n();
   if (generations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-white/60">Aucune génération trouvée</p>
+        <p className="text-white/60">{t('aiStudio.noGenerationsFound')}</p>
       </div>
     );
   }
 
   const getStatusBadge = (status: Generation['status']) => {
     const statusConfig = {
-      completed: { label: 'Terminée', icon: CheckCircle2, className: 'dash-badge dash-badge-new' },
-      processing: { label: 'En cours', icon: Loader2, className: 'bg-[#fbbf24]/15 text-[#fbbf24] border-[#fbbf24]/25' },
-      pending: { label: 'En attente', icon: Loader2, className: 'bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/25' },
-      failed: { label: 'Échouée', icon: XCircle, className: 'dash-badge-live' },
+      completed: { label: t('aiStudio.status.completed'), icon: CheckCircle2, className: 'dash-badge dash-badge-new' },
+      processing: { label: t('aiStudio.status.processing'), icon: Loader2, className: 'bg-[#fbbf24]/15 text-[#fbbf24] border-[#fbbf24]/25' },
+      pending: { label: t('aiStudio.status.pending'), icon: Loader2, className: 'bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/25' },
+      failed: { label: t('aiStudio.status.failed'), icon: XCircle, className: 'dash-badge-live' },
     };
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
@@ -135,7 +137,7 @@ export function AIGenerationsGrid({
                     className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    Prévisualiser
+                    {t('aiStudio.preview')}
                   </DropdownMenuItem>
                   {generation.status === 'completed' && (
                     <>
@@ -144,14 +146,14 @@ export function AIGenerationsGrid({
                         className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Télécharger
+                        {t('aiStudio.download')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onShare(generation)}
                         className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                       >
                         <Share2 className="w-4 h-4 mr-2" />
-                        Partager
+                        {t('aiStudio.share')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
@@ -160,7 +162,7 @@ export function AIGenerationsGrid({
                         className="text-white/80 cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.04]"
                       >
                         <Copy className="w-4 h-4 mr-2" />
-                        Copier l'URL
+                        {t('aiStudio.copyUrl')}
                       </DropdownMenuItem>
                     </>
                   )}
@@ -169,14 +171,14 @@ export function AIGenerationsGrid({
                     className="text-[#f87171] cursor-pointer hover:bg-[#f87171]/10 focus:bg-[#f87171]/10"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Supprimer
+                    {t('aiStudio.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             <div className="flex items-center justify-between text-xs text-white/40">
               <span>{generation.model}</span>
-              <span>{generation.credits} crédits</span>
+              <span>{generation.credits} {t('aiStudio.credits')}</span>
             </div>
           </CardContent>
         </Card>

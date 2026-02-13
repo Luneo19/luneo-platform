@@ -32,13 +32,21 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+/** Minimal Konva node shape for selection (from CanvasEditor) */
+interface KonvaNodeLike {
+  getClassName(): string;
+  fill?(): string;
+  stroke?(): string;
+  strokeWidth?(): number;
+}
+
 interface ProductCustomizerProps {
   productId: string;
   productImage: string;
   productName: string;
   width?: number;
   height?: number;
-  onSave?: (designData: any) => void;
+  onSave?: (designData: Record<string, unknown>) => void;
   onClose?: () => void;
   mode?: 'live' | 'demo';
 }
@@ -56,7 +64,7 @@ function ProductCustomizerComponent({
   const containerRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<CanvasEditor | null>(null);
   const [selectedTool, setSelectedTool] = useState<'select' | 'text' | 'image' | 'shape'>('select');
-  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<KonvaNodeLike | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -87,15 +95,15 @@ function ProductCustomizerComponent({
     });
 
     canvasEditor.onSelection((node) => {
-      setSelectedNode(node);
+      setSelectedNode(node as KonvaNodeLike | null);
 
       if (node && node.getClassName() === 'Text') {
-        const textNode = node as { fontSize: () => number; fontFamily: () => string; fill: () => string; fontStyle: () => string };
+        const textNode = node as unknown as { fontSize: () => number; fontFamily: () => string; fill: () => string; fontStyle: () => string };
         setTextProps({
           fontSize: textNode.fontSize(),
           fontFamily: textNode.fontFamily(),
           fill: textNode.fill(),
-          fontStyle: textNode.fontStyle(),
+          fontStyle: (textNode.fontStyle() === 'bold' || textNode.fontStyle() === 'italic' ? textNode.fontStyle() : 'normal') as 'bold' | 'normal' | 'italic',
         });
       }
     });
@@ -470,7 +478,7 @@ function ProductCustomizerComponent({
                   <Label className="text-sm text-gray-700">Fill Color</Label>
                   <Input
                     type="color"
-                    value={selectedNode.fill()}
+                    value={selectedNode.fill?.() ?? '#000000'}
                     onChange={(e) => editor?.updateSelected({ fill: e.target.value })}
                     className="mt-1 h-10"
                   />
@@ -480,7 +488,7 @@ function ProductCustomizerComponent({
                   <Label className="text-sm text-gray-700">Stroke Color</Label>
                   <Input
                     type="color"
-                    value={selectedNode.stroke()}
+                    value={selectedNode.stroke?.() ?? '#000000'}
                     onChange={(e) => editor?.updateSelected({ stroke: e.target.value })}
                     className="mt-1 h-10"
                   />
@@ -490,7 +498,7 @@ function ProductCustomizerComponent({
                   <Label className="text-sm text-gray-700">Stroke Width</Label>
                   <Input
                     type="number"
-                    value={selectedNode.strokeWidth()}
+                    value={selectedNode.strokeWidth?.() ?? 0}
                     onChange={(e) => editor?.updateSelected({ strokeWidth: parseInt(e.target.value) || 0 })}
                     className="mt-1"
                   />

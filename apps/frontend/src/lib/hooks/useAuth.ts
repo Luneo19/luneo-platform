@@ -106,7 +106,7 @@ export function useLogout() {
       queryClient.clear();
       router.push('/');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       logger.error('Logout failed', {
         error,
         message: error.message,

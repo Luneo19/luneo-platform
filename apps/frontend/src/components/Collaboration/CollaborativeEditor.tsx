@@ -11,7 +11,19 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
-import { realtimeService, type SharedCursor, type LiveComment } from '@/lib/realtime/RealtimeService';
+import {
+  realtimeService,
+  type SharedCursor,
+  type LiveComment,
+  type RealtimeConnection,
+  type CursorMovedPayload,
+  type CommentPayload,
+  type UserPresencePayload,
+  type CollaborationRoom,
+} from '@/lib/realtime/RealtimeService';
+
+/** Participant with optional display fields from room payload */
+type RoomParticipant = RealtimeConnection & { name?: string; email?: string; avatar?: string };
 import { logger } from '@/lib/logger';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Users, MessageSquare, Send } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 // ========================================
 // TYPES
@@ -45,9 +58,10 @@ function CollaborativeEditorContent({
   userName,
   userAvatar,
 }: CollaborativeEditorProps) {
+  const { t } = useI18n();
   const [cursors, setCursors] = useState<SharedCursor[]>([]);
   const [comments, setComments] = useState<LiveComment[]>([]);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<RealtimeConnection[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +94,7 @@ function CollaborativeEditorContent({
       });
 
     // Event listeners
-    const handleCursorMoved = (payload: any) => {
+    const handleCursorMoved = (payload: CursorMovedPayload) => {
       setCursors((prev) => {
         const existing = prev.findIndex((c) => c.id === payload.cursor.id);
         if (existing >= 0) {
@@ -92,30 +106,34 @@ function CollaborativeEditorContent({
       });
     };
 
-    const handleCommentAdded = (payload: any) => {
-      setComments((prev) => [...prev, payload.comment]);
+    const handleCommentAdded = (payload: CommentPayload) => {
+      if (payload.comment) setComments((prev) => [...prev, payload.comment as LiveComment]);
     };
 
-    const handleCommentUpdated = (payload: any) => {
-      setComments((prev) =>
-        prev.map((c) => (c.id === payload.commentId ? payload.comment : c))
-      );
+    const handleCommentUpdated = (payload: CommentPayload) => {
+      if (payload.comment)
+        setComments((prev) =>
+          prev.map((c) => (c.id === payload.commentId ? payload.comment! : c))
+        );
     };
 
-    const handleCommentDeleted = (payload: any) => {
-      setComments((prev) => prev.filter((c) => c.id !== payload.commentId));
+    const handleCommentDeleted = (payload: CommentPayload) => {
+      if (payload.commentId)
+        setComments((prev) => prev.filter((c) => c.id !== payload.commentId));
     };
 
-    const handleUserJoined = (payload: any) => {
-      setParticipants((prev) => [...prev, payload.user]);
+    const handleUserJoined = (payload: UserPresencePayload) => {
+      if (payload.user) setParticipants((prev) => [...prev, payload.user as RoomParticipant]);
     };
 
-    const handleUserLeft = (payload: any) => {
-      setParticipants((prev) => prev.filter((p) => p.id !== payload.userId));
-      setCursors((prev) => prev.filter((c) => c.userId !== payload.userId));
+    const handleUserLeft = (payload: UserPresencePayload) => {
+      if (payload.userId) {
+        setParticipants((prev) => prev.filter((p) => p.id !== payload.userId));
+        setCursors((prev) => prev.filter((c) => c.userId !== payload.userId));
+      }
     };
 
-    const handleRoomJoined = (room: any) => {
+    const handleRoomJoined = (room: CollaborationRoom) => {
       setCursors(room.cursors || []);
       setComments(room.comments || []);
       setParticipants(room.participants || []);
@@ -224,17 +242,19 @@ function CollaborativeEditorContent({
               <h3 className="font-semibold">Participants</h3>
             </div>
             <div className="space-y-2">
-              {participants.map((participant) => (
+              {participants.map((participant) => {
+                const p = participant as RoomParticipant;
+                return (
                 <div key={participant.id} className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={participant.avatar} />
+                    <AvatarImage src={p.avatar} />
                     <AvatarFallback>
-                      {participant.name?.charAt(0) || 'U'}
+                      {p.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm">{participant.name || participant.email}</span>
+                  <span className="text-sm">{p.name || p.email}</span>
                 </div>
-              ))}
+              );})}
             </div>
           </CardContent>
         </Card>
@@ -272,7 +292,7 @@ function CollaborativeEditorContent({
             {/* Add Comment */}
             <div className="flex gap-2">
               <Input
-                placeholder="Ajouter un commentaire..."
+                placeholder={t('common.addComment')}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 onKeyPress={(e) => {

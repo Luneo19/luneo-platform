@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateVariantDto, UpdateVariantDto, BulkCreateVariantsDto } from './dto/product-variant.dto';
 import { StorageService } from '@/libs/storage/storage.service';
@@ -25,7 +25,7 @@ export class ProductsService {
     type: 'product', 
     ttl: 3600,
     keyGenerator: (args) => `products:findAll:${JSON.stringify(args[0])}:${JSON.stringify(args[1])}`,
-    tags: (args) => ['products:list', args[0]?.brandId ? `brand:${args[0].brandId}` : null].filter(Boolean) as string[],
+    tags: (args) => ['products:list', (args[0] as Record<string, unknown>)?.brandId ? `brand:${(args[0] as Record<string, unknown>).brandId}` : null].filter(Boolean) as string[],
   })
   async findAll(query: Record<string, unknown> = {}, pagination: PaginationParams = {}): Promise<PaginationResult<unknown>> {
     const { brandId, isPublic, isActive } = query;
@@ -34,9 +34,9 @@ export class ProductsService {
     const [data, total] = await Promise.all([
       this.prisma.product.findMany({
         where: {
-          ...(brandId && { brandId }),
-          ...(isPublic !== undefined && { isPublic }),
-          ...(isActive !== undefined && { isActive }),
+          ...(brandId != null && brandId !== '' ? { brandId: brandId as string } : {}),
+          ...(typeof isPublic === 'boolean' ? { isPublic } : {}),
+          ...(typeof isActive === 'boolean' ? { isActive } : {}),
         },
         select: {
           id: true,
@@ -62,14 +62,101 @@ export class ProductsService {
       }),
       this.prisma.product.count({
         where: {
-          ...(brandId && { brandId }),
-          ...(isPublic !== undefined && { isPublic }),
-          ...(isActive !== undefined && { isActive }),
+          ...(brandId != null && brandId !== '' ? { brandId: brandId as string } : {}),
+          ...(typeof isPublic === 'boolean' ? { isPublic } : {}),
+          ...(typeof isActive === 'boolean' ? { isActive } : {}),
         },
       }),
     ]);
     
     return createPaginationResult(data, total, { page, limit });
+  }
+
+  /**
+   * Get brand info + products by brand slug (for public storefront)
+   */
+  async findByBrandSlug(slug: string, query: Record<string, unknown> = {}) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        logo: true,
+        industry: true,
+        website: true,
+      },
+    });
+
+    if (!brand) {
+      throw new Error('Brand not found');
+    }
+
+    const pageVal = Number(query.page) || 1;
+    const limitVal = Number(query.limit) || 50;
+    const category = query.category as string | undefined;
+    const search = query.search as string | undefined;
+    const skip = (pageVal - 1) * limitVal;
+
+    const where: Prisma.ProductWhereInput = {
+      brandId: brand.id,
+      isPublic: true,
+      isActive: true,
+      deletedAt: null,
+      ...(category && { category }),
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          price: true,
+          currency: true,
+          category: true,
+          tags: true,
+          baseImageUrl: true,
+          thumbnailUrl: true,
+          images: true,
+          arEnabled: true,
+          isPublic: true,
+          isActive: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitVal,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    // Extract unique categories for filtering
+    const allCategories = await this.prisma.product.findMany({
+      where: { brandId: brand.id, isPublic: true, isActive: true, deletedAt: null },
+      select: { category: true },
+      distinct: ['category'],
+      take: 100,
+    });
+    const categories = allCategories
+      .map((p) => p.category)
+      .filter(Boolean);
+
+    return {
+      brand,
+      products,
+      categories,
+      pagination: { page: pageVal, limit: limitVal, total, totalPages: Math.ceil(total / limitVal) },
+    };
   }
 
   // Optimisé: select au lieu de include, cache automatique
@@ -128,11 +215,25 @@ export class ProductsService {
     // Enforce product limit based on plan
     await this.plansService.enforceProductLimit(currentUser.id);
 
+    // Generate slug from name if not provided (Product.slug is required)
+    const name = (createProductDto.name as string) || 'product';
+    const baseSlug = name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .slice(0, 50) || 'product';
+    const slug =
+      (createProductDto.slug as string) ||
+      `${baseSlug}-${Date.now().toString(36)}`;
+
     // Optimisé: select au lieu de include
     return this.prisma.product.create({
       data: {
         ...createProductDto,
+        slug,
         brandId,
+        tags: (createProductDto.tags as string[]) ?? [],
+        images: (createProductDto.images as string[]) ?? [],
       } as unknown as Prisma.ProductCreateInput,
       select: {
         id: true,
@@ -266,7 +367,7 @@ export class ProductsService {
       throw AppErrorFactory.validationFailed('Some products not found or do not belong to brand');
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.ProductUpdateManyMutationInput = {};
     switch (action) {
       case 'delete':
         await this.prisma.product.deleteMany({
@@ -274,7 +375,7 @@ export class ProductsService {
         });
         return { deleted: productIds.length };
       case 'archive':
-        updateData.metadata = { archived: true };
+        (updateData as Record<string, unknown>).metadata = { archived: true };
         break;
       case 'activate':
         updateData.isActive = true;
@@ -327,6 +428,7 @@ export class ProductsService {
         createdAt: true,
         updatedAt: true,
       },
+      take: 100,
     });
 
     return {
@@ -354,7 +456,24 @@ export class ProductsService {
       throw AppErrorFactory.insufficientPermissions('access brand resource', { brandId });
     }
 
+    // CRITICAL: Check product limit BEFORE importing
+    // Count how many products will be imported and verify against plan limits
     const lines = csvData.split('\n');
+    const dataLines = lines.slice(1).filter(l => l.trim());
+    
+    // Check if user can create this many products
+    const productLimitCheck = await this.plansService.checkProductLimit(currentUser.id);
+    if (!productLimitCheck.canCreate) {
+      throw new ForbiddenException(
+        `Limite de produits atteinte (${productLimitCheck.limit}). Passez à un plan supérieur.`
+      );
+    }
+    if (productLimitCheck.remaining !== -1 && dataLines.length > productLimitCheck.remaining) {
+      throw new ForbiddenException(
+        `Import impossible: ${dataLines.length} produits à importer mais seulement ${productLimitCheck.remaining} places restantes (limite: ${productLimitCheck.limit}). Réduisez le nombre de produits ou passez à un plan supérieur.`
+      );
+    }
+
     const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''));
     const products = [];
 
@@ -363,7 +482,7 @@ export class ProductsService {
       if (!line) continue;
 
       const values = line.split(',').map((v) => v.trim().replace(/"/g, ''));
-      const productData: any = { brandId };
+      const productData: Record<string, unknown> & { brandId: string } = { brandId };
 
       headers.forEach((header, index) => {
         const value = values[index];
@@ -378,7 +497,7 @@ export class ProductsService {
 
       try {
         const product = await this.prisma.product.create({
-          data: productData,
+          data: productData as unknown as Prisma.ProductCreateInput,
         });
         products.push(product);
       } catch (error) {
@@ -390,6 +509,55 @@ export class ProductsService {
     return {
       imported: products.length,
       products,
+    };
+  }
+
+  /**
+   * Stats d'un produit (commandes, designs, revenu, personnalisations)
+   */
+  async getProductStats(productId: string, brandId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, brandId },
+      select: { id: true },
+    });
+    if (!product) {
+      throw AppErrorFactory.notFound('Product', productId);
+    }
+
+    const [
+      orderCount,
+      designCount,
+      totalRevenue,
+      totalCustomizations,
+      completedCustomizations,
+      failedCustomizations,
+      zonesCount,
+    ] = await Promise.all([
+      this.prisma.orderItem.count({ where: { productId } }),
+      this.prisma.design.count({ where: { productId, brandId } }),
+      this.prisma.orderItem.aggregate({
+        where: { productId },
+        _sum: { totalCents: true },
+      }),
+      this.prisma.customization.count({ where: { productId } }),
+      this.prisma.customization.count({
+        where: { productId, status: 'COMPLETED' },
+      }),
+      this.prisma.customization.count({
+        where: { productId, status: 'FAILED' },
+      }),
+      this.prisma.customizationZone.count({ where: { productId } }),
+    ]);
+
+    return {
+      orders: orderCount,
+      designs: designCount,
+      revenue: (totalRevenue._sum.totalCents ?? 0) / 100,
+      totalCustomizations,
+      completedCustomizations,
+      failedCustomizations,
+      zonesCount,
+      designsCount: designCount,
     };
   }
 
@@ -409,7 +577,7 @@ export class ProductsService {
       throw AppErrorFactory.notFound('Product', productId);
     }
 
-    const where: any = { productId };
+    const where: Prisma.CustomizationWhereInput = { productId };
     if (options?.startDate || options?.endDate) {
       where.createdAt = {};
       if (options.startDate) where.createdAt.gte = options.startDate;
@@ -516,7 +684,7 @@ export class ProductsService {
         );
 
         this.logger.log(`Model uploaded to Cloudinary: ${finalModelUrl}`, { productId, fileName: body.fileName });
-      } catch (uploadError: any) {
+      } catch (uploadError: unknown) {
         this.logger.error('Error uploading model to Cloudinary', { error: uploadError, productId });
         // Fallback: utiliser l'URL fournie même si l'upload a échoué
       }
@@ -551,6 +719,13 @@ export class ProductsService {
       },
     });
 
+    // Auto-convert GLB to USDZ for iOS AR Quick Look (fire-and-forget)
+    if (finalModelUrl && /\.glb$/i.test(body.fileName)) {
+      this.triggerUsdzConversion(productId, finalModelUrl, currentUser).catch((err) => {
+        this.logger.warn(`Auto USDZ conversion failed for product ${productId}: ${err.message}`);
+      });
+    }
+
     return {
       productId,
       modelUrl: finalModelUrl,
@@ -559,6 +734,37 @@ export class ProductsService {
       fileType: body.fileType,
       uploadedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Auto-convert GLB to USDZ for iOS AR compatibility (async, non-blocking)
+   */
+  private async triggerUsdzConversion(productId: string, glbUrl: string, currentUser: CurrentUser) {
+    try {
+      // Fire-and-forget best-effort USDZ conversion (AR studio may be used elsewhere)
+      this.logger.log(`Starting auto USDZ conversion for product ${productId}`);
+
+      // Store the USDZ URL in the product metadata when ready
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        select: { modelConfig: true },
+      });
+
+      const modelConfig = (product?.modelConfig as Record<string, unknown>) || {};
+      modelConfig.usdzConversionRequested = true;
+      modelConfig.usdzConversionRequestedAt = new Date().toISOString();
+
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: {
+          modelConfig: modelConfig as import('@prisma/client').Prisma.InputJsonValue,
+        },
+      });
+
+      this.logger.log(`USDZ conversion flagged for product ${productId}`);
+    } catch (error) {
+      this.logger.warn(`USDZ conversion trigger failed: ${error}`);
+    }
   }
 
   // --- VARIANTS ---
@@ -572,6 +778,7 @@ export class ProductsService {
     return this.prisma.productVariant.findMany({
       where: { productId },
       orderBy: { position: 'asc' },
+      take: 100,
     });
   }
 

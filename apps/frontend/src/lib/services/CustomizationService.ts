@@ -24,7 +24,7 @@ import type {
 
 export class CustomizationService {
   private static instance: CustomizationService;
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, GenerateCustomizationResponse> = new Map();
 
   private constructor() {}
 
@@ -83,7 +83,7 @@ export class CustomizationService {
       logger.info('Customization generated', { customizationId: normalizedResult.id });
 
       return normalizedResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating customization', { error, request });
       throw error;
     }
@@ -100,8 +100,8 @@ export class CustomizationService {
     try {
       const client = getTRPCClient();
       const status = await client.customization.checkStatus.query({ id: customizationId });
-      return status;
-    } catch (error: any) {
+      return { ...status, status: status.status ?? 'PENDING' } as CustomizationStatusResponse;
+    } catch (error: unknown) {
       logger.error('Error checking customization status', { error, customizationId });
       throw error;
     }
@@ -169,7 +169,7 @@ export class CustomizationService {
     try {
       const client = getTRPCClient();
       return await client.customization.getById.query({ id: customizationId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error fetching customization', { error, customizationId });
       throw error;
     }
@@ -193,7 +193,7 @@ export class CustomizationService {
         offset?: number;
       };
       return await client.customization.listMine.query(queryOptions);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error listing customizations', { error, options });
       throw error;
     }
@@ -202,14 +202,14 @@ export class CustomizationService {
   /**
    * Met à jour une personnalisation
    */
-  async update(customizationId: string, data: { name?: string; description?: string; options?: any }) {
+  async update(customizationId: string, data: { name?: string; description?: string; options?: Record<string, unknown> }) {
     try {
       const client = getTRPCClient();
       return await client.customization.update.mutate({
         id: customizationId,
         ...data,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error updating customization', { error, customizationId, data });
       throw error;
     }
@@ -222,7 +222,7 @@ export class CustomizationService {
     try {
       const client = getTRPCClient();
       return await client.customization.delete.mutate({ id: customizationId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error deleting customization', { error, customizationId });
       throw error;
     }
@@ -250,7 +250,7 @@ export class CustomizationService {
   /**
    * Met en cache
    */
-  setCache(key: string, value: any) {
+  setCache(key: string, value: GenerateCustomizationResponse) {
     this.cache.set(key, value);
   }
 }

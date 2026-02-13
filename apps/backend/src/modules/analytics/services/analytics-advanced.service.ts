@@ -4,7 +4,7 @@
  * Respecte les patterns existants du projet
  */
 
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AnalyticsCalculationsService } from './analytics-calculations.service';
 import { Prisma, UserRole } from '@prisma/client';
@@ -145,6 +145,7 @@ export class AnalyticsAdvancedService {
       const funnels = await this.prisma.analyticsFunnel.findMany({
         where: { brandId: trimmedBrandId, isActive: true },
         orderBy: { createdAt: 'desc' },
+        take: 50,
       });
 
       const dateFrom = options?.dateFrom;
@@ -340,6 +341,27 @@ export class AnalyticsAdvancedService {
       throw error;
     }
   }
+
+  /**
+   * Récupère un funnel par ID pour une marque
+   */
+  async getFunnelById(id: string, brandId: string): Promise<Funnel> {
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      this.logger.warn('Invalid funnel id provided to getFunnelById');
+      throw new BadRequestException('Funnel ID is required');
+    }
+    if (!brandId || typeof brandId !== 'string' || brandId.trim().length === 0) {
+      this.logger.warn('Invalid brandId provided to getFunnelById');
+      throw new BadRequestException('Brand ID is required');
+    }
+    const funnel = await this.prisma.analyticsFunnel.findFirst({
+      where: { id: id.trim(), brandId: brandId.trim() },
+    });
+    if (!funnel) {
+      throw new NotFoundException(`Funnel with ID ${id} not found`);
+    }
+    return this.normalizeFunnel(funnel);
+  }
   
   /**
    * Crée un nouveau funnel avec validation robuste
@@ -512,6 +534,7 @@ export class AnalyticsAdvancedService {
         orderBy: {
           createdAt: 'desc',
         },
+        take: 50,
       });
 
       // ✅ Transformer les données Prisma en format Segment avec normalisation
@@ -768,6 +791,7 @@ export class AnalyticsAdvancedService {
           deletedAt: null,
         },
         select: { totalCents: true },
+        take: 1000,
       });
 
       const revenueCentsLast30 = orders.reduce((sum, o) => sum + o.totalCents, 0);
@@ -954,7 +978,7 @@ export class AnalyticsAdvancedService {
         },
         select: { eventType: true },
         distinct: ['eventType'],
-        take: 10, // Limiter pour performance
+        take: 100,
       });
 
       // Calculer les corrélations entre les paires de métriques
@@ -1230,6 +1254,7 @@ export class AnalyticsAdvancedService {
           deletedAt: null,
         },
         select: { createdAt: true, totalCents: true },
+        take: 1000,
       });
 
       const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];

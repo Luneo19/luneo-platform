@@ -12,7 +12,7 @@ import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 export class IdempotencyInterceptor implements NestInterceptor {
   constructor(private redis: RedisOptimizedService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const idempotencyKey = request.idempotencyKey;
     const cachedResponse = request.idempotencyCachedResponse;

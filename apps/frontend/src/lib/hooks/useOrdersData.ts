@@ -28,7 +28,7 @@ interface Order {
   tracking_number?: string;
   payment_method?: string;
   shipping_method?: string;
-  shipping_address?: any;
+  shipping_address?: Record<string, unknown>;
   items?: OrderItem[];
 }
 

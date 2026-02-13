@@ -73,7 +73,7 @@ export function PieChartWidget({
     );
   }
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color?: string }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0];
       const percent = ((data.value / total) * 100).toFixed(1);
@@ -89,7 +89,7 @@ export function PieChartWidget({
     return null;
   };
 
-  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: { cx: number; cy: number; midAngle: number; innerRadius: number; outerRadius: number; percent: number }) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -140,7 +140,7 @@ export function PieChartWidget({
               <Legend
                 verticalAlign="bottom"
                 height={36}
-                formatter={(value, entry: any) => (
+                formatter={(value: string, entry: { color?: string }) => (
                   <span style={{ color: entry.color }}>{value}</span>
                 )}
               />

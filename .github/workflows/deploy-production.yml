@@ -47,16 +47,14 @@ jobs:
           pnpm exec prisma generate
       
       - name: Run linter
-        continue-on-error: true
         run: |
           cd apps/backend
           pnpm run lint
       
       - name: Run unit tests
-        continue-on-error: true
         run: |
           cd apps/backend
-          pnpm run test -- --testPathPattern=unit --coverage || echo "Tests skipped or failed (non-blocking)"
+          pnpm run test -- --testPathPattern=unit --coverage
       
       - name: Upload coverage
         uses: codecov/codecov-action@v4

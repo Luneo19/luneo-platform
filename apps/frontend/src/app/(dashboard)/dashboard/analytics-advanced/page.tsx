@@ -13,6 +13,7 @@ import { Suspense } from 'react';
 import { getServerUser } from '@/lib/auth/get-user';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AnalyticsAdvancedPageClient } from './AnalyticsAdvancedPageClient';
+import { NotAuthenticatedMessage } from '../components/NotAuthenticatedMessage';
 
 export const metadata = {
   title: 'Analytics Avancées | Luneo',
@@ -30,7 +31,7 @@ export default async function AnalyticsAdvancedPage() {
     return (
       <ErrorBoundary level="page" componentName="AnalyticsAdvancedPage">
         <div className="p-6">
-          <p className="text-red-400">Non authentifié</p>
+          <NotAuthenticatedMessage />
         </div>
       </ErrorBoundary>
     );

@@ -4,6 +4,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateWebVitalDto, GetWebVitalsDto } from '../dto/web-vitals.dto';
 
@@ -26,8 +27,8 @@ export class WebVitalsService {
           metric: dto.name,
           value: dto.value,
           rating: dto.rating || this.calculateRating(dto.name, dto.value),
-          device: dto.device || null,
-          connection: dto.connection || null,
+          device: dto.device ?? undefined,
+          connection: dto.connection ?? undefined,
         },
       });
 
@@ -59,7 +60,7 @@ export class WebVitalsService {
         pageSize = 50,
       } = dto;
 
-      const where: any = {};
+      const where: Prisma.WebVitalWhereInput = {};
 
       if (metric) {
         where.metric = metric;
@@ -129,7 +130,7 @@ export class WebVitalsService {
     try {
       const { startDate, endDate, userId, brandId } = dto;
 
-      const where: any = {};
+      const where: Prisma.WebVitalWhereInput = {};
 
       if (startDate || endDate) {
         where.timestamp = {};
@@ -166,7 +167,7 @@ export class WebVitalsService {
 
       // Group by metric
       const metrics = ['LCP', 'FID', 'CLS', 'FCP', 'TTFB', 'INP'];
-      const summary: Record<string, any> = {};
+      const summary: Record<string, { count: number; average: number; p50: number; p75: number; p95: number; p99: number; good: number; needsImprovement: number; poor: number }> = {};
 
       for (const metricName of metrics) {
         const metricData = webVitals.filter((w) => w.metric === metricName);

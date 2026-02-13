@@ -30,7 +30,7 @@ export interface DiscountCode {
   applies_to?: string[]; // IDs de produits ou catégories spécifiques
   excluded_products?: string[]; // IDs de produits exclus
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DiscountValidationResult {

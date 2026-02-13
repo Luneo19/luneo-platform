@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
+import { ConfigModule } from '@nestjs/config';
 import { AiGenerationWorker } from './worker';
 import { DesignWorker } from './workers/design/design.worker';
 import { RenderWorker } from './workers/render/render.worker';
@@ -7,6 +8,10 @@ import { ProductionWorker } from './workers/production/production.worker';
 import { AIStudioWorker } from './workers/ai-studio/ai-studio.worker';
 import { OutboxPublisherWorker } from '@/libs/outbox/outbox-publisher.worker';
 import { OutboxScheduler } from './schedulers/outbox-scheduler';
+import { SubscriptionEnforcementScheduler } from './schedulers/subscription-enforcement.scheduler';
+import { MarketplacePayoutScheduler } from './schedulers/marketplace-payout.scheduler';
+import { EmailModule } from '@/modules/email/email.module';
+import { MarketplaceModule } from '@/modules/marketplace/marketplace.module';
 import { RenderPreviewProcessor } from './workers/render/render-preview.processor';
 import { RenderFinalProcessor } from './workers/render/render-final.processor';
 import { ExportPackProcessor } from './workers/manufacturing/export-pack.processor';
@@ -24,6 +29,7 @@ import { AIOrchestratorModule } from '@/libs/ai/ai-orchestrator.module';
 
 @Module({
   imports: [
+    ConfigModule,
     PrismaModule,
     SmartCacheModule,
     StorageModule,
@@ -35,6 +41,8 @@ import { AIOrchestratorModule } from '@/libs/ai/ai-orchestrator.module';
     EventEmitterModule,
     ScheduleModule,
     AIOrchestratorModule,
+    EmailModule,
+    MarketplaceModule,
     BullModule.registerQueue({
       name: 'ai-generation',
     }),
@@ -69,6 +77,8 @@ import { AIOrchestratorModule } from '@/libs/ai/ai-orchestrator.module';
     ProductionWorker,
     OutboxPublisherWorker,
     OutboxScheduler,
+    SubscriptionEnforcementScheduler,
+    MarketplacePayoutScheduler,
     // NOUVEAU: Processors pour renders et exports
     RenderPreviewProcessor,
     RenderFinalProcessor,

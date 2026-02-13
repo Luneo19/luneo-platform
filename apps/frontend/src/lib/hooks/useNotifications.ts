@@ -29,7 +29,7 @@ export function useNotifications(limit: number = 10) {
       
       const list = data?.notifications && Array.isArray(data.notifications) ? data.notifications : [];
       setNotifications(
-        list.map((n: Record<string, unknown>) => ({
+        (list as Record<string, unknown>[]).map((n) => ({
           id: String(n.id ?? ''),
           type: (n.type as Notification['type']) ?? 'info',
           title: String(n.title ?? ''),

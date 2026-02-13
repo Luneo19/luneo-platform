@@ -211,10 +211,31 @@ export class PDFX4Exporter {
    * Generate PDF structure
    */
   private generatePDFStructure(
-    processedData: any,
+    processedData: {
+      imageData: string;
+      dimensions: { width: number; height: number };
+      colorProfile: string;
+    },
     printSpecs: PrintSpecs,
     settings: PDFX4Settings
-  ): any {
+  ): {
+    version: string;
+    pdfxVersion: string;
+    pages: Array<{
+      width: number;
+      height: number;
+      content: {
+        image: string;
+        bleed: unknown;
+        cropMarks: unknown;
+        colorProfile: string;
+      };
+    }>;
+    metadata: PDFX4Settings['metadata'];
+    colorSpace: string;
+    compression: string;
+    quality: number;
+  } {
     const bleedArea = this.bleedCropMarks.calculateBleedArea(printSpecs.dimensions, printSpecs.bleed);
     const cropMarks = this.bleedCropMarks.generateCropMarks(printSpecs.dimensions, printSpecs.bleed);
 
@@ -241,7 +262,21 @@ export class PDFX4Exporter {
   /**
    * Convert PDF structure to buffer
    */
-  private async convertToPDFBuffer(pdfStructure: any, settings: PDFX4Settings): Promise<Buffer> {
+  private async convertToPDFBuffer(
+    pdfStructure: {
+      pages: Array<{
+        width: number;
+        height: number;
+        content: {
+          image: string;
+          bleed: unknown;
+          cropMarks: unknown;
+          colorProfile: string;
+        };
+      }>;
+    },
+    settings: PDFX4Settings
+  ): Promise<Buffer> {
     // This is a simplified implementation
     // In a real scenario, you'd use a proper PDF library like PDFKit or similar
     
@@ -252,7 +287,18 @@ export class PDFX4Exporter {
   /**
    * Generate PDF content (simplified)
    */
-  private generatePDFContent(pdfStructure: any, settings: PDFX4Settings): string {
+  private generatePDFContent(
+    pdfStructure: {
+      pages: Array<{
+        width: number;
+        height: number;
+        content: {
+          image: string;
+        };
+      }>;
+    },
+    settings: PDFX4Settings
+  ): string {
     const header = `%PDF-1.7
 %âãÏÓ
 

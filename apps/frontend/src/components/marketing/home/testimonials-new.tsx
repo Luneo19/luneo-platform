@@ -3,6 +3,7 @@
 import { Star } from 'lucide-react';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { TiltCard } from '@/components/ui/tilt-card';
 
 // NOTE: Example testimonials for launch. Replace with real customer testimonials
 // when available via CMS or testimonial collection tool (e.g., Trustpilot API)
@@ -49,7 +50,7 @@ export function TestimonialsNew() {
               <span className="text-white">Apprecie par des </span>
               <span className="italic text-gradient-purple">milliers de marques</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-400 px-2">
+            <p className="text-base sm:text-lg text-slate-300 px-2">
               Decouvrez ce que nos clients ont a dire sur leur experience avec Luneo.
             </p>
           </div>
@@ -67,7 +68,7 @@ export function TestimonialsNew() {
               <span className="text-white font-bold text-base sm:text-lg">Excellent</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
-            <span className="text-slate-400 text-xs sm:text-sm">Avis clients</span>
+            <span className="text-slate-300 text-xs sm:text-sm">Avis clients</span>
           </div>
         </ScrollReveal>
 
@@ -81,6 +82,12 @@ export function TestimonialsNew() {
               staggerDelay={120}
               delay={150}
             >
+              <TiltCard
+                maxTilt={5}
+                hoverScale={1.01}
+                glowColor="rgba(168, 85, 247, 0.06)"
+                className="h-full rounded-2xl"
+              >
               <AnimatedBorder
                 hoverOnly={!t.featured}
                 active={t.featured}
@@ -88,7 +95,7 @@ export function TestimonialsNew() {
                 className="h-full"
               >
                 <div
-                  className={`relative p-5 sm:p-7 rounded-2xl transition-all duration-300 hover:-translate-y-1 h-full ${
+                  className={`relative p-5 sm:p-7 rounded-2xl transition-all duration-300 h-full ${
                     t.featured
                       ? 'bg-gradient-to-br from-purple-600/10 to-pink-600/10'
                       : ''
@@ -117,11 +124,12 @@ export function TestimonialsNew() {
                     </div>
                     <div>
                       <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
-                      <div className="text-[10px] sm:text-xs text-slate-400">{t.role}, {t.company}</div>
+                      <div className="text-[10px] sm:text-xs text-slate-300">{t.role}, {t.company}</div>
                     </div>
                   </div>
                 </div>
               </AnimatedBorder>
+              </TiltCard>
             </ScrollReveal>
           ))}
         </div>

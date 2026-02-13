@@ -41,7 +41,7 @@ export class CADIntegrationService {
     designId: string;
     productId: string;
     type: 'packshot' | 'lifestyle' | 'turntable' | 'detail';
-    options?: any;
+    options?: Record<string, unknown>;
   }) {
     return this.marketingRender.render(request);
   }

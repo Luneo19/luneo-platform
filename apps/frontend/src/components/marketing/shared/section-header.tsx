@@ -29,11 +29,11 @@ export function SectionHeader({
             {tag}
           </span>
         )}
-        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 text-white">
+        <h2 className="heading-section text-3xl sm:text-4xl md:text-5xl mb-3 sm:mb-4 text-white">
           {title}
         </h2>
         {description && (
-          <p className="text-base sm:text-lg text-slate-400 leading-relaxed px-2">
+          <p className="text-base sm:text-lg text-slate-300 body-text px-2">
             {description}
           </p>
         )}

@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { useCredits } from '@/hooks/useCredits';
 import { AIStudioHeader } from './components/AIStudioHeader';
@@ -14,17 +15,39 @@ import { AIGenerationsGrid } from './components/AIGenerationsGrid';
 import { GenerateModal } from './components/modals/GenerateModal';
 import { useAIGenerations } from './hooks/useAIGenerations';
 import { useAIGenerate } from './hooks/useAIGenerate';
-import { SoftPlanGate } from '@/components/shared/SoftPlanGate';
+import { Button } from '@/components/ui/button';
+import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
+import { UpgradeRequiredPage } from '@/components/shared/UpgradeRequiredPage';
 import type { GenerationType, AISettings } from './types';
 
 export function AIStudioPageClient() {
+  const { t } = useI18n();
+  return (
+    <PlanGate
+      minimumPlan="professional"
+      showUpgradePrompt
+      fallback={
+        <UpgradeRequiredPage
+          feature="AI Studio"
+          requiredPlan="professional"
+          description="AI Studio est disponible à partir du plan Professional."
+        />
+      }
+    >
+      <AIStudioPageContent />
+    </PlanGate>
+  );
+}
+
+function AIStudioPageContent() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<GenerationType>('2d');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
-  const { generations, stats, isLoading, deleteGeneration, refetch } = useAIGenerations(
+  const { generations, stats, isLoading, error, refetch, deleteGeneration } = useAIGenerations(
     activeTab,
     searchTerm,
     filterStatus
@@ -37,19 +60,9 @@ export function AIStudioPageClient() {
     type: GenerationType,
     settings: AISettings
   ) => {
-    // Filter out 'template' type as it's not supported by useAIGenerate
-    if (type === 'template') {
-      toast({
-        title: 'Erreur',
-        description: 'Le type "template" n\'est pas encore supporté',
-        variant: 'destructive',
-      });
-      return { success: false };
-    }
-    
     const result = await generate({
       prompt,
-      type: type as '2d' | '3d' | 'animation',
+      type: type as '2d' | '3d' | 'animation' | 'template',
       ...settings,
     });
 
@@ -62,13 +75,13 @@ export function AIStudioPageClient() {
     return result;
   };
 
-  const handlePreview = (generation: any) => {
+  const handlePreview = (generation: { id: string; result?: string }) => {
     if (generation.result) {
       window.open(generation.result, '_blank');
     }
   };
 
-  const handleDownload = (generation: any) => {
+  const handleDownload = (generation: { id: string; result?: string }) => {
     if (generation.result) {
       const link = document.createElement('a');
       link.href = generation.result;
@@ -77,18 +90,18 @@ export function AIStudioPageClient() {
     }
   };
 
-  const handleShare = (generation: any) => {
+  const handleShare = (generation: { id: string; result?: string }) => {
     if (generation.result) {
       navigator.clipboard.writeText(generation.result);
       toast({
-        title: 'Lien copié',
-        description: 'Lien de l\'image copié dans le presse-papiers',
+        title: t('aiStudio.linkCopied'),
+        description: t('aiStudio.linkCopiedDesc'),
       });
     }
   };
 
   const handleDelete = async (generationId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette génération ?')) {
+    if (confirm(t('aiStudio.deleteConfirmGeneration'))) {
       await deleteGeneration(generationId);
     }
   };
@@ -96,6 +109,17 @@ export function AIStudioPageClient() {
   // Get credits from user profile
   const { credits: creditsData } = useCredits();
   const credits = creditsData?.balance || 0;
+
+  if (error) {
+    return (
+      <div className="space-y-6 pb-10 flex flex-col items-center justify-center min-h-[40vh]">
+        <p className="text-red-400 mb-4">{t('aiStudio.loadError')}</p>
+        <Button variant="outline" onClick={() => refetch()} className="border-white/20">
+          {t('aiStudio.retry')}
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -111,28 +135,26 @@ export function AIStudioPageClient() {
   }
 
   return (
-    <SoftPlanGate minimumPlan="professional" featureName="AI Studio">
-      <div className="space-y-6 pb-10">
-        <AIStudioHeader onGenerate={() => setShowGenerateModal(true)} credits={credits} />
-        <AIStats {...stats} />
-        <AIGenerationsGrid
-          generations={generations}
-          onPreview={handlePreview}
-          onDownload={handleDownload}
-          onDelete={handleDelete}
-          onShare={handleShare}
-        />
+    <div className="space-y-6 pb-10">
+      <AIStudioHeader onGenerate={() => setShowGenerateModal(true)} credits={credits} />
+      <AIStats {...stats} />
+      <AIGenerationsGrid
+        generations={generations}
+        onPreview={handlePreview}
+        onDownload={handleDownload}
+        onDelete={handleDelete}
+        onShare={handleShare}
+      />
 
-        <GenerateModal
-          open={showGenerateModal}
-          onOpenChange={setShowGenerateModal}
-          onGenerate={handleGenerate}
-          isGenerating={isGenerating}
-          progress={progress}
-          defaultType={activeTab}
-        />
-      </div>
-    </SoftPlanGate>
+      <GenerateModal
+        open={showGenerateModal}
+        onOpenChange={setShowGenerateModal}
+        onGenerate={handleGenerate}
+        isGenerating={isGenerating}
+        progress={progress}
+        defaultType={activeTab}
+      />
+    </div>
   );
 }
 

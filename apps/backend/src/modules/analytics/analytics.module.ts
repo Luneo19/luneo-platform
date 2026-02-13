@@ -45,12 +45,14 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { AgentsModule } from '@/modules/agents/agents.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
+import { PlansModule } from '@/modules/plans/plans.module';
 
 @Module({
   imports: [
     PrismaModule,
     SmartCacheModule,
     RedisOptimizedModule,
+    PlansModule,
     StorageModule,
     HttpModule,
     ConfigModule,

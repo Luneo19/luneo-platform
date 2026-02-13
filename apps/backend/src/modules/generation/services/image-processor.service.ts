@@ -5,7 +5,7 @@ import sharp from 'sharp';
 
 export type ComposeEffect = 'none' | 'engrave' | 'emboss' | '3d_shadow';
 
-interface ComposeZone {
+export interface ComposeZone {
   id: string;
   positionX: number;
   positionY: number;
@@ -18,7 +18,7 @@ interface ComposeParams {
   baseImage: Buffer;
   generatedOverlay: Buffer;
   customizationZones: ComposeZone[];
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
   outputFormat: string;
 }
 
@@ -117,8 +117,8 @@ export class ImageProcessorService {
   /**
    * Get effect for a zone from zone.renderStyle or customizations[zoneId].
    */
-  private getEffectForZone(zone: ComposeZone, customizations: Record<string, any>): ComposeEffect | string {
-    const zoneCustom = customizations[zone.id];
+  private getEffectForZone(zone: ComposeZone, customizations: Record<string, unknown>): ComposeEffect | string {
+    const zoneCustom = customizations[zone.id] as { effect?: string } | undefined;
     const effect =
       (typeof zoneCustom?.effect === 'string' && zoneCustom.effect) ||
       zone.renderStyle ||
@@ -201,10 +201,11 @@ export class ImageProcessorService {
         .toBuffer();
 
       return composed;
-    } catch (error: any) {
-      this.logger.error(`Image composition failed: ${error?.message ?? error}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Image composition failed: ${msg}`);
       throw new InternalServerErrorException(
-        `Failed to compose image: ${error?.message ?? error}`,
+        `Failed to compose image: ${msg}`,
       );
     }
   }
@@ -221,9 +222,10 @@ export class ImageProcessorService {
         })
         .jpeg({ quality: 85 })
         .toBuffer();
-    } catch (error: any) {
-      this.logger.error(`Thumbnail creation failed: ${error?.message ?? error}`);
-      throw new InternalServerErrorException(`Failed to create thumbnail: ${error?.message ?? error}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Thumbnail creation failed: ${msg}`);
+      throw new InternalServerErrorException(`Failed to create thumbnail: ${msg}`);
     }
   }
 

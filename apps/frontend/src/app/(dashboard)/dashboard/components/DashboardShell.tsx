@@ -9,7 +9,21 @@ import { WidgetGrid } from './WidgetGrid';
 import { DashboardCustomizer } from './DashboardCustomizer';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export function DashboardShell() {
+export type InitialNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+};
+
+interface DashboardShellProps {
+  initialNotifications?: InitialNotification[];
+}
+
+export function DashboardShell({ initialNotifications = [] }: DashboardShellProps) {
+  void initialNotifications;
   const {
     fetchDashboardConfig,
     fetchKpiValues,
@@ -64,7 +78,7 @@ export function DashboardShell() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 min-w-0 overflow-x-hidden">
       <DashboardHeader />
       <KpiBar />
       <WidgetGrid />

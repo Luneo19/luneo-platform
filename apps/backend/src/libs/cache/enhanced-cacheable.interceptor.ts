@@ -35,7 +35,7 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
   async intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Promise<Observable<any>> {
+  ): Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest();
     const handler = context.getHandler();
     const controller = context.getClass();
@@ -89,7 +89,7 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
   }
 
   private generateCacheKey(
-    request: any,
+    request: { method?: string; path?: string; query?: Record<string, unknown>; params?: Record<string, unknown>; user?: { id?: string; brandId?: string } },
     handler: Function,
     controller: Function,
   ): string {
@@ -123,9 +123,11 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
   }
 
   private async storeCacheTags(key: string, tags: string[]): Promise<void> {
+    const client = this.redisService.client;
+    if (!client) return;
     for (const tag of tags) {
-      await this.redisService.client.sadd(`cache:tag:${tag}`, key);
-      await this.redisService.client.expire(`cache:tag:${tag}`, 86400); // 24 hours
+      await client.sadd(`cache:tag:${tag}`, key);
+      await client.expire(`cache:tag:${tag}`, 86400); // 24 hours
     }
   }
 }

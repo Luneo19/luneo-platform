@@ -79,7 +79,7 @@ export class SendGridService {
 
   private initializeSendGrid() {
     const apiKey = this.configService.get<string>('email.sendgridApiKey');
-    this.defaultFrom = this.configService.get<string>('email.fromEmail');
+    this.defaultFrom = this.configService.get<string>('email.fromEmail') ?? '';
 
     if (!apiKey) {
       this.logger.warn('SendGrid API key not configured. Service will not be available.');
@@ -98,13 +98,13 @@ export class SendGridService {
   /**
    * Envoyer un email simple
    */
-  async sendSimpleMessage(options: SendGridEmailOptions): Promise<any> {
+  async sendSimpleMessage(options: SendGridEmailOptions): Promise<unknown> {
     if (!this.sendgridAvailable) {
       throw new InternalServerErrorException('SendGrid not initialized. Check your configuration.');
     }
 
     try {
-      const msg: any = {
+      const msg: Record<string, unknown> = {
         to: Array.isArray(options.to) ? options.to : [options.to],
         from: options.from || this.defaultFrom,
         subject: options.subject,
@@ -176,7 +176,7 @@ export class SendGridService {
 
       // TIMEOUT-01: Timeout de 30s pour l'envoi d'email
       const result = await withTimeout(
-        sgMail.send(msg),
+        sgMail.send(msg as unknown as import('@sendgrid/mail').MailDataRequired),
         DEFAULT_TIMEOUTS.SENDGRID_SEND,
         'SendGrid.send',
       );
@@ -196,7 +196,7 @@ export class SendGridService {
    * Envoyer un email de bienvenue
    * Utilise le template SendGrid si configuré, sinon HTML inline
    */
-  async sendWelcomeEmail(userEmail: string, userName: string): Promise<any> {
+  async sendWelcomeEmail(userEmail: string, userName: string): Promise<unknown> {
     const templateId = this.configService.get<string>('emailDomain.emailTemplates.welcome');
     
     // Si un template ID est configuré et n'est pas le placeholder, utiliser le template
@@ -245,7 +245,7 @@ export class SendGridService {
   /**
    * Envoyer un email de réinitialisation de mot de passe
    */
-  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string): Promise<any> {
+  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject: 'Réinitialisation de votre mot de passe',
@@ -272,7 +272,7 @@ export class SendGridService {
   /**
    * Envoyer un email de confirmation
    */
-  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string): Promise<any> {
+  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject: 'Confirmez votre adresse email',
@@ -302,9 +302,9 @@ export class SendGridService {
   async sendTemplateEmail(
     userEmail: string, 
     templateId: string, 
-    templateData: Record<string, any>,
+    templateData: Record<string, unknown>,
     subject?: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject: subject || 'Email de Luneo',
@@ -326,7 +326,7 @@ export class SendGridService {
       data: Buffer | string;
       contentType?: string;
     }>
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject,
@@ -344,7 +344,7 @@ export class SendGridService {
     subject: string,
     html: string,
     sendAt: Date
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.sendSimpleMessage({
       to: userEmail,
       subject,
@@ -366,7 +366,7 @@ export class SendGridService {
       openTracking?: boolean;
       subscriptionTracking?: boolean;
     }
-  ): Promise<any> {
+  ): Promise<unknown> {
     const msg: SendGridEmailOptions = {
       to: userEmail,
       subject,
@@ -402,7 +402,7 @@ export class SendGridService {
   /**
    * Obtenir les statistiques SendGrid (nécessite une clé API avec permissions)
    */
-  async getStats(startDate?: Date, endDate?: Date): Promise<any> {
+  async getStats(startDate?: Date, endDate?: Date): Promise<unknown> {
     if (!this.sendgridAvailable) {
       throw new InternalServerErrorException('SendGrid not initialized');
     }
@@ -449,7 +449,7 @@ export class SendGridService {
       shippingAddress?: string;
       estimatedDelivery?: string;
     }
-  ): Promise<any> {
+  ): Promise<unknown> {
     const templateId = this.configService.get<string>('emailDomain.emailTemplates.orderConfirmation');
     
     // Si un template ID est configuré et n'est pas le placeholder, utiliser le template
@@ -536,7 +536,7 @@ export class SendGridService {
       }>;
       previewImageUrl?: string;
     }
-  ): Promise<any> {
+  ): Promise<unknown> {
     const templateId = this.configService.get<string>('emailDomain.emailTemplates.productionReady');
     
     // Si un template ID est configuré et n'est pas le placeholder, utiliser le template

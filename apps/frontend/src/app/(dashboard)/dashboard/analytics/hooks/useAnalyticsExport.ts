@@ -4,11 +4,13 @@
 
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
 import type { AnalyticsData, AnalyticsMetric } from '../types';
 
 export function useAnalyticsExport() {
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const exportAnalytics = useCallback(
     async (
@@ -49,17 +51,17 @@ export function useAnalyticsExport() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        toast({ title: 'Succès', description: 'Export réussi' });
+        toast({ title: t('common.success'), description: t('common.export') });
       } catch (error) {
         logger.error('Error exporting analytics', { error });
         toast({
-          title: 'Erreur',
-          description: 'Erreur lors de l\'export',
+          title: t('common.error'),
+          description: t('common.somethingWentWrong'),
           variant: 'destructive',
         });
       }
     },
-    [toast]
+    [toast, t]
   );
 
   return { exportAnalytics };

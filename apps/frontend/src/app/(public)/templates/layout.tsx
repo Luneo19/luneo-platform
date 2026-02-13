@@ -10,6 +10,10 @@ export const metadata: Metadata = generateSEOMetadata({
   keywords: ['templates', 't-shirts', 'mugs', 'goodies', 'personnalisation', 'Luneo'],
   canonicalUrl: `${SEO_BASE_URL}/templates`,
   ogType: 'website',
+  alternateLocales: [
+    { locale: 'fr', url: `${SEO_BASE_URL}/templates` },
+    { locale: 'en', url: `${SEO_BASE_URL}/en/templates` },
+  ],
 });
 
 export default function TemplatesLayout({ children }: { children: ReactNode }) {

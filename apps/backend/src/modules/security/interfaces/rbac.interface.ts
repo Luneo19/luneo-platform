@@ -229,11 +229,18 @@ export interface RequestUser {
 }
 
 /**
+ * Interface pour une ressource avec brandId (isolation par marque)
+ */
+export interface ResourceWithBrand {
+  brandId?: string;
+}
+
+/**
  * Interface pour le contexte d'autorisation
  */
 export interface AuthorizationContext {
   user: RequestUser;
-  resource?: any;
+  resource?: ResourceWithBrand;
   action: Permission;
 }
 

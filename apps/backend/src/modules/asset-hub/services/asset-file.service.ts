@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
@@ -10,6 +10,7 @@ import {
   PaginationResult,
 } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
+import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
 
 @Injectable()
 export class AssetFileService {
@@ -55,7 +56,7 @@ export class AssetFileService {
   ): Promise<PaginationResult<unknown>> {
     const { skip, take, page, limit } = normalizePagination(pagination);
 
-    const where: any = {
+    const where = {
       // Utiliser brandId comme organizationId pour compatibilité
       brandId: organizationId,
       ...(filters.folderId && { folderId: filters.folderId }),
@@ -66,7 +67,7 @@ export class AssetFileService {
           { originalName: { contains: filters.search, mode: 'insensitive' } },
         ],
       }),
-    };
+    } as Prisma.AssetFileWhereInput;
 
     const [data, total] = await Promise.all([
       this.prisma.assetFile.findMany({
@@ -175,6 +176,9 @@ export class AssetFileService {
       );
     }
 
+    // ✅ Enforce plan storage quota before upload
+    await this.enforceStorageQuota(organizationId, file.size);
+
     // Générer storage key unique
     const storageKey = `assets/${organizationId}/${Date.now()}-${file.originalname}`;
 
@@ -246,5 +250,58 @@ export class AssetFileService {
       type: file?.type ?? file?.mimeType ?? undefined,
       deletedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Enforce storage quota before upload based on the brand's plan.
+   * Calculates current usage from AssetFile aggregate and compares against plan limit.
+   */
+  private async enforceStorageQuota(brandId: string, newFileSizeBytes: number): Promise<void> {
+    try {
+      // Get brand's current plan
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { plan: true },
+      });
+
+      if (!brand) return; // Skip if brand not found (shouldn't happen)
+
+      const planKey = (brand.plan || 'free').toLowerCase() as import('@/libs/plans/plan-config.types').PlanTier;
+      const planConfig = PLAN_CONFIGS[planKey];
+      if (!planConfig) return;
+
+      const storageLimitGB = planConfig.limits.storageGB;
+      // -1 means unlimited (Enterprise)
+      if (storageLimitGB < 0) return;
+
+      // Calculate current storage usage from AssetFile table (real data)
+      const aggregate = await this.prisma.assetFile.aggregate({
+        where: { brandId },
+        _sum: { sizeBytes: true },
+      });
+
+      const currentUsageBytes = aggregate._sum.sizeBytes || 0;
+      const storageLimitBytes = storageLimitGB * 1024 * 1024 * 1024;
+      const projectedUsageBytes = currentUsageBytes + newFileSizeBytes;
+
+      if (projectedUsageBytes > storageLimitBytes) {
+        const currentUsageGB = (currentUsageBytes / (1024 * 1024 * 1024)).toFixed(2);
+        const newFileSizeMB = (newFileSizeBytes / (1024 * 1024)).toFixed(1);
+        this.logger.warn(
+          `Storage quota exceeded for brand ${brandId}: ${currentUsageGB}GB / ${storageLimitGB}GB + ${newFileSizeMB}MB`,
+        );
+        throw new ForbiddenException(
+          `Storage quota exceeded. Current usage: ${currentUsageGB}GB / ${storageLimitGB}GB. Please upgrade your plan.`,
+        );
+      }
+    } catch (error) {
+      // Re-throw ForbiddenException (quota exceeded)
+      if (error instanceof ForbiddenException) throw error;
+      // Log other errors but don't block upload (graceful degradation)
+      this.logger.warn('Failed to check storage quota', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        brandId,
+      });
+    }
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, BookOpen, Star, Eye, ThumbsUp, ArrowRight } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 
-interface KBArticle {
+export interface KBArticle {
   id: string;
   title: string;
   content: string;
@@ -33,6 +34,7 @@ interface KnowledgeTabProps {
 }
 
 export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTabProps) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       <div className="flex gap-4">
@@ -41,16 +43,16 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
           <Input
             value={kbSearch}
             onChange={(e) => setKbSearch(e.target.value)}
-            placeholder="Rechercher dans la base de connaissances..."
+            placeholder={t('support.searchArticles')}
             className="pl-10 bg-white border-gray-200 text-gray-900"
           />
         </div>
         <Select defaultValue="all">
           <SelectTrigger className="w-[180px] bg-white border-gray-200 text-gray-900">
-            <SelectValue placeholder="Catégorie" />
+            <SelectValue placeholder={t('support.category')} />
           </SelectTrigger>
           <SelectContent className="bg-white border-gray-200 text-gray-900">
-            <SelectItem value="all">Toutes</SelectItem>
+            <SelectItem value="all">{t('library.filters.all')}</SelectItem>
             <SelectItem value="getting-started">Démarrage</SelectItem>
             <SelectItem value="troubleshooting">Dépannage</SelectItem>
             <SelectItem value="features">Fonctionnalités</SelectItem>
@@ -61,8 +63,8 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
       {filteredKB.length === 0 ? (
         <Card className="p-12 bg-white border-gray-200 text-center">
           <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun article</h3>
-          <p className="text-gray-600">{kbSearch ? 'Aucun résultat pour votre recherche' : 'Aucun article disponible'}</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('support.noArticle')}</h3>
+          <p className="text-gray-600">{kbSearch ? t('support.noResultsSearch') : t('support.noArticlesAvailable')}</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -101,7 +103,7 @@ export function KnowledgeTab({ kbSearch, setKbSearch, filteredKB }: KnowledgeTab
                     </span>
                   </div>
                   <Button variant="ghost" size="sm" className="h-6 text-xs">
-                    Lire <ArrowRight className="w-3 h-3 ml-1" />
+                    {t('support.read')} <ArrowRight className="w-3 h-3 ml-1" />
                   </Button>
                 </div>
               </Card>

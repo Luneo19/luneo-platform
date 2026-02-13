@@ -5,11 +5,14 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 export function useLibraryUpload() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,12 +49,12 @@ export function useLibraryUpload() {
                 resolve({ success: true });
               }
             } else {
-              reject(new Error('Erreur lors de l\'upload'));
+              reject(new Error(t('library.uploadError')));
             }
           };
 
           xhr.onerror = () => {
-            reject(new Error('Erreur réseau lors de l\'upload'));
+            reject(new Error(t('library.uploadNetworkError')));
           };
 
           xhr.open('POST', '/api/library/upload');
@@ -60,15 +63,15 @@ export function useLibraryUpload() {
 
         const result = await uploadPromise;
 
-        toast({ title: 'Succès', description: 'Fichiers uploadés avec succès' });
+        toast({ title: t('common.success'), description: t('library.filesUploadedSuccess') });
         router.refresh();
         setUploadProgress({});
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error uploading files', { error });
         toast({
-          title: 'Erreur',
-          description: error.message || 'Erreur lors de l\'upload',
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
           variant: 'destructive',
         });
         return { success: false };
@@ -76,7 +79,7 @@ export function useLibraryUpload() {
         setIsUploading(false);
       }
     },
-    [toast, router]
+    [toast, router, t]
   );
 
   const openFileDialog = useCallback(() => {

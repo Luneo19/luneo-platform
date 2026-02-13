@@ -15,18 +15,23 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { WebVitalsService } from '../services/web-vitals.service';
 import { CreateWebVitalDto, GetWebVitalsDto } from '../dto/web-vitals.dto';
+import { Request as ExpressRequest } from 'express';
+import { CurrentUser } from '@/common/types/user.types';
 
 @ApiTags('Analytics')
 @Controller('analytics/web-vitals')
+@UseGuards(JwtAuthGuard)
 export class WebVitalsController {
   constructor(private readonly webVitalsService: WebVitalsService) {}
 
   @Post()
   @Public() // Public: Browser metrics collection endpoint
+  @Throttle({ default: { limit: 100, ttl: 60000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Record Web Vital metric',
@@ -40,9 +45,9 @@ export class WebVitalsController {
     status: 400,
     description: 'Invalid metric data',
   })
-  async recordWebVital(@Body() dto: CreateWebVitalDto, @Request() req: any) {
+  async recordWebVital(@Body() dto: CreateWebVitalDto, @Request() req: ExpressRequest & { user?: CurrentUser }) {
     const userId = req.user?.id;
-    const sessionId = req.headers['x-session-id'] || req.session?.id;
+    const sessionId = (req.headers['x-session-id'] as string | undefined) ?? (req as ExpressRequest & { session?: { id?: string } }).session?.id;
     
     return this.webVitalsService.recordWebVital({
       ...dto,
@@ -86,14 +91,14 @@ export class WebVitalsController {
     status: 200,
     description: 'Web Vitals retrieved successfully',
   })
-  async getWebVitals(@Query() query: GetWebVitalsDto, @Request() req: any) {
+  async getWebVitals(@Query() query: GetWebVitalsDto, @Request() req: ExpressRequest & { user?: CurrentUser }) {
     const userId = req.user?.id;
     const brandId = req.user?.brandId;
 
     return this.webVitalsService.getWebVitals({
       ...query,
-      userId,
-      brandId,
+      userId: userId ?? undefined,
+      brandId: brandId ?? undefined,
     });
   }
 
@@ -120,14 +125,14 @@ export class WebVitalsController {
     status: 200,
     description: 'Web Vitals summary retrieved successfully',
   })
-  async getWebVitalsSummary(@Query() query: GetWebVitalsDto, @Request() req: any) {
+  async getWebVitalsSummary(@Query() query: GetWebVitalsDto, @Request() req: ExpressRequest & { user?: CurrentUser }) {
     const userId = req.user?.id;
     const brandId = req.user?.brandId;
 
     return this.webVitalsService.getWebVitalsSummary({
       ...query,
-      userId,
-      brandId,
+      userId: userId ?? undefined,
+      brandId: brandId ?? undefined,
     });
   }
 }

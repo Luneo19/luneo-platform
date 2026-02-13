@@ -10,7 +10,7 @@ export interface Experiment {
   variants: Array<{
     id: string;
     name: string;
-    config: any;
+    config: Record<string, unknown>;
     weight: number; // 0-100, pour distribution
   }>;
   status: 'draft' | 'running' | 'paused' | 'completed';
@@ -383,7 +383,7 @@ export class ABTestingService {
           if (
             result.variantId !== control.variantId &&
             result.conversionRate > control.conversionRate &&
-            result.statisticalSignificance > 95
+            (result.statisticalSignificance ?? 0) > 95
           ) {
             result.winner = true;
           }

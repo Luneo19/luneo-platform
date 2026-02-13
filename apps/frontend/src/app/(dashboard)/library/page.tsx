@@ -28,6 +28,8 @@ import {
   Play,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import Image from 'next/image';
@@ -53,6 +55,7 @@ interface Template {
 
 function LibraryPageContent() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -87,18 +90,18 @@ function LibraryPageContent() {
 
   useEffect(() => {
     if (templatesQuery.data) {
-      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template: any) => ({
-        id: template.id,
-        name: template.name,
-        category: template.category,
-        thumbnail: template.thumbnail,
-        isPremium: template.isPremium,
-        isFavorite: template.isFavorite,
-        downloads: template.downloads,
-        views: template.views,
-        rating: template.rating,
-        createdAt: template.createdAt,
-        tags: template.tags,
+      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template: Record<string, unknown>) => ({
+        id: String(template.id ?? ''),
+        name: String(template.name ?? ''),
+        category: (template.category as Template['category']) ?? 'other',
+        thumbnail: String(template.thumbnail ?? ''),
+        isPremium: Boolean(template.isPremium),
+        isFavorite: Boolean(template.isFavorite),
+        downloads: Number(template.downloads ?? 0),
+        views: Number(template.views ?? 0),
+        rating: Number(template.rating ?? 0),
+        createdAt: String(template.createdAt ?? ''),
+        tags: Array.isArray(template.tags) ? (template.tags as string[]) : [],
       }));
 
       if (page === 1) {
@@ -117,12 +120,12 @@ function LibraryPageContent() {
         setLoadingMore(true);
       }
     } else if (templatesQuery.isError) {
-      setError(templatesQuery.error?.message || 'Erreur lors du chargement des templates');
+      setError(templatesQuery.error?.message || t('library.errorLoadingTemplates'));
       setLoading(false);
       setLoadingMore(false);
       toast({
-        title: 'Erreur',
-        description: templatesQuery.error?.message || 'Impossible de charger les templates',
+        title: t('common.error'),
+        description: templatesQuery.error?.message || t('library.errorLoadingTemplatesDesc'),
         variant: 'destructive',
       });
     }
@@ -163,14 +166,14 @@ function LibraryPageContent() {
       ));
 
       toast({
-        title: isFavorite ? "Retiré des favoris" : "Ajouté aux favoris",
+        title: isFavorite ? t('library.removedFromFavorites') : t('library.addedToFavorites'),
         description: template?.name,
       });
     } catch (error: unknown) {
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de modifier les favoris",
-        variant: "destructive",
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
       });
     }
   };
@@ -180,7 +183,7 @@ function LibraryPageContent() {
       const newTemplate = {
         ...template,
         id: `${template.id}-copy`,
-        name: `${template.name} (Copie)`,
+        name: `${template.name} ${t('library.copySuffix')}`,
         downloads: 0,
         views: 0,
         createdAt: new Date().toISOString().split('T')[0]
@@ -189,20 +192,20 @@ function LibraryPageContent() {
       setTemplates([newTemplate, ...templates]);
 
       toast({
-        title: "Template dupliqué",
-        description: "Le template a été dupliqué avec succès",
+        title: t('library.templateDuplicated'),
+        description: t('library.templateDuplicatedDesc'),
       });
     } catch (error) {
       toast({
-        title: "Erreur",
-        description: "Impossible de dupliquer le template",
-        variant: "destructive",
+        title: t('common.error'),
+        description: t('library.duplicateError'),
+        variant: 'destructive',
       });
     }
   };
 
   const handleDelete = async (templateId: string, templateName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${templateName}" ?`)) {
+    if (!confirm(t('library.deleteTemplateConfirm', { name: templateName }))) {
       return;
     }
 
@@ -212,41 +215,38 @@ function LibraryPageContent() {
       setTemplates(templates.filter(t => t.id !== templateId));
 
       toast({
-        title: "Template supprimé",
-        description: "Le template a été supprimé avec succès",
+        title: t('library.templateDeleted'),
+        description: t('library.templateDeletedDesc'),
       });
     } catch (error: unknown) {
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de supprimer le template",
-        variant: "destructive",
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
+        variant: 'destructive',
       });
     }
   };
 
-  const handleDownload = async (template: Template) => {
+  const handleDownload = async (designId: string) => {
     try {
-      toast({
-        title: "Téléchargement",
-        description: `Téléchargement de ${template.name}...`,
-      });
+      type DesignDownloadResponse = { downloadUrl?: string; previewUrl?: string; fileUrl?: string; name?: string };
+      const response = await api.get<DesignDownloadResponse>(`/api/v1/designs/${designId}`);
+      const raw = response as DesignDownloadResponse;
+      const downloadUrl = raw.downloadUrl ?? raw.previewUrl ?? raw.fileUrl ?? '';
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (downloadUrl) {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = raw.name ?? 'design';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
 
-      setTemplates(templates.map(t =>
-        t.id === template.id ? { ...t, downloads: t.downloads + 1 } : t
-      ));
-
-      toast({
-        title: "Téléchargement réussi",
-        description: "Le template a été téléchargé",
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de télécharger le template",
-        variant: "destructive",
-      });
+      toast({ title: t('common.success'), description: t('library.downloadStarted') });
+    } catch (error: unknown) {
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     }
   };
 
@@ -309,7 +309,7 @@ function LibraryPageContent() {
         <div className="flex flex-col sm:flex-row gap-3">
           <Button variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]" onClick={() => router.push('/dashboard/library/import')}>
             <FolderOpen className="w-4 h-4 mr-2" />
-            Importer
+            {t('common.import')}
           </Button>
           <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white" onClick={() => router.push('/dashboard/customize')}>
             <Plus className="w-4 h-4 mr-2" />
@@ -383,7 +383,7 @@ function LibraryPageContent() {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <Input
-            placeholder="Rechercher par nom ou tag..."
+            placeholder={t('common.searchByNameOrTag')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="dash-input pl-10 border-white/[0.08] text-white placeholder:text-white/40"
@@ -404,6 +404,7 @@ function LibraryPageContent() {
             size="icon"
             onClick={() => setViewMode('grid')}
             className={viewMode === 'grid' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
+            aria-label="Grid view"
           >
             <Grid className="w-4 h-4" />
           </Button>
@@ -412,6 +413,7 @@ function LibraryPageContent() {
             size="icon"
             onClick={() => setViewMode('list')}
             className={viewMode === 'list' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'border-white/[0.08] text-white/80 hover:bg-white/[0.04]'}
+            aria-label="List view"
           >
             <List className="w-4 h-4" />
           </Button>
@@ -453,14 +455,15 @@ function LibraryPageContent() {
                 <button
                   onClick={() => handleToggleFavorite(template.id)}
                   className="absolute top-2 left-2 p-2 bg-black/40 rounded-full hover:bg-white/[0.08] transition-colors border border-white/[0.06]"
+                  aria-label={template.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Heart className={`w-4 h-4 ${template.isFavorite ? 'fill-[#ec4899] text-[#ec4899]' : 'text-white/60'}`} />
                 </button>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur text-white hover:bg-white/[0.08]">
+                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur text-white hover:bg-white/[0.08]" aria-label="Preview">
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur text-white hover:bg-white/[0.08]">
+                  <Button size="sm" variant="outline" className="border-white/20 bg-black/40 backdrop-blur text-white hover:bg-white/[0.08]" aria-label="Edit">
                     <Edit className="w-4 h-4" />
                   </Button>
                 </div>
@@ -497,7 +500,7 @@ function LibraryPageContent() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleDownload(template)}
+                  onClick={() => handleDownload(template.id)}
                   className="flex-1 border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -508,6 +511,7 @@ function LibraryPageContent() {
                   variant="outline"
                   onClick={() => handleDuplicate(template)}
                   className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
+                  aria-label="Duplicate"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -515,6 +519,7 @@ function LibraryPageContent() {
                   size="sm"
                   variant="outline"
                   className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
+                  aria-label="Share"
                 >
                   <Share2 className="w-4 h-4" />
                 </Button>
@@ -522,6 +527,7 @@ function LibraryPageContent() {
                   size="sm"
                   variant="destructive"
                   onClick={() => handleDelete(template.id, template.name)}
+                  aria-label="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -539,7 +545,7 @@ function LibraryPageContent() {
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-            <p className="text-sm text-white/60">Chargement de plus de templates...</p>
+            <p className="text-sm text-white/60">{t('library.loadingMore')}</p>
           </div>
         </div>
       )}
@@ -548,11 +554,11 @@ function LibraryPageContent() {
         <Card className="dash-card p-6 bg-[#1a1a2e]/80 border-[#f87171]/30">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-[#f87171] mb-2">Erreur de chargement</h3>
+              <h3 className="text-lg font-semibold text-[#f87171] mb-2">{t('library.loadErrorTitle')}</h3>
               <p className="text-sm text-white/60">{error}</p>
             </div>
             <Button onClick={() => templatesQuery.refetch()} variant="outline" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]">
-              Réessayer
+              {t('common.retry')}
             </Button>
           </div>
         </Card>
@@ -561,12 +567,12 @@ function LibraryPageContent() {
       {filteredTemplates.length === 0 && !error && (
         <EmptyState
           icon={<Book className="w-16 h-16 text-white/40" />}
-          title={searchTerm || categoryFilter !== 'all' ? "Aucun template trouvé" : "Aucun template"}
+          title={searchTerm || categoryFilter !== 'all' ? t('library.noTemplatesFound') : t('library.noTemplates')}
           description={searchTerm || categoryFilter !== 'all'
-            ? `Aucun template ne correspond à vos filtres. Essayez de modifier votre recherche ou vos filtres.`
-            : "Commencez par créer votre premier template pour personnaliser vos produits."}
+            ? t('library.noTemplatesMatchFilters')
+            : t('library.noTemplatesDesc')}
           action={{
-            label: searchTerm || categoryFilter !== 'all' ? "Réinitialiser les filtres" : "Créer un template",
+            label: searchTerm || categoryFilter !== 'all' ? t('library.resetFilters') : t('library.createTemplate'),
             onClick: () => {
               if (searchTerm || categoryFilter !== 'all') {
                 setSearchTerm('');
@@ -583,12 +589,12 @@ function LibraryPageContent() {
       <Card className="dash-card-glow p-6 border-white/[0.06]">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
           <div>
-            <h3 className="text-lg font-bold text-white mb-2">Besoin d'inspiration ?</h3>
-            <p className="text-white/60">Découvrez notre collection de templates premium</p>
+            <h3 className="text-lg font-bold text-white mb-2">{t('library.needInspiration')}</h3>
+            <p className="text-white/60">{t('library.explorePremium')}</p>
           </div>
           <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white">
             <Zap className="w-4 h-4 mr-2" />
-            Explorer les templates
+            {t('library.exploreTemplates')}
           </Button>
         </div>
       </Card>

@@ -23,7 +23,7 @@ export class CreateProjectDto {
   @ApiProperty({ description: 'Initial layers', default: [] })
   @IsArray()
   @IsOptional()
-  layers?: any[];
+  layers?: Record<string, unknown>[];
 }
 
 

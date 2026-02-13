@@ -7,6 +7,7 @@
 
 import { ShoppingCart, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/useI18n';
 import type { OrderStats } from '../types';
 
 interface OrdersHeaderProps {
@@ -27,16 +28,17 @@ export function OrdersHeader({
   onShowCreate,
   onShowExport,
 }: OrdersHeaderProps) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
           <ShoppingCart className="w-8 h-8 text-cyan-400" />
-          Commandes
+          {t('orders.title')}
         </h1>
         <p className="text-gray-400 mt-1">
-          {stats.total} commande{stats.total > 1 ? 's' : ''} •{' '}
-          {formatPrice(stats.totalRevenue, 'EUR')} de revenus
+          {t('orders.countOrders', { count: stats.total })} •{' '}
+          {formatPrice(stats.totalRevenue, 'EUR')} {t('orders.revenue')}
         </p>
       </div>
       <div className="flex items-center gap-3">
@@ -47,7 +49,7 @@ export function OrdersHeader({
             className="border-gray-700"
           >
             <Download className="w-4 h-4 mr-2" />
-            Exporter
+            {t('common.export')}
           </Button>
         )}
         {onShowCreate && (
@@ -56,7 +58,7 @@ export function OrdersHeader({
             className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Nouvelle commande
+            {t('orders.newOrder')}
           </Button>
         )}
       </div>

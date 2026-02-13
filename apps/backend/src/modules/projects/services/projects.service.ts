@@ -38,7 +38,7 @@ export class ProjectsService {
     tags: (args) =>
       [
         'projects:list',
-        args[0]?.organizationId ? `organization:${args[0].organizationId}` : null,
+        args[0] ? `organization:${args[0]}` : null,
       ].filter(Boolean) as string[],
   })
   async findAll(

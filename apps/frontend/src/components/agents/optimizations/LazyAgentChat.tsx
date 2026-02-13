@@ -37,9 +37,10 @@ export function LazyAgentChat({ agent, ...props }: LazyAgentChatProps) {
   }
 
   if (agent === 'aria' || agent === 'nova') {
+    const ariaProps = props as { productId?: string; sessionId?: string; [key: string]: unknown };
     return (
       <Suspense fallback={<LoadingSkeleton />}>
-        <AriaWidget {...(props as Record<string, unknown>)} />
+        <AriaWidget productId={ariaProps.productId ?? ''} sessionId={ariaProps.sessionId ?? ''} {...props} />
       </Suspense>
     );
   }

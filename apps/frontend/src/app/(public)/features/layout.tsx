@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 
 export const metadata: Metadata = {
   title: 'Fonctionnalités | Luneo - Plateforme de Personnalisation IA',
@@ -8,11 +9,11 @@ export const metadata: Metadata = {
     title: 'Fonctionnalités | Luneo',
     description: 'Éditeur 2D, configurateur 3D, essayage virtuel AR, génération IA - tout pour personnaliser vos produits.',
     type: 'website',
-    url: 'https://luneo.app/features',
+    url: `${SEO_BASE_URL}/features`,
     siteName: 'Luneo',
     images: [
       {
-        url: 'https://luneo.app/og-features.png',
+        url: `${SEO_BASE_URL}/og-features.png`,
         width: 1200,
         height: 630,
         alt: 'Luneo Features',
@@ -25,7 +26,11 @@ export const metadata: Metadata = {
     description: 'Découvrez toutes les fonctionnalités de Luneo pour la personnalisation produit.',
   },
   alternates: {
-    canonical: 'https://luneo.app/features',
+    canonical: `${SEO_BASE_URL}/features`,
+    languages: {
+      fr: `${SEO_BASE_URL}/features`,
+      en: `${SEO_BASE_URL}/en/features`,
+    },
   },
 };
 

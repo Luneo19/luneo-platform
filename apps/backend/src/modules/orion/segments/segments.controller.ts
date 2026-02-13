@@ -14,8 +14,9 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 
-@Controller('api/v1/orion')
+@Controller('orion')
 @UseGuards(JwtAuthGuard, RolesGuard)
+// @ts-expect-error NestJS decorator typing
 @Roles(UserRole.PLATFORM_ADMIN)
 export class SegmentsController {
   constructor(private readonly segmentsService: SegmentsService) {}

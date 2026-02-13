@@ -4,7 +4,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { trpc } from '@/lib/trpc/client';
 import type { ARModel, ARModelType, ARModelStatus } from '../types';
 
@@ -14,6 +16,7 @@ export function useARModels(
   filterStatus: string
 ) {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [models, setModels] = useState<ARModel[]>([]);
 
   const modelsQuery = trpc.ar.listModels.useQuery();
@@ -41,7 +44,7 @@ export function useARModels(
         updatedAt: m.updatedAt ? new Date(m.updatedAt) : new Date(),
         glbUrl: m.glbUrl || m.glb_url,
         usdzUrl: m.usdzUrl || m.usdz_url,
-        metadata: m.metadata,
+        metadata: (m.metadata as Record<string, unknown>) ?? {},
         tags: m.tags || [],
         category: m.category,
         productId: m.productId || m.product_id,
@@ -77,13 +80,13 @@ export function useARModels(
   const deleteModel = trpc.ar.deleteModel.useMutation({
     onSuccess: () => {
       modelsQuery.refetch();
-      toast({ title: 'Succès', description: 'Modèle supprimé' });
+      toast({ title: t('common.success'), description: t('arStudio.modelDeleted') });
     },
     onError: (error) => {
       logger.error('Error deleting AR model', { error });
       toast({
-        title: 'Erreur',
-        description: error.message || 'Erreur lors de la suppression',
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     },

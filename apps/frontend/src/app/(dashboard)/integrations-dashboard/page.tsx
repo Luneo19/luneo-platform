@@ -101,6 +101,7 @@ function IntegrationsDashboardPageContent() {
   const [filter, setFilter] = useState<'all' | Integration['category']>('all');
   const [integrations, setIntegrations] = useState<Integration[]>(DEFAULT_INTEGRATIONS);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/v1/integrations', { credentials: 'include' })
@@ -112,9 +113,10 @@ function IntegrationsDashboardPageContent() {
             setIntegrations(real);
           }
         }
+        setError(null);
       })
       .catch(() => {
-        // Keep defaults on error
+        setError('Impossible de charger les intégrations');
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -130,6 +132,30 @@ function IntegrationsDashboardPageContent() {
     { id: 'development', label: 'Développement', count: integrations.filter(i => i.category === 'development').length },
     { id: 'other', label: 'Autres', count: integrations.filter(i => i.category === 'other').length },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-16 bg-white/5 rounded-xl animate-pulse w-3/4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="dash-card p-6 border-white/[0.06] animate-pulse h-48" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 flex flex-col items-center justify-center min-h-[40vh]">
+        <p className="text-red-400 mb-4">{error}</p>
+        <Button variant="outline" onClick={() => window.location.reload()} className="border-white/20">
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

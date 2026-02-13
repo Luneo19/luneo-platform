@@ -33,6 +33,7 @@ export interface BrandDetail {
   description?: string | null;
   logo?: string | null;
   website?: string | null;
+  industry?: string | null;
   status: string;
   plan: string;
   subscriptionPlan: string;

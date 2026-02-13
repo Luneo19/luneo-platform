@@ -57,7 +57,7 @@ interface Zone {
   allowedPatterns?: string[];
   isRequired: boolean;
   order: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface ZoneConfiguratorProps {
@@ -80,7 +80,7 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
   
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const mouse = useMemo(() => new THREE.Vector2(), []);
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<React.ComponentRef<typeof OrbitControls> | null>(null);
 
   // Queries
   const { data: existingZones, isLoading } = trpc.customization.getZonesByProduct.useQuery(
@@ -110,7 +110,7 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
   // ========================================
 
   const handleMeshClick = useCallback(
-    (event: any) => {
+    (event: { point: THREE.Vector3; uv?: THREE.Vector2 }) => {
       if (!isSelectingPosition) return;
 
       const point = event.point;
@@ -169,6 +169,7 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
           return updateZone.mutateAsync({
             ...zone,
             id: zone.id,
+            productId,
           });
         }
       });
@@ -188,7 +189,7 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
     async (zoneId: string) => {
       if (!zoneId.startsWith('zone-')) {
         // Zone existante, supprime de la DB
-        await deleteZone.mutateAsync({ id: zoneId });
+        await deleteZone.mutateAsync({ id: zoneId, productId });
       }
 
       setZones(zones.filter((z) => z.id !== zoneId));
@@ -196,7 +197,7 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
         setSelectedZoneId(null);
       }
     },
-    [zones, selectedZoneId, deleteZone]
+    [zones, selectedZoneId, deleteZone, productId]
   );
 
   const handleUpdateZone = useCallback(
@@ -489,14 +490,14 @@ function ZoneConfiguratorContent({ productId, modelUrl, onSave }: ZoneConfigurat
 // COMPOSANTS 3D
 // ========================================
 
-function Model3D({ url, onClick }: { url: string; onClick: (event: any) => void }) {
+function Model3D({ url, onClick }: { url: string; onClick: (event: { point: THREE.Vector3; uv?: THREE.Vector2 }) => void }) {
   const { scene } = useGLTF(url);
 
   return (
     <primitive
       object={scene}
       onClick={onClick}
-      onPointerOver={(e: any) => {
+      onPointerOver={(e: React.PointerEvent) => {
         e.stopPropagation();
         document.body.style.cursor = 'pointer';
       }}

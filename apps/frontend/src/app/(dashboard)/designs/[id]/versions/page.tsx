@@ -31,6 +31,8 @@ import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import {
   Dialog,
   DialogContent,
@@ -78,6 +80,7 @@ function DesignVersionsPageContent() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const designId = params.id as string;
 
   const [selectedVersion, setSelectedVersion] = useState<DesignVersion | null>(null);
@@ -93,10 +96,10 @@ function DesignVersionsPageContent() {
   const createVersionMutation = trpc.design.createVersion.useMutation({
     onSuccess: () => {
       versionsQuery.refetch();
-      toast({ title: 'Succès', description: 'Version créée' });
+      toast({ title: t('common.success'), description: t('designs.versionCreated') });
     },
     onError: (error) => {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
 
@@ -109,8 +112,9 @@ function DesignVersionsPageContent() {
     updatedAt: string;
   }
   // Transform data
-  const versions: DesignVersion[] = (versionsQuery.data?.versions || []).map((v: VersionRow) => ({
-    id: v.id,
+  type VersionRowLike = VersionRow & { id?: string };
+  const versions: DesignVersion[] = ((versionsQuery.data?.versions ?? []) as VersionRowLike[]).map((v) => ({
+    id: v.id ?? '',
     design_id: designId,
     version_number: v.version ?? 0,
     name: v.name,
@@ -131,8 +135,8 @@ function DesignVersionsPageContent() {
       await api.post(`/api/v1/designs/${designId}/versions/${selectedVersion.id}/restore`);
 
       toast({
-        title: 'Version restaurée',
-        description: `La version ${selectedVersion.version_number} a été restaurée avec succès`,
+        title: t('designs.versionRestored'),
+        description: t('designs.versionRestoredDesc'),
       });
 
       setIsRestoreModalOpen(false);
@@ -142,12 +146,11 @@ function DesignVersionsPageContent() {
       await versionsQuery.refetch();
 
       // Rediriger vers le design
-      router.push(`/dashboard/designs/${designId}`);
+      router.push(`/designs/${designId}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Impossible de restaurer la version';
       toast({
-        title: 'Erreur',
-        description: message,
+        title: t('common.error'),
+        description: getErrorDisplayMessage(err),
         variant: 'destructive',
       });
     } finally {
@@ -163,18 +166,17 @@ function DesignVersionsPageContent() {
       await api.delete(`/api/v1/designs/${designId}/versions/${versionToDelete}`);
 
       toast({
-        title: 'Version supprimée',
-        description: 'La version a été supprimée avec succès',
+        title: t('designs.versionDeleted'),
+        description: t('designs.versionDeletedDesc'),
       });
 
       setIsDeleteModalOpen(false);
       setVersionToDelete(null);
       await versionsQuery.refetch();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Impossible de supprimer la version';
       toast({
-        title: 'Erreur',
-        description: message,
+        title: t('common.error'),
+        description: getErrorDisplayMessage(err),
         variant: 'destructive',
       });
     } finally {
@@ -189,16 +191,15 @@ function DesignVersionsPageContent() {
       });
 
       toast({
-        title: 'Version créée',
-        description: 'Une nouvelle version a été créée',
+        title: t('designs.versionCreated'),
+        description: t('designs.versionCreatedDesc'),
       });
 
       await versionsQuery.refetch();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Impossible de créer la version';
       toast({
-        title: 'Erreur',
-        description: message,
+        title: t('common.error'),
+        description: getErrorDisplayMessage(err),
         variant: 'destructive',
       });
     }
@@ -230,13 +231,13 @@ function DesignVersionsPageContent() {
     const type = getVersionType(version);
     switch (type) {
       case 'auto':
-        return 'Automatique';
+        return t('designVersions.automatic');
       case 'manual':
-        return 'Manuelle';
+        return t('designVersions.manual');
       case 'restored':
-        return 'Restaurée';
+        return t('designVersions.restored');
       default:
-        return 'Automatique';
+        return t('designVersions.automatic');
     }
   };
 
@@ -245,7 +246,7 @@ function DesignVersionsPageContent() {
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f]">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Chargement des versions...</p>
+          <p className="text-white/60">{t('designVersions.loadingVersions')}</p>
         </div>
       </div>
     );
@@ -256,10 +257,10 @@ function DesignVersionsPageContent() {
       <div className="min-h-screen bg-[#0a0a0f] p-6">
         <EmptyState
           icon={<AlertCircle className="w-16 h-16 text-white/40" />}
-          title="Erreur de chargement"
-          description={versionsQuery.error.message || 'Une erreur est survenue'}
+          title={t('designVersions.errorLoading')}
+          description={getErrorDisplayMessage(versionsQuery.error)}
           action={{
-            label: 'Réessayer',
+            label: t('common.retry'),
             onClick: () => versionsQuery.refetch(),
           }}
         />
@@ -273,7 +274,7 @@ function DesignVersionsPageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href={`/dashboard/designs/${designId}`}>
+            <Link href={`/designs/${designId}`}>
               <Button variant="ghost" size="icon" className="border-white/[0.08] text-white/80 hover:bg-white/[0.04] hover:text-white">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -338,10 +339,10 @@ function DesignVersionsPageContent() {
         {versions.length === 0 ? (
           <EmptyState
             icon={<History className="w-16 h-16 text-white/40" />}
-            title="Aucune version"
-            description="Aucune version n'a été créée pour ce design. Les versions sont créées automatiquement lors des modifications."
+            title={t('common.noVersion')}
+            description={t('common.noVersionDescription')}
             action={{
-              label: 'Créer une version manuelle',
+              label: t('common.createManualVersion'),
               onClick: handleCreateVersion,
             }}
           />
@@ -468,7 +469,7 @@ function DesignVersionsPageContent() {
                             {version.metadata?.created_by && (
                               <div className="flex items-center gap-2 text-white/60">
                                 <User className="w-4 h-4" />
-                                <span>Créé par vous</span>
+                                <span>{t('designVersions.createdByYou')}</span>
                               </div>
                             )}
                           </div>
@@ -483,7 +484,7 @@ function DesignVersionsPageContent() {
                             className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            Voir détails
+                            {t('designVersions.viewDetails')}
                           </Button>
                           {!isLatest && (
                             <>
@@ -497,7 +498,7 @@ function DesignVersionsPageContent() {
                                 className="border-[#4ade80]/50 text-[#4ade80] hover:bg-[#4ade80]/10"
                               >
                                 <RotateCcw className="w-4 h-4 mr-2" />
-                                Restaurer
+                                {t('designVersions.restore')}
                               </Button>
                               <Button
                                 size="sm"
@@ -516,7 +517,7 @@ function DesignVersionsPageContent() {
                                 }`}
                               >
                                 <Diff className="w-4 h-4 mr-2" />
-                                {isCompare ? 'Annuler comparaison' : 'Comparer'}
+                                {isCompare ? t('designVersions.cancelCompare') : t('designVersions.compare')}
                               </Button>
                             </>
                           )}
@@ -545,11 +546,9 @@ function DesignVersionsPageContent() {
         <Dialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
           <DialogContent className="bg-[#1a1a2e] border-white/[0.08] text-white">
             <DialogHeader>
-              <DialogTitle className="text-white">Restaurer la version</DialogTitle>
+              <DialogTitle className="text-white">{t('designVersions.restoreVersionTitle')}</DialogTitle>
               <DialogDescription className="text-white/60">
-                Êtes-vous sûr de vouloir restaurer la version{' '}
-                <strong>v{selectedVersion?.version_number}</strong> ? Une sauvegarde de
-                la version actuelle sera créée automatiquement.
+                {t('designVersions.restoreVersionDesc', { number: String(selectedVersion?.version_number ?? '') })}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2">
@@ -559,7 +558,7 @@ function DesignVersionsPageContent() {
                 className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 disabled={restoring}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleRestore}
@@ -569,12 +568,12 @@ function DesignVersionsPageContent() {
                 {restoring ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Restauration...
+                    {t('designVersions.restoring')}
                   </>
                 ) : (
                   <>
                     <RotateCcw className="w-4 h-4 mr-2" />
-                    Restaurer
+                    {t('designVersions.restore')}
                   </>
                 )}
               </Button>
@@ -586,10 +585,9 @@ function DesignVersionsPageContent() {
         <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
           <DialogContent className="bg-[#1a1a2e] border-white/[0.08] text-white">
             <DialogHeader>
-              <DialogTitle className="text-white">Supprimer la version</DialogTitle>
+              <DialogTitle className="text-white">{t('designVersions.deleteVersionTitle')}</DialogTitle>
               <DialogDescription className="text-white/60">
-                Êtes-vous sûr de vouloir supprimer cette version ? Cette action est
-                irréversible.
+                {t('designs.confirmDeleteVersion')}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2">
@@ -599,7 +597,7 @@ function DesignVersionsPageContent() {
                 className="border-white/[0.08] text-white/80 hover:bg-white/[0.04]"
                 disabled={deleting}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -609,12 +607,12 @@ function DesignVersionsPageContent() {
                 {deleting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Suppression...
+                    {t('designVersions.deleting')}
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Supprimer
+                    {t('common.delete')}
                   </>
                 )}
               </Button>

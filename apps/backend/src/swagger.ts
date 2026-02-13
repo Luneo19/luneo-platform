@@ -1,5 +1,6 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
+import { PublicApiController } from './modules/public-api/public-api.controller';
 
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
@@ -148,9 +149,8 @@ Pour toute question, contactez l'équipe technique.
       defaultModelsExpandDepth: 1,
       defaultModelExpandDepth: 1,
       tryItOutEnabled: true,
-      requestInterceptor: (req: any) => {
-        // Add default headers
-        req.headers['Content-Type'] = 'application/json';
+      requestInterceptor: (req: { headers?: Record<string, string> }) => {
+        if (req.headers) req.headers['Content-Type'] = 'application/json';
         return req;
       },
     },
@@ -160,6 +160,39 @@ Pour toute question, contactez l'équipe technique.
       .swagger-ui .info .title { color: #2c3e50; }
       .swagger-ui .scheme-container { background: #f8f9fa; }
     `,
+  });
+
+  // Public API document at /api/public/docs (API key auth only)
+  const publicConfig = new DocumentBuilder()
+    .setTitle('Luneo Public API')
+    .setDescription('Public REST API for Luneo. Authenticate with an API key in the `x-api-key` header. Rate limit: 100 requests/minute per key.')
+    .setVersion('1.0.0')
+    .addTag('Public API', 'Designs, products, orders, brand')
+    .addApiKey(
+      { type: 'apiKey', name: 'x-api-key', in: 'header', description: 'API key (format: lun_...)' },
+      'x-api-key',
+    )
+    .addServer('http://localhost:3000', 'Development')
+    .addServer('https://api.luneo.com', 'Production')
+    .build();
+
+  const publicDocument = SwaggerModule.createDocument(app, publicConfig, {
+    include: [PublicApiController],
+    operationIdFactory: (_controllerKey: string, methodKey: string) => methodKey,
+  });
+
+  SwaggerModule.setup('api/public/docs', app, publicDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      docExpansion: 'list',
+      tryItOutEnabled: true,
+      requestInterceptor: (req: { headers?: Record<string, string> }) => {
+        if (req.headers) req.headers['Content-Type'] = 'application/json';
+        return req;
+      },
+    },
+    customSiteTitle: 'Luneo Public API',
   });
 
   return document;

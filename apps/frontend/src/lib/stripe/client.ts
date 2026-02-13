@@ -38,7 +38,7 @@ export function getStripe(): Stripe {
 
     logger.info('Stripe client initialized');
     return stripeInstance;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize Stripe client', { error });
     throw new Error('Failed to initialize Stripe client. Please check your configuration.');
   }

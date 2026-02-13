@@ -7,6 +7,7 @@ import {
   useDashboardUsage,
 } from '@/lib/hooks/api/useDashboard';
 import { useNotifications } from '@/lib/hooks/useNotifications';
+import { useI18n } from '@/i18n/useI18n';
 import type { StatItem } from '../components/OverviewStatsGrid';
 import type { ActivityItem } from '../components/OverviewRecentActivity';
 import type { TopDesignItem } from '../components/OverviewTopDesigns';
@@ -18,6 +19,7 @@ import { Sparkles, Palette, Box, Layers } from 'lucide-react';
 export type Period = '24h' | '7d' | '30d' | '90d';
 
 export function useOverviewData() {
+  const { t } = useI18n();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('7d');
   const [showAllNotifications, setShowAllNotifications] = useState(false);
 
@@ -35,44 +37,44 @@ export function useOverviewData() {
     const downloads = usageData?.downloads ?? 0;
     return [
       {
-        title: 'Designs créés',
+        title: t('overview.designsCreated'),
         value: dashboardStats.overview.designs.toLocaleString('fr-FR'),
         change: `+${dashboardStats.period.designs}`,
         changeType: 'positive' as const,
         icon: 'Palette',
       },
       {
-        title: 'Vues totales',
+        title: t('overview.totalViews'),
         value: views.toLocaleString('fr-FR'),
         change: usageData?.viewsChange ?? '+0%',
         changeType: 'positive' as const,
         icon: 'Eye',
       },
       {
-        title: 'Téléchargements',
+        title: t('overview.downloads'),
         value: downloads.toLocaleString('fr-FR'),
         change: usageData?.downloadsChange ?? '+0%',
         changeType: 'positive' as const,
         icon: 'Download',
       },
       {
-        title: 'Revenus',
+        title: t('dashboard.revenue'),
         value: `€${dashboardStats.period.revenue.toFixed(2)}`,
-        change: `+${dashboardStats.period.orders} commandes`,
+        change: `+${dashboardStats.period.orders} ${t('overview.ordersCount')}`,
         changeType: (dashboardStats.period.revenue > 0 ? 'positive' : 'negative') as 'positive' | 'negative',
         icon: 'DollarSign',
       },
     ];
-  }, [dashboardStats, usageData]);
+  }, [dashboardStats, usageData, t]);
 
   const displayStats: StatItem[] =
     stats.length > 0
       ? stats
       : [
-          { title: 'Designs créés', value: '0', change: '+0', changeType: 'positive', icon: 'Palette' },
-          { title: 'Vues totales', value: '0', change: '+0%', changeType: 'positive', icon: 'Eye' },
-          { title: 'Téléchargements', value: '0', change: '+0%', changeType: 'positive', icon: 'Download' },
-          { title: 'Revenus', value: '€0.00', change: '+0 commandes', changeType: 'positive', icon: 'DollarSign' },
+          { title: t('overview.designsCreated'), value: '0', change: '+0', changeType: 'positive', icon: 'Palette' },
+          { title: t('overview.totalViews'), value: '0', change: '+0%', changeType: 'positive', icon: 'Eye' },
+          { title: t('overview.downloads'), value: '0', change: '+0%', changeType: 'positive', icon: 'Download' },
+          { title: t('dashboard.revenue'), value: '€0.00', change: `+0 ${t('overview.ordersCount')}`, changeType: 'positive', icon: 'DollarSign' },
         ];
 
   const recentActivity: ActivityItem[] = useMemo(() => {
@@ -107,7 +109,7 @@ export function useOverviewData() {
     return dashboardStats.recent.designs.slice(0, 5).map((design) => ({
       id: design.id,
       title: design.prompt || 'Design sans titre',
-      image: design.preview_url || '/placeholder-design.jpg',
+      image: design.preview_url || '/placeholder-design.svg',
       views: designViews[design.id] ?? 0,
       likes: designLikes[design.id] ?? 0,
       created_at: design.created_at,
@@ -118,49 +120,59 @@ export function useOverviewData() {
     () => [
       {
         id: 'ai-studio',
-        title: 'AI Studio',
-        description: 'Générer des designs avec IA',
+        title: t('overview.aiStudio'),
+        description: t('overview.aiStudioDesc'),
         icon: <Sparkles className="w-6 h-6" />,
         href: '/dashboard/ai-studio',
         color: 'from-purple-500 to-pink-500',
-        badge: 'Populaire',
+        badge: t('overview.popular'),
       },
       {
         id: 'customizer',
-        title: 'Customizer',
-        description: 'Éditeur de personnalisation',
+        title: t('overview.customizer'),
+        description: t('overview.customizerDesc'),
         icon: <Palette className="w-6 h-6" />,
         href: '/dashboard/customizer',
         color: 'from-cyan-500 to-blue-500',
       },
       {
         id: '3d-config',
-        title: 'Configurateur 3D',
-        description: 'Visualisation produits 3D',
+        title: t('overview.configurator3d'),
+        description: t('overview.configurator3dDesc'),
         icon: <Box className="w-6 h-6" />,
         href: '/dashboard/configurator-3d',
         color: 'from-orange-500 to-red-500',
       },
       {
         id: 'library',
-        title: 'Ma Bibliothèque',
-        description: 'Gérer mes designs',
+        title: t('overview.myLibrary'),
+        description: t('overview.myLibraryDesc'),
         icon: <Layers className="w-6 h-6" />,
         href: '/dashboard/library',
         color: 'from-green-500 to-emerald-500',
       },
     ],
-    []
+    [t]
   );
 
-  const goals: GoalItem[] = useMemo(
-    () => [
-      { label: 'Designs créés', current: 45, target: 100, color: 'stroke-cyan-500' },
-      { label: 'Conversions', current: 78, target: 100, color: 'stroke-green-500' },
-      { label: 'Engagement', current: 62, target: 100, color: 'stroke-purple-500' },
-    ],
-    []
-  );
+  const goals: GoalItem[] = useMemo(() => {
+    const designsCreated = dashboardStats?.overview?.designs ?? 0;
+    const designsTarget = Math.max(100, Math.ceil(designsCreated / 50) * 50 + 50);
+
+    const conversions = dashboardStats?.period?.orders ?? 0;
+    const conversionsTarget = Math.max(50, Math.ceil(conversions / 25) * 25 + 25);
+
+    const views = usageData?.views ?? 0;
+    const engagement = views > 0 && designsCreated > 0
+      ? Math.min(100, Math.round((views / (designsCreated * 10)) * 100))
+      : 0;
+
+    return [
+      { label: t('overview.designsCreated'), current: designsCreated, target: designsTarget, color: 'stroke-cyan-500' },
+      { label: t('overview.conversions'), current: conversions, target: conversionsTarget, color: 'stroke-green-500' },
+      { label: t('overview.engagement'), current: engagement, target: 100, color: 'stroke-purple-500' },
+    ];
+  }, [dashboardStats, usageData, t]);
 
   const refresh = useCallback(() => {
     refreshStats();
@@ -169,6 +181,9 @@ export function useOverviewData() {
   const handlePeriodChange = useCallback((period: Period) => {
     setSelectedPeriod(period);
   }, []);
+
+  const designCount = dashboardStats?.overview?.designs ?? 0;
+  const orderCount = dashboardStats?.period?.orders ?? 0;
 
   return {
     loading,
@@ -182,6 +197,8 @@ export function useOverviewData() {
     topDesigns,
     quickActions,
     goals,
+    designCount,
+    orderCount,
     notifications: notifications as NotificationItem[],
     showAllNotifications,
     setShowAllNotifications,

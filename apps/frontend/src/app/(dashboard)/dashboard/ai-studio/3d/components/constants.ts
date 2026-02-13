@@ -29,27 +29,20 @@ export const EXPORT_FORMATS = [
   { format: 'PLY', description: 'Polygon File Format', size: '11.2 MB', compatible: true },
 ] as const;
 
-export const CATEGORY_OPTIONS = [
-  { value: 'product', label: 'Produit' },
-  { value: 'furniture', label: 'Mobilier' },
-  { value: 'jewelry', label: 'Bijoux' },
-  { value: 'electronics', label: 'Électronique' },
-  { value: 'fashion', label: 'Mode' },
-  { value: 'automotive', label: 'Automobile' },
-  { value: 'architecture', label: 'Architecture' },
-  { value: 'other', label: 'Autre' },
+/** Category values for 3D generation (labels come from i18n in GenerateParamsPanel) */
+export const CATEGORY_VALUES = [
+  'product',
+  'furniture',
+  'jewelry',
+  'electronics',
+  'fashion',
+  'automotive',
+  'architecture',
+  'other',
 ] as const;
 
-export const COMPLEXITY_OPTIONS = [
-  { value: 'low', label: 'Simple (10-20k poly)' },
-  { value: 'medium', label: 'Moyenne (30-50k poly)' },
-  { value: 'high', label: 'Élevée (50-100k poly)' },
-  { value: 'ultra', label: 'Ultra (100k+ poly)' },
-] as const;
+/** Complexity values for 3D generation (labels from i18n) */
+export const COMPLEXITY_VALUES = ['low', 'medium', 'high', 'ultra'] as const;
 
-export const RESOLUTION_OPTIONS = [
-  { value: 'low', label: 'Basse (512×512)' },
-  { value: 'medium', label: 'Moyenne (1024×1024)' },
-  { value: 'high', label: 'Haute (2048×2048)' },
-  { value: 'ultra', label: 'Ultra (4096×4096)' },
-] as const;
+/** Resolution values for 3D generation (labels from i18n) */
+export const RESOLUTION_VALUES = ['low', 'medium', 'high', 'ultra'] as const;

@@ -256,10 +256,112 @@ export class OAuthService {
   }
 
   /**
-   * Unlink OAuth account from user
+   * SEC-09: Revoke OAuth tokens at provider level before unlinking/logout.
+   * Best-effort: logs errors but does not throw (provider may be unavailable).
+   *
+   * Google: POST https://oauth2.googleapis.com/revoke?token=<token>
+   * GitHub: DELETE https://api.github.com/applications/<client_id>/token
+   */
+  async revokeProviderTokens(userId: string, provider?: string): Promise<void> {
+    try {
+      const whereClause: { userId: string; provider?: string } = { userId };
+      if (provider) whereClause.provider = provider;
+
+      const accounts = await this.prisma.oAuthAccount.findMany({
+        where: whereClause,
+        select: { id: true, provider: true, accessToken: true, refreshToken: true },
+      });
+
+      for (const account of accounts) {
+        const accessToken = this.decryptToken(account.accessToken);
+        if (!accessToken) continue;
+
+        try {
+          if (account.provider === 'google') {
+            await this.revokeGoogleToken(accessToken);
+          } else if (account.provider === 'github') {
+            await this.revokeGitHubToken(accessToken);
+          }
+          this.logger.log(`SEC-09: Revoked ${account.provider} token for user ${userId}`);
+        } catch (revokeError) {
+          // Best-effort: log but don't fail the operation
+          this.logger.warn(
+            `SEC-09: Failed to revoke ${account.provider} token for user ${userId}: ${revokeError instanceof Error ? revokeError.message : revokeError}`,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        `SEC-09: Error fetching OAuth accounts for revocation: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
+  /**
+   * Revoke Google OAuth token
+   * https://developers.google.com/identity/protocols/oauth2/web-server#tokenrevoke
+   */
+  private async revokeGoogleToken(token: string): Promise<void> {
+    const response = await fetch(
+      `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      },
+    );
+    if (!response.ok && response.status !== 400) {
+      // 400 = already revoked/invalid — acceptable
+      throw new Error(`Google revocation failed: ${response.status}`);
+    }
+  }
+
+  /**
+   * Revoke GitHub OAuth token
+   * https://docs.github.com/en/rest/apps/oauth-applications#delete-an-app-token
+   */
+  private async revokeGitHubToken(token: string): Promise<void> {
+    const clientId =
+      this.configService.get<string>('oauth.github.clientId') ||
+      this.configService.get<string>('GITHUB_CLIENT_ID') ||
+      this.configService.get<string>('GITHUB_OAUTH_CLIENT_ID');
+    const clientSecret =
+      this.configService.get<string>('oauth.github.clientSecret') ||
+      this.configService.get<string>('GITHUB_CLIENT_SECRET') ||
+      this.configService.get<string>('GITHUB_OAUTH_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      this.logger.warn('SEC-09: GitHub OAuth credentials missing, cannot revoke token');
+      return;
+    }
+
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const response = await fetch(
+      `https://api.github.com/applications/${clientId}/token`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ access_token: token }),
+      },
+    );
+    if (!response.ok && response.status !== 404 && response.status !== 422) {
+      // 404/422 = token already invalid — acceptable
+      throw new Error(`GitHub revocation failed: ${response.status}`);
+    }
+  }
+
+  /**
+   * Unlink OAuth account from user.
+   * SEC-09: Revokes provider tokens before deleting.
    */
   async unlinkOAuthAccount(userId: string, provider: string) {
     try {
+      // SEC-09: Revoke tokens at provider level before deleting
+      await this.revokeProviderTokens(userId, provider);
+
       const deleted = await this.prisma.oAuthAccount.deleteMany({
         where: {
           userId,

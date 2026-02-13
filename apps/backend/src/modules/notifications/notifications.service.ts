@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Observable, Subject } from 'rxjs';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 
@@ -32,15 +33,23 @@ interface PushPayload {
 const PUSH_SUB_REDIS_PREFIX = 'push:sub:';
 const PUSH_SUB_TTL = 60 * 60 * 24 * 30; // 30 jours
 
+/** MessageEvent-compatible shape for SSE (data only; EventSource expects { data: string }). */
+export interface SseMessageEvent {
+  data: string | object;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly vapidPublicKey: string;
   private webPushEnabled: boolean = false;
   private redisAvailable: boolean = false;
-  
+
   // Fallback in-memory pour mode dégradé (si Redis indisponible)
   private inMemoryFallback: Map<string, PushSubscriptionData[]> = new Map();
+
+  // SSE: per-user subjects for real-time notification stream
+  private readonly notificationSubjects = new Map<string, Subject<SseMessageEvent>>();
 
   constructor(
     private prisma: PrismaService,
@@ -250,18 +259,11 @@ export class NotificationsService {
    */
   async sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
     const subscriptions = await this.getUserSubscriptions(userId);
-    let sent = 0;
-    let failed = 0;
-
-    for (const sub of subscriptions) {
-      const result = await this.sendPushNotification(sub, payload);
-      if (result.success) {
-        sent++;
-      } else {
-        failed++;
-      }
-    }
-
+    const results = await Promise.all(
+      subscriptions.map((sub) => this.sendPushNotification(sub, payload))
+    );
+    const sent = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
     return { sent, failed };
   }
 
@@ -327,7 +329,7 @@ export class NotificationsService {
     actionUrl?: string;
     actionLabel?: string;
   }) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId: createData.userId,
         type: createData.type,
@@ -338,6 +340,39 @@ export class NotificationsService {
         actionLabel: createData.actionLabel,
       },
     });
+    this.emitNotification(createData.userId, notification);
+    return notification;
+  }
+
+  /**
+   * SSE: returns an observable stream of notification events for the given user.
+   * Caller must subscribe; on unsubscribe the stream is cleaned up.
+   */
+  getStream(userId: string): Observable<SseMessageEvent> {
+    if (!this.notificationSubjects.has(userId)) {
+      this.notificationSubjects.set(userId, new Subject<SseMessageEvent>());
+    }
+    const subject = this.notificationSubjects.get(userId)!;
+    return new Observable((observer) => {
+      const subscription = subject.subscribe(observer);
+      return () => {
+        subscription.unsubscribe();
+        this.notificationSubjects.delete(userId);
+      };
+    });
+  }
+
+  /**
+   * SSE: emit a notification event to the user's stream (for real-time in-app updates).
+   */
+  emitNotification(userId: string, notification: unknown): void {
+    const subject = this.notificationSubjects.get(userId);
+    if (subject) {
+      const data = typeof notification === 'object' && notification !== null
+        ? JSON.stringify(notification)
+        : String(notification);
+      subject.next({ data });
+    }
   }
 
   async markAsRead(id: string, userId: string) {

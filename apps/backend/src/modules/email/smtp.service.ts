@@ -38,8 +38,8 @@ export class SMTPService {
     const smtpPort = this.configService.get<number>('emailDomain.smtpPort');
     const smtpSecure = this.configService.get<boolean>('emailDomain.smtpSecure');
     
-    this.defaultFrom = this.configService.get<string>('emailDomain.smtpFrom');
-    this.defaultReplyTo = this.configService.get<string>('emailDomain.sendgridReplyTo');
+    this.defaultFrom = this.configService.get<string>('emailDomain.smtpFrom') ?? '';
+    this.defaultReplyTo = this.configService.get<string>('emailDomain.sendgridReplyTo') ?? '';
 
     if (!sendgridApiKey) {
       this.logger.warn('SendGrid API key not configured. SMTP service will not be available.');
@@ -48,8 +48,8 @@ export class SMTPService {
 
     try {
       this.transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
+        host: smtpHost ?? 'smtp.sendgrid.net',
+        port: smtpPort ?? 587,
         secure: smtpSecure,
         auth: {
           user: 'apikey', // Always 'apikey' for SendGrid
@@ -73,7 +73,7 @@ export class SMTPService {
   /**
    * Envoyer un email via SMTP
    */
-  async sendEmail(options: SMTPEmailOptions): Promise<any> {
+  async sendEmail(options: SMTPEmailOptions): Promise<unknown> {
     if (!this.smtpAvailable) {
       throw new InternalServerErrorException('SMTP service not initialized. Check your configuration.');
     }
@@ -125,7 +125,7 @@ export class SMTPService {
   /**
    * Envoyer un email de bienvenue
    */
-  async sendWelcomeEmail(userEmail: string, userName: string): Promise<any> {
+  async sendWelcomeEmail(userEmail: string, userName: string): Promise<unknown> {
     return this.sendEmail({
       to: userEmail,
       subject: 'Bienvenue chez Luneo ! 🎉',
@@ -153,7 +153,7 @@ export class SMTPService {
   /**
    * Envoyer un email de réinitialisation de mot de passe
    */
-  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string): Promise<any> {
+  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string): Promise<unknown> {
     return this.sendEmail({
       to: userEmail,
       subject: 'Réinitialisation de votre mot de passe',
@@ -180,7 +180,7 @@ export class SMTPService {
   /**
    * Envoyer un email de confirmation
    */
-  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string): Promise<any> {
+  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string): Promise<unknown> {
     return this.sendEmail({
       to: userEmail,
       subject: 'Confirmez votre adresse email',
@@ -212,7 +212,7 @@ export class SMTPService {
     amount: string;
     dueDate: string;
     downloadUrl: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     return this.sendEmail({
       to: userEmail,
       subject: `Facture #${invoiceData.invoiceNumber} - Luneo`,
@@ -248,7 +248,7 @@ export class SMTPService {
     title: string;
     content: string;
     unsubscribeUrl: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     return this.sendEmail({
       to: userEmail,
       subject: newsletterData.title,

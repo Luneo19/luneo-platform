@@ -7,7 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     // Homepage & Core
-    { url: baseUrl, lastModified: now, changeFrequency: 'weekly', priority: 1 },
+    { url: baseUrl, lastModified: now, changeFrequency: 'daily', priority: 1 },
     { url: `${baseUrl}/pricing`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/tarifs`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
@@ -102,18 +102,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/release-notes`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/releases`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/changelog`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/marketplace`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${baseUrl}/marketplace`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${baseUrl}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${baseUrl}/roi-calculator`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/studio`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/brand-assets`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
 
     // Legal
-    { url: `${baseUrl}/legal/terms`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/legal/privacy`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/legal/cookies`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/legal/gdpr`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/legal/dpa`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/terms`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${baseUrl}/legal/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/legal/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/legal/cookies`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/legal/gdpr`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/legal/ndsg`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/legal/dpa`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
   ];
 }

@@ -11,7 +11,7 @@ export class SnapshotsService {
    * Créer un snapshot (idempotent via specHash)
    */
   @CacheInvalidate({ type: 'snapshot', tags: () => ['snapshots:list'] })
-  async create(dto: CreateSnapshotDto, brandId: string, userId?: string): Promise<any> {
+  async create(dto: CreateSnapshotDto, brandId: string, userId?: string): Promise<import('@prisma/client').Snapshot> {
     // 1. Vérifier que le spec existe et appartient au brand
     const spec = await this.prisma.designSpec.findUnique({
       where: { specHash: dto.specHash },
@@ -53,21 +53,21 @@ export class SnapshotsService {
       data: {
         specId: spec.id,
         specHash: dto.specHash,
-        specData: spec.spec, // Dupliquer pour immutabilité
+        specData: (spec.spec ?? {}) as import('@prisma/client').Prisma.InputJsonValue,
         previewUrl: dto.previewUrl,
         preview3dUrl: dto.preview3dUrl,
         thumbnailUrl: dto.thumbnailUrl,
         productionBundleUrl: dto.productionBundleUrl,
         arModelUrl: dto.arModelUrl,
         gltfModelUrl: dto.gltfModelUrl,
-        assetVersions: dto.assetVersions,
+        assetVersions: dto.assetVersions as import('@prisma/client').Prisma.InputJsonValue,
         isValidated: dto.isValidated || false,
         validatedBy: dto.isValidated ? userId : null,
         validatedAt: dto.isValidated ? new Date() : null,
         isLocked: dto.isLocked || false,
         lockedAt: dto.isLocked ? new Date() : null,
         createdBy: userId || dto.createdBy || 'api',
-        provenance: dto.provenance || {},
+        provenance: (dto.provenance || {}) as import('@prisma/client').Prisma.InputJsonValue,
       },
       include: {
         spec: {
@@ -87,7 +87,7 @@ export class SnapshotsService {
     ttl: 3600,
     keyGenerator: (args) => `snapshot:${args[0]}`,
   })
-  async findOne(id: string, brandId: string): Promise<any> {
+  async findOne(id: string, brandId: string): Promise<import('@prisma/client').Snapshot> {
     const snapshot = await this.prisma.snapshot.findUnique({
       where: { id },
       include: {
@@ -121,7 +121,7 @@ export class SnapshotsService {
    * Verrouiller un snapshot
    */
   @CacheInvalidate({ type: 'snapshot', pattern: (args) => `snapshot:${args[0]}` })
-  async lock(id: string, brandId: string, userId: string): Promise<any> {
+  async lock(id: string, brandId: string, userId: string): Promise<import('@prisma/client').Snapshot> {
     const snapshot = await this.findOne(id, brandId);
 
     if (snapshot.isLocked) {

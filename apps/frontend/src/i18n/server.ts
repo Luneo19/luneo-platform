@@ -11,11 +11,11 @@ import {
 type Messages = typeof import('./locales/en').default;
 
 const MESSAGE_LOADERS: Record<SupportedLocale, () => Promise<Messages>> = {
-  en: () => import('./locales/en').then((module) => module.default),
-  fr: () => import('./locales/fr').then((module) => module.default),
-  de: () => import('./locales/de').then((module) => module.default),
-  es: () => import('./locales/es').then((module) => module.default),
-  it: () => import('./locales/it').then((module) => module.default),
+  en: () => import('./locales/en').then((m) => m.default as unknown as Messages),
+  fr: () => import('./locales/fr').then((m) => m.default as unknown as Messages),
+  de: () => import('./locales/de').then((m) => m.default as unknown as Messages),
+  es: () => import('./locales/es').then((m) => m.default as unknown as Messages),
+  it: () => import('./locales/it').then((m) => m.default as unknown as Messages),
 };
 
 const SUPPORTED_SET = new Set<SupportedLocale>(SUPPORTED_LOCALES);

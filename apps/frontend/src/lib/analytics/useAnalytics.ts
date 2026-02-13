@@ -49,7 +49,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
     options: {
       label?: string;
       value?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ) => {
     analytics.track(category, action, options);
@@ -58,7 +58,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   // Track click
   const trackClick = useCallback((
     element: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     analytics.trackClick(element, metadata);
   }, []);
@@ -72,7 +72,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   const trackFormSubmit = useCallback((
     formName: string,
     success: boolean,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     analytics.trackFormSubmit(formName, success, metadata);
   }, []);
@@ -80,7 +80,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   // Track error
   const trackError = useCallback((
     error: Error | string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     analytics.trackError(error, metadata);
   }, []);
@@ -88,7 +88,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   // Track customization
   const trackCustomization = useCallback((
     action: 'customizer_open' | 'customizer_close' | 'element_add' | 'element_modify' | 'element_delete' | 'color_change' | 'text_add' | 'image_upload' | 'template_select',
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     analytics.trackCustomization(action, metadata);
   }, []);
@@ -103,7 +103,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
       quantity?: number;
       currency?: string;
       orderId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ) => {
     analytics.trackCommerce(action, options);
@@ -112,7 +112,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   // Track design action
   const trackDesign = useCallback((
     action: 'design_create' | 'design_edit' | 'design_save' | 'design_delete' | 'design_export' | 'design_duplicate',
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     analytics.track('design', action, { metadata });
   }, []);
@@ -120,7 +120,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
   // Track engagement
   const trackEngagement = useCallback((
     action: 'video_play' | 'video_pause' | 'video_complete' | 'tutorial_start' | 'tutorial_complete' | 'feature_discover',
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     analytics.track('engagement', action, { metadata });
   }, []);
@@ -171,7 +171,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
  * useTrackClick Hook
  * Simplified hook for click tracking with automatic cleanup
  */
-export function useTrackClick(elementName: string, metadata?: Record<string, any>) {
+export function useTrackClick(elementName: string, metadata?: Record<string, unknown>) {
   const { trackClick } = useAnalytics({ autoTrackPageViews: false });
 
   return useCallback(() => {

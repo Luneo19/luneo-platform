@@ -7,7 +7,7 @@
 
 import { useState, memo } from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
-import { api } from '@/lib/api/client';
+import { endpoints } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Download,
@@ -34,9 +34,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 function PrivacySettingsPageContent() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
@@ -46,9 +49,13 @@ function PrivacySettingsPageContent() {
   const handleExportData = async () => {
     setIsExporting(true);
     try {
-      const data = await api.get<{ data?: { data?: unknown } }>('/api/v1/gdpr/export');
-      const exportData = data?.data?.data ?? data;
-      // Create downloadable JSON file
+      const data = await endpoints.security.exportData();
+      type ExportPayload = Record<string, unknown> | unknown[];
+      const wrapped = data as { data?: { data?: ExportPayload } | ExportPayload };
+      const exportData: ExportPayload =
+        (wrapped?.data && typeof wrapped.data === 'object' && 'data' in wrapped.data
+          ? (wrapped.data as { data?: ExportPayload }).data
+          : (wrapped?.data as ExportPayload)) ?? data as ExportPayload;
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: 'application/json',
       });
@@ -62,13 +69,13 @@ function PrivacySettingsPageContent() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: 'Export réussi',
-        description: 'Vos données ont été téléchargées',
+        title: t('privacy.exportSuccessTitle'),
+        description: t('privacy.exportSuccessDesc'),
       });
     } catch (error) {
       toast({
-        title: 'Erreur',
-        description: "Impossible d'exporter vos données",
+        title: t('common.error'),
+        description: t('privacy.exportErrorDesc'),
         variant: 'destructive',
       });
     } finally {
@@ -79,8 +86,8 @@ function PrivacySettingsPageContent() {
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'SUPPRIMER') {
       toast({
-        title: 'Confirmation requise',
-        description: 'Veuillez taper SUPPRIMER pour confirmer',
+        title: t('privacy.confirmRequired'),
+        description: t('privacy.confirmTypeSupprimer'),
         variant: 'destructive',
       });
       return;
@@ -88,8 +95,8 @@ function PrivacySettingsPageContent() {
 
     if (!deletePassword) {
       toast({
-        title: 'Mot de passe requis',
-        description: 'Veuillez entrer votre mot de passe',
+        title: t('privacy.passwordRequired'),
+        description: t('privacy.passwordRequiredDesc'),
         variant: 'destructive',
       });
       return;
@@ -97,17 +104,17 @@ function PrivacySettingsPageContent() {
 
     setIsDeleting(true);
     try {
-      await api.post('/api/v1/gdpr/delete-account', {
-        confirmation: deleteConfirmation,
+      await endpoints.security.deleteAccount({
         password: deletePassword,
+        reason: deleteConfirmation || 'User requested account deletion',
       });
 
       // Redirect to goodbye page
       window.location.href = '/goodbye';
     } catch (error) {
       toast({
-        title: 'Erreur',
-        description: error instanceof Error ? error.message : "Impossible de supprimer le compte",
+        title: t('common.error'),
+        description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -120,10 +127,10 @@ function PrivacySettingsPageContent() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">
-          Confidentialité & Données
+          {t('privacy.pageTitle')}
         </h1>
         <p className="text-slate-400">
-          Gérez vos données personnelles conformément au RGPD
+          {t('privacy.pageSubtitle')}
         </p>
       </div>
 
@@ -136,12 +143,10 @@ function PrivacySettingsPageContent() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white mb-2">
-                Vos droits RGPD
+                {t('privacy.gdprRightsTitle')}
               </h3>
               <p className="text-slate-300 text-sm leading-relaxed">
-                Conformément au Règlement Général sur la Protection des Données (RGPD),
-                vous avez le droit d'accéder à vos données, de les exporter et de demander
-                leur suppression. Ces actions sont irréversibles et prennent effet immédiatement.
+                {t('privacy.gdprRightsDesc')}
               </p>
             </div>
           </div>
@@ -156,9 +161,9 @@ function PrivacySettingsPageContent() {
               <Download className="w-5 h-5 text-green-400" />
             </div>
             <div>
-              <CardTitle className="text-white">Exporter mes données</CardTitle>
+              <CardTitle className="text-white">{t('privacy.exportTitle')}</CardTitle>
               <CardDescription>
-                Téléchargez une copie de toutes vos données personnelles
+                {t('privacy.exportDesc')}
               </CardDescription>
             </div>
           </div>
@@ -166,10 +171,10 @@ function PrivacySettingsPageContent() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: FileJson, label: 'Profil', desc: 'Informations personnelles' },
-              { icon: Eye, label: 'Designs', desc: 'Tous vos créations' },
-              { icon: Clock, label: 'Historique', desc: 'Commandes et activités' },
-              { icon: Shield, label: 'Paramètres', desc: 'Préférences et config' },
+              { icon: FileJson, label: t('privacy.exportProfile'), desc: t('privacy.exportProfileDesc') },
+              { icon: Eye, label: t('privacy.exportDesigns'), desc: t('privacy.exportDesignsDesc') },
+              { icon: Clock, label: t('privacy.exportHistory'), desc: t('privacy.exportHistoryDesc') },
+              { icon: Shield, label: t('common.settings'), desc: t('privacy.exportSettingsDesc') },
             ].map((item, i) => (
               <div
                 key={i}
@@ -190,12 +195,12 @@ function PrivacySettingsPageContent() {
             {isExporting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Export en cours...
+                {t('privacy.exportInProgress')}
               </>
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Télécharger mes données (JSON)
+                {t('privacy.downloadDataJson')}
               </>
             )}
           </Button>
@@ -210,9 +215,9 @@ function PrivacySettingsPageContent() {
               <Trash2 className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <CardTitle className="text-white">Supprimer mon compte</CardTitle>
+              <CardTitle className="text-white">{t('privacy.deleteAccountTitle')}</CardTitle>
               <CardDescription className="text-red-400">
-                Cette action est définitive et irréversible
+                {t('privacy.deleteAccountIrreversible')}
               </CardDescription>
             </div>
           </div>
@@ -222,13 +227,13 @@ function PrivacySettingsPageContent() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-slate-300">
-                <p className="font-semibold text-red-400 mb-1">Attention !</p>
+                <p className="font-semibold text-red-400 mb-1">{t('privacy.warningTitle')}</p>
                 <ul className="list-disc list-inside space-y-1 text-slate-400">
-                  <li>Tous vos designs seront supprimés</li>
-                  <li>Votre historique de commandes sera effacé</li>
-                  <li>Vos intégrations seront désactivées</li>
-                  <li>Votre abonnement sera annulé (sans remboursement)</li>
-                  <li>Cette action ne peut pas être annulée</li>
+                  <li>{t('privacy.warningDesigns')}</li>
+                  <li>{t('privacy.warningOrders')}</li>
+                  <li>{t('privacy.warningIntegrations')}</li>
+                  <li>{t('privacy.warningSubscription')}</li>
+                  <li>{t('privacy.warningCannotUndo')}</li>
                 </ul>
               </div>
             </div>
@@ -241,24 +246,24 @@ function PrivacySettingsPageContent() {
                 className="border-red-500/50 text-red-400 hover:bg-red-500/10"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer mon compte
+                {t('privacy.deleteAccount')}
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-slate-900 border-slate-800">
               <DialogHeader>
                 <DialogTitle className="text-white flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
-                  Confirmer la suppression
+                  {t('privacy.deleteConfirmTitle')}
                 </DialogTitle>
                 <DialogDescription className="text-slate-400">
-                  Cette action supprimera définitivement votre compte et toutes vos données.
+                  {t('privacy.deleteConfirmDesc')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="confirmation" className="text-slate-300">
-                    Tapez <span className="text-red-400 font-mono">SUPPRIMER</span> pour confirmer
+                    {t('privacy.typeToConfirmLabel')}
                   </Label>
                   <Input
                     id="confirmation"
@@ -271,14 +276,14 @@ function PrivacySettingsPageContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-slate-300">
-                    Confirmez avec votre mot de passe
+                    {t('privacy.confirmWithPassword')}
                   </Label>
                   <Input
                     id="password"
                     type="password"
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
-                    placeholder="Votre mot de passe"
+                    placeholder={t('privacy.passwordPlaceholder')}
                     className="bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
@@ -290,7 +295,7 @@ function PrivacySettingsPageContent() {
                   onClick={() => setShowDeleteDialog(false)}
                   className="border-slate-700"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   onClick={handleDeleteAccount}
@@ -300,12 +305,12 @@ function PrivacySettingsPageContent() {
                   {isDeleting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Suppression...
+                      {t('privacy.deleting')}
                     </>
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Supprimer définitivement
+                      {t('privacy.deletePermanently')}
                     </>
                   )}
                 </Button>
@@ -318,49 +323,49 @@ function PrivacySettingsPageContent() {
       {/* Data Processing Info */}
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
-          <CardTitle className="text-white">Comment nous utilisons vos données</CardTitle>
+          <CardTitle className="text-white">{t('privacy.howWeUseDataTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4 text-sm text-slate-400">
             <div className="flex items-start gap-3">
               <Check className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
               <p>
-                <span className="text-white font-medium">Fonctionnement du service :</span>{' '}
-                Nous utilisons vos données pour fournir et améliorer nos services de personnalisation.
+                <span className="text-white font-medium">{t('privacy.dataUseService')}</span>{' '}
+                {t('privacy.dataUseServiceDesc')}
               </p>
             </div>
             <div className="flex items-start gap-3">
               <Check className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
               <p>
-                <span className="text-white font-medium">Communication :</span>{' '}
-                Notifications importantes concernant votre compte et vos commandes.
+                <span className="text-white font-medium">{t('privacy.dataUseCommunication')}</span>{' '}
+                {t('privacy.dataUseCommunicationDesc')}
               </p>
             </div>
             <div className="flex items-start gap-3">
               <Check className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
               <p>
-                <span className="text-white font-medium">Sécurité :</span>{' '}
-                Protection de votre compte et détection des fraudes.
+                <span className="text-white font-medium">{t('privacy.dataUseSecurity')}</span>{' '}
+                {t('privacy.dataUseSecurityDesc')}
               </p>
             </div>
             <div className="flex items-start gap-3">
               <Check className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
               <p>
-                <span className="text-white font-medium">Conformité légale :</span>{' '}
-                Respect des obligations légales et fiscales.
+                <span className="text-white font-medium">{t('privacy.dataUseLegal')}</span>{' '}
+                {t('privacy.dataUseLegalDesc')}
               </p>
             </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-slate-800">
             <p className="text-sm text-slate-500">
-              Pour plus d'informations, consultez notre{' '}
+              {t('privacy.legalLinksPrefix')}{' '}
               <a href="/legal/privacy" className="text-blue-400 hover:underline">
-                Politique de confidentialité
+                {t('privacy.privacyPolicyLink')}
               </a>{' '}
-              et nos{' '}
+              {t('privacy.legalLinksAnd')}{' '}
               <a href="/legal/terms" className="text-blue-400 hover:underline">
-                Conditions d'utilisation
+                {t('privacy.termsLink')}
               </a>.
             </p>
           </div>

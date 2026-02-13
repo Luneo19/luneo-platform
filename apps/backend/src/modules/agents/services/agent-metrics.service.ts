@@ -34,16 +34,16 @@ export interface AgentMetricsLabels {
 export class AgentMetricsService implements OnModuleInit {
   private readonly logger = new Logger(AgentMetricsService.name);
 
-  // Métriques Prometheus
-  private requestDuration: any;
-  private requestTotal: any;
-  private tokensTotal: any;
-  private costTotal: any;
-  private errorsTotal: any;
-  private retriesTotal: any;
-  private circuitBreakerState: any;
-  private cacheHits: any;
-  private cacheMisses: any;
+  // Métriques Prometheus (prom-client types: Histogram, Counter, Gauge)
+  private requestDuration: { observe: (labels: Record<string, string>, value: number) => void };
+  private requestTotal: { inc: (labels: Record<string, string>) => void };
+  private tokensTotal: { inc: (labels: Record<string, string>, value: number) => void };
+  private costTotal: { inc: (labels: Record<string, string>, value: number) => void };
+  private errorsTotal: { inc: (labels: Record<string, string>) => void };
+  private retriesTotal: { inc: (labels: Record<string, string>) => void };
+  private circuitBreakerState: { set: (labels: Record<string, string>, value: number) => void };
+  private cacheHits: { inc: (labels: Record<string, string>) => void };
+  private cacheMisses: { inc: (labels: Record<string, string>) => void };
 
   constructor(private readonly prometheus: PrometheusService) {
     // Initialiser les métriques si prom-client est disponible
@@ -75,7 +75,7 @@ export class AgentMetricsService implements OnModuleInit {
   /**
    * Initialise les métriques Prometheus pour les agents
    */
-  private initializeMetrics(registry: any): void {
+  private initializeMetrics(registry: unknown): void {
     const { Registry, Histogram, Counter, Gauge } = require('prom-client');
 
     // Durée des requêtes agents (Histogram)

@@ -240,12 +240,12 @@ describe('PricingPage', () => {
     it('should render all plan cards', () => {
       render(<PricingPage />);
       
-      // Check for plan names
-      expect(screen.getByText('Free')).toBeInTheDocument();
-      expect(screen.getByText('Starter')).toBeInTheDocument();
-      expect(screen.getByText('Professional')).toBeInTheDocument();
-      expect(screen.getByText('Business')).toBeInTheDocument();
-      expect(screen.getByText('Enterprise')).toBeInTheDocument();
+      // Check for plan names (may appear multiple times in pricing table + cards)
+      expect(screen.getAllByText('Free').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Starter').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Professional').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Business').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Enterprise').length).toBeGreaterThanOrEqual(1);
     });
 
     it('should show pricing amounts for plans', () => {

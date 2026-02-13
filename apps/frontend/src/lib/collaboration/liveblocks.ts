@@ -10,19 +10,24 @@ import { api } from '@/lib/api/client';
 // To enable: pnpm add @liveblocks/client @liveblocks/react
 
 // Use type-only imports to avoid runtime errors if packages not installed
-type Room = any;
+type Room = unknown;
 
 // Stub functions that will be replaced if packages are available
 // These are safe defaults that won't break the app
-const createClientStub: any = () => ({});
-function createRoomContextStub<P = any, S = any, U = any, E = any>(_client: any) {
+const createClientStub = (_opts?: Record<string, unknown>): Record<string, unknown> => ({});
+function createRoomContextStub<
+  _P = Record<string, unknown>,
+  _S = Record<string, unknown>,
+  _U = Record<string, unknown>,
+  _E = Record<string, unknown>
+>(_client: Record<string, unknown>) {
   return {
   RoomProvider: () => null,
   useRoom: () => null,
   useMyPresence: () => [null, () => {}],
   useUpdateMyPresence: () => () => {},
   useOthers: () => [],
-  useOthersMapped: () => [],
+  useOthersMapped: (_mapper?: unknown) => [],
   useSelf: () => null,
   useStorage: () => null,
   useMutation: () => () => {},
@@ -37,7 +42,7 @@ function createRoomContextStub<P = any, S = any, U = any, E = any>(_client: any)
   useStatus: () => 'disconnected',
   };
 }
-const createLiveblocksContextStub: any = (_client: any) => ({
+const createLiveblocksContextStub = (_client: Record<string, unknown>) => ({
   LiveblocksProvider: () => null,
   useInboxNotifications: () => [],
   useUnreadInboxNotificationsCount: () => 0,
@@ -46,9 +51,9 @@ const createLiveblocksContextStub: any = (_client: any) => ({
 });
 
 // Try to use real implementations, fallback to stubs
-const createClient: any = createClientStub;
-const createRoomContext: any = createRoomContextStub;
-const createLiveblocksContext: any = createLiveblocksContextStub;
+const createClient = createClientStub as (opts?: Record<string, unknown>) => ReturnType<typeof createClientStub>;
+const createRoomContext = createRoomContextStub;
+const createLiveblocksContext = createLiveblocksContextStub;
 
 // Note: In production, if packages are installed, they should be imported normally
 // This is a build-time workaround. For runtime, use dynamic imports in components.
@@ -63,7 +68,7 @@ export interface Presence {
 }
 
 export interface Storage {
-  canvasObjects: any[];
+  canvasObjects: unknown[];
   comments: Comment[];
   versions: DesignVersion[];
 }
@@ -93,7 +98,7 @@ export interface DesignVersion {
   name: string;
   createdBy: string;
   createdAt: number;
-  snapshot: any;
+  snapshot: Record<string, unknown>;
 }
 
 export type UserMeta = {
@@ -105,8 +110,8 @@ export type UserMeta = {
   };
 };
 
-export type RoomEvent = 
-  | { type: 'CANVAS_UPDATE'; data: any }
+export type RoomEvent =
+  | { type: 'CANVAS_UPDATE'; data: Record<string, unknown> }
   | { type: 'COMMENT_ADDED'; commentId: string }
   | { type: 'USER_JOINED'; userId: string }
   | { type: 'USER_LEFT'; userId: string };
@@ -128,7 +133,7 @@ const client = createClient({
   throttle: 100,
   
   // Custom authentication endpoint
-  authEndpoint: async (room: any) => {
+  authEndpoint: async (room: Room) => {
     return api.post('/api/v1/liveblocks/auth', { room });
   },
 
@@ -145,8 +150,8 @@ const client = createClient({
 
 // Create room context with typed storage (or stub if package not installed)
 // Call function without type arguments to avoid TypeScript error
-const roomContextUntyped: any = createRoomContext(client);
-const roomContext = roomContextUntyped;
+const roomContextUntyped = createRoomContext(client);
+const roomContext = roomContextUntyped as ReturnType<typeof createRoomContextStub>;
 export const {
   RoomProvider,
   useRoom,
@@ -183,38 +188,50 @@ export function useCollaborators() {
   const others = useOthers();
   const self = useSelf();
   
-  const collaborators = others.map((other: any) => ({
-    id: other.id,
-    connectionId: other.connectionId,
-    name: other.info?.name || 'Anonymous',
-    avatar: other.info?.avatar,
-    color: other.info?.color || '#888',
-    cursor: other.presence?.cursor,
-    selectedId: other.presence?.selectedId,
-    isActive: true,
-  }));
+  const collaborators = others.map((other: Record<string, unknown>) => {
+    const info = (other.info ?? {}) as Record<string, unknown>;
+    const presence = (other.presence ?? {}) as Record<string, unknown>;
+    return {
+      id: other.id,
+      connectionId: other.connectionId,
+      name: (info.name as string) || 'Anonymous',
+      avatar: info.avatar as string | undefined,
+      color: (info.color as string) || '#888',
+      cursor: presence.cursor as { x: number; y: number } | null,
+      selectedId: presence.selectedId as string | null,
+      isActive: true,
+    };
+  });
 
+  const selfData = self as Record<string, unknown> | null;
+  const selfInfo = (selfData?.info ?? {}) as Record<string, unknown>;
   return {
     collaborators,
     count: others.length,
-    self: self ? {
-      id: self.id,
-      name: self.info?.name || 'You',
-      avatar: self.info?.avatar,
-      color: self.info?.color || '#888',
+    self: selfData ? {
+      id: selfData.id as string,
+      name: (selfInfo.name as string) || 'You',
+      avatar: selfInfo.avatar as string | undefined,
+      color: (selfInfo.color as string) || '#888',
     } : null,
   };
 }
 
+interface LiveblocksOther {
+  connectionId: string;
+  presence?: { cursor?: { x: number; y: number } | null };
+  info?: { name?: string; color?: string };
+}
+
 export function useCursors() {
-  const others = useOthersMapped((other: any) => ({
+  const others = useOthersMapped((other: LiveblocksOther) => ({
     connectionId: other.connectionId,
     cursor: other.presence?.cursor,
-    name: other.info?.name || 'Anonymous',
-    color: other.info?.color || '#888',
+    name: other.info?.name ?? 'Anonymous',
+    color: other.info?.color ?? '#888',
   }));
 
-  return others.filter((other: any) => other.cursor !== null);
+  return (others as { cursor: unknown }[]).filter((other) => other.cursor !== null);
 }
 
 // Export client for direct access

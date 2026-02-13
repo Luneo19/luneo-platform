@@ -33,10 +33,14 @@ export function useAddToFavorites() {
 
   return useMutation({
     mutationFn: async (favorite: {
-      user_id: string;
+      user_id?: string;
       resource_type: 'template' | 'clipart';
       resource_id: string;
-    }) => api.post('/api/v1/library/favorites', favorite),
+    }) =>
+      api.post('/api/v1/library/favorites', {
+        resourceId: favorite.resource_id,
+        resourceType: favorite.resource_type,
+      }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['favorites', variables.user_id] });
       queryClient.invalidateQueries({ queryKey: ['templates'] });
@@ -49,13 +53,10 @@ export function useRemoveFromFavorites() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: {
-      userId: string;
-      resourceType: 'template' | 'clipart';
-      resourceId: string;
-    }) => api.delete('/api/v1/library/favorites', { params: { userId: params.userId, resourceType: params.resourceType, resourceId: params.resourceId } }),
+    mutationFn: async (params: { favoriteId: string }) =>
+      api.delete(`/api/v1/library/favorites/${params.favoriteId}`),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['favorites', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       queryClient.invalidateQueries({ queryKey: ['cliparts'] });
     },
@@ -68,20 +69,16 @@ export function useToggleFavorite() {
 
   return {
     toggle: async (params: {
-      userId: string;
+      userId?: string;
       resourceType: 'template' | 'clipart';
       resourceId: string;
+      favoriteId?: string;
       isFavorited: boolean;
     }) => {
-      if (params.isFavorited) {
-        return removeMutation.mutateAsync({
-          userId: params.userId,
-          resourceType: params.resourceType,
-          resourceId: params.resourceId,
-        });
+      if (params.isFavorited && params.favoriteId) {
+        return removeMutation.mutateAsync({ favoriteId: params.favoriteId });
       } else {
         return addMutation.mutateAsync({
-          user_id: params.userId,
           resource_type: params.resourceType,
           resource_id: params.resourceId,
         });

@@ -2,54 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { endpoints } from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { AIStudioStats, AIStudioTab, GeneratedModel, GenerationTemplate } from '../types';
 import { formatDate, formatRelativeTime } from '../components/utils';
-
-// Fallback when API fails or /api/v1/ai-studio/templates is not implemented
-const FALLBACK_TEMPLATES: GenerationTemplate[] = [
-  {
-    id: 't1',
-    name: 'Montre de Luxe',
-    prompt: 'Montre de luxe en or avec cadran bleu, style classique, détails précis',
-    category: 'jewelry',
-    complexity: 'high',
-    thumbnail: '/placeholder-template.svg',
-    uses: 892,
-    description: 'Modèle 3D de montre haut de gamme',
-  },
-  {
-    id: 't2',
-    name: 'Chaise Design',
-    prompt: 'Chaise moderne design scandinave, bois et métal, minimaliste',
-    category: 'furniture',
-    complexity: 'medium',
-    thumbnail: '/placeholder-template.svg',
-    uses: 654,
-    description: 'Mobilier contemporain',
-  },
-  {
-    id: 't3',
-    name: 'Smartphone Premium',
-    prompt: 'Smartphone premium avec écran courbé, finition métallique, design pur',
-    category: 'electronics',
-    complexity: 'high',
-    thumbnail: '/placeholder-template.svg',
-    uses: 432,
-    description: 'Électronique moderne',
-  },
-  {
-    id: 't4',
-    name: 'Bague Solitaire',
-    prompt: 'Bague solitaire diamant, or blanc, design classique élégant',
-    category: 'jewelry',
-    complexity: 'medium',
-    thumbnail: '/placeholder-template.svg',
-    uses: 321,
-    description: 'Bijou précieux',
-  },
-];
 
 function normalizeApiTemplate(raw: Record<string, unknown>): GenerationTemplate {
   return {
@@ -70,6 +27,7 @@ function normalizeApiTemplate(raw: Record<string, unknown>): GenerationTemplate 
 
 export function useAIStudio3DPageState() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState('');
   const [category, setCategory] = useState('product');
   const [complexity, setComplexity] = useState('medium');
@@ -89,31 +47,42 @@ export function useAIStudio3DPageState() {
   const [filterComplexity, setFilterComplexity] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [credits, setCredits] = useState(1250);
+  const [credits, setCredits] = useState(0);
   const [enableBatch, setEnableBatch] = useState(false);
   const [batchCount, setBatchCount] = useState(3);
-  const [templates, setTemplates] = useState<GenerationTemplate[]>(FALLBACK_TEMPLATES);
+  const [templates, setTemplates] = useState<GenerationTemplate[]>([]);
+
+  const loadTemplates = useCallback(async () => {
+    try {
+      const response = await endpoints.aiStudio.templates();
+      const raw = response as Record<string, unknown>;
+      const list = (Array.isArray(raw) ? raw : (raw?.templates ?? raw?.data ?? [])) as unknown[];
+      setTemplates(list.map((t) => normalizeApiTemplate(t as Record<string, unknown>)));
+    } catch {
+      setTemplates([]);
+    }
+  }, []);
+
+  const loadCredits = useCallback(async () => {
+    try {
+      const response = await endpoints.credits.balance();
+      const raw = response as Record<string, unknown>;
+      setCredits((raw?.balance as number) ?? 0);
+    } catch {
+      setCredits(0);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await endpoints.aiStudio.templates();
-        const data = res as { templates?: unknown[]; data?: unknown[] };
-        const list = data?.templates ?? data?.data ?? [];
-        const normalized = (Array.isArray(list) ? list : []).map((t) =>
-          normalizeApiTemplate(t as Record<string, unknown>)
-        );
-        if (normalized.length > 0 && !cancelled) setTemplates(normalized);
-      } catch (error) {
-        logger.error('Failed to fetch AI Studio templates', { error });
-        if (!cancelled) setTemplates(FALLBACK_TEMPLATES);
-      }
+      await loadTemplates();
+      if (!cancelled) await loadCredits();
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadTemplates, loadCredits]);
 
   const stats = useMemo<AIStudioStats>(
     () => ({
@@ -157,13 +126,13 @@ export function useAIStudio3DPageState() {
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
-      toast({ title: 'Erreur', description: 'Veuillez entrer une description', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('aiStudio.enterDescription'), variant: 'destructive' });
       return;
     }
     if (credits < 25) {
       toast({
-        title: 'Crédits insuffisants',
-        description: "Vous n'avez pas assez de crédits pour générer un modèle 3D",
+        title: t('aiStudio.insufficientCredits'),
+        description: t('aiStudio.insufficientCredits3d'),
         variant: 'destructive',
       });
       return;
@@ -180,52 +149,65 @@ export function useAIStudio3DPageState() {
       });
     }, 500);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      const response = await api.post('/api/v1/generation', {
+        prompt,
+        type: '3d',
+        templateId: undefined,
+      });
+      const raw = response as Record<string, unknown>;
+      const publicId = String(raw.id ?? raw.publicId ?? '');
+
+      let status = 'processing';
+      let result: Record<string, unknown> = raw;
+      while (status === 'processing' || status === 'pending') {
+        await new Promise((r) => setTimeout(r, 3000));
+        const statusResponse = await api.get(`/api/v1/generation/${publicId}/status`);
+        result = statusResponse as Record<string, unknown>;
+        status = String(result.status ?? 'failed');
+      }
+
       clearInterval(progressInterval);
       setGenerationProgress(100);
-      const newModel: GeneratedModel = {
-        id: `model-${Date.now()}`,
-        name: prompt.substring(0, 30),
-        thumbnail: `https://picsum.photos/512/512?random=${Date.now()}`,
-        prompt,
-        category,
-        complexity,
-        resolution,
-        polyCount: polyCount[0],
-        createdAt: Date.now(),
-        credits: 25,
-        metadata: {
-          format: 'GLB',
-          size: Math.floor(Math.random() * 5000000) + 1000000,
-          vertices: Math.floor(polyCount[0] * 0.5),
-          faces: Math.floor(polyCount[0] * 0.33),
-          textures: 3,
-          materials: 2,
-          model: 'stable-diffusion-3d',
-          seed: Math.floor(Math.random() * 1000000),
-        },
-      };
-      setGeneratedModels((prev) => [newModel, ...prev]);
-      setCredits((prev) => prev - 25);
-      toast({ title: 'Succès', description: 'Modèle 3D généré avec succès' });
+
+      if (status === 'completed') {
+        const thumbnail = String(result.previewUrl ?? result.resultUrl ?? '/placeholder-design.svg');
+        const newModel: GeneratedModel = {
+          id: publicId,
+          name: prompt.slice(0, 50),
+          thumbnail,
+          prompt,
+          category,
+          complexity,
+          resolution,
+          polyCount: polyCount[0],
+          createdAt: Date.now(),
+          credits: 25,
+          metadata: (result.metadata as GeneratedModel['metadata']) ?? {},
+        };
+        setGeneratedModels((prev) => [newModel, ...prev]);
+        await loadCredits();
+        toast({ title: t('common.success'), description: t('aiStudio.model3dGenerated') });
+      } else {
+        throw new Error('Generation failed');
+      }
     } catch (error) {
       clearInterval(progressInterval);
       logger.error('Error generating 3D model', { error });
-      toast({ title: 'Erreur', description: 'Erreur lors de la génération', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('aiStudio.generationError'), variant: 'destructive' });
     } finally {
       setIsGenerating(false);
       setGenerationProgress(0);
     }
-  }, [prompt, category, complexity, resolution, polyCount, credits, toast]);
+  }, [prompt, category, complexity, resolution, polyCount, credits, toast, t, loadCredits]);
 
   const handleUseTemplate = useCallback(
     (template: GenerationTemplate) => {
       setPrompt(template.prompt);
       setCategory(template.category);
       setComplexity(template.complexity);
-      toast({ title: 'Template appliqué', description: `Le template "${template.name}" a été chargé` });
+      toast({ title: t('aiStudio.templateApplied'), description: t('aiStudio.templateLoaded', { name: template.name }) });
     },
-    [toast]
+    [toast, t]
   );
 
   const handleToggleFavorite = useCallback((modelId: string) => {

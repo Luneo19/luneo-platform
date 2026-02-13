@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Plus, CheckCircle } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatPrice } from '@/lib/utils/formatters';
 import type { CreditPack } from './types';
@@ -15,11 +16,12 @@ interface CreditsPacksTabProps {
 }
 
 export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProps) {
+  const { t } = useI18n();
   return (
     <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-gray-900">Packs de crédits disponibles</CardTitle>
-        <CardDescription className="text-gray-600">Choisissez un pack adapté à vos besoins</CardDescription>
+        <CardTitle className="text-gray-900">{t('credits.packsTitle')}</CardTitle>
+        <CardDescription className="text-gray-600">{t('credits.packsDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -38,7 +40,7 @@ export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProp
               >
                 {pack.isFeatured && (
                   <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-cyan-500">
-                    {pack.badge || 'Populaire'}
+                    {pack.badge || t('credits.popular')}
                   </Badge>
                 )}
                 {pack.savings && (
@@ -48,11 +50,11 @@ export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProp
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{pack.name}</h3>
                   <div className="mb-4">
                     <p className="text-4xl font-bold text-cyan-600">{formatNumber(pack.credits)}</p>
-                    <p className="text-sm text-gray-600">crédits</p>
+                    <p className="text-sm text-gray-600">{t('credits.creditsLabel')}</p>
                   </div>
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-gray-900">{formatPrice(pack.price)}</p>
-                    <p className="text-sm text-gray-600">{formatPrice(pack.price / pack.credits)} par crédit</p>
+                    <p className="text-sm text-gray-600">{formatPrice(pack.price / pack.credits)} {t('credits.perCredit')}</p>
                   </div>
                   {pack.features && (
                     <div className="mb-4 space-y-2">
@@ -69,7 +71,7 @@ export function CreditsPacksTab({ creditPacks, onPurchase }: CreditsPacksTabProp
                     onClick={() => onPurchase(pack.id)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Acheter maintenant
+                    {t('credits.buyNow')}
                   </Button>
                 </div>
               </Card>

@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { logger } from '../../lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useI18n } from '@/i18n/useI18n';
 
 interface Notification {
   id: string;
@@ -38,7 +39,7 @@ interface Notification {
   action_url?: string;
   action_label?: string;
   created_at: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface NotificationBellProps {
@@ -70,6 +71,7 @@ const typeColors = {
 };
 
 function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }: NotificationBellProps) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -242,6 +244,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                       onClick={markAllAsRead}
                       disabled={isMarkingAllRead}
                       className="text-xs"
+                      aria-label="Mark all as read"
                     >
                       {isMarkingAllRead ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -255,7 +258,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                     size="sm"
                     onClick={() => setIsOpen(false)}
                     className="h-6 w-6 p-0"
-                    aria-label="Fermer"
+                    aria-label={t('common.close')}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -341,7 +344,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                                     <button
                                       onClick={() => markAsRead(notification.id)}
                                       className="rounded p-1 hover:bg-muted"
-                                      aria-label="Marquer comme lu"
+                                      aria-label={t('common.markAsRead')}
                                     >
                                       <Check className="h-4 w-4 text-muted-foreground" />
                                     </button>
@@ -349,7 +352,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                                   <button
                                     onClick={() => deleteNotification(notification.id)}
                                     className="rounded p-1 hover:bg-muted"
-                                    aria-label="Supprimer"
+                                    aria-label={t('common.delete')}
                                   >
                                     <X className="h-4 w-4 text-muted-foreground" />
                                   </button>

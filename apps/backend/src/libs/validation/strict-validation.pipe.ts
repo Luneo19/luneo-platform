@@ -14,7 +14,7 @@ import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
-export class StrictValidationPipe implements PipeTransform<any> {
+export class StrictValidationPipe implements PipeTransform<unknown, unknown> {
   private readonly logger = new Logger(StrictValidationPipe.name);
 
   constructor(
@@ -53,7 +53,7 @@ export class StrictValidationPipe implements PipeTransform<any> {
     };
   }
 
-  async transform(value: any, { metatype, type }: ArgumentMetadata) {
+  async transform(value: unknown, { metatype, type }: ArgumentMetadata) {
     // Skip validation for primitive types
     if (!metatype || !this.toValidate(metatype)) {
       return value;

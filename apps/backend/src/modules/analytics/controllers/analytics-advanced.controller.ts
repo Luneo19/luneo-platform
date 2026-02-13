@@ -1,14 +1,21 @@
-import { Controller, Get, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Query, Param, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { RequestWithUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { AdvancedAnalyticsService } from '../services/advanced-analytics.service';
+import { AnalyticsAdvancedService } from '../services/analytics-advanced.service';
+import { CreateFunnelDto } from '../dto/create-funnel.dto';
 
 @ApiTags('Analytics Advanced')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('analytics/advanced')
 export class AnalyticsAdvancedController {
-  constructor(private readonly advancedAnalyticsService: AdvancedAnalyticsService) {}
+  constructor(
+    private readonly advancedAnalyticsService: AdvancedAnalyticsService,
+    private readonly analyticsAdvancedService: AnalyticsAdvancedService,
+  ) {}
 
   @Get('funnel')
   @ApiOperation({
@@ -41,7 +48,7 @@ export class AnalyticsAdvancedController {
     @Query('steps') steps: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
@@ -79,7 +86,7 @@ export class AnalyticsAdvancedController {
   async analyzeCohort(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
@@ -90,5 +97,153 @@ export class AnalyticsAdvancedController {
     const end = new Date(endDate);
 
     return this.advancedAnalyticsService.analyzeCohort(brandId, start, end);
+  }
+
+  @Get('funnels')
+  @ApiOperation({ summary: 'List all funnels', description: 'List all funnels for the brand with optional date range.' })
+  @ApiQuery({ name: 'dateFrom', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'dateTo', required: false, description: 'End date (ISO 8601)' })
+  @ApiResponse({ status: 200, description: 'Funnels list retrieved successfully' })
+  async getFunnels(@Request() req: RequestWithUser, @Query('dateFrom') dateFrom?: string, @Query('dateTo') dateTo?: string) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    const options =
+      dateFrom || dateTo
+        ? { dateFrom: dateFrom ? new Date(dateFrom) : undefined, dateTo: dateTo ? new Date(dateTo) : undefined }
+        : undefined;
+    return this.analyticsAdvancedService.getFunnels(brandId, options);
+  }
+
+  @Get('funnels/:id/data')
+  @ApiOperation({ summary: 'Get funnel analysis data', description: 'Get funnel analysis data for a specific funnel.' })
+  @ApiParam({ name: 'id', description: 'Funnel ID' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiResponse({ status: 200, description: 'Funnel data retrieved successfully' })
+  async getFunnelData(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    const filters = {
+      brandId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    };
+    return this.analyticsAdvancedService.getFunnelData(id, brandId, filters);
+  }
+
+  @Get('funnels/:id')
+  @ApiOperation({ summary: 'Get funnel by ID', description: 'Get a specific funnel by ID.' })
+  @ApiParam({ name: 'id', description: 'Funnel ID' })
+  @ApiResponse({ status: 200, description: 'Funnel retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Funnel not found' })
+  async getFunnelById(@Param('id') id: string, @Request() req: RequestWithUser) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    return this.analyticsAdvancedService.getFunnelById(id, brandId);
+  }
+
+  @Post('funnels')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({ summary: 'Create funnel', description: 'Create a new funnel.' })
+  @ApiResponse({ status: 201, description: 'Funnel created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async createFunnel(@Body() dto: CreateFunnelDto, @Request() req: RequestWithUser) {
+    const brandId = dto.brandId ?? req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    return this.analyticsAdvancedService.createFunnel(brandId, {
+      name: dto.name,
+      steps: dto.steps.map((s, index) => ({
+        id: s.id ?? `step-${index}-${Date.now()}`,
+        name: s.name,
+        eventType: s.eventType,
+        order: s.order,
+        description: s.description,
+      })),
+      description: dto.description,
+      isActive: dto.isActive ?? true,
+    });
+  }
+
+  @Get('cohorts')
+  @ApiOperation({ summary: 'List cohorts', description: 'Get cohort analysis for the brand.' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiResponse({ status: 200, description: 'Cohorts retrieved successfully' })
+  async getCohorts(
+    @Request() req: RequestWithUser,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    const filters = {
+      brandId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    };
+    return this.analyticsAdvancedService.getCohorts(brandId, filters);
+  }
+
+  @Get('segments')
+  @ApiOperation({ summary: 'List segments', description: 'Get all segments for the brand.' })
+  @ApiResponse({ status: 200, description: 'Segments retrieved successfully' })
+  async getSegments(@Request() req: RequestWithUser) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    return this.analyticsAdvancedService.getSegments(brandId);
+  }
+
+  @Get('predictions')
+  @ApiOperation({ summary: 'Get revenue predictions', description: 'Get revenue prediction scenarios.' })
+  @ApiResponse({ status: 200, description: 'Predictions retrieved successfully' })
+  async getPredictions(@Request() req: RequestWithUser) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    return this.analyticsAdvancedService.getRevenuePredictions(brandId);
+  }
+
+  @Get('correlations')
+  @ApiOperation({ summary: 'Get correlations', description: 'Get correlations between metrics.' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiResponse({ status: 200, description: 'Correlations retrieved successfully' })
+  async getCorrelations(
+    @Request() req: RequestWithUser,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    const filters = {
+      brandId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    };
+    return this.analyticsAdvancedService.getCorrelations(brandId, filters);
+  }
+
+  @Get('anomalies')
+  @ApiOperation({ summary: 'Get anomalies', description: 'Get detected anomalies in the data.' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiResponse({ status: 200, description: 'Anomalies retrieved successfully' })
+  async getAnomalies(
+    @Request() req: RequestWithUser,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const brandId = req.user.brandId;
+    if (!brandId) throw new BadRequestException('Brand ID required');
+    const filters = {
+      brandId,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    };
+    return this.analyticsAdvancedService.getAnomalies(brandId, filters);
   }
 }

@@ -6,6 +6,7 @@
  */
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { trpc } from '@/lib/trpc/client';
@@ -38,6 +39,7 @@ async function fetchWithAuth<T>(endpoint: string): Promise<T> {
 }
 
 export function useCustomizer() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -57,7 +59,7 @@ export function useCustomizer() {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<Layer[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
@@ -95,8 +97,26 @@ export function useCustomizer() {
     offset: 0,
   });
 
+  /** Raw product from trpc product.list */
+  type RawProduct = {
+    id: string;
+    name: string;
+    description?: string;
+    category?: string;
+    imageUrl?: string;
+    images?: string[];
+    price?: number;
+    currency?: string;
+    isActive?: boolean;
+    status?: string;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    brandId?: string;
+    createdBy?: string;
+  };
   const products = useMemo((): CustomizerProduct[] => {
-    return (productsQuery.data?.products || []).map((p: any) => ({
+    const rawList = (productsQuery.data?.products || []) as RawProduct[];
+    return rawList.map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
@@ -104,7 +124,7 @@ export function useCustomizer() {
       image_url:
         p.imageUrl ||
         p.images?.[0] ||
-        '/images/placeholder-product.png', // ✅ Placeholder local
+        '/placeholder-product.svg',
       price: p.price || 0,
       currency: p.currency || 'EUR',
       isActive: p.isActive ?? true,
@@ -151,15 +171,15 @@ export function useCustomizer() {
   }, []);
 
   const handleSaveDesign = useCallback(
-    (designData: any) => {
+    (designData: { layers?: Layer[]; [key: string]: unknown }) => {
       logger.info('Design saved', { designData });
       toast({
-        title: 'Design enregistré',
-        description: 'Votre design a été sauvegardé avec succès',
+        title: t('customizer.designSaved'),
+        description: t('customizer.designSavedDesc'),
       });
       handleCloseCustomizer();
     },
-    [toast, handleCloseCustomizer]
+    [t, toast, handleCloseCustomizer]
   );
 
   const handleAddLayer = useCallback(

@@ -27,6 +27,7 @@ import {
   Clock,
   TrendingUp,
 } from 'lucide-react';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { endpoints } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -55,6 +57,7 @@ interface AIStudioProps {
 }
 
 function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState<'1024x1024' | '1792x1024' | '1024x1792'>('1024x1024');
@@ -78,14 +81,14 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
     try {
       const data = await endpoints.designs.list({ limit: 50 }) as { designs?: Array<Record<string, unknown>> } | unknown[];
       const designsList = Array.isArray(data) ? data : (data as { designs?: unknown[] })?.designs ?? [];
-      const designs = designsList.map((d: Record<string, unknown>) => ({
-        id: d.id,
-        url: d.preview_url || d.original_url,
-        prompt: d.prompt || '',
-        style: d.metadata?.style,
-        createdAt: d.created_at || d.createdAt,
-        status: d.status || 'completed',
-        revised_prompt: d.revised_prompt,
+      const designs: GeneratedDesign[] = (designsList as Record<string, unknown>[]).map((d) => ({
+        id: String(d.id ?? ''),
+        url: String(d.preview_url ?? d.original_url ?? ''),
+        prompt: String(d.prompt ?? ''),
+        style: (d.metadata as { style?: string } | undefined)?.style,
+        createdAt: String(d.created_at ?? d.createdAt ?? ''),
+        status: (d.status ?? 'completed') as 'completed' | 'pending' | 'failed',
+        revised_prompt: d.revised_prompt != null ? String(d.revised_prompt) : undefined,
       }));
       setHistory(designs);
       setGeneratedImages(designs.slice(0, 12)); // Show recent 12
@@ -144,7 +147,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
         onDesignGenerated?.(newDesign);
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      const errorMessage = getErrorDisplayMessage(error);
       logger.error('AI generation error', {
         error,
         prompt,
@@ -152,7 +155,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
         message: errorMessage,
       });
       toast({
-        title: 'Erreur',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -175,14 +178,14 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
       document.body.removeChild(a);
 
       toast({
-        title: 'Téléchargement',
-        description: 'Design téléchargé avec succès',
+        title: t('common.download'),
+        description: t('aiStudio.downloadSuccess'),
       });
     } catch (error) {
       logger.error('Download error', { error, designId: design.id });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de télécharger le design',
+        title: t('common.error'),
+        description: t('aiStudio.downloadError'),
         variant: 'destructive',
       });
     }
@@ -194,14 +197,14 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
       setGeneratedImages(generatedImages.filter((d) => d.id !== designId));
       setHistory(history.filter((d) => d.id !== designId));
       toast({
-        title: 'Supprimé',
-        description: 'Design supprimé avec succès',
+        title: t('common.deleted'),
+        description: t('aiStudio.deleteSuccess'),
       });
     } catch (error) {
       logger.error('Delete error', { error, designId });
       toast({
-        title: 'Erreur',
-        description: 'Impossible de supprimer le design',
+        title: t('common.error'),
+        description: t('aiStudio.deleteError'),
         variant: 'destructive',
       });
     }

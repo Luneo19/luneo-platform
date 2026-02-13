@@ -22,6 +22,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { ProductsService } from './products.service';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -32,6 +33,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { BulkActionProductsDto, ImportProductsDto, UploadProductModelDto } from './dto/products-extra.dto';
 import { CreateVariantDto, UpdateVariantDto, BulkCreateVariantsDto, UpdateStockDto } from './dto/product-variant.dto';
+import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
 
 @ApiTags('products')
 @Controller('products')
@@ -42,6 +44,8 @@ export class ProductsController {
   @Get()
   /** @Public: product catalog for storefront */
   @Public()
+  @CacheTTL(300)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @ApiOperation({
     summary: 'Liste des produits avec filtres avancés',
     description: 'Récupère une liste paginée de produits avec filtres optionnels (catégorie, prix, disponibilité, etc.). Route publique accessible sans authentification.',
@@ -84,9 +88,41 @@ export class ProductsController {
     return this.productsService.findAll(filters, { page, limit });
   }
 
+  @Get('brand/:slug')
+  /** @Public: Get brand info + products by slug (storefront catalog) */
+  @Public()
+  @CacheTTL(300)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @ApiOperation({ summary: 'Get brand and products by brand slug' })
+  @ApiParam({ name: 'slug', description: 'Brand slug', example: 'my-brand' })
+  async findByBrandSlug(
+    @Param('slug') slug: string,
+    @Query() query: ProductQueryDto,
+  ) {
+    return this.productsService.findByBrandSlug(slug, query as Record<string, unknown>);
+  }
+
+  @Get(':id/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get product stats (orders, designs, revenue, customizations)' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiResponse({ status: 200, description: 'Product stats' })
+  async getProductStats(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const brandId = req.user?.brandId;
+    if (!brandId) {
+      throw new BadRequestException('User must have a brandId');
+    }
+    return this.productsService.getProductStats(id, brandId);
+  }
+
   @Get(':id')
   /** @Public: product details for storefront */
   @Public()
+  @CacheTTL(300)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @ApiOperation({
     summary: 'Obtenir un produit par ID',
     description: 'Récupère les détails complets d\'un produit spécifique, incluant ses variantes, options de personnalisation, et métadonnées. Route publique.',
@@ -115,6 +151,7 @@ export class ProductsController {
 
   @Post()
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ 
     summary: 'Créer un nouveau produit',
     description: 'Crée un nouveau produit pour la marque de l\'utilisateur authentifié. Nécessite les permissions Brand Admin. Le produit est créé avec les options de personnalisation et variantes spécifiées.',
@@ -147,6 +184,7 @@ export class ProductsController {
 
   @Post('brands/:brandId/products')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Créer un nouveau produit (legacy)' })
   @ApiParam({ name: 'brandId', description: 'ID de la marque' })
   @ApiResponse({
@@ -163,6 +201,7 @@ export class ProductsController {
 
   @Patch(':id')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Mettre à jour un produit' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
   @ApiResponse({
@@ -182,6 +221,7 @@ export class ProductsController {
 
   @Patch('brands/:brandId/products/:id')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Mettre à jour un produit (legacy)' })
   @ApiParam({ name: 'brandId', description: 'ID de la marque' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
@@ -201,6 +241,7 @@ export class ProductsController {
   @Delete(':id')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Supprimer un produit' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
   @ApiResponse({
@@ -220,6 +261,7 @@ export class ProductsController {
 
   @Post('bulk')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Actions en masse sur les produits' })
   @ApiResponse({
     status: 200,
@@ -254,6 +296,7 @@ export class ProductsController {
 
   @Post('import')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Importer des produits depuis CSV' })
   @ApiResponse({
     status: 200,
@@ -291,6 +334,7 @@ export class ProductsController {
 
   @Post(':id/upload-model')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Upload un modèle 3D pour un produit' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
   @ApiResponse({
@@ -312,36 +356,39 @@ export class ProductsController {
     @Param('id') productId: string,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    const brandId = req.user?.brandId;
+    const brandId = req.user?.brandId ?? '';
     return this.productsService.getVariants(productId, brandId);
   }
 
   @Post(':id/variants')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a product variant' })
   async createVariant(
     @Param('id') productId: string,
     @Body() dto: CreateVariantDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    const brandId = req.user?.brandId;
+    const brandId = req.user?.brandId ?? '';
     return this.productsService.createVariant(productId, brandId, dto);
   }
 
   @Post(':id/variants/bulk')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Bulk create variants from attribute matrix' })
   async bulkCreateVariants(
     @Param('id') productId: string,
     @Body() dto: BulkCreateVariantsDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    const brandId = req.user?.brandId;
+    const brandId = req.user?.brandId ?? '';
     return this.productsService.bulkCreateVariants(productId, brandId, dto);
   }
 
   @Patch(':id/variants/:variantId')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Update a product variant' })
   async updateVariant(
     @Param('id') productId: string,
@@ -349,12 +396,13 @@ export class ProductsController {
     @Body() dto: UpdateVariantDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    const brandId = req.user?.brandId;
+    const brandId = req.user?.brandId ?? '';
     return this.productsService.updateVariant(productId, variantId, brandId, dto);
   }
 
   @Patch(':id/variants/:variantId/stock')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Update variant stock' })
   async updateStock(
     @Param('id') productId: string,
@@ -362,19 +410,20 @@ export class ProductsController {
     @Body() dto: UpdateStockDto,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    const brandId = req.user?.brandId;
+    const brandId = req.user?.brandId ?? '';
     return this.productsService.updateStock(productId, variantId, brandId, dto.stock);
   }
 
   @Delete(':id/variants/:variantId')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Delete a product variant' })
   async deleteVariant(
     @Param('id') productId: string,
     @Param('variantId') variantId: string,
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
-    const brandId = req.user?.brandId;
+    const brandId = req.user?.brandId ?? '';
     return this.productsService.deleteVariant(productId, variantId, brandId);
   }
 }

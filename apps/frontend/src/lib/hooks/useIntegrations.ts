@@ -77,11 +77,12 @@ export function useIntegrations() {
     const result = await api.post<{ success?: boolean; error?: string; data?: unknown }>('/api/v1/integrations/shopify/sync', {
       integrationId,
     });
-    if (result && typeof result === 'object' && 'success' in result && !result.success) {
-      throw new Error((result as { error?: string }).error || 'Sync failed');
+    type SyncResponse = { success?: boolean; error?: string; data?: unknown };
+    if (result && typeof result === 'object' && 'success' in result && !(result as SyncResponse).success) {
+      throw new Error((result as SyncResponse).error || 'Sync failed');
     }
     integrationsQuery.refetch();
-    return (result as { data?: unknown })?.data ?? result;
+    return (result as SyncResponse)?.data ?? result;
   }, [integrationsQuery]);
 
   const disconnectIntegration = useCallback(

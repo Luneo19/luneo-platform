@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PaymentStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -235,19 +236,31 @@ export class AdminToolsService {
     }
 
     if (type === 'revenue') {
-      const brands = await this.prisma.brand.findMany({
-        where: { stripeSubscriptionId: { not: null } },
-        take: limit,
-        select: {
-          id: true,
-          name: true,
-          plan: true,
-          planExpiresAt: true,
-          stripeCustomerId: true,
-          stripeSubscriptionId: true,
-        },
-      });
-      const mrr = brands.length * 99;
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const [revenueAgg, brands] = await Promise.all([
+        this.prisma.order.aggregate({
+          where: {
+            paymentStatus: PaymentStatus.SUCCEEDED,
+            deletedAt: null,
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          _sum: { totalCents: true },
+        }),
+        this.prisma.brand.findMany({
+          where: { stripeSubscriptionId: { not: null } },
+          take: limit,
+          select: {
+            id: true,
+            name: true,
+            plan: true,
+            planExpiresAt: true,
+            stripeCustomerId: true,
+            stripeSubscriptionId: true,
+          },
+        }),
+      ]);
+      const mrr = (revenueAgg._sum.totalCents ?? 0) / 100;
       const arr = mrr * 12;
       const rows = [
         { metric: 'MRR', value: mrr, unit: 'EUR' },

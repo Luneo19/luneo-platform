@@ -172,7 +172,7 @@ export function useAnalyticsData(
           if (data && typeof data === 'object' && 'devices' in data && Array.isArray((data as { devices?: unknown }).devices)) {
             const dataWithDevices = data as { devices: { name: string; count: number; percentage: number }[] };
             // Map API response to expected format
-            const mappedDevices = data.devices.map((d: { name: string; count: number; percentage: number }) => ({
+            const mappedDevices = dataWithDevices.devices.map((d: { name: string; count: number; percentage: number }) => ({
               name: d.name,
               percentage: d.percentage,
               count: d.count,
@@ -232,8 +232,9 @@ export function useAnalyticsData(
         const realtimeData = await api.get('/api/v1/analytics/realtime');
         const rtRes = realtimeData as Record<string, unknown>;
         const data = rtRes?.success === true ? rtRes.data : realtimeData;
-          if (data?.users && Array.isArray(data.users)) {
-            setRealtimeUsers(data.users);
+          const dataObj = data as { users?: unknown[] };
+          if (dataObj?.users && Array.isArray(dataObj.users)) {
+            setRealtimeUsers(dataObj.users as RealtimeUser[]);
           } else {
             setRealtimeUsers([]);
           }

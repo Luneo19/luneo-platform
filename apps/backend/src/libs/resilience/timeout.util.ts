@@ -48,7 +48,7 @@ export async function withTimeout<T>(
  * @param timeoutMs - Timeout en millisecondes
  * @param operationName - Nom de l'opération pour le logging
  */
-export function createTimeoutWrapper<TArgs extends any[], TResult>(
+export function createTimeoutWrapper<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
   timeoutMs: number,
   operationName: string = 'Operation',

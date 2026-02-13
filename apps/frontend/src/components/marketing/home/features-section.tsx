@@ -73,7 +73,7 @@ export function FeaturesSection() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
             Tout ce dont vous avez besoin
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Une plateforme complète pour créer, personnaliser et vendre vos produits personnalisés
           </p>
         </FadeIn>

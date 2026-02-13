@@ -52,7 +52,7 @@ export function useLunaStream(options: UseLunaStreamOptions = {}) {
           params.append('conversationId', conversationId);
         }
 
-        const url = `/api/agents/luna/chat/stream?${params.toString()}`;
+        const url = `/api/v1/agents/luna/chat/stream?${params.toString()}`;
         const eventSource = new EventSource(url);
 
         eventSourceRef.current = eventSource;

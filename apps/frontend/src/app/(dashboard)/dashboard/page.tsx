@@ -41,14 +41,17 @@ export default async function DashboardPage() {
   try {
     const data = await serverFetch<{ notifications?: unknown[]; data?: { notifications?: unknown[] } }>('/api/v1/notifications?limit=5');
     const list = data.notifications ?? data.data?.notifications ?? [];
-    notifications = (Array.isArray(list) ? list : []).map((n: { id: string; type?: string; title?: string; message?: string; read?: boolean; createdAt?: string; created_at?: string }) => ({
-      id: n.id,
-      type: n.type ?? 'info',
-      title: n.title ?? '',
-      message: n.message ?? '',
-      read: n.read ?? false,
-      created_at: typeof n.createdAt === 'string' ? n.createdAt : n.created_at ?? new Date().toISOString(),
-    }));
+    notifications = (Array.isArray(list) ? list : []).map((n: unknown) => {
+      const x = n as { id: string; type?: string; title?: string; message?: string; read?: boolean; createdAt?: string; created_at?: string };
+      return {
+      id: x.id,
+      type: x.type ?? 'info',
+      title: x.title ?? '',
+      message: x.message ?? '',
+      read: x.read ?? false,
+      created_at: typeof x.createdAt === 'string' ? x.createdAt : x.created_at ?? new Date().toISOString(),
+    };
+    });
   } catch {
     // Non-blocking: show dashboard without notifications
   }

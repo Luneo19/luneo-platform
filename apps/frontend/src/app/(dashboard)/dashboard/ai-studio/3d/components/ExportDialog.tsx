@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n/useI18n';
 import { Download } from 'lucide-react';
 import {
   Dialog,
@@ -32,13 +33,14 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onOpenChange, onExportConfirm }: ExportDialogProps) {
+  const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Exporter le Modèle 3D</DialogTitle>
+          <DialogTitle>{t('aiStudio.export3dTitle')}</DialogTitle>
           <DialogDescription className="text-gray-600">
-            Choisissez le format et les options d&apos;export
+            {t('aiStudio.export3dDesc')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6 mt-6">
@@ -110,17 +112,17 @@ export function ExportDialog({ open, onOpenChange, onExportConfirm }: ExportDial
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200">
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => {
-                onExportConfirm({ title: 'Export', description: 'Export en cours...' });
+                onExportConfirm({ title: t('common.export'), description: t('aiStudio.exportInProgress') });
                 onOpenChange(false);
               }}
               className="bg-cyan-600 hover:bg-cyan-700"
             >
               <Download className="w-4 h-4 mr-2" />
-              Exporter
+              {t('common.export')}
             </Button>
           </DialogFooter>
         </div>

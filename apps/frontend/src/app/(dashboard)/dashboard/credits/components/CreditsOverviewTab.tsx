@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatPrice, formatRelativeDate } from '@/lib/utils/formatters';
 import { TRANSACTION_TYPE_CONFIG } from './constants';
@@ -20,14 +21,16 @@ export function CreditsOverviewTab({
   creditPacks,
   onPurchase,
 }: CreditsOverviewTabProps) {
+  const { t } = useI18n();
   const featuredPacks = creditPacks.filter((p) => p.isFeatured).slice(0, 2);
+  const getTypeLabel = (type: CreditTransaction['type']) => t(`credits.history.${type}` as 'credits.history.purchase');
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Utilisation récente</CardTitle>
-          <CardDescription className="text-gray-600">Dernières transactions</CardDescription>
+          <CardTitle className="text-gray-900">{t('credits.recentUsage')}</CardTitle>
+          <CardDescription className="text-gray-600">{t('credits.recentTransactions')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -43,10 +46,10 @@ export function CreditsOverviewTab({
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {transaction.type === 'purchase' && transaction.packName
-                          ? `Achat ${transaction.packName}`
+                          ? t('credits.history.purchasePack', { packName: transaction.packName })
                           : transaction.type === 'usage' && transaction.source
-                            ? `Utilisation: ${transaction.source}`
-                            : config.label}
+                            ? t('credits.history.usageSource', { source: transaction.source })
+                            : getTypeLabel(transaction.type)}
                       </p>
                       <p className="text-xs text-gray-600">{formatRelativeDate(transaction.createdAt)}</p>
                     </div>
@@ -63,8 +66,8 @@ export function CreditsOverviewTab({
 
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">Packs recommandés</CardTitle>
-          <CardDescription className="text-gray-600">Basé sur votre utilisation</CardDescription>
+          <CardTitle className="text-gray-900">{t('credits.recommendedPacks')}</CardTitle>
+          <CardDescription className="text-gray-600">{t('credits.basedOnUsage')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -78,16 +81,16 @@ export function CreditsOverviewTab({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-2xl font-bold text-cyan-600">{formatNumber(pack.credits)}</p>
-                    <p className="text-sm text-gray-600">crédits</p>
+                    <p className="text-sm text-gray-600">{t('credits.creditsLabel')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold text-gray-900">{formatPrice(pack.price)}</p>
-                    {pack.savings && <p className="text-xs text-green-600">Économie de {pack.savings}%</p>}
+                    {pack.savings && <p className="text-xs text-green-600">{t('credits.savingsPercent', { savings: pack.savings })}</p>}
                   </div>
                 </div>
                 <Button className="w-full mt-3 bg-cyan-600 hover:bg-cyan-700" onClick={() => onPurchase(pack.id)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Acheter maintenant
+                  {t('credits.buyNow')}
                 </Button>
               </div>
             ))}

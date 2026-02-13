@@ -11,7 +11,8 @@ import {
   LazyMotionDiv as motion,
   LazyAnimatePresence as AnimatePresence,
 } from '@/lib/performance/dynamic-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { endpoints } from '@/lib/api/client';
 import {
   User,
   Building,
@@ -29,6 +30,7 @@ import {
   Globe,
   Plug,
   Image as ImageIcon,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,50 +41,31 @@ import { logger } from '@/lib/logger';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { useIndustryStore } from '@/store/industry.store';
 import { Step2Industry } from './components/Step2Industry';
+import { useI18n } from '@/i18n/useI18n';
 
 const STEPS = [
-  { id: 1, title: 'Profil', icon: User },
-  { id: 2, title: 'Secteur d\'activité', icon: Building },
-  { id: 3, title: 'Cas d\'usage', icon: Target },
-  { id: 4, title: 'Objectifs', icon: Sparkles },
-  { id: 5, title: 'Intégrations', icon: Plug },
-  { id: 6, title: 'Terminé', icon: Rocket },
+  { id: 1, titleKey: 'onboarding.step1.profile', icon: User },
+  { id: 2, titleKey: 'onboarding.step2.industry', icon: Building },
+  { id: 3, titleKey: 'onboarding.step3.useCases', icon: Target },
+  { id: 4, titleKey: 'onboarding.step4.goals', icon: Sparkles },
+  { id: 5, titleKey: 'onboarding.step5.integrations', icon: Plug },
+  { id: 6, titleKey: 'onboarding.step6.done', icon: Rocket },
 ];
 
 const USE_CASES = [
-  {
-    id: 'product-customizer',
-    name: 'Configurateur Produits',
-    description: 'Permettre à vos clients de personnaliser vos produits',
-    icon: Palette,
-  },
-  {
-    id: '3d-viewer',
-    name: 'Visualisation 3D',
-    description: 'Afficher vos produits en 3D interactif',
-    icon: Box,
-  },
-  {
-    id: 'virtual-tryon',
-    name: 'Virtual Try-On',
-    description: 'Essayage virtuel avec AR',
-    icon: Camera,
-  },
-  {
-    id: 'print-ready',
-    name: 'Export Print-Ready',
-    description: "Générer des fichiers prêts pour l'impression",
-    icon: ImageIcon,
-  },
+  { id: 'product-customizer', nameKey: 'onboarding.step3.productConfigurator', descKey: 'onboarding.step3.productConfiguratorDesc', icon: Palette },
+  { id: '3d-viewer', nameKey: 'onboarding.step3.view3d', descKey: 'onboarding.step3.view3dDesc', icon: Box },
+  { id: 'virtual-tryon', nameKey: 'onboarding.step3.virtualTryOn', descKey: 'onboarding.step3.virtualTryOnDesc', icon: Camera },
+  { id: 'print-ready', nameKey: 'onboarding.step3.printReady', descKey: 'onboarding.step3.printReadyDesc', icon: ImageIcon },
 ];
 
 const GOALS = [
-  { id: 'increase-conversions', name: 'Augmenter les conversions', icon: Target },
-  { id: 'reduce-returns', name: 'Réduire les retours', icon: ArrowLeft },
-  { id: 'differentiate', name: 'Se différencier', icon: Crown },
-  { id: 'automate', name: 'Automatiser', icon: Zap },
-  { id: 'scale', name: "Passer à l'échelle", icon: Rocket },
-  { id: 'expand-global', name: 'Expansion internationale', icon: Globe },
+  { id: 'increase-conversions', nameKey: 'onboarding.step4.increaseConversions', icon: Target },
+  { id: 'reduce-returns', nameKey: 'onboarding.step4.reduceReturns', icon: ArrowLeft },
+  { id: 'differentiate', nameKey: 'onboarding.step4.differentiate', icon: Crown },
+  { id: 'automate', nameKey: 'onboarding.step4.automate', icon: Zap },
+  { id: 'scale', nameKey: 'onboarding.step4.scale', icon: Rocket },
+  { id: 'expand-global', nameKey: 'onboarding.step4.expandGlobal', icon: Globe },
 ];
 
 const INTEGRATIONS = [
@@ -91,17 +74,24 @@ const INTEGRATIONS = [
   { id: 'magento', name: 'Magento', logo: '🎯' },
   { id: 'prestashop', name: 'PrestaShop', logo: '🏪' },
   { id: 'custom', name: 'Custom / API', logo: '⚙️' },
-  { id: 'none', name: 'Pas encore décidé', logo: '❓' },
+  { id: 'none', nameKey: 'onboarding.step5.notYetDecided', logo: '❓' },
 ];
 
+const PAID_PLANS = ['starter', 'professional', 'business', 'enterprise'];
+
 function OnboardingPageContent() {
+  const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planFromUrl = searchParams.get('plan');
   const {
     formData,
     currentStep,
     totalSteps,
     isSubmitting,
+    isLoading,
     selectedIndustry,
+    error: storeError,
     fetchProgress,
     saveStep,
     nextStep,
@@ -184,12 +174,35 @@ function OnboardingPageContent() {
     } else {
       try {
         await completeOnboarding();
+
+        // CRITICAL FIX: If user registered with a paid plan, redirect to Stripe checkout
+        if (planFromUrl && PAID_PLANS.includes(planFromUrl)) {
+          try {
+            const checkoutResponse = await endpoints.billing.subscribe(
+              planFromUrl,
+              undefined,
+              'monthly',
+            );
+            // Redirect to Stripe Checkout
+            const url = (checkoutResponse as { url?: string })?.url;
+            if (url) {
+              window.location.href = url;
+              return;
+            }
+          } catch (checkoutErr) {
+            logger.error('Failed to create checkout session after onboarding', checkoutErr);
+            // Fall through to dashboard with plan param so billing page can handle it
+            router.push(`/dashboard?onboarding=complete&plan=${planFromUrl}`);
+            return;
+          }
+        }
+
         router.push('/dashboard?onboarding=complete');
       } catch (err) {
-        logger.error('Onboarding complete error:', err);
+        logger.error('Onboarding complete error', err);
       }
     }
-  }, [currentStep, totalSteps, saveStep, nextStep, completeOnboarding, router]);
+  }, [currentStep, totalSteps, saveStep, nextStep, completeOnboarding, router, planFromUrl]);
 
   const handlePrevious = useCallback(() => {
     previousStep();
@@ -199,14 +212,37 @@ function OnboardingPageContent() {
     try {
       await skipOnboarding();
       router.push('/dashboard');
-    } catch (err) {
-      logger.error('Onboarding skip error:', err);
-    }
+      } catch (err) {
+        logger.error('Onboarding skip error', err);
+      }
   }, [skipOnboarding, router]);
+
+  if (isLoading && !formData.step1.name) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-white/[0.06] border-t-[#8b5cf6] mx-auto mb-4" />
+          <p className="text-white/60">{t('onboarding.loadingProgress')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
+        {/* Error from store */}
+        {storeError && (
+          <motion
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3"
+          >
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{storeError}</p>
+          </motion>
+        )}
+
         {/* Progress */}
         <motion
           initial={{ opacity: 0, y: -20 }}
@@ -264,18 +300,18 @@ function OnboardingPageContent() {
               >
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold mb-2 text-white">
-                    Bienvenue sur Luneo ! 👋
+                    {t('onboarding.welcome')}
                   </h1>
                   <p className="text-white/60">
-                    Commençons par faire connaissance
+                    {t('onboarding.letsGetStarted')}
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-white">Votre nom complet</Label>
+                    <Label className="text-white">{t('onboarding.step1.fullName')}</Label>
                     <Input
-                      placeholder="Jean Dupont"
+                      placeholder={t('onboarding.step1.fullNamePlaceholder')}
                       value={formData.step1.name}
                       onChange={(e) =>
                         setStepData('step1', { name: e.target.value })
@@ -284,9 +320,9 @@ function OnboardingPageContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-white">Nom de votre entreprise</Label>
+                    <Label className="text-white">{t('onboarding.step1.companyName')}</Label>
                     <Input
-                      placeholder="Ma Super Entreprise"
+                      placeholder={t('onboarding.step1.companyPlaceholder')}
                       value={formData.step1.company}
                       onChange={(e) =>
                         setStepData('step1', { company: e.target.value })
@@ -296,9 +332,9 @@ function OnboardingPageContent() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-white">Votre rôle</Label>
+                      <Label className="text-white">{t('onboarding.step1.role')}</Label>
                       <Input
-                        placeholder="CEO, Marketing..."
+                        placeholder={t('onboarding.step1.rolePlaceholder')}
                         value={formData.step1.role}
                         onChange={(e) =>
                           setStepData('step1', { role: e.target.value })
@@ -307,9 +343,9 @@ function OnboardingPageContent() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-white">Taille d&apos;équipe</Label>
+                      <Label className="text-white">{t('onboarding.step1.teamSize')}</Label>
                       <Input
-                        placeholder="1-10, 10-50..."
+                        placeholder={t('onboarding.step1.teamSizePlaceholder')}
                         value={formData.step1.teamSize}
                         onChange={(e) =>
                           setStepData('step1', { teamSize: e.target.value })
@@ -368,9 +404,9 @@ function OnboardingPageContent() {
                             : 'text-white/40'
                         }`}
                       />
-                      <h3 className="font-semibold mb-1 text-white">{useCase.name}</h3>
+                      <h3 className="font-semibold mb-1 text-white">{t(useCase.nameKey)}</h3>
                       <p className="text-sm text-white/60">
-                        {useCase.description}
+                        {t(useCase.descKey)}
                       </p>
                     </motion>
                   ))}
@@ -389,10 +425,10 @@ function OnboardingPageContent() {
               >
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold mb-2 text-white">
-                    Vos objectifs ✨
+                    {t('onboarding.step4.title')}
                   </h1>
                   <p className="text-white/60">
-                    Que voulez-vous accomplir avec Luneo ?
+                    {t('onboarding.step4.subtitle')}
                   </p>
                 </div>
 
@@ -417,7 +453,7 @@ function OnboardingPageContent() {
                               : 'text-white/40'
                           }`}
                         />
-                        <span className="font-medium text-white">{goal.name}</span>
+                        <span className="font-medium text-white">{t(goal.nameKey)}</span>
                         {formData.step4.goals.includes(goal.id) && (
                           <Check className="w-5 h-5 text-[#8b5cf6] ml-auto" />
                         )}
@@ -439,10 +475,10 @@ function OnboardingPageContent() {
               >
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold mb-2 text-white">
-                    Vos intégrations 🔌
+                    {t('onboarding.step5.title')}
                   </h1>
                   <p className="text-white/60">
-                    Quelle(s) plateforme(s) utilisez-vous ?
+                    {t('onboarding.step5.subtitle')}
                   </p>
                 </div>
 
@@ -463,7 +499,7 @@ function OnboardingPageContent() {
                         {integration.logo}
                       </span>
                       <span className="text-sm font-medium text-white">
-                        {integration.name}
+                        {'nameKey' in integration ? t(integration.nameKey ?? '') : integration.name}
                       </span>
                       {formData.step5.integrations.includes(integration.id) && (
                         <Check className="w-4 h-4 text-[#8b5cf6] mx-auto mt-2" />
@@ -495,14 +531,19 @@ function OnboardingPageContent() {
                   Vous êtes prêt ! 🎉
                 </h1>
                 <p className="text-white/60 mb-8 max-w-md mx-auto">
-                  Votre espace est configure. Explorez Luneo et commencez a
-                  creer des experiences incroyables pour vos clients.
+                  {planFromUrl && PAID_PLANS.includes(planFromUrl)
+                    ? `Votre espace est configuré. Vous allez être redirigé vers le paiement pour activer votre plan ${planFromUrl}.`
+                    : 'Votre espace est configuré. Explorez Luneo et commencez à créer des expériences incroyables pour vos clients.'}
                 </p>
 
                 <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
                   <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
-                    <p className="text-2xl font-bold text-[#8b5cf6]">Gratuit</p>
-                    <p className="text-xs text-white/60">pour commencer</p>
+                    <p className="text-2xl font-bold text-[#8b5cf6]">
+                      {planFromUrl && PAID_PLANS.includes(planFromUrl) ? planFromUrl.charAt(0).toUpperCase() + planFromUrl.slice(1) : 'Gratuit'}
+                    </p>
+                    <p className="text-xs text-white/60">
+                      {planFromUrl && PAID_PLANS.includes(planFromUrl) ? 'votre plan' : 'pour commencer'}
+                    </p>
                   </div>
                   <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
                     <p className="text-2xl font-bold text-[#ec4899]">5</p>
@@ -550,7 +591,7 @@ function OnboardingPageContent() {
                   'Chargement...'
                 ) : currentStep === 6 ? (
                   <>
-                    Accéder au dashboard
+                    {planFromUrl && PAID_PLANS.includes(planFromUrl) ? 'Procéder au paiement' : 'Accéder au dashboard'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 ) : (
@@ -576,7 +617,7 @@ function OnboardingPageContent() {
               onClick={handleSkip}
               className="text-sm text-white/40 hover:text-white/60 transition-colors"
             >
-              Vous pouvez toujours configurer cela plus tard
+              {t('onboarding.nav.configureLater')}
             </button>
           </motion>
         )}

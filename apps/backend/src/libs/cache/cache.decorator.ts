@@ -19,7 +19,7 @@ export interface CacheOptions {
  * async getProduct(id: string) { ... }
  */
 export const Cache = (options: CacheOptions = {}) => {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  return (target: object, propertyKey: string, descriptor: PropertyDescriptor) => {
     SetMetadata(CACHE_KEY, true)(target, propertyKey, descriptor);
     if (options.ttl) {
       SetMetadata(CACHE_TTL_KEY, options.ttl)(target, propertyKey, descriptor);

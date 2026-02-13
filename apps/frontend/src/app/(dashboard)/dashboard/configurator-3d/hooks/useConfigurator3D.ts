@@ -1,22 +1,37 @@
 /**
  * Hook personnalisé pour gérer le Configurator 3D
+ * Backend uses project-based configurations: GET/PATCH/DELETE configurations/:id?projectId=
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import type { Configuration3D } from '../types';
 
-export function useConfigurator3D(productId: string | null) {
+interface BackendConfigResponse {
+  id: string;
+  name?: string;
+  description?: string;
+  modelUrl?: string;
+  sceneConfig?: Record<string, unknown>;
+  uiConfig?: Record<string, unknown>;
+  options?: Array<{ id: string; name: string; type?: string; label?: string }>;
+}
+
+export function useConfigurator3D(
+  projectId: string | null,
+  configurationId: string | null
+) {
   const router = useRouter();
   const { toast } = useToast();
   const [configuration, setConfiguration] = useState<Configuration3D | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!productId) {
+    if (!projectId || !configurationId) {
       setConfiguration(null);
       return;
     }
@@ -24,24 +39,31 @@ export function useConfigurator3D(productId: string | null) {
     const loadConfiguration = async () => {
       setIsLoading(true);
       try {
-        const data = await api.get<{ data?: Configuration3D | null } | Configuration3D>(`/api/v1/configurator-3d/config`, {
-          params: { productId },
-        });
-        const config = (data as { data?: Configuration3D | null })?.data ?? (data as Configuration3D) ?? null;
-        const defaultConfig = {
-          id: `config-${Date.now()}`,
-          productId,
+        const data = await api.get<BackendConfigResponse>(
+          `/api/v1/configurator-3d/configurations/${configurationId}`,
+          { params: { projectId } }
+        );
+        const res = data as BackendConfigResponse;
+        const defaultConfig: Configuration3D = {
+          id: res.id,
+          productId: configurationId,
           material: 'leather',
           color: '#000000',
           timestamp: Date.now(),
         };
-        setConfiguration(
-          config && typeof config === 'object' && 'productId' in config ? config : defaultConfig
-        );
-      } catch {
+        const mapped: Configuration3D = {
+          ...defaultConfig,
+          id: res.id,
+          productId: configurationId,
+          parts: res.modelUrl ? { modelUrl: res.modelUrl } : undefined,
+          options: res.options?.length ? { options: res.options } as unknown as Record<string, unknown> : undefined,
+        };
+        setConfiguration(mapped);
+      } catch (err) {
+        logger.error('Configurator 3D config load error', { error: err, projectId, configurationId });
         setConfiguration({
           id: `config-${Date.now()}`,
-          productId,
+          productId: configurationId,
           material: 'leather',
           color: '#000000',
           timestamp: Date.now(),
@@ -52,7 +74,7 @@ export function useConfigurator3D(productId: string | null) {
     };
 
     loadConfiguration();
-  }, [productId]);
+  }, [projectId, configurationId]);
 
   const updateConfiguration = useCallback(
     (updates: Partial<Configuration3D>) => {
@@ -69,34 +91,47 @@ export function useConfigurator3D(productId: string | null) {
   );
 
   const saveConfiguration = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    if (!configuration) {
-      return { success: false, error: 'Aucune configuration à sauvegarder' };
+    if (!configuration || !projectId) {
+      return { success: false, error: 'Aucune configuration ou projet à sauvegarder' };
     }
 
     try {
-      await api.post('/api/v1/configurator-3d/configurations', {
-        productId: configuration.productId,
-        configId: configuration.id,
-        configuration,
-      });
+      const payload = {
+        name: configuration.productName ?? `Config ${configuration.id}`,
+        description: undefined as string | undefined,
+        sceneConfig: (configuration.parts ?? {}) as Record<string, unknown>,
+        uiConfig: (configuration.options ?? {}) as Record<string, unknown>,
+        isActive: true,
+      };
+      if (configuration.id && !configuration.id.startsWith('config-')) {
+        await api.patch(
+          `/api/v1/configurator-3d/configurations/${configuration.id}`,
+          payload,
+          { params: { projectId } }
+        );
+      } else {
+        await api.post('/api/v1/configurator-3d/configurations', payload, {
+          params: { projectId },
+        });
+      }
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erreur lors de la sauvegarde';
+      const message = getErrorDisplayMessage(error);
       logger.error('Error saving 3D configuration', { error });
       return { success: false, error: message };
     }
-  }, [configuration]);
+  }, [configuration, projectId]);
 
   const resetConfiguration = useCallback(() => {
-    if (!productId) return;
+    if (!configurationId) return;
     setConfiguration({
       id: `config-${Date.now()}`,
-      productId,
+      productId: configurationId,
       material: 'leather',
       color: '#000000',
       timestamp: Date.now(),
     });
-  }, [productId]);
+  }, [configurationId]);
 
   return {
     configuration,

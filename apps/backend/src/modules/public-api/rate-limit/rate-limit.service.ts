@@ -8,6 +8,15 @@ export interface RateLimitConfig {
   requestsPerMonth: number;
 }
 
+export interface ApiKeyRateLimitConfig {
+  rateLimit?: {
+    requestsPerMinute?: number;
+    requestsPerHour?: number;
+    requestsPerDay?: number;
+    requestsPerMonth?: number;
+  };
+}
+
 @Injectable()
 export class RateLimitService {
   constructor(private readonly cache: SmartCacheService) {}
@@ -164,12 +173,12 @@ export class RateLimitService {
   }
 
   /**
-   * Get default rate limit configuration
+   * Get default rate limit configuration (100 req/min per key for public API)
    */
   getDefaultConfig(): RateLimitConfig {
     return {
-      requestsPerMinute: 60,
-      requestsPerHour: 1000,
+      requestsPerMinute: 100,
+      requestsPerHour: 5000,
       requestsPerDay: 10000,
       requestsPerMonth: 100000,
     };
@@ -178,16 +187,17 @@ export class RateLimitService {
   /**
    * Get rate limit configuration for API key
    */
-  getConfigForApiKey(apiKeyConfig: any): RateLimitConfig {
-    if (!apiKeyConfig || !apiKeyConfig.rateLimit) {
+  getConfigForApiKey(apiKeyConfig: ApiKeyRateLimitConfig | Record<string, unknown> | null | undefined): RateLimitConfig {
+    const rl = apiKeyConfig && typeof apiKeyConfig === 'object' && 'rateLimit' in apiKeyConfig ? (apiKeyConfig as ApiKeyRateLimitConfig).rateLimit : undefined;
+    if (!rl) {
       return this.getDefaultConfig();
     }
 
     return {
-      requestsPerMinute: apiKeyConfig.rateLimit.requestsPerMinute || 60,
-      requestsPerHour: apiKeyConfig.rateLimit.requestsPerHour || 1000,
-      requestsPerDay: apiKeyConfig.rateLimit.requestsPerDay || 10000,
-      requestsPerMonth: apiKeyConfig.rateLimit.requestsPerMonth || 100000,
+      requestsPerMinute: rl.requestsPerMinute ?? 100,
+      requestsPerHour: rl.requestsPerHour ?? 5000,
+      requestsPerDay: rl.requestsPerDay ?? 10000,
+      requestsPerMonth: rl.requestsPerMonth ?? 100000,
     };
   }
 }
