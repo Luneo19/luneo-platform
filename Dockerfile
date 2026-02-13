@@ -49,29 +49,6 @@ COPY apps/backend ./apps/backend/
 WORKDIR /app/apps/backend
 RUN pnpm prisma generate
 
-# Créer un tar du Prisma Client pour le copier facilement dans le stage production
-# Cela évite les problèmes de COPY si le répertoire n'existe pas
-WORKDIR /app
-RUN echo "Checking for Prisma Client..." && \
-    ls -la node_modules/.prisma 2>/dev/null || echo "Prisma Client not in node_modules/.prisma" && \
-    find node_modules -name ".prisma" -type d 2>/dev/null | head -5 && \
-    if [ -d "node_modules/.prisma" ]; then \
-        echo "Found Prisma Client in node_modules/.prisma, creating tar..."; \
-        tar -czf /tmp/prisma-client.tar.gz -C node_modules .prisma && \
-        ls -lh /tmp/prisma-client.tar.gz; \
-    else \
-        echo "Prisma Client not found, searching in node_modules..."; \
-        PRISMA_DIR=$(find node_modules -name ".prisma" -type d | head -1); \
-        if [ -n "$PRISMA_DIR" ]; then \
-            echo "Found Prisma Client at $PRISMA_DIR, creating tar..."; \
-            tar -czf /tmp/prisma-client.tar.gz -C node_modules $(echo $PRISMA_DIR | sed 's|node_modules/||'); \
-            ls -lh /tmp/prisma-client.tar.gz; \
-        else \
-            echo "Prisma Client not found anywhere, creating empty tar"; \
-            touch /tmp/prisma-client.tar.gz; \
-        fi; \
-    fi
-
 # Build the application using tsconfig.docker.json (relaxed strict checks, rootDir: ".")
 # PRODUCTION FIX: Removed || true - build must succeed for production deployment
 WORKDIR /app/apps/backend
@@ -121,29 +98,21 @@ COPY apps/backend/package.json ./apps/backend/
 # Copier les packages nécessaires AVANT de copier node_modules
 COPY packages ./packages/
 
-# Installer les dépendances de production + prisma (nécessaire pour générer Prisma Client)
-# Cela garantit que la structure pnpm est correcte et que les modules sont accessibles
+# Installer les dépendances de production (prisma est maintenant une dep de prod)
 # Canvas sera compilé avec les outils de build installés ci-dessus
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
-# Copier le Prisma Client généré depuis le builder via tar
-# Le tar a été créé avec succès dans le builder (7.8M), donc on l'utilise directement
-COPY --from=builder /tmp/prisma-client.tar.gz /tmp/prisma-client.tar.gz
-RUN echo "Extracting Prisma Client from builder..." && \
-    ls -lh /tmp/prisma-client.tar.gz && \
-    mkdir -p /app/node_modules/.prisma && \
-    cd /app/node_modules && \
-    tar -xzf /tmp/prisma-client.tar.gz 2>&1 && \
-    echo "Prisma Client extracted successfully" && \
-    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -5 && \
-    echo "Verifying Prisma Client structure..." && \
-    find /app/node_modules -name ".prisma" -type d 2>/dev/null | head -3 && \
-    echo "Checking if @prisma/client exists..." && \
-    ls -la /app/node_modules/@prisma/client 2>/dev/null | head -3 || echo "WARNING: @prisma/client not found" && \
-    rm -f /tmp/prisma-client.tar.gz
+# Générer le Prisma Client directement dans l'image de production
+# Cela garantit que le client est compatible avec la structure node_modules pnpm
+WORKDIR /app/apps/backend
+RUN pnpm exec prisma generate && \
+    echo "Prisma Client generated successfully" && \
+    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || \
+    (echo "ERROR: Prisma Client generation failed" && exit 1)
+WORKDIR /app
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
 RUN apk del python3 py3-setuptools make g++ cairo-dev jpeg-dev pango-dev giflib-dev pixman-dev
@@ -170,8 +139,12 @@ USER nestjs
 # IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
 RUN rm -rf /app/node_modules/.cache \
     && rm -rf /tmp/* \
-    && echo "Verifying Prisma Client after cleanup..." && \
-    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || echo "WARNING: Prisma Client not found after cleanup"
+    && echo "Verifying Prisma Client after cleanup..." \
+    && if [ -d "/app/node_modules/.prisma/client" ]; then \
+         echo "OK: Prisma Client found at /app/node_modules/.prisma/client"; \
+       else \
+         echo "ERROR: Prisma Client missing after cleanup!" && exit 1; \
+       fi
 
 # Health check for container orchestrators (Railway, Docker Compose, K8s)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
