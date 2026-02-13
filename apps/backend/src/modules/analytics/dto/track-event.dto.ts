@@ -103,6 +103,26 @@ export class TrackEventDto {
   @IsOptional()
   @IsString()
   referrer?: string;
+
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsOptional()
+  @IsString()
+  anonymousId?: string;
+
+  @IsOptional()
+  @IsObject()
+  deviceInfo?: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
+  pageInfo?: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
+  utm?: Record<string, any>;
 }
 
 /**

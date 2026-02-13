@@ -312,6 +312,7 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     AnalyticsCleanModule, // Clean minimal analytics
     ArStudioModule,
     MarketplaceModule,
+    EnterpriseModule,
     ObservabilityModule,
     OrionModule,
     TrustSafetyModule,
