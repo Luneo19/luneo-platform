@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { RenderController } from './render.controller';
@@ -23,6 +24,7 @@ import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module
 @Module({
   imports: [
     ConfigModule,
+    HttpModule,
     PrismaModule,
     SmartCacheModule,
     StorageModule,
