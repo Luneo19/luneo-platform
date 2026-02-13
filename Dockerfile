@@ -98,11 +98,12 @@ COPY apps/backend/package.json ./apps/backend/
 # Copier les packages nécessaires AVANT de copier node_modules
 COPY packages ./packages/
 
+# Force cache bust: change .buildid content to invalidate all layers below
+COPY .buildid /tmp/.buildid
+
 # Installer les dépendances de production (prisma est maintenant une dep de prod)
 # Canvas sera compilé avec les outils de build installés ci-dessus
-# Force cache invalidation: changing this string busts all subsequent layers
-RUN echo "build-20260213-v4" > /tmp/.build-id && \
-    pnpm install --frozen-lockfile --include-workspace-root --prod
+RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
