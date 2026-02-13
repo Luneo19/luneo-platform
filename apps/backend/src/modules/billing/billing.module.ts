@@ -6,6 +6,7 @@ import { ZapierModule } from '@/modules/integrations/zapier/zapier.module';
 import { PlansModule } from '../plans/plans.module';
 import { EmailModule } from '../email/email.module';
 import { SecurityModule } from '../security/security.module';
+import { ReferralModule } from '../referral/referral.module';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { CommissionService } from './services/commission.service';
@@ -13,7 +14,7 @@ import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
 
 @Module({
-  imports: [ConfigModule, CreditsModule, PrismaModule, PlansModule, EmailModule, SecurityModule, ZapierModule],
+  imports: [ConfigModule, CreditsModule, PrismaModule, PlansModule, EmailModule, SecurityModule, ZapierModule, ReferralModule],
   controllers: [BillingController],
   providers: [BillingService, StripeClientService, StripeWebhookService, CommissionService],
   exports: [BillingService, StripeClientService, CommissionService],

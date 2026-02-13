@@ -12,6 +12,7 @@ import { StorageModule } from '@/libs/storage/storage.module';
 import { PlansModule } from '@/modules/plans/plans.module';
 import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
 import { ZapierModule } from '@/modules/integrations/zapier/zapier.module';
+import { CreditsModule } from '@/libs/credits/credits.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ZapierModule } from '@/modules/integrations/zapier/zapier.module';
     forwardRef(() => PlansModule),
     UsageBillingModule,
     ZapierModule,
+    CreditsModule,
     HttpModule.register({
       timeout: 60000,
       maxRedirects: 3,
