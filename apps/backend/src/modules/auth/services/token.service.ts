@@ -16,6 +16,25 @@ export class TokenService {
   ) {}
 
   /**
+   * Parse a duration string (e.g. '7d', '24h', '30m') to milliseconds.
+   */
+  private parseDuration(duration: string): number {
+    const match = duration.match(/^(\d+)(s|m|h|d)$/);
+    if (!match) {
+      // Default to 7 days if format is unrecognized
+      return 7 * 24 * 60 * 60 * 1000;
+    }
+    const value = parseInt(match[1], 10);
+    switch (match[2]) {
+      case 's': return value * 1000;
+      case 'm': return value * 60 * 1000;
+      case 'h': return value * 60 * 60 * 1000;
+      case 'd': return value * 24 * 60 * 60 * 1000;
+      default: return 7 * 24 * 60 * 60 * 1000;
+    }
+  }
+
+  /**
    * Generate access and refresh tokens
    */
   async generateTokens(userId: string, email: string, role: UserRole) {
@@ -46,8 +65,10 @@ export class TokenService {
    * @param family - Optionnel: famille de tokens pour rotation (nouvelle famille si non fourni)
    */
   async saveRefreshToken(userId: string, token: string, family?: string) {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    // AUTH FIX: Use configurable refresh token expiration instead of hardcoded 7 days
+    const refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
+    const durationMs = this.parseDuration(refreshExpiresIn);
+    const expiresAt = new Date(Date.now() + durationMs);
 
     await this.prisma.refreshToken.create({
       data: {

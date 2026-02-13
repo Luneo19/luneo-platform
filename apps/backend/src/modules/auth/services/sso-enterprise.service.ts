@@ -242,10 +242,11 @@ export class SSOEnterpriseService {
    */
   private encrypt(data: string): string {
     const algorithm = 'aes-256-gcm';
-    const key = Buffer.from(
-      this.configService.get<string>('sso.encryptionKey') || 'default-key-change-in-production',
-      'hex',
-    );
+    const encryptionKey = this.configService.get<string>('sso.encryptionKey');
+    if (!encryptionKey) {
+      throw new Error('SSO encryption key (sso.encryptionKey) is not configured. Set SSO_ENCRYPTION_KEY env var.');
+    }
+    const key = Buffer.from(encryptionKey, 'hex');
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(algorithm, key, iv);
 
@@ -266,10 +267,11 @@ export class SSOEnterpriseService {
    */
   private decrypt(encryptedData: string): string {
     const algorithm = 'aes-256-gcm';
-    const key = Buffer.from(
-      this.configService.get<string>('sso.encryptionKey') || 'default-key-change-in-production',
-      'hex',
-    );
+    const encryptionKey = this.configService.get<string>('sso.encryptionKey');
+    if (!encryptionKey) {
+      throw new Error('SSO encryption key (sso.encryptionKey) is not configured. Set SSO_ENCRYPTION_KEY env var.');
+    }
+    const key = Buffer.from(encryptionKey, 'hex');
 
     const data = JSON.parse(encryptedData);
     const iv = Buffer.from(data.iv, 'hex');

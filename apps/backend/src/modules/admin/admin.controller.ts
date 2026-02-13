@@ -10,6 +10,7 @@ import {
   Param,
   Headers,
   Res,
+  BadRequestException,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -25,6 +26,7 @@ import {
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
+import { BillingService } from '@/modules/billing/billing.service';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Public } from '@/common/decorators/public.decorator';
@@ -42,6 +44,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly configService: ConfigService,
+    private readonly billingService: BillingService,
   ) {}
 
   // ========================================
@@ -279,6 +282,26 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Billing overview' })
   async getBillingOverview() {
     return this.adminService.getBillingOverview();
+  }
+
+  @Post('billing/:subscriptionId/refund')
+  @ApiBearerAuth()
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiOperation({
+    summary: 'Refund a subscription payment',
+    description: 'Issues a Stripe refund on the latest paid invoice of the given subscription. Platform admin only.',
+  })
+  @ApiParam({ name: 'subscriptionId', description: 'Stripe subscription ID (e.g. sub_xxx)' })
+  @ApiResponse({ status: 200, description: 'Refund result' })
+  @ApiResponse({ status: 400, description: 'Invalid subscription or no paid invoice' })
+  async refundSubscription(
+    @Param('subscriptionId') subscriptionId: string,
+    @Body('reason') reason?: string,
+  ) {
+    if (!subscriptionId || !subscriptionId.startsWith('sub_')) {
+      throw new BadRequestException('Invalid subscription ID format');
+    }
+    return this.billingService.refundSubscription(subscriptionId, reason);
   }
 
   @Post('create-admin')

@@ -4,6 +4,26 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UserRole, Prisma, PaymentStatus, SubscriptionPlan, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
+import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
+import { PlanTier } from '@/libs/plans/plan-config.types';
+
+/**
+ * Helper: Get the monthly price for a SubscriptionPlan enum value.
+ */
+function getPlanPrice(subscriptionPlan: SubscriptionPlan | string | null | undefined): number {
+  if (!subscriptionPlan) return 0;
+  // Map Prisma SubscriptionPlan enum to PlanTier
+  const tierMap: Record<string, PlanTier> = {
+    FREE: PlanTier.FREE,
+    STARTER: PlanTier.STARTER,
+    PROFESSIONAL: PlanTier.PROFESSIONAL,
+    BUSINESS: PlanTier.BUSINESS,
+    ENTERPRISE: PlanTier.ENTERPRISE,
+  };
+  const tier = tierMap[String(subscriptionPlan).toUpperCase()];
+  if (!tier) return 0;
+  return PLAN_CONFIGS[tier]?.pricing?.monthlyPrice ?? 0;
+}
 
 @Injectable()
 export class AdminService {
@@ -450,7 +470,7 @@ export class AdminService {
           lastSeenAt: cust?.lastSeenAt ?? user.lastLoginAt,
           // Computed
           status,
-          planPrice: 0, // Will be enriched later or by frontend
+          planPrice: getPlanPrice(brand?.subscriptionPlan),
           plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
           name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
         };
@@ -558,7 +578,7 @@ export class AdminService {
       totalTimeSpent: cust?.totalTimeSpent ?? 0,
       lastSeenAt: cust?.lastSeenAt ?? user.lastLoginAt,
       status,
-      planPrice: 0,
+      planPrice: getPlanPrice(brand?.subscriptionPlan),
       plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
       name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
     };
@@ -1020,30 +1040,107 @@ export class AdminService {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         avgRevenuePerUser: Math.round(avgRevenuePerUser * 100) / 100,
       },
-      churn: {
-        rate: churnRate,
-        count: totalCustomers - activeCustomers,
-        revenueChurn: 0,
-        netRevenueRetention: 100 - churnRate,
-      },
+      // ADMIN FIX: Calculate churn revenue from canceled/downgraded subscriptions
+      churn: await (async () => {
+        try {
+          // Get brands that canceled in the period
+          const canceledBrands = await this.prisma.brand.findMany({
+            where: {
+              subscriptionStatus: SubscriptionStatus.CANCELED,
+              updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+            },
+            select: { subscriptionPlan: true },
+          });
+          const churnRevenue = canceledBrands.reduce(
+            (sum, b) => sum + getPlanPrice(b.subscriptionPlan),
+            0,
+          );
+          // NRR = (MRR start + expansion - contraction - churn) / MRR start * 100
+          // Simplified: we don't have expansion/contraction tracking yet
+          const nrr = mrr > 0 ? Math.round(((mrr - churnRevenue) / mrr) * 10000) / 100 : 100;
+          return {
+            rate: churnRate,
+            count: totalCustomers - activeCustomers,
+            revenueChurn: Math.round(churnRevenue * 100) / 100,
+            netRevenueRetention: nrr,
+          };
+        } catch {
+          return {
+            rate: churnRate,
+            count: totalCustomers - activeCustomers,
+            revenueChurn: 0,
+            netRevenueRetention: 100 - churnRate,
+          };
+        }
+      })(),
       ltv: {
         average: Math.round(ltvValue * 100) / 100,
         median: Math.round(ltvMedian * 100) / 100,
         byPlan: ltvByPlanAvg,
         projected: Math.round(ltvValue * 1.1 * 100) / 100,
       },
-      acquisition: {
-        cac: 0,
-        paybackPeriod: 0,
-        ltvCacRatio: 0,
-        byChannel: {},
-      },
+      // ADMIN FIX: Derive acquisition channels from registration data
+      acquisition: await (async () => {
+        try {
+          // Count users by registration method
+          const [oauthUsers, referredUsers] = await Promise.all([
+            this.prisma.oAuthAccount.groupBy({
+              by: ['provider'],
+              _count: true,
+            }),
+            this.prisma.referral.count({
+              where: { status: ReferralStatus.COMPLETED },
+            }),
+          ]);
+
+          const oauthTotal = oauthUsers.reduce((sum, g) => sum + g._count, 0);
+          const organicCount = Math.max(0, totalCustomers - oauthTotal - referredUsers);
+
+          const byChannel: Record<string, number> = { organic: organicCount };
+          for (const g of oauthUsers) {
+            byChannel[g.provider] = g._count;
+          }
+          if (referredUsers > 0) {
+            byChannel['referral'] = referredUsers;
+          }
+
+          // CAC requires marketing spend data which is not tracked yet
+          return {
+            cac: null as number | null, // N/A until marketing spend is tracked
+            paybackPeriod: null as number | null,
+            ltvCacRatio: null as number | null,
+            byChannel,
+          };
+        } catch {
+          return { cac: null, paybackPeriod: null, ltvCacRatio: null, byChannel: {} };
+        }
+      })(),
       recentActivity,
       recentCustomers,
       revenueChart,
       planDistribution,
-      acquisitionChannels:
-        totalCustomers > 0 ? [{ channel: 'Organic', count: totalCustomers, cac: 0 }] : [],
+      acquisitionChannels: await (async () => {
+        try {
+          const oauthGroups = await this.prisma.oAuthAccount.groupBy({
+            by: ['provider'],
+            _count: true,
+          });
+          const referredCount = await this.prisma.referral.count({
+            where: { status: ReferralStatus.COMPLETED },
+          });
+          const oauthTotal = oauthGroups.reduce((sum, g) => sum + g._count, 0);
+          const channels = [
+            { channel: 'Organic', count: Math.max(0, totalCustomers - oauthTotal - referredCount), cac: null as number | null },
+            ...oauthGroups.map(g => ({ channel: g.provider.charAt(0).toUpperCase() + g.provider.slice(1), count: g._count, cac: null as number | null })),
+          ];
+          if (referredCount > 0) {
+            channels.push({ channel: 'Referral', count: referredCount, cac: null });
+          }
+          return channels.filter(c => c.count > 0);
+        } catch {
+          return totalCustomers > 0 ? [{ channel: 'Organic', count: totalCustomers, cac: null }] : [];
+        }
+      })(),
     };
   }
 
@@ -1255,8 +1352,17 @@ export class AdminService {
       arr: Math.round(arr * 100) / 100,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       subscribersByPlan,
-      revenueByPlan: subscribersByPlan, // Simplified for now
-      churnRevenue: 0,
+      // ADMIN FIX: Calculate actual revenue per plan (subscribers * monthly price)
+      revenueByPlan: Object.fromEntries(
+        Object.entries(subscribersByPlan).map(([plan, count]) => [
+          plan,
+          count * getPlanPrice(plan),
+        ]),
+      ),
+      // ADMIN FIX: Calculate churn revenue from cancelled subscriptions
+      churnRevenue: brands
+        .filter(b => b.subscriptionStatus === SubscriptionStatus.CANCELED)
+        .reduce((sum, b) => sum + getPlanPrice(b.subscriptionPlan), 0),
       activeSubscriptions,
       trialSubscriptions,
       cancelledSubscriptions,

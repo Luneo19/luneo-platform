@@ -9,7 +9,53 @@ import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 export class BruteForceService {
   private readonly logger = new Logger(BruteForceService.name);
 
+  /**
+   * SECURITY FIX: In-memory fallback when Redis is completely unavailable.
+   * This prevents fail-open on Redis connection errors.
+   * Map key = identifier, value = { count, expiresAt }
+   */
+  private readonly inMemoryStore = new Map<string, { count: number; expiresAt: number }>();
+  private readonly IN_MEMORY_MAX_ENTRIES = 10000;
+
   constructor(private readonly redisService: RedisOptimizedService) {}
+
+  /**
+   * Check in-memory fallback store
+   */
+  private checkInMemory(identifier: string): number {
+    const entry = this.inMemoryStore.get(identifier);
+    if (!entry) return 0;
+    if (Date.now() > entry.expiresAt) {
+      this.inMemoryStore.delete(identifier);
+      return 0;
+    }
+    return entry.count;
+  }
+
+  /**
+   * Record in-memory fallback attempt
+   */
+  private recordInMemory(identifier: string): void {
+    // Evict oldest entries if store is too large
+    if (this.inMemoryStore.size >= this.IN_MEMORY_MAX_ENTRIES) {
+      const firstKey = this.inMemoryStore.keys().next().value;
+      if (firstKey) this.inMemoryStore.delete(firstKey);
+    }
+    const entry = this.inMemoryStore.get(identifier);
+    if (entry && Date.now() <= entry.expiresAt) {
+      entry.count++;
+    } else {
+      this.inMemoryStore.set(identifier, { count: 1, expiresAt: Date.now() + 900_000 }); // 15min
+    }
+  }
+
+  /**
+   * Helper: Check if an error is a timeout (fail-open) vs connection error (fail-close)
+   */
+  private isTimeoutError(error: unknown): boolean {
+    const msg = error instanceof Error ? error.message : String(error ?? '');
+    return msg.includes('timeout') || msg.includes('Redis timeout') || msg.includes('max requests limit exceeded');
+  }
 
   /**
    * Génère une clé unique pour identifier une tentative
@@ -27,8 +73,10 @@ export class BruteForceService {
       const redis = this.redisService.client;
 
       if (!redis) {
-        // Si Redis n'est pas disponible, autoriser (mode dégradé)
-        return true;
+        // SECURITY FIX: Use in-memory fallback when Redis is unavailable (fail-close)
+        this.logger.warn('Redis unavailable, using in-memory brute force store');
+        const memAttempts = this.checkInMemory(identifier);
+        return memAttempts < 5;
       }
 
       // Gérer spécifiquement les erreurs de limite Upstash Redis avec timeout
@@ -42,13 +90,15 @@ export class BruteForceService {
           ),
         ]) as string | null;
       } catch (redisError: unknown) {
-        const msg = redisError instanceof Error ? redisError.message : String(redisError ?? '');
-        if (msg.includes('max requests limit exceeded') || msg.includes('Redis timeout') || msg.includes('timeout')) {
-          this.logger.warn('Redis limit exceeded or timeout in brute force check, allowing request');
-          return true; // Fail open - allow request
+        if (this.isTimeoutError(redisError)) {
+          // Timeout: fail-open (don't block users if Redis is slow)
+          this.logger.warn('Redis timeout in brute force check, allowing request');
+          return true;
         }
-        this.logger.warn('Redis error in brute force check, allowing request', msg);
-        return true;
+        // SECURITY FIX: Connection error: fail-close with in-memory fallback
+        this.logger.error('Redis connection error in brute force check, using in-memory fallback');
+        const memAttempts = this.checkInMemory(identifier);
+        return memAttempts < 5;
       }
 
       const attemptCount = attempts ? parseInt(attempts, 10) : 0;
@@ -92,6 +142,8 @@ export class BruteForceService {
       const redis = this.redisService.client;
 
       if (!redis) {
+        // SECURITY FIX: Use in-memory fallback
+        this.recordInMemory(identifier);
         return;
       }
 
@@ -232,9 +284,16 @@ export class BruteForceService {
       if (error instanceof HttpException) {
         throw error;
       }
-      // Pour toute autre erreur (timeout, Redis, etc.), autoriser (fail open)
-      this.logger.warn('Brute force check error, allowing request', error?.message || error);
-      return; // Allow login to continue
+      // SECURITY FIX: Only fail-open on timeouts. Fail-close on other errors.
+      if (this.isTimeoutError(error)) {
+        this.logger.warn('Brute force check timeout, allowing request');
+        return;
+      }
+      this.logger.error('Brute force check failed (non-timeout), blocking request', error?.message || error);
+      throw new HttpException(
+        'Security service temporarily unavailable. Please try again.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
   }
 }

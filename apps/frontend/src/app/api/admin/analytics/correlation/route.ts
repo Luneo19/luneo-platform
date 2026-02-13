@@ -19,17 +19,8 @@ function forwardHeaders(request: NextRequest): HeadersInit {
   return headers;
 }
 
-function generateCorrelationData() {
-  const metrics = ['revenue', 'signups', 'designs', 'orders', 'retention'];
-  const data = metrics.map((m1) => ({
-    metric: m1,
-    correlations: metrics.map((m2) => ({
-      metric: m2,
-      value: m1 === m2 ? 1 : parseFloat((Math.random() * 2 - 1).toFixed(2)),
-    })),
-  }));
-  return { data, generated: true };
-}
+// ADMIN FIX: Removed generateCorrelationData() which returned random values.
+// Correlation data must come from the backend analytics service or return 503.
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,7 +32,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const days = searchParams.get('days') || '30';
 
-    // Try fetching from analytics advanced correlations endpoint
+    // Fetch from backend analytics advanced correlations endpoint
     try {
       const url = new URL(`${API_URL}/api/v1/analytics/advanced/correlations`);
       url.searchParams.set('days', days);
@@ -53,11 +44,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(data);
       }
     } catch {
-      // Backend endpoint not available, fall through to generated data
+      // Backend endpoint not available
     }
 
-    // Fallback: return generated correlation data
-    return NextResponse.json(generateCorrelationData());
+    // FIX: Return 503 instead of random data when backend is unavailable
+    return NextResponse.json(
+      { error: 'Analytics correlation service unavailable', available: false },
+      { status: 503 },
+    );
   } catch (error) {
     serverLogger.apiError('/api/admin/analytics/correlation', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch correlation data' }, { status: 500 });

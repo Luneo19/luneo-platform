@@ -6,10 +6,13 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { AIProviderFactory } from './providers/ai-provider.factory';
 import { ImageProcessorService } from './services/image-processor.service';
+import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 import { GenerationStatus, Prisma } from '@prisma/client';
 
 interface GenerationJobData {
   generationId: string;
+  brandId: string;
+  model: string;
   productId: string;
   finalPrompt: string;
   negativePrompt?: string;
@@ -33,6 +36,7 @@ export class GenerationProcessor {
     private aiFactory: AIProviderFactory,
     private imageProcessor: ImageProcessorService,
     private eventEmitter: EventEmitter2,
+    private usageTrackingService: UsageTrackingService,
   ) {}
 
   @Process('generate')
@@ -151,6 +155,15 @@ export class GenerationProcessor {
       });
 
       await job.updateProgress(100);
+
+      // GENERATION FIX: Track usage only after successful generation. If generation fails, quota is not wasted.
+      const costCents = aiResult.costs.costCents ?? 0;
+      await this.usageTrackingService.trackAIGeneration(
+        data.brandId,
+        generationId,
+        data.model,
+        costCents / 100,
+      );
 
       // 11. Émettre événement
       this.eventEmitter.emit('generation.completed', {

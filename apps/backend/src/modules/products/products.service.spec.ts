@@ -196,14 +196,14 @@ describe('ProductsService', () => {
         },
       };
 
-      mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
+      mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
 
       const result = await service.findOne('prod-1');
 
       expect(result).toBeDefined();
       expect(result.id).toBe('prod-1');
       expect(result.name).toBe('Test Product');
-      expect(mockPrisma.product.findUnique).toHaveBeenCalledWith(
+      expect(mockPrisma.product.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'prod-1' },
         }),
@@ -211,7 +211,7 @@ describe('ProductsService', () => {
     });
 
     it('should throw NotFoundException when product not found', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue(null);
+      mockPrisma.product.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne('invalid_id')).rejects.toThrow();
     });
@@ -223,11 +223,11 @@ describe('ProductsService', () => {
         brand: {},
       };
 
-      mockPrisma.product.findUnique.mockResolvedValue(mockProduct);
+      mockPrisma.product.findFirst.mockResolvedValue(mockProduct);
 
       await service.findOne('prod-1');
 
-      const callArgs = mockPrisma.product.findUnique.mock.calls[0][0];
+      const callArgs = mockPrisma.product.findFirst.mock.calls[0][0];
       expect(callArgs.select).toBeDefined();
       expect(callArgs.include).toBeUndefined();
     });

@@ -23,6 +23,62 @@ interface Profile {
   };
 }
 
+// PROFILE FIX: Maps camelCase backend response (avatarUrl, createdAt, etc.) to snake_case Profile interface
+function normalizeBackendProfile(raw: unknown): Profile | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const d = raw as Record<string, unknown>;
+  const profile = (d.data as Record<string, unknown>)?.profile ?? d.profile ?? d;
+  if (!profile || typeof profile !== 'object') return null;
+  const p = profile as Record<string, unknown>;
+  const firstName = p.firstName as string | undefined;
+  const lastName = p.lastName as string | undefined;
+  const name = (p.name as string) ?? (firstName && lastName ? `${firstName} ${lastName}` : (firstName ?? lastName ?? undefined));
+  const statsRaw = p.stats as Record<string, unknown> | undefined;
+  return {
+    id: String(p.id ?? ''),
+    email: String(p.email ?? ''),
+    name,
+    company: p.company as string | undefined,
+    website: p.website as string | undefined,
+    bio: p.bio as string | undefined,
+    avatar_url: (p.avatarUrl ?? p.avatar) as string | undefined,
+    phone: p.phone as string | undefined,
+    notification_preferences: (p.notificationPreferences ?? p.notification_preferences) as Record<string, unknown> | undefined,
+    language: p.language as string | undefined,
+    timezone: p.timezone as string | undefined,
+    subscription_tier: (p.subscriptionTier ?? p.subscription_tier) as string | undefined,
+    subscription_status: (p.subscriptionStatus ?? p.subscription_status) as string | undefined,
+    created_at: String(p.createdAt ?? p.created_at ?? new Date().toISOString()),
+    stats: statsRaw
+      ? {
+          designs_count: Number(statsRaw.designsCount ?? statsRaw.designs_count ?? 0),
+          products_count: Number(statsRaw.productsCount ?? statsRaw.products_count ?? 0),
+        }
+      : undefined,
+  };
+}
+
+// PROFILE FIX: Convert snake_case Profile updates to camelCase for backend API
+function toBackendProfile(updates: Partial<Profile>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (updates.name !== undefined) {
+    const parts = String(updates.name).trim().split(/\s+/);
+    out.firstName = parts[0] ?? '';
+    out.lastName = parts.slice(1).join(' ') ?? '';
+  }
+  if (updates.company !== undefined) out.company = updates.company;
+  if (updates.website !== undefined) out.website = updates.website;
+  if (updates.bio !== undefined) out.bio = updates.bio;
+  if (updates.avatar_url !== undefined) out.avatar = updates.avatar_url;
+  if (updates.phone !== undefined) out.phone = updates.phone;
+  if (updates.notification_preferences !== undefined) out.notificationPreferences = updates.notification_preferences;
+  if (updates.language !== undefined) out.language = updates.language;
+  if (updates.timezone !== undefined) out.timezone = updates.timezone;
+  if (updates.subscription_tier !== undefined) out.subscriptionTier = updates.subscription_tier;
+  if (updates.subscription_status !== undefined) out.subscriptionStatus = updates.subscription_status;
+  return out;
+}
+
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,11 +89,10 @@ export function useProfile() {
       setLoading(true);
       setError(null);
 
-      const data = await api.get<Profile | { data?: { profile?: Profile }; profile?: Profile }>('/api/v1/auth/me');
-      const profileData = (data as { data?: { profile?: Profile }; profile?: Profile })?.data?.profile
-        ?? (data as { profile?: Profile })?.profile
-        ?? (data as Profile);
-      setProfile(profileData as Profile);
+      // PROFILE FIX: Backend returns camelCase; normalizer maps to snake_case Profile
+      const data = await api.get<unknown>('/api/v1/auth/me');
+      const profileData = normalizeBackendProfile(data);
+      setProfile(profileData);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error('Erreur chargement profil', { error: err, message });
@@ -53,8 +108,10 @@ export function useProfile() {
       setLoading(true);
       setError(null);
 
-      const data = await api.put<{ data?: { profile?: Profile }; profile?: Profile }>('/api/v1/profile', updates);
-      const profileData = data?.data?.profile ?? data?.profile;
+      // PROFILE FIX: Convert snake_case to camelCase for backend; normalize response
+      const backendUpdates = toBackendProfile(updates);
+      const data = await api.put<unknown>('/api/v1/profile', backendUpdates);
+      const profileData = normalizeBackendProfile(data);
       if (profileData) {
         setProfile(profileData);
       }
@@ -78,12 +135,14 @@ export function useProfile() {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const data = await api.post<{ data?: { avatar_url?: string }; avatar_url?: string }>('/api/v1/profile/avatar', formData, {
+      // PROFILE FIX: Backend returns avatarUrl (camelCase); support both for compatibility
+      const data = await api.post<Record<string, unknown>>('/api/v1/profile/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      const avatarUrl = data?.data?.avatar_url ?? data?.avatar_url;
+      const dataObj = (data as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
+      const avatarUrl = (dataObj?.avatarUrl ?? dataObj?.avatar_url ?? (data as Record<string, unknown>).avatarUrl ?? (data as Record<string, unknown>).avatar_url) as string | undefined;
       if (avatarUrl) {
         setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
       }

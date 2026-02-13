@@ -449,6 +449,7 @@ model User {
   @@index([brandId, role])
   @@index([brandId, isActive])
   @@index([brandId, createdAt])
+  @@index([lastLoginAt]) // Cache warming & active-session queries
 }
 
 model Download {

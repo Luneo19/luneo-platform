@@ -431,10 +431,10 @@ export const endpoints = {
       api.get('/api/v1/credits/transactions', { params }),
   },
 
-  // Billing (list plans: GET /pricing/plans; current: GET /plans/current)
+  // Billing (list plans: GET /plans/all; current: GET /plans/current)
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
-    plans: () => api.get('/api/v1/pricing/plans'),
+    plans: () => api.get('/api/v1/plans/all'),
     subscribe: (planId: string, email?: string, billingInterval?: 'monthly' | 'yearly') =>
       api.post('/api/v1/billing/create-checkout-session', { planId, email, billingInterval: billingInterval || 'monthly' }),
     cancel: () => api.post('/api/v1/billing/cancel-downgrade'),

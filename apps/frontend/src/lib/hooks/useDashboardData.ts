@@ -191,15 +191,17 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
           icon: 'Palette',
         },
         {
+          // DASHBOARD FIX: MED-012 - Wire to real analytics endpoint (e.g. /api/analytics/views or usage_tracking)
           title: 'Vues totales',
-          value: '0', // À calculer depuis usage_tracking si disponible
+          value: '0',
           change: '+0%',
           changeType: 'positive',
           icon: 'Eye',
         },
         {
+          // DASHBOARD FIX: MED-013 - Wire to real analytics endpoint (e.g. /api/analytics/downloads or usage_tracking)
           title: 'Téléchargements',
-          value: '0', // À calculer depuis usage_tracking si disponible
+          value: '0',
           change: '+0%',
           changeType: 'positive',
           icon: 'Download',
@@ -235,12 +237,13 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5);
 
       // Top designs (utiliser les designs récents)
+      // DASHBOARD FIX: MED-012/013 - views/likes need to be wired to real analytics endpoints (usage_tracking or design-level stats API)
       const topDesigns: TopDesign[] = apiData.recent.designs.slice(0, 5).map((design) => ({
         id: design.id,
         title: design.prompt || 'Design sans titre',
         image: design.preview_url || '/placeholder-design.svg',
-        views: 0, // À récupérer depuis usage_tracking si disponible
-        likes: 0, // À récupérer depuis usage_tracking si disponible
+        views: 0,
+        likes: 0,
         created_at: design.created_at,
       }));
 

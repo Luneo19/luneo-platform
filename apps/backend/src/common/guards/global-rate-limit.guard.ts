@@ -47,6 +47,17 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
       return true;
     }
 
+    // RATE LIMIT FIX: Skip webhook endpoints - external providers (Stripe, WooCommerce, Shopify)
+    // send many requests in bursts; rate limiting would cause 429s and failed deliveries (P3-12)
+    const webhookPathSuffixes = [
+      'billing/webhook',
+      'ecommerce/woocommerce/webhook',
+      'integrations/shopify/webhooks',
+    ];
+    if (webhookPathSuffixes.some((suffix) => request.path.includes(suffix))) {
+      return true;
+    }
+
     return super.canActivate(context);
   }
 

@@ -11,12 +11,17 @@ import { getServerUser } from '@/lib/auth/get-user';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
 
+/**
+ * SECURITY FIX: Aligned with Prisma UserRole enum from backend.
+ * Previous values (user, admin, super_admin, team_member, owner) did not
+ * match any backend role, causing all permission checks to fail silently.
+ */
 export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-  SUPER_ADMIN = 'super_admin',
-  TEAM_MEMBER = 'team_member',
-  OWNER = 'owner',
+  CONSUMER = 'CONSUMER',
+  BRAND_USER = 'BRAND_USER',
+  BRAND_ADMIN = 'BRAND_ADMIN',
+  PLATFORM_ADMIN = 'PLATFORM_ADMIN',
+  FABRICATOR = 'FABRICATOR',
 }
 
 export interface Permission {
@@ -41,9 +46,9 @@ export async function isAdmin(userId: string): Promise<boolean> {
       return false;
     }
 
-    // Check role from backend user data
+    // Check role from backend user data (aligned with Prisma UserRole)
     const role = user.role?.toUpperCase();
-    return role === 'PLATFORM_ADMIN' || role === 'ADMIN' || role === 'SUPER_ADMIN';
+    return role === 'PLATFORM_ADMIN' || role === 'BRAND_ADMIN';
   } catch (error) {
     logger.error('Error checking admin status', error instanceof Error ? error : new Error(String(error)), {
       userId,
@@ -62,8 +67,9 @@ export async function isSuperAdmin(userId: string): Promise<boolean> {
       return false;
     }
 
+    // Only PLATFORM_ADMIN is super admin (aligned with Prisma UserRole)
     const role = user.role?.toUpperCase();
-    return role === 'SUPER_ADMIN' || role === 'PLATFORM_ADMIN';
+    return role === 'PLATFORM_ADMIN';
   } catch (error) {
     logger.error('Error checking super admin status', error instanceof Error ? error : new Error(String(error)), {
       userId,

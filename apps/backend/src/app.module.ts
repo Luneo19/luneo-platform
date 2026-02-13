@@ -190,6 +190,8 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
 
     // PRODUCTION FIX: Rate limiting with Redis-backed storage for multi-instance deployments
     // Falls back to in-memory if Redis is unavailable
+    // RATE LIMIT FIX: Webhook paths skipped in GlobalRateLimitGuard: billing/webhook,
+    // ecommerce/woocommerce/webhook, integrations/shopify/webhooks (P3-12)
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService, redisService: RedisOptimizedService) => ({

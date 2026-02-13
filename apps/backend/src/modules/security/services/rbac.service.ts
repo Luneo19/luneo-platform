@@ -13,6 +13,27 @@ import {
 } from '../interfaces/rbac.interface';
 
 /**
+ * SECURITY FIX: Mapping from Prisma UserRole to RBAC Role.
+ * Prisma UserRole (PLATFORM_ADMIN, BRAND_ADMIN, etc.) must be mapped to
+ * RBAC Role (super_admin, admin, etc.) for permission lookups to work.
+ */
+const USER_ROLE_TO_RBAC: Record<string, Role> = {
+  PLATFORM_ADMIN: Role.SUPER_ADMIN,
+  BRAND_ADMIN: Role.ADMIN,
+  BRAND_USER: Role.MANAGER,
+  CONSUMER: Role.VIEWER,
+  FABRICATOR: Role.DESIGNER,
+};
+
+/**
+ * Convert a Prisma UserRole string to the RBAC Role enum.
+ * Falls back to VIEWER if the role is unknown.
+ */
+function mapUserRoleToRbac(prismaRole: string | UserRole): Role {
+  return USER_ROLE_TO_RBAC[prismaRole] ?? Role.VIEWER;
+}
+
+/**
  * Service RBAC (Role-Based Access Control)
  * Gère les rôles, permissions et autorisations
  */
@@ -63,7 +84,8 @@ export class RBACService {
         return false;
       }
 
-      const hasPermission = this.roleHasPermission(user.role as Role, permission);
+      const rbacRole = mapUserRoleToRbac(user.role);
+      const hasPermission = this.roleHasPermission(rbacRole, permission);
 
       // Cache pour 5 minutes
       await this.cache.set(cacheKey, hasPermission ? 'true' : 'false', 300);
@@ -147,9 +169,17 @@ export class RBACService {
    */
   async assignRole(userId: string, role: Role): Promise<void> {
     try {
+      // Reverse-map RBAC role to Prisma UserRole for storage
+      const prismaRoleMap: Record<Role, UserRole> = {
+        [Role.SUPER_ADMIN]: UserRole.PLATFORM_ADMIN,
+        [Role.ADMIN]: UserRole.BRAND_ADMIN,
+        [Role.MANAGER]: UserRole.BRAND_USER,
+        [Role.DESIGNER]: UserRole.FABRICATOR,
+        [Role.VIEWER]: UserRole.CONSUMER,
+      };
       await this.prisma.user.update({
         where: { id: userId },
-        data: { role: role as unknown as UserRole },
+        data: { role: prismaRoleMap[role] },
       });
 
       // Invalider le cache
@@ -172,7 +202,7 @@ export class RBACService {
         select: { role: true },
       });
 
-      return (user?.role as Role) || Role.VIEWER;
+      return user ? mapUserRoleToRbac(user.role) : Role.VIEWER;
     } catch (error) {
       this.logger.error(`Failed to get user role: ${error.message}`, error.stack);
       return Role.VIEWER;
@@ -216,7 +246,15 @@ export class RBACService {
    */
   async getUsersByRole(role: Role, brandId?: string): Promise<{ id: string; email: string; name: string | null; role: UserRole; brandId: string | null; createdAt: Date }[]> {
     try {
-      const where: Prisma.UserWhereInput = { role: role as unknown as UserRole };
+      // Map RBAC role back to Prisma UserRole for query
+      const prismaRoleMap: Record<Role, UserRole> = {
+        [Role.SUPER_ADMIN]: UserRole.PLATFORM_ADMIN,
+        [Role.ADMIN]: UserRole.BRAND_ADMIN,
+        [Role.MANAGER]: UserRole.BRAND_USER,
+        [Role.DESIGNER]: UserRole.FABRICATOR,
+        [Role.VIEWER]: UserRole.CONSUMER,
+      };
+      const where: Prisma.UserWhereInput = { role: prismaRoleMap[role] };
       if (brandId) {
         where.brandId = brandId;
       }

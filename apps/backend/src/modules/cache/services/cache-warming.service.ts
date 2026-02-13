@@ -202,19 +202,20 @@ export class CacheWarmingService {
   }
 
   /**
-   * Calculate total revenue (cached)
+   * Calculate total revenue (cached) - uses aggregate to avoid loading all rows
    */
   private async calculateTotalRevenue(): Promise<number> {
-    const orders = await this.prisma.order.findMany({
+    const result = await this.prisma.order.aggregate({
       where: {
-        status: 'DELIVERED', // Use DELIVERED instead of COMPLETED
+        status: 'DELIVERED',
       },
-      select: {
+      _sum: {
         totalCents: true,
       },
     });
 
-    return orders.reduce((sum, order) => sum + (order.totalCents || 0), 0) / 100;
+    const totalCents = result._sum.totalCents ?? 0;
+    return totalCents / 100;
   }
 
   /**

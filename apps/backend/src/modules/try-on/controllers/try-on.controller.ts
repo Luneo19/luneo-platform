@@ -59,11 +59,12 @@ export class TryOnController {
     description: 'Liste des configurations récupérée avec succès',
   })
   async findAllConfigurations(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Query('projectId') projectId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.configurationService.findAll(projectId, { page, limit });
+    return this.configurationService.findAll(projectId, { page, limit }, req.user?.brandId);
   }
 
   @Get('configurations/:id')
@@ -77,10 +78,11 @@ export class TryOnController {
   })
   @ApiResponse({ status: 404, description: 'Configuration non trouvée' })
   async findOneConfiguration(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('id') id: string,
     @Query('projectId') projectId: string,
   ) {
-    return this.configurationService.findOne(id, projectId);
+    return this.configurationService.findOne(id, projectId, req.user?.brandId);
   }
 
   @Post('configurations')
@@ -93,10 +95,11 @@ export class TryOnController {
     description: 'Configuration créée avec succès',
   })
   async createConfiguration(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Body() dto: CreateTryOnConfigurationDto,
     @Query('projectId') projectId: string,
   ) {
-    return this.configurationService.create(projectId, dto);
+    return this.configurationService.create(projectId, dto, req.user?.brandId);
   }
 
   @Patch('configurations/:id')
@@ -105,11 +108,12 @@ export class TryOnController {
   })
   @ApiParam({ name: 'id', description: 'ID de la configuration' })
   async updateConfiguration(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('id') id: string,
     @Query('projectId') projectId: string,
     @Body() dto: UpdateTryOnConfigurationDto,
   ) {
-    return this.configurationService.update(id, projectId, dto);
+    return this.configurationService.update(id, projectId, dto, req.user?.brandId);
   }
 
   @Delete('configurations/:id')
@@ -119,10 +123,11 @@ export class TryOnController {
   })
   @ApiParam({ name: 'id', description: 'ID de la configuration' })
   async removeConfiguration(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('id') id: string,
     @Query('projectId') projectId: string,
   ) {
-    return this.configurationService.remove(id, projectId);
+    return this.configurationService.remove(id, projectId, req.user?.brandId);
   }
 
   @Post('configurations/:id/products')
@@ -132,11 +137,12 @@ export class TryOnController {
   })
   @ApiParam({ name: 'id', description: 'ID de la configuration' })
   async addProduct(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('id') configId: string,
     @Query('projectId') projectId: string,
     @Body() dto: AddProductMappingDto,
   ) {
-    return this.configurationService.addProduct(configId, projectId, dto);
+    return this.configurationService.addProduct(configId, projectId, dto, req.user?.brandId);
   }
 
   @Delete('configurations/:id/products/:productId')
@@ -145,6 +151,7 @@ export class TryOnController {
     summary: 'Retire un produit d\'une configuration',
   })
   async removeProduct(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('id') configId: string,
     @Query('projectId') projectId: string,
     @Param('productId') productId: string,
@@ -153,6 +160,7 @@ export class TryOnController {
       configId,
       projectId,
       productId,
+      req.user?.brandId,
     );
   }
 

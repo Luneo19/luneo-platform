@@ -454,6 +454,11 @@ export class AuthController {
         lastName: { type: 'string' },
         role: { type: 'string' },
         brandId: { type: 'string' },
+        // AUTH FIX: P3-10 - Document isActive, emailVerified, createdAt, updatedAt in response
+        isActive: { type: 'boolean' },
+        emailVerified: { type: 'boolean' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
         brand: { type: 'object' },
         organization: { type: 'object' },
         industry: { type: 'object' },

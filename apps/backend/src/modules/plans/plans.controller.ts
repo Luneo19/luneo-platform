@@ -3,9 +3,11 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { PlansService, type PlanLimits } from './plans.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { UpgradePlanDto } from './dto/upgrade-plan.dto';
 import { Request as ExpressRequest } from 'express';
 import { UserRole } from '@prisma/client';
+import { PLAN_CONFIGS, PlanTier } from '@/libs/plans';
 
 @ApiTags('Plans')
 @Controller('plans')
@@ -13,6 +15,38 @@ import { UserRole } from '@prisma/client';
 @ApiBearerAuth()
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
+
+  /**
+   * Public endpoint returning all plans with pricing, features and limits.
+   * This is the single source of truth for the frontend pricing pages,
+   * eliminating the need for duplicated plan constants in the frontend.
+   */
+  @Public()
+  @Get('all')
+  @ApiOperation({ summary: 'Get all available plans (public, no auth required)' })
+  @ApiResponse({ status: 200, description: 'All plans with pricing, features and limits' })
+  getAllPlans() {
+    return Object.values(PlanTier).map((tier) => {
+      const config = PLAN_CONFIGS[tier];
+      return {
+        id: tier.toLowerCase(),
+        tier,
+        name: config.info.name,
+        description: config.info.description,
+        price: {
+          monthly: config.pricing.monthlyPrice,
+          yearly: config.pricing.yearlyPrice,
+          yearlyMonthly: config.pricing.yearlyPrice > 0
+            ? Math.round((config.pricing.yearlyPrice / 12) * 100) / 100
+            : 0,
+        },
+        features: config.info.features,
+        limits: config.limits,
+        quotas: config.quotas,
+        popular: tier === PlanTier.PROFESSIONAL,
+      };
+    });
+  }
 
   @Get('current')
   @ApiOperation({ summary: 'Récupérer le plan actuel de l\'utilisateur avec usage' })

@@ -146,6 +146,11 @@ output/
 .env.production
 .env.supabase*
 .env.staging
+env.production.example
+.env.example.bak
+.env.production.backup
+.env*.backup
+.env.local.stripe-template
 
 # Terraform providers and modules
 **/.terraform/**

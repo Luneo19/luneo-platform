@@ -1,4 +1,6 @@
-// IMPORTANT: Prices must match backend plan-config.ts -- source of truth is GET /pricing/plans
+// IMPORTANT: Prices must match backend plan-config.ts
+// Canonical source of truth is the backend API: GET /api/v1/plans/all
+// These static values are kept as fallback. Use endpoints.billing.plans() to fetch live data.
 
 /**
  * Plans de facturation disponibles

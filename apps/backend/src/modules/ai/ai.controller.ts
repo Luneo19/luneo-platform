@@ -14,6 +14,7 @@ import {
 } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { AIImageService } from './services/ai-image.service';
+import { AIStudioService } from './services/ai-studio.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/types/user.types';
 import { GenerateImageDto } from './dto/generate-image.dto';
@@ -30,6 +31,7 @@ export class AiController {
   constructor(
     private readonly aiService: AiService,
     private readonly aiImageService: AIImageService,
+    private readonly aiStudioService: AIStudioService,
   ) {}
 
   @Get('quota')
@@ -139,6 +141,25 @@ export class AiController {
       body.targetAspectRatio,
       body.focusPoint,
       req.user,
+    );
+  }
+
+  // AI FIX P3-9: Added text-to-design endpoint that was referenced in frontend but missing from API
+  @Post('text-to-design')
+  @ApiOperation({ summary: 'Générer un design à partir d\'une description textuelle' })
+  @ApiResponse({ status: 200, description: 'Design généré avec succès' })
+  @ApiResponse({ status: 400, description: 'Paramètres invalides' })
+  async textToDesign(
+    @Body() body: { prompt: string; style?: string; parameters?: Record<string, unknown> },
+    @Request() req: { user: CurrentUser },
+  ) {
+    return this.aiStudioService.generate(
+      req.user.id,
+      req.user.brandId || '',
+      'IMAGE_2D' as any,
+      body.prompt,
+      body.style || 'default',
+      (body.parameters || {}) as any,
     );
   }
 }

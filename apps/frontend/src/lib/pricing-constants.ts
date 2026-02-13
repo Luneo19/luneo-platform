@@ -1,8 +1,11 @@
 /**
- * PRICING CONSTANTS - Luneo
- * 
- * MUST match backend source of truth: apps/backend/src/libs/plans/plan-config.ts
- * 
+ * PRICING CONSTANTS - Luneo (STATIC FALLBACK)
+ *
+ * The canonical source of truth is the backend API: GET /api/v1/plans/all
+ * These static values are kept as fallback for SSR/initial render.
+ *
+ * To fetch live data, use: endpoints.billing.plans()
+ *
  * Plans: FREE(0) | STARTER(19) | PROFESSIONAL(49) | BUSINESS(99) | ENTERPRISE(299)
  * Yearly discount: ~20% off (exact values from plan-config.ts)
  */

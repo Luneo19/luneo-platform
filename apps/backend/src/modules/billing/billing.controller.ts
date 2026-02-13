@@ -27,40 +27,29 @@ export class BillingController {
    * For authenticated users, the real userId is used in Stripe metadata,
    * ensuring the webhook can update the correct user/brand after payment.
    */
-  @Public()
+  // BILLING FIX: Removed @Public() - require authentication for checkout to prevent
+  // guest_* userId issues where subscriptions cannot be linked to real users.
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('create-checkout-session')
   @ApiOperation({ summary: 'Créer une session de paiement Stripe avec support des add-ons' })
   @ApiResponse({ status: 200, description: 'Session créée avec succès' })
   @ApiResponse({ status: 400, description: 'Email invalide ou manquant' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
   async createCheckoutSession(
     @Body() body: CreateCheckoutSessionDto,
-    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Request() req: ExpressRequest & { user: CurrentUser },
     @Headers('accept-language') acceptLanguage?: string,
   ): Promise<{ success: boolean; url?: string; sessionId?: string; error?: string }> {
     try {
-      // Determine userId and email from auth context or body
-      let userId: string;
-      let userEmail: string;
-
-      if (req.user?.id) {
-        // Authenticated user - use real userId
-        userId = req.user.id;
-        userEmail = (body.email || req.user.email || '').toLowerCase().trim();
-        this.logger.log(`Creating checkout session for authenticated user: ${userId}`);
-      } else {
-        // Guest user - require email and generate temp userId
-        if (!body.email || !body.email.includes('@') || body.email.length < 5) {
-          throw new BadRequestException('A valid email address is required');
-        }
-        userEmail = body.email.toLowerCase().trim();
-        userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        this.logger.log(`Creating checkout session for guest user: ${userEmail}`);
-      }
+      // BILLING FIX: Always use authenticated user (no more guest checkout)
+      const userId = req.user.id;
+      const userEmail = (body.email || req.user.email || '').toLowerCase().trim();
 
       if (!userEmail || !userEmail.includes('@')) {
         throw new BadRequestException('A valid email address is required');
       }
+
+      this.logger.log(`Creating checkout session for authenticated user: ${userId}`);
 
       const result = await this.billingService.createCheckoutSession(
         body.planId,
@@ -435,9 +424,14 @@ export class BillingController {
     let event: Stripe.Event;
 
     try {
+      // BILLING FIX: Handle both rawBody (NestFactory rawBody: true) and body (express.raw())
+      const payload = (req as any).rawBody ?? req.body;
+      if (!payload || (!Buffer.isBuffer(payload) && typeof payload !== 'string')) {
+        throw new BadRequestException('Missing raw body for webhook verification. Ensure rawBody is enabled.');
+      }
       const stripe = await this.billingService.getStripe();
       event = stripe.webhooks.constructEvent(
-        req.rawBody as Buffer,
+        payload,
         signature,
         webhookSecret,
       );

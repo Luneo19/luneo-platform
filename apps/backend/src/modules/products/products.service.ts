@@ -160,15 +160,20 @@ export class ProductsService {
   }
 
   // Optimisé: select au lieu de include, cache automatique
+  // SECURITY FIX: Added brandId to where clause so users can only access products from their own brand (MED-001)
   @Cacheable({ 
     type: 'product', 
     ttl: 7200,
-    keyGenerator: (args) => `product:${args[0]}`,
+    keyGenerator: (args) => `product:${args[0]}:${(args[1] as string | undefined) ?? 'all'}`,
     tags: () => ['products:list'],
   })
-  async findOne(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
+  async findOne(id: string, brandId?: string) {
+    // Use findFirst when brandId is provided (Prisma findUnique doesn't support extra where filters)
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id,
+        ...(brandId != null && brandId !== '' ? { brandId } : {}),
+      },
       select: {
         id: true,
         name: true,

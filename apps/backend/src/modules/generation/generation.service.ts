@@ -8,7 +8,6 @@ import { CreateGenerationDto } from './dto/create-generation.dto';
 import { GenerationStatus, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
-import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
 
 // Helper pour générer un ID unique (remplace nanoid)
 function generatePublicId(): string {
@@ -25,7 +24,6 @@ export class GenerationService {
     private eventEmitter: EventEmitter2,
     @InjectQueue('generation') private generationQueue: Queue,
     private readonly quotasService: QuotasService,
-    private readonly usageTrackingService: UsageTrackingService,
   ) {}
 
   async create(dto: CreateGenerationDto & { clientId: string; metadata?: Record<string, unknown> }) {
@@ -89,12 +87,14 @@ export class GenerationService {
       },
     });
 
-    await this.usageTrackingService.trackAIGeneration(
-      dto.clientId,
-      generation.id,
-      generation.model,
-      0,
-    );
+    // GENERATION FIX: Usage tracking moved to generation.processor.ts - only increment after successful AI generation.
+    // Previously tracked here before job completion; failed generations wasted quota.
+    // await this.usageTrackingService.trackAIGeneration(
+    //   dto.clientId,
+    //   generation.id,
+    //   generation.model,
+    //   0,
+    // );
 
     // 6. Incrémenter le compteur
     await this.prisma.brand.update({
@@ -107,6 +107,8 @@ export class GenerationService {
       'generate',
       {
         generationId: generation.id,
+        brandId: dto.clientId,
+        model: generation.model,
         productId: product.id,
         finalPrompt,
         negativePrompt,

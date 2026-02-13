@@ -36,8 +36,8 @@ import type Stripe from 'stripe';
 @Controller('credits')
 @UseGuards(JwtAuthGuard)
 export class CreditsController {
-  private stripeInstance: Stripe | null = null;
-  private stripeModule: typeof import('stripe') | null = null;
+  // BILLING FIX: Removed local stripeInstance + getStripe(). Use billingService.getStripe()
+  // which has circuit breaker, retry logic, and shared configuration.
 
   constructor(
     private readonly creditsService: CreditsService,
@@ -46,20 +46,11 @@ export class CreditsController {
     private readonly prisma: PrismaService,
   ) {}
 
+  /**
+   * Get shared Stripe instance from BillingService (with circuit breaker and retry).
+   */
   private async getStripe(): Promise<Stripe> {
-    if (!this.stripeInstance) {
-      if (!this.stripeModule) {
-        this.stripeModule = await import('stripe');
-      }
-      const secretKey = this.configService.get<string>('stripe.secretKey');
-      if (!secretKey) {
-        throw new BadRequestException('STRIPE_SECRET_KEY is not configured');
-      }
-      this.stripeInstance = new this.stripeModule.default(secretKey, {
-        apiVersion: '2023-10-16',
-      });
-    }
-    return this.stripeInstance;
+    return this.billingService.getStripe();
   }
 
   @Get('balance')

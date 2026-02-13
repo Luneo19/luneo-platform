@@ -112,26 +112,38 @@ export class BillingService {
       // En production: utiliser les IDs validés au démarrage
       planPriceIds = this.stripeClient.validatedPriceIds as unknown as Record<string, { monthly: string; yearly: string }>;
     } else {
-      // En dev/test: utiliser les IDs de configuration avec fallbacks de test
-      // NOTE: Les fallbacks sont uniquement pour le développement local
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      // Helper: get price from config, throw in production if missing
+      const getPriceId = (configKey: string, fallback: string): string => {
+        const value = this.configService.get<string>(configKey);
+        if (!value && isProduction) {
+          throw new InternalServerErrorException(
+            `Stripe price ID not configured: ${configKey}. Cannot use test fallbacks in production.`,
+          );
+        }
+        return value || fallback;
+      };
+
+      // BILLING FIX: No more test fallbacks in production
       planPriceIds = {
-      starter: {
-          monthly: this.configService.get<string>('stripe.priceStarterMonthly') || 'price_test_starter_monthly',
-          yearly: this.configService.get<string>('stripe.priceStarterYearly') || 'price_test_starter_yearly',
-      },
-      professional: {
-          monthly: this.configService.get<string>('stripe.priceProMonthly') || 'price_test_pro_monthly',
-          yearly: this.configService.get<string>('stripe.priceProYearly') || 'price_test_pro_yearly',
-      },
-      business: {
-          monthly: this.configService.get<string>('stripe.priceBusinessMonthly') || 'price_test_business_monthly',
-          yearly: this.configService.get<string>('stripe.priceBusinessYearly') || 'price_test_business_yearly',
-      },
-      enterprise: {
-          monthly: this.configService.get<string>('stripe.priceEnterpriseMonthly') || 'price_test_enterprise_monthly',
-          yearly: this.configService.get<string>('stripe.priceEnterpriseYearly') || 'price_test_enterprise_yearly',
-      },
-    };
+        starter: {
+          monthly: getPriceId('stripe.priceStarterMonthly', 'price_test_starter_monthly'),
+          yearly: getPriceId('stripe.priceStarterYearly', 'price_test_starter_yearly'),
+        },
+        professional: {
+          monthly: getPriceId('stripe.priceProMonthly', 'price_test_pro_monthly'),
+          yearly: getPriceId('stripe.priceProYearly', 'price_test_pro_yearly'),
+        },
+        business: {
+          monthly: getPriceId('stripe.priceBusinessMonthly', 'price_test_business_monthly'),
+          yearly: getPriceId('stripe.priceBusinessYearly', 'price_test_business_yearly'),
+        },
+        enterprise: {
+          monthly: getPriceId('stripe.priceEnterpriseMonthly', 'price_test_enterprise_monthly'),
+          yearly: getPriceId('stripe.priceEnterpriseYearly', 'price_test_enterprise_yearly'),
+        },
+      };
     }
 
     const priceId = billingInterval === 'yearly'
@@ -191,9 +203,9 @@ export class BillingService {
         line_items: lineItems,
         mode: 'subscription',
         customer_email: userEmail,
-        // CRITICAL FIX: Use FRONTEND_URL as base to avoid double-path with successUrl config
-        success_url: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000')}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000')}/dashboard/billing/cancel`,
+        // BILLING FIX: Use configService only - no hardcoded URLs (MED-006)
+        success_url: `${this.configService.get('app.frontendUrl')}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${this.configService.get('app.frontendUrl')}/dashboard/billing/cancel`,
         locale: (options?.locale ? this.mapLocaleToStripe(options.locale) : undefined) as Stripe.Checkout.SessionCreateParams.Locale | undefined,
         metadata: {
           userId,
@@ -846,18 +858,53 @@ export class BillingService {
         },
       };
 
-      // Pour les downgrades non immédiats, programmer le changement à la fin de la période
-      if (isDowngrade && !immediateChange) {
-        // Utiliser la date de fin de période comme date de début du nouveau plan
-        // Note: Stripe gérera automatiquement le changement à la fin de la période
-        updateParams.proration_behavior = 'none';
-        updateParams.billing_cycle_anchor = 'unchanged';
-      }
+      let updatedSubscription: Stripe.Subscription;
 
-      const updatedSubscription = await stripe.subscriptions.update(
-        currentSubscription.id,
-        updateParams
-      );
+      // BILLING FIX: For non-immediate downgrades, use subscription_schedule
+      // to schedule the price change at the end of the current billing period.
+      // Previously, subscriptions.update was called immediately even for downgrades.
+      if (isDowngrade && !immediateChange) {
+        // Create a schedule from the existing subscription
+        const schedule = await stripe.subscriptionSchedules.create({
+          from_subscription: currentSubscription.id,
+        });
+
+        // Update the schedule to change the price at the end of the current period
+        await stripe.subscriptionSchedules.update(schedule.id, {
+          end_behavior: 'release',
+          phases: [
+            {
+              // Current phase: keep existing plan until current period ends
+              items: [{ price: currentPriceId, quantity: 1 }],
+              start_date: schedule.phases[0]?.start_date || Math.floor(Date.now() / 1000),
+              end_date: currentSubscription.current_period_end,
+            },
+            {
+              // Next phase: switch to new (downgraded) plan
+              items: [{ price: newPriceId, quantity: 1 }],
+              start_date: currentSubscription.current_period_end,
+              proration_behavior: 'none',
+              metadata: {
+                ...currentSubscription.metadata,
+                previousPlan: currentPlanInfo.planName,
+                changeType: 'downgrade',
+                changeDate: new Date().toISOString(),
+              },
+            },
+          ],
+        });
+
+        this.logger.log(`Downgrade scheduled via subscription_schedule ${schedule.id} for period end`);
+        // Retrieve updated subscription for return value
+        updatedSubscription = await stripe.subscriptions.retrieve(currentSubscription.id);
+      } else {
+        // Upgrade or immediate downgrade: apply immediately
+        const result = await stripe.subscriptions.update(
+          currentSubscription.id,
+          updateParams
+        );
+        updatedSubscription = result;
+      }
 
       // 10. Mettre à jour la base de données locale avec protection transactionnelle
       const planMapping: Record<string, string> = {
@@ -989,10 +1036,21 @@ export class BillingService {
    * Get Stripe Price ID for a plan
    */
   private getPriceIdForPlan(planId: string, interval: 'monthly' | 'yearly'): string | null {
-    const planCapitalized = planId.charAt(0).toUpperCase() + planId.slice(1).toLowerCase();
+    // BILLING FIX: Map plan names to their config key names.
+    // 'professional' maps to 'Pro' in config (stripe.priceProMonthly),
+    // not 'Professional' (which would be stripe.priceProfessionalMonthly - doesn't exist).
+    const PLAN_CONFIG_MAP: Record<string, string> = {
+      starter: 'Starter',
+      professional: 'Pro',
+      pro: 'Pro',
+      business: 'Business',
+      enterprise: 'Enterprise',
+    };
+    const configPlanName = PLAN_CONFIG_MAP[planId.toLowerCase()] ||
+      (planId.charAt(0).toUpperCase() + planId.slice(1).toLowerCase());
     const intervalCapitalized = interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
     
-    const configKey = `stripe.price${planCapitalized}${intervalCapitalized}`;
+    const configKey = `stripe.price${configPlanName}${intervalCapitalized}`;
     return this.configService.get<string>(configKey) || null;
   }
 
@@ -1580,6 +1638,108 @@ export class BillingService {
       if (!isNaN(parsed) && parsed >= 0) return parsed;
     }
     return trialDaysByPlan[planId.toLowerCase()] ?? defaultTrialDays;
+  }
+
+  /**
+   * Refund a subscription payment (admin only).
+   * Finds the latest paid invoice for the subscription and issues a Stripe refund.
+   * @param subscriptionId - Stripe subscription ID
+   * @param reason - Optional refund reason for audit trail
+   * @returns Refund details
+   */
+  async refundSubscription(subscriptionId: string, reason?: string): Promise<{
+    success: boolean;
+    refundId?: string;
+    amountRefunded?: number;
+    currency?: string;
+    status?: string;
+    message: string;
+  }> {
+    const stripe = await this.getStripe();
+
+    try {
+      // Retrieve the subscription to verify it exists
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+      if (!subscription) {
+        return { success: false, message: 'Subscription not found in Stripe' };
+      }
+
+      // Get the latest paid invoice for this subscription
+      const invoices = await stripe.invoices.list({
+        subscription: subscriptionId,
+        status: 'paid',
+        limit: 1,
+      });
+
+      if (!invoices.data.length) {
+        return { success: false, message: 'No paid invoice found for this subscription' };
+      }
+
+      const latestInvoice = invoices.data[0];
+      const paymentIntentId = typeof latestInvoice.payment_intent === 'string'
+        ? latestInvoice.payment_intent
+        : latestInvoice.payment_intent?.id;
+
+      if (!paymentIntentId) {
+        return { success: false, message: 'No payment intent found on the latest invoice' };
+      }
+
+      // Issue the refund
+      const refund = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        reason: 'requested_by_customer',
+        metadata: {
+          admin_refund: 'true',
+          refund_reason: reason || 'Admin-initiated refund',
+          subscription_id: subscriptionId,
+        },
+      });
+
+      this.logger.log(`Subscription refund issued: ${refund.id} for subscription ${subscriptionId}, amount: ${refund.amount}`);
+
+      // Log to audit trail
+      try {
+        // Find the brand associated with this subscription
+        const brand = await this.prisma.brand.findFirst({
+          where: { stripeSubscriptionId: subscriptionId },
+        });
+        if (brand) {
+          await this.auditLogsService.logSuccess(
+            AuditEventType.BILLING_UPDATED,
+            'subscription.refunded',
+            {
+              resourceType: 'subscription',
+              resourceId: subscriptionId,
+              brandId: brand.id,
+              metadata: {
+                refundId: refund.id,
+                amount: refund.amount,
+                currency: refund.currency,
+                reason: reason || 'Admin-initiated refund',
+              },
+            },
+          );
+        }
+      } catch (auditErr) {
+        this.logger.warn(`Failed to log refund audit: ${auditErr instanceof Error ? auditErr.message : String(auditErr)}`);
+      }
+
+      return {
+        success: true,
+        refundId: refund.id,
+        amountRefunded: refund.amount,
+        currency: refund.currency,
+        status: refund.status ?? undefined,
+        message: `Refund of ${(refund.amount / 100).toFixed(2)} ${refund.currency?.toUpperCase()} issued successfully`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to refund subscription ${subscriptionId}`, error instanceof Error ? error.stack : String(error));
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error during refund',
+      };
+    }
   }
 
   /**

@@ -246,16 +246,34 @@ export class UsageMeteringService {
         return JSON.parse(cached as string);
       }
 
-      // Récupérer depuis DB pour le mois en cours
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+      // BILLING FIX P3-5: Derive billing period from planExpiresAt instead of calendar month.
+      // planExpiresAt anchors the billing cycle day; we find the current monthly period containing "now".
+      let periodStart: Date;
+      try {
+        const brand = await this.prisma.brand.findUnique({
+          where: { id: brandId },
+          select: { planExpiresAt: true },
+        });
+        if (brand?.planExpiresAt) {
+          periodStart = this.derivePeriodStart(new Date(brand.planExpiresAt));
+        } else {
+          // No planExpiresAt → fall back to calendar month
+          periodStart = new Date();
+          periodStart.setDate(1);
+          periodStart.setHours(0, 0, 0, 0);
+        }
+      } catch {
+        // Fallback to calendar month if brand query fails
+        periodStart = new Date();
+        periodStart.setDate(1);
+        periodStart.setHours(0, 0, 0, 0);
+      }
 
       const usageRecords = await this.prisma.usageMetric.findMany({
         where: {
           brandId,
           timestamp: {
-            gte: startOfMonth,
+            gte: periodStart,
           },
         },
       });
@@ -330,6 +348,28 @@ export class UsageMeteringService {
         error.stack,
       );
       return 0;
+    }
+  }
+
+  /**
+   * Derive the current billing period start from planExpiresAt.
+   * planExpiresAt anchors the billing cycle to a specific day-of-month.
+   * We find the monthly period that contains "now" by using that anchor day.
+   * Example: if planExpiresAt is March 15, billing periods are Jan 15-Feb 15, Feb 15-Mar 15, etc.
+   */
+  private derivePeriodStart(planExpiresAt: Date): Date {
+    const now = new Date();
+    const anchorDay = Math.min(planExpiresAt.getDate(), 28); // Cap at 28 to avoid month-end edge cases
+
+    // Try this month's anchor day
+    const thisMonthAnchor = new Date(now.getFullYear(), now.getMonth(), anchorDay, 0, 0, 0, 0);
+
+    if (thisMonthAnchor <= now) {
+      // We are past the anchor day this month → period started on this anchor day
+      return thisMonthAnchor;
+    } else {
+      // We haven't reached the anchor day → period started last month on anchor day
+      return new Date(now.getFullYear(), now.getMonth() - 1, anchorDay, 0, 0, 0, 0);
     }
   }
 

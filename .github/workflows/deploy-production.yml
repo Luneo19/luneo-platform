@@ -52,7 +52,6 @@ jobs:
           pnpm run lint
       
       - name: Run unit tests
-        continue-on-error: true
         run: |
           cd apps/backend
           pnpm exec jest --passWithNoTests --coverage

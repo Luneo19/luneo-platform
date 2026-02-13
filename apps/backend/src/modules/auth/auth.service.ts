@@ -93,7 +93,8 @@ export class AuthService {
         password: hashedPassword,
         firstName,
         lastName,
-        role: role || UserRole.CONSUMER,
+        // SECURITY FIX: Only allow safe roles for self-registration
+        role: (role === UserRole.BRAND_USER) ? UserRole.BRAND_USER : UserRole.CONSUMER,
       },
       include: {
         brand: true,
@@ -339,6 +340,12 @@ export class AuthService {
   async loginWith2FA(login2FADto: Login2FADto, ip?: string) {
     const { tempToken, token } = login2FADto;
 
+    // SECURITY FIX: Rate-limit 2FA attempts to prevent brute-force on 6-digit codes
+    // Use tempToken hash + IP as identifier (5 attempts per 15-minute window)
+    const twoFaIdentifier = `2fa:${tempToken.slice(-10)}`;
+    const clientIp = ip || 'unknown';
+    await this.bruteForceService.checkAndThrow(twoFaIdentifier, clientIp);
+
     try {
       // Vérifier token temporaire
       const payload = await this.jwtService.verifyAsync(tempToken, {
@@ -379,12 +386,19 @@ export class AuthService {
               },
             });
           } else {
+            // SECURITY FIX: Record failed 2FA attempt (invalid backup code)
+            await this.bruteForceService.recordFailedAttempt(twoFaIdentifier, clientIp);
             throw new UnauthorizedException('Invalid 2FA code');
           }
         } else {
+          // SECURITY FIX: Record failed 2FA attempt
+          await this.bruteForceService.recordFailedAttempt(twoFaIdentifier, clientIp);
           throw new UnauthorizedException('Invalid 2FA code');
         }
       }
+
+      // 2FA succeeded - reset brute force counter
+      await this.bruteForceService.resetAttempts(twoFaIdentifier, clientIp);
 
       // Update last login
       await this.prisma.user.update({
@@ -1007,6 +1021,11 @@ export class AuthService {
       avatar: user.avatar ?? undefined,
       role: user.role,
       brandId: user.brandId,
+      // AUTH FIX: P3-10 - Include isActive, emailVerified, createdAt, updatedAt
+      isActive: user.isActive,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
       notificationPreferences: user.notificationPreferences ?? undefined,
       phone: profile?.phone ?? undefined,
       website: profile?.website ?? undefined,

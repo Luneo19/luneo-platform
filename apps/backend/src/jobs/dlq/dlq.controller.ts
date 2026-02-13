@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Param, Query, UseGuards } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { UserRole } from '@prisma/client';
 import { DLQService } from './dlq.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -7,8 +8,8 @@ import { Roles } from '@/common/guards/roles.guard';
 
 @Controller('admin/dlq')
 @UseGuards(JwtAuthGuard, RolesGuard)
-// @ts-expect-error TS1270 - NestJS guard decorators return object
-@Roles('PLATFORM_ADMIN')
+// @ts-expect-error NestJS decorator typing - Roles returns object
+@Roles(UserRole.PLATFORM_ADMIN)
 export class DLQController {
   constructor(private readonly dlqService: DLQService) {}
 

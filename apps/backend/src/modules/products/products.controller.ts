@@ -145,8 +145,9 @@ export class ProductsController {
     },
   })
   @ApiResponse({ status: 404, description: 'Produit non trouvé - L\'ID fourni n\'existe pas' })
-  async findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req: ExpressRequest & { user?: CurrentUser }) {
+    // SECURITY FIX: Pass brandId so users can only access products from their own brand (MED-001)
+    return this.productsService.findOne(id, req.user?.brandId ?? undefined);
   }
 
   @Post()

@@ -21,8 +21,9 @@ const express = require('express');
 import * as Express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
-const slowDown = require('express-slow-down');
+// RATE LIMIT FIX: Express rateLimit/slowDown disabled - using NestJS ThrottlerModule only (P3-12)
+// const rateLimit = require('express-rate-limit');
+// const slowDown = require('express-slow-down');
 const helmet = require('helmet');
 const hpp = require('hpp');
 
@@ -147,7 +148,8 @@ async function bootstrap() {
       if (!passwordToHash) {
         const crypto = require('crypto');
         passwordToHash = crypto.randomBytes(16).toString('hex');
-        logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
+        // SECURITY FIX: Removed admin password from logs (MED-004)
+        // logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
       }
       const adminPassword = await bcrypt.hash(passwordToHash, 13);
       const adminUser = await tempPrisma.user.upsert({
@@ -367,36 +369,11 @@ async function bootstrap() {
     if (configService.get('app.nodeEnv') === 'production') {
       app.use(hpp());
 
-      // Rate limiting for production (skip health checks)
-    const limiter = rateLimit({
-      windowMs: configService.get('app.rateLimitTtl') * 1000,
-      max: configService.get('app.rateLimitLimit'),
-      message: {
-        error: 'Too many requests from this IP, please try again later.',
-        statusCode: 429,
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      skip: (req: import('express').Request) => {
-        // Skip rate limiting for health checks and CORS preflight
-        if (req.method === 'OPTIONS') return true;
-        return req.path === '/health' || req.path === '/api/v1/health';
-      },
-    });
-
-    const speedLimiter = slowDown({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      delayAfter: 100, // Allow 100 requests per 15 minutes, then...
-      delayMs: () => 500, // Begin adding 500ms of delay per request above 100
-      skip: (req: import('express').Request) => {
-        // Skip speed limiting for health checks and CORS preflight
-        if (req.method === 'OPTIONS') return true;
-        return req.path === '/health' || req.path === '/api/v1/health';
-      },
-    });
-
-      app.use(limiter);
-      app.use(speedLimiter);
+      // RATE LIMIT FIX P3-12: Express-level rateLimit and slowDown removed.
+      // Rate limiting is now handled exclusively by NestJS ThrottlerModule + GlobalRateLimitGuard,
+      // which provides Redis-backed distributed rate limiting and per-endpoint control via @RateLimit().
+      // Having both Express and NestJS rate limiters caused redundant 429 responses.
+      // Webhook paths are skipped in GlobalRateLimitGuard (billing, woocommerce, shopify).
     }
 
   // IMPORTANT: Ne PAS appeler app.enableCors() car CORS est géré manuellement avec Express
