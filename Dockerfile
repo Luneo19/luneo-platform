@@ -110,9 +110,8 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 # Cela garantit que le client est compatible avec la structure node_modules pnpm
 WORKDIR /app/apps/backend
 RUN pnpm exec prisma generate && \
-    echo "Prisma Client generated successfully" && \
-    ls -la /app/node_modules/.prisma/client 2>/dev/null | head -3 || \
-    (echo "ERROR: Prisma Client generation failed" && exit 1)
+    node -e "require('@prisma/client'); console.log('OK: Prisma Client importable')" && \
+    echo "Prisma Client generated successfully"
 WORKDIR /app
 
 # Supprimer les outils de build après installation (garder uniquement les bibliothèques runtime)
@@ -138,11 +137,7 @@ RUN chown nestjs:nodejs /app/start.sh
 # IMPORTANT: Ne PAS supprimer .prisma/client car il est nécessaire au runtime
 RUN rm -rf /app/node_modules/.cache /tmp/* 2>/dev/null; \
     echo "Verifying Prisma Client after cleanup..." && \
-    if [ -d "/app/node_modules/.prisma/client" ]; then \
-      echo "OK: Prisma Client found at /app/node_modules/.prisma/client"; \
-    else \
-      echo "ERROR: Prisma Client missing after cleanup!" && exit 1; \
-    fi
+    node -e "require('@prisma/client'); console.log('OK: Prisma Client importable after cleanup')"
 
 USER nestjs
 
