@@ -100,6 +100,7 @@ COPY packages ./packages/
 
 # Installer les dépendances de production (prisma est maintenant une dep de prod)
 # Canvas sera compilé avec les outils de build installés ci-dessus
+# Cache bust: 2026-02-13-v2
 RUN pnpm install --frozen-lockfile --include-workspace-root --prod
 
 # Copier le schéma Prisma depuis le builder
