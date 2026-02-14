@@ -915,17 +915,26 @@ export class BillingService {
       };
 
       try {
-        await this.prisma.$transaction(async (tx) => {
-          await tx.brand.update({
-            where: { id: brand.id },
-            data: {
-              plan: newPlanId,
-              subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
-              // Ne pas changer le status si c'est un downgrade programmé
-              ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
-            },
+        // BILLING FIX: For scheduled downgrades, do NOT update plan in DB now.
+        // The plan change will take effect at period end and be synced by the
+        // customer.subscription.updated webhook when Stripe actually switches the price.
+        // Updating the plan now would drop user limits immediately while they're still
+        // paying for the current (higher) plan until period end.
+        if (isUpgrade || immediateChange) {
+          await this.prisma.$transaction(async (tx) => {
+            await tx.brand.update({
+              where: { id: brand.id },
+              data: {
+                plan: newPlanId,
+                subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
+                ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
+              },
+            });
           });
-        });
+        } else {
+          // Scheduled downgrade: only store metadata for UI display (not the plan itself)
+          this.logger.log(`Scheduled downgrade for brand ${brand.id}: plan will change to ${newPlanId} at period end. DB plan unchanged.`);
+        }
       } catch (dbError) {
         // CRITICAL: Stripe was updated but DB failed - log for manual reconciliation
         this.logger.error('CRITICAL: Stripe subscription updated but database sync failed', {

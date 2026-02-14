@@ -278,6 +278,16 @@ export class ProductsService {
       throw AppErrorFactory.insufficientPermissions('access brand resource', { brandId });
     }
 
+    // SECURITY FIX: Verify the product belongs to the user's brand before updating.
+    // Previously only checked user-has-access-to-brandId, but did not verify product ownership.
+    const existingProduct = await this.prisma.product.findFirst({
+      where: { id, brandId },
+      select: { id: true },
+    });
+    if (!existingProduct) {
+      throw new NotFoundException(`Product ${id} not found for brand ${brandId}`);
+    }
+
     // Optimisé: select au lieu de include
     return this.prisma.product.update({
       where: { id },
@@ -571,15 +581,20 @@ export class ProductsService {
    */
   async getAnalytics(
     productId: string,
-    options?: { startDate?: Date; endDate?: Date }
+    options?: { startDate?: Date; endDate?: Date; brandId?: string; isAdmin?: boolean }
   ) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, brandId: true },
     });
 
     if (!product) {
       throw AppErrorFactory.notFound('Product', productId);
+    }
+
+    // SECURITY FIX: Verify product belongs to user's brand (unless admin)
+    if (!options?.isAdmin && options?.brandId && product.brandId !== options.brandId) {
+      throw new ForbiddenException('You do not have access to this product\'s analytics');
     }
 
     const where: Prisma.CustomizationWhereInput = { productId };

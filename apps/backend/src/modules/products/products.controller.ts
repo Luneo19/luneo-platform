@@ -327,9 +327,12 @@ export class ProductsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    // SECURITY FIX: Pass brandId to verify product ownership (prevent IDOR)
     return this.productsService.getAnalytics(id, {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      brandId: req.user?.brandId || undefined,
+      isAdmin: req.user?.role === 'PLATFORM_ADMIN',
     });
   }
 
