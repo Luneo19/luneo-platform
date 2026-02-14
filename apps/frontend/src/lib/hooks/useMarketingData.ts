@@ -179,14 +179,21 @@ export function usePricingPlans(options?: { currency?: string; interval?: 'month
       setLoading(true);
       setError(null);
 
-      const result = await api.get<{ success?: boolean; data?: PlansData; plans?: PricingPlan[]; currency?: string; interval?: string; stripeEnabled?: boolean }>('/api/v1/public/plans', { params: { currency, interval } });
+      // Use relative URL to hit the Next.js API route at /api/public/plans
+      // (NOT the backend via api client, which would 404)
+      const params = new URLSearchParams({ currency, interval });
+      const response = await fetch(`/api/public/plans?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch plans: ${response.status}`);
+      }
+      const result = await response.json();
 
-      if (result && (result as { success?: boolean }).success === false) {
+      if (result && result.success === false) {
         setData({ plans: [], currency, interval, stripeEnabled: false });
         return;
       }
 
-      const apiData = (result as { data?: PlansData })?.data ?? result;
+      const apiData = result?.data ?? result;
       
       // Normaliser les plans
       const plans = Array.isArray(apiData.plans) ? apiData.plans : [];
