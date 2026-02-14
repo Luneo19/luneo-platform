@@ -283,9 +283,16 @@ export class StripeWebhookService {
       const orderId = session.metadata?.orderId;
       if (orderId) {
         try {
-          const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, orderNumber: true, paymentStatus: true, totalCents: true, currency: true, customerEmail: true, customerName: true, userId: true, subtotalCents: true, items: { select: { quantity: true, priceCents: true, product: { select: { name: true } } } } } });
-          if (order && order.paymentStatus !== 'SUCCEEDED') {
-            await this.prisma.order.update({ where: { id: orderId }, data: { status: 'PAID', paymentStatus: 'SUCCEEDED', stripePaymentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null } });
+          // SECURITY FIX: Use transaction to prevent double-payment race condition
+          const order = await this.prisma.$transaction(async (tx) => {
+            const o = await tx.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, orderNumber: true, paymentStatus: true, totalCents: true, currency: true, customerEmail: true, customerName: true, userId: true, subtotalCents: true, items: { select: { quantity: true, priceCents: true, product: { select: { name: true } } } } } });
+            if (o && o.paymentStatus !== 'SUCCEEDED') {
+              await tx.order.update({ where: { id: orderId }, data: { status: 'PAID', paymentStatus: 'SUCCEEDED', stripePaymentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null } });
+              return o;
+            }
+            return null;
+          });
+          if (order) {
             this.logger.log(`Order ${order.orderNumber} marked as PAID (session ${session.id})`);
 
             // Send order confirmation email

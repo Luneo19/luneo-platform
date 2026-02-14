@@ -4,7 +4,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import * as bcrypt from 'bcryptjs';
+import { hashPassword, verifyPassword } from '@/libs/crypto/password-hasher';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
 
 /**
@@ -193,16 +193,24 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    // SECURITY FIX: Use verifyPassword (supports both bcrypt and Argon2id)
+    const { isValid: isPasswordValid } = await verifyPassword(currentPassword, user.password);
     if (!isPasswordValid) {
       throw new BadRequestException('Current password is incorrect');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 13);
+    // SECURITY FIX: Use Argon2id instead of bcrypt for new password hash
+    const hashedPassword = await hashPassword(newPassword);
 
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
+    });
+
+    // SECURITY FIX: Invalidate all refresh tokens after password change
+    // (prevents continued access with stolen tokens after password change)
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
     });
 
     return { success: true, message: 'Password changed successfully' };

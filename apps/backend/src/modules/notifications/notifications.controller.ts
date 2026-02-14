@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Sse,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -99,7 +100,15 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Push notifications sent' })
   async sendPushToUser(
     @Body() body: SendPushToUserDto,
+    @Request() req: ExpressRequest & { user?: { id?: string; brandId?: string; role?: string } },
   ) {
+    // SECURITY FIX: Verify target user belongs to same brand (unless admin)
+    if (req.user?.brandId && req.user.role !== 'PLATFORM_ADMIN') {
+      const targetUser = await this.notificationsService.getUserBrandId(body.userId);
+      if (targetUser && targetUser !== req.user.brandId) {
+        throw new ForbiddenException('Cannot send notifications to users from other brands');
+      }
+    }
     return this.notificationsService.sendPushToUser(body.userId, body.payload);
   }
 

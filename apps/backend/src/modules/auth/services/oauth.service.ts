@@ -157,6 +157,11 @@ export class OAuthService {
       });
 
       if (user) {
+        // SECURITY FIX: Check if user account is active before allowing OAuth login
+        if (!user.isActive) {
+          throw new UnauthorizedException('User account is inactive');
+        }
+
         // Check if OAuth account is already linked
         const existingOAuth = await this.prisma.oAuthAccount.findFirst({
           where: {

@@ -737,15 +737,15 @@ export class AnalyticsService {
     }
   }
 
-  async getRevenue(period: string = 'last_30_days') {
+  async getRevenue(period: string = 'last_30_days', brandId?: string) {
     try {
-      this.logger.log(`Getting revenue analytics for period: ${period}`);
+      this.logger.log(`Getting revenue analytics for period: ${period}${brandId ? `, brand: ${brandId}` : ''}`);
 
       // Calculer les dates pour la période
       const { startDate, endDate } = this.getPeriodDates(period);
       
-      // Utiliser la méthode privée pour calculer le revenu réel
-      const totalRevenue = await this.getRevenueByDateRange(startDate, endDate);
+      // SECURITY FIX: Pass brandId to scope revenue to specific brand
+      const totalRevenue = await this.getRevenueByDateRange(startDate, endDate, brandId);
 
       return {
         success: true,

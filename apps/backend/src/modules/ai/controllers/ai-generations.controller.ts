@@ -117,10 +117,19 @@ export class AIGenerationsController {
   @ApiOperation({ summary: 'Get a generation by id or publicId' })
   async getGeneration(
     @Param('id') id: string,
+    @Req() req: ExpressRequest & { user?: { brandId?: string; id?: string; role?: string } },
   ) {
     try {
-      return await this.generationService.findByPublicId(id);
-    } catch {
+      const generation = await this.generationService.findByPublicId(id);
+      // SECURITY FIX: Verify generation belongs to user's brand (prevent IDOR)
+      if (req.user?.brandId && (generation as any).brandId && (generation as any).brandId !== req.user.brandId) {
+        if (req.user.role !== 'PLATFORM_ADMIN') {
+          throw new NotFoundException('Generation not found');
+        }
+      }
+      return generation;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new NotFoundException('Generation not found');
     }
   }

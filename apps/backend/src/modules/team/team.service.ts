@@ -71,12 +71,26 @@ export class TeamService {
     return member;
   }
 
-  async update(id: string, data: { role?: string; permissions?: string[]; status?: string }, organizationId: string) {
+  async update(id: string, data: { role?: string; permissions?: string[]; status?: string }, organizationId: string, currentUserId?: string) {
     const member = await this.findOne(id, organizationId);
 
     const validRoles = ['admin', 'manager', 'designer', 'member', 'viewer'];
     if (data.role && !validRoles.includes(data.role)) {
       throw new BadRequestException('Invalid role');
+    }
+
+    // SECURITY FIX: Prevent role escalation — user cannot assign a role higher than their own
+    if (data.role && currentUserId) {
+      const roleHierarchy: Record<string, number> = { viewer: 1, member: 2, designer: 3, manager: 4, admin: 5 };
+      const currentUserMember = await this.prisma.teamMember.findFirst({
+        where: { organizationId, userId: currentUserId },
+        select: { role: true },
+      });
+      const currentUserLevel = roleHierarchy[currentUserMember?.role || 'viewer'] || 0;
+      const targetRoleLevel = roleHierarchy[data.role] || 0;
+      if (targetRoleLevel > currentUserLevel) {
+        throw new ForbiddenException('Cannot assign a role higher than your own');
+      }
     }
 
     const validStatuses = ['active', 'inactive', 'pending', 'invited'];
@@ -122,6 +136,15 @@ export class TeamService {
 
   async invite(data: { email: string; role?: string }, organizationId: string, invitedBy: string) {
     const { email, role = 'member' } = data;
+
+    // SECURITY FIX: Prevent self-invitation
+    const inviter = await this.prisma.user.findUnique({
+      where: { id: invitedBy },
+      select: { email: true },
+    });
+    if (inviter?.email?.toLowerCase() === email.toLowerCase()) {
+      throw new BadRequestException('Cannot invite yourself');
+    }
 
     // Enforce team member limit based on plan
     await this.plansService.enforceTeamLimit(invitedBy);

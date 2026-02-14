@@ -908,11 +908,11 @@ export class OrdersService {
           },
         });
 
-        // Mettre à jour la commande
+        // BUGFIX: Use REFUNDED status (not CANCELLED) for refunded orders
         const updatedOrder = await this.prisma.order.update({
           where: { id },
           data: {
-            status: OrderStatus.CANCELLED,
+            status: OrderStatus.REFUNDED,
             paymentStatus: PaymentStatus.REFUNDED,
             metadata: {
               ...((order.metadata as Record<string, unknown>) || {}),
@@ -947,10 +947,11 @@ export class OrdersService {
         };
       } else {
         // Pas de paiement Stripe, marquer comme remboursement manuel
+        // BUGFIX: Use REFUNDED status (not CANCELLED) for refunded orders
         const updatedOrder = await this.prisma.order.update({
           where: { id },
           data: {
-            status: OrderStatus.CANCELLED,
+            status: OrderStatus.REFUNDED,
             paymentStatus: PaymentStatus.REFUNDED,
             metadata: {
               ...((order.metadata as Record<string, unknown>) || {}),

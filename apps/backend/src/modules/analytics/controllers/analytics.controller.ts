@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { RequestWithUser, RequestWithOptionalUser } from '@/common/types/user.types';
+import { RequestWithUser, RequestWithOptionalUser, CurrentUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { AnalyticsService } from '../services/analytics.service';
@@ -57,22 +57,48 @@ export class AnalyticsController {
   @ApiResponse({ status: 401, description: 'Non authentifié - Token JWT manquant ou invalide' })
   @ApiResponse({ status: 403, description: 'Non autorisé - Permissions insuffisantes' })
   @ApiResponse({ status: 500, description: 'Erreur serveur lors du calcul des métriques' })
-  async getDashboard(@Query('period') period: string = 'last_30_days') {
-    return this.analyticsService.getDashboard(period);
+  async getDashboard(
+    @Query('period') period: string = 'last_30_days',
+    @Request() req: { user?: CurrentUser },
+  ) {
+    // SECURITY FIX: Non-admin users must be scoped to their own brand
+    const user = req.user;
+    const brandId = user?.brandId;
+    if (user && user.role !== 'PLATFORM_ADMIN' && !brandId) {
+      throw new ForbiddenException('Brand ID required for non-admin users');
+    }
+    // For non-admins, always use their brandId (ignore query params)
+    const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? undefined : (brandId || undefined);
+    return this.analyticsService.getDashboard(period, scopedBrandId);
   }
 
   @Get('usage')
   @ApiOperation({ summary: 'Get usage analytics' })
   @ApiResponse({ status: 200, description: 'Usage analytics retrieved successfully' })
-  async getUsage(@Query('brandId') brandId: string) {
-    return this.analyticsService.getUsage(brandId);
+  async getUsage(
+    @Query('brandId') brandId: string,
+    @Request() req: { user?: CurrentUser },
+  ) {
+    // SECURITY FIX: Non-admin users can only see their own brand usage
+    const user = req.user;
+    if (user && user.role !== 'PLATFORM_ADMIN' && brandId !== user.brandId) {
+      throw new ForbiddenException('Access denied: cannot view other brand analytics');
+    }
+    const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? brandId : (user?.brandId || brandId || undefined);
+    return this.analyticsService.getUsage(scopedBrandId as string);
   }
 
   @Get('revenue')
   @ApiOperation({ summary: 'Get revenue analytics' })
   @ApiResponse({ status: 200, description: 'Revenue analytics retrieved successfully' })
-  async getRevenue(@Query('period') period: string = 'last_30_days') {
-    return this.analyticsService.getRevenue(period);
+  async getRevenue(
+    @Query('period') period: string = 'last_30_days',
+    @Request() req: { user?: CurrentUser },
+  ) {
+    // SECURITY FIX: Non-admin users must be scoped to their brand
+    const user = req.user;
+    const brandId = user?.role === 'PLATFORM_ADMIN' ? undefined : (user?.brandId || undefined);
+    return this.analyticsService.getRevenue(period, brandId);
   }
 
   @Post('web-vitals')

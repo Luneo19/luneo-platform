@@ -146,6 +146,12 @@ export class TokenService {
         throw new UnauthorizedException('Refresh token expired');
       }
 
+      // SECURITY FIX: Verify user is still active before allowing token refresh
+      if (!tokenRecord.user.isActive) {
+        this.logger.warn(`Token refresh denied for inactive user ${tokenRecord.userId}`);
+        throw new UnauthorizedException('User account is inactive');
+      }
+
       // Generate new tokens
       const tokens = await this.generateTokens(
         tokenRecord.user.id,

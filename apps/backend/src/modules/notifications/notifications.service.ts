@@ -257,6 +257,18 @@ export class NotificationsService {
    * Send push notification to all user subscriptions
    * PERF-01: Lecture depuis Redis
    */
+  /**
+   * SECURITY FIX: Helper to retrieve brandId for a given user.
+   * Used by controller to verify cross-brand notification access.
+   */
+  async getUserBrandId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { brandId: true },
+    });
+    return user?.brandId ?? null;
+  }
+
   async sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
     const subscriptions = await this.getUserSubscriptions(userId);
     const results = await Promise.all(

@@ -12,6 +12,7 @@ import {
   HttpStatus,
   UseGuards,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -182,7 +183,12 @@ export class ProjectsController {
     status: 200,
     description: 'Liste des workspaces récupérée avec succès',
   })
-  async findAllWorkspaces(@Param('id') projectId: string) {
+  async findAllWorkspaces(
+    @Param('id') projectId: string,
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+  ) {
+    // SECURITY FIX: Verify project belongs to user's brand
+    await this.verifyProjectAccess(projectId, req.user);
     return this.workspacesService.findAll(projectId);
   }
 
@@ -200,7 +206,9 @@ export class ProjectsController {
   async findOneWorkspace(
     @Param('id') projectId: string,
     @Param('workspaceId') workspaceId: string,
+    @Request() req: ExpressRequest & { user?: CurrentUser },
   ) {
+    await this.verifyProjectAccess(projectId, req.user);
     return this.workspacesService.findOne(workspaceId, projectId);
   }
 
@@ -219,7 +227,9 @@ export class ProjectsController {
   async createWorkspace(
     @Param('id') projectId: string,
     @Body() dto: CreateWorkspaceDto,
+    @Request() req: ExpressRequest & { user?: CurrentUser },
   ) {
+    await this.verifyProjectAccess(projectId, req.user);
     return this.workspacesService.create(projectId, dto);
   }
 
@@ -237,7 +247,9 @@ export class ProjectsController {
     @Param('id') projectId: string,
     @Param('workspaceId') workspaceId: string,
     @Body() dto: Partial<CreateWorkspaceDto>,
+    @Request() req: ExpressRequest & { user?: CurrentUser },
   ) {
+    await this.verifyProjectAccess(projectId, req.user);
     return this.workspacesService.update(workspaceId, projectId, dto);
   }
 
@@ -255,7 +267,20 @@ export class ProjectsController {
   async removeWorkspace(
     @Param('id') projectId: string,
     @Param('workspaceId') workspaceId: string,
+    @Request() req: ExpressRequest & { user?: CurrentUser },
   ) {
+    await this.verifyProjectAccess(projectId, req.user);
     return this.workspacesService.remove(workspaceId, projectId);
+  }
+
+  /**
+   * SECURITY FIX: Verify that the project belongs to the user's brand.
+   * Prevents IDOR on workspace endpoints.
+   */
+  private async verifyProjectAccess(projectId: string, user?: CurrentUser) {
+    if (!user?.brandId) return; // Skip for unauthenticated/admin
+    if (user.role === 'PLATFORM_ADMIN') return;
+    // Use findOne with the user's brandId — throws NotFoundException if project doesn't belong to brand
+    await this.projectsService.findOne(projectId, user.brandId);
   }
 }

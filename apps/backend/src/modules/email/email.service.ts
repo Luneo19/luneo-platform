@@ -6,6 +6,19 @@ import { MailgunService, MailgunEmailOptions } from './mailgun.service';
 import { SendGridService, SendGridEmailOptions } from './sendgrid.service';
 import { EmailJobData } from './email.processor';
 
+/**
+ * SECURITY FIX: Escape HTML entities to prevent XSS injection in email templates.
+ * User-supplied values (names, etc.) must be escaped before interpolation into HTML.
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function emailLayout(content: string, previewText?: string, frontendUrl?: string): string {
   const baseUrl = frontendUrl ?? 'https://app.luneo.app';
   return `<!DOCTYPE html>
@@ -204,7 +217,7 @@ export class EmailService {
     const frontendUrl = this.configService.get<string>('app.frontendUrl') ?? this.configService.get<string>('FRONTEND_URL') ?? 'https://app.luneo.app';
     const loginUrl = `${frontendUrl}/login`;
     const content = `
-      <h1 style="color: #333;">Bienvenue ${userName} !</h1>
+      <h1 style="color: #333;">Bienvenue ${escapeHtml(userName)} !</h1>
       <p>Nous sommes ravis de vous accueillir chez Luneo.</p>
       <p>Votre compte a été créé avec succès.</p>
       <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
@@ -322,12 +335,12 @@ export class EmailService {
 
     // Fallback to inline HTML
     const itemsHtml = orderData.items
-      .map(item => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${item.name}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${item.price}</td></tr>`)
+      .map(item => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(item.name || '')}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${escapeHtml(String(item.price || ''))}</td></tr>`)
       .join('');
 
     const content = `
       <h1 style="color: #333;">Confirmation de commande</h1>
-      <p>Bonjour ${orderData.customerName},</p>
+      <p>Bonjour ${escapeHtml(orderData.customerName || '')},</p>
       <p>Merci pour votre commande <strong>#${orderData.orderNumber}</strong> !</p>
       <table style="width:100%;border-collapse:collapse;margin:20px 0">
         <thead><tr style="background:#f8f9fa"><th style="padding:8px;text-align:left">Article</th><th style="padding:8px;text-align:center">Qté</th><th style="padding:8px;text-align:right">Prix</th></tr></thead>

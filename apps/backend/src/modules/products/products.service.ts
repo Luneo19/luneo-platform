@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreateVariantDto, UpdateVariantDto, BulkCreateVariantsDto } from './dto/product-variant.dto';
 import { StorageService } from '@/libs/storage/storage.service';
@@ -337,6 +337,22 @@ export class ProductsService {
 
     if (product.brandId !== brandId) {
       throw AppErrorFactory.insufficientPermissions('access brand resource', { brandId });
+    }
+
+    // SECURITY FIX: Prevent deletion of products referenced by active orders
+    const activeOrderItems = await this.prisma.orderItem.count({
+      where: {
+        productId: id,
+        order: {
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+      },
+    });
+
+    if (activeOrderItems > 0) {
+      throw new BadRequestException(
+        `Cannot delete product: ${activeOrderItems} active order(s) reference this product. Consider deactivating it instead.`,
+      );
     }
 
     // Delete product
