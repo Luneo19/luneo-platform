@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
@@ -13,6 +13,40 @@ export class TryOnScreenshotService {
     private prisma: PrismaService,
     private storageService: StorageService,
   ) {}
+
+  /**
+   * SECURITY FIX: Verify that a screenshot belongs to the user's brand.
+   * Traces screenshot → session → configuration → project → brand.
+   */
+  async verifyScreenshotOwnership(screenshotId: string, userBrandId: string | null | undefined): Promise<void> {
+    if (!userBrandId) return; // Skip for admin/unauthenticated
+
+    const screenshot = await this.prisma.tryOnScreenshot.findUnique({
+      where: { id: screenshotId },
+      select: {
+        session: {
+          select: {
+            configuration: {
+              select: {
+                project: {
+                  select: { brandId: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!screenshot?.session?.configuration?.project) {
+      throw new NotFoundException(`Screenshot ${screenshotId} not found`);
+    }
+
+    if (screenshot.session.configuration.project.brandId !== userBrandId) {
+      this.logger.warn(`IDOR attempt: user brand ${userBrandId} tried to access screenshot ${screenshotId}`);
+      throw new ForbiddenException('You do not have access to this screenshot');
+    }
+  }
 
   /**
    * Crée un screenshot pour une session

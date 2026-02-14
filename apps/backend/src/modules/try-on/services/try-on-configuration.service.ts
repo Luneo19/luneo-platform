@@ -43,6 +43,32 @@ export class TryOnConfigurationService {
   }
 
   /**
+   * SECURITY FIX: Verify that a configuration belongs to the user's brand.
+   * Traces configuration → project → brand.
+   */
+  async verifyConfigurationOwnership(configurationId: string, userBrandId: string | null | undefined): Promise<void> {
+    if (!userBrandId) return; // Skip for admin/unauthenticated
+
+    const config = await this.prisma.tryOnConfiguration.findUnique({
+      where: { id: configurationId },
+      select: {
+        project: {
+          select: { brandId: true },
+        },
+      },
+    });
+
+    if (!config?.project) {
+      throw new NotFoundException(`Try-on configuration ${configurationId} not found`);
+    }
+
+    if (config.project.brandId !== userBrandId) {
+      this.logger.warn(`IDOR attempt: user brand ${userBrandId} tried to access configuration ${configurationId}`);
+      throw new ForbiddenException('You do not have access to this try-on configuration');
+    }
+  }
+
+  /**
    * Liste toutes les configurations d'un projet
    */
   @Cacheable({
@@ -286,14 +312,20 @@ export class TryOnConfigurationService {
     // Vérifier que la configuration existe
     await this.findOne(configId, projectId);
 
-    // Vérifier que le produit existe
+    // SECURITY FIX: Verify that the product exists AND belongs to the same brand as the project
     const product = await this.prisma.product.findUnique({
       where: { id: dto.productId },
-      select: { id: true },
+      select: { id: true, brandId: true },
     });
 
     if (!product) {
       throw new NotFoundException(`Product with ID ${dto.productId} not found`);
+    }
+
+    // Cross-brand product injection check: product must belong to same brand as project
+    if (userBrandId && product.brandId !== userBrandId) {
+      this.logger.warn(`Cross-brand product injection attempt: brand ${userBrandId} tried to add product ${dto.productId} owned by brand ${product.brandId}`);
+      throw new ForbiddenException('Product does not belong to your brand');
     }
 
     // Vérifier qu'il n'existe pas déjà un mapping pour ce produit

@@ -357,19 +357,23 @@ export class UsageMeteringService {
    * We find the monthly period that contains "now" by using that anchor day.
    * Example: if planExpiresAt is March 15, billing periods are Jan 15-Feb 15, Feb 15-Mar 15, etc.
    */
+  /**
+   * TIMEZONE FIX: Use UTC consistently to avoid mismatches between
+   * Stripe/Prisma timestamps (always UTC) and server local time.
+   */
   private derivePeriodStart(planExpiresAt: Date): Date {
     const now = new Date();
-    const anchorDay = Math.min(planExpiresAt.getDate(), 28); // Cap at 28 to avoid month-end edge cases
+    const anchorDay = Math.min(planExpiresAt.getUTCDate(), 28); // Cap at 28 to avoid month-end edge cases
 
-    // Try this month's anchor day
-    const thisMonthAnchor = new Date(now.getFullYear(), now.getMonth(), anchorDay, 0, 0, 0, 0);
+    // Try this month's anchor day (in UTC)
+    const thisMonthAnchor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), anchorDay, 0, 0, 0, 0));
 
     if (thisMonthAnchor <= now) {
       // We are past the anchor day this month → period started on this anchor day
       return thisMonthAnchor;
     } else {
       // We haven't reached the anchor day → period started last month on anchor day
-      return new Date(now.getFullYear(), now.getMonth() - 1, anchorDay, 0, 0, 0, 0);
+      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, anchorDay, 0, 0, 0, 0));
     }
   }
 

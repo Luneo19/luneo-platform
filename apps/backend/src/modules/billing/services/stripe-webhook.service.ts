@@ -251,11 +251,26 @@ export class StripeWebhookService {
             }
           }
 
+          // BUGFIX: Also sync subscriptionPlan enum alongside plan string for consistency
+          const planToSubscriptionPlan: Record<string, string> = {
+            free: 'FREE', starter: 'STARTER', professional: 'PROFESSIONAL',
+            business: 'BUSINESS', enterprise: 'ENTERPRISE',
+          };
+          const subscriptionPlanEnum = planToSubscriptionPlan[planId.toLowerCase()] || 'STARTER';
+
           await this.prisma.brand.update({
             where: { id: user.brandId },
-            data: { stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId || undefined, plan: planId, subscriptionStatus: subscriptionStatus as SubscriptionStatus, trialEndsAt, planExpiresAt: currentPeriodEnd },
+            data: {
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId || undefined,
+              plan: planId,
+              subscriptionPlan: subscriptionPlanEnum as any,
+              subscriptionStatus: subscriptionStatus as SubscriptionStatus,
+              trialEndsAt,
+              planExpiresAt: currentPeriodEnd,
+            },
           });
-          this.logger.log(`Brand ${user.brandId} updated with subscription ${subscriptionId}, plan: ${planId}, status: ${subscriptionStatus}`);
+          this.logger.log(`Brand ${user.brandId} updated with subscription ${subscriptionId}, plan: ${planId}, subscriptionPlan: ${subscriptionPlanEnum}, status: ${subscriptionStatus}`);
           this.zapierService?.triggerEvent(user.brandId, 'new_subscription', { brandId: user.brandId, stripeSubscriptionId: subscriptionId, plan: planId, status: subscriptionStatus }).catch((err) => this.logger.warn('Non-critical error triggering Zapier new_subscription', err instanceof Error ? err.message : String(err)));
         }
       }
@@ -406,12 +421,21 @@ export class StripeWebhookService {
     const brand = await this.prisma.brand.findFirst({ where: { stripeCustomerId: customerId }, include: { users: true } });
     if (!brand) return { processed: false };
 
+    // BUGFIX: Set plan to 'free' (not 'starter') on subscription deletion to align with app logic
+    // that treats canceled subscriptions as FREE tier. Also sync subscriptionPlan enum.
     const currentLimits = (brand.limits as Record<string, unknown>) || {};
     await this.prisma.brand.update({
       where: { id: brand.id },
-      data: { plan: 'starter', subscriptionStatus: SubscriptionStatus.CANCELED, stripeSubscriptionId: null, planExpiresAt: null, limits: { ...currentLimits, activeAddons: [], addonsUpdatedAt: new Date().toISOString(), canceledAt: new Date().toISOString() } as Prisma.InputJsonValue },
+      data: {
+        plan: 'free',
+        subscriptionPlan: 'FREE' as any,
+        subscriptionStatus: SubscriptionStatus.CANCELED,
+        stripeSubscriptionId: null,
+        planExpiresAt: null,
+        limits: { ...currentLimits, activeAddons: [], addonsUpdatedAt: new Date().toISOString(), canceledAt: new Date().toISOString() } as Prisma.InputJsonValue,
+      },
     });
-    this.logger.log(`Brand ${brand.id} downgraded to starter plan, add-ons cleared`);
+    this.logger.log(`Brand ${brand.id} downgraded to free plan (subscription deleted), add-ons cleared`);
 
     const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
     if (owner?.email) {
@@ -419,7 +443,7 @@ export class StripeWebhookService {
         await this.emailService.sendEmail({
           to: owner.email,
           subject: 'Votre abonnement Luneo a pris fin',
-          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Abonnement terminé</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre abonnement Luneo a pris fin. Vous êtes maintenant sur le plan Starter (gratuit).</p><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Voir les offres</a></div><p>L'équipe Luneo</p></div>`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Abonnement terminé</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre abonnement Luneo a pris fin. Vous êtes maintenant sur le plan Free (gratuit).</p><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Voir les offres</a></div><p>L'équipe Luneo</p></div>`,
         });
       } catch (emailError: unknown) {
         const msg = emailError instanceof Error ? emailError.message : String(emailError);

@@ -125,7 +125,12 @@ export class WebhookController {
   @ApiParam({ name: 'id', description: 'Webhook log ID' })
   @ApiResponse({ status: 200, description: 'Webhook retry completed' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
-  async retryWebhook(@Param('id') id: string) {
-    return this.webhookService.retryWebhook(id);
+  async retryWebhook(
+    @Param('id') id: string,
+    @Request() req: Request & { user: CurrentUser },
+  ) {
+    // SECURITY FIX: Pass brandId to scope webhook retry to user's brand (prevents IDOR)
+    const brandId = this.requireBrandId(req);
+    return this.webhookService.retryWebhook(id, brandId);
   }
 }

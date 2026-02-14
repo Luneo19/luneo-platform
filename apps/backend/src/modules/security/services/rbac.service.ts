@@ -286,6 +286,9 @@ export class RBACService {
 
   /**
    * Statistiques des rôles
+   * BUGFIX: groupBy returns Prisma UserRole keys (PLATFORM_ADMIN, BRAND_ADMIN, etc.)
+   * but we need to aggregate by RBAC Role keys (super_admin, admin, etc.).
+   * We now map each Prisma UserRole → RBAC Role before counting.
    */
   async getRoleStats(brandId?: string): Promise<Record<Role, number>> {
     try {
@@ -300,13 +303,16 @@ export class RBACService {
         _count: true,
       });
 
+      // Initialize all RBAC roles to 0
       const stats: Record<string, number> = {};
       for (const role of Object.values(Role)) {
         stats[role] = 0;
       }
 
+      // Map each Prisma UserRole group to the corresponding RBAC Role and aggregate
       for (const group of users) {
-        stats[group.role] = group._count;
+        const rbacRole = mapUserRoleToRbac(group.role);
+        stats[rbacRole] = (stats[rbacRole] || 0) + group._count;
       }
 
       return stats as Record<Role, number>;

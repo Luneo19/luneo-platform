@@ -189,6 +189,7 @@ export class TryOnController {
     description: 'Session démarrée avec succès',
   })
   async startSession(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Body()
     body: {
       configurationId: string;
@@ -196,6 +197,10 @@ export class TryOnController {
       deviceInfo?: Record<string, unknown>;
     },
   ) {
+    // SECURITY FIX: Verify configuration belongs to user's brand before starting session
+    if (req.user?.brandId) {
+      await this.configurationService.verifyConfigurationOwnership(body.configurationId, req.user.brandId);
+    }
     return this.sessionService.startSession(
       body.configurationId,
       body.visitorId,
@@ -208,7 +213,12 @@ export class TryOnController {
     summary: 'Récupère une session par son ID',
   })
   @ApiParam({ name: 'sessionId', description: 'ID de la session' })
-  async findOneSession(@Param('sessionId') sessionId: string) {
+  async findOneSession(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+  ) {
+    // SECURITY FIX: Verify session belongs to user's brand
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
     return this.sessionService.findOne(sessionId);
   }
 
@@ -217,6 +227,7 @@ export class TryOnController {
     summary: 'Met à jour une session',
   })
   async updateSession(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('sessionId') sessionId: string,
     @Body()
     updates: {
@@ -226,6 +237,8 @@ export class TryOnController {
       converted?: boolean;
     },
   ) {
+    // SECURITY FIX: Verify session belongs to user's brand
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
     return this.sessionService.updateSession(sessionId, updates);
   }
 
@@ -234,7 +247,12 @@ export class TryOnController {
   @ApiOperation({
     summary: 'Termine une session',
   })
-  async endSession(@Param('sessionId') sessionId: string) {
+  async endSession(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+  ) {
+    // SECURITY FIX: Verify session belongs to user's brand
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
     return this.sessionService.endSession(sessionId);
   }
 
@@ -250,6 +268,7 @@ export class TryOnController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   async createScreenshot(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('sessionId') sessionId: string,
     @Body('productId') productId: string,
     @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string } | undefined,
@@ -257,6 +276,8 @@ export class TryOnController {
     if (!file) {
       throw new BadRequestException('File is required');
     }
+    // SECURITY FIX: Verify session belongs to user's brand
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
     return this.screenshotService.create(
       sessionId,
       productId,
@@ -271,7 +292,12 @@ export class TryOnController {
   @ApiOperation({
     summary: 'Récupère un screenshot par son ID',
   })
-  async findOneScreenshot(@Param('id') id: string) {
+  async findOneScreenshot(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('id') id: string,
+  ) {
+    // SECURITY FIX: Verify screenshot's session belongs to user's brand
+    await this.screenshotService.verifyScreenshotOwnership(id, req.user?.brandId);
     return this.screenshotService.findOne(id);
   }
 
@@ -279,7 +305,12 @@ export class TryOnController {
   @ApiOperation({
     summary: 'Liste les screenshots d\'une session',
   })
-  async findAllScreenshots(@Param('sessionId') sessionId: string) {
+  async findAllScreenshots(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+  ) {
+    // SECURITY FIX: Verify session belongs to user's brand
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
     return this.screenshotService.findAll(sessionId);
   }
 
@@ -288,7 +319,12 @@ export class TryOnController {
   @ApiOperation({
     summary: 'Génère une URL partageable pour un screenshot',
   })
-  async generateSharedUrl(@Param('id') id: string) {
+  async generateSharedUrl(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('id') id: string,
+  ) {
+    // SECURITY FIX: Verify screenshot's session belongs to user's brand
+    await this.screenshotService.verifyScreenshotOwnership(id, req.user?.brandId);
     return this.screenshotService.generateSharedUrl(id);
   }
 }

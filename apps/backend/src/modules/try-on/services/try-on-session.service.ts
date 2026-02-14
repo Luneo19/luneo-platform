@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { randomBytes } from 'crypto';
@@ -8,6 +8,36 @@ export class TryOnSessionService {
   private readonly logger = new Logger(TryOnSessionService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * SECURITY FIX: Verify that a session belongs to the user's brand.
+   * Traces session → configuration → project → brand.
+   * Skips check if userBrandId is null/undefined (unauthenticated/admin).
+   */
+  async verifySessionOwnership(sessionId: string, userBrandId: string | null | undefined): Promise<void> {
+    if (!userBrandId) return; // Skip for admin or unauthenticated (public) access
+
+    const session = await this.prisma.tryOnSession.findUnique({
+      where: { sessionId },
+      select: {
+        configuration: {
+          select: {
+            project: {
+              select: { brandId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!session?.configuration?.project) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    if (session.configuration.project.brandId !== userBrandId) {
+      throw new ForbiddenException('You do not have access to this try-on session');
+    }
+  }
 
   /**
    * Génère un ID de session unique

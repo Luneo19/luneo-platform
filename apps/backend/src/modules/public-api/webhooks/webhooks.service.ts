@@ -374,8 +374,9 @@ export class WebhookService {
 
   /**
    * Retry failed webhook
+   * SECURITY FIX: Added brandId parameter to scope retry to the user's brand (prevents IDOR).
    */
-  async retryWebhook(webhookId: string): Promise<{ success: boolean; error?: string }> {
+  async retryWebhook(webhookId: string, brandId?: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Utiliser WebhookLog au lieu de Webhook
       const webhookLog = await this.prisma.webhookLog.findUnique({
@@ -384,6 +385,11 @@ export class WebhookService {
       });
 
       if (!webhookLog || !webhookLog.webhook) {
+        throw new BadRequestException('Webhook not found');
+      }
+
+      // SECURITY FIX: Verify webhook belongs to user's brand
+      if (brandId && webhookLog.webhook.brandId !== brandId) {
         throw new BadRequestException('Webhook not found');
       }
 
