@@ -65,6 +65,7 @@ export function Logo({
         href={href}
         className="inline-flex items-center hover:opacity-80 transition-opacity"
         onClick={onClick}
+        aria-label="Luneo - Accueil"
       >
         {logoContent}
       </Link>

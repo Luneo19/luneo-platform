@@ -7,6 +7,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmailService } from '@/modules/email/email.service';
+import { BillingService } from '@/modules/billing/billing.service';
 import { UserRole } from '@prisma/client';
 
 describe('AdminService', () => {
@@ -50,6 +51,7 @@ describe('AdminService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EmailService, useValue: mockEmailService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: BillingService, useValue: { getSubscription: jest.fn(), cancelSubscription: jest.fn() } },
       ],
     }).compile();
 

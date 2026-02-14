@@ -75,11 +75,14 @@ const Header = memo(function Header({
             <button
               onClick={onMenuToggle}
               className="lg:hidden p-2 hover:bg-white/[0.04] rounded-lg transition-colors"
+              aria-label={isMobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-sidebar-menu"
             >
               {isMobileMenuOpen ? (
-                <X className="w-5 h-5 text-white/70" />
+                <X className="w-5 h-5 text-white/70" aria-hidden />
               ) : (
-                <Menu className="w-5 h-5 text-white/70" />
+                <Menu className="w-5 h-5 text-white/70" aria-hidden />
               )}
             </button>
 
@@ -109,7 +112,7 @@ const Header = memo(function Header({
             <NotificationCenter />
 
             {/* Density Toggle */}
-            <div className="hidden md:flex items-center bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06]">
+            <div className="hidden md:flex items-center bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06]" role="group" aria-label={t('dashboard.header.densityLabel') || 'Densité de l\'interface'}>
               {(['compact', 'comfort', 'spacious'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -119,6 +122,8 @@ const Header = memo(function Header({
                       ? 'bg-purple-500/20 text-purple-300 shadow-sm'
                       : 'text-white/40 hover:text-white/60'
                   }`}
+                  aria-pressed={density === mode}
+                  aria-label={mode === 'compact' ? t('dashboard.header.densityCompact') : mode === 'comfort' ? t('dashboard.header.densityComfort') : t('dashboard.header.densitySpacious')}
                 >
                   {mode === 'compact' ? t('dashboard.header.densityCompact') : mode === 'comfort' ? t('dashboard.header.densityComfort') : t('dashboard.header.densitySpacious')}
                 </button>
@@ -138,6 +143,9 @@ const Header = memo(function Header({
               <button
                 onClick={handleUserMenuToggle}
                 className="flex items-center space-x-2 p-2 hover:bg-white/[0.04] rounded-lg transition-colors"
+                aria-label={t('dashboard.header.userMenu') || 'Menu utilisateur'}
+                aria-expanded={showUserMenu}
+                aria-haspopup="menu"
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-sm">
                   <span className="text-white font-medium text-sm">EA</span>
@@ -160,6 +168,8 @@ const Header = memo(function Header({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     className="absolute right-0 mt-2 w-56 bg-[#1a1a2e] rounded-xl shadow-2xl border border-white/[0.08] backdrop-blur-xl py-2 z-50"
+                    role="menu"
+                    aria-label={t('dashboard.header.userMenu') || 'Menu utilisateur'}
                   >
                     <div className="px-4 py-3 border-b border-white/[0.06]">
                       <div className="flex items-center space-x-3">

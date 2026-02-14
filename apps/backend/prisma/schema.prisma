@@ -440,6 +440,9 @@ model User {
   // Knowledge Base
   knowledgeBaseArticles KnowledgeBaseArticle[] @relation("KBAuthor")
 
+  // NPS
+  npsResponses NPSResponse[] @relation("UserNPSResponses")
+
   @@index([email])
   @@index([brandId])
   @@index([role])
@@ -5736,6 +5739,44 @@ model CustomerHealthScore {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("customer_health_scores")
+}
+
+// ========================================
+// MARKETING SPEND (CAC Tracking)
+// ========================================
+
+model MarketingSpend {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  channel   String   // organic, google_ads, facebook, linkedin, referral, etc.
+  amount    Int      // Amount in cents
+  currency  String   @default("eur")
+  notes     String?
+  createdBy String?  // Admin user ID
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([channel])
+  @@map("marketing_spends")
+}
+
+// ========================================
+// NPS (Net Promoter Score)
+// ========================================
+
+model NPSResponse {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserNPSResponses", fields: [userId], references: [id], onDelete: Cascade)
+  score     Int      // 0-10
+  comment   String?
+  source    String   @default("in_app") // in_app, email, manual
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("nps_responses")
 }
 
 // ========================================

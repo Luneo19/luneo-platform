@@ -5,6 +5,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bull';
+import * as crypto from 'crypto';
 import { WebhookHandlerService } from './webhook-handler.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ShopifyConnector } from '../connectors/shopify/shopify.connector';
@@ -264,10 +265,13 @@ describe('WebhookHandlerService', () => {
       mockPrismaService.ecommerceIntegration.findFirst.mockResolvedValue(mockIntegration);
       mockPrismaService.webhookLog.create.mockResolvedValue({});
 
+      const payload = { id: 123, status: 'processing' };
+      const validSig = crypto.createHmac('sha256', 'secret').update(JSON.stringify(payload)).digest('base64');
+
       await service.handleWooCommerceWebhook(
         'order.created',
-        { id: 123, status: 'processing' },
-        'valid-signature',
+        payload,
+        validSig,
       );
 
       expect(mockPrismaService.ecommerceIntegration.findFirst).toHaveBeenCalledWith({
@@ -301,10 +305,13 @@ describe('WebhookHandlerService', () => {
       mockPrismaService.ecommerceIntegration.findFirst.mockResolvedValue(mockIntegration);
       mockPrismaService.webhookLog.create.mockResolvedValue({});
 
+      const payload = { id: 123, status: 'completed' };
+      const sig = crypto.createHmac('sha256', 'secret').update(JSON.stringify(payload)).digest('base64');
+
       await service.handleWooCommerceWebhook(
         'order.updated',
-        { id: 123, status: 'completed' },
-        'signature',
+        payload,
+        sig,
       );
 
       expect(mockWebhookQueue.add).toHaveBeenCalledWith(
@@ -319,10 +326,13 @@ describe('WebhookHandlerService', () => {
       mockPrismaService.ecommerceIntegration.findFirst.mockResolvedValue(mockIntegration);
       mockPrismaService.webhookLog.create.mockResolvedValue({});
 
+      const payload = { id: 456, name: 'New Product' };
+      const sig = crypto.createHmac('sha256', 'secret').update(JSON.stringify(payload)).digest('base64');
+
       await service.handleWooCommerceWebhook(
         'product.created',
-        { id: 456, name: 'New Product' },
-        'signature',
+        payload,
+        sig,
       );
 
       expect(mockWebhookQueue.add).toHaveBeenCalledWith(

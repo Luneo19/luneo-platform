@@ -55,7 +55,7 @@ describe('LogSanitizerService', () => {
         apiKey: 'sk_live_1234567890',
       };
 
-      const result = service.sanitizeObject(input);
+      const result = service.sanitizeObject(input) as Record<string, any>;
 
       expect(result.user.password).toBe('********');
       expect(result.apiKey).toContain('sk_l');
@@ -108,7 +108,7 @@ describe('LogSanitizerService', () => {
         },
       };
 
-      const result = service.sanitizeObject(input);
+      const result = service.sanitizeObject(input) as Record<string, any>;
 
       expect(result.level1.level2.password).toBe('********');
       expect(result.level1.level2.apiKey).toContain('sk_l');
@@ -121,7 +121,7 @@ describe('LogSanitizerService', () => {
         age: 30,
       };
 
-      const result = service.sanitizeObject(input);
+      const result = service.sanitizeObject(input) as Record<string, any>;
 
       expect(result.name).toBe('John Doe');
       // Email is correctly masked for security

@@ -4,6 +4,7 @@
  */
 
 import { Redis } from 'ioredis';
+import { logger } from './logger';
 
 /**
  * Configuration du cache
@@ -94,7 +95,7 @@ export class CacheManager {
     // Initialize Redis if configured
     if (this.config.redis) {
       this.redis = new Redis(this.config.redis);
-      console.log('✅ Redis connected for caching');
+      logger.info('Redis connected for caching');
     }
     
     // Cleanup expired items périodiquement
@@ -171,7 +172,7 @@ export class CacheManager {
       await this.redis.flushdb();
     }
     
-    console.log('Cache cleared');
+    logger.info('Cache cleared');
   }
 
   /**
@@ -295,7 +296,7 @@ export class CacheManager {
     try {
       await this.redis.setex(key, ttl, JSON.stringify(value));
     } catch (error) {
-      console.error('Redis set error:', error);
+      logger.error('Redis set error:', error);
     }
   }
 
@@ -337,7 +338,7 @@ export class CacheManager {
       await this.redis.quit();
     }
     
-    console.log('CacheManager disposed');
+    logger.info('CacheManager disposed');
   }
 }
 

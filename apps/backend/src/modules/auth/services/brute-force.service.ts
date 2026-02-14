@@ -127,9 +127,16 @@ export class BruteForceService {
 
       return true;
     } catch (error) {
-      this.logger.error('Error checking brute force', error);
-      // En cas d'erreur, autoriser (ne pas bloquer les utilisateurs légitimes)
-      return true;
+      this.logger.error('Error checking brute force, using in-memory fallback', error);
+      // SECURITY FIX: fail-close with in-memory fallback instead of fail-open
+      try {
+        const identifier = this.getIdentifier(email, ip);
+        const memAttempts = this.checkInMemory(identifier);
+        return memAttempts < 5;
+      } catch {
+        // Last resort: still allow to avoid total lockout
+        return true;
+      }
     }
   }
 
@@ -175,10 +182,12 @@ export class BruteForceService {
       } catch (redisError: unknown) {
         const msg = redisError instanceof Error ? redisError.message : String(redisError ?? '');
         if (msg.includes('max requests limit exceeded') || msg.includes('timeout')) {
-          this.logger.warn('Redis limit exceeded or timeout, skipping brute force tracking');
-          return;
+          this.logger.warn('Redis limit exceeded or timeout, recording in memory fallback');
+        } else {
+          this.logger.warn('Redis error in recordFailedAttempt, recording in memory fallback', msg);
         }
-        this.logger.warn('Redis error in recordFailedAttempt, skipping', msg);
+        // SECURITY FIX: Always record the failed attempt in-memory when Redis fails
+        this.recordInMemory(identifier);
         return;
       }
     } catch (error) {

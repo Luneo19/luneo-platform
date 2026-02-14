@@ -229,6 +229,141 @@ async function main() {
   });
 
       console.log('✅ Sample order created:', sampleOrder.orderNumber);
+
+      // --- Additional seed data for all verticals ---
+
+      // Project + Workspace
+      const sampleProject = await prisma.project.upsert({
+        where: { id: 'sample-project-1' },
+        update: {},
+        create: {
+          id: 'sample-project-1',
+          name: 'Mon Premier Projet',
+          slug: 'mon-premier-projet',
+          description: 'Projet de test pour la plateforme',
+          type: 'DESIGN',
+          status: 'ACTIVE',
+          brandId: sampleBrand.id,
+        },
+      });
+      console.log('✅ Sample project created:', sampleProject.name);
+
+      const sampleWorkspace = await prisma.workspace.upsert({
+        where: { id: 'sample-workspace-1' },
+        update: {},
+        create: {
+          id: 'sample-workspace-1',
+          name: 'Development',
+          slug: 'development',
+          description: 'Environnement de developpement',
+          environment: 'DEVELOPMENT',
+          isDefault: true,
+          brandId: sampleBrand.id,
+        },
+      });
+      console.log('✅ Sample workspace created:', sampleWorkspace.name);
+
+      // Team Member
+      await prisma.teamMember.upsert({
+        where: { id: 'sample-team-member-1' },
+        update: {},
+        create: {
+          id: 'sample-team-member-1',
+          organizationId: sampleBrand.id,
+          userId: brandAdmin.id,
+          email: 'brand@luneo.com',
+          role: 'admin',
+          permissions: ['brand:read', 'brand:update', 'design:create', 'design:read'],
+          status: 'active',
+          joinedAt: new Date(),
+        },
+      });
+      console.log('✅ Sample team member created');
+
+      // Team Invite
+      await prisma.teamInvite.upsert({
+        where: { id: 'sample-team-invite-1' },
+        update: {},
+        create: {
+          id: 'sample-team-invite-1',
+          organizationId: sampleBrand.id,
+          email: 'designer@example.com',
+          role: 'designer',
+          token: 'sample-invite-token-' + Date.now(),
+          invitedBy: brandAdmin.id,
+          status: 'pending',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+      console.log('✅ Sample team invite created');
+
+      // Try-On Configuration
+      await prisma.tryOnConfiguration.upsert({
+        where: { id: 'sample-tryon-config-1' },
+        update: {},
+        create: {
+          id: 'sample-tryon-config-1',
+          projectId: sampleProject.id,
+          name: 'Essayage Lunettes',
+          productType: 'GLASSES',
+          settings: { cameraFacing: 'user', arEnabled: true },
+          isActive: true,
+        },
+      });
+      console.log('✅ Sample try-on configuration created');
+
+      // Notification
+      await prisma.notification.upsert({
+        where: { id: 'sample-notification-1' },
+        update: {},
+        create: {
+          id: 'sample-notification-1',
+          userId: brandAdmin.id,
+          type: 'info',
+          title: 'Bienvenue sur Luneo',
+          message: 'Votre compte a ete configure avec succes. Explorez les fonctionnalites !',
+          read: false,
+          actionUrl: '/dashboard/overview',
+          actionLabel: 'Voir le dashboard',
+        },
+      });
+      console.log('✅ Sample notification created');
+
+      // API Key
+      await prisma.apiKey.upsert({
+        where: { id: 'sample-apikey-1' },
+        update: {},
+        create: {
+          id: 'sample-apikey-1',
+          name: 'Test API Key',
+          key: 'lun_test_' + Date.now(),
+          scopes: ['read', 'write'],
+          permissions: ['products:read', 'orders:read', 'orders:create'],
+          isActive: true,
+          brandId: sampleBrand.id,
+        },
+      });
+      console.log('✅ Sample API key created');
+
+      // Discount
+      await prisma.discount.upsert({
+        where: { id: 'sample-discount-1' },
+        update: {},
+        create: {
+          id: 'sample-discount-1',
+          code: 'WELCOME20',
+          type: 'PERCENTAGE',
+          value: 20,
+          validFrom: new Date(),
+          validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          usageLimit: 100,
+          usageCount: 0,
+          isActive: true,
+          brandId: sampleBrand.id,
+          description: 'Remise de bienvenue 20% pour les nouveaux clients',
+        },
+      });
+      console.log('✅ Sample discount code WELCOME20 created');
       console.log('Sample data seeded (SEED_SAMPLE_DATA=true)');
     } catch (sampleDataError: any) {
       // Non-critical - sample data creation failed, but admin was created

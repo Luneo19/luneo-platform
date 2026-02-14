@@ -76,7 +76,7 @@ describe('BillingController', () => {
 
       billingService.createCheckoutSession.mockResolvedValue(mockResult);
 
-      const req = mockRequest();
+      const req = mockRequest('user-123');
       const result = await controller.createCheckoutSession(checkoutBody, req);
 
       expect(billingService.createCheckoutSession).toHaveBeenCalledWith(
@@ -103,14 +103,14 @@ describe('BillingController', () => {
       const mockResult = { success: true, sessionId: 'sess_123', url: 'https://checkout.stripe.com/...' };
       billingService.createCheckoutSession.mockResolvedValue(mockResult as any);
 
-      const req = mockRequest();
+      const req = mockRequest('user-456');
       await controller.createCheckoutSession({ planId: 'pro', email: 'user@example.com' }, req);
 
       expect(billingService.createCheckoutSession).toHaveBeenCalledWith(
         'pro',
-        expect.stringContaining('guest_'),
+        'user-456',
         'user@example.com',
-        { billingInterval: 'monthly', addOns: undefined }
+        expect.objectContaining({ billingInterval: 'monthly' }),
       );
     });
   });

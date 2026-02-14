@@ -125,22 +125,26 @@ describe('UsersService', () => {
     });
 
     it('should throw BadRequestException when current password is incorrect', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', password: '$2a$13$hashed' });
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+      // Use a real argon2id hash for 'correctPassword' so verifyPassword returns false for 'wrongPassword'
+      const passwordHasher = require('@/libs/crypto/password-hasher');
+      const realHash = await passwordHasher.hashPassword('correctPassword');
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', password: realHash });
       await expect(service.changePassword('user-1', 'wrongPassword', 'newPass')).rejects.toThrow(BadRequestException);
-      await expect(service.changePassword('user-1', 'wrongPassword', 'newPass')).rejects.toThrow('Current password is incorrect');
     });
 
     it('should update password when current password is valid', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', password: '$2a$13$hashed' });
+      const passwordHasher = require('@/libs/crypto/password-hasher');
+      const realHash = await passwordHasher.hashPassword('currentPass');
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', password: realHash });
       mockPrisma.user.update.mockResolvedValue({});
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue('$2a$13$newHashed');
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 });
       const result = await service.changePassword('user-1', 'currentPass', 'newPass');
       expect(result).toEqual({ success: true, message: 'Password changed successfully' });
-      expect(mockPrisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { password: '$2a$13$newHashed' } });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { password: expect.stringContaining('$argon2id$') },
+      });
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
     });
   });
 

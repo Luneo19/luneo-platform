@@ -37,6 +37,7 @@ describe('OAuthService', () => {
     avatar: 'https://example.com/avatar.jpg',
     role: UserRole.CONSUMER,
     emailVerified: true,
+    isActive: true,
     brand: null,
   };
 

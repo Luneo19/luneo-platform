@@ -13,6 +13,7 @@ import {
 } from '@/components/marketing/home';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { generateMetadata as generateSEOMetadata, getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/metadata';
+import { SEO_BASE_URL } from '@/lib/seo/constants';
 import type { Metadata } from 'next';
 
 /**
@@ -46,8 +47,11 @@ const softwareApplicationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'Luneo',
-  applicationCategory: 'BusinessApplication',
+  applicationCategory: 'DesignApplication',
   operatingSystem: 'Web',
+  description:
+    'Plateforme SaaS B2B pour la personnalisation de produits avec intelligence artificielle. Créez des designs uniques, visualisez en 3D/AR, et intégrez facilement dans votre e-commerce.',
+  url: SEO_BASE_URL,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
 };
 

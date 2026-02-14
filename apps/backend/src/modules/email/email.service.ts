@@ -5,19 +5,7 @@ import { Queue } from 'bullmq';
 import { MailgunService, MailgunEmailOptions } from './mailgun.service';
 import { SendGridService, SendGridEmailOptions } from './sendgrid.service';
 import { EmailJobData } from './email.processor';
-
-/**
- * SECURITY FIX: Escape HTML entities to prevent XSS injection in email templates.
- * User-supplied values (names, etc.) must be escaped before interpolation into HTML.
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+import { TemplateRenderer, escapeHtml } from './template-renderer';
 
 function emailLayout(content: string, previewText?: string, frontendUrl?: string): string {
   const baseUrl = frontendUrl ?? 'https://app.luneo.app';
@@ -66,6 +54,7 @@ export interface QueueEmailOptions {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
+  private readonly templateRenderer = new TemplateRenderer();
   private sendgridAvailable = false;
   private mailgunAvailable = false;
   private defaultProvider: 'sendgrid' | 'mailgun' = 'sendgrid';
@@ -214,9 +203,18 @@ export class EmailService {
    * Envoyer un email de bienvenue
    */
   async sendWelcomeEmail(userEmail: string, userName: string, provider?: 'sendgrid' | 'mailgun' | 'auto'): Promise<unknown> {
-    const frontendUrl = this.configService.get<string>('app.frontendUrl') ?? this.configService.get<string>('FRONTEND_URL') ?? 'https://app.luneo.app';
+    const frontendUrl = this.getFrontendUrl();
     const loginUrl = `${frontendUrl}/login`;
-    const content = `
+    const baseUrl = frontendUrl.replace(/\/$/, '');
+
+    let html = this.templateRenderer.render('welcome', {
+      userName,
+      loginUrl,
+      baseUrl,
+    });
+
+    if (!html) {
+      const content = `
       <h1 style="color: #333;">Bienvenue ${escapeHtml(userName)} !</h1>
       <p>Nous sommes ravis de vous accueillir chez Luneo.</p>
       <p>Votre compte a été créé avec succès.</p>
@@ -232,11 +230,13 @@ export class EmailService {
       <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
     `;
+      html = emailLayout(content, undefined, frontendUrl);
+    }
 
     return this.sendEmail({
       to: userEmail,
       subject: 'Bienvenue chez Luneo ! 🎉',
-      html: emailLayout(content, undefined, frontendUrl),
+      html,
       text: `Bienvenue sur Luneo, ${userName}!\n\nVotre compte a été créé avec succès.\n\nConnectez-vous: ${loginUrl}\n\nL'équipe Luneo`,
       tags: ['welcome', 'onboarding'],
       provider,
@@ -248,7 +248,17 @@ export class EmailService {
    */
   async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string, provider?: 'sendgrid' | 'mailgun' | 'auto'): Promise<unknown> {
     const fullResetUrl = `${resetUrl}?token=${resetToken}`;
-    const content = `
+    const expiresIn = '1 heure';
+
+    const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    let html = this.templateRenderer.render('password-reset', {
+      resetUrl: fullResetUrl,
+      expiresIn,
+      baseUrl,
+    });
+
+    if (!html) {
+      const content = `
       <h1 style="color: #333;">Réinitialisation de mot de passe</h1>
       <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
       <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
@@ -259,11 +269,13 @@ export class EmailService {
       <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
     `;
+      html = emailLayout(content);
+    }
 
     return this.sendEmail({
       to: userEmail,
       subject: 'Réinitialisation de votre mot de passe',
-      html: emailLayout(content),
+      html,
       text: `Réinitialisation de votre mot de passe\n\nCliquez sur ce lien pour réinitialiser votre mot de passe:\n${fullResetUrl}\n\nCe lien expire dans 1 heure.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.`,
       tags: ['password-reset', 'security'],
       provider,
@@ -275,7 +287,17 @@ export class EmailService {
    */
   async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string, provider?: 'sendgrid' | 'mailgun' | 'auto'): Promise<unknown> {
     const fullConfirmUrl = `${confirmationUrl}?token=${confirmationToken}`;
-    const content = `
+    const expiresIn = '24 heures';
+
+    const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    let html = this.templateRenderer.render('email-verification', {
+      verificationUrl: fullConfirmUrl,
+      expiresIn,
+      baseUrl,
+    });
+
+    if (!html) {
+      const content = `
       <h1 style="color: #333;">Confirmation d'email</h1>
       <p>Merci de vous être inscrit chez Luneo !</p>
       <p>Pour activer votre compte, veuillez confirmer votre adresse email :</p>
@@ -286,11 +308,13 @@ export class EmailService {
       <p style="word-break: break-all; color: #666;">${fullConfirmUrl}</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
     `;
+      html = emailLayout(content);
+    }
 
     return this.sendEmail({
       to: userEmail,
       subject: 'Confirmez votre adresse email',
-      html: emailLayout(content),
+      html,
       text: `Confirmez votre adresse email\n\nCliquez sur ce lien pour vérifier votre email:\n${fullConfirmUrl}\n\nL'équipe Luneo`,
       tags: ['email-confirmation', 'onboarding'],
       provider,
@@ -333,12 +357,21 @@ export class EmailService {
       }
     }
 
-    // Fallback to inline HTML
+    // Fallback to template or inline HTML
+    const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
     const itemsHtml = orderData.items
-      .map(item => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(item.name || '')}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${escapeHtml(String(item.price || ''))}</td></tr>`)
+      .map(item => `<tr><td style="padding:12px;border-bottom:1px solid #e4e4e7">${escapeHtml(item.name || '')}</td><td style="padding:12px;text-align:center;border-bottom:1px solid #e4e4e7">${item.quantity}</td><td style="padding:12px;text-align:right;border-bottom:1px solid #e4e4e7">${escapeHtml(String(item.price || ''))}</td></tr>`)
       .join('');
 
-    const content = `
+    let html = this.templateRenderer.render('order-confirmation', {
+      orderNumber: orderData.orderNumber,
+      items: itemsHtml,
+      totalAmount: orderData.total,
+      baseUrl,
+    });
+
+    if (!html) {
+      html = emailLayout(`
       <h1 style="color: #333;">Confirmation de commande</h1>
       <p>Bonjour ${escapeHtml(orderData.customerName || '')},</p>
       <p>Merci pour votre commande <strong>#${orderData.orderNumber}</strong> !</p>
@@ -349,12 +382,13 @@ export class EmailService {
       </table>
       <p>Vous pouvez suivre votre commande depuis votre tableau de bord.</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
-    `;
+    `);
+    }
 
     return this.sendEmail({
       to: userEmail,
       subject: `Confirmation de commande #${orderData.orderNumber}`,
-      html: content,
+      html,
       text: `Confirmation de commande #${orderData.orderNumber}\n\nBonjour ${orderData.customerName},\nMerci pour votre commande!\nTotal: ${orderData.total}\n\nL'équipe Luneo`,
       tags: ['order-confirmation'],
     });

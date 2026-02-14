@@ -101,10 +101,18 @@ export interface OrionRetention {
 // --- Agents list (from /api/admin/orion/agents) — may 404, same shape as overview agents
 export type OrionAgentsList = OrionAgent[];
 
+// --- Metrics KPIs (from /api/admin/orion/metrics/kpis)
+export interface OrionKPIs {
+  cac: { value: number | null; totalSpend: number; newCustomers: number };
+  nps: { value: number | null; totalResponses: number; promoters: number; detractors: number };
+  trialConversion: { rate: number | null; totalTrial: number; converted: number; avgDays: number | null };
+}
+
 const OVERVIEW_KEY = '/api/admin/orion/overview';
 const REVENUE_KEY = '/api/admin/orion/revenue';
 const RETENTION_KEY = '/api/admin/orion/retention';
 const AGENTS_KEY = '/api/admin/orion/agents';
+const KPIS_KEY = '/api/admin/orion/metrics/kpis';
 
 const swrConfig = {
   refreshInterval: 30000,
@@ -117,6 +125,7 @@ export interface OrionDashboardData {
   revenue: OrionRevenue | null;
   retention: OrionRetention | null;
   agents: OrionAgentsList | null;
+  kpis: OrionKPIs | null;
 }
 
 export interface UseOrionDashboardReturn {
@@ -125,6 +134,7 @@ export interface UseOrionDashboardReturn {
   revenue: OrionRevenue | null;
   retention: OrionRetention | null;
   agents: OrionAgentsList | null;
+  kpis: OrionKPIs | null;
   isLoadingOverview: boolean;
   isLoadingRevenue: boolean;
   isLoadingRetention: boolean;
@@ -166,23 +176,32 @@ function useOrionDashboard(): UseOrionDashboardReturn {
     swrConfig
   );
 
+  const { data: kpisRaw, mutate: mutateKpis } = useSWR<{ success: boolean; data: OrionKPIs } | null>(
+    KPIS_KEY,
+    fetcherOptional as (url: string) => Promise<{ success: boolean; data: OrionKPIs } | null>,
+    swrConfig
+  );
+
   const refresh = () => {
     void mutateOverview();
     void mutateRevenue();
     void mutateRetention();
     void mutateAgents();
+    void mutateKpis();
   };
 
   const overview = overviewData ?? null;
   const revenue = revenueData ?? null;
   const retention = retentionData ?? null;
   const agents = agentsData ?? null;
+  const kpis = kpisRaw?.data ?? null;
 
   const data: OrionDashboardData = {
     overview,
     revenue,
     retention,
     agents,
+    kpis,
   };
 
   const isLoading =
@@ -194,6 +213,7 @@ function useOrionDashboard(): UseOrionDashboardReturn {
     revenue,
     retention,
     agents,
+    kpis,
     isLoadingOverview,
     isLoadingRevenue,
     isLoadingRetention,

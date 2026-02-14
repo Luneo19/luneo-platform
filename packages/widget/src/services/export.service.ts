@@ -1,4 +1,5 @@
 import type { DesignData, Layer, TextLayerData, ImageLayerData, ShapeLayerData } from '../types/designer.types';
+import { logger } from '../utils/logger';
 
 export class ExportService {
   /**
@@ -180,7 +181,7 @@ export class ExportService {
       };
       
       img.onerror = () => {
-        console.warn(`Failed to load image: ${data.url}`);
+        logger.warn(`Failed to load image: ${data.url}`);
         resolve(); // Continue rendering other layers
       };
       

@@ -29,6 +29,9 @@ describe('TeamService', () => {
       findMany: jest.fn(),
       update: jest.fn(),
     },
+    user: {
+      findUnique: jest.fn(),
+    },
   };
 
   const orgId = 'org-1';
@@ -214,6 +217,8 @@ describe('TeamService', () => {
 
   describe('invite', () => {
     it('should create invite when no pending invite and not already member', async () => {
+      // Mock user lookup for self-invitation check
+      mockPrisma.user.findUnique.mockResolvedValue({ email: 'inviter@test.com' });
       mockPrisma.teamInvite.findFirst.mockResolvedValue(null);
       mockPrisma.teamMember.findUnique.mockResolvedValue(null);
       mockPrisma.teamInvite.create.mockImplementation((args: { data: { token: string } }) =>
@@ -240,6 +245,7 @@ describe('TeamService', () => {
     });
 
     it('should throw ConflictException when invitation already pending', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ email: 'inviter@test.com' });
       mockPrisma.teamInvite.findFirst.mockResolvedValue({
         id: 'inv-1',
         email: 'new@test.com',
@@ -256,6 +262,7 @@ describe('TeamService', () => {
     });
 
     it('should throw ConflictException when user already team member', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ email: 'inviter@test.com' });
       mockPrisma.teamInvite.findFirst.mockResolvedValue(null);
       mockPrisma.teamMember.findUnique.mockResolvedValue({
         organizationId: orgId,

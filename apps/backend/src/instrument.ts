@@ -14,9 +14,9 @@ if (sentryDsn) {
     // Enable logs to be sent to Sentry
     enableLogs: true,
     
-    // Setting this option to true will send default PII data to Sentry.
-    // For example, automatic IP address collection on events
-    sendDefaultPii: true,
+    // SECURITY: Disabled PII collection to comply with GDPR
+    // IP addresses and user data should not be sent to external services by default
+    sendDefaultPii: false,
     
     // Environment configuration
     environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',

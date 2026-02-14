@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
+import { logger } from '../../../utils/logger';
 
 interface ImageUploaderProps {
   onUpload: (src: string) => void;
@@ -32,7 +33,7 @@ export function ImageUploader({ onUpload }: ImageUploaderProps) {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      logger.error('Error uploading image:', error);
       setIsUploading(false);
     }
   };

@@ -87,56 +87,56 @@ function EditorToolbar({
     <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-100 p-2 dark:bg-gray-800">
       {/* Add Elements */}
       <div className="flex items-center gap-1 border-r border-gray-300 pr-2 dark:border-gray-600">
-        <Button variant="ghost" size="sm" onClick={onAddText} title="Add Text">
-          <Type className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onAddText} aria-label="Ajouter du texte">
+          <Type className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onAddImage} title="Add Image">
-          <Image className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onAddImage} aria-label="Ajouter une image">
+          <Image className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onAddShape('rect')} title="Add Rectangle">
-          <Square className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={() => onAddShape('rect')} aria-label="Ajouter un rectangle">
+          <Square className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onAddShape('circle')} title="Add Circle">
-          <Circle className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={() => onAddShape('circle')} aria-label="Ajouter un cercle">
+          <Circle className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onAddShape('star')} title="Add Star">
-          <Star className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={() => onAddShape('star')} aria-label="Ajouter une étoile">
+          <Star className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onAddShape('polygon')} title="Add Polygon">
-          <Hexagon className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={() => onAddShape('polygon')} aria-label="Ajouter un polygone">
+          <Hexagon className="h-4 w-4" aria-hidden />
         </Button>
       </div>
 
       {/* History */}
       <div className="flex items-center gap-1 border-r border-gray-300 pr-2 dark:border-gray-600">
-        <Button variant="ghost" size="sm" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-          <Undo2 className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onUndo} disabled={!canUndo} aria-label="Annuler (Ctrl+Z)">
+          <Undo2 className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y)">
-          <Redo2 className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onRedo} disabled={!canRedo} aria-label="Rétablir (Ctrl+Y)">
+          <Redo2 className="h-4 w-4" aria-hidden />
         </Button>
       </div>
 
       {/* Selection Actions */}
       <div className="flex items-center gap-1 border-r border-gray-300 pr-2 dark:border-gray-600">
-        <Button variant="ghost" size="sm" onClick={onCopy} disabled={!hasSelection} title="Copy (Ctrl+C)">
-          <Copy className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onCopy} disabled={!hasSelection} aria-label="Copier (Ctrl+C)">
+          <Copy className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onPaste} title="Paste (Ctrl+V)">
-          <ClipboardPaste className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onPaste} aria-label="Coller (Ctrl+V)">
+          <ClipboardPaste className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onDelete} disabled={!hasSelection} title="Delete">
-          <Trash2 className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onDelete} disabled={!hasSelection} aria-label="Supprimer">
+          <Trash2 className="h-4 w-4" aria-hidden />
         </Button>
       </div>
 
       {/* Layer Order */}
       <div className="flex items-center gap-1 border-r border-gray-300 pr-2 dark:border-gray-600">
-        <Button variant="ghost" size="sm" onClick={onBringToFront} disabled={!hasSelection} title="Bring to Front">
-          <ArrowUp className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onBringToFront} disabled={!hasSelection} aria-label="Mettre au premier plan">
+          <ArrowUp className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onSendToBack} disabled={!hasSelection} title="Send to Back">
-          <ArrowDown className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={onSendToBack} disabled={!hasSelection} aria-label="Envoyer à l'arrière-plan">
+          <ArrowDown className="h-4 w-4" aria-hidden />
         </Button>
       </div>
 

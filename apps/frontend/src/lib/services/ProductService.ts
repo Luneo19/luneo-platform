@@ -113,7 +113,7 @@ export class ProductService {
       }
 
       // Fetch
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC vanilla client typing requires runtime cast
+      // tRPC vanilla client typing requires runtime cast
       const client = trpcVanilla as unknown as Record<string, Record<string, { query: (input: unknown) => Promise<unknown> }>>;
       const product = await client.product.getById.query({ id: productId });
 
@@ -134,7 +134,7 @@ export class ProductService {
    */
   async list(request?: ProductListRequest) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC vanilla client typing requires runtime cast
+      // tRPC vanilla client typing requires runtime cast
       const client = trpcVanilla as unknown as Record<string, Record<string, { query: (input: unknown) => Promise<unknown> }>>;
       return await client.product.list.query(request);
     } catch (error: unknown) {
@@ -172,7 +172,7 @@ export class ProductService {
    */
   async getAnalytics(request: ProductAnalyticsRequest) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC vanilla client typing requires runtime cast
+      // tRPC vanilla client typing requires runtime cast
       const client = trpcVanilla as unknown as Record<string, Record<string, { query: (input: unknown) => Promise<unknown> }>>;
       return await client.product.getAnalytics.query(request);
     } catch (error: unknown) {

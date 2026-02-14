@@ -33,6 +33,9 @@ describe('ProductsService', () => {
     order: {
       count: jest.fn(),
     },
+    orderItem: {
+      count: jest.fn(),
+    },
   };
 
   const mockStorageService = {
@@ -327,7 +330,7 @@ describe('ProductsService', () => {
         },
       };
 
-      mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
+      mockPrisma.product.findFirst.mockResolvedValue(existingProduct);
       mockPrisma.product.update.mockResolvedValue(updatedProduct);
 
       const result = await service.update('brand-1', 'prod-1', updateDto, brandUser);
@@ -344,12 +347,7 @@ describe('ProductsService', () => {
     });
 
     it('should throw AuthorizationError if user does not have access', async () => {
-      const existingProduct = {
-        id: 'prod-1',
-        brandId: 'other-brand',
-      };
-
-      mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
+      mockPrisma.product.findFirst.mockResolvedValue(null);
 
       await expect(
         service.update('other-brand', 'prod-1', updateDto, brandUser),
@@ -370,7 +368,7 @@ describe('ProductsService', () => {
         brand: {},
       };
 
-      mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
+      mockPrisma.product.findFirst.mockResolvedValue(existingProduct);
       mockPrisma.product.update.mockResolvedValue(updatedProduct);
 
       await service.update('brand-1', 'prod-1', updateDto, platformAdmin);
@@ -388,6 +386,7 @@ describe('ProductsService', () => {
       };
 
       mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
+      mockPrisma.orderItem.count.mockResolvedValue(0);
       mockPrisma.product.delete.mockResolvedValue(existingProduct);
 
       const result = await service.remove('prod-1', 'brand-1', brandUser);
@@ -426,6 +425,7 @@ describe('ProductsService', () => {
       };
 
       mockPrisma.product.findUnique.mockResolvedValue(existingProduct);
+      mockPrisma.orderItem.count.mockResolvedValue(0);
       mockPrisma.product.delete.mockResolvedValue(existingProduct);
 
       await service.remove('prod-1', 'brand-1', platformAdmin);

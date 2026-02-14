@@ -45,7 +45,7 @@ describe('CronJobsService', () => {
       mockPrisma.order.aggregate.mockResolvedValue({ _sum: { totalCents: 10000 } });
       mockPrisma.user.count.mockResolvedValue(3);
       mockPrisma.user.findMany.mockResolvedValue([{ email: 'admin@test.com' }]);
-      const result = await service.generateAnalyticsDigest();
+      const result = await service.generateAnalyticsDigest() as any;
       expect(result.success).toBe(true);
       expect(result.digest.metrics.designs.count).toBe(10);
       expect(result.digest.metrics.orders.revenue).toBe(100);

@@ -93,7 +93,7 @@ describe('ReferralService', () => {
       expect(result.totalEarnings).toBeDefined();
       expect(result.pendingEarnings).toBeDefined();
       expect(result.referralCode).toBeDefined();
-      expect(result.referralLink).toContain('signup?ref=');
+      expect(result.referralLink).toContain('/ref/');
       expect(result.recentReferrals).toBeDefined();
     });
   });
@@ -243,7 +243,7 @@ describe('ReferralService', () => {
     });
 
     it('should create commission when active referral exists', async () => {
-      mockPrisma.referral.findUnique.mockResolvedValue({
+      mockPrisma.referral.findFirst.mockResolvedValue({
         id: 'ref-1',
         referrerId: 'referrer-1',
       });

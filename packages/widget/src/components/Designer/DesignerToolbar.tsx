@@ -1,6 +1,7 @@
 'use client';
 
 import { useDesignerStore } from '../../store/designerStore';
+import { logger } from '../../utils/logger';
 import { 
   MousePointer2, 
   Type, 
@@ -50,7 +51,7 @@ export function DesignerToolbar({ onGenerateClick, onARClick, showGenerate = tru
     try {
       await saveDesign();
     } catch (error) {
-      console.error('Failed to save design:', error);
+      logger.error('Failed to save design:', error);
     }
   };
   
@@ -58,7 +59,7 @@ export function DesignerToolbar({ onGenerateClick, onARClick, showGenerate = tru
     try {
       await exportAsPNG();
     } catch (error) {
-      console.error('Failed to export:', error);
+      logger.error('Failed to export:', error);
     }
   };
   

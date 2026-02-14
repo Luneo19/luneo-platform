@@ -80,7 +80,7 @@ describe('DxfGeneratorService', () => {
               y: 20,
               width: 100,
               height: 50,
-              type: 'text',
+              type: 'text' as const,
               content: 'Hello',
               fontSize: 24,
             },

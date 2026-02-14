@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { SEO_BASE_URL } from '@/lib/seo/constants';
+import { getOrganizationSchema } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
   title: 'À propos | Luneo - Notre Mission & Équipe',
@@ -26,5 +27,16 @@ export default function AboutLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  const organizationSchema = getOrganizationSchema();
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: typeof organizationSchema === 'string' ? organizationSchema : JSON.stringify(organizationSchema),
+        }}
+      />
+      {children}
+    </>
+  );
 }

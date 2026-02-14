@@ -1,4 +1,5 @@
 import type { DesignData } from '../types/designer.types';
+import { logger } from '../utils/logger';
 
 const STORAGE_PREFIX = 'luneo_widget_';
 
@@ -20,7 +21,7 @@ export class StorageService {
       const key = this.getKey('design');
       localStorage.setItem(key, JSON.stringify(designData));
     } catch (error) {
-      console.error('Failed to save design to localStorage:', error);
+      logger.error('Failed to save design to localStorage:', error);
     }
   }
   
@@ -32,7 +33,7 @@ export class StorageService {
       const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      console.error('Failed to load design from localStorage:', error);
+      logger.error('Failed to load design from localStorage:', error);
       return null;
     }
   }
@@ -44,7 +45,7 @@ export class StorageService {
       const key = this.getKey('design');
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('Failed to clear design from localStorage:', error);
+      logger.error('Failed to clear design from localStorage:', error);
     }
   }
   
@@ -54,7 +55,7 @@ export class StorageService {
     try {
       sessionStorage.setItem(this.getKey(key), JSON.stringify(value));
     } catch (error) {
-      console.error('Failed to save to sessionStorage:', error);
+      logger.error('Failed to save to sessionStorage:', error);
     }
   }
   
@@ -65,7 +66,7 @@ export class StorageService {
       const data = sessionStorage.getItem(this.getKey(key));
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      console.error('Failed to load from sessionStorage:', error);
+      logger.error('Failed to load from sessionStorage:', error);
       return null;
     }
   }

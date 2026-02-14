@@ -20,6 +20,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { WooCommerceWebhookService } from '../services/woocommerce-webhook.service';
 import { WooCommerceWebhookPayloadDto } from '../dto/woocommerce-webhook.dto';
 import { Public } from '@/common/decorators/public.decorator';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 import * as crypto from 'crypto';
 import { Request as ExpressRequest } from 'express';
 
@@ -36,6 +37,7 @@ export class WooCommerceWebhookController {
   constructor(
     private readonly webhookService: WooCommerceWebhookService,
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -91,8 +93,23 @@ export class WooCommerceWebhookController {
 
       const integrationId = integrationIdMatch[1];
 
-      // Verify webhook signature using raw body for accurate HMAC
-      const webhookSecret = this.configService.get<string>('WOOCOMMERCE_WEBHOOK_SECRET');
+      // Load integration from DB to get per-integration secret
+      const integration = await this.prisma.ecommerceIntegration.findFirst({
+        where: {
+          id: integrationId,
+          platform: 'woocommerce',
+          status: 'active',
+        },
+        select: { id: true, config: true },
+      });
+
+      // Determine the webhook secret: prefer per-integration, fallback to global
+      const perIntegrationSecret = integration
+        ? ((integration.config as Record<string, unknown>)?.consumerSecret as string) ?? null
+        : null;
+      const globalSecret = this.configService.get<string>('WOOCOMMERCE_WEBHOOK_SECRET');
+      const webhookSecret = perIntegrationSecret || globalSecret;
+
       if (webhookSecret) {
         // Prefer raw body for HMAC verification (avoids JSON.stringify ordering issues)
         const bodyString = req.rawBody
@@ -104,9 +121,15 @@ export class WooCommerceWebhookController {
           this.logger.warn('Invalid WooCommerce webhook signature', {
             integrationId,
             topic,
+            usedPerIntegrationSecret: !!perIntegrationSecret,
           });
           throw new UnauthorizedException('Invalid webhook signature');
         }
+      } else {
+        this.logger.warn('No webhook secret found (neither per-integration nor global)', {
+          integrationId,
+          topic,
+        });
       }
 
       this.logger.log(`Processing WooCommerce webhook: ${topic}`, {

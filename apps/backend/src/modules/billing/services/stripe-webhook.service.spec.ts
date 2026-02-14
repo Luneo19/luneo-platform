@@ -64,6 +64,7 @@ describe('StripeWebhookService', () => {
 
   const mockEmailService = {
     sendEmail: jest.fn(),
+    sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockStripeClientService = {
@@ -85,6 +86,14 @@ describe('StripeWebhookService', () => {
     mockPrisma.processedWebhookEvent.findUnique.mockResolvedValue(null);
     mockPrisma.processedWebhookEvent.upsert.mockResolvedValue({});
     mockPrisma.processedWebhookEvent.update.mockResolvedValue({});
+    // Restore $transaction mock (reset by resetMocks: true in jest config)
+    mockPrisma.$transaction.mockImplementation((args: unknown): Promise<unknown> => {
+      if (Array.isArray(args)) return Promise.all(args);
+      return (args as (prisma: Record<string, any>) => Promise<unknown>)(mockPrisma);
+    });
+    // Restore email service mock
+    mockEmailService.sendEmail.mockResolvedValue(undefined);
+    mockEmailService.sendOrderConfirmationEmail.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -191,16 +200,30 @@ describe('StripeWebhookService', () => {
       };
       const event = makeEvent('checkout.session.completed', session);
 
-      mockPrisma.order.findUnique.mockResolvedValue({
+      const mockOrder = {
         id: 'order-1',
         status: 'PENDING',
         orderNumber: 'ORD-001',
         paymentStatus: 'PENDING',
-      });
+        totalCents: 2999,
+        currency: 'EUR',
+        customerEmail: 'test@test.com',
+        customerName: 'Test User',
+        userId: 'user-1',
+        subtotalCents: 2499,
+        items: [],
+      };
+
+      mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
       mockPrisma.order.update.mockResolvedValue({});
+      mockPrisma.order.findFirst.mockResolvedValue(null);
+      // Ensure $transaction calls the callback with mockPrisma
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(mockPrisma));
+      // Prevent sendOrderConfirmationSafe from throwing (fire-and-forget email)
+      jest.spyOn(service as any, 'sendOrderConfirmationSafe').mockImplementation(() => {});
+      jest.spyOn(service as any, 'createReferralCommissionSafe').mockImplementation(() => {});
 
       const result = await service.handleStripeWebhook(event);
-
       expect(result.processed).toBe(true);
       expect(result.result).toEqual(
         expect.objectContaining({ type: 'order_payment', orderId: 'order-1' }),

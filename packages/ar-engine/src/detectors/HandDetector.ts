@@ -3,6 +3,8 @@
  * Implémentation complète avec détection en temps réel
  */
 
+import { logger } from '../utils/logger';
+
 export interface HandLandmark {
   x: number;
   y: number;
@@ -121,7 +123,7 @@ export class HandDetector {
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize HandDetector:', error);
+      logger.error('Failed to initialize HandDetector:', error);
       throw new Error('MediaPipe Hands initialization failed. Make sure @mediapipe/hands is installed.');
     }
   }

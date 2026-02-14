@@ -166,6 +166,7 @@ function FooterContent() {
                     placeholder={t('components.footer.emailPlaceholder')}
                     className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                     disabled={subscribing}
+                    aria-label={t('components.footer.emailPlaceholder')}
                   />
                 </div>
                 <Button
@@ -322,7 +323,7 @@ function FooterContent() {
             {/* Logo & Description */}
             <div>
               <div className="mb-4">
-                <Link href="/" className="inline-block">
+                <Link href="/" className="inline-block" aria-label="Luneo - Accueil">
                   <Image
                     src="/logo.png"
                     alt="Luneo Logo"

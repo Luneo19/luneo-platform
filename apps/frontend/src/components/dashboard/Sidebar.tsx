@@ -559,6 +559,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
               type="text"
               placeholder={t('dashboard.sidebar.searchPlaceholder')}
               className="dash-input w-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-transparent"
+              aria-label={t('dashboard.sidebar.searchPlaceholder')}
             />
           </div>
         </div>
@@ -719,8 +720,8 @@ function Sidebar({ onClose }: SidebarProps = {}) {
               </div>
               <p className="text-xs text-white/40">Enterprise Plan</p>
             </div>
-            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors">
-              <Bell className="w-4 h-4 text-white/40" />
+            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
+              <Bell className="w-4 h-4 text-white/40" aria-hidden />
             </button>
           </div>
         ) : (
@@ -728,8 +729,8 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">EA</span>
             </div>
-            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors">
-              <Bell className="w-4 h-4 text-white/40" />
+            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
+              <Bell className="w-4 h-4 text-white/40" aria-hidden />
             </button>
           </div>
         )}

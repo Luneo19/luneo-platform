@@ -129,8 +129,8 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Gestion d'erreur pour éviter les 500
-  let locale: SupportedLocale = 'en';
+  // Gestion d'erreur pour éviter les 500 (default fr for French platform)
+  let locale: SupportedLocale = 'fr';
   let messages: TranslationMessages = {} as TranslationMessages;
   let currency = 'USD';
   let timezone = 'America/New_York';
@@ -151,8 +151,8 @@ export default async function RootLayout({
     availableLocales = i18nConfig.availableLocales;
   } catch (error) {
     serverLogger.error('[Layout] Failed to load i18n config', error);
-    // Utiliser les valeurs par défaut
-    locale = 'en';
+    // Utiliser les valeurs par défaut (fr pour plateforme Luneo)
+    locale = 'fr';
     messages = {} as TranslationMessages;
     currency = 'USD';
     timezone = 'America/New_York';
@@ -221,10 +221,7 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.className} ${inter.variable} ${jakarta.variable} overflow-x-hidden`}>
-        <a 
-          href="#main-content" 
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-full focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-        >
+        <a href="#main-content" className="skip-link">
           Aller au contenu
         </a>
         <Providers

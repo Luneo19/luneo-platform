@@ -18,7 +18,6 @@ const DefaultFallback = () => (
 );
 
 // Helper pour créer des imports dynamiques optimisés
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createLazyComponent = <T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>,
   options: LazyComponentProps = {}

@@ -1104,11 +1104,36 @@ export class AdminService {
             byChannel['referral'] = referredUsers;
           }
 
-          // CAC requires marketing spend data which is not tracked yet
+          // CAC: Calculate from MarketingSpend table if data exists
+          let cac: number | null = null;
+          let paybackPeriod: number | null = null;
+          let ltvCacRatio: number | null = null;
+          try {
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const spendResult = await this.prisma.marketingSpend.aggregate({
+              _sum: { amount: true },
+              where: { date: { gte: thirtyDaysAgo } },
+            });
+            const totalSpendEur = (spendResult._sum.amount || 0) / 100;
+            const newUsersLast30d = await this.prisma.user.count({
+              where: { createdAt: { gte: thirtyDaysAgo }, deletedAt: null },
+            });
+            if (newUsersLast30d > 0 && totalSpendEur > 0) {
+              cac = Math.round((totalSpendEur / newUsersLast30d) * 100) / 100;
+              if (ltvValue > 0 && cac > 0) {
+                ltvCacRatio = Math.round((ltvValue / cac) * 100) / 100;
+                // Payback period in months = CAC / (MRR per customer)
+                const mrrPerCustomer = activeCustomers > 0 ? mrr / activeCustomers : 0;
+                paybackPeriod = mrrPerCustomer > 0 ? Math.round((cac / mrrPerCustomer) * 10) / 10 : null;
+              }
+            }
+          } catch {
+            // MarketingSpend table may not exist yet (migration pending)
+          }
           return {
-            cac: null as number | null, // N/A until marketing spend is tracked
-            paybackPeriod: null as number | null,
-            ltvCacRatio: null as number | null,
+            cac,
+            paybackPeriod,
+            ltvCacRatio,
             byChannel,
           };
         } catch {

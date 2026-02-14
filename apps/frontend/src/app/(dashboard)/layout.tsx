@@ -33,7 +33,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50">
+          <div id="mobile-sidebar-menu" className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50" role="navigation" aria-label="Menu principal">
             <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
           </div>
         </div>

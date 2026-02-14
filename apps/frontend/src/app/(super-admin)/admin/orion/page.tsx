@@ -59,6 +59,7 @@ export default function OrionCommandCenter() {
     overview,
     revenue,
     retention,
+    kpis,
     isLoading,
     isOverviewError,
     overviewError,
@@ -211,7 +212,12 @@ export default function OrionCommandCenter() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">NPS Score</p>
-                  <p className="text-xl font-bold text-white">—</p>
+                  <p className="text-xl font-bold text-white">
+                    {kpis?.nps.value != null ? kpis.nps.value : '—'}
+                  </p>
+                  {kpis?.nps.totalResponses != null && kpis.nps.totalResponses > 0 && (
+                    <p className="text-xs text-zinc-400">{kpis.nps.totalResponses} réponses</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -224,7 +230,12 @@ export default function OrionCommandCenter() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">Trial Conversion</p>
-                  <p className="text-xl font-bold text-white">—</p>
+                  <p className="text-xl font-bold text-white">
+                    {kpis?.trialConversion.rate != null ? formatPercent(kpis.trialConversion.rate) : '—'}
+                  </p>
+                  {kpis?.trialConversion.converted != null && kpis.trialConversion.converted > 0 && (
+                    <p className="text-xs text-zinc-400">{kpis.trialConversion.converted} convertis</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -252,7 +263,11 @@ export default function OrionCommandCenter() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">LTV</p>
-                  <p className="text-xl font-bold text-white">—</p>
+                  <p className="text-xl font-bold text-white">
+                    {revenue?.mrr != null && activeCustomers > 0
+                      ? formatCurrency((revenue.mrr / activeCustomers) * 12)
+                      : '—'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -265,7 +280,12 @@ export default function OrionCommandCenter() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">CAC</p>
-                  <p className="text-xl font-bold text-white">—</p>
+                  <p className="text-xl font-bold text-white">
+                    {kpis?.cac.value != null ? formatCurrency(kpis.cac.value) : '—'}
+                  </p>
+                  {kpis?.cac.value == null && (
+                    <p className="text-xs text-zinc-500">Ajouter les dépenses marketing</p>
+                  )}
                 </div>
               </div>
             </CardContent>

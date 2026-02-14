@@ -163,6 +163,9 @@ export function Navigation() {
                         ? 'text-white bg-white/[0.08]'
                         : 'text-white/90 hover:text-white hover:bg-white/[0.04]'
                     }`}
+                    aria-expanded={activeMenu === key}
+                    aria-haspopup="menu"
+                    aria-label={`${MENU_DATA[key].label}${activeMenu === key ? ', ouvert' : ''}`}
                   >
                     {MENU_DATA[key].label}
                     <ChevronDown
@@ -213,7 +216,9 @@ export function Navigation() {
             <button
               className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/[0.06] transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
+              aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav-panel"
             >
               <div className="w-5 h-5 relative">
                 <span
@@ -339,9 +344,12 @@ export function Navigation() {
 
         {/* Panel */}
         <div
+          id="mobile-nav-panel"
           className={`absolute top-0 right-0 w-full max-w-sm h-full bg-dark-bg border-l border-white/[0.06] shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
             mobileOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
+          role="navigation"
+          aria-label="Menu de navigation"
         >
           {/* Mobile header */}
           <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
@@ -349,8 +357,9 @@ export function Navigation() {
             <button
               onClick={() => setMobileOpen(false)}
               className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+              aria-label="Fermer le menu"
             >
-              <X className="w-5 h-5 text-white" />
+              <X className="w-5 h-5 text-white" aria-hidden />
             </button>
           </div>
 
@@ -361,6 +370,8 @@ export function Navigation() {
                 <button
                   onClick={() => setMobileAccordion(mobileAccordion === key ? null : key)}
                   className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
+                  aria-expanded={mobileAccordion === key}
+                  aria-controls={`mobile-accordion-${key}`}
                 >
                   <span className="text-sm font-semibold text-white">
                     {MENU_DATA[key].label}
@@ -373,6 +384,7 @@ export function Navigation() {
                 </button>
 
                 <div
+                  id={`mobile-accordion-${key}`}
                   className={`overflow-hidden transition-all duration-200 ${
                     mobileAccordion === key ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
                   }`}

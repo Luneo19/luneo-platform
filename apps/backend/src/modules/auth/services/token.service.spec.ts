@@ -28,6 +28,7 @@ describe('TokenService', () => {
     firstName: 'Test',
     lastName: 'User',
     role,
+    isActive: true,
     brandId: 'brand-123',
     brand: {
       id: 'brand-123',

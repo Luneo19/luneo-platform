@@ -147,8 +147,9 @@ function NotificationCenterContent() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowPreferences(true)}
+                  aria-label="Préférences des notifications"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4" aria-hidden />
                 </Button>
               </div>
             </div>
@@ -210,8 +211,9 @@ function NotificationCenterContent() {
                                 e.stopPropagation();
                                 handleMarkAsRead(notification.id);
                               }}
+                              aria-label="Marquer comme lu"
                             >
-                              <Check className="h-4 w-4" />
+                              <Check className="h-4 w-4" aria-hidden />
                             </Button>
                           )}
                           <Button
@@ -221,8 +223,9 @@ function NotificationCenterContent() {
                               e.stopPropagation();
                               handleDelete(notification.id);
                             }}
+                            aria-label="Supprimer la notification"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4" aria-hidden />
                           </Button>
                         </div>
                       </div>
