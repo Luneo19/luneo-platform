@@ -137,7 +137,7 @@ export class VectorStoreService {
           metadata,
           1 - (embedding <=> ${embeddingStr}::vector) as similarity
         FROM "KnowledgeBaseArticle"
-        WHERE is_published = true
+        WHERE "isPublished" = true
           AND "brandId" = ${cleanBrandId}
           AND 1 - (embedding <=> ${embeddingStr}::vector) > ${safeThreshold}
         ORDER BY similarity DESC

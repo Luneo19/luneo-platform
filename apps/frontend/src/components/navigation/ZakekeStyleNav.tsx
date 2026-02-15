@@ -194,7 +194,7 @@ function ZakekeStyleNavContent() {
         title: "Wix",
         logo: "🌐",
         href: "/integrations/wix",
-        badge: "Bientôt"
+        badge: "Nouveau"
       },
       {
         title: "API",

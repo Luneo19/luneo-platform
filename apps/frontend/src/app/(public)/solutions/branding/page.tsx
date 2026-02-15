@@ -301,7 +301,7 @@ export default function BrandingPage() {
                 </p>
               )}
               <p className="text-xs text-slate-400 mt-4">
-                ⚡️ Export direct vers Figma + générateur de brand book PDF (bientôt).
+                ⚡️ Export direct vers Figma + générateur de brand book PDF disponible.
               </p>
             </Card>
           </AnimatedBorder>

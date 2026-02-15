@@ -112,9 +112,18 @@ function SharePageContent() {
     if (!share?.allow_ar_view) return;
 
     try {
+      // Track AR launch action
       await api.post(`/api/v1/share/${token}/action`, { action_type: 'ar_launch' });
 
-      alert('Fonctionnalité AR bientôt disponible !');
+      // Try to open the design image in AR via the native AR Quick Look (iOS) or Scene Viewer (Android)
+      const imageUrl = share.design?.generated_image_url || share.design?.preview_url;
+      if (imageUrl) {
+        // Open AR experience by navigating to the image with AR intent
+        const arLink = document.createElement('a');
+        arLink.setAttribute('rel', 'ar');
+        arLink.href = imageUrl;
+        arLink.click();
+      }
     } catch (err) {
       logger.error('AR launch error', {
         error: err,

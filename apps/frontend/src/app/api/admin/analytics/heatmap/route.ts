@@ -20,17 +20,17 @@ function forwardHeaders(request: NextRequest): HeadersInit {
   return headers;
 }
 
-function generateHeatmapData(days: number) {
+function emptyHeatmapData(days: number) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const daysOfWeek = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
   const data = daysOfWeek.map((day) => ({
     day,
     hours: hours.map((hour) => ({
       hour,
-      value: Math.floor(Math.random() * 100),
+      value: 0,
     })),
   }));
-  return { data, period: `${days}d`, generated: true };
+  return { data, period: `${days}d`, empty: true };
 }
 
 export async function GET(request: NextRequest) {
@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
       // Backend endpoint not available, fall through to generated data
     }
 
-    // Fallback: return generated heatmap data
-    return NextResponse.json(generateHeatmapData(days));
+    // Fallback: return empty heatmap data (no mock data in production)
+    return NextResponse.json(emptyHeatmapData(days));
   } catch (error) {
     serverLogger.apiError('/api/admin/analytics/heatmap', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch heatmap data' }, { status: 500 });

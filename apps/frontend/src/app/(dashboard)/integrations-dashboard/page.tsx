@@ -238,7 +238,7 @@ function IntegrationsDashboardPageContent() {
                     </Link>
                   ) : (
                     <Button size="sm" className="flex-1 bg-white/[0.06] hover:bg-white/[0.04] text-white/60" disabled>
-                      Bientôt disponible
+                      Configuration requise
                     </Button>
                   )}
                 </>

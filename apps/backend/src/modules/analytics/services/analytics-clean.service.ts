@@ -134,13 +134,13 @@ export class AnalyticsCleanService {
       Array<{ eventType: string; count: bigint }>
     >`
       SELECT 
-        event_type as "eventType",
+        "eventType",
         COUNT(*)::bigint as count
       FROM "AnalyticsEvent"
-      WHERE brand_id = ${brandId}
+      WHERE "brandId" = ${brandId}
         AND timestamp >= ${startDate}::timestamp
         AND timestamp <= ${endDate}::timestamp
-      GROUP BY event_type
+      GROUP BY "eventType"
       ORDER BY count DESC
       LIMIT ${limit}
     `;
@@ -272,12 +272,12 @@ export class AnalyticsCleanService {
     endDate: Date,
   ): Promise<number> {
     const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(DISTINCT user_id)::bigint as count
+      SELECT COUNT(DISTINCT "userId")::bigint as count
       FROM "AnalyticsEvent"
-      WHERE brand_id = ${brandId}
+      WHERE "brandId" = ${brandId}
         AND timestamp >= ${startDate}::timestamp
         AND timestamp <= ${endDate}::timestamp
-        AND user_id IS NOT NULL
+        AND "userId" IS NOT NULL
     `;
     return Number(result[0]?.count || 0);
   }
@@ -288,12 +288,12 @@ export class AnalyticsCleanService {
     endDate: Date,
   ): Promise<number> {
     const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(DISTINCT session_id)::bigint as count
+      SELECT COUNT(DISTINCT "sessionId")::bigint as count
       FROM "AnalyticsEvent"
-      WHERE brand_id = ${brandId}
+      WHERE "brandId" = ${brandId}
         AND timestamp >= ${startDate}::timestamp
         AND timestamp <= ${endDate}::timestamp
-        AND session_id IS NOT NULL
+        AND "sessionId" IS NOT NULL
     `;
     return Number(result[0]?.count || 0);
   }

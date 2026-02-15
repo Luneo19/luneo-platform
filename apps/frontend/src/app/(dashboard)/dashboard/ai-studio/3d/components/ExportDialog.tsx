@@ -78,7 +78,7 @@ export function ExportDialog({ open, onOpenChange, onExportConfirm, modelId, mod
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-semibold text-gray-900">{format.format}</span>
                       {!format.compatible && (
-                        <span className="rounded bg-yellow-500 px-2 py-0.5 text-xs">Bientôt</span>
+                        <span className="rounded bg-orange-100 text-orange-600 px-2 py-0.5 text-xs">Conversion requise</span>
                       )}
                       {format.compatible && selectedFormat === format.format && (
                         <span className="rounded bg-cyan-500 px-2 py-0.5 text-xs text-white">Sélectionné</span>

@@ -524,23 +524,23 @@ export class AnalyticsService {
         const result = brandId
           ? await this.prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
               SELECT 
-                DATE(created_at) as date,
+                DATE("createdAt") as date,
                 COUNT(*)::int as count
               FROM "Design"
-              WHERE brand_id = ${brandId}
-                AND created_at >= ${startDate}::timestamp
-                AND created_at <= ${endDate}::timestamp
-              GROUP BY DATE(created_at)
+              WHERE "brandId" = ${brandId}
+                AND "createdAt" >= ${startDate}::timestamp
+                AND "createdAt" <= ${endDate}::timestamp
+              GROUP BY DATE("createdAt")
               ORDER BY date ASC
             `
           : await this.prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
               SELECT 
-                DATE(created_at) as date,
+                DATE("createdAt") as date,
                 COUNT(*)::int as count
               FROM "Design"
-              WHERE created_at >= ${startDate}::timestamp
-                AND created_at <= ${endDate}::timestamp
-              GROUP BY DATE(created_at)
+              WHERE "createdAt" >= ${startDate}::timestamp
+                AND "createdAt" <= ${endDate}::timestamp
+              GROUP BY DATE("createdAt")
               ORDER BY date ASC
             `;
 
@@ -572,33 +572,33 @@ export class AnalyticsService {
       async () => {
         // Utiliser raw SQL pour groupBy par jour avec SUM (plus efficace)
         const result = brandId
-          ? await this.prisma.$queryRaw<Array<{ date: string; total_cents: bigint }>>`
+          ? await this.prisma.$queryRaw<Array<{ date: string; total: bigint }>>`
               SELECT 
-                DATE(created_at) as date,
-                SUM(total_cents)::bigint as total_cents
+                DATE("createdAt") as date,
+                SUM("totalCents")::bigint as total
               FROM "Order"
-              WHERE brand_id = ${brandId}
+              WHERE "brandId" = ${brandId}
                 AND status IN ('PAID', 'SHIPPED', 'DELIVERED')
-                AND created_at >= ${startDate}::timestamp
-                AND created_at <= ${endDate}::timestamp
-              GROUP BY DATE(created_at)
+                AND "createdAt" >= ${startDate}::timestamp
+                AND "createdAt" <= ${endDate}::timestamp
+              GROUP BY DATE("createdAt")
               ORDER BY date ASC
             `
-          : await this.prisma.$queryRaw<Array<{ date: string; total_cents: bigint }>>`
+          : await this.prisma.$queryRaw<Array<{ date: string; total: bigint }>>`
               SELECT 
-                DATE(created_at) as date,
-                SUM(total_cents)::bigint as total_cents
+                DATE("createdAt") as date,
+                SUM("totalCents")::bigint as total
               FROM "Order"
               WHERE status IN ('PAID', 'SHIPPED', 'DELIVERED')
-                AND created_at >= ${startDate}::timestamp
-                AND created_at <= ${endDate}::timestamp
-              GROUP BY DATE(created_at)
+                AND "createdAt" >= ${startDate}::timestamp
+                AND "createdAt" <= ${endDate}::timestamp
+              GROUP BY DATE("createdAt")
               ORDER BY date ASC
             `;
 
         return result.map(row => ({
           date: row.date,
-          amount: Math.round(Number(row.total_cents) / 100 * 100) / 100, // Convertir en euros avec 2 décimales
+          amount: Math.round(Number(row.total) / 100 * 100) / 100, // Convertir en euros avec 2 décimales
         }));
       },
       { ttl: this.CACHE_TTL },
@@ -1190,20 +1190,20 @@ export class AnalyticsService {
     const end = (where.createdAt as { lte?: Date } | undefined)?.lte ?? new Date();
     const dailyRaw = brandId
       ? await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          SELECT DATE("createdAt")::timestamp as date, COUNT(*)::bigint as count
           FROM "Design"
-          WHERE brand_id = ${brandId}
-            AND created_at >= ${start}::timestamp
-            AND created_at <= ${end}::timestamp
-          GROUP BY DATE(created_at)
+          WHERE "brandId" = ${brandId}
+            AND "createdAt" >= ${start}::timestamp
+            AND "createdAt" <= ${end}::timestamp
+          GROUP BY DATE("createdAt")
           ORDER BY date ASC
         `
       : await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          SELECT DATE("createdAt")::timestamp as date, COUNT(*)::bigint as count
           FROM "Design"
-          WHERE created_at >= ${start}::timestamp
-            AND created_at <= ${end}::timestamp
-          GROUP BY DATE(created_at)
+          WHERE "createdAt" >= ${start}::timestamp
+            AND "createdAt" <= ${end}::timestamp
+          GROUP BY DATE("createdAt")
           ORDER BY date ASC
         `;
     const daily = dailyRaw.map((d) => ({ date: d.date, count: Number(d.count) }));
@@ -1241,20 +1241,20 @@ export class AnalyticsService {
     const end = (where.createdAt as { lte?: Date } | undefined)?.lte ?? new Date();
     const dailyRaw = brandId
       ? await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          SELECT DATE("createdAt")::timestamp as date, COUNT(*)::bigint as count
           FROM "Order"
-          WHERE brand_id = ${brandId}
-            AND created_at >= ${start}::timestamp
-            AND created_at <= ${end}::timestamp
-          GROUP BY DATE(created_at)
+          WHERE "brandId" = ${brandId}
+            AND "createdAt" >= ${start}::timestamp
+            AND "createdAt" <= ${end}::timestamp
+          GROUP BY DATE("createdAt")
           ORDER BY date ASC
         `
       : await this.prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-          SELECT DATE(created_at)::timestamp as date, COUNT(*)::bigint as count
+          SELECT DATE("createdAt")::timestamp as date, COUNT(*)::bigint as count
           FROM "Order"
-          WHERE created_at >= ${start}::timestamp
-            AND created_at <= ${end}::timestamp
-          GROUP BY DATE(created_at)
+          WHERE "createdAt" >= ${start}::timestamp
+            AND "createdAt" <= ${end}::timestamp
+          GROUP BY DATE("createdAt")
           ORDER BY date ASC
         `;
     const daily = dailyRaw.map((d) => ({ date: d.date, count: Number(d.count) }));

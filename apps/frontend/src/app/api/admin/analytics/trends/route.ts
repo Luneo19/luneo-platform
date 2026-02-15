@@ -19,18 +19,18 @@ function forwardHeaders(request: NextRequest): HeadersInit {
   return headers;
 }
 
-function generateTrendsData(days: number) {
+function emptyTrendsData(days: number) {
   const now = Date.now();
   const points = Array.from({ length: days }, (_, i) => {
     const date = new Date(now - (days - 1 - i) * 86400000);
     return {
       date: date.toISOString().split('T')[0],
-      revenue: Math.floor(Math.random() * 5000) + 1000,
-      users: Math.floor(Math.random() * 200) + 50,
-      designs: Math.floor(Math.random() * 100) + 20,
+      revenue: 0,
+      users: 0,
+      designs: 0,
     };
   });
-  return { data: points, period: `${days}d`, generated: true };
+  return { data: points, period: `${days}d`, empty: true };
 }
 
 export async function GET(request: NextRequest) {
@@ -58,8 +58,8 @@ export async function GET(request: NextRequest) {
       // Backend endpoint not available, fall through to generated data
     }
 
-    // Fallback: return generated trends data
-    return NextResponse.json(generateTrendsData(days));
+    // Fallback: return empty trends data (no mock data in production)
+    return NextResponse.json(emptyTrendsData(days));
   } catch (error) {
     serverLogger.apiError('/api/admin/analytics/trends', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch trends data' }, { status: 500 });
