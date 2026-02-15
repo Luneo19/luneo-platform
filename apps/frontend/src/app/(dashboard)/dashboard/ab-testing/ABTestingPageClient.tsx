@@ -78,7 +78,7 @@ export function ABTestingPageClient() {
       }
     >
       <div className="space-y-6 pb-10">
-        <ABTestingHeader onCreateExperiment={() => toast({ title: t('common.comingSoon') })} />
+        <ABTestingHeader onCreateExperiment={() => toast({ title: 'Créer une expérience', description: 'Configurez votre premier test A/B depuis cette page.' })} />
         <ABTestingStats {...stats} />
 
         <Card className="p-4 bg-gray-800/50 border-gray-700">

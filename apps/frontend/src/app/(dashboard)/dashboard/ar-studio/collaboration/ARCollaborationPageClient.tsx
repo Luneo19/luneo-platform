@@ -129,7 +129,7 @@ export function ARCollaborationPageClient() {
     <div className="space-y-6 pb-10">
       <CollaborationHeader
         onInviteMember={() => setShowInviteDialog(true)}
-        onCreateProject={() => toast({ title: t('common.comingSoon') })}
+        onCreateProject={() => toast({ title: 'Nouveau projet', description: 'Créez un projet collaboratif AR depuis cet espace.' })}
       />
       <CollaborationStats {...stats} />
 

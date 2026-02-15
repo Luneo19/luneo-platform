@@ -67,7 +67,7 @@ export function ARStudioLibraryPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
-      <ARLibraryHeader onUpload={() => toast({ title: t('common.comingSoon') })} />
+      <ARLibraryHeader onUpload={() => toast({ title: 'Importer un modèle', description: 'Uploadez un modèle 3D dans votre bibliothèque AR.' })} />
       <ARLibraryStats stats={stats} />
 
       <Card className="p-4 bg-gray-800/50 border-gray-700">

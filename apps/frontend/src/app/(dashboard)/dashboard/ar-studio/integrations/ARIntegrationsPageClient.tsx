@@ -89,7 +89,7 @@ export function ARIntegrationsPageClient() {
 
   return (
     <div className="space-y-6 pb-10">
-      <IntegrationsHeader onAddIntegration={() => toast({ title: t('common.comingSoon') })} />
+      <IntegrationsHeader onAddIntegration={() => toast({ title: 'Ajouter une intégration', description: 'Connectez une plateforme e-commerce à votre AR Studio.' })} />
       <IntegrationsStats {...stats} />
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "integrations" | "logs")}>
