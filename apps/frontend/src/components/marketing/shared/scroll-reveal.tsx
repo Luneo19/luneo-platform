@@ -118,9 +118,9 @@ function ScrollRevealInner({
     willChange: isVisible ? 'auto' : 'opacity, transform',
   };
 
-  // FIX: ref must be on the animated element itself (not a display:contents wrapper)
-  // display:contents elements have a 0x0 bounding rect, breaking IntersectionObserver
-  return React.createElement(Tag, { ref, className, style, children } as React.Attributes & { ref?: React.Ref<HTMLDivElement>; className?: string; style?: React.CSSProperties });
+  // suppressHydrationWarning: browser extensions (e.g. data-cjcrx) can modify
+  // inline styles between SSR delivery and React hydration.
+  return React.createElement(Tag, { ref, className, style, suppressHydrationWarning: true, children } as React.Attributes & { ref?: React.Ref<HTMLDivElement>; className?: string; style?: React.CSSProperties; suppressHydrationWarning?: boolean });
 }
 
 export const ScrollReveal = memo(ScrollRevealInner);

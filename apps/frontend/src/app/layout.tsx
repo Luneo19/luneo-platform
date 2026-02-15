@@ -220,7 +220,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} ${inter.variable} ${jakarta.variable} overflow-x-hidden`}>
+      <body className={`${inter.className} ${inter.variable} ${jakarta.variable} overflow-x-hidden`} suppressHydrationWarning>
         <a href="#main-content" className="skip-link">
           Aller au contenu
         </a>

@@ -2,7 +2,6 @@
 
 import React, { useEffect, memo } from 'react';
 import { logger } from '@/lib/logger';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 declare global {
   interface Window {
@@ -81,11 +80,7 @@ function CrispChatContent({ websiteId, userEmail, userName }: CrispChatProps) {
 const CrispChatContentMemo = memo(CrispChatContent);
 
 export function CrispChat(props: CrispChatProps) {
-  return (
-    <ErrorBoundary componentName="CrispChat">
-      <CrispChatContentMemo {...props} />
-    </ErrorBoundary>
-  );
+  return <CrispChatContentMemo {...props} />;
 }
 
 /**

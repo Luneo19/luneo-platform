@@ -1,21 +1,18 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { GoogleAnalytics } from '@/components/GoogleAnalytics';
+import { CrispChat } from '@/components/CrispChat';
 
-// Lazy load analytics and chat for better performance
-const LazyGoogleAnalytics = dynamic(() => import('@/components/GoogleAnalytics').then(mod => ({ default: mod.GoogleAnalytics })), {
-  ssr: false,
-});
-
-const LazyCrispChat = dynamic(() => import('@/components/CrispChat'), {
-  ssr: false,
-});
-
+/**
+ * Analytics & chat wrapper — direct imports instead of next/dynamic ssr:false
+ * which causes webpack module resolution errors in Next.js 15 dev mode.
+ * Both components already guard against SSR via useEffect + typeof window checks.
+ */
 export function LazyAnalytics() {
   return (
     <>
-      <LazyGoogleAnalytics />
-      <LazyCrispChat />
+      <GoogleAnalytics />
+      <CrispChat />
     </>
   );
 }

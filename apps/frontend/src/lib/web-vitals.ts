@@ -24,6 +24,7 @@ function sendToAnalytics(metric: Metric) {
   // Les données sont automatiquement envoyées
 
   // Envoyer à notre API pour stockage et dashboard
+  // Only send fields accepted by the backend DTO — extra properties like navigationType are rejected
   if (typeof window !== 'undefined') {
     api.post('/api/v1/analytics/web-vitals', {
       name: metric.name,
@@ -32,11 +33,9 @@ function sendToAnalytics(metric: Metric) {
       delta: metric.delta,
       id: metric.id,
       url: window.location.pathname,
-    }).catch((error) => {
-      // Ne pas bloquer si l'API échoue
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn('Failed to send web vital to API', { error, metric });
-      }
+      timestamp: Date.now(),
+    }).catch(() => {
+      // Silently fail — backend may not be running in dev
     });
   }
 

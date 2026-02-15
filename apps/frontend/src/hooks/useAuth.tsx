@@ -127,7 +127,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
+    // Public paths that should NOT trigger auth/me calls to avoid 401 console noise.
+    // AuthProvider is mounted at root level, so this prevents useless requests on marketing pages.
+    const publicPrefixes = [
+      '/', '/solutions', '/pricing', '/about', '/contact', '/blog', '/careers',
+      '/developers', '/changelog', '/security', '/status', '/legal', '/help',
+      '/features', '/login', '/register', '/forgot-password', '/reset-password',
+    ];
+
+    const isPublicPage = (): boolean => {
+      if (typeof window === 'undefined') return false;
+      const path = window.location.pathname;
+      // Exact match for homepage
+      if (path === '/') return true;
+      // Prefix match for public sections
+      return publicPrefixes.some(prefix => prefix !== '/' && path.startsWith(prefix));
+    };
+
     const loadUser = async () => {
+      // Skip auth check entirely on public pages — no cookies to send, avoids 401 console errors
+      if (isPublicPage()) {
+        if (isMounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       setIsLoading(true);
       try {
         // httpOnly cookies cannot be read via document.cookie
@@ -198,10 +224,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadUser();
 
-    // Poll for user changes every 5 minutes ONLY if user was loaded
+    // Poll for user changes every 5 minutes ONLY on authenticated pages
     const intervalId = setInterval(() => {
-      if (!isMounted) return;
-      // Only refresh if we have a user (i.e., they were previously authenticated)
+      if (!isMounted || isPublicPage()) return;
       loadUser();
     }, 5 * 60 * 1000); // 5 minutes
 
