@@ -29,6 +29,8 @@ export class WebhookController {
     return brandId;
   }
 
+  // ===== Static routes MUST come before parametric routes =====
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new webhook' })
@@ -45,13 +47,44 @@ export class WebhookController {
   @ApiOperation({ summary: 'List all webhooks' })
   @ApiResponse({ status: 200, description: 'Webhooks retrieved successfully' })
   async findAll(@Request() req: Request & { user: CurrentUser }) {
-    // PLATFORM_ADMIN can see all webhooks across all brands
     if (this.isPlatformAdmin(req)) {
       return this.webhookService.findAllAdmin();
     }
     const brandId = this.requireBrandId(req);
     return this.webhookService.findAll(brandId);
   }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get webhook delivery history' })
+  @ApiResponse({ status: 200, description: 'Webhook history retrieved successfully' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getHistory(
+    @Request() req: Request & { user: CurrentUser },
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.getWebhookHistoryAdmin(page, limit);
+    }
+    const brandId = this.requireBrandId(req);
+    return this.webhookService.getWebhookHistory(brandId, page, limit);
+  }
+
+  @Post('test')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Test webhook endpoint' })
+  @ApiResponse({ status: 200, description: 'Webhook test completed' })
+  async testWebhook(
+    @Request() req: Request & { user: CurrentUser },
+    @Body('url') url: string,
+    @Body('secret') secret?: string,
+  ) {
+    const brandId = this.getBrandId(req) || 'admin';
+    return this.webhookService.testWebhook(brandId, url, secret);
+  }
+
+  // ===== Parametric routes =====
 
   @Get(':id')
   @ApiOperation({ summary: 'Get webhook by ID' })
@@ -97,19 +130,6 @@ export class WebhookController {
     return this.webhookService.remove(id, brandId);
   }
 
-  @Post('test')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Test webhook endpoint' })
-  @ApiResponse({ status: 200, description: 'Webhook test completed' })
-  async testWebhook(
-    @Request() req: Request & { user: CurrentUser },
-    @Body('url') url: string,
-    @Body('secret') secret?: string,
-  ) {
-    const brandId = this.getBrandId(req) || 'admin';
-    return this.webhookService.testWebhook(brandId, url, secret);
-  }
-
   @Get(':id/logs')
   @ApiOperation({ summary: 'Get webhook logs' })
   @ApiParam({ name: 'id', description: 'Webhook ID' })
@@ -127,23 +147,6 @@ export class WebhookController {
     }
     const brandId = this.requireBrandId(req);
     return this.webhookService.getWebhookLogs(id, brandId, page, limit);
-  }
-
-  @Get('history')
-  @ApiOperation({ summary: 'Get webhook delivery history' })
-  @ApiResponse({ status: 200, description: 'Webhook history retrieved successfully' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  async getHistory(
-    @Request() req: Request & { user: CurrentUser },
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
-  ) {
-    if (this.isPlatformAdmin(req)) {
-      return this.webhookService.getWebhookHistoryAdmin(page, limit);
-    }
-    const brandId = this.requireBrandId(req);
-    return this.webhookService.getWebhookHistory(brandId, page, limit);
   }
 
   @Post(':id/retry')
