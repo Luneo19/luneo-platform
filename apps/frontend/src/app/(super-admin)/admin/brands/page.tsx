@@ -200,7 +200,7 @@ export default function BrandsPage() {
                     <TableCell>
                       <Link href={`/admin/brands/${brand.id}`} className="flex items-center gap-3 group">
                         <div className="w-8 h-8 rounded-lg bg-zinc-700 flex items-center justify-center text-sm font-bold text-white">
-                          {brand.name.charAt(0).toUpperCase()}
+                          {(brand.name || 'B').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{brand.name}</p>

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils/formatters';
 import { Award, CheckCircle, Lock, Save, Trophy } from 'lucide-react';
-import { COMMISSION_RATE } from '../constants';
+import { DEFAULT_COMMISSION_RATE } from '../constants';
 import type { AffiliateStats } from '../types';
 
 interface SettingsTabProps {
@@ -47,7 +47,7 @@ export function SettingsTab({ stats, minPayoutThreshold }: SettingsTabProps) {
             <div>
               <Label className="text-gray-700 mb-2 block">Taux de commission</Label>
               <div className="p-4 bg-gray-100 rounded-lg">
-                <p className="text-2xl font-bold text-purple-400">{COMMISSION_RATE}%</p>
+                <p className="text-2xl font-bold text-purple-400">{DEFAULT_COMMISSION_RATE}%</p>
                 <p className="text-sm text-gray-600 mt-1">Commission sur chaque conversion</p>
               </div>
             </div>

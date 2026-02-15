@@ -285,10 +285,20 @@ function IntegrationsPageContent() {
   const fetchIntegrationsFromStatus = useCallback(async () => {
     setLoadingIntegrations(true);
     try {
+      // Add timeout wrapper to prevent hanging API calls
+      const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> => {
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+          ),
+        ]);
+      };
+
       const [shopifyRes, wooRes, zapierRes] = await Promise.allSettled([
-        endpoints.integrations.shopifyStatus(),
-        endpoints.integrations.woocommerceStatus(),
-        endpoints.integrations.zapierSubscriptions().then((subs) => Array.isArray(subs) ? subs : []),
+        withTimeout(endpoints.integrations.shopifyStatus(), 5000).catch(() => null),
+        withTimeout(endpoints.integrations.woocommerceStatus(), 5000).catch(() => null),
+        withTimeout(endpoints.integrations.zapierSubscriptions().then((subs) => Array.isArray(subs) ? subs : []), 5000).catch(() => []),
       ]);
       const cards: IntegrationCard[] = [];
       const defaultSync = { products: { enabled: true, direction: 'bidirectional' }, orders: { enabled: true, direction: 'import' }, inventory: { enabled: true, direction: 'bidirectional' } };

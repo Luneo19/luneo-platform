@@ -410,7 +410,7 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
       try {
         const res = await endpoints.products.list({ page: 1, limit: 100 }) as { products?: ArProduct[]; data?: { products?: ArProduct[] } };
         const list = res?.products ?? res?.data?.products ?? [];
-        const withAr = Array.isArray(list) ? list.filter((p: ArProduct) => p.arEnabled !== false) : [];
+        const withAr = Array.isArray(list) ? list.filter((p: ArProduct) => p?.arEnabled !== false) : [];
         if (!cancelled) {
           setProducts(withAr);
           setError(null);
@@ -464,23 +464,23 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {products.map((p) => (
-        <Card key={p.id} className="p-4 bg-gray-800/50 border-gray-700 overflow-hidden">
+        <Card key={p?.id || 'unknown'} className="p-4 bg-gray-800/50 border-gray-700 overflow-hidden">
           <div className="aspect-square bg-gray-700 rounded-lg mb-3 relative overflow-hidden">
-            {(p.image_url || p.imageUrl) ? (
-              <img src={p.image_url || p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+            {(p?.image_url || p?.imageUrl) ? (
+              <img src={p?.image_url || p?.imageUrl || ''} alt={p?.name || 'Product'} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <Package className="w-12 h-12 text-gray-500" />
               </div>
             )}
             <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-green-500/80 text-xs text-white">
-              {p.arEnabled !== false ? <ToggleRight className="w-3 h-3" /> : <ToggleLeft className="w-3 h-3" />}
-              AR {p.arEnabled !== false ? 'activé' : 'désactivé'}
+              {p?.arEnabled !== false ? <ToggleRight className="w-3 h-3" /> : <ToggleLeft className="w-3 h-3" />}
+              AR {p?.arEnabled !== false ? 'activé' : 'désactivé'}
             </div>
           </div>
-          <h4 className="font-medium text-white truncate">{p.name}</h4>
-          <p className="text-xs text-gray-400 mb-3">{p.category ?? '—'}</p>
-          <Button size="sm" className="w-full" onClick={() => onTryProduct(p)}>
+          <h4 className="font-medium text-white truncate">{p?.name || 'Unnamed Product'}</h4>
+          <p className="text-xs text-gray-400 mb-3">{p?.category ?? '—'}</p>
+          <Button size="sm" className="w-full" onClick={() => p && onTryProduct(p)}>
             <ExternalLink className="w-4 h-4 mr-2" /> Essayer ce produit
           </Button>
         </Card>
@@ -572,20 +572,34 @@ function AnalyticsTab() {
         const res = await fetch('/api/try-on/analytics', { credentials: 'include' }).catch(() => null);
         if (cancelled) return;
         if (res?.ok) {
-          const raw = await res.json();
-          // Map backend field names to frontend expectations
+          let raw: unknown;
+          try {
+            raw = await res.json();
+          } catch (parseError) {
+            if (!cancelled) {
+              setError('Invalid response format');
+              setData(null);
+            }
+            return;
+          }
+          
+          // Map backend field names to frontend expectations with null checks
+          const rawData = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
           setData({
-            totalSessions: raw.totalSessions ?? 0,
-            productsTried: raw.totalProductsTried ?? raw.productsTried ?? 0,
-            screenshotsTaken: raw.totalScreenshots ?? raw.screenshotsTaken ?? 0,
-            avgSessionDurationSeconds: raw.avgSessionDuration ?? raw.avgSessionDurationSeconds ?? 0,
-            sessionsOverTime: raw.sessionsOverTime ?? [],
-            topProducts: (raw.topProducts ?? []).map((p: { productName?: string; name?: string; tryCount?: number; count?: number }) => ({
-              name: p.productName ?? p.name ?? 'Unknown',
-              count: p.tryCount ?? p.count ?? 0,
-            })),
-            conversionRate: raw.conversionRate ?? 0,
-            categoryBreakdown: raw.categoryBreakdown ?? [],
+            totalSessions: typeof rawData.totalSessions === 'number' ? rawData.totalSessions : 0,
+            productsTried: typeof rawData.totalProductsTried === 'number' ? rawData.totalProductsTried : (typeof rawData.productsTried === 'number' ? rawData.productsTried : 0),
+            screenshotsTaken: typeof rawData.totalScreenshots === 'number' ? rawData.totalScreenshots : (typeof rawData.screenshotsTaken === 'number' ? rawData.screenshotsTaken : 0),
+            avgSessionDurationSeconds: typeof rawData.avgSessionDuration === 'number' ? rawData.avgSessionDuration : (typeof rawData.avgSessionDurationSeconds === 'number' ? rawData.avgSessionDurationSeconds : 0),
+            sessionsOverTime: Array.isArray(rawData.sessionsOverTime) ? rawData.sessionsOverTime : [],
+            topProducts: Array.isArray(rawData.topProducts) ? rawData.topProducts.map((p: unknown) => {
+              const product = p && typeof p === 'object' ? p as Record<string, unknown> : {};
+              return {
+                name: typeof product.productName === 'string' ? product.productName : (typeof product.name === 'string' ? product.name : 'Unknown'),
+                count: typeof product.tryCount === 'number' ? product.tryCount : (typeof product.count === 'number' ? product.count : 0),
+              };
+            }) : [],
+            conversionRate: typeof rawData.conversionRate === 'number' ? rawData.conversionRate : 0,
+            categoryBreakdown: Array.isArray(rawData.categoryBreakdown) ? rawData.categoryBreakdown : [],
           });
           setError(null);
         } else {

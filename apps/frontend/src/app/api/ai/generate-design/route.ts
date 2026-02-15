@@ -14,27 +14,58 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const res = await fetch(`${API_BASE}/api/v1/generation/dashboard/create`, {
-      method: 'POST',
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json',
-        'Cookie': req.headers.get('cookie') || '',
-      },
-      body: JSON.stringify(body),
-    });
+    
+    // Create AbortController with 30-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/generation/dashboard/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+          'Cookie': req.headers.get('cookie') || '',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
 
-    const raw = await res.json().catch(() => ({}));
-    const data = raw.data ?? raw;
+      clearTimeout(timeoutId);
+      
+      let raw: unknown;
+      try {
+        raw = await res.json();
+      } catch (parseError) {
+        return NextResponse.json(
+          { error: 'Invalid JSON response from server' },
+          { status: 500 }
+        );
+      }
+      
+      const data = (raw && typeof raw === 'object' && 'data' in raw) ? (raw as { data?: unknown }).data : raw;
 
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: data.message || data.error || 'Failed to create generation' },
-        { status: res.status }
-      );
+      if (!res.ok) {
+        const errorMessage = (data && typeof data === 'object' && ('message' in data || 'error' in data))
+          ? ((data as { message?: string; error?: string }).message || (data as { message?: string; error?: string }).error)
+          : 'Failed to create generation';
+        return NextResponse.json(
+          { error: errorMessage || 'Failed to create generation' },
+          { status: res.status }
+        );
+      }
+
+      return NextResponse.json(data);
+    } catch (fetchError: unknown) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timeout after 30 seconds' },
+          { status: 504 }
+        );
+      }
+      throw fetchError;
     }
-
-    return NextResponse.json(data);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to generate design';
     return NextResponse.json(

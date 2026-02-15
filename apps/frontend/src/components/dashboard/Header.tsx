@@ -148,14 +148,16 @@ const Header = memo(function Header({
                 aria-haspopup="menu"
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-sm">
-                  <span className="text-white font-medium text-sm">EA</span>
+                  <span className="text-white font-medium text-sm">
+                    {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : '??'}
+                  </span>
                 </div>
                 <div className="hidden md:block text-left">
                   <div className="flex items-center">
-                    <span className="text-sm font-medium text-white">Emmanuel A.</span>
+                    <span className="text-sm font-medium text-white">{user?.name || t('dashboard.header.user')}</span>
                     <Crown className="w-4 h-4 ml-1 text-yellow-500" />
                   </div>
-                  <p className="text-xs text-white/40">Enterprise</p>
+                  <p className="text-xs text-white/40">{user?.email || ''}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-white/50" />
               </button>

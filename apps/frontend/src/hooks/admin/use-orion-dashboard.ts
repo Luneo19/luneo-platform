@@ -3,6 +3,7 @@
  * Aggregates data from overview, revenue, retention, and agents endpoints via SWR.
  */
 import useSWR from 'swr';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 class FetcherError extends Error {
   info?: unknown;
@@ -16,7 +17,10 @@ class FetcherError extends Error {
 }
 
 async function fetcher(url: string) {
-  const response = await fetch(url, { credentials: 'include' });
+  const response = await fetchWithTimeout(url, {
+    credentials: 'include',
+    timeout: 10000,
+  });
   if (!response.ok) {
     const info = await response.json().catch(() => ({}));
     throw new FetcherError('An error occurred while fetching the data.', {
@@ -24,12 +28,16 @@ async function fetcher(url: string) {
       status: response.status,
     });
   }
-  return response.json();
+  const data = await response.json();
+  return data ?? null;
 }
 
 /** For endpoints that may 404; returns null on 404 instead of throwing. */
 async function fetcherOptional(url: string): Promise<unknown> {
-  const response = await fetch(url, { credentials: 'include' });
+  const response = await fetchWithTimeout(url, {
+    credentials: 'include',
+    timeout: 10000,
+  });
   if (response.status === 404) return null;
   if (!response.ok) {
     const info = await response.json().catch(() => ({}));
@@ -38,7 +46,8 @@ async function fetcherOptional(url: string): Promise<unknown> {
       status: response.status,
     });
   }
-  return response.json();
+  const data = await response.json();
+  return data ?? null;
 }
 
 // --- Overview (from /api/admin/orion/overview)

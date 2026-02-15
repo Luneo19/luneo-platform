@@ -14,13 +14,14 @@ export interface DiscountResult {
  * 
  * @description
  * Les taux de commission varient selon le plan d'abonnement :
- * - FREE: 15% (compense le plan gratuit)
- * - STARTER: 12% (plan de démarrage)
- * - PROFESSIONAL: 10% (plan standard)
- * - ENTERPRISE: 5% (négociable, grands comptes)
+ * - FREE: 10% (plan gratuit)
+ * - STARTER: 5% (plan de démarrage)
+ * - PROFESSIONAL: 3% (plan standard)
+ * - BUSINESS: 2% (plan business)
+ * - ENTERPRISE: 1% (négociable, grands comptes)
  * 
  * Commission minimum: 1€ par commande
- * Commission maximum: 20% (protection utilisateur)
+ * Commission maximum: 10% (protection utilisateur)
  * 
  * @remarks
  * Ces taux sont compétitifs par rapport au marché :
@@ -40,11 +41,11 @@ export class CommissionService {
    * Ces taux peuvent être ajustés selon la stratégie business
    */
   private readonly COMMISSION_RATES: Record<string, number> = {
-    FREE: 15,          // 15% - Plan gratuit
-    STARTER: 12,       // 12% - Plan de démarrage
-    PROFESSIONAL: 10,  // 10% - Plan professionnel
-    BUSINESS: 7,       // 7% - Plan business (from plan-config.ts)
-    ENTERPRISE: 5,     // 5% - Enterprise (grands comptes, négociable)
+    FREE: 10,          // 10% - Plan gratuit
+    STARTER: 5,        // 5% - Plan de démarrage
+    PROFESSIONAL: 3,   // 3% - Plan professionnel
+    BUSINESS: 2,       // 2% - Plan business
+    ENTERPRISE: 1,     // 1% - Enterprise (grands comptes, négociable)
   };
 
   /**
@@ -57,7 +58,7 @@ export class CommissionService {
    * Commission maximum en pourcentage (20%)
    * Protection pour éviter de faire fuir les clients
    */
-  private readonly MAX_COMMISSION_PERCENT = 20;
+  private readonly MAX_COMMISSION_PERCENT = 10;
 
   constructor(private readonly prisma: PrismaService) {}
 

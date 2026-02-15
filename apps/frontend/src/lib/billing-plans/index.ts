@@ -92,28 +92,28 @@ if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.l
     starter: {
       id: 'starter',
       name: 'Starter',
-      basePriceCents: 0,
+      basePriceCents: 1_900, // €19
       quotas: [],
       features: [],
     },
     professional: {
       id: 'professional',
       name: 'Professional',
-      basePriceCents: 2900, // €29
+      basePriceCents: 4_900, // €49
       quotas: [],
       features: [],
     },
     business: {
       id: 'business',
       name: 'Business',
-      basePriceCents: 5900, // €59
+      basePriceCents: 9_900, // €99
       quotas: [],
       features: [],
     },
     enterprise: {
       id: 'enterprise',
       name: 'Enterprise',
-      basePriceCents: 9900, // €99
+      basePriceCents: 29_900, // €299
       quotas: [],
       features: [],
     },

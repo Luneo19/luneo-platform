@@ -71,13 +71,13 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         </button>
 
         {/* Notifications */}
-        <NotificationsPanel userId={user.id} />
+        <NotificationsPanel userId={user?.id ?? ''} />
 
         {/* User Menu */}
         <div className="flex items-center gap-3 pl-4 border-l border-zinc-800">
           <div className="flex flex-col items-end">
             <span className="text-sm font-medium text-white">
-              {user.email.split('@')[0]}
+              {user?.email?.split('@')[0] ?? 'User'}
             </span>
             <span className="text-xs text-zinc-500">{t('admin.sidebar.superAdmin')}</span>
           </div>

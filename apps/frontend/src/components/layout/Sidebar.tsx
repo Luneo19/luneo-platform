@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -33,6 +34,7 @@ interface SidebarProps {
 
 function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const navigationItems = useMemo(() => [
@@ -61,7 +63,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
     title: 'Produits',
     href: '/dashboard/products',
     icon: Package,
-    badge: '247',
+    badge: null,
     description: 'Gestion de vos designs'
   }
 ], []);
@@ -78,7 +80,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
     title: 'Équipe',
     href: '/dashboard/team',
     icon: Users,
-    badge: '5',
+    badge: null,
     description: 'Collaboration et permissions'
   },
   {
@@ -244,7 +246,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
       {/* Navigation Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Plan Status */}
-        {!isCollapsed && (
+        {!isCollapsed && user && (
           <motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -252,16 +254,15 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
           >
             <div className="flex items-center space-x-3 mb-2">
               <Crown className="h-5 w-5 text-blue-600" />
-              <span className="font-medium text-gray-900">Plan Professional</span>
+              <span className="font-medium text-gray-900">
+                {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email}
+              </span>
             </div>
-            <p className="text-sm text-gray-600 mb-3">Accès complet à toutes les fonctionnalités</p>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Utilisation ce mois</span>
-              <span className="font-medium text-blue-600">68%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-1.5 rounded-full" style={{ width: '68%' }}></div>
-            </div>
+            <p className="text-sm text-gray-600 mb-1">
+              <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+                Gérer l&apos;abonnement
+              </Link>
+            </p>
           </motion>
         )}
 
@@ -306,18 +307,6 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
       <div className="p-4 border-t border-gray-200">
         {!isCollapsed ? (
           <div className="space-y-3">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="text-center p-2 bg-gray-50 rounded-lg">
-                <div className="font-semibold text-gray-900">2.8K</div>
-                <div className="text-gray-500">Designs</div>
-              </div>
-              <div className="text-center p-2 bg-gray-50 rounded-lg">
-                <div className="font-semibold text-gray-900">€8.4K</div>
-                <div className="text-gray-500">Revenus</div>
-              </div>
-            </div>
-            
             {/* Settings */}
             <NavItem item={{
               title: 'Paramètres',

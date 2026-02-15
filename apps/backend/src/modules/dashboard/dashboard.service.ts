@@ -146,7 +146,13 @@ export class DashboardService {
         break;
       }
       case 'credits-balance': {
-        data = { message: 'Use /api/v1/credits/balance' };
+        // Aggregate credits from the brand owner or first user
+        const brandOwner = await this.prisma.user.findFirst({
+          where: { brandId },
+          select: { aiCredits: true },
+          orderBy: { createdAt: 'asc' },
+        });
+        data = { credits: brandOwner?.aiCredits ?? 0 };
         break;
       }
       default:

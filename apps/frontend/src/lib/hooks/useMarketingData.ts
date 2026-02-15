@@ -110,10 +110,10 @@ export function useMarketingData() {
         const st = apiData.stats as Record<string, unknown>;
         // Convertir l'objet stats en array si nécessaire
         statsArray = [
-          { value: String(st.users ?? st.totalBrands ?? 10000), label: 'Créateurs actifs', description: 'Créateurs actifs' },
-          { value: String(st.designs ?? st.totalProducts ?? 500000000), label: 'Designs générés', description: 'Designs générés' },
-          { value: '3.2s', label: 'Temps moyen génération', description: 'Temps moyen génération' },
-          { value: '150+', label: 'Pays', description: 'Pays' },
+          { value: String(st.users ?? st.totalBrands ?? '—'), label: 'Créateurs actifs', description: 'Créateurs actifs' },
+          { value: String(st.designs ?? st.totalProducts ?? '—'), label: 'Designs générés', description: 'Designs générés' },
+          { value: String(st.avgGenerationTime ?? '—'), label: 'Temps moyen génération', description: 'Temps moyen génération' },
+          { value: String(st.countries ?? '—'), label: 'Pays', description: 'Pays' },
         ];
       }
 
@@ -130,15 +130,10 @@ export function useMarketingData() {
         message: errorMessage,
       });
       setError(errorMessage);
-      // En cas d'erreur, utiliser des données par défaut
+      // En cas d'erreur, ne pas afficher de fausses statistiques
       setData({
         testimonials: [],
-        stats: [
-          { value: '10,000+', label: 'Créateurs actifs', description: 'Créateurs actifs' },
-          { value: '500M+', label: 'Designs générés', description: 'Designs générés' },
-          { value: '3.2s', label: 'Temps moyen génération', description: 'Temps moyen génération' },
-          { value: '150+', label: 'Pays', description: 'Pays' },
-        ],
+        stats: [],
         integrations: [],
         industries: [],
       });

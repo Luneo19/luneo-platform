@@ -91,7 +91,7 @@ export default function DashboardLayoutGroup({
             if (progressRes.ok) {
               const progress = await progressRes.json();
               const completed = progress.organization?.onboardingCompletedAt;
-              if (!completed && progress.currentStep < 6) {
+              if (!completed && (progress.currentStep ?? 0) < 6) {
                 document.cookie = 'onboarding_completed=false; path=/; max-age=31536000; SameSite=Lax';
                 router.push('/onboarding');
                 return;

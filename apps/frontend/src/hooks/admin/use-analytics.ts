@@ -8,6 +8,7 @@
  */
 
 import useSWR from 'swr';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 export interface UseAnalyticsOptions {
   period?: number; // jours
@@ -71,18 +72,21 @@ export class FetcherError extends Error {
 }
 
 async function fetcher(url: string) {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     credentials: 'include',
+    timeout: 10000,
   });
 
   if (!response.ok) {
+    const info = await response.json().catch(() => ({}));
     throw new FetcherError('An error occurred while fetching the data.', {
-      info: await response.json(),
+      info,
       status: response.status,
     });
   }
 
-  return response.json();
+  const data = await response.json();
+  return data ?? null;
 }
 
 export function useAnalyticsOverview(options: UseAnalyticsOptions = {}) {

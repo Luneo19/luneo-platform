@@ -33,16 +33,29 @@ interface GenerateDesignResponse {
  */
 
 // API Base URL
-// Use NEXT_PUBLIC_API_URL from environment variables
-// IMPORTANT: Do NOT include /api in NEXT_PUBLIC_API_URL - endpoints already include /api/v1
-// For production: set NEXT_PUBLIC_API_URL (e.g. https://api.luneo.app)
-// For development: falls back to http://localhost:3001
+//
+// ARCHITECTURE:
+//   In the BROWSER on production (HTTPS), we use RELATIVE URLs ("").
+//   This sends requests to the same origin (luneo.app), where:
+//     - Auth routes (/api/v1/auth/*) hit our Next.js API proxy routes (cookie forwarding)
+//     - All other routes (/api/*) hit the Vercel rewrite → api.luneo.app
+//   Both paths ensure httpOnly cookies are sent (same-origin policy).
+//
+//   On the SERVER (SSR/API routes), we use the absolute backend URL directly.
+//   In development (localhost), we use the absolute backend URL since there's no Vercel rewrite.
+//
 const API_BASE_URL = (() => {
-  const url = process.env.NEXT_PUBLIC_API_URL;
-  if (!url && typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is not set in production — API calls will fail');
+  if (typeof window !== 'undefined') {
+    // Browser on production (HTTPS): relative URLs through Vercel proxy
+    // so cookies scoped to luneo.app are always sent automatically.
+    if (window.location.protocol === 'https:') {
+      return '';
+    }
+    // Browser on development (HTTP/localhost): direct to backend
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   }
-  return url || 'http://localhost:3001';
+  // Server-side (SSR, API routes): absolute backend URL
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 })();
 
 // Create axios instance
@@ -262,36 +275,66 @@ export const api = {
 };
 
 /**
+ * Auth-specific fetch helper.
+ * Uses relative URLs + credentials: 'include' to ensure httpOnly cookies
+ * are sent through the Next.js proxy (same-origin), NOT directly to the backend.
+ * This is CRITICAL because cookies are scoped to the frontend domain only.
+ */
+async function authFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    ...init,
+  });
+  
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({ message: 'Request failed' }));
+    const error = new Error(errData.message || `HTTP ${response.status}`) as Error & { response?: { data: unknown; status: number } };
+    error.response = { data: errData, status: response.status };
+    throw error;
+  }
+  
+  // Handle empty responses (204, logout, etc.)
+  const text = await response.text();
+  if (!text) return undefined as T;
+  
+  const data = JSON.parse(text);
+  // Handle wrapped responses: { success: true, data: {...} }
+  return data?.data !== undefined ? data.data : data;
+}
+
+/**
  * Type-safe API endpoints
  */
 export const endpoints = {
   // Auth
+  // ★ Auth endpoints use relative URLs to go through the Next.js proxy (same-origin).
+  // This is REQUIRED because httpOnly cookies are scoped to the frontend domain (luneo.app)
+  // and would NOT be sent to api.luneo.app directly.
   auth: {
     login: (credentials: LoginCredentials) =>
-      api.post<AuthSessionResponse>('/api/v1/auth/login', credentials),
+      authFetch<AuthSessionResponse>('/api/v1/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
     signup: (data: RegisterData) =>
-      api.post<AuthSessionResponse>('/api/v1/auth/signup', data),
+      authFetch<AuthSessionResponse>('/api/v1/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
     register: (data: RegisterData) =>
-      api.post<AuthSessionResponse>('/api/v1/auth/signup', data),
-    logout: () => api.post<void>('/api/v1/auth/logout'),
-    me: () => api.get<User>('/api/v1/auth/me'),
-    refresh: (refreshToken: string) => api.post('/api/v1/auth/refresh', { refreshToken }),
-    forgotPassword: (email: string) => api.post('/api/v1/auth/forgot-password', { email }),
+      authFetch<AuthSessionResponse>('/api/v1/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+    logout: () => authFetch<void>('/api/v1/auth/logout', { method: 'POST' }),
+    me: () => authFetch<User>('/api/v1/auth/me'),
+    refresh: (refreshToken: string) => authFetch('/api/v1/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
+    forgotPassword: (email: string) => authFetch('/api/v1/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
     resetPassword: (token: string, password: string) => 
-      api.post('/api/v1/auth/reset-password', { token, password }),
+      authFetch('/api/v1/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
     verifyEmail: (token: string) => 
-      api.post<{ message: string; verified: boolean }>('/api/v1/auth/verify-email', { token }),
+      authFetch<{ message: string; verified: boolean }>('/api/v1/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) }),
     resendVerification: (email: string) =>
-      api.post<{ message: string }>('/api/v1/auth/resend-verification', { email }),
-    setup2FA: () => api.post<{ secret: string; qrCodeUrl: string; backupCodes: string[] }>('/api/v1/auth/2fa/setup'),
-    verify2FA: (token: string) => api.post<{ message: string; backupCodes: string[] }>('/api/v1/auth/2fa/verify', { token }),
-    disable2FA: () => api.post<{ message: string }>('/api/v1/auth/2fa/disable'),
+      authFetch<{ message: string }>('/api/v1/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
+    setup2FA: () => authFetch<{ secret: string; qrCodeUrl: string; backupCodes: string[] }>('/api/v1/auth/2fa/setup', { method: 'POST' }),
+    verify2FA: (token: string) => authFetch<{ message: string; backupCodes: string[] }>('/api/v1/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ token }) }),
+    disable2FA: () => authFetch<{ message: string }>('/api/v1/auth/2fa/disable', { method: 'POST' }),
     loginWith2FA: (tempToken: string, token: string) => 
-      api.post<AuthSessionResponse>('/api/v1/auth/login/2fa', { tempToken, token }),
-    oauth: {
-      google: () => api.get('/api/v1/auth/google'),
-      github: () => api.get('/api/v1/auth/github'),
-    },
+      authFetch<AuthSessionResponse>('/api/v1/auth/login/2fa', { method: 'POST', body: JSON.stringify({ tempToken, token }) }),
+    // OAuth: handled via window.location.href redirect in login page (not API calls).
+    // See apps/frontend/src/app/(auth)/login/page.tsx handleOAuthLogin().
   },
 
   // Users

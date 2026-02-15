@@ -39,7 +39,7 @@ export function useOverviewData() {
       {
         title: t('overview.designsCreated'),
         value: dashboardStats.overview.designs.toLocaleString('fr-FR'),
-        change: `+${dashboardStats.period.designs}`,
+        change: `+${dashboardStats.period?.designs ?? 0}`,
         changeType: 'positive' as const,
         icon: 'Palette',
       },
@@ -59,9 +59,9 @@ export function useOverviewData() {
       },
       {
         title: t('dashboard.revenue'),
-        value: `€${dashboardStats.period.revenue.toFixed(2)}`,
-        change: `+${dashboardStats.period.orders} ${t('overview.ordersCount')}`,
-        changeType: (dashboardStats.period.revenue > 0 ? 'positive' : 'negative') as 'positive' | 'negative',
+        value: `€${(dashboardStats.period?.revenue ?? 0).toFixed(2)}`,
+        change: `+${dashboardStats.period?.orders ?? 0} ${t('overview.ordersCount')}`,
+        changeType: ((dashboardStats.period?.revenue ?? 0) > 0 ? 'positive' : 'negative') as 'positive' | 'negative',
         icon: 'DollarSign',
       },
     ];
@@ -93,7 +93,7 @@ export function useOverviewData() {
         id: order.id,
         type: 'order',
         title: `Commande ${order.status}`,
-        description: `Montant: €${order.total_amount.toFixed(2)}`,
+        description: `Montant: €${(order.total_amount ?? 0).toFixed(2)}`,
         time: order.created_at,
         status: order.status,
       })),

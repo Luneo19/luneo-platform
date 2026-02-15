@@ -9,6 +9,7 @@
  */
 
 import useSWR from 'swr';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 /** Error thrown by fetcher with API response details */
 class FetcherError extends Error {
@@ -23,21 +24,24 @@ class FetcherError extends Error {
 }
 
 /**
- * Fetcher simple pour SWR
+ * Fetcher with 10s timeout to prevent hanging
  */
 async function fetcher(url: string) {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     credentials: 'include',
+    timeout: 10000,
   });
 
   if (!response.ok) {
+    const info = await response.json().catch(() => ({}));
     throw new FetcherError('An error occurred while fetching the data.', {
-      info: await response.json(),
+      info,
       status: response.status,
     });
   }
 
-  return response.json();
+  const data = await response.json();
+  return data ?? null;
 }
 
 export interface UseAdminOverviewOptions {

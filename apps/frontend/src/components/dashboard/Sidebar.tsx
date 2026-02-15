@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useDensity } from '@/providers/DensityProvider';
 import { sidebarConfig } from '@/styles/dashboard-tokens';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -466,7 +467,12 @@ interface SidebarProps {
 
 function Sidebar({ onClose }: SidebarProps = {}) {
   const { t } = useI18n();
+  const { user } = useAuth();
   const { sidebarCollapsed, setSidebarCollapsed } = useDensity();
+  const userDisplayName = user ? `${user.firstName || ''} ${user.lastName?.[0] || ''}`.trim() || user.email : '';
+  const userInitials = user
+    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'
+    : '?';
   const isMobileOverlay = Boolean(onClose);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
@@ -711,14 +717,14 @@ function Sidebar({ onClose }: SidebarProps = {}) {
         {!effectiveCollapsed ? (
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-medium text-sm">EA</span>
+              <span className="text-white font-medium text-sm">{userInitials}</span>
             </div>
             <div className="flex-1">
               <div className="flex items-center">
-                <span className="text-sm font-medium text-white">Emmanuel A.</span>
+                <span className="text-sm font-medium text-white">{userDisplayName}</span>
                 <Crown className="w-4 h-4 ml-1 text-yellow-500" />
               </div>
-              <p className="text-xs text-white/40">Enterprise Plan</p>
+              <p className="text-xs text-white/40">{user?.email || ''}</p>
             </div>
             <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
               <Bell className="w-4 h-4 text-white/40" aria-hidden />
@@ -727,7 +733,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
         ) : (
           <div className="flex flex-col items-center space-y-2">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-medium text-sm">EA</span>
+              <span className="text-white font-medium text-sm">{userInitials}</span>
             </div>
             <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
               <Bell className="w-4 h-4 text-white/40" aria-hidden />

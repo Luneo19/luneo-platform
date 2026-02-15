@@ -284,27 +284,6 @@ export class AuthService {
       };
     }
 
-    // Admin roles: 2FA obligatoire — si non activé, forcer la configuration
-    const ADMIN_ROLES_REQUIRING_2FA: UserRole[] = [UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN];
-    if (ADMIN_ROLES_REQUIRING_2FA.includes(user.role) && !user.is2FAEnabled) {
-      const tempToken = await this.jwtService.signAsync(
-        { sub: user.id, email: user.email, type: 'temp-2fa-setup' },
-        {
-          secret: this.configService.get('jwt.secret'),
-          expiresIn: '5m', // 5 minutes pour configurer 2FA
-        },
-      );
-
-      // Réinitialiser tentatives brute force après succès (fail-safe)
-      await this.bruteForceService.resetAttempts(email, clientIp);
-
-      return {
-        requires2FASetup: true,
-        tempToken,
-        message: '2FA setup required for admin accounts',
-      };
-    }
-
     // Réinitialiser tentatives brute force après succès (fail-safe)
     await this.bruteForceService.resetAttempts(email, clientIp);
 
@@ -320,6 +299,11 @@ export class AuthService {
     // Save refresh token
     await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
 
+    // Admin roles: 2FA recommandé — si non activé, inclure un flag dans la réponse
+    // mais ne PAS bloquer la connexion (le dashboard affichera un prompt de setup)
+    const ADMIN_ROLES_REQUIRING_2FA: UserRole[] = [UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN];
+    const needs2FASetup = ADMIN_ROLES_REQUIRING_2FA.includes(user.role) && !user.is2FAEnabled;
+
     return {
       user: {
         id: user.id,
@@ -331,6 +315,7 @@ export class AuthService {
         brand: user.brand,
       },
       ...tokens,
+      ...(needs2FASetup ? { requires2FASetup: true } : {}),
     };
   }
 

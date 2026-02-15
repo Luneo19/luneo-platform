@@ -90,7 +90,7 @@ function LibraryPageContent() {
 
   useEffect(() => {
     if (templatesQuery.data) {
-      const formattedTemplates: Template[] = templatesQuery.data.templates.map((template: Record<string, unknown>) => ({
+      const formattedTemplates: Template[] = (templatesQuery.data?.templates || []).map((template: Record<string, unknown>) => ({
         id: String(template.id ?? ''),
         name: String(template.name ?? ''),
         category: (template.category as Template['category']) ?? 'other',
@@ -110,7 +110,7 @@ function LibraryPageContent() {
         setTemplates((prev) => [...prev, ...formattedTemplates]);
       }
 
-      setHasMore(templatesQuery.data.pagination.hasNext);
+      setHasMore(templatesQuery.data?.pagination?.hasNext ?? false);
       setLoading(false);
       setLoadingMore(false);
     } else if (templatesQuery.isLoading) {
@@ -251,7 +251,7 @@ function LibraryPageContent() {
   };
 
   let filteredTemplates = templates.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          t.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
     return matchesSearch && matchesCategory;
@@ -266,7 +266,9 @@ function LibraryPageContent() {
         return a.name.localeCompare(b.name);
       case 'recent':
       default:
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
     }
   });
 
@@ -432,13 +434,19 @@ function LibraryPageContent() {
             <Card className="rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.10] transition-all group p-6">
               {/* Thumbnail */}
               <div className="relative mb-4 aspect-square bg-[#12121a] rounded-xl overflow-hidden">
-                <Image
-                  src={template.thumbnail}
-                  alt={`Template ${template.name}`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                  className="object-cover transition-transform group-hover:scale-105"
-                />
+                {template.thumbnail ? (
+                  <Image
+                    src={template.thumbnail}
+                    alt={`Template ${template.name || 'Unnamed'}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    className="object-cover transition-transform group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/40">
+                    <ImageIcon className="w-12 h-12" />
+                  </div>
+                )}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex items-center gap-2 text-sm text-white font-medium">
                     {getCategoryIcon(template.category)}

@@ -384,9 +384,9 @@ function BillingPageContent() {
                   <TableBody>
                     {invoices.map((invoice) => (
                       <TableRow key={invoice.id} className="border-white/[0.06] hover:bg-white/[0.04]">
-                        <TableCell className="font-medium text-white">{invoice.number}</TableCell>
-                        <TableCell className="text-white/60">{formatDate(invoice.createdAt)}</TableCell>
-                        <TableCell className="text-white">{formatPrice(invoice.amount, invoice.currency)}</TableCell>
+                        <TableCell className="font-medium text-white">{invoice.number ?? '-'}</TableCell>
+                        <TableCell className="text-white/60">{invoice.createdAt ? formatDate(invoice.createdAt) : '-'}</TableCell>
+                        <TableCell className="text-white">{formatPrice(invoice.amount ?? 0, invoice.currency ?? 'EUR')}</TableCell>
                         <TableCell>
                           <span
                             className={

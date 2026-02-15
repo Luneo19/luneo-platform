@@ -31,6 +31,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 interface PlatformSettings {
   enforce2FA: boolean;
@@ -68,22 +69,24 @@ export default function AdminSettingsPage() {
     try {
       setLoading(true);
       setError(null);
-      // SECURITY FIX: Use httpOnly cookies instead of localStorage token
-      const res = await fetch('/api/admin/settings', {
+      const res = await fetchWithTimeout('/api/admin/settings', {
         credentials: 'include',
+        timeout: 10000,
       });
       if (!res.ok) throw new Error(`Failed to load settings (${res.status})`);
-      const data = await res.json();
-      if (data.settings) {
+      const data = (await res.json()) as { settings?: Partial<PlatformSettings> };
+      const settingsData = data?.settings;
+      if (settingsData && typeof settingsData === 'object') {
         setSettings({
           ...DEFAULT_SETTINGS,
-          ...data.settings,
-          sessionTimeout: Number(data.settings.sessionTimeout) || 30,
+          ...settingsData,
+          sessionTimeout: Number(settingsData.sessionTimeout) || 30,
         });
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load settings';
-      setError(message);
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      setError(isAbort ? 'Request timed out. Please try again.' : message);
     } finally {
       setLoading(false);
     }
@@ -96,14 +99,14 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      // SECURITY FIX: Use httpOnly cookies instead of localStorage token
-      const res = await fetch('/api/admin/settings', {
+      const res = await fetchWithTimeout('/api/admin/settings', {
         method: 'PUT',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(settings),
+        timeout: 10000,
       });
 
       if (!res.ok) throw new Error(`Failed to save settings (${res.status})`);
@@ -111,7 +114,12 @@ export default function AdminSettingsPage() {
       toast({ title: t('admin.settingsSaved'), description: t('admin.settingsSavedDesc') });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save settings';
-      toast({ title: t('common.error'), description: message, variant: 'destructive' });
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      toast({
+        title: t('common.error'),
+        description: isAbort ? 'Request timed out. Please try again.' : message,
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
     }

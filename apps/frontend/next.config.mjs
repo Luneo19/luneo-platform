@@ -272,7 +272,25 @@ const nextConfig = {
           },
         ],
       },
-      // API routes - Short cache with revalidation
+      // Auth API routes - MUST NEVER be cached (cookies, tokens, session state)
+      {
+        source: '/api/v1/auth/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, no-cache, no-store, max-age=0, must-revalidate',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'private, no-store',
+          },
+          {
+            key: 'Vercel-CDN-Cache-Control',
+            value: 'private, no-store',
+          },
+        ],
+      },
+      // Other API routes - Short cache with revalidation (excludes auth above)
       {
         source: '/api/:path*',
         headers: [

@@ -21,6 +21,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { LocaleSwitcher } from '@/components/navigation/LocaleSwitcher';
 import { useTranslations } from '@/i18n/useI18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   title?: string;
@@ -29,8 +30,16 @@ interface HeaderProps {
 
 function HeaderContent({ title, subtitle }: HeaderProps) {
   const t = useTranslations('header');
+  const { user } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Derive display values from real user data
+  const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : '';
+  const initials = user
+    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'
+    : '?';
+  const displayEmail = user?.email || '';
 
   const toggleProfile = useCallback(() => {
     setIsProfileOpen((prev) => !prev);
@@ -114,10 +123,10 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
               data-testid="user-menu"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/70 text-sm font-medium text-white">
-                JD
+                {initials}
               </div>
               <div className="hidden text-left md:block">
-                <p className="text-sm font-medium text-foreground">John Doe</p>
+                <p className="text-sm font-medium text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{t('profileMenu.plan')}</p>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -136,13 +145,13 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                   <div className="border-b border-border p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/70 text-white">
-                        JD
+                        {initials}
                       </div>
                       <div>
                         <p className="font-medium text-foreground">
-                          {t('profileMenu.welcome')} John Doe
+                          {t('profileMenu.welcome')} {displayName}
                         </p>
-                        <p className="text-sm text-muted-foreground">john@example.com</p>
+                        <p className="text-sm text-muted-foreground">{displayEmail}</p>
                         <div className="mt-1 flex items-center gap-1 text-primary">
                           <Crown className="h-3 w-3" aria-hidden="true" />
                           <span className="text-xs">{t('profileMenu.plan')}</span>

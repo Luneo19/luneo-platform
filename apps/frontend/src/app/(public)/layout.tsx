@@ -1,7 +1,6 @@
 import Script from 'next/script';
 import { Navigation, FooterNew, CursorGlow } from '@/components/marketing/home';
 import { CartDrawer } from '@/components/cart/CartDrawer';
-
 // ISR: Revalidate public pages every hour
 export const revalidate = 3600; // 1 hour
 

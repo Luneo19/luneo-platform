@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 
 const AI_FEATURES = [
-  { name: 'Prédiction de conversion', description: 'Prédisez la probabilité de conversion pour chaque visiteur', accuracy: '94.2%', icon: TargetIcon },
-  { name: 'Optimisation de liens', description: 'Génération automatique de liens optimisés par ML', accuracy: '91.5%', icon: LinkIcon },
-  { name: 'Recommandations intelligentes', description: 'Recommandations personnalisées pour maximiser les conversions', accuracy: '89.8%', icon: SparklesIcon },
-  { name: 'Détection de fraude', description: 'Détection automatique des conversions frauduleuses', accuracy: '96.7%', icon: Shield },
-  { name: 'Scoring de qualité', description: 'Score ML pour évaluer la qualité des référents', accuracy: '92.3%', icon: StarIcon },
-  { name: 'Optimisation de timing', description: 'Meilleur moment pour envoyer des communications', accuracy: '87.6%', icon: Clock },
+  { name: 'Prédiction de conversion', description: 'Prédisez la probabilité de conversion pour chaque visiteur', status: 'Bientôt', icon: TargetIcon },
+  { name: 'Optimisation de liens', description: 'Génération automatique de liens optimisés par ML', status: 'Bientôt', icon: LinkIcon },
+  { name: 'Recommandations intelligentes', description: 'Recommandations personnalisées pour maximiser les conversions', status: 'Bientôt', icon: SparklesIcon },
+  { name: 'Détection de fraude', description: 'Détection automatique des conversions frauduleuses', status: 'Bientôt', icon: Shield },
+  { name: 'Scoring de qualité', description: 'Score ML pour évaluer la qualité des référents', status: 'Bientôt', icon: StarIcon },
+  { name: 'Optimisation de timing', description: 'Meilleur moment pour envoyer des communications', status: 'Bientôt', icon: Clock },
 ];
 
 export function AiMlTab() {
@@ -42,7 +42,7 @@ export function AiMlTab() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <Icon className="w-5 h-5 text-purple-400" />
-                    <Badge className="bg-green-500/20 text-green-400">{feature.accuracy}</Badge>
+                    <Badge className="bg-yellow-500/20 text-yellow-400">{feature.status}</Badge>
                   </div>
                   <CardTitle className="text-white text-base mt-2">{feature.name}</CardTitle>
                 </CardHeader>

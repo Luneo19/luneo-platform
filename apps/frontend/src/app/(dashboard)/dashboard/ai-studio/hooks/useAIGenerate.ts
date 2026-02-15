@@ -47,10 +47,24 @@ export function useAIGenerate() {
           description: t('aiStudio.generationInProgress'),
         });
 
-        const generationId = (data as { designId?: string; data?: { id?: string }; generationId?: string; id?: string }).designId
-          ?? (data as { data?: { id?: string } }).data?.id
-          ?? (data as { generationId?: string }).generationId
-          ?? (data as { id?: string }).id;
+        // Safe extraction of generationId with null checks
+        let generationId: string | undefined;
+        if (data && typeof data === 'object') {
+          const dataObj = data as Record<string, unknown>;
+          if (typeof dataObj.designId === 'string') {
+            generationId = dataObj.designId;
+          } else if (dataObj.data && typeof dataObj.data === 'object') {
+            const dataData = dataObj.data as Record<string, unknown>;
+            if (typeof dataData.id === 'string') {
+              generationId = dataData.id;
+            }
+          } else if (typeof dataObj.generationId === 'string') {
+            generationId = dataObj.generationId;
+          } else if (typeof dataObj.id === 'string') {
+            generationId = dataObj.id;
+          }
+        }
+        
         return {
           success: true,
           generationId,

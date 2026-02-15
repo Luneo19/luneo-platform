@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useOrionDashboard } from '@/hooks/admin/use-orion-dashboard';
 import { logger } from '@/lib/logger';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const QUICK_LINKS = [
   { title: 'Agents', href: '/admin/orion/agents', icon: Bot, description: 'Gestion des agents AI' },
@@ -76,7 +77,11 @@ export default function OrionCommandCenter() {
   const handleSeedAgents = async () => {
     setSeeding(true);
     try {
-      const res = await fetch('/api/admin/orion/seed', { method: 'POST', credentials: 'include' });
+      const res = await fetchWithTimeout('/api/admin/orion/seed', {
+        method: 'POST',
+        credentials: 'include',
+        timeout: 10000,
+      });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         logger.error('ORION seed agents failed', { status: res.status, body: errBody });
@@ -213,9 +218,9 @@ export default function OrionCommandCenter() {
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">NPS Score</p>
                   <p className="text-xl font-bold text-white">
-                    {kpis?.nps.value != null ? kpis.nps.value : '—'}
+                    {kpis?.nps?.value != null ? kpis.nps.value : '—'}
                   </p>
-                  {kpis?.nps.totalResponses != null && kpis.nps.totalResponses > 0 && (
+                  {kpis?.nps?.totalResponses != null && kpis.nps.totalResponses > 0 && (
                     <p className="text-xs text-zinc-400">{kpis.nps.totalResponses} réponses</p>
                   )}
                 </div>
@@ -231,9 +236,9 @@ export default function OrionCommandCenter() {
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">Trial Conversion</p>
                   <p className="text-xl font-bold text-white">
-                    {kpis?.trialConversion.rate != null ? formatPercent(kpis.trialConversion.rate) : '—'}
+                    {kpis?.trialConversion?.rate != null ? formatPercent(kpis.trialConversion.rate) : '—'}
                   </p>
-                  {kpis?.trialConversion.converted != null && kpis.trialConversion.converted > 0 && (
+                  {kpis?.trialConversion?.converted != null && kpis.trialConversion.converted > 0 && (
                     <p className="text-xs text-zinc-400">{kpis.trialConversion.converted} convertis</p>
                   )}
                 </div>
@@ -281,9 +286,9 @@ export default function OrionCommandCenter() {
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-zinc-400 uppercase tracking-wide">CAC</p>
                   <p className="text-xl font-bold text-white">
-                    {kpis?.cac.value != null ? formatCurrency(kpis.cac.value) : '—'}
+                    {kpis?.cac?.value != null ? formatCurrency(kpis.cac.value) : '—'}
                   </p>
-                  {kpis?.cac.value == null && (
+                  {kpis?.cac?.value == null && (
                     <p className="text-xs text-zinc-500">Ajouter les dépenses marketing</p>
                   )}
                 </div>

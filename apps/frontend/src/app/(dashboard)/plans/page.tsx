@@ -267,16 +267,22 @@ function PlansPageContent() {
     try {
       const interval = billingPeriod === 'annual' ? 'yearly' : 'monthly';
       type SubscribeResponse = { data?: { url?: string; sessionUrl?: string }; url?: string; sessionUrl?: string };
-      const result = await endpoints.billing.subscribe(planId, undefined, interval) as SubscribeResponse;
+      const timeoutMs = 10000;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
+      );
+      const subscribePromise = endpoints.billing.subscribe(planId, undefined, interval) as Promise<SubscribeResponse>;
+      const result = await Promise.race([subscribePromise, timeoutPromise]);
       const url = result?.data?.url ?? result?.data?.sessionUrl ?? result?.url ?? result?.sessionUrl;
-      if (url) {
+      if (url && typeof url === 'string') {
         window.location.href = url;
       } else {
         toast.error('Impossible de créer la session de paiement');
         setSelectedPlan(null);
       }
     } catch (err) {
-      toast.error('Une erreur est survenue lors de la redirection vers le paiement');
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      toast.error(message.includes('timed out') ? 'La requête a expiré. Veuillez réessayer.' : 'Une erreur est survenue lors de la redirection vers le paiement');
       setSelectedPlan(null);
     }
   };

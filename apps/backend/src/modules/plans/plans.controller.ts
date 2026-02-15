@@ -40,6 +40,7 @@ export class PlansController {
             ? Math.round((config.pricing.yearlyPrice / 12) * 100) / 100
             : 0,
         },
+        commissionPercent: config.pricing.commissionPercent,
         features: config.info.features,
         limits: config.limits,
         quotas: config.quotas,

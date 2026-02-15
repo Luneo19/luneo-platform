@@ -6,6 +6,10 @@
  *    (Vercel rewrites may strip or modify Set-Cookie in certain edge cases.)
  * 2. httpOnly cookies are set on the same origin (luneo.app) for the browser,
  *    removing cross-domain cookie issues.
+ *
+ * IMPORTANT: Node.js 22 undici consumes httpOnly Set-Cookie headers internally,
+ * so `response.headers.getSetCookie()` may return incomplete results.
+ * We use `http`/`https` modules for raw access to ALL Set-Cookie headers.
  */
 
 import { cookies } from 'next/headers';
@@ -15,10 +19,105 @@ import { getBackendUrl } from '@/lib/api/server-url';
 const API_BASE = getBackendUrl();
 
 /**
- * Parse Set-Cookie header(s) from a backend Response.
+ * Raw HTTP request using Node.js http/https modules.
+ * This bypasses undici's cookie handling and gives access to ALL Set-Cookie headers.
+ */
+export function rawHttpRequest(
+  url: string,
+  options: { method?: string; headers?: Record<string, string>; body?: string },
+): Promise<{ statusCode: number; headers: Record<string, string | string[]>; body: string; setCookieHeaders: string[] }> {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const isHttps = urlObj.protocol === 'https:';
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = isHttps ? require('https') : require('http');
+
+    const reqOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+    };
+
+    const req = mod.request(reqOptions, (res: import('http').IncomingMessage) => {
+      let body = '';
+      res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      res.on('end', () => {
+        // Raw access to ALL set-cookie headers (Node.js http module preserves them)
+        const setCookieHeaders = res.headers['set-cookie'] || [];
+        resolve({
+          statusCode: res.statusCode || 500,
+          headers: res.headers as Record<string, string | string[]>,
+          body,
+          setCookieHeaders: Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders],
+        });
+      });
+    });
+
+    req.on('error', reject);
+
+    // Timeout: 15 seconds
+    req.setTimeout(15000, () => {
+      req.destroy(new Error('Request timeout'));
+    });
+
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
+
+/**
+ * Parse a single Set-Cookie header string into a structured object.
+ */
+export function parseSingleCookie(cookieStr: string): {
+  name: string;
+  value: string;
+  path?: string;
+  maxAge?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'lax' | 'strict' | 'none';
+} {
+  const parts = cookieStr.split(';').map((s) => s.trim());
+  const [nameValue, ...attrs] = parts;
+  const eqIdx = nameValue.indexOf('=');
+  const name = nameValue.substring(0, eqIdx);
+  const value = nameValue.substring(eqIdx + 1);
+
+  const result: {
+    name: string;
+    value: string;
+    path?: string;
+    maxAge?: number;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: 'lax' | 'strict' | 'none';
+  } = { name, value };
+
+  for (const attr of attrs) {
+    const lower = attr.toLowerCase();
+    if (lower === 'httponly') result.httpOnly = true;
+    else if (lower === 'secure') result.secure = true;
+    else if (lower.startsWith('path=')) result.path = attr.split('=')[1];
+    else if (lower.startsWith('max-age=')) result.maxAge = parseInt(attr.split('=')[1], 10);
+    else if (lower.startsWith('samesite=')) {
+      const val = attr.split('=')[1]?.toLowerCase();
+      if (val === 'lax' || val === 'strict' || val === 'none') result.sameSite = val;
+    }
+    // Intentionally skip Domain — we want the cookie scoped to the current host (luneo.app)
+  }
+
+  return result;
+}
+
+/**
+ * Parse Set-Cookie header(s) from raw setCookieHeaders array.
  * Returns an array of cookie attribute objects.
  */
-export function parseSetCookies(response: Response): Array<{
+export function parseSetCookies(setCookieHeaders: string[]): Array<{
   name: string;
   value: string;
   path?: string;
@@ -27,65 +126,20 @@ export function parseSetCookies(response: Response): Array<{
   secure?: boolean;
   sameSite?: 'lax' | 'strict' | 'none';
 }> {
-  const setCookies: string[] = [];
-
-  // getSetCookie() returns all Set-Cookie headers as separate strings (Headers in some environments)
-  const headers = response.headers as Headers & { getSetCookie?: () => string[] };
-  if (typeof headers.getSetCookie === 'function') {
-    setCookies.push(...headers.getSetCookie());
-  } else {
-    // Fallback: headers.get('set-cookie') may combine them
-    const raw = response.headers.get('set-cookie');
-    if (raw) {
-      // Simple split — handles most cases (cookies rarely contain commas in values)
-      setCookies.push(...raw.split(/,(?=[^ ])/));
-    }
-  }
-
-  return setCookies.map((cookieStr) => {
-    const parts = cookieStr.split(';').map((s) => s.trim());
-    const [nameValue, ...attrs] = parts;
-    const eqIdx = nameValue.indexOf('=');
-    const name = nameValue.substring(0, eqIdx);
-    const value = nameValue.substring(eqIdx + 1);
-
-    const result: {
-      name: string;
-      value: string;
-      path?: string;
-      maxAge?: number;
-      httpOnly?: boolean;
-      secure?: boolean;
-      sameSite?: 'lax' | 'strict' | 'none';
-    } = { name, value };
-
-    for (const attr of attrs) {
-      const lower = attr.toLowerCase();
-      if (lower === 'httponly') result.httpOnly = true;
-      else if (lower === 'secure') result.secure = true;
-      else if (lower.startsWith('path=')) result.path = attr.split('=')[1];
-      else if (lower.startsWith('max-age=')) result.maxAge = parseInt(attr.split('=')[1], 10);
-      else if (lower.startsWith('samesite=')) {
-        const val = attr.split('=')[1]?.toLowerCase();
-        if (val === 'lax' || val === 'strict' || val === 'none') result.sameSite = val;
-      }
-      // Intentionally skip Domain — we want the cookie scoped to the current host (luneo.app)
-    }
-
-    return result;
-  });
+  return setCookieHeaders.map(parseSingleCookie);
 }
 
 /**
- * Forward Set-Cookie headers from the backend response to the NextResponse.
+ * Forward Set-Cookie headers to the NextResponse.
  * This sets cookies on the same-origin (luneo.app) regardless of what domain
  * the backend specified, ensuring reliable browser cookie storage.
  */
 export function forwardCookiesToResponse(
-  backendResponse: Response,
+  setCookieHeaders: string[],
   nextResponse: NextResponse,
 ): void {
-  const parsedCookies = parseSetCookies(backendResponse);
+  const parsedCookies = parseSetCookies(setCookieHeaders);
+
   for (const cookie of parsedCookies) {
     nextResponse.cookies.set(cookie.name, cookie.value, {
       path: cookie.path || '/',

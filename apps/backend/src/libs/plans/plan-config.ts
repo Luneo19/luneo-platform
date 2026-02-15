@@ -44,7 +44,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyPrice: 0,
       yearlyPrice: 0,
       basePriceCents: 0,
-      commissionPercent: 15,
+      commissionPercent: 10,
     },
     limits: {
       designsPerMonth: 5,
@@ -96,7 +96,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyPrice: 19,
       yearlyPrice: 190,
       basePriceCents: 1_900, // 19€ * 100 centimes
-      commissionPercent: 12,
+      commissionPercent: 5,
     },
     limits: {
       designsPerMonth: 50,
@@ -150,7 +150,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyPrice: 49,
       yearlyPrice: 490,
       basePriceCents: 4_900, // 49€ * 100 centimes
-      commissionPercent: 10,
+      commissionPercent: 3,
     },
     limits: {
       designsPerMonth: 200,
@@ -203,7 +203,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyPrice: 99,
       yearlyPrice: 990,
       basePriceCents: 9_900, // 99€ * 100 centimes
-      commissionPercent: 7,
+      commissionPercent: 2,
     },
     limits: {
       designsPerMonth: 1_000,
@@ -256,7 +256,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       monthlyPrice: 299,
       yearlyPrice: 2_990,
       basePriceCents: 29_900, // 299€ * 100 centimes
-      commissionPercent: 5,
+      commissionPercent: 1,
     },
     limits: {
       designsPerMonth: -1,

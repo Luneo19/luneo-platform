@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 // Optimisation des fonts: preload et display swap
@@ -236,11 +237,19 @@ export default async function RootLayout({
             {children}
             <Toaster />
             <SonnerToaster position="top-right" richColors closeButton />
-            <CookieBanner />
+            {/* Suspense boundaries isolate dynamic({ssr:false}) bailouts
+                so they don't propagate to the root loading.tsx Suspense */}
+            <Suspense fallback={null}>
+              <CookieBanner />
+            </Suspense>
             <Analytics />
             <SpeedInsights />
-            <LazyAnalytics />
-            <WebVitalsReporter />
+            <Suspense fallback={null}>
+              <LazyAnalytics />
+            </Suspense>
+            <Suspense fallback={null}>
+              <WebVitalsReporter />
+            </Suspense>
           </AnalyticsProvider>
         </Providers>
       </body>

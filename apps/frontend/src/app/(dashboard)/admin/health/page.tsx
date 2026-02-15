@@ -39,7 +39,17 @@ function AdminHealthContent() {
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const res = await fetch('/api/v1/health', { credentials: 'include' });
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const res = await fetch('/api/v1/health', { 
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (res.ok) {
           const data = await res.json();
           const health = data.data || data;
@@ -61,7 +71,7 @@ function AdminHealthContent() {
           if (services.length) setSystemStatus(services);
           if (health.metrics) setMetrics(health.metrics);
         }
-      } catch {
+      } catch (error) {
         // Fallback: show unknown status
         setSystemStatus([
           { name: 'API Gateway', status: 'unknown', latency: '-', icon: Server },

@@ -754,8 +754,8 @@ export class AnalyticsService {
           total: totalRevenue,
           currency: CurrencyUtils.getDefaultCurrency(),
           breakdown: {
-            subscriptions: Math.round(totalRevenue * 0.78), // Estimation
-            usage: Math.round(totalRevenue * 0.22) // Estimation
+            subscriptions: totalRevenue, // Total revenue from subscriptions (usage billing not yet tracked separately)
+            usage: 0 // Usage-based billing tracked separately when implemented
           }
         }
       };
@@ -1056,14 +1056,9 @@ export class AnalyticsService {
               },
             });
             totalUsers = userCount;
-            countryDistribution['FR'] = Math.round(totalUsers * 0.35);
-            countryDistribution['US'] = Math.round(totalUsers * 0.25);
-            countryDistribution['GB'] = Math.round(totalUsers * 0.15);
-            countryDistribution['DE'] = Math.round(totalUsers * 0.10);
-            countryDistribution['ES'] = Math.round(totalUsers * 0.08);
-            countryDistribution['IT'] = Math.round(totalUsers * 0.07);
-            // Recalculer totalUsers après avoir ajouté les estimations
-            totalUsers = Object.values(countryDistribution).reduce((sum, count) => sum + count, 0);
+            // Without attribution data, report total users without country breakdown
+            // Country distribution will be empty until analytics tracking is enabled
+            countryDistribution['Inconnu'] = totalUsers;
           }
 
           // ✅ Drapeaux et noms de pays avec typage strict

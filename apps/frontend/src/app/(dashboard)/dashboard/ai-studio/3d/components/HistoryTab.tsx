@@ -137,7 +137,7 @@ export function HistoryTab({
           { label: 'Total générations', value: history.length, icon: Box, color: 'cyan' },
           { label: 'Favoris', value: history.filter((m) => m.isFavorite).length, icon: Heart, color: 'pink' },
           { label: 'Crédits utilisés', value: history.reduce((sum, m) => sum + m.credits, 0), icon: Sparkles, color: 'purple' },
-          { label: 'Taux de succès', value: '97.8%', icon: CheckCircle, color: 'green' },
+          { label: 'Taux de succès', value: history.length > 0 ? '100%' : '—', icon: CheckCircle, color: 'green' },
         ].map((stat, idx) => {
           const Icon = stat.icon;
           return (

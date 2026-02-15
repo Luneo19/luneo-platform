@@ -32,17 +32,17 @@ const ADVANCED_TOOLS = [
 ];
 
 const PERFORMANCE_METRICS = [
-  { metric: 'Temps de réponse moyen', value: '2.5 min', target: '< 5 min', status: 'good' as const, icon: Gauge },
-  { metric: 'Taux de résolution', value: '95%', target: '> 90%', status: 'excellent' as const, icon: TrendingUp },
-  { metric: 'Satisfaction client', value: '4.8/5', target: '> 4.5', status: 'excellent' as const, icon: Star },
-  { metric: 'Uptime', value: '99.9%', target: '> 99.5%', status: 'excellent' as const, icon: Activity },
+  { metric: 'Temps de réponse moyen', value: '—', target: '< 5 min', status: 'good' as const, icon: Gauge },
+  { metric: 'Taux de résolution', value: '—', target: '> 90%', status: 'good' as const, icon: TrendingUp },
+  { metric: 'Satisfaction client', value: '—', target: '> 4.5', status: 'good' as const, icon: Star },
+  { metric: 'Uptime', value: '—', target: '> 99.5%', status: 'good' as const, icon: Activity },
 ];
 
 const SUPPORT_STATS = [
-  { label: 'Tickets ouverts', value: '45', icon: TicketIcon, color: 'cyan' as const },
-  { label: 'Tickets résolus', value: '234', icon: CheckCircle, color: 'green' as const },
-  { label: 'Agents actifs', value: '8', icon: Users, color: 'blue' as const },
-  { label: 'Temps moyen', value: '2.5h', icon: Clock, color: 'purple' as const },
+  { label: 'Tickets ouverts', value: '0', icon: TicketIcon, color: 'cyan' as const },
+  { label: 'Tickets résolus', value: '0', icon: CheckCircle, color: 'green' as const },
+  { label: 'Agents actifs', value: '—', icon: Users, color: 'blue' as const },
+  { label: 'Temps moyen', value: '—', icon: Clock, color: 'purple' as const },
 ];
 
 const QUALITY_STANDARDS = [
@@ -58,10 +58,10 @@ const AUTOMATION_RULES = [
 ];
 
 const ANALYTICS_METRICS = [
-  { label: 'Tickets résolus', value: '234', change: '+15%', icon: CheckCircle, trend: 'up' as const },
-  { label: 'Temps moyen', value: '2.5h', change: '-10%', icon: Clock, trend: 'up' as const },
-  { label: 'Satisfaction', value: '4.8/5', change: '+5%', icon: Star, trend: 'up' as const },
-  { label: 'Taux de résolution', value: '95%', change: '+3%', icon: Target, trend: 'up' as const },
+  { label: 'Tickets résolus', value: '0', change: '—', icon: CheckCircle, trend: 'up' as const },
+  { label: 'Temps moyen', value: '—', change: '—', icon: Clock, trend: 'up' as const },
+  { label: 'Satisfaction', value: '—', change: '—', icon: Star, trend: 'up' as const },
+  { label: 'Taux de résolution', value: '—', change: '—', icon: Target, trend: 'up' as const },
 ];
 
 export function SupportFeatureSections() {

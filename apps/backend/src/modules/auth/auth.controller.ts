@@ -212,6 +212,7 @@ export class AuthController {
       return res.status(HttpStatus.OK).json({
         user: result.user,
         success: true,
+        ...('requires2FASetup' in result && result.requires2FASetup ? { requires2FASetup: true } : {}),
       });
     }
     

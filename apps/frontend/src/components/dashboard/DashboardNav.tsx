@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
   LayoutDashboard, 
@@ -82,6 +83,10 @@ const navigationItems = [
 function DashboardNavContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { user } = useAuth();
+  const userInitials = user
+    ? `${(user.firstName || '')[0] || ''}${(user.lastName || '')[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'
+    : '?';
 
   const toggleMenu = useCallback(() => {
     setIsMenuOpen((prev) => !prev);
@@ -144,7 +149,7 @@ function DashboardNavContent() {
 
             {/* User Avatar */}
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-medium text-sm">JD</span>
+              <span className="text-white font-medium text-sm">{userInitials}</span>
             </div>
 
             {/* Mobile menu button */}

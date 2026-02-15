@@ -6,7 +6,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-export const COMMISSION_RATE = 20; // 20% commission
+// Default commission rate - actual rate depends on user's referral tier (fetched from API)
+export const DEFAULT_COMMISSION_RATE = 20; // 20% base commission (Bronze tier)
 export const MIN_PAYOUT_THRESHOLD = 50; // €50 minimum
 
 export const STATUS_CONFIG: Record<

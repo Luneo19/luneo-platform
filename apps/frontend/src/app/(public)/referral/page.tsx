@@ -45,11 +45,7 @@ const tiers = [
   { min: 30, max: Infinity, label: 'Diamant', commission: 35, icon: '💎' },
 ];
 
-const STATS_CARDS = [
-  { label: 'Affiliés actifs', value: '2,847', icon: Users },
-  { label: 'Commissions versées', value: '€487K', icon: Coins },
-  { label: 'Commission moyenne', value: '€342/mois', icon: TrendingUp },
-];
+// Stats are derived from the referral API response — no hardcoded marketing numbers
 
 function ReferralPageContent() {
   const { t } = useI18n();
@@ -137,21 +133,31 @@ function ReferralPageContent() {
             Partagez Luneo avec votre réseau et recevez des commissions récurrentes sur chaque abonnement généré.
           </motion>
 
-          {/* Stats */}
-          <motion
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-12"
-          >
-            {STATS_CARDS.map((stat) => (
-              <Card key={stat.label} className="p-6 bg-gray-800/50 border-gray-700">
-                <stat.icon className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
-                <p className="text-sm text-gray-400">{stat.label}</p>
+          {/* Stats — dynamiques depuis l'API */}
+          {stats && (
+            <motion
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-12"
+            >
+              <Card className="p-6 bg-gray-800/50 border-gray-700">
+                <Users className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-white">{stats.activeReferrals}</p>
+                <p className="text-sm text-gray-400">Filleuls actifs</p>
               </Card>
-            ))}
-          </motion>
+              <Card className="p-6 bg-gray-800/50 border-gray-700">
+                <Coins className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-white">€{((stats.totalEarnings || 0) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}</p>
+                <p className="text-sm text-gray-400">Total gagné</p>
+              </Card>
+              <Card className="p-6 bg-gray-800/50 border-gray-700">
+                <TrendingUp className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-white">€{((stats.pendingEarnings || 0) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}</p>
+                <p className="text-sm text-gray-400">En attente</p>
+              </Card>
+            </motion>
+          )}
 
           {/* CTA Form */}
           <motion

@@ -216,8 +216,9 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       ];
 
       // Activité récente (combiner designs et orders)
+      // Add null checks to prevent "Cannot read properties of undefined (reading 'length')" error
       const recentActivity: RecentActivity[] = [
-        ...apiData.recent.designs.slice(0, 3).map((design) => ({
+        ...(Array.isArray(apiData.recent.designs) ? apiData.recent.designs.slice(0, 3) : []).map((design) => ({
           id: design.id,
           type: 'design',
           title: design.prompt || 'Design créé',
@@ -226,7 +227,7 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
           status: design.status,
           image: design.preview_url,
         })),
-        ...apiData.recent.orders.slice(0, 2).map((order) => ({
+        ...(Array.isArray(apiData.recent.orders) ? apiData.recent.orders.slice(0, 2) : []).map((order) => ({
           id: order.id,
           type: 'order',
           title: `Commande ${order.status}`,
@@ -238,7 +239,7 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
 
       // Top designs (utiliser les designs récents)
       // DASHBOARD FIX: MED-012/013 - views/likes need to be wired to real analytics endpoints (usage_tracking or design-level stats API)
-      const topDesigns: TopDesign[] = apiData.recent.designs.slice(0, 5).map((design) => ({
+      const topDesigns: TopDesign[] = (Array.isArray(apiData.recent.designs) ? apiData.recent.designs.slice(0, 5) : []).map((design) => ({
         id: design.id,
         title: design.prompt || 'Design sans titre',
         image: design.preview_url || '/placeholder-design.svg',

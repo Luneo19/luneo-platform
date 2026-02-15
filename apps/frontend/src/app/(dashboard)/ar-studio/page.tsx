@@ -69,7 +69,7 @@ function ARStudioPageContent() {
       const result = await api.get<ARModelsApiResponse>('/api/v1/ar-studio/models');
       const apiModels: unknown[] = result?.data?.models ?? result?.models ?? [];
       interface ApiARModel {
-        id: string;
+        id?: string;
         name?: string;
         category?: string;
         type?: string;
@@ -91,18 +91,21 @@ function ARStudioPageContent() {
         createdAt?: string;
         created_at?: string;
       }
-      const transformedModels: ARModel[] = (apiModels as ApiARModel[]).map((model) => ({
-        id: model.id,
-        name: model.name || 'Modèle sans nom',
-        type: (model.category || model.type || 'other') as ARModel['type'],
-        thumbnail: model.thumbnailUrl || model.thumbnail_url || model.previewUrl || model.preview_url || model.modelUrl || model.model_url || '/placeholder-model.svg',
-        fileSize: model.fileSize ? `${(model.fileSize / 1024 / 1024).toFixed(1)} MB` : model.file_size ? `${(model.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
-        format: (model.usdzUrl || model.usdz_url) ? 'Both' : 'GLB',
-        status: (model.status || 'active') as ARModel['status'],
-        views: model.viewsCount || model.views_count || 0,
-        tryOns: model.tryOnsCount || model.try_ons_count || 0,
-        createdAt: model.createdAt || model.created_at || new Date().toISOString(),
-      }));
+      const transformedModels: ARModel[] = (Array.isArray(apiModels) ? apiModels : []).map((model: unknown) => {
+        const m = (model && typeof model === 'object') ? model as ApiARModel : {};
+        return {
+          id: m?.id || `model-${Date.now()}-${Math.random()}`,
+          name: m?.name || 'Modèle sans nom',
+          type: (m?.category || m?.type || 'other') as ARModel['type'],
+          thumbnail: m?.thumbnailUrl || m?.thumbnail_url || m?.previewUrl || m?.preview_url || m?.modelUrl || m?.model_url || '/placeholder-model.svg',
+          fileSize: typeof m?.fileSize === 'number' ? `${(m.fileSize / 1024 / 1024).toFixed(1)} MB` : (typeof m?.file_size === 'number' ? `${(m.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB'),
+          format: (m?.usdzUrl || m?.usdz_url) ? 'Both' : 'GLB',
+          status: (m?.status || 'active') as ARModel['status'],
+          views: typeof m?.viewsCount === 'number' ? m.viewsCount : (typeof m?.views_count === 'number' ? m.views_count : 0),
+          tryOns: typeof m?.tryOnsCount === 'number' ? m.tryOnsCount : (typeof m?.try_ons_count === 'number' ? m.try_ons_count : 0),
+          createdAt: m?.createdAt || m?.created_at || new Date().toISOString(),
+        };
+      });
       
       setModels(transformedModels);
     } catch (error: unknown) {
@@ -116,6 +119,7 @@ function ARStudioPageContent() {
         description: errorMessage,
         variant: 'destructive',
       });
+      setModels([]);
     } finally {
       setLoading(false);
     }
@@ -192,11 +196,13 @@ function ARStudioPageContent() {
   const handleExport = async (modelId: string, format: string) => {
     try {
       const response = await api.post('/api/v1/render/export', { modelId, format });
-      const raw = response as Record<string, unknown>;
-      const downloadUrl = String(raw.downloadUrl ?? raw.url ?? raw.fileUrl ?? '');
+      const raw = response && typeof response === 'object' ? response as Record<string, unknown> : {};
+      const downloadUrl = typeof raw.downloadUrl === 'string' ? raw.downloadUrl : (typeof raw.url === 'string' ? raw.url : (typeof raw.fileUrl === 'string' ? raw.fileUrl : ''));
 
       if (downloadUrl) {
         window.open(downloadUrl, '_blank');
+      } else {
+        toast({ title: t('common.error'), description: 'No download URL received', variant: 'destructive' });
       }
 
       toast({ title: t('common.success'), description: t('arStudio.exportSuccessTitle') });
@@ -348,7 +354,7 @@ function ARStudioPageContent() {
       <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
         {filteredModels.map((model, index) => (
           <motion
-            key={model.id}
+            key={model?.id || `model-${index}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
@@ -360,22 +366,22 @@ function ARStudioPageContent() {
                   <Box className="w-16 h-16 text-white/20" />
                 </div>
                 <div className="absolute top-2 right-2 flex gap-2">
-                  {getStatusBadge(model.status)}
+                  {getStatusBadge(model?.status || 'active')}
                 </div>
               </div>
 
               {/* Info */}
               <div className="mb-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-lg font-bold text-white">{model.name}</h3>
+                  <h3 className="text-lg font-bold text-white">{model?.name || 'Unnamed Model'}</h3>
                   <div className="text-purple-400">
-                    {getTypeIcon(model.type)}
+                    {getTypeIcon(model?.type || 'other')}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-white/60">
-                  <span>{model.fileSize}</span>
+                  <span>{model?.fileSize || '0 MB'}</span>
                   <span>•</span>
-                  <span>{model.format}</span>
+                  <span>{model?.format || 'GLB'}</span>
                 </div>
               </div>
 
@@ -383,11 +389,11 @@ function ARStudioPageContent() {
               <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
                 <div>
                   <p className="text-xs text-white/40 mb-1">Vues</p>
-                  <p className="text-white font-bold">{model.views}</p>
+                  <p className="text-white font-bold">{model?.views ?? 0}</p>
                 </div>
                 <div>
                   <p className="text-xs text-white/40 mb-1">Essais</p>
-                  <p className="text-white font-bold">{model.tryOns}</p>
+                  <p className="text-white font-bold">{model?.tryOns ?? 0}</p>
                 </div>
               </div>
 
@@ -397,8 +403,10 @@ function ARStudioPageContent() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setSelectedModel(model);
-                    setShowPreview(true);
+                    if (model) {
+                      setSelectedModel(model);
+                      setShowPreview(true);
+                    }
                   }}
                   className="flex-1 border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
@@ -408,7 +416,7 @@ function ARStudioPageContent() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleExport(model.id, model.format)}
+                  onClick={() => model && handleExport(model.id, model.format)}
                   className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Download className="w-4 h-4" />
@@ -416,7 +424,7 @@ function ARStudioPageContent() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleCopyEmbed(model.id)}
+                  onClick={() => model && handleCopyEmbed(model.id)}
                   className="border-white/[0.08] text-white hover:bg-white/[0.04]"
                 >
                   <Copy className="w-4 h-4" />
@@ -424,7 +432,7 @@ function ARStudioPageContent() {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleDelete(model.id, model.name)}
+                  onClick={() => model && handleDelete(model.id, model.name)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>

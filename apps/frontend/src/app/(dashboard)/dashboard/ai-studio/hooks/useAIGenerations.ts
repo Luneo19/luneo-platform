@@ -27,22 +27,26 @@ export function useAIGenerations(
   });
 
   useEffect(() => {
-    if (generationsQuery.data?.designs) {
-      type DesignLike = { id: string; prompt?: string; name?: string; url?: string; createdAt?: string | Date; style?: string };
-      const transformed: Generation[] = (generationsQuery.data.designs as DesignLike[]).map((g) => ({
-        id: g.id,
-        type: type, // Use active tab type
-        prompt: g.prompt || g.name || '',
-        status: 'completed' as GenerationStatus, // Assume completed for existing designs
-        result: g.url || '',
-        thumbnail: g.url || '',
-        createdAt: g.createdAt ? new Date(g.createdAt) : new Date(),
-        credits: 10, // Default credits
-        model: g.style === 'photorealistic' ? 'dall-e-3' : 'midjourney',
-        parameters: { style: g.style },
-        revisedPrompt: undefined,
-      }));
+    if (generationsQuery.data?.designs && Array.isArray(generationsQuery.data.designs)) {
+      type DesignLike = { id?: string; prompt?: string; name?: string; url?: string; createdAt?: string | Date; style?: string };
+      const transformed: Generation[] = (generationsQuery.data.designs as DesignLike[])
+        .filter((g): g is DesignLike => g != null && typeof g === 'object')
+        .map((g) => ({
+          id: g?.id || `gen-${Date.now()}-${Math.random()}`,
+          type: type, // Use active tab type
+          prompt: g?.prompt || g?.name || '',
+          status: 'completed' as GenerationStatus, // Assume completed for existing designs
+          result: g?.url || '',
+          thumbnail: g?.url || '',
+          createdAt: g?.createdAt ? new Date(g.createdAt) : new Date(),
+          credits: 10, // Default credits
+          model: g?.style === 'photorealistic' ? 'dall-e-3' : 'midjourney',
+          parameters: { style: g?.style },
+          revisedPrompt: undefined,
+        }));
       setGenerations(transformed);
+    } else {
+      setGenerations([]);
     }
   }, [generationsQuery.data, type]);
 

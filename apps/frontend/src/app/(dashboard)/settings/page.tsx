@@ -303,7 +303,7 @@ function SettingsPageContent() {
             <div className="flex items-center gap-6 mb-6">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-3xl font-bold text-white">
-                  {profile.name.charAt(0)}
+                  {(profile.name || 'U').charAt(0).toUpperCase()}
                 </div>
                 <button className="absolute bottom-0 right-0 p-2 bg-purple-600 rounded-full hover:bg-purple-500 transition-colors">
                   <Camera className="w-4 h-4 text-white" />

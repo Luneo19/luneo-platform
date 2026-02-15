@@ -6,11 +6,11 @@ import { TrendingDown, Shield, Zap } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 
 const COMMISSION_TIERS = [
-  { plan: 'Free', rate: 15, color: 'text-gray-400', badge: 'bg-gray-800' },
-  { plan: 'Starter', rate: 12, color: 'text-blue-400', badge: 'bg-blue-900/50' },
-  { plan: 'Professional', rate: 10, color: 'text-purple-400', badge: 'bg-purple-900/50' },
-  { plan: 'Business', rate: 7, color: 'text-amber-400', badge: 'bg-amber-900/50' },
-  { plan: 'Enterprise', rate: 5, color: 'text-emerald-400', badge: 'bg-emerald-900/50' },
+  { plan: 'Free', rate: 10, color: 'text-gray-400', badge: 'bg-gray-800' },
+  { plan: 'Starter', rate: 5, color: 'text-blue-400', badge: 'bg-blue-900/50' },
+  { plan: 'Professional', rate: 3, color: 'text-purple-400', badge: 'bg-purple-900/50' },
+  { plan: 'Business', rate: 2, color: 'text-amber-400', badge: 'bg-amber-900/50' },
+  { plan: 'Enterprise', rate: 1, color: 'text-emerald-400', badge: 'bg-emerald-900/50' },
 ];
 
 function CommissionExample({ rate, saleAmount = 100, label }: { rate: number; saleAmount?: number; label: string }) {

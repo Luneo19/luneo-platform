@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authUrl, getAccessToken, getRefreshToken, setNoCacheHeaders } from '../_helpers';
+import { authUrl, getAccessToken, getRefreshToken, setNoCacheHeaders, rawHttpRequest } from '../_helpers';
 import { serverLogger } from '@/lib/logger-server';
 
 export const dynamic = 'force-dynamic';
@@ -12,14 +12,19 @@ export async function POST(req: NextRequest) {
     // Call backend logout (best-effort — invalidates refresh token in DB)
     if (token || refreshToken) {
       try {
-        await fetch(authUrl('logout'), {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (refreshToken) headers['Cookie'] = `refreshToken=${refreshToken}`;
+
+        const bodyStr = JSON.stringify({ refreshToken });
+        headers['Content-Length'] = Buffer.byteLength(bodyStr).toString();
+
+        await rawHttpRequest(authUrl('logout'), {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(refreshToken ? { Cookie: `refreshToken=${refreshToken}` } : {}),
-          },
-          body: JSON.stringify({ refreshToken }),
+          headers,
+          body: bodyStr,
         });
       } catch {
         // Ignore backend errors — we'll clear cookies regardless

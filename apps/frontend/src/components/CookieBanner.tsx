@@ -320,14 +320,13 @@ function CookieBannerContent() {
         </Card>
       </motion>
 
-      {/* Overlay */}
+      {/* Overlay - Non-blocking backdrop for visual effect only */}
       {showBanner && (
         <motion
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-          onClick={() => setShowBanner(false)}
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 pointer-events-none"
         />
       )}
     </AnimatePresence>

@@ -41,8 +41,9 @@ export default function AnalyticsPage() {
 
   // Transform revenueChart data for the RevenueChart component
   const revenueChartData = useMemo(() => {
-    if (!overview?.revenueChart) return [];
-    return overview.revenueChart.map((point) => ({
+    const chart = overview?.revenueChart;
+    if (!Array.isArray(chart)) return [];
+    return chart.map((point) => ({
       date: point.date,
       mrr: point.mrr,
       revenue: point.revenue,
@@ -52,8 +53,9 @@ export default function AnalyticsPage() {
 
   // Transform planDistribution for PieChartWidget { name, value, color? }
   const planDistributionData = useMemo(() => {
-    if (!overview?.planDistribution) return [];
-    return overview.planDistribution.map((plan) => ({
+    const dist = overview?.planDistribution;
+    if (!Array.isArray(dist)) return [];
+    return dist.map((plan) => ({
       name: plan.name,
       value: plan.count,
       color: PLAN_COLORS[plan.name] || '#9ca3af',
@@ -62,8 +64,9 @@ export default function AnalyticsPage() {
 
   // Transform acquisitionChannels for BarChartWidget { name, value }
   const acquisitionData = useMemo(() => {
-    if (!overview?.acquisitionChannels) return [];
-    return overview.acquisitionChannels.map((ch) => ({
+    const channels = overview?.acquisitionChannels;
+    if (!Array.isArray(channels)) return [];
+    return channels.map((ch) => ({
       name: ch.channel,
       value: ch.count,
     }));

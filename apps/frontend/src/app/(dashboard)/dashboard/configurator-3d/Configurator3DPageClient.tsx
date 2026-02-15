@@ -73,9 +73,11 @@ function Configurator3DPageContent() {
     endpoints.projects
       .list({ limit: 1 })
       .then((res) => {
-        const data = res?.data as { id: string }[] | undefined;
-        const first = Array.isArray(data) ? data[0] : undefined;
-        if (first?.id) setProjectId(first.id);
+        const data = res?.data as { id?: string }[] | undefined;
+        const first = Array.isArray(data) && data.length > 0 ? data[0] : undefined;
+        if (first && typeof first === 'object' && 'id' in first && typeof first.id === 'string') {
+          setProjectId(first.id);
+        }
       })
       .catch(() => {});
   }, []);
@@ -83,13 +85,15 @@ function Configurator3DPageContent() {
   useEffect(() => {
     if (!projectId) return;
     api
-      .get<{ data: { id: string }[] }>('/api/v1/configurator-3d/configurations', {
+      .get<{ data?: { id?: string }[] }>('/api/v1/configurator-3d/configurations', {
         params: { projectId, limit: 1 },
       })
       .then((res) => {
-        const list = (res as { data?: { id: string }[] })?.data ?? [];
-        const first = Array.isArray(list) ? list[0] : undefined;
-        if (first?.id) setSelectedConfigurationId(first.id);
+        const list = (res && typeof res === 'object' && 'data' in res) ? (res as { data?: { id?: string }[] }).data : undefined;
+        const first = Array.isArray(list) && list.length > 0 ? list[0] : undefined;
+        if (first && typeof first === 'object' && 'id' in first && typeof first.id === 'string') {
+          setSelectedConfigurationId(first.id);
+        }
       })
       .catch(() => {});
   }, [projectId]);
@@ -181,11 +185,11 @@ function Configurator3DPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           <div className="lg:col-span-2">
             <div className="bg-gray-800 rounded-lg p-4">
-              {configuration?.parts?.modelUrl ? (
+              {configuration?.parts?.modelUrl && typeof configuration.parts.modelUrl === 'string' ? (
                 <ProductConfigurator3D
-                  productId={selectedConfigurationId}
-                  projectId={projectId}
-                  modelUrl={configuration.parts.modelUrl as string}
+                  productId={selectedConfigurationId || ''}
+                  projectId={projectId || ''}
+                  modelUrl={configuration.parts.modelUrl}
                   onSave={handleSave}
                 />
               ) : (

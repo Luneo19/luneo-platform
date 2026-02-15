@@ -33,12 +33,16 @@ export function useCollections() {
 
   const fetchCollections = useCallback(async () => {
     try {
-      const result = await api.get<{ data?: { collections?: Collection[] }; collections?: Collection[] }>('/api/v1/collections');
+      const result = await api.get<{ data?: { collections?: Collection[] }; collections?: Collection[] }>('/api/v1/collections', {
+        timeout: 10000,
+      });
       const collectionsData = result?.data?.collections ?? result?.collections ?? [];
       setCollections(Array.isArray(collectionsData) ? collectionsData : []);
+      setError(null);
     } catch (err: unknown) {
       logger.error('Error fetching collections', err, { userId: 'current' });
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setCollections([]);
     } finally {
       setLoading(false);
     }
@@ -147,11 +151,13 @@ export function useCollection(collectionId: string | null) {
     const fetchCollection = async () => {
       try {
         type CollectionApiResponse = { data?: { collection?: CollectionWithDesigns; designs?: unknown[] }; collection?: CollectionWithDesigns; designs?: unknown[] };
-        const result = await api.get<CollectionApiResponse>(`/api/v1/collections/${collectionId}`);
+        const result = await api.get<CollectionApiResponse>(`/api/v1/collections/${collectionId}`, {
+          timeout: 10000,
+        });
         const collectionData = result?.data?.collection ?? result?.collection;
         const designsData = result?.data?.designs ?? result?.designs ?? [];
         const designs = Array.isArray(designsData) ? designsData : [];
-        if (collectionData) {
+        if (collectionData && typeof collectionData === 'object') {
           setCollection({ ...collectionData, designs } as CollectionWithDesigns);
         } else {
           setCollection(null);
@@ -159,6 +165,7 @@ export function useCollection(collectionId: string | null) {
       } catch (err: unknown) {
         logger.error('Error fetching collection', err, { collectionId });
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
+        setCollection(null);
       } finally {
         setLoading(false);
       }

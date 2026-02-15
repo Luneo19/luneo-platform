@@ -118,12 +118,9 @@ function ScrollRevealInner({
     willChange: isVisible ? 'auto' : 'opacity, transform',
   };
 
-  return (
-    <div ref={ref} style={{ display: 'contents' }}>
-      {/* Tag may be any intrinsic element; we only pass className/style/children for scroll-reveal usage */}
-      {React.createElement(Tag, { className, style, children } as React.Attributes & { className?: string; style?: React.CSSProperties })}
-    </div>
-  );
+  // FIX: ref must be on the animated element itself (not a display:contents wrapper)
+  // display:contents elements have a 0x0 bounding rect, breaking IntersectionObserver
+  return React.createElement(Tag, { ref, className, style, children } as React.Attributes & { ref?: React.Ref<HTMLDivElement>; className?: string; style?: React.CSSProperties });
 }
 
 export const ScrollReveal = memo(ScrollRevealInner);

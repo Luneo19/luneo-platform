@@ -131,20 +131,31 @@ function AdminDiscountsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchDiscounts = useCallback(async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       const params: Record<string, string> = { page: String(page), limit: String(limit) };
       if (statusFilter) params.status = statusFilter;
-      const res = await api.get<ListResponse>('/api/v1/admin/discounts', { params });
-      setData(res);
+      const res = await api.get<ListResponse>('/api/v1/admin/discounts', {
+        params,
+        timeout: 10000,
+      });
+      const listData = res?.data ?? [];
+      const listMeta = res?.meta;
+      setData({
+        data: Array.isArray(listData) ? listData : [],
+        meta: listMeta ?? { total: 0, page: 1, limit: 20, totalPages: 0 },
+      });
     } catch (error) {
       logger.error('Failed to fetch discounts', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
-      setData(null);
+      setFetchError(error instanceof Error ? error.message : 'Failed to load discounts');
+      setData({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
     } finally {
       setLoading(false);
     }
@@ -241,6 +252,17 @@ function AdminDiscountsPage() {
           {t('admin.discounts.createBtn')}
         </Button>
       </div>
+
+      {fetchError && (
+        <Card className="dash-card border-red-500/30 bg-red-500/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <span className="text-red-400">{fetchError}</span>
+            <Button variant="outline" size="sm" onClick={fetchDiscounts} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+              {t('common.retry')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
         <CardHeader>
