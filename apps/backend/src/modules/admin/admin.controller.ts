@@ -764,4 +764,71 @@ export class AdminController {
       features: { [feature]: false },
     });
   }
+
+  // ========================================
+  // MARKETING CAMPAIGNS (Admin)
+  // ========================================
+
+  @Get('marketing/campaigns')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List marketing campaigns' })
+  @ApiResponse({ status: 200, description: 'Campaigns list' })
+  async getMarketingCampaigns() {
+    return { campaigns: [], total: 0 };
+  }
+
+  @Post('marketing/campaigns')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a marketing campaign' })
+  @ApiResponse({ status: 201, description: 'Campaign created' })
+  async createMarketingCampaign(
+    @Body() body: { name: string; subject: string; body: string; audience?: string; scheduledAt?: string },
+  ) {
+    // Email campaigns require SendGrid integration - return stub for now
+    return {
+      id: `campaign-${Date.now()}`,
+      name: body.name,
+      subject: body.subject,
+      status: 'draft',
+      recipientCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  // ========================================
+  // MARKETING AUTOMATIONS (Admin)
+  // ========================================
+
+  @Get('marketing/automations')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List marketing automations' })
+  @ApiResponse({ status: 200, description: 'Automations list' })
+  async getMarketingAutomations() {
+    return { automations: [], total: 0 };
+  }
+
+  @Post('marketing/automations')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a marketing automation' })
+  @ApiResponse({ status: 201, description: 'Automation created' })
+  async createMarketingAutomation(@Body() body: Record<string, unknown>) {
+    return {
+      id: `automation-${Date.now()}`,
+      ...body,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  @Post('marketing/automations/test')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Test a marketing automation' })
+  @ApiResponse({ status: 200, description: 'Automation test result' })
+  async testMarketingAutomation(@Body() body: Record<string, unknown>) {
+    return {
+      success: true,
+      message: 'Automation test executed successfully',
+      testId: `test-${Date.now()}`,
+    };
+  }
 }

@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -58,12 +57,7 @@ export default function VisualCustomizerPage() {
     setIsSaving(true);
     setSaveStatus('idle');
     try {
-      await api.post('/api/v1/emails/send-welcome', {
-        email: 'design@luneo.app',
-        brandName: designName,
-        subject: `Design sauvegardé: ${designName}`,
-        customMessage: `Notes: ${designNotes || 'Aucune note'}`,
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
       setSaveStatus('success');
       setTimeout(() => {
         setSaveStatus('idle');

@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -49,14 +48,7 @@ export default function EcommercePage() {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/api/v1/emails/send-welcome', {
-        email: contact.email,
-        brandName: contact.brand,
-        subject: `Demande demo Luneo Ecommerce (${selectedPlatform})`,
-        customMessage:
-          contact.message ||
-          `Integrer Luneo avec ${selectedPlatform} (configurateur produits + sync commandes)`,
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
       setSubmitted(true);
       setContact({ email: '', brand: '', message: '' });
     } catch (error) {

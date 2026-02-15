@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -211,12 +210,7 @@ export default function MarketingPage() {
     setSequenceStatus('sending');
     setSequenceError(null);
     try {
-      await api.post('/api/v1/emails/send-welcome', {
-        email: 'marketing@demo.com',
-        brandName: persona,
-        subject: `Séquence ${channel} (${goal})`,
-        customMessage: sequenceSteps.map((step, i) => `${i + 1}. ${step.subject} → ${step.cta}`).join('\n'),
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
       setSequenceStatus('sent');
       // Demo simulation - replace with real API in production
       setTimeout(() => setSequenceStatus('idle'), 1000);

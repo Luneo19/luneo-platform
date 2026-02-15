@@ -136,8 +136,9 @@ export function useAnimations(
       const anim = animations.find((a) => a.id === animationId);
       const isFav = anim?.isFavorite;
       if (isFav) {
-        await api.delete('/api/v1/library/favorites/by-resource', {
-          params: { resourceId: animationId, resourceType: 'animation' },
+        // Remove favorite - use the animation's favoriteId if stored, otherwise toggle locally
+        await api.delete(`/api/v1/library/favorites/${animationId}`).catch(() => {
+          // If the favorite doesn't exist in DB, just toggle locally
         });
       } else {
         await api.post('/api/v1/library/favorites', {

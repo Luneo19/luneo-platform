@@ -19,7 +19,7 @@ export function useSecuritySettings() {
     async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
       try {
         setIsChangingPassword(true);
-        await api.put('/api/v1/auth/change-password', {
+        await api.put('/api/v1/users/me/password', {
           currentPassword,
           newPassword,
         });

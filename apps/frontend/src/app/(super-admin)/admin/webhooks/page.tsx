@@ -78,7 +78,7 @@ export default function WebhooksPage() {
   const handleSaveEdit = async () => {
     if (!editingWebhook) return;
     try {
-      await api.put(`/api/v1/public-api/webhooks/${editingWebhook.id}`, {
+      await api.patch(`/api/v1/admin/webhooks/${editingWebhook.id}`, {
         name: editName,
         url: editUrl,
         isActive: editActive,

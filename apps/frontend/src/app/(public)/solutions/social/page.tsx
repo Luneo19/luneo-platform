@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
@@ -208,12 +207,7 @@ ${platformGuidelines.hook}
     setApprovalError(null);
     setApprovalStatus('sending');
     try {
-      await api.post('/api/v1/emails/send-welcome', {
-        email: 'marketing@luneo.app',
-        brandName: selectedPlatform.name,
-        subject: `Approval ${selectedPlatform.name} (${goal})`,
-        customMessage: captionDraft,
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
       setApprovalStatus('sent');
       // Demo simulation - replace with real API in production
       setTimeout(() => setApprovalStatus('idle'), 1000);
@@ -244,12 +238,7 @@ ${platformGuidelines.hook}
     setCalendarStatus('syncing');
     setCalendarError(null);
     try {
-      await api.post('/api/v1/emails/send-welcome', {
-        email: 'scheduler@luneo.app',
-        brandName: 'SocialOps',
-        subject: 'Sync calendrier social',
-        customMessage: calendar.map((slot) => `${slot.day} ${slot.time} - ${slot.platform} (${slot.status})`).join('\n'),
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
       setCalendarStatus('synced');
       // Demo simulation - replace with real API in production
       setTimeout(() => setCalendarStatus('idle'), 1000);

@@ -28,7 +28,7 @@ export function PreferencesTab({ initialPreferences }: PreferencesTabProps) {
     await handleUpdateProfile({
       timezone: preferences.timezone,
     });
-    await api.patch('/api/v1/auth/me', {
+    await api.patch('/api/v1/users/me', {
       preferences: { theme: preferences.theme, locale: preferences.language },
     });
   };

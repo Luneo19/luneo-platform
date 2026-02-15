@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { logger } from '@/lib/logger';
-import { api } from '@/lib/api/client';
+import { useState, useCallback } from 'react';
 
 // Types
 interface SolutionFeature {
@@ -47,91 +45,46 @@ interface SolutionData {
 }
 
 /**
- * Hook pour récupérer les données d'une solution spécifique
+ * Hook pour récupérer les données d'une solution spécifique.
+ * Les pages solutions utilisent des données locales (constantes) comme fallback.
+ * Ce hook retourne null pour `data` car les solutions sont des pages marketing statiques.
+ * Les composants qui l'utilisent basculent automatiquement sur leurs données locales.
  */
 export function useSolutionData(solutionId: string) {
-  const [data, setData] = useState<SolutionData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data] = useState<SolutionData | null>(null);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
-    if (!solutionId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      type SolutionApiResponse = { success?: boolean; data?: SolutionData; error?: string };
-      const result = await api.get<SolutionApiResponse>(`/api/v1/public/solutions`, { params: { id: solutionId } });
-      if (result?.success === false) {
-        throw new Error(result?.error || 'Erreur lors du chargement des données');
-      }
-      const payload: SolutionData | null = result?.data ?? (result as unknown as SolutionData) ?? null;
-      setData(payload);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      logger.error('Erreur chargement données solution', {
-        error: err,
-        solutionId,
-        message: errorMessage,
-      });
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [solutionId]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const refresh = useCallback(() => {
+    // No-op: solution pages use local static data
+  }, []);
 
   return {
     data,
     loading,
     error,
-    refresh: loadData,
+    refresh,
   };
 }
 
 /**
- * Hook pour récupérer toutes les solutions
+ * Hook pour récupérer toutes les solutions.
+ * Les solutions sont des pages marketing statiques — pas de données dynamiques requises.
  */
 export function useAllSolutions() {
-  const [data, setData] = useState<SolutionData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data] = useState<SolutionData[]>([]);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const result = await api.get<{ success?: boolean; data?: SolutionData[]; error?: string }>('/api/v1/public/solutions');
-      if (result && (result as { success?: boolean }).success === false) {
-        throw new Error((result as { error?: string }).error || 'Erreur lors du chargement des solutions');
-      }
-      setData((result as { data?: SolutionData[] })?.data ?? []);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      logger.error('Erreur chargement toutes les solutions', {
-        error: err,
-        message: errorMessage,
-      });
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const refresh = useCallback(() => {
+    // No-op: solutions are static marketing pages
   }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   return {
     solutions: data,
     loading,
     error,
-    refresh: loadData,
+    refresh,
   };
 }
 

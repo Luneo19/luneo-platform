@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
+import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import { Smartphone } from 'lucide-react';
 import { logger } from '@/lib/logger';
@@ -89,6 +90,12 @@ function ViewInARContent({
 
   return (
     <div className="space-y-4">
+      {/* Load model-viewer script on-demand (only when AR component is rendered) */}
+      <Script
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"
+        type="module"
+        strategy="lazyOnload"
+      />
       {/* model-viewer for WebXR */}
       {!deviceInfo.isIOS && !deviceInfo.isAndroid && (
         <div 

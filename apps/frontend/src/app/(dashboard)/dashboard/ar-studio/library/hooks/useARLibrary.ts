@@ -81,7 +81,10 @@ export function useARLibrary(
 
   const toggleFavorite = async (modelId: string) => {
     try {
-      await api.post(`/api/v1/ar-studio/models/${modelId}/favorite`);
+      await api.post('/api/v1/library/favorites', {
+        resourceId: modelId,
+        resourceType: 'ar-model',
+      });
       setModels((prev) =>
         prev.map((m) => (m.id === modelId ? { ...m, isFavorite: !m.isFavorite } : m))
       );

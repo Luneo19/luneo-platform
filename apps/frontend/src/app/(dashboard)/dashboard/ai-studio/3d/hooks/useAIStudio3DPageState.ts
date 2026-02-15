@@ -149,7 +149,7 @@ export function useAIStudio3DPageState() {
       });
     }, 500);
     try {
-      const response = await api.post('/api/v1/generation', {
+      const response = await api.post('/api/v1/generation/dashboard/create', {
         prompt,
         type: '3d',
         templateId: undefined,
