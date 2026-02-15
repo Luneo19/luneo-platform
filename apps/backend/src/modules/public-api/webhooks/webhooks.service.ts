@@ -307,13 +307,15 @@ export class WebhookService {
       throw new NotFoundException(`Webhook with ID ${webhookId} not found`);
     }
 
-    const skip = (page - 1) * limit;
+    const p = Number(page) || 1;
+    const l = Math.min(Number(limit) || 20, 100);
+    const skip = (p - 1) * l;
 
     const [logs, total] = await Promise.all([
       this.prisma.webhookLog.findMany({
         where: { webhookId },
         skip,
-        take: limit,
+        take: l,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.webhookLog.count({
@@ -324,10 +326,10 @@ export class WebhookService {
     return {
       data: logs,
       pagination: {
-        page,
-        limit,
+        page: p,
+        limit: l,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / l),
       },
     };
   }
@@ -394,16 +396,17 @@ export class WebhookService {
       pages: number;
     };
   }> {
-    const skip = (page - 1) * limit;
+    const p = Number(page) || 1;
+    const l = Math.min(Number(limit) || 20, 100);
+    const skip = (p - 1) * l;
 
-    // Utiliser WebhookLog au lieu de Webhook car Webhook n'a pas ces champs
     const [webhooks, total] = await Promise.all([
       this.prisma.webhookLog.findMany({
         where: { 
           webhook: { brandId },
         },
         skip,
-        take: limit,
+        take: l,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -423,10 +426,10 @@ export class WebhookService {
     return {
       data: webhooks,
       pagination: {
-        page,
-        limit,
+        page: p,
+        limit: l,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / l),
       },
     };
   }
@@ -612,28 +615,32 @@ export class WebhookService {
    * Get webhook logs (admin — no brand scoping)
    */
   async getWebhookLogsAdmin(webhookId: string, page: number = 1, limit: number = 20) {
-    const skip = (page - 1) * limit;
+    const p = Number(page) || 1;
+    const l = Math.min(Number(limit) || 20, 100);
+    const skip = (p - 1) * l;
     const [logs, total] = await Promise.all([
       this.prisma.webhookLog.findMany({
         where: { webhookId },
         skip,
-        take: limit,
+        take: l,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.webhookLog.count({ where: { webhookId } }),
     ]);
-    return { data: logs, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+    return { data: logs, pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) } };
   }
 
   /**
    * Get ALL webhook delivery history (admin — cross-brand)
    */
   async getWebhookHistoryAdmin(page: number = 1, limit: number = 20) {
-    const skip = (page - 1) * limit;
+    const p = Number(page) || 1;
+    const l = Math.min(Number(limit) || 20, 100);
+    const skip = (p - 1) * l;
     const [logs, total] = await Promise.all([
       this.prisma.webhookLog.findMany({
         skip,
-        take: limit,
+        take: l,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -647,6 +654,6 @@ export class WebhookService {
       }),
       this.prisma.webhookLog.count(),
     ]);
-    return { data: logs, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+    return { data: logs, pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) } };
   }
 }
