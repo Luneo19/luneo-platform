@@ -48,7 +48,13 @@ function AIStudio3DPageContent() {
       </Tabs>
       <ModelDetailDialog open={s.showDetailDialog} onOpenChange={s.setShowDetailDialog} model={s.selectedModel} onExportClick={s.openExportDialog} />
       <PreviewDialog open={s.showPreviewDialog} onOpenChange={s.setShowPreviewDialog} model={s.selectedModel} onExportClick={s.openExportDialog} />
-      <ExportDialog open={s.showExportDialog} onOpenChange={s.setShowExportDialog} onExportConfirm={s.toast} />
+      <ExportDialog
+        open={s.showExportDialog}
+        onOpenChange={s.setShowExportDialog}
+        onExportConfirm={s.toast}
+        modelId={s.selectedModel?.id}
+        modelUrl={s.selectedModel?.modelUrl || s.selectedModel?.thumbnailUrl}
+      />
       <FloatingPanels credits={s.credits} />
     </div>
   );

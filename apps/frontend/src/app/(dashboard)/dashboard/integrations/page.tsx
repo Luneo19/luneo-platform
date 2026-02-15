@@ -211,7 +211,7 @@ const PLATFORMS = [
     icon: '🏬',
     description: 'Boutique Magento',
     features: ['Produits', 'Commandes', 'Clients'],
-    comingSoon: true,
+    comingSoon: false, // Requires configuration
   },
 ];
 
@@ -538,14 +538,14 @@ function IntegrationsPageContent() {
                   className={`
                     p-4 rounded-xl border text-left transition-all relative cursor-pointer
                     ${platform.comingSoon
-                      ? 'border-slate-700 bg-slate-800/30 cursor-not-allowed opacity-60'
+                      ? 'border-slate-700 bg-slate-800/30 cursor-pointer opacity-100'
                       : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                     }
                   `}
                 >
                   {platform.comingSoon && (
                     <Badge className="absolute top-2 right-2 bg-slate-700">
-                      Bientôt
+                      Configuration requise
                     </Badge>
                   )}
                   <div className="text-3xl mb-2">{platform.icon}</div>

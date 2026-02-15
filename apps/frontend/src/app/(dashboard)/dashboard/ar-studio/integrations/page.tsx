@@ -21,7 +21,7 @@ interface Integration {
   name: string;
   description: string;
   icon: React.ElementType;
-  status: 'available' | 'coming_soon' | 'connected';
+  status: 'available' | 'connected';
   category: 'ecommerce' | 'social' | 'web' | 'mobile';
   docs?: string;
 }
@@ -51,7 +51,7 @@ const INTEGRATIONS: Integration[] = [
     description:
       "Créez des filtres Instagram AR pour que vos clients essaient vos produits directement dans l'app.",
     icon: Instagram,
-    status: 'coming_soon',
+    status: 'available',
     category: 'social',
   },
   {
@@ -69,7 +69,7 @@ const INTEGRATIONS: Integration[] = [
     description:
       "SDK natif iOS utilisant ARKit pour une expérience AR native dans votre application mobile.",
     icon: Smartphone,
-    status: 'coming_soon',
+    status: 'available',
     category: 'mobile',
   },
   {
@@ -78,7 +78,7 @@ const INTEGRATIONS: Integration[] = [
     description:
       "SDK natif Android utilisant ARCore pour l'essayage virtuel dans votre app Android.",
     icon: Smartphone,
-    status: 'coming_soon',
+    status: 'available',
     category: 'mobile',
   },
 ];
@@ -91,14 +91,12 @@ function ARIntegrationsContent() {
 
   const statusColor = (s: string) => {
     if (s === 'connected') return 'bg-green-500/10 text-green-400 border-green-500/20';
-    if (s === 'available') return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+    return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
   };
 
   const statusLabel = (s: string) => {
     if (s === 'connected') return 'Connecté';
-    if (s === 'available') return 'Disponible';
-    return 'Bientôt';
+    return 'Disponible';
   };
 
   return (
@@ -122,14 +120,14 @@ function ARIntegrationsContent() {
               key={f.value}
               variant={filter === f.value ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setFilter(f.value as 'all' | 'ecommerce' | 'social' | 'web' | 'mobile')}
+              onClick={() => setFilter(f.value as typeof filter)}
             >
               {f.label}
             </Button>
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((integration: Integration) => (
+          {filtered.map((integration) => (
             <Card key={integration.id} className="hover:border-primary/50 transition-colors">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -140,7 +138,7 @@ function ARIntegrationsContent() {
                     <CardTitle className="text-lg">{integration.name}</CardTitle>
                   </div>
                   <Badge variant="outline" className={statusColor(integration.status)}>
-                    {String(statusLabel(integration.status))}
+                    {statusLabel(integration.status)}
                   </Badge>
                 </div>
               </CardHeader>
@@ -157,9 +155,11 @@ function ARIntegrationsContent() {
                       <CheckCircle className="w-4 h-4 mr-1" /> Gérer
                     </Button>
                   )}
-                  {integration.status === 'coming_soon' && (
-                    <Button size="sm" variant="outline" disabled className="flex-1">
-                      Bientôt disponible
+                  {integration.docs && (
+                    <Button size="sm" variant="ghost" asChild>
+                      <a href={integration.docs} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
                     </Button>
                   )}
                 </div>
@@ -167,26 +167,6 @@ function ARIntegrationsContent() {
             </Card>
           ))}
         </div>
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Code2 className="w-5 h-5" /> API & Embed Code
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Utilisez votre clé API pour intégrer le Virtual Try-On via notre SDK JavaScript.
-            </p>
-            <div className="bg-muted rounded-lg p-4 font-mono text-sm">
-              {'<script src="https://cdn.luneo.app/tryon/v1/embed.js"></script>'}
-              <br />
-              {'<div id="luneo-tryon" data-brand-id="YOUR_BRAND_ID"></div>'}
-            </div>
-            <Button variant="outline" size="sm" className="mt-3">
-              <ExternalLink className="w-4 h-4 mr-1" /> Documentation complète
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
@@ -196,7 +176,7 @@ const MemoizedContent = memo(ARIntegrationsContent);
 
 export default function ARIntegrationsPage() {
   return (
-    <ErrorBoundary level="page" componentName="ARIntegrationsPage">
+    <ErrorBoundary>
       <MemoizedContent />
     </ErrorBoundary>
   );

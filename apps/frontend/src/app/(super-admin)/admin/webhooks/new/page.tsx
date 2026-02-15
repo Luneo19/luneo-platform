@@ -6,21 +6,63 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Webhook } from 'lucide-react';
+import { ArrowLeft, Webhook, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { endpoints } from '@/lib/api/client';
+import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 
 export default function NewWebhookPage() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [url, setUrl] = useState('');
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder: backend endpoint not implemented yet
-    alert('Webhook creation is not available yet. Backend endpoint will be added later.');
+    
+    if (!url.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Webhook URL is required',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await endpoints.webhooks.create({
+        name: name.trim() || `Webhook ${new Date().toLocaleDateString()}`,
+        url: url.trim(),
+        events: ['*'], // Subscribe to all events by default
+        isActive: true,
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Webhook created successfully',
+      });
+
+      router.push('/admin/webhooks');
+    } catch (error) {
+      logger.error('Failed to create webhook', error instanceof Error ? error : new Error(String(error)));
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: getErrorDisplayMessage(error),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -46,14 +88,27 @@ export default function NewWebhookPage() {
             Webhook details
           </CardTitle>
           <CardDescription className="text-zinc-400">
-            URL and optional description. Backend API for creating webhooks is not yet available.
+            Configure a new webhook endpoint to receive real-time events from Luneo.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
             <div className="space-y-2">
+              <Label htmlFor="name" className="text-zinc-300">
+                Webhook Name
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="e.g. Production Events"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="url" className="text-zinc-300">
-                Endpoint URL
+                Endpoint URL *
               </Label>
               <Input
                 id="url"
@@ -61,6 +116,7 @@ export default function NewWebhookPage() {
                 placeholder="https://your-server.com/webhooks/luneo"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                required
                 className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
@@ -78,11 +134,18 @@ export default function NewWebhookPage() {
               />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled>
-                Create webhook (coming soon)
+              <Button type="submit" disabled={isSubmitting || !url.trim()}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create webhook'
+                )}
               </Button>
               <Link href="/admin/webhooks">
-                <Button type="button" variant="outline" className="border-zinc-600 text-zinc-400">
+                <Button type="button" variant="outline" className="border-zinc-600 text-zinc-400" disabled={isSubmitting}>
                   Cancel
                 </Button>
               </Link>

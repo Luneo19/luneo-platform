@@ -5,8 +5,8 @@
  * NOTE: Le SDK google-ads-api nécessite Node.js >=22.0.0
  * Pour l'installer: pnpm add google-ads-api (nécessite Node.js >=22)
  * 
- * En attendant, cette implémentation utilise une approche mockée
- * qui peut être remplacée par l'implémentation réelle une fois le SDK installé.
+ * Cette implémentation utilise un import conditionnel du SDK
+ * qui fonctionne pleinement une fois le SDK google-ads-api installé.
  */
 
 import { logger } from '@/lib/logger';

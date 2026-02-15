@@ -47,7 +47,7 @@ interface Testimonial {
   metric: string;
 }
 
-// Mock metrics for demo
+// Illustrative metrics for the marketing page (example data to showcase capabilities)
 const mockMetrics = [
   { label: 'Visiteurs uniques', value: '24,891', change: '+12.5%', up: true, icon: Users },
   { label: 'Taux de conversion', value: '3.8%', change: '+0.6%', up: true, icon: Target },

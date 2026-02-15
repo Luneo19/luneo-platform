@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../server';
 import { logger } from '@/lib/logger';
 import { integrationService } from '@/lib/services/IntegrationService';
+import { endpoints } from '@/lib/api/client';
 
 // ========================================
 // SCHEMAS
@@ -219,18 +220,36 @@ export const integrationRouter = router({
         throw new Error('User must be associated with a brand');
       }
 
-      // Pour l'instant, retourner des données mockées
-      // En production, cela devrait agréger les données depuis la base
-      return {
-        totalIntegrations: 0,
-        connectedIntegrations: 0,
-        totalSyncs: 0,
-        successRate: 0,
-        avgLatency: 0,
-        errorCount: 0,
-        byPlatform: {},
-        byCategory: {},
-        recentActivity: [],
-      };
+      try {
+        const params: {
+          brandId: string;
+          startDate?: string;
+          endDate?: string;
+        } = {
+          brandId: user.brandId,
+        };
+
+        if (input?.startDate) {
+          params.startDate = input.startDate.toISOString();
+        }
+        if (input?.endDate) {
+          params.endDate = input.endDate.toISOString();
+        }
+
+        const analytics = await endpoints.integrations.analytics(params);
+
+        logger.info('Integration analytics retrieved', {
+          brandId: user.brandId,
+          totalIntegrations: analytics.totalIntegrations,
+        });
+
+        return analytics;
+      } catch (error) {
+        logger.error('Error fetching integration analytics', {
+          error,
+          brandId: user.brandId,
+        });
+        throw new Error('Failed to fetch integration analytics');
+      }
     }),
 });

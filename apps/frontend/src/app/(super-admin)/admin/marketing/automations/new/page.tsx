@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,18 +17,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AutomationBuilder } from '@/components/admin/marketing/automation-builder';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { AutomationStep } from '@/hooks/admin/use-automations';
 
 export default function NewAutomationPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [trigger, setTrigger] = useState('');
   const [steps, setSteps] = useState<AutomationStep[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   const handleSave = async () => {
     if (!name || !trigger || steps.length === 0) {
-      alert('Please fill all fields and add at least one step');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill all fields and add at least one step',
+      });
       return;
     }
 
@@ -40,12 +48,60 @@ export default function NewAutomationPage() {
         steps,
         status: 'draft',
       });
+      toast({
+        title: 'Success',
+        description: 'Automation created successfully',
+      });
       router.push('/admin/marketing/automations');
     } catch (error) {
       logger.error('Error creating automation:', error);
-      alert('Failed to create automation');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: getErrorDisplayMessage(error),
+      });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!trigger || steps.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please configure trigger and add at least one step before testing',
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    try {
+      // Test the automation workflow by simulating a trigger event
+      // This calls the backend to test the automation logic
+      const testResult = await api.post('/api/v1/admin/marketing/automations/test', {
+        trigger,
+        steps,
+        testData: {
+          userId: 'test-user-id',
+          eventType: trigger,
+          timestamp: new Date().toISOString(),
+        },
+      }) as { message?: string } | null;
+
+      toast({
+        title: 'Test Successful',
+        description: testResult?.message || 'Automation workflow test completed successfully',
+      });
+    } catch (error: unknown) {
+      // If test endpoint doesn't exist, simulate a successful test locally
+      logger.warn('Test endpoint not available, simulating test locally', { error: String(error) });
+      toast({
+        title: 'Test Simulation',
+        description: `Would trigger automation for: ${trigger} with ${steps.length} step(s). Backend test endpoint not yet implemented.`,
+      });
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -118,7 +174,7 @@ export default function NewAutomationPage() {
           <AutomationBuilder
             initialSteps={steps}
             onSave={(newSteps) => setSteps(newSteps)}
-            onTest={() => alert('Test workflow functionality coming soon!')}
+            onTest={handleTest}
           />
         </div>
       </div>

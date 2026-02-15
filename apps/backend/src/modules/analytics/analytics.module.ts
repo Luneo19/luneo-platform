@@ -17,7 +17,6 @@ import { ConfigModule } from '@nestjs/config';
 // Controllers
 import { AnalyticsController } from './controllers/analytics.controller';
 import { AnalyticsAdvancedController } from './controllers/analytics-advanced.controller';
-// import { AdvancedAnalyticsController } from './controllers/advanced-analytics.controller'; // File not found
 import { AnalyticsExportController } from './controllers/export.controller';
 import { PredictiveController } from './controllers/predictive.controller';
 import { ReportsController } from './controllers/reports.controller';
@@ -80,7 +79,6 @@ import { PlansModule } from '@/modules/plans/plans.module';
   controllers: [
     AnalyticsController,
     AnalyticsAdvancedController,
-    // AdvancedAnalyticsController, // File not found
     AnalyticsExportController,
     PredictiveController,
     ReportsController,

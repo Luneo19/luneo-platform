@@ -527,6 +527,23 @@ export const endpoints = {
       api.get<{ connected: boolean; siteUrl?: string; status: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/woocommerce/status'),
     zapierSubscriptions: () =>
       api.get<Array<{ id: string; event?: string; targetUrl?: string }>>('/api/v1/integrations/zapier/subscriptions'),
+    analytics: (params?: { brandId?: string; startDate?: string; endDate?: string }) =>
+      api.get<{
+        totalIntegrations: number;
+        connectedIntegrations: number;
+        totalSyncs: number;
+        successRate: number;
+        avgLatency: number;
+        errorCount: number;
+        byPlatform: Record<string, number>;
+        byCategory: Record<string, number>;
+        recentActivity: Array<{
+          id: string;
+          type: string;
+          status: string;
+          createdAt: string;
+        }>;
+      }>('/api/v1/ecommerce/analytics', { params }),
   },
 
   // Team

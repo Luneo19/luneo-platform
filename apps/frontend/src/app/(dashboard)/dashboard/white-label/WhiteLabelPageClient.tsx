@@ -190,16 +190,60 @@ function WhiteLabelPageContent() {
     toast({ title: 'Reset', description: 'Settings reverted to last saved state' });
   };
 
-  const handleLogoUpload = () => {
-    setLogoUploading(true);
-    // Placeholder: actual upload would go through Cloudinary
-    setTimeout(() => {
-      setLogoUploading(false);
-      toast({
-        title: 'Coming soon',
-        description: 'Logo upload will be available via Cloudinary integration',
-      });
-    }, 800);
+  const handleLogoUpload = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setLogoUploading(true);
+      try {
+        // Upload to Cloudinary using upload preset
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'luneo_logos';
+
+        if (!cloudName) {
+          throw new Error('Cloudinary not configured. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', uploadPreset);
+        formData.append('folder', 'luneo/white-label/logos');
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(error.error?.message || 'Failed to upload logo');
+        }
+
+        const result = await response.json();
+        const logoUrl = result.secure_url || result.url;
+
+        // Update settings with new logo URL
+        setSettings((s) => ({ ...s, logoUrl }));
+        toast({
+          title: 'Logo uploaded',
+          description: 'Logo has been uploaded successfully',
+        });
+      } catch (error) {
+        logger.error('Failed to upload logo', error instanceof Error ? error : new Error(String(error)));
+        toast({
+          variant: 'destructive',
+          title: 'Upload failed',
+          description: getErrorDisplayMessage(error),
+        });
+      } finally {
+        setLogoUploading(false);
+      }
+    };
+    input.click();
   };
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(initialSettings ?? DEFAULT_SETTINGS);

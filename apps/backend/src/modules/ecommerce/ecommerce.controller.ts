@@ -737,4 +737,131 @@ export class EcommerceController {
     const newJobId = await this.syncEngine.retryJob(jobId);
     return { jobId: newJobId, status: 'retried' };
   }
+
+  // ========================================
+  // ANALYTICS
+  // ========================================
+
+  @Get('analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtient les analytics des intégrations' })
+  @ApiResponse({ status: 200, description: 'Analytics récupérées' })
+  async getAnalytics(
+    @Query('brandId') brandId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<{
+    totalIntegrations: number;
+    connectedIntegrations: number;
+    totalSyncs: number;
+    successRate: number;
+    avgLatency: number;
+    errorCount: number;
+    byPlatform: Record<string, number>;
+    byCategory: Record<string, number>;
+    recentActivity: Array<{
+      id: string;
+      type: string;
+      status: string;
+      createdAt: Date;
+    }>;
+  }> {
+    const where = brandId ? { brandId } : {};
+    const dateFilter = startDate && endDate
+      ? {
+          createdAt: {
+            gte: new Date(startDate),
+            lte: new Date(endDate),
+          },
+        }
+      : {};
+
+    // Total integrations
+    const totalIntegrations = await this.prisma.ecommerceIntegration.count({ where });
+
+    // Connected integrations (status = 'active')
+    const connectedIntegrations = await this.prisma.ecommerceIntegration.count({
+      where: { ...where, status: 'active' },
+    });
+
+    // Get integration IDs for this brand
+    const integrationIds = brandId
+      ? (await this.prisma.ecommerceIntegration.findMany({
+          where: { brandId },
+          select: { id: true },
+        })).map((i) => i.id)
+      : (await this.prisma.ecommerceIntegration.findMany({
+          select: { id: true },
+        })).map((i) => i.id);
+
+    // Sync logs
+    const syncLogs = await this.prisma.syncLog.findMany({
+      where: {
+        integrationId: { in: integrationIds },
+        ...dateFilter,
+      },
+      include: {
+        integration: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1000,
+    });
+
+    const totalSyncs = syncLogs.length;
+    const successfulSyncs = syncLogs.filter((log) => log.status === 'SUCCESS').length;
+    const successRate = totalSyncs > 0 ? (successfulSyncs / totalSyncs) * 100 : 0;
+
+    const durations = syncLogs.map((log) => log.duration).filter((d) => d > 0);
+    const avgLatency = durations.length > 0
+      ? durations.reduce((sum, d) => sum + d, 0) / durations.length
+      : 0;
+
+    const errorCount = syncLogs.filter((log) => log.status === 'FAILED').length;
+
+    // By platform
+    const integrationsByPlatform = await this.prisma.ecommerceIntegration.groupBy({
+      by: ['platform'],
+      where,
+      _count: true,
+    });
+    const byPlatform: Record<string, number> = {};
+    for (const item of integrationsByPlatform) {
+      byPlatform[item.platform] = item._count;
+    }
+
+    // By category (using sync type)
+    const syncsByType = await this.prisma.syncLog.groupBy({
+      by: ['type'],
+      where: {
+        integrationId: { in: integrationIds },
+        ...dateFilter,
+      },
+      _count: true,
+    });
+    const byCategory: Record<string, number> = {};
+    for (const item of syncsByType) {
+      byCategory[item.type] = item._count;
+    }
+
+    // Recent activity (last 20 syncs)
+    const recentActivity = syncLogs.slice(0, 20).map((log) => ({
+      id: log.id,
+      type: log.type,
+      status: log.status,
+      createdAt: log.createdAt,
+    }));
+
+    return {
+      totalIntegrations,
+      connectedIntegrations,
+      totalSyncs,
+      successRate: Math.round(successRate * 100) / 100,
+      avgLatency: Math.round(avgLatency),
+      errorCount,
+      byPlatform,
+      byCategory,
+      recentActivity,
+    };
+  }
 }
