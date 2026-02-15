@@ -62,7 +62,12 @@ export class AssetHubController {
     @Query('limit') limit?: number,
   ) {
     const brandId = req.user?.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brandId');
+    if (!brandId) {
+      if (req.user?.role === 'PLATFORM_ADMIN') {
+        return { data: [], total: 0, page: 1, limit: 20 };
+      }
+      throw new BadRequestException('User must have a brandId');
+    }
     return this.fileService.findAll(
       brandId,
       { projectId, folderId, type, search },
@@ -79,7 +84,12 @@ export class AssetHubController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user?.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brandId');
+    if (!brandId) {
+      if (req.user?.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
+      throw new BadRequestException('User must have a brandId');
+    }
     return this.fileService.findOne(id, brandId);
   }
 
@@ -135,7 +145,12 @@ export class AssetHubController {
     @Query('parentId') parentId?: string,
   ) {
     const brandId = req.user?.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brandId');
+    if (!brandId) {
+      if (req.user?.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('User must have a brandId');
+    }
     return this.folderService.findAll(brandId, parentId);
   }
 
@@ -148,7 +163,12 @@ export class AssetHubController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user?.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brandId');
+    if (!brandId) {
+      if (req.user?.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
+      throw new BadRequestException('User must have a brandId');
+    }
     return this.folderService.findOne(id, brandId);
   }
 

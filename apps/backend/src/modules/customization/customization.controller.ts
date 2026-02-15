@@ -30,7 +30,12 @@ export class CustomizationController {
     @Req() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brandId');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { data: [], total: 0 };
+      }
+      throw new BadRequestException('User must have a brandId');
+    }
     return this.customizationService.list(brandId, {
       productId,
       status: status as 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED' | undefined,
@@ -46,7 +51,12 @@ export class CustomizationController {
   @ApiResponse({ status: 404, description: 'Customization not found' })
   async getById(@Param('id') id: string, @Req() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brandId');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
+      throw new BadRequestException('User must have a brandId');
+    }
     const customization = await this.customizationService.getById(id, brandId);
     if (!customization) throw new (await import('@nestjs/common')).NotFoundException('Customization not found');
     return customization;

@@ -16,8 +16,14 @@ export class OnboardingGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ user?: { id: string; brandId?: string | null } }>();
+    const request = context.switchToHttp().getRequest<{ user?: { id: string; brandId?: string | null; role?: string } }>();
     const user = request.user;
+
+    // PLATFORM_ADMIN bypasses onboarding check — they manage the platform, not a brand
+    if (user?.role === 'PLATFORM_ADMIN') {
+      return true;
+    }
+
     if (!user?.brandId) {
       this.throwRedirect();
     }

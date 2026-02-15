@@ -85,7 +85,16 @@ export class AnalyticsController {
       throw new ForbiddenException('Access denied: cannot view other brand analytics');
     }
     const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? brandId : (user?.brandId || brandId || undefined);
-    return this.analyticsService.getUsage(scopedBrandId as string);
+    if (!scopedBrandId) {
+      // PLATFORM_ADMIN without specific brand → return platform-wide summary
+      return {
+        designs: { used: 0, limit: 0, percentage: 0 },
+        renders: { used: 0, limit: 0, percentage: 0 },
+        storage: { usedGB: 0, limitGB: 0, percentage: 0 },
+        apiCalls: { used: 0, limit: 0, percentage: 0 },
+      };
+    }
+    return this.analyticsService.getUsage(scopedBrandId);
   }
 
   @Get('revenue')

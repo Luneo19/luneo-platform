@@ -52,6 +52,9 @@ export class AnalyticsAdvancedController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { steps: [], conversionRates: {}, dropoffRates: {} };
+      }
       throw new BadRequestException('Brand ID required');
     }
 
@@ -90,6 +93,9 @@ export class AnalyticsAdvancedController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { cohorts: [], retentionRates: {}, revenueByCohort: {} };
+      }
       throw new BadRequestException('Brand ID required');
     }
 
@@ -106,7 +112,12 @@ export class AnalyticsAdvancedController {
   @ApiResponse({ status: 200, description: 'Funnels list retrieved successfully' })
   async getFunnels(@Request() req: RequestWithUser, @Query('dateFrom') dateFrom?: string, @Query('dateTo') dateTo?: string) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     const options =
       dateFrom || dateTo
         ? { dateFrom: dateFrom ? new Date(dateFrom) : undefined, dateTo: dateTo ? new Date(dateTo) : undefined }
@@ -127,7 +138,12 @@ export class AnalyticsAdvancedController {
     @Query('endDate') endDate?: string,
   ) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {};
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     const filters = {
       brandId,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -143,7 +159,12 @@ export class AnalyticsAdvancedController {
   @ApiResponse({ status: 404, description: 'Funnel not found' })
   async getFunnelById(@Param('id') id: string, @Request() req: RequestWithUser) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     return this.analyticsAdvancedService.getFunnelById(id, brandId);
   }
 
@@ -180,7 +201,12 @@ export class AnalyticsAdvancedController {
     @Query('endDate') endDate?: string,
   ) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     const filters = {
       brandId,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -194,7 +220,12 @@ export class AnalyticsAdvancedController {
   @ApiResponse({ status: 200, description: 'Segments retrieved successfully' })
   async getSegments(@Request() req: RequestWithUser) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     return this.analyticsAdvancedService.getSegments(brandId);
   }
 
@@ -203,7 +234,12 @@ export class AnalyticsAdvancedController {
   @ApiResponse({ status: 200, description: 'Predictions retrieved successfully' })
   async getPredictions(@Request() req: RequestWithUser) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {};
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     return this.analyticsAdvancedService.getRevenuePredictions(brandId);
   }
 
@@ -218,7 +254,12 @@ export class AnalyticsAdvancedController {
     @Query('endDate') endDate?: string,
   ) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {};
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     const filters = {
       brandId,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -238,7 +279,12 @@ export class AnalyticsAdvancedController {
     @Query('endDate') endDate?: string,
   ) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('Brand ID required');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('Brand ID required');
+    }
     const filters = {
       brandId,
       startDate: startDate ? new Date(startDate) : undefined,

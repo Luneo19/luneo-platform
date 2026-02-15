@@ -11,8 +11,14 @@ export class IndustryConfigGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ user?: { brandId?: string | null } }>();
+    const request = context.switchToHttp().getRequest<{ user?: { brandId?: string | null; role?: string } }>();
     const user = request.user;
+
+    // PLATFORM_ADMIN bypasses industry config check
+    if (user?.role === 'PLATFORM_ADMIN') {
+      return true;
+    }
+
     if (!user?.brandId) {
       throw new BadRequestException('Industry not configured');
     }

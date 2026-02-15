@@ -62,6 +62,9 @@ export class CollaborationController {
   async getSharedResources(@Request() req: RequestWithUser) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
       throw new BadRequestException('Brand ID required. Please complete your brand setup first.');
     }
     return this.collaborationService.getSharedResources(req.user.id, brandId);

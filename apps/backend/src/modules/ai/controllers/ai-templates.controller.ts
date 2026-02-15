@@ -88,11 +88,14 @@ export class AITemplatesController {
   @ApiOperation({ summary: 'Get AI generation collections for the current user' })
   @ApiResponse({ status: HttpStatus.OK, description: 'List of collections' })
   async getCollections(
-    @Req() req: ExpressRequest & { user?: { brandId?: string; userId?: string; sub?: string; id?: string } },
+    @Req() req: ExpressRequest & { user?: { brandId?: string; userId?: string; sub?: string; id?: string; role?: string } },
   ) {
     const brandId = req.user?.brandId;
     const userId = req.user?.userId ?? req.user?.sub ?? req.user?.id;
     if (!brandId || !userId) {
+      if (req.user?.role === 'PLATFORM_ADMIN') {
+        return { collections: [], data: [] };
+      }
       throw new BadRequestException('Brand ID and User ID required');
     }
     const collections = await this.aiStudioService.getCollections(userId, brandId);
@@ -119,6 +122,9 @@ export class AITemplatesController {
     @Query('limit') limit?: string,
   ) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return { data: [], total: 0, page: 1, limit: 20 };
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 
@@ -142,6 +148,9 @@ export class AITemplatesController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Template not found' })
   async getTemplate(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 
@@ -211,6 +220,9 @@ export class AITemplatesController {
     @Query('limit') limit?: string,
   ) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return { data: [], total: 0, page: 1, limit: 20 };
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 
@@ -233,6 +245,9 @@ export class AITemplatesController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Animation not found' })
   async getAnimation(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 

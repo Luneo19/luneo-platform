@@ -117,6 +117,9 @@ export class ArStudioController {
   async listModels(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: { models: [] } };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 
@@ -134,6 +137,16 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {
+          success: true,
+          totalSessions: 0,
+          totalViews: 0,
+          averageSessionDuration: 0,
+          mostPopularModels: [],
+          topModels: [],
+        };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 
@@ -158,6 +171,9 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { success: true, sessions: [], total: 0 };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 
@@ -195,6 +211,9 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: { model: null } };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 
@@ -233,6 +252,9 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: {} };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 
@@ -250,6 +272,16 @@ export class ArStudioController {
   ) {
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {
+          success: true,
+          data: {
+            previewUrl: null,
+            modelUrl: null,
+            modelType: null,
+          },
+        };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 
@@ -303,6 +335,9 @@ export class ArStudioController {
     const taskId = query.task_id;
     const brandId = req.user.brandId;
     if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: null };
+      }
       throw new BadRequestException('User must have a brandId');
     }
 

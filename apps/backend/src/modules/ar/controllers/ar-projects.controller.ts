@@ -44,6 +44,9 @@ export class ArProjectsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: { members: [] } };
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 
@@ -86,6 +89,9 @@ export class ArProjectsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: { comments: [] } };
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 
@@ -128,6 +134,9 @@ export class ArProjectsController {
     @User() user: CurrentUser,
   ) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return { success: true, data: { activities: [] } };
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 

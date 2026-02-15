@@ -86,7 +86,7 @@ export class AIGenerationsController {
   @Get('generations')
   @ApiOperation({ summary: 'List generations for the current brand' })
   async listGenerations(
-    @Req() req: ExpressRequest & { user?: { brandId?: string; userId?: string; sub?: string } },
+    @Req() req: ExpressRequest & { user?: { brandId?: string; userId?: string; sub?: string; role?: string } },
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('productId') productId?: string,
@@ -94,6 +94,14 @@ export class AIGenerationsController {
   ) {
     const brandId = req.user?.brandId;
     if (!brandId) {
+      if (req.user?.role === 'PLATFORM_ADMIN') {
+        return {
+          generations: [],
+          data: [],
+          total: 0,
+          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+        };
+      }
       throw new BadRequestException('Brand ID not found in user context');
     }
     const pageNum = page ? parseInt(page, 10) : 1;

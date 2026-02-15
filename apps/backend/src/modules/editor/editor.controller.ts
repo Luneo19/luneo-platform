@@ -46,6 +46,9 @@ export class EditorController {
   @ApiResponse({ status: HttpStatus.OK, description: 'List of projects' })
   async listProjects(@User() user: CurrentUser) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 
@@ -59,6 +62,9 @@ export class EditorController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Project not found' })
   async getProject(@Param('id') id: string, @User() user: CurrentUser) {
     if (!user.brandId) {
+      if (user.role === 'PLATFORM_ADMIN') {
+        return null;
+      }
       throw new BadRequestException('User must be associated with a brand');
     }
 

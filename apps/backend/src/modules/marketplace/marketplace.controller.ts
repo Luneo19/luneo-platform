@@ -107,7 +107,12 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Seller dashboard' })
   async getSellerDashboard(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {};
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getSellerDashboard(brandId);
   }
 
@@ -123,7 +128,12 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Seller stats' })
   async getSellerStats(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return {};
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getSellerStats(brandId);
   }
 
@@ -132,7 +142,12 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Seller products' })
   async getSellerProducts(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getSellerProducts(brandId);
   }
 
@@ -141,7 +156,12 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Seller orders' })
   async getSellerOrders(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getSellerOrders(brandId);
   }
 
@@ -150,7 +170,12 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Seller reviews' })
   async getSellerReviews(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getSellerReviews(brandId);
   }
 
@@ -159,7 +184,12 @@ export class MarketplaceController {
   @ApiResponse({ status: 200, description: 'Seller payouts' })
   async getSellerPayouts(@Request() req: ExpressRequest & { user: CurrentUser }) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return [];
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getSellerPayouts(brandId);
   }
 
@@ -282,7 +312,12 @@ export class MarketplaceController {
     @Request() req: ExpressRequest & { user: CurrentUser },
   ) {
     const brandId = req.user.brandId;
-    if (!brandId) throw new BadRequestException('User must have a brand context');
+    if (!brandId) {
+      if (req.user.role === 'PLATFORM_ADMIN') {
+        return { url: null };
+      }
+      throw new BadRequestException('User must have a brand context');
+    }
     return this.marketplaceService.getDownloadUrl(id, brandId);
   }
 

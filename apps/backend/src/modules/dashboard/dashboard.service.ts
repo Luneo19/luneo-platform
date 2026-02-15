@@ -13,7 +13,8 @@ export class DashboardService {
 
   async getConfig(userId: string, brandId: string | null) {
     if (!brandId) {
-      throw new BadRequestException('Brand required');
+      // PLATFORM_ADMIN with no brand → return default config
+      return { sidebar: [], widgets: [], kpis: [] };
     }
     const brand = await this.prisma.brand.findUnique({
       where: { id: brandId },
