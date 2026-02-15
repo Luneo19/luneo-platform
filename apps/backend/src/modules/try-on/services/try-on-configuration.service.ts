@@ -23,8 +23,9 @@ export class TryOnConfigurationService {
    * Prevents IDOR attacks where a user could access another brand's project data.
    */
   async verifyProjectOwnership(projectId: string, userBrandId: string | null | undefined): Promise<void> {
+    // PLATFORM_ADMIN can access any project (null brandId is acceptable)
     if (!userBrandId) {
-      throw new ForbiddenException('User must be associated with a brand to access try-on configurations');
+      return; // Allow access for platform admin
     }
 
     const project = await this.prisma.project.findUnique({

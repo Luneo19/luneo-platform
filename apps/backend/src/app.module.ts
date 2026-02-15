@@ -343,6 +343,7 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     VisualCustomizerModule,
     AssetHubModule,
     PrintOnDemandModule,
+    EditorModule,
 
     // Integration modules (e-commerce)
     PrestaShopModule,

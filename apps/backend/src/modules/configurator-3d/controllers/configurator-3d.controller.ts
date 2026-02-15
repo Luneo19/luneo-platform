@@ -72,6 +72,9 @@ export class Configurator3DController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
+    if (!projectId) {
+      return { data: [], total: 0, page: 1, limit: 20 };
+    }
     return this.configuratorService.findAll(projectId, { page, limit });
   }
 

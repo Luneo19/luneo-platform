@@ -64,6 +64,10 @@ export class TryOnController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
+    // PLATFORM_ADMIN without brandId can list configurations
+    if (!req.user?.brandId && req.user?.role === 'PLATFORM_ADMIN') {
+      if (!projectId) return { data: [], total: 0, page: 1, limit: 20 };
+    }
     return this.configurationService.findAll(projectId, { page, limit }, req.user?.brandId);
   }
 
