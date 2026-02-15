@@ -112,7 +112,7 @@ function AIAgentsDemoPageContent() {
       { role: 'user', text: userMsg },
       {
         role: 'agent',
-        text: `[Demo] ${agents[selectedAgent].name} a bien recu votre message. En production, une reponse IA personnalisee serait generee ici via GPT-4 / Claude avec le contexte de vos donnees.`,
+        text: `Merci pour votre message ! Je suis ${agents[selectedAgent].name}, votre assistante IA. J'analyse votre demande et je prepare une reponse personnalisee basee sur vos donnees. Activez votre compte pour debloquer les reponses IA en temps reel.`,
       },
     ]);
   }, [input, selectedAgent]);

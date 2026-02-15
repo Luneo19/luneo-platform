@@ -658,12 +658,63 @@ export const endpoints = {
 
   // Virtual Try-On (sessions & configurations)
   tryOn: {
+    // Sessions
     createSession: (body: { configurationId: string; visitorId: string; deviceInfo?: Record<string, unknown> }) =>
       api.post<{ id: string; sessionId?: string }>('/api/v1/try-on/sessions', body),
     getSession: (sessionId: string) =>
       api.get<{ id: string; sessionId?: string; status: string }>(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}`),
+    endSession: (sessionId: string, body?: { conversionAction?: string; renderQuality?: string }) =>
+      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/end`, body || {}),
+
+    // Configurations
     createConfiguration: (projectId: string, body: { name: string; productType: string; settings?: Record<string, unknown> }) =>
       api.post('/api/v1/try-on/configurations', body, { params: { projectId } }),
+    getConfigurations: (projectId: string) =>
+      api.get('/api/v1/try-on/configurations', { params: { projectId } }),
+    getConfiguration: (id: string, projectId: string) =>
+      api.get(`/api/v1/try-on/configurations/${encodeURIComponent(id)}`, { params: { projectId } }),
+    updateConfiguration: (id: string, projectId: string, body: Record<string, unknown>) =>
+      api.patch(`/api/v1/try-on/configurations/${encodeURIComponent(id)}`, body, { params: { projectId } }),
+    deleteConfiguration: (id: string, projectId: string) =>
+      api.delete(`/api/v1/try-on/configurations/${encodeURIComponent(id)}`, { params: { projectId } }),
+
+    // Product mappings
+    addProduct: (configId: string, projectId: string, body: { productId: string }) =>
+      api.post(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/products`, body, { params: { projectId } }),
+    removeProduct: (configId: string, projectId: string, productId: string) =>
+      api.delete(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/products/${encodeURIComponent(productId)}`, { params: { projectId } }),
+
+    // 3D Model management
+    uploadModel: (configId: string, formData: FormData) =>
+      api.post(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/model`, formData),
+    deleteModel: (configId: string, productId: string, format?: string) =>
+      api.delete(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/model`, { params: { productId, format } }),
+    getModelPreview: (configId: string, productId: string) =>
+      api.get(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/model/preview`, { params: { productId } }),
+
+    // Screenshots
+    getScreenshots: (sessionId: string) =>
+      api.get(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/screenshots`),
+    batchUploadScreenshots: (sessionId: string, body: { screenshots: Array<{ imageBase64: string; productId: string; metadata?: Record<string, unknown> }> }) =>
+      api.post<{ created: number; failed: number; total: number }>(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/screenshots/batch`, body),
+
+    // Performance
+    submitPerformance: (sessionId: string, body: { metrics: Array<{ fps: number; detectionLatencyMs: number; renderLatencyMs: number; gpuInfo?: string; deviceType: string; browserInfo?: string }> }) =>
+      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/performance`, body),
+    getDeviceStats: (days?: number) =>
+      api.get('/api/v1/try-on/performance/device-stats', { params: { days } }),
+
+    // Calibration
+    submitCalibration: (sessionId: string, body: Record<string, unknown>) =>
+      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/calibration`, body),
+
+    // Device compatibility
+    checkDeviceCompatibility: (deviceType: string, gpuInfo?: string) =>
+      api.get('/api/v1/try-on/device-compatibility', { params: { deviceType, gpuInfo } }),
+
+    // Analytics
+    getAnalytics: (days?: number) =>
+      api.get('/api/v1/try-on/analytics', { params: { days } }),
   },
 
   // Experiments (A/B)

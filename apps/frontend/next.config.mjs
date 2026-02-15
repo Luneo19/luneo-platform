@@ -37,7 +37,8 @@ const nextConfig = {
   // outputFileTracingRoot: path.join(__dirname, '../..'),
   compress: true,
   poweredByHeader: false,
-  reactStrictMode: true,
+  // Strict mode enabled only in production (double-renders in dev waste RAM)
+  reactStrictMode: process.env.NODE_ENV === 'production',
   
   // Image optimization with CDN support
   images: {
@@ -106,6 +107,18 @@ const nextConfig = {
 
   // Webpack optimizations
   webpack: (config, { isServer, dev }) => {
+    // In dev mode, stub out Sentry and Prisma instrumentation to save ~200MB RAM
+    // and eliminate "Critical dependency" warnings from @opentelemetry
+    if (dev) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@sentry/nextjs': false,
+        '@sentry/node': false,
+        '@prisma/instrumentation': false,
+        '@opentelemetry/instrumentation': false,
+      };
+    }
+
     // Exclude server-only packages from client bundle
     if (!isServer) {
       config.resolve.fallback = {
@@ -377,11 +390,7 @@ const nextConfig = {
         destination: '/resources',
         permanent: true,
       },
-      {
-        source: '/features',
-        destination: '/solutions',
-        permanent: true,
-      },
+      // /features page exists — no redirect needed
       {
         source: '/app',
         destination: '/dashboard',

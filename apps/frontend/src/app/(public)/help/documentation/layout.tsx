@@ -8,7 +8,7 @@ export default function DocumentationLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-gray-900">
+    <div className="flex min-h-screen bg-dark-bg">
       <DocsSidebar />
       <main className="flex-1 min-h-screen">
         {children}

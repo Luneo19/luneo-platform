@@ -17,7 +17,7 @@ import { Preview3D } from '@/components/widget/Preview3D';
 import { ARButton } from '@/components/widget/ARButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShoppingCart, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShoppingCart, CheckCircle2, Sparkles } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import { logger } from '@/lib/logger';
@@ -224,6 +224,21 @@ function WidgetPageContent() {
                 productId={productId}
                 customizationId={customizationId || undefined}
               />
+              {/* Virtual Try-On Button */}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  window.open(
+                    `/widget/try-on/${encodeURIComponent(brandId)}/${encodeURIComponent(productId)}`,
+                    'tryon',
+                    'width=800,height=600,resizable=yes',
+                  );
+                }}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Essayer en Virtual Try-On
+              </Button>
               <Button
                 className="w-full"
                 size="lg"

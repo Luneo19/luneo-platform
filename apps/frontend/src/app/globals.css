@@ -558,6 +558,16 @@
     -webkit-backface-visibility: hidden;
   }
 
+  /* ===== SPIN KEYFRAME - Used by AnimatedBorderCTA rotating gradient ===== */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   /* ===== FIREFLY CTA - Orbiting particles around buttons ===== */
   @keyframes firefly-orbit {
     0% {
@@ -641,6 +651,36 @@
   .touch-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+  }
+
+  /* ===================================================================
+     DARK BACKGROUND TEXT CONTRAST BOOST
+     Boosts gray/slate text colors to white-ish on dark backgrounds
+     for better readability across all marketing & public pages
+     =================================================================== */
+
+  /* Gray-300 / Slate-300 → near-white (78% opacity) */
+  .bg-dark-bg .text-gray-300,
+  .bg-dark-bg .text-slate-300,
+  .bg-gray-900 .text-gray-300,
+  .bg-gray-900 .text-slate-300 {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  /* Gray-400 / Slate-400 → visible white (68% opacity) */
+  .bg-dark-bg .text-gray-400,
+  .bg-dark-bg .text-slate-400,
+  .bg-gray-900 .text-gray-400,
+  .bg-gray-900 .text-slate-400 {
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  /* Gray-500 / Slate-500 → subtle white (55% opacity) */
+  .bg-dark-bg .text-gray-500,
+  .bg-dark-bg .text-slate-500,
+  .bg-gray-900 .text-gray-500,
+  .bg-gray-900 .text-slate-500 {
+    color: rgba(255, 255, 255, 0.55);
   }
 
   /* ===================================================================

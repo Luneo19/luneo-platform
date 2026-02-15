@@ -72,7 +72,7 @@ export function HeroSectionNew() {
         {/* Badge */}
         <ScrollReveal animation="fade-down" duration={500}>
           <div className="flex justify-center mb-6 sm:mb-8">
-            <div className="inline-flex items-center gap-2 sm:gap-2.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/[0.04] border border-white/[0.08] rounded-full text-xs sm:text-sm font-medium text-slate-300 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 sm:gap-2.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/[0.04] border border-white/[0.08] rounded-full text-xs sm:text-sm font-medium text-white backdrop-blur-sm">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <span>Decouvrez Luneo 2.0</span>
               <ArrowRight className="w-3 h-3 text-purple-400" />
@@ -84,14 +84,14 @@ export function HeroSectionNew() {
         <ScrollReveal animation="fade-up" delay={100} duration={700}>
           <div className="max-w-4xl mx-auto text-center mb-6 sm:mb-8">
             <h1 className="heading-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-5 sm:mb-6">
-              <span className="text-white text-glow-white">Creez des </span>
-              <span className="italic text-gradient-purple">experiences produit</span>
-              <span className="text-white text-glow-white block mt-1">exceptionnelles</span>
+              <span className="text-white text-glow-white">Boostez vos ventes avec la </span>
+              <span className="italic text-gradient-purple">personnalisation produit</span>
+              <span className="text-white text-glow-white block mt-1">propulsee par l&apos;IA</span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-slate-300 body-text max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
-              La plateforme tout-en-un qui aide les marques a concevoir, developper et livrer
-              des experiences de personnalisation avec une rapidite et une qualite inegalees.
+            <p className="text-base sm:text-lg md:text-xl text-white/80 body-text max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
+              Configurateur 3D, essayage virtuel AR, design IA — tout en une seule plateforme.
+              Reduisez vos retours de 40% et augmentez vos conversions de 35%.
             </p>
 
             {/* CTAs */}
@@ -110,14 +110,16 @@ export function HeroSectionNew() {
                 </FireflyCTA>
               </Link>
               <Link href="/demo" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-semibold border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.2]"
-                >
-                  <Play className="mr-2 w-4 sm:w-5 h-4 sm:h-5" />
-                  Voir la demo
-                </Button>
+                <AnimatedBorderCTA speed="normal" variant="white">
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-semibold bg-white text-black hover:bg-white/90 hover:text-black border-0"
+                  >
+                    <Play className="mr-2 w-4 sm:w-5 h-4 sm:h-5" />
+                    Voir la demo
+                  </Button>
+                </AnimatedBorderCTA>
               </Link>
             </div>
           </div>
@@ -158,7 +160,7 @@ export function HeroSectionNew() {
                       <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-yellow-500/60" />
                       <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-green-500/60" />
                     </div>
-                    <div className="flex-1 text-center text-[10px] sm:text-xs text-slate-400 font-medium">
+                    <div className="flex-1 text-center text-[10px] sm:text-xs text-white/70 font-medium">
                       luneo.app/{PRODUCT_TABS[activeTab].id}
                     </div>
                   </div>
@@ -185,7 +187,7 @@ export function HeroSectionNew() {
                   value={stat.value}
                   className="text-xl sm:text-2xl md:text-3xl font-bold text-white font-display"
                 />
-                <div className="text-[10px] sm:text-xs md:text-sm text-slate-400 mt-1">{stat.label}</div>
+                <div className="text-[10px] sm:text-xs md:text-sm text-white/70 mt-1">{stat.label}</div>
               </div>
             ))}
           </div>

@@ -10,16 +10,17 @@ export function ROICalculatorSection() {
   const [ordersPerMonth, setOrdersPerMonth] = useState(200);
 
   const calculations = useMemo(() => {
-    const conversionIncrease = 0.35;
-    const returnReduction = 0.55;
-    const avgReturnCost = avgOrderValue * 0.15;
-    const currentReturns = ordersPerMonth * 0.12;
+    // Taux bases sur les moyennes du secteur e-commerce (sources: Shopify, Baymard Institute)
+    const conversionIncrease = 0.15; // +15% conversions (moyenne secteur avec 3D: 10-20%)
+    const returnReduction = 0.25; // -25% de retours (moyenne secteur: 20-30%)
+    const avgReturnCost = avgOrderValue * 0.12; // Cout moyen d'un retour ~12% du panier
+    const currentReturns = ordersPerMonth * 0.08; // Taux de retour moyen ~8%
     const additionalOrders = ordersPerMonth * conversionIncrease;
     const additionalRevenue = additionalOrders * avgOrderValue;
     const savedReturns = currentReturns * returnReduction;
     const savedReturnCost = savedReturns * avgReturnCost;
     const totalBenefit = additionalRevenue + savedReturnCost;
-    const planCost = 79;
+    const planCost = 49; // Plan Professional
     const roi = ((totalBenefit - planCost) / planCost) * 100;
     return {
       additionalRevenue: Math.round(additionalRevenue),
@@ -36,7 +37,7 @@ export function ROICalculatorSection() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Calculez votre <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">ROI</span>
           </h2>
-          <p className="text-gray-400">Estimez l&apos;impact du configurateur 3D sur vos ventes</p>
+          <p className="text-gray-400">Estimez l&apos;impact du configurateur 3D sur vos ventes — bases sur les moyennes du secteur</p>
         </motion>
         <motion initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <Card className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border-blue-500/20 p-6 sm:p-8">

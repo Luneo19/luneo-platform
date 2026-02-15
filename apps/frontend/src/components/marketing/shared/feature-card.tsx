@@ -40,7 +40,7 @@ export function FeatureCard({
         {icon}
       </div>
       <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">{title}</h3>
-      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-3 sm:mb-4">{description}</p>
+      <p className="text-xs sm:text-sm text-white/80 leading-relaxed mb-3 sm:mb-4">{description}</p>
       {href && (
         <div className="flex items-center text-purple-400 font-medium text-xs sm:text-sm group-hover:text-purple-300 transition-colors">
           En savoir plus

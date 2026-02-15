@@ -14,7 +14,8 @@ export type EventCategory =
   | 'error'
   | 'performance'
   | 'auth'
-  | 'system';
+  | 'system'
+  | 'try_on';
 
 // Event Actions par catégorie
 export type EventAction =
@@ -79,7 +80,17 @@ export type EventAction =
   | 'error'
   | 'warning'
   | 'api_error'
-  | 'validation_error';
+  | 'validation_error'
+  // Virtual Try-On
+  | 'tryon_session_started'
+  | 'tryon_session_ended'
+  | 'tryon_product_tried'
+  | 'tryon_screenshot_captured'
+  | 'tryon_screenshot_shared'
+  | 'tryon_conversion'
+  | 'tryon_calibration_completed'
+  | 'tryon_quality_changed'
+  | 'tryon_ar_fallback_used';
 
 // Base event interface
 export interface AnalyticsEvent {

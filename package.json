@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --concurrency=15",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "type-check": "turbo run type-check",

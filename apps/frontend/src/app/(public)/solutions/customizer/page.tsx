@@ -766,11 +766,12 @@ function DemoCanvas() {
 function ROICalculator() {
   const [ordersPerMonth, setOrdersPerMonth] = useState(500);
   const [avgOrderValue, setAvgOrderValue] = useState(45);
-  const [conversionIncrease, setConversionIncrease] = useState(35);
+  const [conversionIncrease, setConversionIncrease] = useState(15);
 
   const calculations = useMemo(() => {
+    // Customisation produit augmente les conversions de 10-20% (moyenne secteur)
     const additionalRevenue = ordersPerMonth * avgOrderValue * (conversionIncrease / 100);
-    const planCost = 79; // Pro plan
+    const planCost = 49; // Plan Professional
     const roi = ((additionalRevenue - planCost) / planCost) * 100;
     const yearlyRevenue = additionalRevenue * 12;
 

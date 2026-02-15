@@ -33,7 +33,7 @@ export function SectionHeader({
           {title}
         </h2>
         {description && (
-          <p className="text-base sm:text-lg text-slate-300 body-text px-2">
+          <p className="text-base sm:text-lg text-white/80 body-text px-2">
             {description}
           </p>
         )}

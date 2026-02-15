@@ -27,7 +27,7 @@ export function CTASectionNew() {
           </ScrollReveal>
 
           <ScrollReveal animation="fade-up" delay={100}>
-            <p className="text-base sm:text-lg text-slate-300 mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed px-2">
+            <p className="text-base sm:text-lg text-white/80 mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed px-2">
               Rejoignez des milliers de marques qui utilisent deja Luneo pour creer des experiences produit exceptionnelles.
             </p>
           </ScrollReveal>
@@ -48,20 +48,22 @@ export function CTASectionNew() {
                 </FireflyCTA>
               </Link>
               <Link href="/contact" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-semibold border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.2]"
-                >
-                  Parler aux ventes
-                </Button>
+                <AnimatedBorderCTA speed="normal" variant="white">
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-semibold bg-white text-black hover:bg-white/90 hover:text-black border-0"
+                  >
+                    Parler aux ventes
+                  </Button>
+                </AnimatedBorderCTA>
               </Link>
             </div>
           </ScrollReveal>
 
           {/* Trust badges */}
           <ScrollReveal animation="fade" delay={400}>
-            <div className="flex items-center justify-center gap-4 sm:gap-6 text-slate-300 text-[10px] sm:text-xs">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 text-white/80 text-[10px] sm:text-xs">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> SOC 2
               </span>

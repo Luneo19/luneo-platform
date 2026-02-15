@@ -1,373 +1,215 @@
 'use client';
 
-import { useEffect, useRef, useState, memo, useCallback } from 'react';
-import { HandTracker, HandLandmarks } from '@/lib/virtual-tryon/HandTracker';
-import { FaceTracker, FaceLandmarks } from '@/lib/virtual-tryon/FaceTracker';
-import { Button } from '@/components/ui/button';
-import { Camera, Download, RotateCcw } from 'lucide-react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { TryOnEngine, TryOnEngineConfig, TryOnCategory } from '@/lib/virtual-tryon/TryOnEngine';
+import { RingRenderer } from '@/lib/virtual-tryon/renderers/RingRenderer';
+import { WatchRenderer } from '@/lib/virtual-tryon/renderers/WatchRenderer';
+import { EarringRenderer } from '@/lib/virtual-tryon/renderers/EarringRenderer';
+import { NecklaceRenderer } from '@/lib/virtual-tryon/renderers/NecklaceRenderer';
+import type { BaseProductRenderer, RendererConfig } from '@/lib/virtual-tryon/renderers/BaseProductRenderer';
 import { logger } from '@/lib/logger';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export type JewelryType = 'ring' | 'bracelet' | 'earring' | 'necklace';
 
 interface JewelryTryOnProps {
-  productId: string;
-  jewelryType: 'ring' | 'necklace' | 'earrings' | 'bracelet';
-  jewelryModelUrl: string;
-  onCapture?: (imageData: string) => void;
+  jewelryType: JewelryType;
+  modelUrl?: string;
+  lodLevels?: { high?: string; medium?: string; low?: string };
+  scaleFactor?: number;
+  defaultPosition?: { x: number; y: number; z: number };
+  defaultRotation?: { x: number; y: number; z: number };
+  enableOcclusion?: boolean;
+  enableShadows?: boolean;
+  onScreenshot?: (dataUrl: string) => void;
+  onTrackingChange?: (isTracking: boolean) => void;
+  onFPSChange?: (fps: number) => void;
+  onError?: (error: Error) => void;
+  className?: string;
 }
 
-function JewelryTryOn({ productId, jewelryType, jewelryModelUrl, onCapture }: JewelryTryOnProps) {
+const JEWELRY_TO_CATEGORY: Record<JewelryType, TryOnCategory> = {
+  ring: 'ring',
+  bracelet: 'watch', // Uses same hand/wrist tracking
+  earring: 'earring',
+  necklace: 'necklace',
+};
+
+const TRACKING_MESSAGES: Record<JewelryType, { tracking: string; waiting: string }> = {
+  ring: { tracking: 'Main détectée', waiting: 'Montrez votre main' },
+  bracelet: { tracking: 'Poignet détecté', waiting: 'Montrez votre poignet' },
+  earring: { tracking: 'Visage détecté', waiting: 'Regardez la caméra' },
+  necklace: { tracking: 'Visage détecté', waiting: 'Regardez la caméra' },
+};
+
+function createRenderer(
+  jewelryType: JewelryType,
+  config: RendererConfig,
+): BaseProductRenderer {
+  switch (jewelryType) {
+    case 'ring':
+      return new RingRenderer(config);
+    case 'bracelet':
+      return new WatchRenderer(config);
+    case 'earring':
+      return new EarringRenderer(config);
+    case 'necklace':
+      return new NecklaceRenderer(config);
+  }
+}
+
+export default function JewelryTryOn({
+  jewelryType,
+  modelUrl,
+  lodLevels,
+  scaleFactor = 1,
+  defaultPosition,
+  defaultRotation,
+  enableOcclusion = true,
+  enableShadows = true,
+  onScreenshot,
+  onTrackingChange,
+  onFPSChange,
+  onError,
+  className,
+}: JewelryTryOnProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const handTrackerRef = useRef<HandTracker | null>(null);
-  const faceTrackerRef = useRef<FaceTracker | null>(null);
-  const jewelryImageRef = useRef<HTMLImageElement | null>(null);
-  
-  const [isActive, setIsActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [handsDetected, setHandsDetected] = useState<number>(0);
-  const [faceDetected, setFaceDetected] = useState(false);
+  const engineRef = useRef<TryOnEngine | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const [fps, setFps] = useState(0);
+
+  const category = JEWELRY_TO_CATEGORY[jewelryType];
+  const messages = TRACKING_MESSAGES[jewelryType];
+
+  const initEngine = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    try {
+      const config: TryOnEngineConfig = {
+        category,
+        videoElement: videoRef.current,
+        canvasElement: canvasRef.current,
+        modelUrl,
+        lodLevels,
+        scaleFactor,
+        defaultPosition,
+        defaultRotation,
+        enableOcclusion,
+        enableShadows,
+        enableFPSOptimizer: true,
+      };
+
+      const engine = new TryOnEngine(config, {
+        onTracking: (tracking) => {
+          setIsTracking(tracking);
+          onTrackingChange?.(tracking);
+        },
+        onFPSChange: (newFps) => {
+          setFps(newFps);
+          onFPSChange?.(newFps);
+        },
+        onError: (err) => {
+          logger.error('JewelryTryOn engine error', {
+            type: jewelryType,
+            error: err.message,
+          });
+          onError?.(err);
+        },
+      });
+
+      await engine.initialize();
+
+      // Load the appropriate 3D renderer
+      if (modelUrl) {
+        const rendererConfig: RendererConfig = {
+          modelUrl,
+          lodLevels,
+          scaleFactor,
+          defaultPosition,
+          defaultRotation,
+          enableOcclusion,
+          enableShadows,
+        };
+
+        const renderer = createRenderer(jewelryType, rendererConfig);
+        await renderer.loadModel();
+        engine.setRenderer(renderer);
+      }
+
+      engine.start();
+      engineRef.current = engine;
+      setIsInitialized(true);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to init JewelryTryOn');
+      logger.error('JewelryTryOn init failed', {
+        type: jewelryType,
+        error: error.message,
+      });
+      onError?.(error);
+    }
+  }, [category, jewelryType, modelUrl, lodLevels, scaleFactor, defaultPosition, defaultRotation, enableOcclusion, enableShadows, onTrackingChange, onFPSChange, onError]);
 
   useEffect(() => {
-    // Preload jewelry image
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = jewelryModelUrl;
-    img.onload = () => {
-      jewelryImageRef.current = img;
-    };
-
+    initEngine();
     return () => {
-      if (handTrackerRef.current) {
-        handTrackerRef.current.destroy();
-      }
-      if (faceTrackerRef.current) {
-        faceTrackerRef.current.destroy();
-      }
+      engineRef.current?.destroy();
+      engineRef.current = null;
     };
-  }, [jewelryModelUrl]);
+  }, [initEngine]);
 
-  const startTryOn = async () => {
-    if (!videoRef.current) return;
-
-    setIsLoading(true);
-    try {
-      if (jewelryType === 'ring' || jewelryType === 'bracelet') {
-        // Use hand tracking
-        const tracker = new HandTracker();
-        handTrackerRef.current = tracker;
-
-        await tracker.initialize(videoRef.current);
-        
-        tracker.onResults((hands) => {
-          setHandsDetected(hands.length);
-          if (hands.length > 0) {
-            drawJewelryOnHands(hands);
-          }
-        });
-
-        tracker.start();
-      } else {
-        // Use face tracking for necklaces and earrings
-        const tracker = new FaceTracker();
-        faceTrackerRef.current = tracker;
-
-        await tracker.initialize(videoRef.current);
-        
-        tracker.onResults((face) => {
-          setFaceDetected(!!face);
-          if (face) {
-            drawJewelryOnFace(face);
-          }
-        });
-
-        tracker.start();
-      }
-
-      setIsActive(true);
-    } catch (error) {
-      logger.error('Failed to start try-on', {
-        error,
-        productId,
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-      alert('Failed to access camera. Please grant camera permissions.');
-    } finally {
-      setIsLoading(false);
+  const captureScreenshot = useCallback(() => {
+    const dataUrl = engineRef.current?.captureScreenshot();
+    if (dataUrl) {
+      onScreenshot?.(dataUrl);
     }
-  };
-
-  const stopTryOn = () => {
-    if (handTrackerRef.current) {
-      handTrackerRef.current.stop();
-    }
-    if (faceTrackerRef.current) {
-      faceTrackerRef.current.stop();
-    }
-    setIsActive(false);
-    setHandsDetected(0);
-    setFaceDetected(false);
-  };
-
-  const drawJewelryOnHands = (hands: HandLandmarks[]) => {
-    const canvas = overlayCanvasRef.current;
-    const video = videoRef.current;
-    
-    if (!canvas || !video || !jewelryImageRef.current) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    hands.forEach((hand) => {
-      if (jewelryType === 'ring') {
-        // Draw ring on ring finger (landmark 13-16)
-        const ringBase = hand.ringFingerPosition;
-        const x = ringBase.x * canvas.width;
-        const y = ringBase.y * canvas.height;
-        const size = hand.handSize * canvas.width * 0.15;
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(hand.handRotation.roll * (Math.PI / 180));
-        ctx.globalAlpha = 0.9;
-        if (jewelryImageRef.current) {
-          ctx.drawImage(
-            jewelryImageRef.current,
-            -size / 2,
-            -size / 2,
-            size,
-            size
-          );
-        }
-        ctx.restore();
-      } else if (jewelryType === 'bracelet') {
-        // Draw bracelet on wrist
-        const wrist = hand.wristPosition;
-        const x = wrist.x * canvas.width;
-        const y = wrist.y * canvas.height;
-        const width = hand.handSize * canvas.width * 1.2;
-        const height = width * 0.4;
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(hand.handRotation.roll * (Math.PI / 180));
-        ctx.globalAlpha = 0.9;
-        if (jewelryImageRef.current) {
-          ctx.drawImage(
-            jewelryImageRef.current,
-            -width / 2,
-            -height / 2,
-            width,
-            height
-          );
-        }
-        ctx.restore();
-      }
-    });
-  };
-
-  const drawJewelryOnFace = (face: FaceLandmarks) => {
-    const canvas = overlayCanvasRef.current;
-    const video = videoRef.current;
-    
-    if (!canvas || !video || !jewelryImageRef.current) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (jewelryType === 'necklace') {
-      // Draw necklace below chin
-      const nose = face.nosePosition;
-      const faceBottom = (face.boundingBox.yMax + 0.1) * canvas.height;
-      const x = nose.x * canvas.width;
-      const y = faceBottom;
-      const width = face.faceWidth * canvas.width * 1.2;
-      const height = width * 0.6;
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.globalAlpha = 0.9;
-      ctx.drawImage(
-        jewelryImageRef.current,
-        -width / 2,
-        0,
-        width,
-        height
-      );
-      ctx.restore();
-    } else if (jewelryType === 'earrings') {
-      // Draw earrings on ears
-      // Simplified - use face width to estimate ear positions
-      const faceCenter = {
-        x: (face.boundingBox.xMin + face.boundingBox.xMax) / 2,
-        y: face.eyePositions.left.y,
-      };
-      
-      const earOffset = face.faceWidth * 0.55;
-      const earringSize = face.faceWidth * canvas.width * 0.15;
-
-      // Left earring
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      ctx.drawImage(
-        jewelryImageRef.current,
-        (faceCenter.x - earOffset) * canvas.width - earringSize / 2,
-        faceCenter.y * canvas.height - earringSize / 2,
-        earringSize,
-        earringSize
-      );
-      ctx.restore();
-
-      // Right earring
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      ctx.drawImage(
-        jewelryImageRef.current,
-        (faceCenter.x + earOffset) * canvas.width - earringSize / 2,
-        faceCenter.y * canvas.height - earringSize / 2,
-        earringSize,
-        earringSize
-      );
-      ctx.restore();
-    }
-  };
-
-  const captureSnapshot = () => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    const overlay = overlayCanvasRef.current;
-    
-    if (!canvas || !video || !overlay) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Draw video frame (mirrored)
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-    ctx.restore();
-
-    // Draw jewelry overlay (mirrored)
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.drawImage(overlay, -canvas.width, 0, canvas.width, canvas.height);
-    ctx.restore();
-
-    const imageData = canvas.toDataURL('image/png');
-    onCapture?.(imageData);
-  };
-
-  const isDetected = jewelryType === 'ring' || jewelryType === 'bracelet' 
-    ? handsDetected > 0 
-    : faceDetected;
+  }, [onScreenshot]);
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto">
-      {/* Video & Overlay */}
-      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover mirror"
-          playsInline
-          muted
-        />
-        <canvas
-          ref={overlayCanvasRef}
-          className="absolute inset-0 w-full h-full mirror"
-        />
-        <canvas
-          ref={canvasRef}
-          className="hidden"
-        />
-        
-        {/* Instructions */}
-        {isActive && !isDetected && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <p className="text-white text-xl font-semibold">
-              {jewelryType === 'ring' || jewelryType === 'bracelet' 
-                ? '✋ Show your hand to the camera'
-                : '👤 Face the camera'}
-            </p>
-          </div>
+    <div className={`relative ${className || ''}`}>
+      <video
+        ref={videoRef}
+        className="absolute inset-0 w-full h-full object-cover"
+        autoPlay
+        playsInline
+        muted
+        style={{ transform: 'scaleX(-1)' }}
+      />
+
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'none' }}
+      />
+
+      {/* HUD */}
+      <div className="absolute top-3 left-3 flex items-center gap-2">
+        {isInitialized && (
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+            isTracking
+              ? 'bg-green-500/80 text-white'
+              : 'bg-yellow-500/80 text-white'
+          }`}>
+            {isTracking ? messages.tracking : messages.waiting}
+          </span>
         )}
-        
-        {/* Status indicator */}
-        {isDetected && (
-          <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-            {jewelryType === 'ring' || jewelryType === 'bracelet' 
-              ? `${handsDetected} Hand${handsDetected > 1 ? 's' : ''} Detected`
-              : 'Face Detected'}
-          </div>
+        {fps > 0 && (
+          <span className="text-xs px-2 py-1 rounded-full bg-black/50 text-white font-mono">
+            {fps} FPS
+          </span>
         )}
       </div>
 
-      <p className="mt-2 text-center text-xs text-gray-500">
-        Produit associé&nbsp;: <span className="font-mono text-gray-300">{productId}</span>
-      </p>
-
-      {/* Controls */}
-      <div className="flex gap-4 mt-4 justify-center">
-        {!isActive ? (
-          <Button
-            onClick={startTryOn}
-            disabled={isLoading}
-            size="lg"
-          >
-            <Camera className="mr-2 h-5 w-5" />
-            {isLoading ? 'Starting...' : 'Start Try-On'}
-          </Button>
-        ) : (
-          <>
-            <Button
-              onClick={captureSnapshot}
-              variant="default"
-              size="lg"
-              disabled={!isDetected}
-            >
-              <Download className="mr-2 h-5 w-5" />
-              Capture Photo
-            </Button>
-            <Button
-              onClick={stopTryOn}
-              variant="outline"
-              size="lg"
-            >
-              <RotateCcw className="mr-2 h-5 w-5" />
-              Stop
-            </Button>
-          </>
-        )}
-      </div>
-
-      <style jsx>{`
-        .mirror {
-          transform: scaleX(-1);
-        }
-      `}</style>
+      {/* Capture button */}
+      {isInitialized && onScreenshot && (
+        <button
+          onClick={captureScreenshot}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-white/90 border-4 border-gray-300 hover:border-primary transition-colors shadow-lg"
+          aria-label="Capturer une photo"
+        >
+          <div className="w-10 h-10 mx-auto rounded-full bg-white border-2 border-gray-200" />
+        </button>
+      )}
     </div>
   );
 }
-
-// Optimisation avec React.memo pour éviter les re-renders inutiles
-const JewelryTryOnMemo = memo(JewelryTryOn);
-
-export default function JewelryTryOnWithErrorBoundary(props: JewelryTryOnProps) {
-  return (
-    <ErrorBoundary componentName="JewelryTryOn">
-      <JewelryTryOnMemo {...props} />
-    </ErrorBoundary>
-  );
-}
-

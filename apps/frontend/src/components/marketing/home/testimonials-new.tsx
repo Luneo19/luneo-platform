@@ -50,7 +50,7 @@ export function TestimonialsNew() {
               <span className="text-white">Apprecie par des </span>
               <span className="italic text-gradient-purple">milliers de marques</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-300 px-2">
+            <p className="text-base sm:text-lg text-white/80 px-2">
               Decouvrez ce que nos clients ont a dire sur leur experience avec Luneo.
             </p>
           </div>
@@ -68,7 +68,7 @@ export function TestimonialsNew() {
               <span className="text-white font-bold text-base sm:text-lg">Excellent</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
-            <span className="text-slate-300 text-xs sm:text-sm">Avis clients</span>
+            <span className="text-white/80 text-xs sm:text-sm">Avis clients</span>
           </div>
         </ScrollReveal>
 
@@ -109,7 +109,7 @@ export function TestimonialsNew() {
                   </div>
 
                   {/* Quote */}
-                  <p className="text-slate-300 mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
+                  <p className="text-white/80 mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
                     &laquo; {t.quote} &raquo;
                   </p>
 
@@ -124,7 +124,7 @@ export function TestimonialsNew() {
                     </div>
                     <div>
                       <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
-                      <div className="text-[10px] sm:text-xs text-slate-300">{t.role}, {t.company}</div>
+                      <div className="text-[10px] sm:text-xs text-white/80">{t.role}, {t.company}</div>
                     </div>
                   </div>
                 </div>

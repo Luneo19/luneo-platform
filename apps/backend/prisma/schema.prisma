@@ -643,6 +643,11 @@ model Brand {
   // Usage Records
   usageRecords UsageRecord[]
 
+  // Try-On Conversions, Shares & Widget Config
+  tryOnConversions  TryOnConversion[]
+  tryOnShares       TryOnShare[]
+  tryOnWidgetConfig TryOnWidgetConfig?
+
   // Organization
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
@@ -1094,6 +1099,7 @@ model Product {
   // Try-On relations
   tryOnMappings    TryOnProductMapping[]
   tryOnScreenshots TryOnScreenshot[]
+  tryOnConversions TryOnConversion[]
 
   // 3D configurator
   product3DConfig Product3DConfiguration?
@@ -5397,6 +5403,11 @@ model TryOnConfiguration {
   uiConfig    Json?
   isActive    Boolean          @default(true)
 
+  // 3D rendering configuration
+  targetZone       String? // WRIST, FINGER, EAR, FACE, NOSE
+  renderSettings   Json?   // 3D render params: quality, shadows, reflections, lighting
+  calibrationRules Json?   // Per-device calibration rules
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -5416,10 +5427,22 @@ model TryOnProductMapping {
   productId       String
   modelId         String? // 3D model reference
 
+  // 3D model assets
+  model3dUrl    String? // glTF/GLB URL dedicated for try-on
+  modelUSDZUrl  String? // USDZ URL for iOS AR Quick Look
+  thumbnailUrl  String? // Model thumbnail preview
+
   // 3D positioning data
-  anchorPoints Json?
-  scaleFactor  Float @default(1.0)
-  adjustments  Json? // Position/rotation adjustments
+  anchorPoints    Json?
+  scaleFactor     Float   @default(1.0)
+  adjustments     Json?   // Position/rotation adjustments
+  defaultPosition Json?   // Default 3D position {x, y, z}
+  defaultRotation Json?   // Default 3D rotation {x, y, z}
+  lodLevels       Json?   // Level of detail URLs {high, medium, low}
+
+  // Rendering options
+  enableOcclusion Boolean @default(true)
+  enableShadows   Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5454,6 +5477,12 @@ model TryOnSession {
   shared            Boolean  @default(false)
   converted         Boolean  @default(false)
 
+  // 3D / Performance data
+  calibrationData    Json?   // Device calibration: pixelToRealRatio, distance, accuracy
+  performanceMetrics Json?   // Session perf: avgFps, avgDetectionLatency, avgRenderLatency
+  conversionAction   String? // Specific action: ADD_TO_CART, SHARE, PURCHASE, WISHLIST
+  renderQuality      String? // Quality used: high, medium, low, 2d_fallback
+
   // Timestamps
   startedAt DateTime  @default(now())
   createdAt DateTime  @default(now())
@@ -5462,8 +5491,11 @@ model TryOnSession {
   expiresAt DateTime?
 
   // Relations
-  configuration TryOnConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-  screenshots   TryOnScreenshot[]
+  configuration      TryOnConfiguration       @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  screenshots        TryOnScreenshot[]
+  performanceSamples TryOnPerformanceMetric[]
+  conversions        TryOnConversion[]
+  shares             TryOnShare[]
 
   @@index([configurationId])
   @@index([userId])
@@ -5491,9 +5523,128 @@ model TryOnScreenshot {
   // Relations
   session TryOnSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shares  TryOnShare[]
 
   @@index([sessionId])
   @@index([productId])
+}
+
+model TryOnPerformanceMetric {
+  id        String @id @default(cuid())
+  sessionId String
+
+  // Performance data
+  fps                Int    // Average FPS during sample window
+  detectionLatencyMs Int    // ML detection latency in ms
+  renderLatencyMs    Int    // 3D render latency in ms
+  gpuInfo            String? // GPU renderer string
+  deviceType         String  // mobile, desktop, tablet
+  browserInfo        String? // Browser name + version
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  session TryOnSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([deviceType])
+  @@index([createdAt])
+}
+
+// ========================================
+// TRY-ON CONVERSION & COMMISSION TRACKING
+// ========================================
+
+enum ConversionAction {
+  ADD_TO_CART
+  PURCHASE
+  WISHLIST
+  SHARE
+  CLICK_THROUGH
+}
+
+model TryOnConversion {
+  id               String           @id @default(cuid())
+  sessionId        String
+  productId        String
+  brandId          String
+  action           ConversionAction
+  source           String           // widget, dashboard, embed, pixel
+  revenue          Float?           // sale amount (if PURCHASE)
+  currency         String?          // ISO currency code
+  commissionRate   Float?           // commission rate applied (e.g. 0.10 for 10%)
+  commissionAmount Float?           // calculated commission for Luneo
+  externalOrderId  String?          // external order ID (Shopify, WooCommerce, etc.)
+  attributionData  Json?            // UTM params, referrer, landing page, etc.
+  createdAt        DateTime         @default(now())
+
+  // Relations
+  session TryOnSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  brand   Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([productId])
+  @@index([brandId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ========================================
+// TRY-ON WIDGET CONFIGURATION (WHITE-LABEL)
+// ========================================
+
+model TryOnWidgetConfig {
+  id             String   @id @default(cuid())
+  brandId        String   @unique
+  theme          Json     @default("{\"primaryColor\":\"#8B5CF6\",\"secondaryColor\":\"#1F2937\",\"fontFamily\":\"Inter, sans-serif\",\"borderRadius\":\"12px\"}")
+  logo           String?  // Brand logo URL for widget header
+  ctaText        String   @default("Ajouter au panier")
+  ctaAction      String   @default("postMessage") // postMessage, redirect, callback
+  ctaUrl         String?  // Redirect URL (if ctaAction = redirect)
+  showPoweredBy  Boolean  @default(true) // false for premium plans
+  customCss      String?  // Custom CSS override (premium)
+  allowedDomains String[] // Authorized domains for iframe embedding
+  locale         String   @default("fr")
+  translations   Json?    // Custom translations override
+  analyticsEnabled Boolean @default(true)
+  showRecommendations Boolean @default(true)
+  showSocialShare Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+// ========================================
+// TRY-ON SOCIAL SHARING
+// ========================================
+
+model TryOnShare {
+  id           String   @id @default(cuid())
+  sessionId    String
+  screenshotId String?
+  productId    String?
+  brandId      String
+  platform     String   // instagram, tiktok, whatsapp, twitter, facebook, link
+  shareToken   String   @unique
+  shareUrl     String   // Full public share URL
+  ogImageUrl   String?  // Optimized OG image URL
+  viewCount    Int      @default(0)
+  clickCount   Int      @default(0) // clicks to product page
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  // Relations
+  session    TryOnSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  screenshot TryOnScreenshot? @relation(fields: [screenshotId], references: [id], onDelete: SetNull)
+  brand      Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([shareToken])
+  @@index([sessionId])
+  @@index([brandId])
+  @@index([createdAt])
 }
 
 // ========================================

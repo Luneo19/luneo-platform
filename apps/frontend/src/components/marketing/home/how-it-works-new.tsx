@@ -44,7 +44,7 @@ export function HowItWorksNew() {
               <span className="text-white">Lancez-vous en </span>
               <span className="italic text-gradient-purple">3 etapes simples</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-300 px-2">
+            <p className="text-base sm:text-lg text-white/70 px-2">
               De zero au lancement en un temps record.
             </p>
           </div>
@@ -72,7 +72,7 @@ export function HowItWorksNew() {
                   {/* Content */}
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1.5 sm:mb-2">{step.title}</h3>
-                    <p className="text-xs sm:text-sm md:text-base text-slate-300 leading-relaxed">{step.description}</p>
+                    <p className="text-xs sm:text-sm md:text-base text-white/70 leading-relaxed">{step.description}</p>
                   </div>
 
                   {/* Icon */}

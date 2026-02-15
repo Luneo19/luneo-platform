@@ -37,17 +37,17 @@ const MENU_DATA = {
       {
         title: 'Personnalisation',
         items: [
-          { href: '/features', label: 'Customizer 2D', description: 'Editeur visuel drag-and-drop', icon: Palette },
-          { href: '/features#3d', label: 'Configurateur 3D', description: 'Visualisation temps reel Three.js', icon: Box },
-          { href: '/features#ar', label: 'Virtual Try-On AR', description: 'Essayage augmente en direct', icon: Glasses },
+          { href: '/solutions/visual-customizer', label: 'Customizer 2D', description: 'Editeur visuel drag-and-drop', icon: Palette },
+          { href: '/solutions/configurator-3d', label: 'Configurateur 3D', description: 'Visualisation temps reel Three.js', icon: Box },
+          { href: '/solutions/virtual-try-on', label: 'Virtual Try-On AR', description: 'Essayage augmente en direct', icon: Glasses },
         ],
       },
       {
         title: 'Production',
         items: [
-          { href: '/features#export', label: 'Export Print-Ready', description: 'CMYK, PDF/X-4, haute resolution', icon: Printer },
-          { href: '/features#ai', label: 'AI Studio', description: 'Generation par intelligence artificielle', icon: Sparkles },
-          { href: '/features#products', label: 'Gestion Produits', description: 'Catalogue et variantes', icon: Package },
+          { href: '/solutions/3d-asset-hub', label: 'Export Print-Ready', description: 'CMYK, PDF/X-4, haute resolution', icon: Printer },
+          { href: '/solutions/ai-design-hub', label: 'AI Studio', description: 'Generation par intelligence artificielle', icon: Sparkles },
+          { href: '/solutions/ecommerce', label: 'Gestion Produits', description: 'Catalogue et variantes', icon: Package },
         ],
       },
     ],
@@ -97,6 +97,7 @@ export function Navigation() {
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
   const [mobileAccordion, setMobileAccordion] = useState<MenuKey | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -161,7 +162,7 @@ export function Navigation() {
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
                       activeMenu === key
                         ? 'text-white bg-white/[0.08]'
-                        : 'text-white/90 hover:text-white hover:bg-white/[0.04]'
+                        : 'text-white hover:bg-white/[0.04]'
                     }`}
                     aria-expanded={activeMenu === key}
                     aria-haspopup="menu"
@@ -179,7 +180,7 @@ export function Navigation() {
 
               <Link
                 href="/pricing"
-                className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white hover:bg-white/[0.04] rounded-lg transition-all duration-200"
+                className="px-4 py-2 text-sm font-medium text-white hover:bg-white/[0.04] rounded-lg transition-all duration-200"
                 onClick={closeAll}
               >
                 Tarifs
@@ -284,7 +285,7 @@ export function Navigation() {
                                   <div className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
                                     {item.label}
                                   </div>
-                                  <div className="text-xs text-white/80 mt-0.5 leading-relaxed">
+                                  <div className="text-xs text-white mt-0.5 leading-relaxed">
                                     {item.description}
                                   </div>
                                 </div>
@@ -302,7 +303,7 @@ export function Navigation() {
                       <h4 className="text-sm font-semibold text-white mb-1.5">
                         {MENU_DATA[activeMenu].cta.label}
                       </h4>
-                      <p className="text-xs text-white/80 leading-relaxed">
+                      <p className="text-xs text-white leading-relaxed">
                         {MENU_DATA[activeMenu].cta.description}
                       </p>
                     </div>
@@ -377,7 +378,7 @@ export function Navigation() {
                     {MENU_DATA[key].label}
                   </span>
                   <ChevronRight
-                    className={`w-4 h-4 text-white/70 transition-transform duration-200 ${
+                    className={`w-4 h-4 text-white transition-transform duration-200 ${
                       mobileAccordion === key ? 'rotate-90' : ''
                     }`}
                   />
@@ -403,7 +404,7 @@ export function Navigation() {
                             <Icon className="w-4 h-4 text-purple-400 shrink-0" />
                             <div>
                               <div className="text-sm font-medium text-white">{item.label}</div>
-                              <div className="text-xs text-white/80">{item.description}</div>
+                              <div className="text-xs text-white">{item.description}</div>
                             </div>
                           </Link>
                         );

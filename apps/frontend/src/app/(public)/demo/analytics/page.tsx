@@ -19,17 +19,17 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 const mockMetrics = [
-  { label: 'Visiteurs uniques', value: '24,891', change: '+12.5%', up: true, icon: Users },
-  { label: 'Taux de conversion', value: '3.8%', change: '+0.6%', up: true, icon: Target },
-  { label: 'Revenu mensuel', value: '€48,230', change: '+18.2%', up: true, icon: TrendingUp },
-  { label: 'Panier moyen', value: '€67.40', change: '-2.1%', up: false, icon: PieChart },
+  { label: 'Visiteurs uniques', value: '12,480', change: '+8.3%', up: true, icon: Users },
+  { label: 'Taux de conversion', value: '4.2%', change: '+1.1%', up: true, icon: Target },
+  { label: 'Designs personnalises', value: '3,847', change: '+22.4%', up: true, icon: TrendingUp },
+  { label: 'Engagement moyen', value: '2m 34s', change: '+15.6%', up: true, icon: PieChart },
 ];
 
 const mockFunnel = [
-  { step: 'Visite page produit', count: 12450, pct: 100 },
-  { step: 'Ajout au panier', count: 4890, pct: 39.3 },
-  { step: 'Debut checkout', count: 2134, pct: 17.1 },
-  { step: 'Paiement complete', count: 1247, pct: 10.0 },
+  { step: 'Vue produit', count: 8240, pct: 100 },
+  { step: 'Personnalisation lancee', count: 4120, pct: 50.0 },
+  { step: 'Design finalise', count: 2060, pct: 25.0 },
+  { step: 'Commande validee', count: 1030, pct: 12.5 },
 ];
 
 const mockCohorts = [

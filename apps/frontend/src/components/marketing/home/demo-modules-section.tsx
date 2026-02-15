@@ -5,58 +5,58 @@ import Link from 'next/link';
 import { Camera, Box, Sparkles, BarChart3, Wand2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
-import { AnimatedBorder } from '@/components/ui/animated-border';
+import { AnimatedBorder, AnimatedBorderCTA } from '@/components/ui/animated-border';
 
 const demoModules = [
   {
     id: 'virtual-try-on',
     title: 'Virtual Try-On',
-    description: 'Essayage virtuel en temps reel avec MediaPipe Face Mesh et AR pour mobile et web',
+    description: 'Vos clients essaient vos produits en direct depuis leur navigateur. Reduisez les retours de 40% grace a l\'essayage virtuel AR.',
     icon: Camera,
     href: '/demo/virtual-try-on',
     gradient: 'from-cyan-500 to-blue-500',
-    badge: 'AR + MediaPipe',
-    features: ['Tracking facial temps reel', 'AR WebXR', 'Export USDZ/GLB', 'Mobile & Desktop'],
+    badge: 'Realite Augmentee',
+    features: ['Tracking facial haute precision', 'Compatible mobile et desktop', 'Integration en 1 clic', '-40% de retours produits'],
   },
   {
     id: '3d-configurator',
-    title: '3D Configurator',
-    description: 'Configurateur 3D photorealiste avec materiaux PBR, eclairage avance et rendu haute qualite',
+    title: 'Configurateur 3D',
+    description: 'Offrez a vos clients une visualisation produit photorealiste a 360°. +35% de taux de conversion en moyenne.',
     icon: Box,
     href: '/demo/3d-configurator',
     gradient: 'from-purple-500 to-pink-500',
-    badge: 'Three.js + WebGL',
-    features: ['Rendu PBR', 'Materiaux personnalisables', 'Export haute qualite', 'Performance optimisee'],
+    badge: 'Rendu temps reel',
+    features: ['Rendu photorealiste PBR', 'Materiaux personnalisables', 'Export haute qualite', '+35% de conversions'],
   },
   {
     id: 'ai-agents',
-    title: 'AI Agents',
-    description: 'Agents IA intelligents (Luna, Aria, Nova) pour BI, personnalisation et support automatique',
+    title: 'Agents IA',
+    description: 'Automatisez la creation de designs, l\'analyse de donnees et le support client avec nos agents IA specialises.',
     icon: Sparkles,
     href: '/demo/ai-agents',
     gradient: 'from-pink-500 to-rose-500',
-    badge: 'GPT-4 + Claude',
-    features: ['Luna (B2B BI)', 'Aria (B2C Creatif)', 'Nova (Support)', 'RAG + Memory'],
+    badge: 'Intelligence Artificielle',
+    features: ['Generation de designs IA', 'Analyses predictives', 'Support automatise 24/7', 'Personnalisation contextuelle'],
   },
   {
     id: 'smart-analytics',
     title: 'Smart Analytics',
-    description: 'Analytics avances avec predictions, funnels, cohortes et recommandations IA',
+    description: 'Suivez chaque interaction, identifiez les tendances et optimisez vos campagnes avec des insights actionnables.',
     icon: BarChart3,
     href: '/demo/analytics',
     gradient: 'from-emerald-500 to-teal-500',
-    badge: 'BI + ML',
-    features: ['Funnels & Cohortes', 'Predictions IA', 'Anomalies detectees', 'Recommandations'],
+    badge: 'Business Intelligence',
+    features: ['Funnels de conversion', 'Predictions IA', 'Detection d\'anomalies', 'Recommandations temps reel'],
   },
   {
     id: 'ar-experience',
-    title: 'AR Experience',
-    description: 'Experiences AR immersives avec WebXR, tracking main/corps et integration e-commerce',
+    title: 'Experience AR',
+    description: 'Creez des experiences immersives en realite augmentee directement integrees a votre boutique e-commerce.',
     icon: Wand2,
     href: '/demo/ar-experience',
     gradient: 'from-amber-500 to-orange-500',
     badge: 'WebXR',
-    features: ['Hand Tracking', 'Pose Detection', 'WebXR natif', 'Integration Shopify'],
+    features: ['Placement de produits en AR', 'Compatible tous navigateurs', 'Integration Shopify native', 'Engagement x3'],
   },
 ];
 
@@ -76,7 +76,7 @@ function DemoModulesSectionContent() {
               <span className="text-white">Explorez nos </span>
               <span className="italic text-gradient-purple">modules en direct</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-400 leading-relaxed px-2">
+            <p className="text-base sm:text-lg text-white/70 leading-relaxed px-2">
               Testez nos 5 modules principaux avec des demos interactives. Aucun compte requis.
             </p>
           </div>
@@ -111,12 +111,12 @@ function DemoModulesSectionContent() {
 
                       {/* Content */}
                       <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 sm:mb-2">{mod.title}</h3>
-                      <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-3 sm:mb-4">{mod.description}</p>
+                      <p className="text-xs sm:text-sm text-white/70 leading-relaxed mb-3 sm:mb-4">{mod.description}</p>
 
                       {/* Features */}
                       <ul className="space-y-1.5 sm:space-y-2 mb-5 sm:mb-6 flex-1">
                         {mod.features.map((f, i) => (
-                          <li key={i} className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
+                          <li key={i} className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60">
                             <span className="w-1 h-1 rounded-full bg-purple-500 flex-shrink-0" />
                             {f}
                           </li>
@@ -125,14 +125,16 @@ function DemoModulesSectionContent() {
 
                       {/* CTA */}
                       <Link href={mod.href}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.04] hover:border-white/[0.15] font-medium text-xs sm:text-sm"
-                        >
-                          Tester la demo
-                          <ArrowRight className="w-3 h-3 ml-1.5" />
-                        </Button>
+                        <AnimatedBorderCTA speed="normal" variant="white">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full bg-white text-black hover:bg-white/90 hover:text-black border-0 font-semibold text-xs sm:text-sm"
+                          >
+                            Tester la demo
+                            <ArrowRight className="w-3 h-3 ml-1.5" />
+                          </Button>
+                        </AnimatedBorderCTA>
                       </Link>
                     </div>
                   </div>
@@ -146,13 +148,15 @@ function DemoModulesSectionContent() {
         <ScrollReveal animation="zoom-in" delay={200}>
           <div className="text-center">
             <Link href="/demo">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-              >
-                Voir toutes les demos
-                <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
-              </Button>
+              <AnimatedBorderCTA speed="normal">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                >
+                  Voir toutes les demos
+                  <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                </Button>
+              </AnimatedBorderCTA>
             </Link>
           </div>
         </ScrollReveal>

@@ -66,7 +66,7 @@ export function FeaturesSectionNew() {
               <span className="text-white">Tout pour creer des </span>
               <span className="italic text-gradient-purple">produits exceptionnels</span>
             </h2>
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed px-2">
+            <p className="text-base sm:text-lg text-white/70 leading-relaxed px-2">
               6 modules puissants qui couvrent l&apos;integralite du cycle de vie de vos produits personnalises.
             </p>
           </div>
@@ -110,7 +110,7 @@ export function FeaturesSectionNew() {
                         <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">{feature.title}</h3>
 
                         {/* Description */}
-                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">{feature.description}</p>
+                        <p className="text-xs sm:text-sm text-white/70 leading-relaxed">{feature.description}</p>
                       </div>
                     </div>
                   </AnimatedBorder>

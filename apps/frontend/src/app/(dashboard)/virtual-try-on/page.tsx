@@ -2,7 +2,6 @@
 
 import React, {
   useState,
-  useRef,
   useEffect,
   useCallback,
   useMemo,
@@ -13,34 +12,28 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Camera,
-  Video,
   Download,
   Share2,
-  Maximize2,
-  Minimize2,
   Eye,
   Watch,
   Sparkles,
   Package,
   Image as ImageIcon,
   BarChart3,
-  Play,
-  Square,
-  RefreshCw,
   AlertCircle,
-  Loader2,
   ExternalLink,
   ToggleLeft,
   ToggleRight,
+  Settings,
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PlanGate } from '@/lib/hooks/api/useFeatureGate';
 import { UpgradePrompt } from '@/components/upgrade/UpgradePrompt';
 import { logger } from '@/lib/logger';
-import { drawGlassesOverlay, drawWatchOverlay, clearCanvas } from '@/lib/utils/overlay-renderer';
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { Hands } from '@mediapipe/hands';
-import { Camera as CameraUtils } from '@mediapipe/camera_utils';
+import TryOnView from '@/components/virtual-tryon/TryOnView';
+import TryOnScreenshotGallery from '@/components/virtual-tryon/TryOnScreenshotGallery';
+import { useTryOn } from '@/lib/hooks/useTryOn';
+import type { TryOnCategory } from '@/lib/virtual-tryon/TryOnEngine';
 import {
   AreaChart,
   Area,
@@ -53,14 +46,9 @@ import {
 import { endpoints } from '@/lib/api/client';
 import { useI18n } from '@/i18n/useI18n';
 
-type ProductCategory = 'glasses' | 'watch' | 'jewelry';
-
-interface Model {
-  id: string;
-  name: string;
-  url: string;
-  thumbnail: string;
-}
+// ========================================
+// Types
+// ========================================
 
 interface ArProduct {
   id: string;
@@ -71,13 +59,7 @@ interface ArProduct {
   imageUrl?: string;
   arEnabled?: boolean;
   model3dUrl?: string;
-}
-
-interface TryOnScreenshot {
-  id: string;
-  dataUrl: string;
-  timestamp: number;
-  productName?: string;
+  modelUSDZUrl?: string;
 }
 
 interface TryOnAnalytics {
@@ -91,313 +73,154 @@ interface TryOnAnalytics {
   categoryBreakdown?: unknown[];
 }
 
-const AVAILABLE_MODELS: Record<ProductCategory, Model[]> = {
-  glasses: [
-    { id: 'aviator', name: 'Lunettes Aviator', url: '/models/glasses/aviator.glb', thumbnail: '' },
-    { id: 'wayfarer', name: 'Lunettes Wayfarer', url: '/models/glasses/wayfarer.glb', thumbnail: '' },
-    { id: 'round', name: 'Lunettes Rondes', url: '/models/glasses/round.glb', thumbnail: '' },
-  ],
-  watch: [
-    { id: 'classic', name: 'Montre Classique', url: '/models/watches/classic.glb', thumbnail: '' },
-    { id: 'sport', name: 'Montre Sport', url: '/models/watches/sport.glb', thumbnail: '' },
-    { id: 'luxury', name: 'Montre Luxe', url: '/models/watches/luxury.glb', thumbnail: '' },
-  ],
-  jewelry: [
-    { id: 'hoop', name: 'Créoles', url: '/models/jewelry/hoop.glb', thumbnail: '' },
-    { id: 'pendant', name: 'Collier Pendentif', url: '/models/jewelry/pendant.glb', thumbnail: '' },
-  ],
-};
+type DashboardCategory = 'eyewear' | 'watch' | 'ring' | 'earring' | 'necklace';
+
+const CATEGORY_OPTIONS: {
+  value: DashboardCategory;
+  label: string;
+  icon: React.ReactNode;
+  tryOnCategory: TryOnCategory;
+}[] = [
+  { value: 'eyewear', label: 'Lunettes', icon: <Eye className="w-4 h-4 mr-2" />, tryOnCategory: 'eyewear' },
+  { value: 'watch', label: 'Montres', icon: <Watch className="w-4 h-4 mr-2" />, tryOnCategory: 'watch' },
+  { value: 'ring', label: 'Bagues', icon: <Sparkles className="w-4 h-4 mr-2" />, tryOnCategory: 'ring' },
+  { value: 'earring', label: 'Boucles d\'oreilles', icon: <Sparkles className="w-4 h-4 mr-2" />, tryOnCategory: 'earring' },
+  { value: 'necklace', label: 'Colliers', icon: <Sparkles className="w-4 h-4 mr-2" />, tryOnCategory: 'necklace' },
+];
+
+// ========================================
+// TryOn Tab (Refactored with new TryOnView)
+// ========================================
 
 function TryOnTab({
-  selectedCategory,
-  selectedModel,
-  onCategoryChange,
-  onModelChange,
   preselectedProduct,
-  onScreenshotTaken,
 }: {
-  selectedCategory: ProductCategory;
-  selectedModel: Model;
-  onCategoryChange: (c: ProductCategory) => void;
-  onModelChange: (m: Model) => void;
   preselectedProduct: ArProduct | null;
-  onScreenshotTaken?: (blob: Blob) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const faceMeshRef = useRef<FaceMesh | null>(null);
-  const handsRef = useRef<Hands | null>(null);
-  const cameraRef = useRef<CameraUtils | null>(null);
-  const fpsLastRef = useRef(0);
-  const fpsCountRef = useRef<number[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<DashboardCategory>('eyewear');
+  const tryOnHook = useTryOn();
 
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [fps, setFps] = useState(0);
-  const [isTracking, setIsTracking] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const categoryConfig = CATEGORY_OPTIONS.find((c) => c.value === selectedCategory)!;
 
-  const startCamera = useCallback(async () => {
-    setCameraError(null);
-    setIsLoading(true);
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Votre navigateur ne supporte pas l\'accès caméra.');
-      }
-      if (!faceMeshRef.current) {
-        const faceMesh = new FaceMesh({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-        });
-        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.3, minTrackingConfidence: 0.3 });
-        faceMesh.onResults((results) => {
-          if (!canvasRef.current || !videoRef.current) return;
-          const ctx = canvasRef.current.getContext('2d');
-          if (!ctx) return;
-          const w = videoRef.current.videoWidth || 640;
-          const h = videoRef.current.videoHeight || 480;
-          if (canvasRef.current.width !== w || canvasRef.current.height !== h) {
-            canvasRef.current.width = w;
-            canvasRef.current.height = h;
-          }
-          clearCanvas(ctx, w, h);
-          if (results.multiFaceLandmarks?.[0] && selectedCategory === 'glasses') {
-            const pts = results.multiFaceLandmarks[0].map((l: { x: number; y: number }) => ({ x: l.x * w, y: l.y * h }));
-            if (pts.length >= 468) drawGlassesOverlay(ctx, pts, { color: '#06b6d4', lineWidth: 6, fill: true, fillOpacity: 0.25 });
-            setIsTracking(true);
-          } else if ((results as unknown as { multiHandLandmarks?: { x: number; y: number }[][] }).multiHandLandmarks?.[0] && (selectedCategory === 'watch' || selectedCategory === 'jewelry')) {
-            const landmarks = (results as unknown as { multiHandLandmarks: { x: number; y: number }[][] }).multiHandLandmarks[0];
-            const wristPoints = [{ x: landmarks[0].x * w, y: landmarks[0].y * h }];
-            drawWatchOverlay(ctx, wristPoints, { color: '#3B82F6', lineWidth: 4, fill: true, fillOpacity: 0.2 });
-            setIsTracking(true);
-          } else {
-            setIsTracking(false);
-          }
-        });
-        faceMeshRef.current = faceMesh;
-      }
-      if (!handsRef.current) {
-        const hands = new Hands({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-        });
-        hands.setOptions({ maxNumHands: 2, minDetectionConfidence: 0.3, minTrackingConfidence: 0.3 });
-        handsRef.current = hands;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-      if (!videoRef.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        throw new Error('Élément vidéo indisponible.');
-      }
-      videoRef.current.srcObject = stream;
-      await new Promise<void>((resolve, reject) => {
-        if (!videoRef.current) return reject(new Error('Video element missing'));
-        videoRef.current.onloadedmetadata = () => resolve();
-        videoRef.current.onerror = () => reject(new Error('Video load failed'));
-        videoRef.current.play().catch(reject);
-      });
-      if (videoRef.current && faceMeshRef.current) {
-        const cam = new CameraUtils(videoRef.current, {
-          onFrame: async () => {
-            if (videoRef.current && faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
-            if (videoRef.current && handsRef.current) await handsRef.current.send({ image: videoRef.current });
-            const now = performance.now();
-            if (now - fpsLastRef.current > 0) {
-              fpsCountRef.current.push(1000 / (now - fpsLastRef.current));
-              if (fpsCountRef.current.length > 30) fpsCountRef.current.shift();
-              setFps(Math.round(fpsCountRef.current.reduce((a, b) => a + b, 0) / fpsCountRef.current.length));
-            }
-            fpsLastRef.current = now;
-          },
-          width: 1280,
-          height: 720,
-        });
-        cam.start();
-        cameraRef.current = cam;
-      }
-      setIsCameraActive(true);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Accès caméra refusé.';
-      setCameraError(msg);
-      logger.error('Try-on camera error', { error: err });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedCategory]);
+  // Determine model URL from preselected product
+  const modelUrl = preselectedProduct?.model3dUrl || undefined;
+  const modelUSDZUrl = preselectedProduct?.modelUSDZUrl || undefined;
+  const productName = preselectedProduct?.name || undefined;
+  const fallbackImage = preselectedProduct?.image_url || preselectedProduct?.imageUrl || undefined;
 
-  const stopCamera = useCallback(() => {
-    if (cameraRef.current) {
-      try { cameraRef.current.stop(); } catch (_) {}
-      cameraRef.current = null;
-    }
-    if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
-      videoRef.current.srcObject = null;
-    }
-    setIsCameraActive(false);
-    setIsTracking(false);
-    setFps(0);
-  }, []);
-
-  const takeScreenshot = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const c = document.createElement('canvas');
-    c.width = videoRef.current.videoWidth;
-    c.height = videoRef.current.videoHeight;
-    const ctx = c.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(videoRef.current, 0, 0);
-    ctx.drawImage(canvasRef.current, 0, 0);
-    c.toBlob((blob) => {
-      if (blob) {
-        onScreenshotTaken?.(blob);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `luneo-tryon-${Date.now()}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    }, 'image/png');
-  }, [onScreenshotTaken]);
-
-  const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen?.();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
-      setIsFullscreen(false);
-    }
-  }, []);
-
-  useEffect(() => () => { stopCamera(); }, [stopCamera]);
-
+  // Map product category to dashboard category
   useEffect(() => {
     if (!preselectedProduct?.category) return;
-    const cat = (preselectedProduct.category.toLowerCase() === 'eyewear' ? 'glasses' : preselectedProduct.category.toLowerCase()) as ProductCategory;
-    if (['glasses', 'watch', 'jewelry'].includes(cat)) {
-      onCategoryChange(cat);
-      const first = AVAILABLE_MODELS[cat]?.[0];
-      if (first) onModelChange(first);
+    const cat = preselectedProduct.category.toLowerCase();
+    const mapped = CATEGORY_OPTIONS.find((c) =>
+      c.value === cat || (cat === 'glasses' && c.value === 'eyewear'),
+    );
+    if (mapped) {
+      setSelectedCategory(mapped.value);
     }
-  }, [preselectedProduct?.id]);
+  }, [preselectedProduct?.id, preselectedProduct?.category]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      {/* Left sidebar - Category selection + screenshots */}
       <div className="lg:col-span-1 space-y-4">
         <Card className="p-4 bg-gray-800/50 border-gray-700">
-          <h3 className="font-semibold text-white mb-3">Catégorie</h3>
+          <h3 className="font-semibold text-white mb-3">Categorie</h3>
           <div className="space-y-2">
-            {(['glasses', 'watch', 'jewelry'] as ProductCategory[]).map((cat) => (
+            {CATEGORY_OPTIONS.map((cat) => (
               <Button
-                key={cat}
-                variant={selectedCategory === cat ? 'default' : 'outline'}
+                key={cat.value}
+                variant={selectedCategory === cat.value ? 'default' : 'outline'}
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => { onCategoryChange(cat); onModelChange(AVAILABLE_MODELS[cat][0]); }}
+                onClick={() => setSelectedCategory(cat.value)}
               >
-                {cat === 'glasses' && <Eye className="w-4 h-4 mr-2" />}
-                {cat === 'watch' && <Watch className="w-4 h-4 mr-2" />}
-                {cat === 'jewelry' && <Sparkles className="w-4 h-4 mr-2" />}
-                {cat === 'glasses' ? 'Lunettes' : cat === 'watch' ? 'Montres' : 'Bijoux'}
+                {cat.icon}
+                {cat.label}
               </Button>
             ))}
           </div>
         </Card>
-        <Card className="p-4 bg-gray-800/50 border-gray-700">
-          <h3 className="font-semibold text-white mb-3">Modèle</h3>
-          <div className="space-y-2">
-            {AVAILABLE_MODELS[selectedCategory].map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onModelChange(m)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm ${selectedModel.id === m.id ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-        </Card>
-        {isCameraActive && (
+
+        {/* Performance info */}
+        {tryOnHook.fps > 0 && (
           <Card className="p-4 bg-gray-800/50 border-gray-700">
             <h3 className="font-semibold text-white mb-3">Performance</h3>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">FPS</span>
-              <span className={fps >= 24 ? 'text-green-400' : 'text-yellow-400'}>{fps}</span>
-            </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-gray-400">Tracking</span>
-              <span className={isTracking ? 'text-green-400' : 'text-gray-500'}>{isTracking ? 'Actif' : '—'}</span>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">FPS</span>
+                <span className={tryOnHook.fps >= 24 ? 'text-green-400' : 'text-yellow-400'}>
+                  {tryOnHook.fps}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Qualite</span>
+                <span className="text-blue-400">{tryOnHook.quality.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Tracking</span>
+                <span className={tryOnHook.isTracking ? 'text-green-400' : 'text-gray-500'}>
+                  {tryOnHook.isTracking ? 'Actif' : '--'}
+                </span>
+              </div>
             </div>
           </Card>
         )}
+
+        {/* Session screenshots */}
+        {tryOnHook.screenshots.length > 0 && (
+          <Card className="p-4 bg-gray-800/50 border-gray-700">
+            <h3 className="font-semibold text-white mb-3">
+              Captures ({tryOnHook.screenshots.length})
+            </h3>
+            <TryOnScreenshotGallery
+              screenshots={tryOnHook.screenshots.map((s) => s.dataUrl)}
+              onRemove={tryOnHook.removeScreenshot}
+            />
+          </Card>
+        )}
       </div>
+
+      {/* Main try-on area */}
       <div className="lg:col-span-3">
-        <Card className="p-4 bg-gray-800/50 border-gray-700" ref={containerRef}>
-          <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-            {cameraError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gray-900/90 z-10">
-                <AlertCircle className="w-12 h-12 text-red-400 mb-3" />
-                <p className="text-white font-medium mb-1">Erreur caméra</p>
-                <p className="text-sm text-gray-400 text-center">{cameraError}</p>
-                <Button variant="outline" className="mt-4" onClick={() => { setCameraError(null); startCamera(); }}>
-                  <RefreshCw className="w-4 h-4 mr-2" /> Réessayer
-                </Button>
-              </div>
-            )}
-            {!isCameraActive && !isLoading && !cameraError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                <Camera className="w-16 h-16 text-gray-500 mb-4" />
-                <p className="text-white mb-2">Lancer la caméra pour l'essayage</p>
-                <p className="text-sm text-gray-400 text-center mb-6">Positionnez votre {selectedCategory === 'watch' ? 'main' : 'visage'} face à la caméra.</p>
-                <Button onClick={startCamera} className="bg-green-600 hover:bg-green-700">
-                  <Play className="w-4 h-4 mr-2" /> Démarrer
-                </Button>
-              </div>
-            )}
-            {isLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 z-10">
-                <Loader2 className="w-12 h-12 text-blue-400 animate-spin mb-3" />
-                <p className="text-white">Initialisation caméra...</p>
-              </div>
-            )}
-            {isCameraActive && (
-              <>
-                <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
-                <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-                <div className="absolute top-3 left-3 flex gap-2">
-                  <span className="px-2 py-1 rounded bg-black/60 text-xs text-green-400">{fps} FPS</span>
-                  {isTracking && <span className="px-2 py-1 rounded bg-black/60 text-xs text-green-400">Tracking actif</span>}
-                </div>
-              </>
-            )}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            <Button onClick={isCameraActive ? stopCamera : startCamera} variant={isCameraActive ? 'outline' : 'default'} size="sm">
-              {isCameraActive ? <><Square className="w-4 h-4 mr-2" /> Arrêter</> : <><Play className="w-4 h-4 mr-2" /> Démarrer</>}
-            </Button>
-            <Button onClick={takeScreenshot} disabled={!isCameraActive} size="sm">
-              <Camera className="w-4 h-4 mr-2" /> Screenshot
-            </Button>
-            <Button onClick={toggleFullscreen} variant="outline" size="sm">
-              {isFullscreen ? <Minimize2 className="w-4 h-4 mr-2" /> : <Maximize2 className="w-4 h-4 mr-2" />}
-              {isFullscreen ? 'Quitter' : 'Plein écran'}
-            </Button>
-            <Button variant="outline" size="sm" disabled={!isCameraActive}>
-              <Video className="w-4 h-4 mr-2" /> Changer caméra
-            </Button>
-          </div>
+        <Card className="bg-gray-800/50 border-gray-700 overflow-hidden">
+          <TryOnView
+            category={categoryConfig.tryOnCategory}
+            modelUrl={modelUrl}
+            modelUSDZUrl={modelUSDZUrl}
+            productName={productName}
+            fallbackImage={fallbackImage}
+            enableOcclusion={true}
+            enableShadows={true}
+            onScreenshot={(dataUrl) => {
+              tryOnHook.captureScreenshot(
+                dataUrl,
+                preselectedProduct?.id || 'unknown',
+              );
+            }}
+            onTrackingChange={tryOnHook.setIsTracking}
+            onFPSChange={tryOnHook.setFps}
+            onQualityChange={tryOnHook.setQuality}
+            onPerformanceMetric={(metric) => {
+              tryOnHook.recordPerformanceMetric({
+                ...metric,
+                deviceType: 'unknown',
+              });
+            }}
+            onError={(err) => {
+              logger.error('Try-on error', { error: err.message });
+            }}
+            className="aspect-video"
+          />
         </Card>
       </div>
     </div>
   );
 }
+
+// ========================================
+// My AR Products Tab (preserved)
+// ========================================
 
 function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => void }) {
   const [products, setProducts] = useState<ArProduct[]>([]);
@@ -456,7 +279,7 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
       <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
         <Package className="w-14 h-14 text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-white mb-2">Aucun produit AR</h3>
-        <p className="text-gray-400 text-sm">Activez l'AR sur vos produits pour les afficher ici.</p>
+        <p className="text-gray-400 text-sm">Activez l&apos;AR sur vos produits pour les afficher ici.</p>
       </Card>
     );
   }
@@ -475,11 +298,11 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
             )}
             <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-green-500/80 text-xs text-white">
               {p?.arEnabled !== false ? <ToggleRight className="w-3 h-3" /> : <ToggleLeft className="w-3 h-3" />}
-              AR {p?.arEnabled !== false ? 'activé' : 'désactivé'}
+              AR {p?.arEnabled !== false ? 'active' : 'desactive'}
             </div>
           </div>
           <h4 className="font-medium text-white truncate">{p?.name || 'Unnamed Product'}</h4>
-          <p className="text-xs text-gray-400 mb-3">{p?.category ?? '—'}</p>
+          <p className="text-xs text-gray-400 mb-3">{p?.category ?? '--'}</p>
           <Button size="sm" className="w-full" onClick={() => p && onTryProduct(p)}>
             <ExternalLink className="w-4 h-4 mr-2" /> Essayer ce produit
           </Button>
@@ -489,75 +312,34 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
   );
 }
 
-function CapturesTab({ screenshots, onRemove }: { screenshots: TryOnScreenshot[]; onRemove: (id: string) => void }) {
+// ========================================
+// Captures Tab (uses new gallery component)
+// ========================================
+
+function CapturesTab({ screenshots, onRemove }: { screenshots: Array<{ dataUrl: string; productId: string }>; onRemove: (idx: number) => void }) {
   const { t } = useI18n();
-  const [preview, setPreview] = useState<string | null>(null);
 
   if (screenshots.length === 0) {
     return (
       <Card className="p-12 bg-gray-800/50 border-gray-700 text-center">
         <ImageIcon className="w-14 h-14 text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-white mb-2">Aucune capture</h3>
-        <p className="text-gray-400 text-sm">Prenez des screenshots depuis l'onglet Essayage pour les retrouver ici.</p>
+        <p className="text-gray-400 text-sm">Prenez des screenshots depuis l&apos;onglet Essayage pour les retrouver ici.</p>
       </Card>
     );
   }
 
-  const handleDownload = (s: TryOnScreenshot) => {
-    const a = document.createElement('a');
-    a.href = s.dataUrl;
-    a.download = `luneo-capture-${s.timestamp}.png`;
-    a.click();
-  };
-
-  const handleShare = async (s: TryOnScreenshot) => {
-    try {
-      if (navigator.share) {
-        const res = await fetch(s.dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], `capture-${s.timestamp}.png`, { type: 'image/png' });
-        await navigator.share({ title: t('virtualTryOn.shareTitle'), files: [file] });
-      } else {
-        handleDownload(s);
-      }
-    } catch (err) {
-      logger.error('Try-on share failed', { error: err });
-      handleDownload(s);
-    }
-  };
-
   return (
-    <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {screenshots.map((s) => (
-          <Card key={s.id} className="p-2 bg-gray-800/50 border-gray-700 overflow-hidden">
-            <button type="button" className="w-full aspect-square rounded-lg overflow-hidden block" onClick={() => setPreview(s.dataUrl)}>
-              <img src={s.dataUrl} alt="Capture" className="w-full h-full object-cover" />
-            </button>
-            <div className="mt-2 flex gap-2">
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => handleDownload(s)}>
-                <Download className="w-3 h-3" />
-              </Button>
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => handleShare(s)}>
-                <Share2 className="w-3 h-3" />
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setPreview(null)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <img src={preview} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
-        </div>
-      )}
-    </>
+    <TryOnScreenshotGallery
+      screenshots={screenshots.map((s) => s.dataUrl)}
+      onRemove={onRemove}
+    />
   );
 }
+
+// ========================================
+// Analytics Tab (preserved + enhanced)
+// ========================================
 
 function AnalyticsTab() {
   const { t } = useI18n();
@@ -569,40 +351,31 @@ function AnalyticsTab() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/try-on/analytics', { credentials: 'include' }).catch(() => null);
+        const res = await endpoints.tryOn.getAnalytics(30);
         if (cancelled) return;
-        if (res?.ok) {
-          let raw: unknown;
-          try {
-            raw = await res.json();
-          } catch (parseError) {
-            if (!cancelled) {
-              setError('Invalid response format');
-              setData(null);
-            }
-            return;
-          }
-          
-          // Map backend field names to frontend expectations with null checks
-          const rawData = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
-          setData({
-            totalSessions: typeof rawData.totalSessions === 'number' ? rawData.totalSessions : 0,
-            productsTried: typeof rawData.totalProductsTried === 'number' ? rawData.totalProductsTried : (typeof rawData.productsTried === 'number' ? rawData.productsTried : 0),
-            screenshotsTaken: typeof rawData.totalScreenshots === 'number' ? rawData.totalScreenshots : (typeof rawData.screenshotsTaken === 'number' ? rawData.screenshotsTaken : 0),
-            avgSessionDurationSeconds: typeof rawData.avgSessionDuration === 'number' ? rawData.avgSessionDuration : (typeof rawData.avgSessionDurationSeconds === 'number' ? rawData.avgSessionDurationSeconds : 0),
-            sessionsOverTime: Array.isArray(rawData.sessionsOverTime) ? rawData.sessionsOverTime : [],
-            topProducts: Array.isArray(rawData.topProducts) ? rawData.topProducts.map((p: unknown) => {
-              const product = p && typeof p === 'object' ? p as Record<string, unknown> : {};
-              return {
-                name: typeof product.productName === 'string' ? product.productName : (typeof product.name === 'string' ? product.name : 'Unknown'),
-                count: typeof product.tryCount === 'number' ? product.tryCount : (typeof product.count === 'number' ? product.count : 0),
-              };
-            }) : [],
-            conversionRate: typeof rawData.conversionRate === 'number' ? rawData.conversionRate : 0,
-            categoryBreakdown: Array.isArray(rawData.categoryBreakdown) ? rawData.categoryBreakdown : [],
-          });
-          setError(null);
-        } else {
+
+        const resTyped = res as { data?: Record<string, unknown> };
+        const rawData = resTyped.data && typeof resTyped.data === 'object' ? resTyped.data as Record<string, unknown> : {};
+        setData({
+          totalSessions: typeof rawData.totalSessions === 'number' ? rawData.totalSessions : 0,
+          productsTried: typeof rawData.totalProductsTried === 'number' ? rawData.totalProductsTried : (typeof rawData.productsTried === 'number' ? rawData.productsTried : 0),
+          screenshotsTaken: typeof rawData.totalScreenshots === 'number' ? rawData.totalScreenshots : (typeof rawData.screenshotsTaken === 'number' ? rawData.screenshotsTaken : 0),
+          avgSessionDurationSeconds: typeof rawData.avgSessionDuration === 'number' ? rawData.avgSessionDuration : (typeof rawData.avgSessionDurationSeconds === 'number' ? rawData.avgSessionDurationSeconds : 0),
+          sessionsOverTime: Array.isArray(rawData.sessionsOverTime) ? rawData.sessionsOverTime : [],
+          topProducts: Array.isArray(rawData.topProducts) ? rawData.topProducts.map((p: unknown) => {
+            const product = p && typeof p === 'object' ? p as Record<string, unknown> : {};
+            return {
+              name: typeof product.productName === 'string' ? product.productName : (typeof product.name === 'string' ? product.name : 'Unknown'),
+              count: typeof product.tryCount === 'number' ? product.tryCount : (typeof product.count === 'number' ? product.count : 0),
+            };
+          }) : [],
+          conversionRate: typeof rawData.conversionRate === 'number' ? rawData.conversionRate : 0,
+          categoryBreakdown: Array.isArray(rawData.categoryBreakdown) ? rawData.categoryBreakdown : [],
+        });
+        setError(null);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : t('common.error'));
           setData({
             totalSessions: 0,
             productsTried: 0,
@@ -612,17 +385,12 @@ function AnalyticsTab() {
             topProducts: [],
           });
         }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : t('common.error'));
-          setData(null);
-        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [t]);
 
   const chartData = useMemo(() => {
     if (!data?.sessionsOverTime?.length) {
@@ -646,9 +414,6 @@ function AnalyticsTab() {
             </Card>
           ))}
         </div>
-        <Card className="p-6 bg-gray-800/50 border-gray-700 animate-pulse">
-          <div className="h-64 bg-gray-700 rounded" />
-        </Card>
       </div>
     );
   }
@@ -689,7 +454,7 @@ function AnalyticsTab() {
         </Card>
         <Card className="p-4 bg-gray-800/50 border-gray-700">
           <p className="text-sm text-gray-400 mb-1">{t('virtualTryOn.avgSessionDuration')}</p>
-          <p className="text-2xl font-bold text-white">{stats.avgSessionDurationSeconds ? `${Math.round(stats.avgSessionDurationSeconds)}s` : '—'}</p>
+          <p className="text-2xl font-bold text-white">{stats.avgSessionDurationSeconds ? `${Math.round(stats.avgSessionDurationSeconds)}s` : '--'}</p>
         </Card>
       </div>
       <Card className="p-6 bg-gray-800/50 border-gray-700">
@@ -727,12 +492,14 @@ function AnalyticsTab() {
   );
 }
 
+// ========================================
+// Main Page Component
+// ========================================
+
 function VirtualTryOnPageContent() {
   const [activeTab, setActiveTab] = useState('essayage');
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('glasses');
-  const [selectedModel, setSelectedModel] = useState<Model>(AVAILABLE_MODELS.glasses[0]);
   const [preselectedProduct, setPreselectedProduct] = useState<ArProduct | null>(null);
-  const [screenshots, setScreenshots] = useState<TryOnScreenshot[]>([]);
+  const tryOnHook = useTryOn();
 
   const handleTryProduct = useCallback((p: ArProduct) => {
     setPreselectedProduct(p);
@@ -744,7 +511,7 @@ function VirtualTryOnPageContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">Virtual Try-On</h1>
-          <p className="text-base sm:text-lg text-gray-300">Essayez vos produits en réalité augmentée</p>
+          <p className="text-base sm:text-lg text-gray-300">Essayez vos produits en realite augmentee avec rendu 3D</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -764,23 +531,7 @@ function VirtualTryOnPageContent() {
           </TabsList>
 
           <TabsContent value="essayage" className="mt-4">
-            <TryOnTab
-              selectedCategory={selectedCategory}
-              selectedModel={selectedModel}
-              onCategoryChange={setSelectedCategory}
-              onModelChange={setSelectedModel}
-              preselectedProduct={preselectedProduct}
-              onScreenshotTaken={(blob) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  setScreenshots((prev) => [
-                    ...prev,
-                    { id: `s-${Date.now()}`, dataUrl: reader.result as string, timestamp: Date.now() },
-                  ]);
-                };
-                reader.readAsDataURL(blob);
-              }}
-            />
+            <TryOnTab preselectedProduct={preselectedProduct} />
           </TabsContent>
 
           <TabsContent value="products" className="mt-4">
@@ -788,7 +539,10 @@ function VirtualTryOnPageContent() {
           </TabsContent>
 
           <TabsContent value="captures" className="mt-4">
-            <CapturesTab screenshots={screenshots} onRemove={(id) => setScreenshots((s) => s.filter((x) => x.id !== id))} />
+            <CapturesTab
+              screenshots={tryOnHook.screenshots}
+              onRemove={tryOnHook.removeScreenshot}
+            />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-4">
@@ -813,7 +567,7 @@ export default function VirtualTryOnPage() {
             <UpgradePrompt
               requiredPlan="professional"
               feature="Virtual Try-On"
-              description="Le Virtual Try-On est disponible à partir du plan Professional."
+              description="Le Virtual Try-On est disponible a partir du plan Professional."
             />
           </div>
         }

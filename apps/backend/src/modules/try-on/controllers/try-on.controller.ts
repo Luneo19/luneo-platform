@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -26,13 +27,27 @@ import {
 } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { CurrentUser } from '@/common/types/user.types';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { TryOnConfigurationService } from '../services/try-on-configuration.service';
 import { TryOnSessionService } from '../services/try-on-session.service';
 import { TryOnScreenshotService } from '../services/try-on-screenshot.service';
+import { ModelManagementService } from '../services/model-management.service';
+import { CalibrationService } from '../services/calibration.service';
+import { PerformanceService } from '../services/performance.service';
+import { TryOnEventsService } from '../services/try-on-events.service';
+import { ConversionService } from '../services/conversion.service';
+import { WhiteLabelService } from '../services/white-label.service';
+import { TryOnAnalyticsDashboardService } from '../services/try-on-analytics-dashboard.service';
+import { SocialSharingService } from '../services/social-sharing.service';
 import { CreateTryOnConfigurationDto } from '../dto/create-try-on-configuration.dto';
 import { UpdateTryOnConfigurationDto } from '../dto/update-try-on-configuration.dto';
 import { AddProductMappingDto } from '../dto/add-product-mapping.dto';
+import { UploadModelDto } from '../dto/upload-model.dto';
+import { BatchScreenshotsDto } from '../dto/batch-screenshots.dto';
+import { CalibrationDataDto } from '../dto/calibration-data.dto';
+import { BatchPerformanceMetricsDto } from '../dto/performance-metric.dto';
+import { UpdateWidgetConfigDto } from '../dto/widget-config.dto';
 
 @ApiTags('try-on')
 @ApiBearerAuth()
@@ -40,9 +55,18 @@ import { AddProductMappingDto } from '../dto/add-product-mapping.dto';
 @UseGuards(JwtAuthGuard)
 export class TryOnController {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly configurationService: TryOnConfigurationService,
     private readonly sessionService: TryOnSessionService,
     private readonly screenshotService: TryOnScreenshotService,
+    private readonly modelManagementService: ModelManagementService,
+    private readonly calibrationService: CalibrationService,
+    private readonly performanceService: PerformanceService,
+    private readonly eventsService: TryOnEventsService,
+    private readonly conversionService: ConversionService,
+    private readonly whiteLabelService: WhiteLabelService,
+    private readonly analyticsDashboardService: TryOnAnalyticsDashboardService,
+    private readonly socialSharingService: SocialSharingService,
   ) {}
 
   // ========================================
@@ -205,11 +229,33 @@ export class TryOnController {
     if (req.user?.brandId) {
       await this.configurationService.verifyConfigurationOwnership(body.configurationId, req.user.brandId);
     }
-    return this.sessionService.startSession(
+
+    // Check usage quota
+    const brandId = req.user?.brandId || null;
+    if (brandId) {
+      const quota = await this.eventsService.checkSessionQuota(brandId);
+      if (!quota.allowed) {
+        throw new BadRequestException(
+          `Try-on session quota exceeded (${quota.limit} sessions/month). Please upgrade your plan.`,
+        );
+      }
+    }
+
+    const session = await this.sessionService.startSession(
       body.configurationId,
       body.visitorId,
       body.deviceInfo,
     );
+
+    // Fire-and-forget: meter usage + check milestones
+    if (brandId) {
+      const sid =
+        (session as Record<string, unknown>)?.sessionId as string | undefined;
+      this.eventsService.meterSessionCreated(brandId, sid || '').catch(() => {});
+      this.eventsService.checkAndNotifyMilestone(brandId).catch(() => {});
+    }
+
+    return session;
   }
 
   @Get('sessions/:sessionId')
@@ -257,7 +303,26 @@ export class TryOnController {
   ) {
     // SECURITY FIX: Verify session belongs to user's brand
     await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
-    return this.sessionService.endSession(sessionId);
+    const result = await this.sessionService.endSession(sessionId);
+
+    // Fire-and-forget: emit webhook for session completion
+    const brandId = req.user?.brandId || null;
+    if (brandId) {
+      const ended = result as Record<string, unknown>;
+      this.eventsService
+        .emitSessionCompleted(brandId, {
+          sessionId,
+          productsTried: (ended?.productsTried as string[]) || [],
+          screenshotsTaken: (ended?.screenshotsTaken as number) || 0,
+          duration: 0,
+          converted: !!(ended?.converted),
+          conversionAction: ended?.conversionAction as string | undefined,
+          renderQuality: ended?.renderQuality as string | undefined,
+        })
+        .catch(() => {});
+    }
+
+    return result;
   }
 
   // ========================================
@@ -330,5 +395,330 @@ export class TryOnController {
     // SECURITY FIX: Verify screenshot's session belongs to user's brand
     await this.screenshotService.verifyScreenshotOwnership(id, req.user?.brandId);
     return this.screenshotService.generateSharedUrl(id);
+  }
+
+  // ========================================
+  // 3D MODEL MANAGEMENT ENDPOINTS
+  // ========================================
+
+  @Post('configurations/:id/model')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Upload un modèle 3D dédié pour une configuration/produit',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la configuration' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('model'))
+  async uploadModel(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('id') configId: string,
+    @Body() dto: UploadModelDto,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string } | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException('3D model file is required');
+    }
+    // Verify ownership
+    if (req.user?.brandId) {
+      await this.configurationService.verifyConfigurationOwnership(configId, req.user.brandId);
+    }
+    return this.modelManagementService.uploadModel(file, {
+      configurationId: configId,
+      productId: dto.productId,
+      format: dto.format,
+      defaultPosition: dto.defaultPosition,
+      defaultRotation: dto.defaultRotation,
+      enableOcclusion: dto.enableOcclusion,
+      enableShadows: dto.enableShadows,
+    });
+  }
+
+  @Delete('configurations/:id/model')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Supprime le modèle 3D dédié d\'un produit',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la configuration' })
+  async deleteModel(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('id') configId: string,
+    @Query('productId') productId: string,
+    @Query('format') format?: 'glb' | 'usdz' | 'all',
+  ) {
+    if (req.user?.brandId) {
+      await this.configurationService.verifyConfigurationOwnership(configId, req.user.brandId);
+    }
+    return this.modelManagementService.deleteModel(configId, productId, format);
+  }
+
+  @Get('configurations/:id/model/preview')
+  @ApiOperation({
+    summary: 'Récupère les infos du modèle 3D d\'un produit',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la configuration' })
+  async getModelPreview(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('id') configId: string,
+    @Query('productId') productId: string,
+  ) {
+    if (req.user?.brandId) {
+      await this.configurationService.verifyConfigurationOwnership(configId, req.user.brandId);
+    }
+    return this.modelManagementService.getModelInfo(configId, productId);
+  }
+
+  // ========================================
+  // BATCH SCREENSHOTS ENDPOINT
+  // ========================================
+
+  @Post('sessions/:sessionId/screenshots/batch')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Upload batch de screenshots en fin de session',
+  })
+  @ApiParam({ name: 'sessionId', description: 'ID de la session' })
+  async batchUploadScreenshots(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+    @Body() dto: BatchScreenshotsDto,
+  ) {
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
+    const result = await this.screenshotService.createBatch(
+      sessionId,
+      dto.screenshots,
+    );
+
+    // Fire-and-forget: meter screenshot usage
+    const brandId = req.user?.brandId || null;
+    if (brandId && result.created > 0) {
+      this.eventsService
+        .meterScreenshotsUploaded(brandId, sessionId, result.created)
+        .catch(() => {});
+    }
+
+    return result;
+  }
+
+  // ========================================
+  // PERFORMANCE METRICS ENDPOINTS
+  // ========================================
+
+  @Post('sessions/:sessionId/performance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Envoie les métriques de performance d\'une session',
+  })
+  @ApiParam({ name: 'sessionId', description: 'ID de la session' })
+  async submitPerformanceMetrics(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+    @Body() dto: BatchPerformanceMetricsDto,
+  ) {
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
+    return this.performanceService.recordSessionSummary(sessionId, dto.metrics);
+  }
+
+  @Get('performance/device-stats')
+  @ApiOperation({
+    summary: 'Statistiques de performance par type de device',
+  })
+  async getDeviceStats(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.performanceService.getDeviceStats(req.user?.brandId, days);
+  }
+
+  // ========================================
+  // CALIBRATION ENDPOINTS
+  // ========================================
+
+  @Post('sessions/:sessionId/calibration')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Envoie les données de calibration d\'une session',
+  })
+  @ApiParam({ name: 'sessionId', description: 'ID de la session' })
+  async submitCalibration(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+    @Body() dto: CalibrationDataDto,
+  ) {
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
+    return this.calibrationService.saveCalibration(sessionId, dto);
+  }
+
+  // ========================================
+  // DEVICE COMPATIBILITY ENDPOINT
+  // ========================================
+
+  @Get('device-compatibility')
+  @ApiOperation({
+    summary: 'Vérifie la compatibilité d\'un device pour le try-on',
+  })
+  async checkDeviceCompatibility(
+    @Query('deviceType') deviceType: string,
+    @Query('gpuInfo') gpuInfo?: string,
+  ) {
+    return this.performanceService.checkDeviceCompatibility(deviceType, gpuInfo);
+  }
+
+  // ========================================
+  // CONVERSION & ROI ENDPOINTS
+  // ========================================
+
+  @Get('conversions')
+  @ApiOperation({
+    summary: 'Liste des conversions try-on pour la marque',
+  })
+  async getConversions(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+    @Query('action') action?: string,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ) {
+    return this.conversionService.getConversions(req.user?.brandId || '', {
+      days,
+      action: action as import('@prisma/client').ConversionAction | undefined,
+      limit,
+      offset,
+    });
+  }
+
+  @Get('conversions/report')
+  @ApiOperation({
+    summary: 'Rapport ROI des conversions try-on',
+  })
+  async getConversionReport(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.conversionService.getConversionReport(
+      req.user?.brandId || '',
+      days,
+    );
+  }
+
+  // ========================================
+  // WIDGET CONFIGURATION (WHITE-LABEL)
+  // ========================================
+
+  @Get('widget-config')
+  @ApiOperation({ summary: 'Get widget configuration for brand' })
+  async getWidgetConfig(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+  ) {
+    // Get brand slug from user
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: req.user?.brandId || '' },
+      select: { slug: true },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+    return this.whiteLabelService.getWidgetConfig(brand.slug);
+  }
+
+  @Patch('widget-config')
+  @ApiOperation({ summary: 'Update widget configuration' })
+  async updateWidgetConfig(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Body() dto: UpdateWidgetConfigDto,
+  ) {
+    return this.whiteLabelService.updateWidgetConfig(
+      req.user?.brandId || '',
+      dto,
+    );
+  }
+
+  @Get('widget-config/embed-code')
+  @ApiOperation({ summary: 'Generate embed code for a product' })
+  async getEmbedCode(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('productId') productId: string,
+  ) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: req.user?.brandId || '' },
+      select: { slug: true },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+    return this.whiteLabelService.generateEmbedCode(brand.slug, productId);
+  }
+
+  // ========================================
+  // ANALYTICS ROI DASHBOARD
+  // ========================================
+
+  @Get('analytics/roi')
+  @ApiOperation({ summary: 'Rapport ROI complet du Virtual Try-On' })
+  async getROIReport(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.analyticsDashboardService.getROIReport(
+      req.user?.brandId || '',
+      days,
+    );
+  }
+
+  @Get('analytics/funnel')
+  @ApiOperation({ summary: 'Funnel de conversion try-on' })
+  async getConversionFunnel(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.analyticsDashboardService.getConversionFunnel(
+      req.user?.brandId || '',
+      days,
+    );
+  }
+
+  @Get('analytics/products')
+  @ApiOperation({ summary: 'Performance produits try-on' })
+  async getProductPerformance(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.analyticsDashboardService.getProductPerformance(
+      req.user?.brandId || '',
+      days,
+      limit,
+    );
+  }
+
+  @Get('analytics/devices')
+  @ApiOperation({ summary: 'Repartition par device' })
+  async getDeviceBreakdown(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.analyticsDashboardService.getDeviceBreakdown(
+      req.user?.brandId || '',
+      days,
+    );
+  }
+
+  @Get('analytics/trend')
+  @ApiOperation({ summary: 'Tendance quotidienne sessions/conversions' })
+  async getDailyTrend(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.analyticsDashboardService.getDailyTrend(
+      req.user?.brandId || '',
+      days,
+    );
+  }
+
+  @Get('analytics/shares')
+  @ApiOperation({ summary: 'Analytique des partages sociaux' })
+  async getShareAnalytics(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Query('days') days?: number,
+  ) {
+    return this.socialSharingService.getShareAnalytics(
+      req.user?.brandId || '',
+      days,
+    );
   }
 }

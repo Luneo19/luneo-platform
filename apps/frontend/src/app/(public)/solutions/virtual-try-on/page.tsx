@@ -173,16 +173,18 @@ function VirtualTryOnPageContent() {
     return testimonials;
   }, [solutionData]);
 
-  // ROI calculations
+  // ROI calculations — taux bases sur les moyennes du secteur (Shopify, Baymard Institute)
   const roiCalculations = useMemo(() => {
-    const reducedReturnRate = currentReturnRate * 0.4;
+    // AR/Virtual Try-On reduit les retours de ~25% (moyenne secteur: 20-30%)
+    const reducedReturnRate = currentReturnRate * 0.75;
     const savedReturns = monthlyOrders * (currentReturnRate / 100 - reducedReturnRate / 100);
-    const returnCostSaved = savedReturns * averageOrderValue * 0.3;
-    const conversionIncrease = monthlyOrders * 0.4;
+    const returnCostSaved = savedReturns * averageOrderValue * 0.15; // Cout retour ~15% du panier
+    // AR augmente les conversions de ~12% (moyenne secteur: 8-15%)
+    const conversionIncrease = monthlyOrders * 0.12;
     const additionalRevenue = conversionIncrease * averageOrderValue;
     const monthlyBenefit = returnCostSaved + additionalRevenue;
     const annualBenefit = monthlyBenefit * 12;
-    const luneoCost = 79 * 12;
+    const luneoCost = 49 * 12; // Plan Professional
     const roi = ((annualBenefit - luneoCost) / luneoCost) * 100;
 
     return {

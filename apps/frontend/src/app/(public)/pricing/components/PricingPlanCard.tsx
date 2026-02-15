@@ -6,7 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
-import { AnimatedBorder } from '@/components/ui/animated-border';
+import { AnimatedBorder, AnimatedBorderCTA } from '@/components/ui/animated-border';
 import { useI18n } from '@/i18n/useI18n';
 import type { Plan } from '../data';
 
@@ -111,25 +111,27 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
           )}
       </div>
 
-      <Button
-        onClick={handleClick}
-        disabled={isLoading}
-        className={`w-full font-semibold ${
-          plan.popular
-            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
-            : 'bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:bg-white/[0.08] hover:text-white'
-        }`}
-        size="lg"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {t('pricing.card.loading')}
-          </>
-        ) : (
-          plan.cta
-        )}
-      </Button>
+      <AnimatedBorderCTA speed="normal" variant={plan.popular ? 'gradient' : 'white'}>
+        <Button
+          onClick={handleClick}
+          disabled={isLoading}
+          className={`w-full font-semibold ${
+            plan.popular
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
+              : 'bg-white text-black hover:bg-white/90 border-0'
+          }`}
+          size="lg"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t('pricing.card.loading')}
+            </>
+          ) : (
+            plan.cta
+          )}
+        </Button>
+      </AnimatedBorderCTA>
 
       <ul className="mt-8 space-y-4">
         {plan.features.map((feature, index) => (

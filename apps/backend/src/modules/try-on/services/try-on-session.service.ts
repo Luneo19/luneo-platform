@@ -400,4 +400,34 @@ export class TryOnSessionService {
       categoryBreakdown,
     };
   }
+
+  // ========================================
+  // Session Expiration
+  // ========================================
+
+  /**
+   * Expire sessions that have been inactive for more than the specified minutes.
+   * Called by the cron job processor.
+   */
+  async expireInactiveSessions(inactiveMinutes = 30): Promise<number> {
+    const cutoff = new Date(Date.now() - inactiveMinutes * 60 * 1000);
+
+    const result = await this.prisma.tryOnSession.updateMany({
+      where: {
+        status: 'ACTIVE',
+        endedAt: null,
+        updatedAt: { lt: cutoff },
+      },
+      data: {
+        status: 'EXPIRED',
+        endedAt: new Date(),
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Expired ${result.count} inactive try-on sessions (cutoff: ${inactiveMinutes}min)`);
+    }
+
+    return result.count;
+  }
 }

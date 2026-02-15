@@ -4,6 +4,8 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal, useParallax } from '@/components/marketing/shared/scroll-reveal';
+import { AnimatedBorderCTA } from '@/components/ui/animated-border';
+import { FireflyCTA } from '@/components/ui/firefly-cta';
 
 interface PageHeroProps {
   title: string;
@@ -26,7 +28,7 @@ export function PageHero({
   const parallaxRef = useParallax(0.1);
 
   return (
-    <section className="relative pt-24 sm:pt-32 pb-14 sm:pb-20 overflow-hidden">
+    <section className="relative pt-24 sm:pt-32 pb-14 sm:pb-20 overflow-x-hidden">
       {/* Background */}
       <div className="absolute inset-0 gradient-mesh-purple opacity-60" />
       <div ref={parallaxRef} className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -59,7 +61,7 @@ export function PageHero({
 
           {description && (
             <ScrollReveal animation="fade-up" delay={200}>
-              <p className="text-base sm:text-lg md:text-xl text-slate-300 body-text mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
+              <p className="text-base sm:text-lg md:text-xl text-white/70 body-text mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
                 {description}
               </p>
             </ScrollReveal>
@@ -69,13 +71,17 @@ export function PageHero({
             <ScrollReveal animation="fade-up" delay={300}>
               <div>
                 <Link href={cta.href} className="inline-block">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                  >
-                    {cta.label}
-                    <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
-                  </Button>
+                  <FireflyCTA color="purple" speed="normal">
+                    <AnimatedBorderCTA speed="normal">
+                      <Button
+                        size="lg"
+                        className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                      >
+                        {cta.label}
+                        <ArrowRight className="ml-2 w-4 sm:w-5 h-4 sm:h-5" />
+                      </Button>
+                    </AnimatedBorderCTA>
+                  </FireflyCTA>
                 </Link>
               </div>
             </ScrollReveal>

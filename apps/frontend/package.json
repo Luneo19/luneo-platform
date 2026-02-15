@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=2048' next dev --turbopack",
+    "dev:webpack": "NODE_OPTIONS='--max-old-space-size=2048' next dev",
     "clean": "rm -rf .next/standalone .next/trace .next/diagnostics .next/cache",
-    "dev:clean": "npm run clean && next dev",
+    "dev:clean": "npm run clean && NODE_OPTIONS='--max-old-space-size=2048' next dev --turbopack",
     "setup:packages": "bash scripts/setup-local-packages.sh",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
