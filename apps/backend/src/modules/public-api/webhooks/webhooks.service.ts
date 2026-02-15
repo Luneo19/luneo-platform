@@ -542,4 +542,111 @@ export class WebhookService {
       this.logger.error('Failed to store webhook delivery record:', error);
     }
   }
+
+  // ==========================================
+  // PLATFORM_ADMIN methods (cross-brand access)
+  // ==========================================
+
+  /**
+   * List ALL webhooks across all brands (admin only)
+   */
+  async findAllAdmin() {
+    return this.prisma.webhook.findMany({
+      take: 200,
+      include: {
+        brand: { select: { id: true, name: true } },
+        _count: { select: { webhookLogs: true } },
+        webhookLogs: { take: 1, orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Find a webhook by ID (admin — no brand scoping)
+   */
+  async findOneAdmin(id: string) {
+    const webhook = await this.prisma.webhook.findUnique({
+      where: { id },
+      include: {
+        brand: { select: { id: true, name: true } },
+        webhookLogs: { take: 10, orderBy: { createdAt: 'desc' } },
+        _count: { select: { webhookLogs: true } },
+      },
+    });
+    if (!webhook) throw new NotFoundException(`Webhook with ID ${id} not found`);
+    return webhook;
+  }
+
+  /**
+   * Update any webhook (admin — no brand scoping)
+   */
+  async updateAdmin(id: string, updateWebhookDto: UpdateWebhookDto) {
+    const webhook = await this.prisma.webhook.findUnique({ where: { id } });
+    if (!webhook) throw new NotFoundException(`Webhook with ID ${id} not found`);
+
+    return this.prisma.webhook.update({
+      where: { id },
+      data: {
+        ...(updateWebhookDto.name && { name: updateWebhookDto.name }),
+        ...(updateWebhookDto.url && { url: updateWebhookDto.url }),
+        ...(updateWebhookDto.secret !== undefined && { secret: updateWebhookDto.secret }),
+        ...(updateWebhookDto.events && { events: updateWebhookDto.events as unknown as import('@prisma/client').WebhookEvent[] }),
+        ...(updateWebhookDto.isActive !== undefined && { isActive: updateWebhookDto.isActive }),
+      },
+      include: { webhookLogs: { take: 5, orderBy: { createdAt: 'desc' } } },
+    });
+  }
+
+  /**
+   * Delete any webhook (admin — no brand scoping)
+   */
+  async removeAdmin(id: string) {
+    const webhook = await this.prisma.webhook.findUnique({ where: { id } });
+    if (!webhook) throw new NotFoundException(`Webhook with ID ${id} not found`);
+    await this.prisma.webhook.delete({ where: { id } });
+    this.logger.log(`Webhook deleted by admin: ${id}`);
+  }
+
+  /**
+   * Get webhook logs (admin — no brand scoping)
+   */
+  async getWebhookLogsAdmin(webhookId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+    const [logs, total] = await Promise.all([
+      this.prisma.webhookLog.findMany({
+        where: { webhookId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.webhookLog.count({ where: { webhookId } }),
+    ]);
+    return { data: logs, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
+
+  /**
+   * Get ALL webhook delivery history (admin — cross-brand)
+   */
+  async getWebhookHistoryAdmin(page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+    const [logs, total] = await Promise.all([
+      this.prisma.webhookLog.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          event: true,
+          statusCode: true,
+          error: true,
+          duration: true,
+          createdAt: true,
+          webhook: { select: { id: true, name: true, url: true, brand: { select: { name: true } } } },
+        },
+      }),
+      this.prisma.webhookLog.count(),
+    ]);
+    return { data: logs, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
 }

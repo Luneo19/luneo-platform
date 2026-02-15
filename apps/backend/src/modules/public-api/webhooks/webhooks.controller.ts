@@ -13,6 +13,14 @@ import { UpdateWebhookDto } from './dto/update-webhook.dto';
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
+  private isPlatformAdmin(req: Request & { user: CurrentUser }): boolean {
+    return req.user?.role === 'PLATFORM_ADMIN';
+  }
+
+  private getBrandId(req: Request & { user: CurrentUser }): string | null {
+    return req.user?.brandId || null;
+  }
+
   private requireBrandId(req: Request & { user: CurrentUser }): string {
     const brandId = req.user?.brandId;
     if (!brandId) {
@@ -37,6 +45,10 @@ export class WebhookController {
   @ApiOperation({ summary: 'List all webhooks' })
   @ApiResponse({ status: 200, description: 'Webhooks retrieved successfully' })
   async findAll(@Request() req: Request & { user: CurrentUser }) {
+    // PLATFORM_ADMIN can see all webhooks across all brands
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.findAllAdmin();
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.findAll(brandId);
   }
@@ -47,6 +59,9 @@ export class WebhookController {
   @ApiResponse({ status: 200, description: 'Webhook retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
   async findOne(@Param('id') id: string, @Request() req: Request & { user: CurrentUser }) {
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.findOneAdmin(id);
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.findOne(id, brandId);
   }
@@ -61,6 +76,9 @@ export class WebhookController {
     @Body() updateWebhookDto: UpdateWebhookDto,
     @Request() req: Request & { user: CurrentUser },
   ) {
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.updateAdmin(id, updateWebhookDto);
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.update(id, brandId, updateWebhookDto);
   }
@@ -72,6 +90,9 @@ export class WebhookController {
   @ApiResponse({ status: 204, description: 'Webhook deleted successfully' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
   async remove(@Param('id') id: string, @Request() req: Request & { user: CurrentUser }) {
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.removeAdmin(id);
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.remove(id, brandId);
   }
@@ -85,7 +106,7 @@ export class WebhookController {
     @Body('url') url: string,
     @Body('secret') secret?: string,
   ) {
-    const brandId = this.requireBrandId(req);
+    const brandId = this.getBrandId(req) || 'admin';
     return this.webhookService.testWebhook(brandId, url, secret);
   }
 
@@ -101,6 +122,9 @@ export class WebhookController {
     @Query('limit') limit: number = 20,
     @Request() req: Request & { user: CurrentUser },
   ) {
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.getWebhookLogsAdmin(id, page, limit);
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.getWebhookLogs(id, brandId, page, limit);
   }
@@ -115,6 +139,9 @@ export class WebhookController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.getWebhookHistoryAdmin(page, limit);
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.getWebhookHistory(brandId, page, limit);
   }
@@ -129,7 +156,9 @@ export class WebhookController {
     @Param('id') id: string,
     @Request() req: Request & { user: CurrentUser },
   ) {
-    // SECURITY FIX: Pass brandId to scope webhook retry to user's brand (prevents IDOR)
+    if (this.isPlatformAdmin(req)) {
+      return this.webhookService.retryWebhook(id);
+    }
     const brandId = this.requireBrandId(req);
     return this.webhookService.retryWebhook(id, brandId);
   }
