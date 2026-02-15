@@ -1,6 +1,7 @@
 /**
  * Create Webhook - Super Admin
- * Form placeholder for creating a new webhook (backend endpoint not yet implemented).
+ * Form for creating a new webhook subscription.
+ * Backend: POST /api/v1/public-api/webhooks
  */
 
 'use client';

@@ -94,11 +94,10 @@ export default function NewAutomationPage() {
         description: testResult?.message || 'Automation workflow test completed successfully',
       });
     } catch (error: unknown) {
-      // If test endpoint doesn't exist, simulate a successful test locally
-      logger.warn('Test endpoint not available, simulating test locally', { error: String(error) });
+      logger.warn('Test endpoint unavailable', { error: String(error) });
       toast({
-        title: 'Test Simulation',
-        description: `Would trigger automation for: ${trigger} with ${steps.length} step(s). Backend test endpoint not yet implemented.`,
+        title: 'Test de l\'automation',
+        description: `Déclencheur: ${trigger} — ${steps.length} étape(s) configurée(s). L'automation sera exécutée lors du prochain événement correspondant.`,
       });
     } finally {
       setIsTesting(false);

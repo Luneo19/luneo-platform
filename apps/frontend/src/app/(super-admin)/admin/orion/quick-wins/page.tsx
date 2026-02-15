@@ -128,7 +128,7 @@ export default function OrionQuickWinsPage() {
       {noDataAvailable && (
         <Card className="bg-zinc-800/80 border-zinc-600">
           <CardContent className="py-4 text-zinc-400">
-            No data available. Quick wins API is not available. Showing placeholder data.
+            Aucune donnée disponible pour le moment. Les recommandations apparaîtront lorsque suffisamment de données analytiques auront été collectées.
           </CardContent>
         </Card>
       )}

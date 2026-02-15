@@ -20,91 +20,150 @@ export class WebhookService {
   ) {}
 
   /**
-   * Send webhook to brand's webhook URL
+   * Send webhook to ALL matching active webhooks for a brand.
+   * Filters by event type, tracks duration, updates webhook metrics (lastCalledAt, lastStatusCode, failureCount).
    */
   async sendWebhook(
     event: WebhookEvent,
     data: Record<string, unknown>,
-    brandId: string, // API-04: brandId is now required (no global fallback)
-  ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
+    brandId: string,
+  ): Promise<{ success: boolean; statusCode?: number; error?: string; delivered: number }> {
     if (!brandId) {
       this.logger.error('brandId is required for webhook delivery');
-      return { success: false, error: 'brandId is required' };
+      return { success: false, error: 'brandId is required', delivered: 0 };
     }
-    
+
     try {
-      // Get brand webhook configuration
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: brandId },
-        select: {
-          id: true,
-          name: true,
-          webhookUrl: true,
-          webhookSecret: true,
+      // Find ALL active webhooks for this brand that subscribe to this event
+      // Cast string event value to Prisma enum for array `has` filter
+      const eventStr = event as string;
+      const webhooks = await this.prisma.webhook.findMany({
+        where: {
+          brandId,
+          isActive: true,
+          events: { has: eventStr as unknown as import('@prisma/client').WebhookEvent },
         },
       });
 
-      if (!brand || !brand.webhookUrl) {
-        this.logger.warn(`No webhook URL configured for brand ${brandId}`);
-        return { success: false, error: 'No webhook URL configured' };
+      if (webhooks.length === 0) {
+        // Fallback: try the legacy brand.webhookUrl
+        const brand = await this.prisma.brand.findUnique({
+          where: { id: brandId },
+          select: { id: true, name: true, webhookUrl: true, webhookSecret: true },
+        });
+        if (!brand?.webhookUrl) {
+          return { success: true, error: 'No webhook configured for this event', delivered: 0 };
+        }
+        // Deliver to legacy URL
+        const result = await this.deliverToUrl(brand.webhookUrl, brand.webhookSecret || '', event, data, brandId, brand.name || '', null);
+        return { ...result, delivered: result.success ? 1 : 0 };
       }
 
-      // Prepare webhook payload
-      const payload = {
-        event,
-        data,
-        timestamp: new Date().toISOString(),
-        brandId: brand.id,
-        brandName: brand.name,
-      };
-
-      // Generate signature if secret is configured
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Luneo-Webhook/1.0',
-      };
-
-      if (brand.webhookSecret) {
-        const signature = this.generateSignature(JSON.stringify(payload), brand.webhookSecret);
-        headers['X-Luneo-Signature'] = signature;
-      }
-
-      // Send webhook
-      const response = await firstValueFrom(
-        this.httpService.post(brand.webhookUrl, payload, {
-          headers,
-          timeout: 10000, // 10 seconds timeout
-        }),
-      );
-
-      this.logger.log(`Webhook sent successfully to ${brand.webhookUrl} for event ${event}`);
-      
-      // Store webhook delivery record
-      const statusCode = response?.status ?? null;
-      await this.storeWebhookDelivery(brand.id, event, payload, statusCode, null);
-
-      return { success: true, statusCode: response?.status };
-    } catch (error: unknown) {
-      this.logger.error(`Failed to send webhook for event ${event}:`, error);
-      
-      // Store failed webhook delivery
-      // API-04: brandId is now required, no global fallback
-      if (brandId) {
-        await this.storeWebhookDelivery(
-          brandId,
-          event,
-          data,
-          null,
-          error instanceof Error ? error.message : String(error),
-        );
+      // Deliver to each matching webhook
+      let delivered = 0;
+      let lastError: string | undefined;
+      for (const webhook of webhooks) {
+        const result = await this.deliverToUrl(webhook.url, webhook.secret, event, data, brandId, '', webhook.id);
+        if (result.success) delivered++;
+        else lastError = result.error;
       }
 
       return {
+        success: delivered > 0 || webhooks.length === 0,
+        delivered,
+        error: lastError,
+      };
+    } catch (error: unknown) {
+      this.logger.error(`Failed to send webhook for event ${event}:`, error);
+      return {
         success: false,
-        statusCode: (error as { response?: { status?: number } })?.response?.status,
+        delivered: 0,
         error: error instanceof Error ? error.message : String(error),
       };
     }
+  }
+
+  /**
+   * Deliver a webhook payload to a specific URL with full tracking.
+   */
+  private async deliverToUrl(
+    url: string,
+    secret: string,
+    event: WebhookEvent,
+    data: Record<string, unknown>,
+    brandId: string,
+    brandName: string,
+    webhookId: string | null,
+  ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
+    const payload = {
+      event,
+      data,
+      timestamp: new Date().toISOString(),
+      brandId,
+      ...(brandName && { brandName }),
+    };
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent': 'Luneo-Webhook/1.0',
+      'X-Luneo-Event': event,
+      'X-Luneo-Delivery': crypto.randomUUID(),
+    };
+
+    if (secret) {
+      headers['X-Luneo-Signature'] = this.generateSignature(JSON.stringify(payload), secret);
+    }
+
+    const startTime = Date.now();
+    let statusCode: number | null = null;
+    let error: string | null = null;
+    let responseBody: string | null = null;
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(url, payload, { headers, timeout: 10000 }),
+      );
+      statusCode = response?.status ?? null;
+      responseBody = typeof response?.data === 'string' ? response.data : JSON.stringify(response?.data ?? null);
+      this.logger.log(`Webhook delivered to ${url} for ${event} — HTTP ${statusCode}`);
+    } catch (err: unknown) {
+      statusCode = (err as { response?: { status?: number } })?.response?.status ?? null;
+      error = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Webhook delivery failed to ${url} for ${event}: ${error}`);
+    }
+
+    const duration = Date.now() - startTime;
+    const isSuccess = statusCode !== null && statusCode >= 200 && statusCode < 300;
+
+    // Store delivery log
+    if (webhookId) {
+      await this.prisma.webhookLog.create({
+        data: {
+          webhookId,
+          event,
+          payload: payload as Prisma.InputJsonValue,
+          statusCode,
+          response: responseBody,
+          error,
+          duration,
+        },
+      }).catch((e) => this.logger.error('Failed to store webhook log', e));
+
+      // Update webhook metrics
+      await this.prisma.webhook.update({
+        where: { id: webhookId },
+        data: {
+          lastCalledAt: new Date(),
+          lastStatusCode: statusCode,
+          failureCount: isSuccess ? 0 : { increment: 1 },
+        },
+      }).catch((e) => this.logger.error('Failed to update webhook metrics', e));
+    } else {
+      // Legacy brand-level URL — store via storeWebhookDelivery
+      await this.storeWebhookDelivery(brandId, event, payload, statusCode, error);
+    }
+
+    return { success: isSuccess, statusCode: statusCode ?? undefined, error: error ?? undefined };
   }
 
   /**

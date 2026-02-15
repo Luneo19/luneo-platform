@@ -4,7 +4,6 @@ export { StudioTabList } from './StudioTabList';
 export { GenerateTab } from './GenerateTab';
 export { HistoryTab } from './HistoryTab';
 export { TemplatesTab } from './TemplatesTab';
-export { PlaceholderTab } from './PlaceholderTab';
 export { ModelDetailDialog } from './ModelDetailDialog';
 export { PreviewDialog } from './PreviewDialog';
 export { ExportDialog } from './ExportDialog';

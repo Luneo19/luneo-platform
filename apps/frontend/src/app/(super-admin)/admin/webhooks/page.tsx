@@ -27,35 +27,77 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-interface Webhook {
+interface WebhookItem {
   id: string;
+  name?: string;
   url: string;
-  eventTypes: string[];
-  status: 'active' | 'paused' | 'failed';
+  events?: string[];
+  eventTypes?: string[];
+  isActive?: boolean;
+  status?: 'active' | 'paused' | 'failed';
   description?: string | null;
+  secret?: string;
+  lastCalledAt?: string | null;
+  lastStatusCode?: number | null;
+  failureCount?: number;
   createdAt: Date | string;
   _count?: {
-    logs: number;
+    logs?: number;
+    webhookLogs?: number;
   };
 }
 
 export default function WebhooksPage() {
-  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+  const [webhooks, setWebhooks] = useState<WebhookItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [editingWebhook, setEditingWebhook] = useState<WebhookItem | null>(null);
+  const [editUrl, setEditUrl] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editActive, setEditActive] = useState(true);
 
   React.useEffect(() => {
     loadWebhooks();
   }, []);
+
+  const { toast } = useToast();
+
+  const handleEdit = (webhook: WebhookItem) => {
+    setEditingWebhook(webhook);
+    setEditUrl(webhook.url);
+    setEditName(webhook.name || '');
+    setEditActive(webhook.isActive ?? webhook.status === 'active');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingWebhook) return;
+    try {
+      await api.put(`/api/v1/public-api/webhooks/${editingWebhook.id}`, {
+        name: editName,
+        url: editUrl,
+        isActive: editActive,
+      });
+      toast({ title: 'Webhook mis à jour', description: 'Les modifications ont été enregistrées.' });
+      setEditingWebhook(null);
+      loadWebhooks();
+    } catch (error) {
+      logger.error('Error updating webhook:', error);
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour le webhook.', variant: 'destructive' });
+    }
+  };
 
   const loadWebhooks = async () => {
     try {
       setIsLoading(true);
       setLoadError(false);
       const data = await api.get<{ webhooks?: unknown[] }>('/api/v1/admin/webhooks');
-      setWebhooks((data?.webhooks ?? []) as Webhook[]);
+      setWebhooks((data?.webhooks ?? []) as WebhookItem[]);
     } catch (error) {
       logger.error('Error loading webhooks:', error);
       setWebhooks([]);
@@ -168,39 +210,44 @@ export default function WebhooksPage() {
                   <TableRow key={webhook.id} className="border-zinc-700">
                     <TableCell>
                       <div>
-                        <div className="text-white font-medium">{webhook.url}</div>
+                        <div className="text-white font-medium">{webhook.name || webhook.url}</div>
+                        {webhook.name && (
+                          <div className="text-sm text-zinc-400 truncate max-w-xs">{webhook.url}</div>
+                        )}
                         {webhook.description && (
-                          <div className="text-sm text-zinc-400">{webhook.description}</div>
+                          <div className="text-sm text-zinc-500">{webhook.description}</div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {webhook.eventTypes.slice(0, 3).map((event) => (
+                        {(webhook.events || webhook.eventTypes || []).slice(0, 3).map((event) => (
                           <Badge key={event} variant="secondary" className="text-xs">
                             {event}
                           </Badge>
                         ))}
-                        {webhook.eventTypes.length > 3 && (
+                        {(webhook.events || webhook.eventTypes || []).length > 3 && (
                           <Badge variant="secondary" className="text-xs">
-                            +{webhook.eventTypes.length - 3}
+                            +{(webhook.events || webhook.eventTypes || []).length - 3}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={cn('text-xs', statusColors[webhook.status])}
-                      >
-                        <span className="flex items-center gap-1">
-                          {statusIcons[webhook.status]}
-                          {webhook.status.charAt(0).toUpperCase() + webhook.status.slice(1)}
-                        </span>
-                      </Badge>
+                      {(() => {
+                        const status = webhook.status || (webhook.isActive ? 'active' : 'paused');
+                        return (
+                          <Badge variant="secondary" className={cn('text-xs', statusColors[status] || '')}>
+                            <span className="flex items-center gap-1">
+                              {statusIcons[status]}
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-zinc-400">
-                      {webhook._count?.logs || 0}
+                      {webhook._count?.webhookLogs || webhook._count?.logs || 0}
                     </TableCell>
                     <TableCell className="text-zinc-400">
                       {new Date(webhook.createdAt).toLocaleDateString('fr-FR')}
@@ -217,9 +264,9 @@ export default function WebhooksPage() {
                             <Play className="w-4 h-4 mr-2" />
                             Test
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(webhook)}>
                             <Edit className="w-4 h-4 mr-2" />
-                            Edit
+                            Modifier
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(webhook.id)}
@@ -238,6 +285,49 @@ export default function WebhooksPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      {editingWebhook && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="bg-zinc-800 border-zinc-700 w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-white">Modifier le Webhook</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-zinc-300">Nom</Label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Mon webhook"
+                  className="bg-zinc-900 border-zinc-700 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-zinc-300">URL</Label>
+                <Input
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="bg-zinc-900 border-zinc-700 text-white mt-1"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-zinc-300">Actif</Label>
+                <Switch checked={editActive} onCheckedChange={setEditActive} />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1 border-zinc-700" onClick={() => setEditingWebhook(null)}>
+                  Annuler
+                </Button>
+                <Button className="flex-1" onClick={handleSaveEdit}>
+                  Enregistrer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

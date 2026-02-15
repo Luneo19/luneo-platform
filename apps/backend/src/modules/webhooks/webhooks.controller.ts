@@ -87,104 +87,35 @@ export class WebhooksController {
     }
 
     try {
+      const results = [];
       for (const event of events) {
-        await this.processSendGridEvent(event);
+        const result = await this.webhooksService.processSendGridEvent({
+          email: event.email,
+          event: event.event,
+          timestamp: event.timestamp,
+          reason: event.reason,
+          'smtp-id': event['smtp-id'],
+          sg_event_id: event.sg_event_id,
+          sg_message_id: event.sg_message_id,
+          response: event.response,
+          attempt: event.attempt,
+          useragent: event.useragent,
+          ip: event.ip,
+          url: event.url,
+          category: event.category,
+        });
+        results.push(result);
       }
 
-      return { status: 'success', message: 'Webhook processed', events_processed: events.length };
+      return {
+        status: 'success',
+        message: 'Webhook processed',
+        events_processed: events.length,
+        results,
+      };
     } catch (error) {
       this.logger.error('SendGrid webhook processing error:', error);
       throw error;
     }
-  }
-
-  private async processSendGridEvent(event: SendGridWebhookEvent) {
-    const { email, event: eventType, timestamp, reason, 'smtp-id': smtpId } = event;
-    
-    this.logger.log(`📊 Événement SendGrid: ${eventType} pour ${email}`);
-    
-    switch (eventType) {
-      case 'delivered':
-        await this.handleDeliveredEvent(event);
-        break;
-      case 'bounce':
-        await this.handleBounceEvent(event);
-        break;
-      case 'dropped':
-        await this.handleDroppedEvent(event);
-        break;
-      case 'spam_report':
-        await this.handleSpamReportEvent(event);
-        break;
-      case 'unsubscribe':
-        await this.handleUnsubscribeEvent(event);
-        break;
-      case 'group_unsubscribe':
-        await this.handleGroupUnsubscribeEvent(event);
-        break;
-      case 'processed':
-        await this.handleProcessedEvent(event);
-        break;
-      case 'deferred':
-        await this.handleDeferredEvent(event);
-        break;
-      default:
-        this.logger.warn(`Événement SendGrid non géré: ${eventType}`);
-    }
-  }
-
-  private async handleDeliveredEvent(event: SendGridWebhookEvent) {
-    this.logger.log(`✅ Email livré: ${event.email} (${event['smtp-id']})`);
-    // Ici vous pouvez mettre à jour votre base de données
-    // Par exemple: marquer l'email comme livré
-  }
-
-  private async handleBounceEvent(event: SendGridWebhookEvent) {
-    this.logger.warn(`❌ Email en bounce: ${event.email} - Raison: ${event.reason}`);
-    // Ici vous pouvez:
-    // - Marquer l'email comme invalide
-    // - Notifier l'équipe
-    // - Mettre à jour la liste de suppression
-  }
-
-  private async handleDroppedEvent(event: SendGridWebhookEvent) {
-    this.logger.warn(`🚫 Email supprimé: ${event.email} - Raison: ${event.reason}`);
-    // Ici vous pouvez:
-    // - Analyser pourquoi l'email a été supprimé
-    // - Mettre à jour vos listes de suppression
-  }
-
-  private async handleSpamReportEvent(event: SendGridWebhookEvent) {
-    this.logger.warn(`🚨 Email marqué comme spam: ${event.email}`);
-    // Ici vous pouvez:
-    // - Ajouter l'email à la liste de suppression
-    // - Analyser le contenu de l'email
-    // - Notifier l'équipe marketing
-  }
-
-  private async handleUnsubscribeEvent(event: SendGridWebhookEvent) {
-    this.logger.log(`📤 Désabonnement: ${event.email}`);
-    // Ici vous pouvez:
-    // - Mettre à jour les préférences utilisateur
-    // - Marquer comme désabonné dans votre DB
-  }
-
-  private async handleGroupUnsubscribeEvent(event: SendGridWebhookEvent) {
-    this.logger.log(`📤 Désabonnement groupe: ${event.email}`);
-    // Ici vous pouvez:
-    // - Mettre à jour les préférences de groupe
-  }
-
-  private async handleProcessedEvent(event: SendGridWebhookEvent) {
-    this.logger.log(`⚙️ Email traité: ${event.email}`);
-    // Ici vous pouvez:
-    // - Marquer comme en cours de traitement
-  }
-
-  private async handleDeferredEvent(event: SendGridWebhookEvent) {
-    this.logger.log(`⏳ Email différé: ${event.email} - Raison: ${event.reason}`);
-    // Ici vous pouvez:
-    // - Marquer pour retry
-    // - Surveiller les tentatives
   }
 }

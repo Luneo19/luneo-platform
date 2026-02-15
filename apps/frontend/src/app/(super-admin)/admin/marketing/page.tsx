@@ -157,19 +157,21 @@ export default function AdminMarketingPage() {
           </Card>
         </Link>
 
-        <Card className="border-zinc-700 bg-zinc-800 opacity-90">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="flex items-center gap-2 text-white">
-              <BarChart3 className="h-5 w-5 text-cyan-400" />
-              Campagnes Email
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="text-zinc-400">
-              Créer et gérer les campagnes email (à venir)
-            </CardDescription>
-          </CardContent>
-        </Card>
+        <Link href="/admin/marketing/campaigns">
+          <Card className="border-zinc-700 bg-zinc-800 hover:border-cyan-500/50 transition-colors cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <BarChart3 className="h-5 w-5 text-cyan-400" />
+                Campagnes Email
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-zinc-400">
+                Créer et gérer les campagnes email marketing
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   );

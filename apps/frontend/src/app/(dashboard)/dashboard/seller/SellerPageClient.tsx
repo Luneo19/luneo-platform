@@ -37,6 +37,19 @@ export function SellerPageClient() {
   const { sellerStatus, stats, products, orders, reviews, payouts, isLoading, refetch } =
     useSellerData();
 
+  const handleAddProduct = () => {
+    toast({
+      title: 'Ajouter un produit',
+      description: 'Configurez votre nouveau produit dans l\'interface du marketplace.',
+    });
+    // Navigate to product creation
+    window.location.href = '/dashboard/seller/products/new';
+  };
+
+  const handleEditProduct = (productId: string) => {
+    window.location.href = `/dashboard/seller/products/${productId}/edit`;
+  };
+
   const handleConnectStripe = async () => {
     setIsConnecting(true);
     try {
@@ -200,7 +213,7 @@ export function SellerPageClient() {
                   <CardTitle className="text-white">Mes produits</CardTitle>
                   <CardDescription className="text-white/60">{products.length} produits au total</CardDescription>
                 </div>
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
+                <Button onClick={handleAddProduct} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
                   <Package className="w-4 h-4 mr-2" />
                   Ajouter un produit
                 </Button>
@@ -227,7 +240,7 @@ export function SellerPageClient() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]">
+                      <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]" onClick={() => handleEditProduct(product.id)}>
                         Modifier
                       </Button>
                     </div>
@@ -237,7 +250,7 @@ export function SellerPageClient() {
                 <div className="text-center py-12">
                   <Package className="w-16 h-16 text-white/40 mx-auto mb-4" />
                   <p className="text-white/60 mb-4">Aucun produit pour le moment</p>
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
+                  <Button onClick={handleAddProduct} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90">
                     <Package className="w-4 h-4 mr-2" />
                     Ajouter votre premier produit
                   </Button>
@@ -364,15 +377,56 @@ export function SellerPageClient() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-white/60">Chiffre d'affaires total</CardDescription>
+                <CardTitle className="text-2xl text-white">
+                  {formatPriceFromCents(stats?.totalRevenue || 0)}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-white/60">Paiements en attente</CardDescription>
+                <CardTitle className="text-2xl text-white">
+                  {formatPriceFromCents(stats?.pendingPayout || 0)}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-white/60">Taux de conversion</CardDescription>
+                <CardTitle className="text-2xl text-white">
+                  {stats?.totalSales && stats.ordersCount ? ((stats.totalSales / Math.max(stats.ordersCount, 1)) * 100).toFixed(1) : '0'}%
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
           <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white">Analytics</CardTitle>
-              <CardDescription className="text-white/60">Statistiques détaillées</CardDescription>
+              <CardTitle className="text-white">Performances produits</CardTitle>
+              <CardDescription className="text-white/60">Classement par revenus</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-white/60 text-center py-12">
-                Analytics détaillées à venir
-              </p>
+              {products.length > 0 ? (
+                <div className="space-y-3">
+                  {[...products].sort((a, b) => b.revenue - a.revenue).map((product, idx) => (
+                    <div key={product.id} className="flex items-center justify-between p-3 bg-white/[0.04] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="text-white/40 text-sm font-mono w-6">#{idx + 1}</span>
+                        <div>
+                          <p className="text-white text-sm font-medium">{product.name}</p>
+                          <p className="text-white/60 text-xs">{product.sales} ventes</p>
+                        </div>
+                      </div>
+                      <p className="text-white font-medium">{formatPriceFromCents(product.revenue)}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-white/60 text-center py-8">Aucune donnée de performance disponible</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -381,12 +435,58 @@ export function SellerPageClient() {
           <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Paramètres vendeur</CardTitle>
-              <CardDescription className="text-white/60">Gérez vos paramètres</CardDescription>
+              <CardDescription className="text-white/60">Gérez vos paramètres de marketplace</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-white/60 text-center py-12">
-                Paramètres à venir
-              </p>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg">
+                  <div>
+                    <p className="text-white font-medium">Compte Stripe</p>
+                    <p className="text-white/60 text-sm">
+                      {sellerStatus?.chargesEnabled ? 'Connecté' : 'Non connecté'}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/[0.06] hover:bg-white/[0.04]"
+                    onClick={handleConnectStripe}
+                    disabled={isConnecting}
+                  >
+                    {sellerStatus?.chargesEnabled ? 'Gérer' : 'Connecter'}
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg">
+                  <div>
+                    <p className="text-white font-medium">Politique de retour</p>
+                    <p className="text-white/60 text-sm">Délai standard: 14 jours</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]" onClick={() => toast({ title: 'Politique de retour', description: 'Modifiez votre politique de retour depuis les paramètres Stripe.' })}>
+                    Configurer
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg">
+                  <div>
+                    <p className="text-white font-medium">Notifications vendeur</p>
+                    <p className="text-white/60 text-sm">Recevez des alertes pour les nouvelles commandes</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]" onClick={() => window.location.href = '/dashboard/settings'}>
+                    Gérer
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg">
+                  <div>
+                    <p className="text-white font-medium">Balance disponible</p>
+                    <p className="text-white/60 text-sm">{formatPriceFromCents(stats?.availableBalance || 0)}</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="border-white/[0.06] hover:bg-white/[0.04]" onClick={() => toast({ title: 'Retrait', description: 'Les retraits sont gérés automatiquement via Stripe.' })}>
+                    Retirer
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
