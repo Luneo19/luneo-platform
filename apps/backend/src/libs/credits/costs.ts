@@ -25,6 +25,17 @@ export const ENDPOINT_COSTS: Record<string, number> = {
   // Customization
   '/api/customization/generate': 4,         // Personnalisation IA
   '/api/designs/save-custom': 1,           // Sauvegarde design personnalisé
+
+  // AI Studio operations
+  'ai/generate-2d': 2,          // Stability SDXL standard
+  'ai/generate-2d-hd': 5,       // DALL-E 3 HD
+  'ai/generate-3d': 10,         // Meshy 3D model
+  'ai/animate': 15,             // Runway video 5s
+  'ai/smart-crop': 1,           // Sharp local
+  'ai/text-to-design': 5,       // GPT-4o-mini + DALL-E
+  'ai/bulk-generate': 2,        // Per item in bulk
+  'ai/fine-tune-training': 100, // Fine-tuning training job
+  'ai/fine-tune-generate': 3,   // Generation with fine-tuned model
 };
 
 /**
@@ -41,6 +52,17 @@ export const REAL_COSTS_CENTS: Record<string, number> = {
   '/api/ar/convert-usdz': 1,                // ~$0.01 Conversion
   '/api/customization/generate': 2,         // ~$0.02 AI processing
   '/api/designs/save-custom': 0,           // Gratuit (DB only)
+
+  // AI Studio operations (real costs in cents)
+  'ai/generate-2d': 2,          // ~$0.015 Stability SDXL
+  'ai/generate-2d-hd': 8,       // ~$0.08 DALL-E 3 HD
+  'ai/generate-3d': 20,         // ~$0.20 Meshy
+  'ai/animate': 50,             // ~$0.50 Runway
+  'ai/smart-crop': 0,           // Free (local Sharp)
+  'ai/text-to-design': 5,       // GPT-4o-mini + DALL-E
+  'ai/bulk-generate': 2,        // Per item
+  'ai/fine-tune-training': 500, // Training cost
+  'ai/fine-tune-generate': 3,   // Custom model generation
 };
 
 /**
@@ -82,9 +104,50 @@ export function getRealCost(endpoint: string): number {
   return REAL_COSTS_CENTS[endpoint] || 0;
 }
 
+/**
+ * Get dynamic credit cost based on provider and operation
+ * Falls back to static ENDPOINT_COSTS if no dynamic pricing available
+ */
+export function getDynamicEndpointCost(
+  endpoint: string,
+  provider?: string,
+  quality?: 'standard' | 'hd',
+): number {
+  // Dynamic pricing based on provider
+  if (provider) {
+    const providerCosts: Record<string, Record<string, number>> = {
+      openai: { 'ai/generate': 5, 'ai/generate-2d-hd': 5 },
+      stability: { 'ai/generate': 2, 'ai/generate-2d': 2 },
+      replicate: { 'ai/generate': 2, 'ai/upscale': 1, 'ai/background-removal': 1 },
+      meshy: { 'ai/generate-3d': 10 },
+      runway: { 'ai/animate': 15 },
+    };
+    const cost = providerCosts[provider]?.[endpoint];
+    if (cost !== undefined) return cost;
+  }
 
+  // HD quality multiplier
+  if (quality === 'hd') {
+    const baseCost = ENDPOINT_COSTS[endpoint] || 1;
+    return Math.ceil(baseCost * 1.5);
+  }
 
+  return ENDPOINT_COSTS[endpoint] || 1;
+}
 
+/**
+ * Credit value in cents per credit, varies by plan
+ */
+export function getCreditValueCents(planTier: string = 'PRO'): number {
+  const values: Record<string, number> = {
+    FREE: 2.5,     // Free credits are worth more per unit
+    STARTER: 2.2,
+    PRO: 1.9,      // 100 credits = 1.90€
+    BUSINESS: 1.5,  // Volume discount
+    ENTERPRISE: 1.2,
+  };
+  return values[planTier] ?? 1.9;
+}
 
 
 

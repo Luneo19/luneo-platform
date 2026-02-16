@@ -154,6 +154,24 @@ const baseEnvSchema = z.object({
   PRINTFUL_API_KEY: z.string().optional(),
   PRINTIFY_API_KEY: z.string().optional(),
   GELATO_API_KEY: z.string().optional(),
+
+  // AI Studio - Additional providers (optional)
+  RUNWAY_API_KEY: z.string().optional(),
+  PIKA_LABS_API_TOKEN: z.string().optional(),
+  CSM_AI_API_TOKEN: z.string().optional(),
+  MESHY_API_KEY: z.string().optional(),
+  STABILITY_API_KEY: z.string().optional(),
+
+  // AI Studio - Legal / Copyright (optional)
+  TINEYE_API_KEY: z.string().optional(),
+  GOOGLE_VISION_API_KEY: z.string().optional(),
+
+  // AI Studio - S3/R2 Storage for videos and 3D (optional)
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  S3_ENDPOINT: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof baseEnvSchema>;
@@ -527,6 +545,32 @@ export const aiConfig = registerAs('ai', () => ({
   // 3D/AR providers
   meshy: {
     apiKey: process.env.MESHY_API_KEY,
+  },
+  // Video generation providers
+  runway: {
+    apiKey: process.env.RUNWAY_API_KEY,
+  },
+  pikaLabs: {
+    apiToken: process.env.PIKA_LABS_API_TOKEN,
+  },
+  // 3D alternative
+  csmAi: {
+    apiToken: process.env.CSM_AI_API_TOKEN,
+  },
+  // Legal / Copyright checking
+  tinEye: {
+    apiKey: process.env.TINEYE_API_KEY,
+  },
+  googleVision: {
+    apiKey: process.env.GOOGLE_VISION_API_KEY,
+  },
+  // Storage for videos and 3D models
+  s3: {
+    accessKeyId: process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+    bucket: process.env.S3_BUCKET || 'luneo-ai-assets',
+    region: process.env.S3_REGION || 'eu-west-1',
+    endpoint: process.env.S3_ENDPOINT, // For R2 or other S3-compatible
   },
 }));
 

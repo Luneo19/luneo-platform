@@ -3610,6 +3610,12 @@ model AIGeneration {
   // Collections
   collections AICollectionGeneration[]
 
+  // Feedback
+  feedback AIGenerationFeedback[]
+
+  // Bulk job (optional)
+  bulkJobGenerationId String?
+
   createdAt   DateTime  @default(now())
   completedAt DateTime?
   updatedAt   DateTime  @updatedAt
@@ -5975,4 +5981,368 @@ model CartItem {
   @@unique([cartId, productId, designId, customizationId])
   @@index([cartId])
   @@index([productId])
+}
+
+// ========================================
+// AI DESIGN STUDIO - ENTERPRISE MODELS
+// ========================================
+
+model AIProviderPricing {
+  id            String   @id @default(cuid())
+  provider      String // "openai", "stability", "replicate", "meshy", "runway"
+  model         String // "dall-e-3", "sdxl-1.0", "gen3a_turbo"
+  operation     String // "generate", "upscale", "animate", "remove-bg", "3d"
+  costPerUnit   Float // Cost in EUR per unit
+  unit          String // "image", "second", "token", "model"
+  currency      String   @default("EUR")
+  isActive      Boolean  @default(true)
+  effectiveDate DateTime @default(now())
+  notes         String?
+
+  @@unique([provider, model, operation, effectiveDate])
+  @@index([provider, isActive])
+  @@index([operation])
+  @@map("ai_provider_pricing")
+}
+
+model AIBudgetAlert {
+  id                String   @id @default(cuid())
+  userId            String
+  brandId           String?
+  threshold         Float // Threshold percentage (50, 80, 100)
+  thresholdType     String   @default("percentage") // "percentage" or "absolute"
+  currentSpend      Float    @default(0)
+  budgetLimit       Float // Total budget limit in cents
+  period            String // "daily", "weekly", "monthly"
+  alertSent         Boolean  @default(false)
+  alertSentAt       DateTime?
+  notificationEmail String?
+  webhookUrl        String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId, period, isActive])
+  @@index([brandId, period])
+  @@map("ai_budget_alerts")
+}
+
+model AICostOptimization {
+  id                String   @id @default(cuid())
+  generationId      String?
+  userId            String
+  originalProvider  String
+  originalModel     String
+  suggestedProvider String
+  suggestedModel    String
+  originalCostCents Int
+  suggestedCostCents Int
+  estimatedSavings  Float // Percentage saved
+  qualityScore      Float // Expected quality 0-1
+  reason            String
+  acceptedByUser    Boolean?
+  appliedAt         DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([originalProvider])
+  @@map("ai_cost_optimizations")
+}
+
+model AICachedGeneration {
+  id             String   @id @default(cuid())
+  promptHash     String   @unique // SHA-256 of normalized prompt
+  prompt         String   @db.Text
+  normalizedPrompt String @db.Text
+  provider       String
+  model          String
+  parameters     Json // Generation parameters (steps, cfg_scale, seed, etc.)
+  resultUrl      String
+  thumbnailUrl   String?
+  width          Int?
+  height         Int?
+  quality        Float? // Quality score 0-100
+  generatedAt    DateTime @default(now())
+  accessCount    Int      @default(0)
+  lastAccessedAt DateTime @default(now())
+  expiresAt      DateTime // Auto-expire after 30 days by default
+  sizeBytes      Int?
+
+  @@index([promptHash])
+  @@index([provider, model])
+  @@index([expiresAt])
+  @@index([lastAccessedAt])
+  @@map("ai_cached_generations")
+}
+
+model AIBulkJob {
+  id               String        @id @default(cuid())
+  userId           String
+  brandId          String
+  name             String
+  description      String?
+  template         String        @db.Text // Prompt template with {{variables}}
+  variables        Json // Array of variable sets
+  variablesCount   Int
+  completedCount   Int           @default(0)
+  failedCount      Int           @default(0)
+  status           BulkJobStatus @default(PENDING)
+  estimatedCost    Float // Estimated total cost in cents
+  actualCost       Float         @default(0)
+  estimatedCredits Int
+  actualCredits    Int           @default(0)
+  estimatedDuration Int // Estimated duration in seconds
+  provider         String?
+  model            String?
+  parameters       Json? // Base generation parameters
+  batchSize        Int           @default(10)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  errorMessage     String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  generations AIBulkJobGeneration[]
+
+  @@index([userId, status])
+  @@index([brandId, status])
+  @@index([status, createdAt])
+  @@map("ai_bulk_jobs")
+}
+
+model AIBulkJobGeneration {
+  id           String   @id @default(cuid())
+  bulkJobId    String
+  bulkJob      AIBulkJob @relation(fields: [bulkJobId], references: [id], onDelete: Cascade)
+  generationId String?
+  variableSet  Json // The specific variables used for this generation
+  index        Int // Position in the bulk job
+  status       String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  error        String?
+  resultUrl    String?
+  costCents    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([bulkJobId, status])
+  @@index([generationId])
+  @@map("ai_bulk_job_generations")
+}
+
+enum BulkJobStatus {
+  PENDING
+  PROCESSING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model AIFineTunedModel {
+  id               String         @id @default(cuid())
+  organizationId   String
+  brandId          String
+  name             String
+  displayName      String?
+  description      String?        @db.Text
+  baseModel        String // "sdxl-1.0", "sd-1.5", "flux-1"
+  technique        String         @default("lora") // "lora", "dreambooth", "textual_inversion"
+  trainingImages   Int            @default(0)
+  trainingSteps    Int            @default(0)
+  learningRate     Float?
+  status           TrainingStatus @default(PENDING)
+  progress         Float          @default(0) // 0-100
+  endpoint         String? // Replicate model endpoint URL
+  replicateModelId String?
+  costCents        Int            @default(0) // Training cost
+  costPerGeneration Float         @default(0) // Cost per generation in cents
+  triggerWord      String? // e.g., "ROLEX_STYLE" for DreamBooth
+  sampleImages     String[] // Generated sample images after training
+  metadata         Json?
+  errorMessage     String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([brandId, status])
+  @@index([status])
+  @@map("ai_fine_tuned_models")
+}
+
+enum TrainingStatus {
+  PENDING
+  PREPARING_DATASET
+  VALIDATING
+  TRAINING
+  DEPLOYING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+model BrandGuidelines {
+  id               String   @id @default(cuid())
+  brandId          String   @unique
+  organizationId   String?
+  colorPalette     Json // Array of hex colors: ["#D4AF37", "#000000", "#FFFFFF"]
+  primaryColor     String? // Primary brand color hex
+  secondaryColor   String? // Secondary brand color hex
+  fontFamily       String?
+  styleKeywords    String[] // ["minimalist", "luxury", "elegant"]
+  negativeKeywords String[] // ["cheap", "plastic", "colorful"]
+  referenceImages  String[] // URLs of reference images
+  consistencySeed  Int? // Fixed seed for visual consistency
+  logoUrl          String?
+  brandVoice       String?  @db.Text // Description of brand tone
+  industry         String? // "jewelry", "fashion", "automotive"
+  targetAudience   String? // "luxury", "mass-market", "youth"
+  promptPrefix     String?  @db.Text // Auto-prepended to every prompt
+  promptSuffix     String?  @db.Text // Auto-appended to every prompt
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([organizationId])
+  @@map("brand_guidelines")
+}
+
+model AIVideoGeneration {
+  id           String      @id @default(cuid())
+  userId       String
+  brandId      String
+  sourceImages String[] // 1+ source images
+  prompt       String?     @db.Text
+  motion       String // "360-rotation", "zoom-in", "parallax", "turntable", "custom"
+  duration     Int // Duration in seconds
+  fps          Int         @default(30)
+  resolution   String      @default("1080p") // "720p", "1080p", "4k"
+  resultUrl    String?
+  thumbnailUrl String?
+  status       VideoStatus @default(PENDING)
+  provider     String // "runway", "pika-labs"
+  providerTaskId String?
+  model        String? // "gen3a_turbo", "pika-1.0"
+  costCents    Int         @default(0)
+  credits      Int         @default(0)
+  metadata     Json?
+  errorMessage String?
+  createdAt    DateTime    @default(now())
+  completedAt  DateTime?
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId, status])
+  @@index([brandId, status])
+  @@index([status, createdAt])
+  @@map("ai_video_generations")
+}
+
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model AIGenerationFeedback {
+  id             String   @id @default(cuid())
+  generationId   String
+  generation     AIGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  userId         String
+  rating         Int // 1-5 stars
+  feedback       String?  @db.Text
+  issues         String[] // ["low_quality", "wrong_style", "artifacts", "nsfw", "watermark"]
+  wasRegenerated Boolean  @default(false)
+  isUseful       Boolean? // Was the generation useful for the user
+  createdAt      DateTime @default(now())
+
+  @@unique([generationId, userId])
+  @@index([generationId])
+  @@index([userId])
+  @@index([rating])
+  @@map("ai_generation_feedback")
+}
+
+model AIPromptExperiment {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  brandId     String?
+  userId      String
+  basePrompt  String           @db.Text
+  variantA    String           @db.Text
+  variantB    String           @db.Text
+  provider    String           @default("stability")
+  model       String           @default("sdxl-1.0")
+  parameters  Json? // Shared generation parameters
+  metricsA    Json? // { qualityScore, userPreference, generationTime, cost }
+  metricsB    Json?
+  samplesA    String[] // Generated sample image URLs for variant A
+  samplesB    String[]
+  sampleCount Int              @default(5) // Number of samples per variant
+  winner      String? // "A", "B", or null
+  winReason   String?
+  status      ExperimentStatus @default(RUNNING)
+  createdAt   DateTime         @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId, status])
+  @@index([brandId])
+  @@index([status])
+  @@map("ai_prompt_experiments")
+}
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  ANALYZING
+  COMPLETED
+  CANCELLED
+}
+
+model AIMarketplaceTemplate {
+  id            String   @id @default(cuid())
+  creatorId     String
+  name          String
+  description   String   @db.Text
+  prompt        String   @db.Text // Optimized prompt
+  category      String // "jewelry", "watches", "fashion", "cosmetics"
+  industry      String? // "luxury", "mass-market"
+  subcategory   String?
+  previewImages String[]
+  price         Float    @default(0) // 0 = free
+  currency      String   @default("EUR")
+  purchases     Int      @default(0)
+  rating        Float?
+  reviewsCount  Int      @default(0)
+  tags          String[]
+  isPublished   Boolean  @default(false)
+  isFeatured    Boolean  @default(false)
+  version       Int      @default(1)
+  metadata      Json? // Additional metadata (style, quality settings)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category, rating])
+  @@index([industry, isPublished])
+  @@index([creatorId])
+  @@index([isPublished, isFeatured])
+  @@map("ai_marketplace_templates")
+}
+
+model AICollaborationWorkspace {
+  id              String   @id @default(cuid())
+  name            String
+  ownerId         String
+  brandId         String
+  collaboratorIds String[] // User IDs of collaborators
+  generationIds   String[] // AI Generation IDs shared in workspace
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([ownerId, isActive])
+  @@index([brandId])
+  @@map("ai_collaboration_workspaces")
 }
