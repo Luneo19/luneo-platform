@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { randomBytes } from 'crypto';
@@ -44,16 +45,22 @@ export class SocialSharingService {
 
     const brandId = session.configuration.project.brandId;
     const shareToken = this.generateShareToken();
-    const shareUrl = `${APP_URL}/share/${shareToken}`;
+    const shareUrl = `${APP_URL}/try-on-share/${shareToken}`;
 
-    // Get the OG image from the screenshot if provided
+    // SECURITY: Verify screenshot belongs to the same session
     let ogImageUrl: string | null = null;
     if (input.screenshotId) {
       const screenshot = await this.prisma.tryOnScreenshot.findUnique({
         where: { id: input.screenshotId },
-        select: { imageUrl: true, thumbnailUrl: true },
+        select: { sessionId: true, imageUrl: true, thumbnailUrl: true },
       });
-      ogImageUrl = screenshot?.imageUrl || screenshot?.thumbnailUrl || null;
+      if (!screenshot) {
+        throw new NotFoundException(`Screenshot ${input.screenshotId} not found`);
+      }
+      if (screenshot.sessionId !== session.id) {
+        throw new BadRequestException('Screenshot does not belong to this session');
+      }
+      ogImageUrl = screenshot.imageUrl || screenshot.thumbnailUrl || null;
     }
 
     const share = await this.prisma.tryOnShare.create({
@@ -84,7 +91,7 @@ export class SocialSharingService {
 
   /**
    * Get the share page data for a given share token.
-   * Used to render the public /share/[token] page with OG tags.
+   * Used to render the public /try-on-share/[shareToken] page with OG tags.
    */
   async getSharePage(shareToken: string) {
     const share = await this.prisma.tryOnShare.findUnique({
@@ -184,14 +191,20 @@ export class SocialSharingService {
 
   /**
    * Track a click from a share page (click to product or try-on).
+   * Only tracks if the share link is not expired.
    */
   async trackShareClick(shareToken: string) {
     const share = await this.prisma.tryOnShare.findUnique({
       where: { shareToken },
-      select: { id: true },
+      select: { id: true, expiresAt: true },
     });
 
     if (!share) return;
+
+    // Don't track clicks on expired shares
+    if (share.expiresAt && share.expiresAt < new Date()) {
+      return;
+    }
 
     await this.prisma.tryOnShare.update({
       where: { id: share.id },
@@ -203,7 +216,8 @@ export class SocialSharingService {
    * Get share analytics for a brand.
    */
   async getShareAnalytics(brandId: string, days = 30) {
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const safeDays = Math.min(Math.max(1, days), 365);
+    const since = new Date(Date.now() - safeDays * 24 * 60 * 60 * 1000);
 
     const [shares, platformBreakdown, totals] = await Promise.all([
       this.prisma.tryOnShare.count({
@@ -222,7 +236,7 @@ export class SocialSharingService {
     ]);
 
     return {
-      period: { days },
+      period: { days: safeDays },
       totalShares: shares,
       totalViews: totals._sum.viewCount ?? 0,
       totalClicks: totals._sum.clickCount ?? 0,

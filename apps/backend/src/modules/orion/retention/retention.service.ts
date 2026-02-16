@@ -131,7 +131,7 @@ export class RetentionService {
       }),
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { brand: { select: { stripeSubscriptionId: true, plan: true, planExpiresAt: true } } },
+        select: { brand: { select: { stripeSubscriptionId: true, subscriptionPlan: true, plan: true, planExpiresAt: true } } },
       }),
     ]);
     if (!user) throw new NotFoundException('User not found');

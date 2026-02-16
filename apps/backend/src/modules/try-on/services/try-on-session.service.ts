@@ -106,6 +106,44 @@ export class TryOnSessionService {
   }
 
   /**
+   * Add a product to the productsTried array (idempotent).
+   * Called when the user switches products during a session.
+   */
+  async addProductTried(sessionId: string, productId: string) {
+    if (!productId || typeof productId !== 'string') {
+      throw new BadRequestException('productId is required');
+    }
+
+    const session = await this.prisma.tryOnSession.findUnique({
+      where: { sessionId },
+      select: { id: true, productsTried: true, endedAt: true },
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    if (session.endedAt) {
+      return { productsTried: session.productsTried };
+    }
+
+    const currentProducts = (session.productsTried as string[]) || [];
+    if (currentProducts.includes(productId)) {
+      return { productsTried: currentProducts };
+    }
+
+    const updated = await this.prisma.tryOnSession.update({
+      where: { id: session.id },
+      data: {
+        productsTried: [...currentProducts, productId],
+      },
+      select: { productsTried: true },
+    });
+
+    return { productsTried: updated.productsTried };
+  }
+
+  /**
    * Met à jour une session (produits essayés, screenshots, etc.)
    */
   @CacheInvalidate({
@@ -247,6 +285,7 @@ export class TryOnSessionService {
     configurationId: string,
     limit: number = 50,
   ) {
+    const safeLim = Math.min(Math.max(1, limit), 200);
     return this.prisma.tryOnSession.findMany({
       where: { configurationId },
       select: {
@@ -261,7 +300,7 @@ export class TryOnSessionService {
         converted: true,
       },
       orderBy: { startedAt: 'desc' },
-      take: limit,
+      take: safeLim,
     });
   }
 
@@ -296,8 +335,9 @@ export class TryOnSessionService {
       return empty;
     }
 
+    const safeDays = Math.min(Math.max(1, days), 365);
     const since = new Date();
-    since.setDate(since.getDate() - days);
+    since.setDate(since.getDate() - safeDays);
     since.setHours(0, 0, 0, 0);
 
     const where = {

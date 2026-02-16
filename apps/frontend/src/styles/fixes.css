@@ -16,9 +16,9 @@ html, body {
 }
 
 /* 2. CORRECTION BOUTONS BLANCS ILLISIBLES */
+/* Only target elements with exact bg-white class, NOT hover:bg-white variants */
 button.bg-white,
-.btn-white,
-button[class*="bg-white"] {
+.btn-white {
   color: #1f2937 !important; /* gray-800 */
 }
 
@@ -26,9 +26,8 @@ button.bg-white:hover {
   color: #111827 !important; /* gray-900 */
 }
 
-/* Boutons outline avec fond blanc */
-button.border-white,
-button[class*="border-white"] {
+/* Boutons outline avec fond blanc - exact class only */
+button.border-white {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: #ffffff !important;
 }
@@ -38,10 +37,9 @@ button.border-white:hover {
 }
 
 /* 3. CORRECTION TEXTES ILLISIBLES */
-/* Textes blancs sur fond blanc */
+/* Textes blancs sur fond blanc - exact class matches only */
 .text-white.bg-white,
-.bg-white .text-white,
-.text-white[class*="bg-white"] {
+.bg-white .text-white {
   color: #1f2937 !important;
 }
 
@@ -110,13 +108,27 @@ section {
   overflow-x: hidden;
 }
 
-/* 8. AMÉLIORATION CONTRASTE GÉNÉRAL */
-.text-slate-400 {
-  color: #94a3b8 !important; /* Plus visible */
+/* 8. AMÉLIORATION CONTRASTE - Dark background text boost */
+/* On dark backgrounds, gray/slate text must be brighter for readability */
+.bg-dark-bg .text-slate-300,
+.bg-gray-900 .text-slate-300,
+.bg-dark-bg .text-gray-300,
+.bg-gray-900 .text-gray-300 {
+  color: rgba(255, 255, 255, 0.78) !important;
 }
 
-.text-gray-400 {
-  color: #9ca3af !important; /* Plus visible */
+.bg-dark-bg .text-slate-400,
+.bg-gray-900 .text-slate-400,
+.bg-dark-bg .text-gray-400,
+.bg-gray-900 .text-gray-400 {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
+.bg-dark-bg .text-slate-500,
+.bg-gray-900 .text-slate-500,
+.bg-dark-bg .text-gray-500,
+.bg-gray-900 .text-gray-500 {
+  color: rgba(255, 255, 255, 0.55) !important;
 }
 
 /* 9. CORRECTION GRADIENTS SUR TEXTES */

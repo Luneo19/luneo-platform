@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { PLAN_CONFIGS, normalizePlanTier } from '@/libs/plans/plan-config';
 
 export interface DiscountResult {
   discountId?: string;
@@ -13,6 +14,7 @@ export interface DiscountResult {
  * Service pour calculer les commissions Luneo sur chaque commande
  * 
  * @description
+ * SOURCE DE VÉRITÉ: libs/plans/plan-config.ts -> pricing.commissionPercent
  * Les taux de commission varient selon le plan d'abonnement :
  * - FREE: 10% (plan gratuit)
  * - STARTER: 5% (plan de démarrage)
@@ -37,30 +39,26 @@ export class CommissionService {
   private readonly logger = new Logger(CommissionService.name);
 
   /**
-   * Taux de commission par plan d'abonnement (en pourcentage)
-   * Ces taux peuvent être ajustés selon la stratégie business
-   */
-  private readonly COMMISSION_RATES: Record<string, number> = {
-    FREE: 10,          // 10% - Plan gratuit
-    STARTER: 5,        // 5% - Plan de démarrage
-    PROFESSIONAL: 3,   // 3% - Plan professionnel
-    BUSINESS: 2,       // 2% - Plan business
-    ENTERPRISE: 1,     // 1% - Enterprise (grands comptes, négociable)
-  };
-
-  /**
    * Commission minimum en centimes (1€)
    * Garantit une commission minimale par commande
    */
   private readonly MIN_COMMISSION_CENTS = 100;
 
   /**
-   * Commission maximum en pourcentage (20%)
+   * Commission maximum en pourcentage (10%)
    * Protection pour éviter de faire fuir les clients
    */
   private readonly MAX_COMMISSION_PERCENT = 10;
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Get commission percent for a plan tier from plan-config.ts (SINGLE SOURCE OF TRUTH)
+   */
+  private getCommissionPercentForPlan(planId: string): number {
+    const tier = normalizePlanTier(planId);
+    return PLAN_CONFIGS[tier].pricing.commissionPercent;
+  }
 
   /**
    * Calculate commission for an order
@@ -119,20 +117,17 @@ export class CommissionService {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
         select: {
-          plan: true,
           subscriptionPlan: true,
+          plan: true,
           subscriptionStatus: true,
         },
       });
 
       if (!brand) {
         this.logger.warn(`Brand not found: ${brandId}, using default commission rate`);
-        return this.COMMISSION_RATES.STARTER / 100;
+        return this.getCommissionPercentForPlan('starter') / 100;
       }
 
-      // Déterminer le plan effectif (utiliser subscriptionPlan en priorité, puis plan)
-      const planName = (brand.subscriptionPlan || brand.plan || 'STARTER').toUpperCase();
-      
       // Vérifier si l'abonnement est actif
       const isActiveSubscription = !brand.subscriptionStatus || 
         brand.subscriptionStatus === 'ACTIVE' || 
@@ -141,19 +136,19 @@ export class CommissionService {
       // Si l'abonnement n'est pas actif, appliquer le taux FREE
       if (!isActiveSubscription) {
         this.logger.debug(`Brand ${brandId} subscription not active, using FREE rate`);
-        return this.COMMISSION_RATES.FREE / 100;
+        return this.getCommissionPercentForPlan('free') / 100;
       }
 
-      // Récupérer le taux correspondant au plan
-      const commissionPercent = this.COMMISSION_RATES[planName] ?? this.COMMISSION_RATES.STARTER;
+      // Résoudre le plan effectif (subscriptionPlan prioritaire)
+      const planId = brand.subscriptionPlan || brand.plan || 'starter';
+      const commissionPercent = this.getCommissionPercentForPlan(planId);
       
-      this.logger.debug(`Commission rate for brand ${brandId} (plan: ${planName}): ${commissionPercent}%`);
+      this.logger.debug(`Commission rate for brand ${brandId} (plan: ${planId}): ${commissionPercent}%`);
       
       return commissionPercent / 100;
     } catch (error) {
       this.logger.error(`Error getting commission rate for brand ${brandId}:`, error);
-      // En cas d'erreur, retourner le taux par défaut
-      return this.COMMISSION_RATES.STARTER / 100;
+      return this.getCommissionPercentForPlan('starter') / 100;
     }
   }
 
@@ -171,20 +166,17 @@ export class CommissionService {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
         select: {
-          plan: true,
           subscriptionPlan: true,
+          plan: true,
           subscriptionStatus: true,
         },
       });
 
       if (!brand) {
         this.logger.warn(`Brand not found: ${brandId}, using default commission percent`);
-        return this.COMMISSION_RATES.STARTER;
+        return this.getCommissionPercentForPlan('starter');
       }
 
-      // Déterminer le plan effectif
-      const planName = (brand.subscriptionPlan || brand.plan || 'STARTER').toUpperCase();
-      
       // Vérifier si l'abonnement est actif
       const isActiveSubscription = !brand.subscriptionStatus || 
         brand.subscriptionStatus === 'ACTIVE' || 
@@ -192,17 +184,18 @@ export class CommissionService {
 
       if (!isActiveSubscription) {
         this.logger.debug(`Brand ${brandId} subscription not active, using FREE rate`);
-        return this.COMMISSION_RATES.FREE;
+        return this.getCommissionPercentForPlan('free');
       }
 
-      const commissionPercent = this.COMMISSION_RATES[planName] ?? this.COMMISSION_RATES.STARTER;
+      const planId = brand.subscriptionPlan || brand.plan || 'starter';
+      const commissionPercent = this.getCommissionPercentForPlan(planId);
       
-      this.logger.debug(`Commission percent for brand ${brandId} (plan: ${planName}): ${commissionPercent}%`);
+      this.logger.debug(`Commission percent for brand ${brandId} (plan: ${planId}): ${commissionPercent}%`);
       
       return commissionPercent;
     } catch (error) {
       this.logger.error(`Error getting commission percent for brand ${brandId}:`, error);
-      return this.COMMISSION_RATES.STARTER;
+      return this.getCommissionPercentForPlan('starter');
     }
   }
 
@@ -211,7 +204,11 @@ export class CommissionService {
    * @returns Object with plan names and their commission percentages
    */
   getCommissionRates(): Record<string, number> {
-    return { ...this.COMMISSION_RATES };
+    const rates: Record<string, number> = {};
+    for (const [tier, config] of Object.entries(PLAN_CONFIGS)) {
+      rates[tier.toUpperCase()] = config.pricing.commissionPercent;
+    }
+    return rates;
   }
 
   /**

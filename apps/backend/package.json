@@ -43,7 +43,6 @@
     "@nestjs/throttler": "^5.0.1",
     "@node-saml/passport-saml": "^5.1.0",
     "@prisma/client": "^5.22.0",
-    "prisma": "^5.22.0",
     "@sendgrid/mail": "^8.1.0",
     "@sentry/nestjs": "^10.22.0",
     "@types/archiver": "^7.0.0",
@@ -81,6 +80,7 @@
     "passport-local": "^1.0.0",
     "passport-openidconnect": "^0.1.2",
     "pdfkit": "^0.14.0",
+    "prisma": "^5.22.0",
     "prom-client": "^15.1.0",
     "qrcode": "^1.5.3",
     "reflect-metadata": "^0.1.13",
@@ -99,6 +99,7 @@
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",

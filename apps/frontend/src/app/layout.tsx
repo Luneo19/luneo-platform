@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 
 // Optimisation des fonts: preload et display swap
 const inter = Inter({ 
@@ -16,6 +16,15 @@ const jakarta = Plus_Jakarta_Sans({
   preload: true,
   variable: '--font-display',
   weight: ['400', '500', '600', '700', '800'],
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+  variable: '--font-editorial',
+  weight: ['400', '500', '600', '700', '800', '900'],
+  style: ['normal', 'italic'],
 });
 import "./globals.css";
 import { Providers } from "./providers";
@@ -220,7 +229,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} ${inter.variable} ${jakarta.variable} overflow-x-hidden`} suppressHydrationWarning>
+      <body className={`${inter.className} ${inter.variable} ${jakarta.variable} ${playfair.variable} overflow-x-hidden`} suppressHydrationWarning>
         <a href="#main-content" className="skip-link">
           Aller au contenu
         </a>

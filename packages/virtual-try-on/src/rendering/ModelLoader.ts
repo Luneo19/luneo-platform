@@ -158,9 +158,10 @@ export class ModelLoader {
         },
         
         // onError
-        (error) => {
+        (error: unknown) => {
           this.logger.error('Model loading failed', { url, error });
-          reject(new Error(`Failed to load model: ${error.message || error}`));
+          const msg = error instanceof Error ? error.message : String(error);
+          reject(new Error(`Failed to load model: ${msg}`));
         }
       );
     });

@@ -1,19 +1,26 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Request, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
+import { Roles } from '@/common/guards/roles.guard';
+import { CurrentUser } from '@/common/types/user.types';
 import { UsageMeteringService } from './services/usage-metering.service';
 import { UsageTrackingService } from './services/usage-tracking.service';
 import { QuotasService } from './services/quotas.service';
 import { BillingCalculationService } from './services/billing-calculation.service';
 import { UsageReportingService } from './services/usage-reporting.service';
+import { UsageReconciliationService } from './services/usage-reconciliation.service';
 import { UsageMetricType } from './interfaces/usage.interface';
 
 /**
  * Controller pour la gestion du billing usage-based
+ * BrandOwnershipGuard ensures users can only access their own brand's data.
+ * SUPER_ADMIN / PLATFORM_ADMIN bypass this check.
  */
 @ApiTags('Usage & Billing')
 @Controller('usage-billing')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 @ApiBearerAuth()
 export class UsageBillingController {
   constructor(
@@ -22,6 +29,7 @@ export class UsageBillingController {
     private readonly quotasService: QuotasService,
     private readonly calculationService: BillingCalculationService,
     private readonly reportingService: UsageReportingService,
+    private readonly reconciliationService: UsageReconciliationService,
   ) {}
 
   /**
@@ -80,7 +88,24 @@ export class UsageBillingController {
   }
 
   /**
-   * Récupérer le résumé d'usage complet
+   * Récupérer le résumé d'usage pour le brand de l'utilisateur connecté.
+   * C'est l'endpoint utilisé par le frontend (pas de brandId dans l'URL).
+   */
+  @Get('summary')
+  @ApiOperation({ summary: 'Get usage summary for current user brand' })
+  @ApiResponse({ status: 200, description: 'Usage summary retrieved' })
+  async getMyUsageSummary(@Request() req: ExpressRequest & { user: CurrentUser }) {
+    const brandId = req.user?.brandId;
+    if (!brandId) {
+      throw new NotFoundException('Aucun brand associé à votre compte');
+    }
+    const summary = await this.quotasService.getUsageSummary(brandId);
+    const plan = await this.quotasService.getPlanForBrand(brandId);
+    return { summary, plan };
+  }
+
+  /**
+   * Récupérer le résumé d'usage complet (admin / explicit brandId)
    */
   @Get('summary/:brandId')
   @ApiOperation({ summary: 'Get complete usage summary with quotas and alerts' })
@@ -258,5 +283,16 @@ export class UsageBillingController {
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     return this.trackingService.getUsageHistory(brandId, metric, limitNum);
+  }
+
+  /**
+   * Lancer la reconciliation usage local vs Stripe (admin only)
+   */
+  @Post('admin/reconciliation')
+  @Roles('PLATFORM_ADMIN')
+  @ApiOperation({ summary: 'Run usage reconciliation (admin only)' })
+  @ApiResponse({ status: 200, description: 'Reconciliation report' })
+  async runReconciliation() {
+    return this.reconciliationService.runDailyReconciliation();
   }
 }

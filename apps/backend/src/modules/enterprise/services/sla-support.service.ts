@@ -175,14 +175,14 @@ export class SLASupportService {
     // ✅ Récupérer le plan du brand
     const brand = await this.prisma.brand.findUnique({
       where: { id: cleanBrandId },
-      select: { id: true, plan: true },
+      select: { id: true, subscriptionPlan: true, plan: true },
     });
 
     if (!brand) {
       throw new NotFoundException(`Brand ${brandId} not found`);
     }
 
-    const planId = brand.plan || 'starter';
+    const planId = brand.subscriptionPlan || brand.plan || 'starter';
     const slaConfig = this.getSLAConfig(planId);
 
     // ✅ Calculer les deadlines

@@ -39,6 +39,10 @@ export interface Layer {
   locked: boolean;
   zIndex: number;
   position: Position;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   rotation: number;
   scale: Scale;
   opacity: number;
@@ -75,9 +79,12 @@ export interface TextLayerData {
 
 export interface ImageLayerData {
   src: string;
+  url?: string;
   originalSrc: string;
+  alt?: string;
   width: number;
   height: number;
+  fit?: 'cover' | 'contain' | 'fill';
   cropX?: number;
   cropY?: number;
   cropWidth?: number;
@@ -91,11 +98,12 @@ export interface ImageFilter {
 }
 
 export interface ShapeLayerData {
-  shapeType: 'rectangle' | 'circle' | 'triangle' | 'polygon' | 'star' | 'custom';
+  shapeType: 'rectangle' | 'circle' | 'ellipse' | 'triangle' | 'polygon' | 'star' | 'custom';
   fill: string;
   stroke: string;
   strokeWidth: number;
   cornerRadius?: number;
+  sides?: number; // Pour polygon
   points?: number; // Pour polygon/star
   innerRadius?: number; // Pour star
   path?: string; // Pour custom (SVG path)
@@ -119,7 +127,7 @@ export interface PrintArea {
 
 export interface HistoryState {
   past: DesignData[];
-  present: DesignData;
+  present: DesignData | null;
   future: DesignData[];
   maxStates: number;
 }

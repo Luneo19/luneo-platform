@@ -5,10 +5,10 @@ import {
   Body,
   Param,
   Query,
+  Headers,
   HttpCode,
   HttpStatus,
   NotFoundException,
-  BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import {
@@ -30,11 +30,13 @@ import { TryOnEventsService } from '../services/try-on-events.service';
 import { ConversionService } from '../services/conversion.service';
 import { SocialSharingService } from '../services/social-sharing.service';
 import { TryOnRecommendationService } from '../services/try-on-recommendation.service';
+import { WhiteLabelService } from '../services/white-label.service';
 import { BatchScreenshotsDto } from '../dto/batch-screenshots.dto';
 import { CalibrationDataDto } from '../dto/calibration-data.dto';
 import { BatchPerformanceMetricsDto } from '../dto/performance-metric.dto';
-import { TrackConversionDto, AttributeRevenueDto } from '../dto/track-conversion.dto';
+import { TrackConversionDto } from '../dto/track-conversion.dto';
 import { CreateShareDto } from '../dto/create-share.dto';
+import { StartSessionDto, EndSessionDto } from '../dto/session.dto';
 
 /**
  * Public Widget Try-On Controller.
@@ -43,7 +45,7 @@ import { CreateShareDto } from '../dto/create-share.dto';
  * Authentication is done via brand slug + product ID (public data only).
  */
 @ApiTags('try-on-widget')
-@Controller('api/v1/public/try-on')
+@Controller('public/try-on')
 @Public()
 export class WidgetTryOnController {
   constructor(
@@ -57,6 +59,7 @@ export class WidgetTryOnController {
     private readonly conversionService: ConversionService,
     private readonly socialSharingService: SocialSharingService,
     private readonly recommendationService: TryOnRecommendationService,
+    private readonly whiteLabelService: WhiteLabelService,
   ) {}
 
   // ========================================
@@ -75,7 +78,18 @@ export class WidgetTryOnController {
   async getProductConfig(
     @Param('brandSlug') brandSlug: string,
     @Param('productId') productId: string,
+    @Headers('origin') origin?: string,
   ) {
+    // SECURITY: Validate origin domain if brand has allowedDomains configured
+    if (origin) {
+      const domainAllowed = await this.whiteLabelService.validateDomain(brandSlug, origin);
+      if (!domainAllowed) {
+        throw new ForbiddenException(
+          `Origin "${origin}" is not authorized for brand "${brandSlug}". Configure allowed domains in widget settings.`,
+        );
+      }
+    }
+
     // Find brand by slug
     const brand = await this.prisma.brand.findFirst({
       where: { slug: brandSlug },
@@ -188,28 +202,33 @@ export class WidgetTryOnController {
   @ApiOperation({ summary: 'Start a public try-on session (widget)' })
   @ApiResponse({ status: 201, description: 'Session started' })
   async startSession(
-    @Body()
-    body: {
-      configurationId: string;
-      visitorId: string;
-      deviceInfo?: Record<string, unknown>;
-    },
+    @Body() body: StartSessionDto,
   ) {
-    if (!body.configurationId || !body.visitorId) {
-      throw new BadRequestException(
-        'configurationId and visitorId are required',
-      );
-    }
-
     // Check usage quota before creating session
     const brandId = await this.eventsService.getBrandIdFromConfig(
       body.configurationId,
     );
     if (brandId) {
+      // ANTI-ABUSE: Burst rate limit per brand (max 30 sessions/minute).
+      // Prevents distributed botnet attacks from exhausting a brand's quota.
+      const oneMinuteAgo = new Date(Date.now() - 60_000);
+      const recentCount = await this.prisma.tryOnSession.count({
+        where: {
+          configuration: { project: { brandId } },
+          startedAt: { gte: oneMinuteAgo },
+        },
+      });
+      if (recentCount >= 30) {
+        throw new ForbiddenException(
+          'Trop de sessions en cours. Veuillez réessayer dans quelques instants.',
+        );
+      }
+
       const quota = await this.eventsService.checkSessionQuota(brandId);
       if (!quota.allowed) {
+        const hardLimit = quota.limit * 5;
         throw new ForbiddenException(
-          `Try-on session quota exceeded (${quota.limit} sessions/month). Please upgrade your plan.`,
+          `Quota Virtual Try-On épuisé. Votre plan inclut ${quota.limit} sessions/mois avec un maximum absolu de ${hardLimit} sessions (5× votre limite). Veuillez upgrader votre plan pour continuer.`,
         );
       }
     }
@@ -220,7 +239,7 @@ export class WidgetTryOnController {
       body.deviceInfo,
     );
 
-    // Fire-and-forget: meter usage + check milestones
+    // Fire-and-forget: meter usage (including overage tracking) + check milestones
     if (brandId) {
       const sid =
         (session as Record<string, unknown>)?.sessionId as string | undefined;
@@ -238,29 +257,31 @@ export class WidgetTryOnController {
   @ApiParam({ name: 'sessionId', description: 'Session external ID' })
   async endSession(
     @Param('sessionId') sessionId: string,
-    @Body()
-    body?: {
-      conversionAction?: string;
-      renderQuality?: string;
-    },
+    @Body() body?: EndSessionDto,
   ) {
+    // SECURITY: Verify session exists and is not already ended
+    const session = await this.prisma.tryOnSession.findUnique({
+      where: { sessionId },
+      select: { id: true, endedAt: true },
+    });
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+    if (session.endedAt) {
+      return { message: 'Session already ended' };
+    }
+
     // Optionally update conversion action before ending
     if (body?.conversionAction || body?.renderQuality) {
-      const session = await this.prisma.tryOnSession.findUnique({
-        where: { sessionId },
-        select: { id: true },
+      await this.prisma.tryOnSession.update({
+        where: { id: session.id },
+        data: {
+          ...(body.conversionAction && {
+            conversionAction: body.conversionAction as import('@prisma/client').ConversionAction,
+          }),
+          ...(body.renderQuality && { renderQuality: body.renderQuality }),
+        },
       });
-      if (session) {
-        await this.prisma.tryOnSession.update({
-          where: { id: session.id },
-          data: {
-            ...(body.conversionAction && {
-              conversionAction: body.conversionAction,
-            }),
-            ...(body.renderQuality && { renderQuality: body.renderQuality }),
-          },
-        });
-      }
     }
 
     const result = await this.sessionService.endSession(sessionId);
@@ -269,12 +290,18 @@ export class WidgetTryOnController {
     const brandId = await this.eventsService.getBrandIdFromSession(sessionId);
     if (brandId) {
       const ended = result as Record<string, unknown>;
+      const startedAt = ended?.startedAt as Date | string | undefined;
+      const endedAt = ended?.endedAt as Date | string | undefined;
+      const durationMs = startedAt && endedAt
+        ? new Date(endedAt).getTime() - new Date(startedAt).getTime()
+        : 0;
+
       this.eventsService
         .emitSessionCompleted(brandId, {
           sessionId,
           productsTried: (ended?.productsTried as string[]) || [],
           screenshotsTaken: (ended?.screenshotsTaken as number) || 0,
-          duration: 0,
+          duration: Math.round(durationMs / 1000),
           converted: !!(ended?.converted || body?.conversionAction),
           conversionAction: body?.conversionAction,
           renderQuality: body?.renderQuality,
@@ -283,6 +310,52 @@ export class WidgetTryOnController {
     }
 
     return result;
+  }
+
+  // ========================================
+  // PRODUCT TRACKING (Public)
+  // ========================================
+
+  @Post('sessions/:sessionId/product-tried')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Track a product tried during a try-on session (widget)' })
+  @ApiParam({ name: 'sessionId', description: 'Session external ID' })
+  async trackProductTried(
+    @Param('sessionId') sessionId: string,
+    @Body('productId') productId: string,
+  ) {
+    if (!productId || typeof productId !== 'string') {
+      throw new NotFoundException('productId is required');
+    }
+
+    const session = await this.prisma.tryOnSession.findUnique({
+      where: { sessionId },
+      select: { id: true, productsTried: true, endedAt: true },
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    if (session.endedAt) {
+      return { message: 'Session already ended, product not tracked' };
+    }
+
+    const currentProducts = (session.productsTried as string[]) || [];
+    if (currentProducts.includes(productId)) {
+      return { productsTried: currentProducts };
+    }
+
+    const updated = await this.prisma.tryOnSession.update({
+      where: { id: session.id },
+      data: {
+        productsTried: [...currentProducts, productId],
+      },
+      select: { productsTried: true },
+    });
+
+    return { productsTried: updated.productsTried };
   }
 
   // ========================================
@@ -333,6 +406,7 @@ export class WidgetTryOnController {
   }
 
   @Get('calibration/recommend')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Get calibration recommendation for a device' })
   @ApiQuery({ name: 'deviceType', required: true })
   @ApiQuery({ name: 'cameraResolution', required: false })
@@ -403,24 +477,7 @@ export class WidgetTryOnController {
     });
   }
 
-  @Post('conversions/:id/revenue')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary:
-      'Attribute revenue to a conversion (called by pixel or e-commerce webhook)',
-  })
-  @ApiParam({ name: 'id', description: 'Conversion ID' })
-  async attributeRevenue(
-    @Param('id') id: string,
-    @Body() dto: AttributeRevenueDto,
-  ) {
-    return this.conversionService.attributeRevenue(id, {
-      revenue: dto.revenue,
-      currency: dto.currency,
-      externalOrderId: dto.externalOrderId,
-    });
-  }
+  // SECURITY: attributeRevenue moved to authenticated TryOnController (IDOR risk on public endpoint)
 
   // ========================================
   // SOCIAL SHARING (Public)

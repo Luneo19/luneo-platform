@@ -29,6 +29,9 @@ import {
   Beaker,
   Target,
   Bot,
+  Receipt,
+  History,
+  Palette,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -116,6 +119,21 @@ export const adminNavigation: NavigationGroup[] = [
         href: '/admin/billing',
         icon: CreditCard,
         badge: 'new',
+      },
+      {
+        title: 'Factures',
+        href: '/admin/invoices',
+        icon: Receipt,
+      },
+      {
+        title: 'Historique Plans',
+        href: '/admin/plan-history',
+        icon: History,
+      },
+      {
+        title: 'Designs',
+        href: '/admin/designs',
+        icon: Palette,
       },
       {
         title: 'Audit Log',

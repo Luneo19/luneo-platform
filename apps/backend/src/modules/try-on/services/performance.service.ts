@@ -146,7 +146,8 @@ export class PerformanceService {
     brandId?: string,
     days = 30,
   ): Promise<DevicePerformanceSummary[]> {
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const safeDays = Math.min(Math.max(1, days), 365);
+    const since = new Date(Date.now() - safeDays * 24 * 60 * 60 * 1000);
 
     const whereClause: Prisma.TryOnPerformanceMetricWhereInput = {
       createdAt: { gte: since },

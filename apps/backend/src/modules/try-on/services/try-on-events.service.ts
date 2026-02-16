@@ -34,12 +34,17 @@ export class TryOnEventsService {
 
   /**
    * Check if a brand has remaining try-on session quota.
-   * Returns { allowed, remaining, limit } or allows if billing not available.
+   * Returns { allowed, remaining, limit, isOverage } or allows if billing not available.
+   * 
+   * Overage policy: sessions beyond the plan limit are allowed but flagged as overage.
+   * Overage is billed at the rate defined in the plan metadata (default: 0.01 EUR/session).
+   * Hard limit: 5x the plan limit (to prevent abuse).
    */
   async checkSessionQuota(brandId: string): Promise<{
     allowed: boolean;
     remaining: number;
     limit: number;
+    isOverage?: boolean;
   }> {
     if (!this.quotasService) {
       return { allowed: true, remaining: Infinity, limit: Infinity };
@@ -48,13 +53,40 @@ export class TryOnEventsService {
     try {
       const result = await this.quotasService.checkQuota(
         brandId,
-        'try_on_sessions' as never,
+        'virtual_tryons',
         1,
       );
+
+      if (result.allowed) {
+        return {
+          allowed: true,
+          remaining: result.remaining,
+          limit: result.limit,
+        };
+      }
+
+      // Quota exceeded: check if overage is permitted (hard limit = 5x plan limit)
+      const hardLimit = result.limit * 5;
+      const currentUsage = result.limit - result.remaining;
+
+      if (currentUsage < hardLimit) {
+        // Allow but flag as overage for billing
+        this.logger.log(`Overage session for brand ${brandId}: ${currentUsage}/${result.limit} (hard limit: ${hardLimit})`);
+        return {
+          allowed: true,
+          remaining: 0,
+          limit: result.limit,
+          isOverage: true,
+        };
+      }
+
+      // Hard limit reached: block
+      this.logger.warn(`Hard limit reached for brand ${brandId}: ${currentUsage}/${hardLimit}`);
       return {
-        allowed: result.allowed,
-        remaining: result.remaining,
+        allowed: false,
+        remaining: 0,
         limit: result.limit,
+        isOverage: true,
       };
     } catch (error) {
       this.logger.warn('Failed to check session quota, allowing by default', {
@@ -74,7 +106,7 @@ export class TryOnEventsService {
     try {
       await this.usageMeteringService.recordUsage(
         brandId,
-        'try_on_sessions' as never,
+        'virtual_tryons',
         1,
         { sessionId },
       );
@@ -100,7 +132,7 @@ export class TryOnEventsService {
     try {
       await this.usageMeteringService.recordUsage(
         brandId,
-        'try_on_screenshots' as never,
+        'try_on_screenshots',
         count,
         { sessionId },
       );
@@ -135,11 +167,10 @@ export class TryOnEventsService {
     if (!this.webhooksService) return;
 
     try {
-      await this.webhooksService.processWebhook(
+      await this.webhooksService.dispatchEvent(
         brandId,
         'try-on.session.completed',
         {
-          event: 'try-on.session.completed',
           ...sessionData,
           timestamp: new Date().toISOString(),
         },
@@ -169,11 +200,10 @@ export class TryOnEventsService {
     if (!this.webhooksService) return;
 
     try {
-      await this.webhooksService.processWebhook(
+      await this.webhooksService.dispatchEvent(
         brandId,
         'try-on.conversion',
         {
-          event: 'try-on.conversion',
           ...conversionData,
           timestamp: new Date().toISOString(),
         },
@@ -193,6 +223,9 @@ export class TryOnEventsService {
   /**
    * Notify brand admin when a try-on milestone is reached.
    * Thresholds: 100, 500, 1000, 5000, 10000 sessions.
+   * 
+   * Deduplication: checks if a notification for this milestone was already sent
+   * by looking up existing notifications with matching milestone data.
    */
   async checkAndNotifyMilestone(brandId: string): Promise<void> {
     if (!this.notificationsService) return;
@@ -209,10 +242,8 @@ export class TryOnEventsService {
         },
       });
 
-      // Check if we just hit a milestone
-      const milestone = milestones.find(
-        (m) => totalSessions === m || (totalSessions > m && totalSessions <= m + 5),
-      );
+      // Only trigger at exact milestone count to minimize race conditions
+      const milestone = milestones.find((m) => totalSessions === m);
 
       if (!milestone) return;
 
@@ -222,7 +253,7 @@ export class TryOnEventsService {
         select: {
           name: true,
           users: {
-            where: { role: 'ADMIN' },
+            where: { role: 'BRAND_ADMIN' },
             select: { id: true },
             take: 1,
           },
@@ -230,6 +261,24 @@ export class TryOnEventsService {
       });
 
       if (!brand?.users[0]) return;
+
+      // DEDUP: Check if we already sent a notification for this exact milestone
+      const existingNotification = await this.prisma.notification.findFirst({
+        where: {
+          userId: brand.users[0].id,
+          title: 'Virtual Try-On Milestone!',
+          data: {
+            path: ['milestone'],
+            equals: milestone,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (existingNotification) {
+        this.logger.debug(`Milestone ${milestone} already notified for brand ${brandId}`);
+        return;
+      }
 
       await this.notificationsService.create({
         userId: brand.users[0].id,

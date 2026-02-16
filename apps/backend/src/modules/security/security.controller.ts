@@ -14,6 +14,7 @@ import { DeleteAccountDto } from './dto/delete-account.dto';
 import { RecordConsentDto } from './dto/record-consent.dto';
 import { ScheduleDataRetentionDto } from './dto/schedule-data-retention.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { AuthService } from '@/modules/auth/auth.service';
 
 /**
@@ -21,7 +22,7 @@ import { AuthService } from '@/modules/auth/auth.service';
  */
 @ApiTags('Security & Compliance')
 @Controller('security')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 @ApiBearerAuth()
 export class SecurityController {
   constructor(

@@ -27,7 +27,7 @@ interface ShareData {
   viewCount: number;
 }
 
-export default function SharePage() {
+export default function TryOnSharePage() {
   const params = useParams();
   const shareToken = params?.shareToken as string;
   const [data, setData] = useState<ShareData | null>(null);
@@ -62,7 +62,6 @@ export default function SharePage() {
   }, [shareToken]);
 
   const handleTryOnClick = async () => {
-    // Track click
     try {
       await fetch(
         `${API_BASE}/api/v1/public/try-on/shares/${encodeURIComponent(shareToken)}/click`,
@@ -152,13 +151,12 @@ export default function SharePage() {
           )}
 
           {data.product && (
-            <Link
-              href={`${API_BASE}/${data.brand.slug}/product/${data.product.id}`}
+            <button
               onClick={handleTryOnClick}
               className="block w-full text-center bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-6 rounded-xl transition-colors"
             >
               Voir le produit
-            </Link>
+            </button>
           )}
         </div>
 

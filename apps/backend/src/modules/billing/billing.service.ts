@@ -1,4 +1,4 @@
-import { PLAN_CONFIGS, normalizePlanTier, PlanTier } from '@/libs/plans';
+import { PLAN_CONFIGS, normalizePlanTier, PlanTier, getPlanConfig } from '@/libs/plans';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrencyUtils, detectCurrency } from '@/config/currency.config';
 import {
@@ -15,6 +15,7 @@ import type Stripe from 'stripe';
 import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
 import { AuditLogsService, AuditEventType } from '@/modules/security/services/audit-logs.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
 /**
  * BillingService — Façade for all billing operations.
@@ -33,6 +34,7 @@ export class BillingService {
     private stripeClient: StripeClientService,
     private webhookService: StripeWebhookService,
     private readonly auditLogsService: AuditLogsService,
+    private readonly distributedLock: DistributedLockService,
   ) {}
 
   // ──────────────────────────────────────────────────────────────
@@ -73,13 +75,36 @@ export class BillingService {
       locale?: string;
     },
   ) {
-    // ✅ Vérifier que Stripe est configuré
+    // Distributed lock to prevent double checkout for the same user
+    const checkoutLockKey = `checkout:${userId}`;
+    const lockAcquired = await this.distributedLock.acquire(checkoutLockKey, 30);
+    if (!lockAcquired) {
+      throw new BadRequestException('Une session de paiement est déjà en cours de création. Veuillez patienter.');
+    }
+
+    try {
+      return await this._createCheckoutSessionWithLock(planId, userId, userEmail, options);
+    } finally {
+      await this.distributedLock.release(checkoutLockKey);
+    }
+  }
+
+  private async _createCheckoutSessionWithLock(
+    planId: string,
+    userId: string,
+    userEmail: string,
+    options?: {
+      billingInterval?: 'monthly' | 'yearly';
+      addOns?: Array<{ type: string; quantity: number }>;
+      country?: string;
+      locale?: string;
+    },
+  ) {
     const nodeEnv = this.configService.get<string>('app.nodeEnv') || 'development';
     if (!this.stripeClient.stripeConfigValid && nodeEnv === 'production') {
       throw new ServiceUnavailableException('Stripe is not properly configured. Please contact support.');
     }
 
-    // ✅ Validation des paramètres
     if (!planId || typeof planId !== 'string' || planId.trim().length === 0) {
       throw new BadRequestException('Plan ID is required');
     }
@@ -93,6 +118,40 @@ export class BillingService {
     }
 
     const billingInterval = options?.billingInterval || 'monthly';
+
+    // ✅ Prevent double subscription: reject checkout if user already has an active subscription
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        brand: {
+          select: {
+            id: true,
+            stripeCustomerId: true,
+            stripeSubscriptionId: true,
+            subscriptionStatus: true,
+            subscriptionPlan: true,
+          },
+        },
+      },
+    });
+
+    if (existingUser?.brand?.stripeSubscriptionId && existingUser.brand.subscriptionStatus === 'ACTIVE') {
+      throw new BadRequestException(
+        'Vous avez déjà un abonnement actif. Veuillez annuler votre abonnement actuel ou changer de plan depuis votre dashboard.',
+      );
+    }
+
+    if (planId === 'free') {
+      throw new BadRequestException('Le plan gratuit ne nécessite pas de paiement. Inscrivez-vous directement.');
+    }
+
+    // Restrict self-service checkout to allowed plans only (Enterprise requires contact sales)
+    const SELF_SERVICE_PLANS = ['starter', 'professional', 'business'];
+    if (!SELF_SERVICE_PLANS.includes(planId.toLowerCase())) {
+      throw new BadRequestException(
+        `Le plan "${planId}" n'est pas disponible en self-service. Veuillez contacter notre équipe commerciale.`,
+      );
+    }
 
     // ✅ Multi-currency: detect from country (brand or header) / locale (Accept-Language)
     let country = options?.country;
@@ -198,11 +257,15 @@ export class BillingService {
       const session = await this.executeWithResilience(
         async () => {
           const stripe = await this.getStripe();
+          const existingCustomerId = existingUser?.brand?.stripeCustomerId;
           return stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'subscription',
-        customer_email: userEmail,
+        ...(existingCustomerId
+          ? { customer: existingCustomerId }
+          : { customer_email: userEmail }),
+        allow_promotion_codes: true,
         // BILLING FIX: Use configService only - no hardcoded URLs (MED-006)
         success_url: `${this.configService.get('app.frontendUrl')}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${this.configService.get('app.frontendUrl')}/dashboard/billing/cancel`,
@@ -362,17 +425,37 @@ export class BillingService {
 
   async removePaymentMethod(userId: string, paymentMethodId: string) {
     try {
-      // ✅ PHASE 2: Détacher la méthode de paiement avec résilience
-      await this.executeWithResilience(
-        async () => {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { brand: true },
+      });
+
+      if (!user?.brand?.stripeCustomerId) {
+        throw new NotFoundException('Aucun compte de facturation trouvé');
+      }
+
       const stripe = await this.getStripe();
-          return stripe.paymentMethods.detach(paymentMethodId);
-        },
+
+      // Verify that the payment method belongs to THIS brand's Stripe customer
+      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+      if (paymentMethod.customer !== user.brand.stripeCustomerId) {
+        this.logger.warn('IDOR attempt: user tried to detach payment method belonging to another customer', {
+          userId,
+          paymentMethodId,
+          requestedCustomer: paymentMethod.customer,
+          actualCustomer: user.brand.stripeCustomerId,
+        });
+        throw new NotFoundException('Méthode de paiement non trouvée');
+      }
+
+      await this.executeWithResilience(
+        async () => stripe.paymentMethods.detach(paymentMethodId),
         'stripe.paymentMethods.detach',
       );
 
       return { message: 'Méthode de paiement supprimée avec succès' };
     } catch (error: unknown) {
+      if (error instanceof NotFoundException) throw error;
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error('Error removing payment method', error, { userId, paymentMethodId });
       throw new InternalServerErrorException(`Erreur lors de la suppression de la méthode de paiement: ${message}`);
@@ -503,20 +586,8 @@ export class BillingService {
 
       const brand = user.brand;
       
-      // Déterminer le plan depuis brand.plan ou subscriptionPlan
-      const planFromDb = brand.plan?.toLowerCase() || brand.subscriptionPlan?.toLowerCase() || 'starter';
-      
-      // Mapper SubscriptionPlan enum vers PlanTier
-      const planMap: Record<string, 'free' | 'starter' | 'professional' | 'business' | 'enterprise'> = {
-        'free': 'free',
-        'starter': 'starter',
-        'professional': 'professional',
-        'business': 'business',
-        'enterprise': 'enterprise',
-      };
-      
-      const plan: 'free' | 'starter' | 'professional' | 'business' | 'enterprise' = 
-        planMap[planFromDb] || 'free';
+      // Déterminer le plan depuis brand.plan ou subscriptionPlan (SINGLE SOURCE OF TRUTH: plan-config)
+      const plan = normalizePlanTier(brand.subscriptionPlan || brand.plan || 'free');
 
       // Déterminer le statut depuis subscriptionStatus ou Stripe
       let status: 'active' | 'trialing' | 'past_due' | 'canceled' = 'active';
@@ -639,6 +710,9 @@ export class BillingService {
         // CRITICAL FIX: Also expose as 'usage' for frontend usage page compatibility
         usage: currentUsage,
         commissionPercent,
+        currentPeriodStart: stripeSubscription?.current_period_start
+          ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+          : undefined,
         currentPeriodEnd: brand.planExpiresAt?.toISOString() || 
                    (stripeSubscription?.current_period_end 
                      ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
@@ -647,6 +721,7 @@ export class BillingService {
                    (stripeSubscription?.current_period_end 
                      ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
                      : undefined),
+        cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end ?? false,
         stripeSubscriptionId: brand.stripeSubscriptionId || undefined,
       };
     } catch (error) {
@@ -864,24 +939,43 @@ export class BillingService {
       // to schedule the price change at the end of the current billing period.
       // Previously, subscriptions.update was called immediately even for downgrades.
       if (isDowngrade && !immediateChange) {
-        // Create a schedule from the existing subscription
+        // Cancel any existing schedule before creating a new one (handles multiple successive downgrades)
+        if (currentSubscription.schedule) {
+          const existingScheduleId = typeof currentSubscription.schedule === 'string'
+            ? currentSubscription.schedule
+            : currentSubscription.schedule.id;
+          try {
+            await stripe.subscriptionSchedules.release(existingScheduleId);
+            this.logger.log(`Released existing schedule ${existingScheduleId} before creating new downgrade schedule`);
+          } catch (releaseError: unknown) {
+            const releaseMsg = releaseError instanceof Error ? releaseError.message : String(releaseError);
+            this.logger.warn(`Could not release existing schedule ${existingScheduleId}: ${releaseMsg}`);
+          }
+        }
+
         const schedule = await stripe.subscriptionSchedules.create({
           from_subscription: currentSubscription.id,
         });
+
+        // Collect existing add-on items (all items except the main plan)
+        const addonItems = currentSubscription.items.data
+          .slice(1)
+          .filter(item => item.price?.id)
+          .map(item => ({ price: item.price.id, quantity: item.quantity || 1 }));
 
         // Update the schedule to change the price at the end of the current period
         await stripe.subscriptionSchedules.update(schedule.id, {
           end_behavior: 'release',
           phases: [
             {
-              // Current phase: keep existing plan until current period ends
-              items: [{ price: currentPriceId, quantity: 1 }],
+              // Current phase: keep existing plan + add-ons until current period ends
+              items: [{ price: currentPriceId, quantity: 1 }, ...addonItems],
               start_date: schedule.phases[0]?.start_date || Math.floor(Date.now() / 1000),
               end_date: currentSubscription.current_period_end,
             },
             {
-              // Next phase: switch to new (downgraded) plan
-              items: [{ price: newPriceId, quantity: 1 }],
+              // Next phase: switch to new (downgraded) plan, keep add-ons
+              items: [{ price: newPriceId, quantity: 1 }, ...addonItems],
               start_date: currentSubscription.current_period_end,
               proration_behavior: 'none',
               metadata: {
@@ -921,12 +1015,15 @@ export class BillingService {
         // Updating the plan now would drop user limits immediately while they're still
         // paying for the current (higher) plan until period end.
         if (isUpgrade || immediateChange) {
+          const planConfig = getPlanConfig(normalizePlanTier(newPlanId));
+          const whiteLabel = planConfig.limits.whiteLabel === true;
           await this.prisma.$transaction(async (tx) => {
             await tx.brand.update({
               where: { id: brand.id },
               data: {
                 plan: newPlanId,
                 subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
+                whiteLabel,
                 ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
               },
             });
@@ -1290,7 +1387,7 @@ export class BillingService {
     }
 
     // Déterminer les fonctionnalités perdues
-    const currentPlanName = (user.brand.plan || user.brand.subscriptionPlan || 'starter').toLowerCase();
+    const currentPlanName = normalizePlanTier(user.brand.subscriptionPlan || user.brand.plan || 'starter');
     const currentLimits = getDowngradeLimits(currentPlanName);
     
     const lostFeatures = currentLimits.features.filter(
@@ -1369,7 +1466,7 @@ export class BillingService {
         return {
           success: true,
           message: 'Le downgrade programmé a été annulé. Vous conservez votre plan actuel.',
-          currentPlan: user.brand.plan || 'unknown',
+          currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
         };
       }
 
@@ -1384,7 +1481,7 @@ export class BillingService {
         return {
           success: true,
           message: 'L\'annulation programmée a été annulée. Votre abonnement continuera.',
-          currentPlan: user.brand.plan || 'unknown',
+          currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
         };
       }
 
@@ -1402,14 +1499,14 @@ export class BillingService {
         return {
           success: true,
           message: 'Le downgrade programmé a été annulé.',
-          currentPlan: user.brand.plan || 'unknown',
+          currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
         };
       }
 
       return {
         success: false,
         message: 'Aucun downgrade programmé trouvé pour cet abonnement.',
-        currentPlan: user.brand.plan || 'unknown',
+        currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1453,6 +1550,10 @@ export class BillingService {
           data: {
             subscriptionStatus: 'CANCELED',
             plan: 'free',
+            subscriptionPlan: 'FREE' as any,
+            stripeSubscriptionId: null,
+            planExpiresAt: null,
+            whiteLabel: false,
           },
         });
 
@@ -1514,7 +1615,7 @@ export class BillingService {
       throw new NotFoundException('User brand not found');
     }
 
-    const currentPlan = (user.brand.plan || user.brand.subscriptionPlan || 'starter').toLowerCase();
+    const currentPlan = normalizePlanTier(user.brand.subscriptionPlan || user.brand.plan || 'starter');
     const currentStatus = user.brand.subscriptionStatus || 'unknown';
 
     if (!user.brand.stripeSubscriptionId) {
@@ -1782,14 +1883,30 @@ export class BillingService {
 
       const newStatus = statusMap[subscription.status] || 'ACTIVE';
 
+      // Also sync plan from Stripe subscription items
+      const planItem = subscription.items?.data?.find(
+        (item) => !item.price?.metadata?.addon,
+      );
+      const planName = planItem?.price?.metadata?.plan || brand.plan || 'free';
+      const planToEnum: Record<string, string> = {
+        free: 'FREE', starter: 'STARTER', professional: 'PROFESSIONAL',
+        business: 'BUSINESS', enterprise: 'ENTERPRISE',
+      };
+      const planExpiresAt = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000)
+        : null;
+
       await this.prisma.brand.update({
         where: { id: brandId },
         data: {
           subscriptionStatus: newStatus as SubscriptionStatus,
+          plan: planName.toLowerCase(),
+          subscriptionPlan: (planToEnum[planName.toLowerCase()] || 'FREE') as any,
+          planExpiresAt,
         },
       });
 
-      this.logger.log(`Synced subscription status for brand ${brandId}: ${newStatus}`);
+      this.logger.log(`Synced subscription for brand ${brandId}: status=${newStatus}, plan=${planName}`);
 
       return { synced: true, status: newStatus };
     } catch (error) {

@@ -106,16 +106,16 @@ export class CalibrationService {
     const avgPixelRatio = count > 0 ? totalScale / count : 1;
 
     // Determine quality from performance history
-    let avgFps = 30;
+    let totalFps = 0;
     let perfCount = 0;
     for (const session of recentSessions) {
       const perf = session.performanceMetrics as Record<string, unknown> | null;
       if (perf && typeof perf.avgFps === 'number') {
-        avgFps += perf.avgFps as number;
+        totalFps += perf.avgFps as number;
         perfCount++;
       }
     }
-    if (perfCount > 0) avgFps = avgFps / perfCount;
+    const avgFps = perfCount > 0 ? totalFps / perfCount : 30;
 
     const qualityLevel: 'high' | 'medium' | 'low' =
       avgFps >= 30 ? 'high' : avgFps >= 20 ? 'medium' : 'low';

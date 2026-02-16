@@ -17,11 +17,20 @@ function PricingPageContent() {
   return (
     <div className="min-h-screen">
       <PricingHero isYearly={isYearly} onYearlyChange={setIsYearly} />
-      <section className="py-12 sm:py-16 md:py-24">
+      <section className="py-12 sm:py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-5">
-            {mergedPlans.map((plan, index) => (
+          {/* Top row: first 3 plans (Free, Starter, Professional) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-4 sm:mb-5 lg:mb-6">
+            {mergedPlans.slice(0, 3).map((plan, index) => (
               <ScrollReveal key={plan.id} animation="fade-up" staggerIndex={index} staggerDelay={80} delay={50}>
+                <PricingPlanCard plan={plan} isYearly={isYearly} onCheckout={handleCheckout} />
+              </ScrollReveal>
+            ))}
+          </div>
+          {/* Bottom row: last 2 plans (Business, Enterprise) centered */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 lg:gap-6 lg:w-2/3 mx-auto">
+            {mergedPlans.slice(3).map((plan, index) => (
+              <ScrollReveal key={plan.id} animation="fade-up" staggerIndex={index + 3} staggerDelay={80} delay={50}>
                 <PricingPlanCard plan={plan} isYearly={isYearly} onCheckout={handleCheckout} />
               </ScrollReveal>
             ))}

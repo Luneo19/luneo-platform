@@ -275,6 +275,8 @@ describe('UsageMeteringService', () => {
         webhook_deliveries: 'webhooks',
         custom_domains: 'domains',
         team_members: 'members',
+        virtual_tryons: 'sessions',
+        try_on_screenshots: 'screenshots',
       };
 
       for (const [metric, expectedUnit] of Object.entries(expectedUnits)) {

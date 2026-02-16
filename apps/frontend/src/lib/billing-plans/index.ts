@@ -12,8 +12,8 @@ let PLAN_CATALOG: PlanCatalog;
 let getPlanDefinition: (plan: PlanTier) => PlanDefinition;
 let listPlans: () => PlanDefinition[];
 
-type PlanTier = 'starter' | 'professional' | 'business' | 'enterprise';
-type UsageMetricType = 'designs_created' | 'renders_2d' | 'renders_3d' | 'exports_gltf' | 'exports_usdz' | 'ai_generations' | 'storage_gb' | 'bandwidth_gb' | 'api_calls' | 'webhook_deliveries' | 'custom_domains' | 'team_members';
+type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
+type UsageMetricType = 'designs_created' | 'renders_2d' | 'renders_3d' | 'exports_gltf' | 'exports_usdz' | 'ai_generations' | 'storage_gb' | 'bandwidth_gb' | 'api_calls' | 'webhook_deliveries' | 'custom_domains' | 'team_members' | 'virtual_tryons' | 'try_on_screenshots';
 type UsagePeriod = 'hour' | 'day' | 'month';
 type OverageBehavior = 'block' | 'charge';
 
@@ -89,6 +89,13 @@ if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.l
   // This should not happen in production - package should be available
   // But we provide a type-safe fallback to prevent build errors
   PLAN_DEFINITIONS = {
+    free: {
+      id: 'free',
+      name: 'Free',
+      basePriceCents: 0,
+      quotas: [],
+      features: [],
+    },
     starter: {
       id: 'starter',
       name: 'Starter',
@@ -121,8 +128,8 @@ if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.l
   
   PLAN_CATALOG = {
     plans: PLAN_DEFINITIONS,
-    defaultPlan: 'starter',
-    availableTiers: ['starter', 'professional', 'business', 'enterprise'],
+    defaultPlan: 'free',
+    availableTiers: ['free', 'starter', 'professional', 'business', 'enterprise'],
   };
   
   getPlanDefinition = (plan: PlanTier) => PLAN_DEFINITIONS[plan] || PLAN_DEFINITIONS.starter;

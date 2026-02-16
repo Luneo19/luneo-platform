@@ -1,12 +1,14 @@
 'use client';
 
-import { Star } from 'lucide-react';
-import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
-import { AnimatedBorder } from '@/components/ui/animated-border';
-import { TiltCard } from '@/components/ui/tilt-card';
+import { Star, Quote } from 'lucide-react';
+import {
+  ScrollReveal,
+  TiltCard,
+  GradientText,
+  PremiumSectionHeader,
+  GlowOrb,
+} from '@/components/ui/premium';
 
-// NOTE: Example testimonials for launch. Replace with real customer testimonials
-// when available via CMS or testimonial collection tool (e.g., Trustpilot API)
 const testimonials = [
   {
     quote: "Luneo a transforme notre experience client. +45% de conversions en 3 mois grace a la personnalisation en temps reel.",
@@ -15,6 +17,7 @@ const testimonials = [
     company: 'Optic 2000',
     initials: 'SL',
     featured: false,
+    gradient: 'from-indigo-500 to-violet-500',
   },
   {
     quote: "Le meilleur investissement pour notre startup. Le configurateur 3D et le try-on AR ont revolutionne notre facon de vendre en ligne.",
@@ -23,6 +26,7 @@ const testimonials = [
     company: 'PrintShop Pro',
     initials: 'MD',
     featured: true,
+    gradient: 'from-violet-500 to-pink-500',
   },
   {
     quote: "Integration en 2 jours, ROI positif des le premier mois. Le support est exceptionnel et les fonctionnalites sont impressionnantes.",
@@ -31,111 +35,124 @@ const testimonials = [
     company: 'Bijoux Paris',
     initials: 'CM',
     featured: false,
+    gradient: 'from-cyan-500 to-indigo-500',
   },
 ];
 
 export function TestimonialsNew() {
   return (
-    <section id="testimonials" className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay">
-      <div className="absolute inset-0 gradient-mesh-purple opacity-50" />
+    <section id="testimonials" className="relative py-24 sm:py-32 bg-dark-bg overflow-hidden">
+      {/* Background orbs */}
+      <GlowOrb
+        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        color="rgba(124,58,237,0.05)"
+        size="800px"
+        blur={150}
+      />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <ScrollReveal animation="fade-up">
-          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
-            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-[10px] sm:text-xs font-semibold rounded-full mb-4 sm:mb-5 uppercase tracking-wider">
-              Temoignages
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-5">
-              <span className="text-white">Apprecie par des </span>
-              <span className="italic text-gradient-purple">milliers de marques</span>
-            </h2>
-            <p className="text-base sm:text-lg text-white/80 px-2">
-              Decouvrez ce que nos clients ont a dire sur leur experience avec Luneo.
-            </p>
-          </div>
+        <ScrollReveal direction="up">
+          <PremiumSectionHeader
+            badge="Temoignages"
+            title={
+              <>
+                Apprecie par des{' '}
+                <GradientText variant="rose" className="font-editorial italic">
+                  milliers de marques
+                </GradientText>
+              </>
+            }
+            subtitle="Decouvrez ce que nos clients ont a dire sur leur experience avec Luneo."
+            className="mb-16 sm:mb-20"
+          />
         </ScrollReveal>
 
         {/* Rating bar */}
-        <ScrollReveal animation="fade-up" delay={100}>
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 mb-10 sm:mb-12">
+        <ScrollReveal direction="up" delay={80}>
+          <div className="flex flex-wrap justify-center items-center gap-6 mb-12">
             <div className="flex items-center gap-2">
               <div className="flex gap-0.5">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 sm:w-5 h-4 sm:h-5 fill-amber-400 text-amber-400" />
+                  <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <span className="text-white font-bold text-base sm:text-lg">Excellent</span>
+              <span className="text-white font-bold text-lg">Excellent</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
-            <span className="text-white/80 text-xs sm:text-sm">Avis clients</span>
+            <span className="text-white/40 text-sm">Note moyenne 4.9/5</span>
           </div>
         </ScrollReveal>
 
         {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
           {testimonials.map((t, index) => (
             <ScrollReveal
               key={t.author}
-              animation="fade-up"
-              staggerIndex={index}
-              staggerDelay={120}
-              delay={150}
+              direction="up"
+              delay={index * 100}
             >
               <TiltCard
-                maxTilt={5}
-                hoverScale={1.01}
-                glowColor="rgba(168, 85, 247, 0.06)"
-                className="h-full rounded-2xl"
-              >
-              <AnimatedBorder
-                hoverOnly={!t.featured}
-                active={t.featured}
-                speed={t.featured ? 'normal' : 'slow'}
+                tiltStrength={4}
+                glareColor="rgba(99,102,241,0.06)"
                 className="h-full"
               >
                 <div
-                  className={`relative p-5 sm:p-7 rounded-2xl transition-all duration-300 h-full ${
-                    t.featured
-                      ? 'bg-gradient-to-br from-purple-600/10 to-pink-600/10'
-                      : ''
+                  className={`group relative p-6 sm:p-8 h-full ${
+                    t.featured ? 'ring-1 ring-indigo-500/20' : ''
                   }`}
                 >
-                  {/* Stars */}
-                  <div className="flex gap-0.5 mb-3 sm:mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-3.5 sm:w-4 h-3.5 sm:h-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-
-                  {/* Quote */}
-                  <p className="text-white/80 mb-5 sm:mb-6 leading-relaxed text-xs sm:text-sm">
-                    &laquo; {t.quote} &raquo;
-                  </p>
-
-                  {/* Author */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 sm:w-10 h-9 sm:h-10 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white ${
-                      t.featured
-                        ? 'bg-gradient-to-br from-purple-500 to-pink-500'
-                        : 'bg-gradient-to-br from-slate-700 to-slate-600'
-                    }`}>
-                      {t.initials}
+                  {/* Featured badge */}
+                  {t.featured && (
+                    <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                      <div className="px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-b-lg">
+                        Favori
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xs sm:text-sm font-semibold text-white">{t.author}</div>
-                      <div className="text-[10px] sm:text-xs text-white/80">{t.role}, {t.company}</div>
+                  )}
+
+                  {/* Hover gradient */}
+                  <div
+                    className={`absolute inset-0 rounded-[inherit] bg-gradient-to-br ${t.gradient} opacity-0 group-hover:opacity-[0.04] transition-opacity duration-500`}
+                  />
+
+                  <div className="relative z-10">
+                    {/* Quote icon */}
+                    <Quote className={`w-8 h-8 mb-4 bg-gradient-to-br ${t.gradient} bg-clip-text text-transparent opacity-30`} />
+
+                    {/* Stars */}
+                    <div className="flex gap-0.5 mb-4">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+
+                    {/* Quote */}
+                    <p className="text-white/70 mb-6 leading-relaxed text-sm">
+                      &laquo; {t.quote} &raquo;
+                    </p>
+
+                    {/* Author */}
+                    <div className="flex items-center gap-3 pt-4 border-t border-white/[0.05]">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br ${t.gradient}`}
+                      >
+                        {t.initials}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">{t.author}</div>
+                        <div className="text-xs text-white/40">{t.role}, {t.company}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </AnimatedBorder>
               </TiltCard>
             </ScrollReveal>
           ))}
         </div>
 
-        {/* Glowing separator */}
-        <div className="mt-16 sm:mt-24 glow-separator" />
+        {/* Bottom glow separator */}
+        <div className="mt-24 h-px bg-gradient-to-r from-transparent via-pink-500/20 to-transparent" />
       </div>
     </section>
   );

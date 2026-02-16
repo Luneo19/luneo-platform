@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Check, X, ArrowRight } from 'lucide-react';
-import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
-import { TiltCard } from '@/components/ui/tilt-card';
-import { AnimatedBorderCTA } from '@/components/ui/animated-border';
+import {
+  ScrollReveal,
+  TiltCard,
+  MagneticButton,
+  GradientText,
+  PremiumSectionHeader,
+  GlowOrb,
+} from '@/components/ui/premium';
 
 const plans = [
   {
@@ -67,28 +71,35 @@ export function PricingSectionNew() {
 
 
   return (
-    <section id="pricing" className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay">
-      <div className="absolute inset-0 gradient-mesh-purple opacity-30" />
+    <section id="pricing" className="relative py-24 sm:py-32 bg-dark-bg overflow-hidden">
+      {/* Background orbs */}
+      <GlowOrb
+        className="-top-40 right-0"
+        color="rgba(168,85,247,0.06)"
+        size="600px"
+        blur={120}
+      />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <ScrollReveal animation="fade-up">
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-            <span className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 text-[10px] sm:text-xs font-semibold rounded-full mb-4 sm:mb-5 uppercase tracking-wider">
-              Tarifs
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-5">
-              <span className="text-white">Tarification </span>
-              <span className="italic text-gradient-purple">simple et transparente</span>
-            </h2>
-            <p className="text-base sm:text-lg text-white/80 px-2">
-              Choisissez le plan qui vous convient. Essai gratuit 14 jours inclus.
-            </p>
-          </div>
+        <ScrollReveal direction="up">
+          <PremiumSectionHeader
+            badge="Tarifs"
+            title={
+              <>
+                Tarification{' '}
+                <GradientText variant="violet" className="font-editorial italic">
+                  simple et transparente
+                </GradientText>
+              </>
+            }
+            subtitle="Choisissez le plan qui vous convient. Essai gratuit 14 jours inclus."
+            className="mb-12 sm:mb-16"
+          />
         </ScrollReveal>
 
         {/* Toggle */}
-        <ScrollReveal animation="fade-up" delay={100}>
+        <ScrollReveal direction="up" delay={80}>
           <div className="flex items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12">
             <span className={`text-xs sm:text-sm font-medium transition-colors ${!isYearly ? 'text-white' : 'text-white/60'}`}>
               Mensuel
@@ -125,80 +136,74 @@ export function PricingSectionNew() {
           {plans.map((plan, index) => (
             <ScrollReveal
               key={plan.name}
-              animation="fade-up"
-              staggerIndex={index}
-              staggerDelay={120}
-              delay={150}
+              direction="up"
+              delay={index * 100}
             >
               <TiltCard
-                maxTilt={4}
-                hoverScale={1.01}
-                glowColor="rgba(168, 85, 247, 0.08)"
-                className="h-full rounded-2xl"
+                tiltStrength={4}
+                glareColor="rgba(99,102,241,0.06)"
+                className={`h-full ${plan.popular ? 'md:scale-[1.03]' : ''}`}
               >
-              <div
-                className={`relative p-6 sm:p-8 rounded-2xl border transition-all duration-300 h-full flex flex-col ${
-                  plan.popular
-                    ? 'bg-dark-card/80 border-purple-500/30 shadow-glow-sm md:scale-[1.02]'
-                    : 'bg-dark-card/60 border-white/[0.04] hover:border-white/[0.08]'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 sm:px-4 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">
-                    Le plus populaire
+                <div
+                  className={`relative p-6 sm:p-8 h-full flex flex-col ${
+                    plan.popular ? 'ring-1 ring-indigo-500/20' : ''
+                  }`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                      <div className="px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-b-lg">
+                        Le plus populaire
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+                    <p className="text-xs text-white/40">{plan.description}</p>
                   </div>
-                )}
 
-                <div className="mb-5 sm:mb-6">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1">{plan.name}</h3>
-                  <p className="text-[10px] sm:text-xs text-white/80">{plan.description}</p>
-                </div>
+                  <div className="mb-8 flex items-baseline">
+                    <span className="text-lg font-semibold text-white/50">EUR</span>
+                    <span className="text-5xl font-extrabold text-white ml-2 font-editorial tabular-nums">
+                      {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                    </span>
+                    <span className="text-sm text-white/40 ml-1">/mois</span>
+                  </div>
 
-                <div className="mb-6 sm:mb-8 flex items-baseline">
-                  <span className="text-base sm:text-xl font-semibold text-white/70">EUR</span>
-                  <span className="text-4xl sm:text-5xl font-extrabold text-white ml-1.5 sm:ml-2 font-display">
-                    {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
-                  </span>
-                  <span className="text-xs sm:text-sm text-white/70 ml-1">/mois</span>
-                </div>
+                  <ul className="mb-8 space-y-3 flex-1">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-3 text-sm">
+                        {feature.included ? (
+                          <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        ) : (
+                          <X className="w-4 h-4 text-white/20 flex-shrink-0" />
+                        )}
+                        <span className={feature.included ? 'text-white/70' : 'text-white/30'}>
+                          {feature.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <ul className="mb-6 sm:mb-8 space-y-2.5 sm:space-y-3 flex-1">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
-                      {feature.included ? (
-                        <Check className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-400 flex-shrink-0" />
-                      ) : (
-                        <X className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white/40 flex-shrink-0" />
-                      )}
-                      <span className={feature.included ? 'text-white/80' : 'text-white/40'}>
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link href={plan.href}>
-                  <AnimatedBorderCTA speed="normal" variant={plan.popular ? 'gradient' : 'white'}>
-                    <Button
-                      className={`w-full font-semibold text-xs sm:text-sm ${
-                        plan.popular
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
-                          : 'bg-white text-black hover:bg-white/90 border-0'
-                      }`}
+                  <Link href={plan.href}>
+                    <MagneticButton
+                      variant={plan.popular ? 'primary' : 'secondary'}
+                      size="lg"
+                      glow={plan.popular}
+                      className="w-full"
                     >
                       {plan.cta}
-                      <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4 ml-1.5" />
-                    </Button>
-                  </AnimatedBorderCTA>
-                </Link>
-              </div>
+                      <ArrowRight className="w-4 h-4" />
+                    </MagneticButton>
+                  </Link>
+                </div>
               </TiltCard>
             </ScrollReveal>
           ))}
         </div>
 
-        {/* Glowing separator */}
-        <div className="mt-16 sm:mt-24 glow-separator" />
+        {/* Bottom glow separator */}
+        <div className="mt-24 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent" />
       </div>
     </section>
   );

@@ -67,6 +67,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       { metric: 'api_calls', limit: 0, period: 'month', overage: 'block' },
       { metric: 'team_members', limit: 1, period: 'month', overage: 'block' },
       { metric: 'virtual_tryons', limit: 10, period: 'month', overage: 'block' },
+      { metric: 'try_on_screenshots', limit: 20, period: 'month', overage: 'block' },
     ],
     agentLimits: {
       monthlyTokens: 50_000,
@@ -89,7 +90,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
         '50 designs/mois',
         '10 produits',
         '3 membres',
-        'Support prioritaire',
+        'Support email',
       ],
     },
     pricing: {
@@ -103,7 +104,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       teamMembers: 3,
       storageGB: 5,
       maxProducts: 10,
-      apiAccess: false,
+      apiAccess: false, // Public REST API keys disabled; api_calls quota is for widget/embed usage only
       advancedAnalytics: false,
       prioritySupport: false,
       customExport: false,
@@ -119,6 +120,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       { metric: 'api_calls', limit: 10_000, period: 'month', overage: 'charge', overageRate: 1 },
       { metric: 'team_members', limit: 3, period: 'month', overage: 'block' },
       { metric: 'virtual_tryons', limit: 100, period: 'month', overage: 'charge', overageRate: 30 },
+      { metric: 'try_on_screenshots', limit: 500, period: 'month', overage: 'charge', overageRate: 10 },
     ],
     agentLimits: {
       monthlyTokens: 500_000,
@@ -173,6 +175,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       { metric: 'api_calls', limit: 50_000, period: 'month', overage: 'charge', overageRate: 1 },
       { metric: 'team_members', limit: 10, period: 'month', overage: 'block' },
       { metric: 'virtual_tryons', limit: 1_000, period: 'month', overage: 'charge', overageRate: 20 },
+      { metric: 'try_on_screenshots', limit: 5_000, period: 'month', overage: 'charge', overageRate: 5 },
     ],
     agentLimits: {
       monthlyTokens: 2_000_000,
@@ -226,6 +229,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       { metric: 'api_calls', limit: 200_000, period: 'month', overage: 'charge', overageRate: 1 },
       { metric: 'team_members', limit: 50, period: 'month', overage: 'block' },
       { metric: 'virtual_tryons', limit: 10_000, period: 'month', overage: 'charge', overageRate: 10 },
+      { metric: 'try_on_screenshots', limit: 50_000, period: 'month', overage: 'charge', overageRate: 3 },
     ],
     agentLimits: {
       monthlyTokens: 5_000_000,
@@ -279,6 +283,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
       { metric: 'api_calls', limit: 9_999_999, period: 'month', overage: 'charge', overageRate: 1 },
       { metric: 'team_members', limit: 999, period: 'month', overage: 'block' },
       { metric: 'virtual_tryons', limit: 99_999, period: 'month', overage: 'charge', overageRate: 5 },
+      { metric: 'try_on_screenshots', limit: 99_999, period: 'month', overage: 'charge', overageRate: 2 },
     ],
     agentLimits: {
       monthlyTokens: -1,

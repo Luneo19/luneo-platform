@@ -63,23 +63,23 @@ export class QuotasService {
     overage: number;
     willCharge: boolean;
     estimatedCost: number;
+    hardLimitReached: boolean;
   }> {
     try {
-      // Récupérer le plan du brand
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
 
       if (!brand) {
         throw new BadRequestException('Brand not found');
       }
 
-      const planLimits = this.planLimits[brand.plan || 'starter'];
+      const tier = normalizePlanTier(brand.subscriptionPlan || brand.plan);
+      const planLimits = this.planLimits[tier];
       const quota = planLimits.quotas.find((q) => q.metric === metric);
 
       if (!quota) {
-        // Pas de quota défini pour cette métrique = illimité
         return {
           allowed: true,
           remaining: 999999,
@@ -87,25 +87,33 @@ export class QuotasService {
           overage: 0,
           willCharge: false,
           estimatedCost: 0,
+          hardLimitReached: false,
         };
       }
 
-      // Récupérer l'usage actuel
       const currentUsage = await this.meteringService.getCurrentUsage(brandId);
       const used = currentUsage[metric] || 0;
 
       const remaining = Math.max(0, quota.limit - used);
       const overage = Math.max(0, used + requestedAmount - quota.limit);
 
-      // Vérifier si l'action est autorisée
       let allowed = true;
       let estimatedCost = 0;
+      let hardLimitReached = false;
 
       if (overage > 0) {
         if (quota.overage === 'block') {
           allowed = false;
         } else if (quota.overage === 'charge') {
-          allowed = true;
+          const HARD_LIMIT_MULTIPLIER = 5;
+          const hardLimit = quota.limit * HARD_LIMIT_MULTIPLIER;
+          if (used + requestedAmount > hardLimit) {
+            allowed = false;
+            hardLimitReached = true;
+            this.logger.warn(`Hard limit reached for ${metric} on brand ${brandId}: ${used + requestedAmount}/${hardLimit} (5x of ${quota.limit})`);
+          } else {
+            allowed = true;
+          }
           estimatedCost = overage * (quota.overageRate || 0);
         }
       }
@@ -117,6 +125,7 @@ export class QuotasService {
         overage,
         willCharge: quota.overage === 'charge' && overage > 0,
         estimatedCost,
+        hardLimitReached,
       };
     } catch (error) {
       this.logger.error(`Failed to check quota: ${error.message}`, error.stack);
@@ -135,8 +144,14 @@ export class QuotasService {
     const check = await this.checkQuota(brandId, metric, amount);
 
     if (!check.allowed) {
+      const used = check.limit - check.remaining;
+      if (check.hardLimitReached) {
+        throw new BadRequestException(
+          `Hard usage limit reached for ${metric} (5x your plan limit of ${check.limit}). Current usage: ${used}. Contact support or upgrade your plan immediately.`,
+        );
+      }
       throw new BadRequestException(
-        `Quota exceeded for ${metric}. Limit: ${check.limit}, Used: ${check.limit - check.remaining}. Please upgrade your plan.`,
+        `Quota exceeded for ${metric}. Limit: ${check.limit}, Used: ${used}. Please upgrade your plan.`,
       );
     }
 
@@ -154,14 +169,15 @@ export class QuotasService {
     try {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
 
       if (!brand) {
         throw new BadRequestException('Brand not found');
       }
 
-      const planLimits = this.planLimits[brand.plan || 'starter'];
+      const tier = normalizePlanTier(brand.subscriptionPlan || brand.plan);
+      const planLimits = this.planLimits[tier];
       const currentUsage = await this.meteringService.getCurrentUsage(brandId);
 
       // Calculer les métriques avec pourcentages
@@ -197,9 +213,10 @@ export class QuotasService {
         total: planLimits.basePrice + usageCost + overageCost,
       };
 
-      // Générer des alertes
+      // Générer des alertes (frontend UsageSummaryAlert attend un champ timestamp)
       // ✅ FIX: Alertes à 75%, 80% et 90% (ajout du seuil 80%)
-      const alerts = [];
+      const alertTimestamp = new Date().toISOString();
+      const alerts: Array<{ severity: 'info' | 'warning' | 'critical'; message: string; metric: UsageMetricType; threshold: number; timestamp: string }> = [];
       for (const metric of metrics) {
         if (metric.percentage >= 100) {
           alerts.push({
@@ -207,6 +224,7 @@ export class QuotasService {
             message: `${metric.type} has exceeded quota (${metric.percentage.toFixed(0)}%)`,
             metric: metric.type,
             threshold: 100,
+            timestamp: alertTimestamp,
           });
         } else if (metric.percentage >= 90) {
           alerts.push({
@@ -214,6 +232,7 @@ export class QuotasService {
             message: `${metric.type} at ${metric.percentage.toFixed(0)}% of quota`,
             metric: metric.type,
             threshold: 90,
+            timestamp: alertTimestamp,
           });
         } else if (metric.percentage >= 80) {
           alerts.push({
@@ -221,6 +240,7 @@ export class QuotasService {
             message: `${metric.type} at ${metric.percentage.toFixed(0)}% of quota - consider upgrading`,
             metric: metric.type,
             threshold: 80,
+            timestamp: alertTimestamp,
           });
         } else if (metric.percentage >= 75) {
           alerts.push({
@@ -228,6 +248,7 @@ export class QuotasService {
             message: `${metric.type} at ${metric.percentage.toFixed(0)}% of quota`,
             metric: metric.type,
             threshold: 75,
+            timestamp: alertTimestamp,
           });
         }
       }
@@ -268,7 +289,41 @@ export class QuotasService {
    */
   getPlanLimits(plan: string): PlanLimits {
     const tier = normalizePlanTier(plan);
-    return this.planLimits[tier] || this.planLimits[PlanTier.FREE] || this.planLimits.starter;
+    return this.planLimits[tier] || this.planLimits[PlanTier.FREE];
+  }
+
+  /**
+   * Récupérer la définition du plan pour un brand (format frontend PlanDefinition).
+   */
+  async getPlanForBrand(brandId: string) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: brandId },
+      select: { subscriptionPlan: true, plan: true },
+    });
+
+    const tier = normalizePlanTier(brand?.subscriptionPlan || brand?.plan);
+    const limits = this.planLimits[tier] || this.planLimits[PlanTier.FREE];
+
+    return {
+      id: tier,
+      name: tier.charAt(0).toUpperCase() + tier.slice(1),
+      basePriceCents: limits.basePrice,
+      quotas: limits.quotas.map(q => ({
+        metric: q.metric,
+        label: q.metric.replace(/_/g, ' '),
+        description: '',
+        limit: q.limit,
+        period: q.period,
+        overage: q.overage,
+        overageRate: q.overageRate,
+        unit: q.metric.includes('storage') ? 'GB' : 'unité',
+      })),
+      features: limits.features.map((f, i) => ({
+        id: `feature-${i}`,
+        label: f,
+        enabled: true,
+      })),
+    };
   }
 
   /**

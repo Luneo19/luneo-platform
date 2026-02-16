@@ -534,7 +534,7 @@ model Brand {
   // Billing
   stripeCustomerId     String?
   stripeSubscriptionId String? // Stripe subscription ID
-  plan                 String    @default("starter")
+  plan                 String    @default("free")
   planExpiresAt        DateTime?
   limits               Json? // Brand limits configuration
 
@@ -553,8 +553,8 @@ model Brand {
   subscriptionStatus    SubscriptionStatus @default(TRIALING)
   trialEndsAt           DateTime?
   monthlyGenerations    Int                @default(0)
-  maxMonthlyGenerations Int                @default(100)
-  maxProducts           Int                @default(5)
+  maxMonthlyGenerations Int                @default(5)
+  maxProducts           Int                @default(2)
   arEnabled             Boolean            @default(false)
   whiteLabel            Boolean            @default(false)
 
@@ -1100,6 +1100,7 @@ model Product {
   tryOnMappings    TryOnProductMapping[]
   tryOnScreenshots TryOnScreenshot[]
   tryOnConversions TryOnConversion[]
+  tryOnShares      TryOnShare[]
 
   // 3D configurator
   product3DConfig Product3DConfiguration?
@@ -5480,7 +5481,7 @@ model TryOnSession {
   // 3D / Performance data
   calibrationData    Json?   // Device calibration: pixelToRealRatio, distance, accuracy
   performanceMetrics Json?   // Session perf: avgFps, avgDetectionLatency, avgRenderLatency
-  conversionAction   String? // Specific action: ADD_TO_CART, SHARE, PURCHASE, WISHLIST
+  conversionAction   ConversionAction? // Specific action: ADD_TO_CART, SHARE, PURCHASE, WISHLIST, CLICK_THROUGH
   renderQuality      String? // Quality used: high, medium, low, 2d_fallback
 
   // Timestamps
@@ -5502,6 +5503,9 @@ model TryOnSession {
   @@index([status])
   @@index([sessionId])
   @@index([startedAt])
+  @@index([visitorId])
+  @@index([status, updatedAt])
+  @@index([expiresAt])
 }
 
 model TryOnScreenshot {
@@ -5588,6 +5592,7 @@ model TryOnConversion {
   @@index([brandId])
   @@index([action])
   @@index([createdAt])
+  @@index([brandId, action, createdAt])
 }
 
 // ========================================
@@ -5604,7 +5609,7 @@ model TryOnWidgetConfig {
   ctaUrl         String?  // Redirect URL (if ctaAction = redirect)
   showPoweredBy  Boolean  @default(true) // false for premium plans
   customCss      String?  // Custom CSS override (premium)
-  allowedDomains String[] // Authorized domains for iframe embedding
+  allowedDomains String[] @default([]) // Authorized domains for iframe embedding
   locale         String   @default("fr")
   translations   Json?    // Custom translations override
   analyticsEnabled Boolean @default(true)
@@ -5639,12 +5644,14 @@ model TryOnShare {
   // Relations
   session    TryOnSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   screenshot TryOnScreenshot? @relation(fields: [screenshotId], references: [id], onDelete: SetNull)
+  product    Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
   brand      Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([shareToken])
   @@index([sessionId])
   @@index([brandId])
   @@index([createdAt])
+  @@index([expiresAt])
 }
 
 // ========================================

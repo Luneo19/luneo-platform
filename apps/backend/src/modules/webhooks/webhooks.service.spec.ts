@@ -19,6 +19,12 @@ describe('WebhooksService', () => {
     brand: {
       findUnique: jest.fn(),
     },
+    user: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
+    notification: {
+      create: jest.fn().mockResolvedValue({}),
+    },
   };
 
   beforeEach(async () => {
@@ -190,7 +196,7 @@ describe('WebhooksService', () => {
   // ============================================================================
   describe('processWebhook', () => {
     const mockBrandId = 'brand-123';
-    const mockPayload = { email: 'user@example.com', event: 'delivered' };
+    const mockPayload = { email: 'user@example.com', event: 'delivered', timestamp: Date.now() };
 
     beforeEach(() => {
       mockPrisma.webhookLog.findFirst.mockResolvedValue(null);
@@ -210,7 +216,7 @@ describe('WebhooksService', () => {
 
       expect(result).toEqual({
         success: true,
-        event: 'delivered',
+        action: 'email_delivered',
         email: 'user@example.com',
       });
     });
@@ -221,7 +227,7 @@ describe('WebhooksService', () => {
       expect(mockPrisma.webhookLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           webhookId: 'webhook-123',
-          event: 'webhook_processed',
+          event: 'sendgrid.email.delivered',
           statusCode: 200,
         }),
       });
@@ -330,21 +336,28 @@ describe('WebhooksService', () => {
 
       expect(result).toEqual({
         success: true,
-        event: 'delivered',
+        action: 'email_delivered',
         email: 'user@example.com',
       });
     });
 
     it('should handle different event types', async () => {
-      const events = ['delivered', 'bounce', 'open', 'click', 'spam'];
+      const eventTypes: Array<[string, string]> = [
+        ['delivered', 'email_delivered'],
+        ['bounce', 'email_bounced'],
+        ['open', 'email_opened'],
+        ['click', 'email_clicked'],
+        ['spam_report', 'email_suppressed_spam'],
+      ];
 
-      for (const eventType of events) {
+      for (const [eventType, expectedAction] of eventTypes) {
         const result = await service.processSendGridEvent({
           email: 'test@example.com',
           event: eventType,
+          timestamp: Date.now(),
         });
 
-        expect(result.event).toBe(eventType);
+        expect(result.action).toBe(expectedAction);
         expect(result.success).toBe(true);
       }
     });
@@ -355,9 +368,10 @@ describe('WebhooksService', () => {
   // ============================================================================
   describe('logWebhookEvent', () => {
     it('should log event without error', async () => {
-      const event = {
+      const event: Record<string, unknown> = {
         type: 'test',
         data: { id: '123' },
+        timestamp: Date.now(),
       };
 
       await expect(service.logWebhookEvent(event)).resolves.not.toThrow();

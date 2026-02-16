@@ -1,6 +1,7 @@
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import {
     Body,
     Controller,
@@ -50,7 +51,7 @@ import { SyncEngineService } from '@/modules/ecommerce/services/sync-engine.serv
 
 @ApiTags('E-commerce Integrations')
 @Controller('ecommerce')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 export class EcommerceController {
   private readonly logger = new Logger(EcommerceController.name);
 

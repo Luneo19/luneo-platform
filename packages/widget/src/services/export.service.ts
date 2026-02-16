@@ -181,11 +181,11 @@ export class ExportService {
       };
       
       img.onerror = () => {
-        logger.warn(`Failed to load image: ${data.url}`);
+        logger.warn(`Failed to load image: ${data.src || data.url}`);
         resolve(); // Continue rendering other layers
       };
       
-      img.src = data.url;
+      img.src = data.src || data.url || '';
     });
   }
   
@@ -399,7 +399,7 @@ export class ExportService {
       }
       case 'image': {
         const data = layer.data as ImageLayerData;
-        return `\n  <image href="${data.url}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}"${transform}${opacity}/>`;
+        return `\n  <image href="${data.src || data.url}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}"${transform}${opacity}/>`;
       }
       case 'shape': {
         const data = layer.data as ShapeLayerData;

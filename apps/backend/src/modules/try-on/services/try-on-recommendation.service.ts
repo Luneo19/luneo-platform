@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
-interface RecommendedProduct {
+export interface RecommendedProduct {
   id: string;
   name: string;
   image: string | null;
@@ -30,6 +30,7 @@ export class TryOnRecommendationService {
     currentProductId?: string,
     limit = 5,
   ): Promise<RecommendedProduct[]> {
+    const safeLimit = Math.min(Math.max(1, limit), 20);
     const session = await this.prisma.tryOnSession.findUnique({
       where: { sessionId },
       select: {
@@ -69,7 +70,7 @@ export class TryOnRecommendationService {
         price: true,
         category: true,
       },
-      take: limit * 2,
+      take: safeLimit * 2,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -84,7 +85,7 @@ export class TryOnRecommendationService {
       },
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
-      take: limit,
+      take: safeLimit,
     });
 
     const popularProductIds = popularConversions.map((c) => c.productId);
@@ -93,7 +94,7 @@ export class TryOnRecommendationService {
     const similarSessions = await this.prisma.tryOnSession.findMany({
       where: {
         configuration: { project: { brandId } },
-        productsTried: { not: null },
+        productsTried: { isEmpty: false },
         id: { not: session.id },
       },
       select: { productsTried: true },
@@ -148,7 +149,7 @@ export class TryOnRecommendationService {
     // Sort by score descending
     const sortedIds = Array.from(scored.entries())
       .sort((a, b) => b[1].score - a[1].score)
-      .slice(0, limit)
+      .slice(0, safeLimit)
       .map(([id]) => id);
 
     if (sortedIds.length === 0) {

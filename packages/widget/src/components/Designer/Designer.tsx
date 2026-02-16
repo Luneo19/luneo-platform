@@ -18,7 +18,7 @@ interface DesignerProps {
 }
 
 export function Designer({ config }: DesignerProps) {
-  const { initDesign, isLoading, design, showLayers } = useDesignerStore();
+  const { initDesign, isLoading, design, showLayers, addLayer, selectLayer } = useDesignerStore();
   const [showGenerationPanel, setShowGenerationPanel] = useState(false);
   const [showARViewer, setShowARViewer] = useState(false);
   const [currentGenerationId] = useState<string | null>(null);
@@ -61,9 +61,13 @@ export function Designer({ config }: DesignerProps) {
         width: 200,
         height: 200,
         data: {
+          src: imageUrl,
           url: imageUrl,
+          originalSrc: imageUrl,
           alt: 'AI Generated Image',
-          fit: 'contain',
+          fit: 'contain' as const,
+          width: 200,
+          height: 200,
         },
       });
       

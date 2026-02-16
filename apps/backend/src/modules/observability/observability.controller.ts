@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { SLOService } from './services/slo-sli.service';
 import { TracingService } from './services/tracing.service';
@@ -18,7 +19,7 @@ import { GetCostDashboardDto, GetTenantCostDto } from './dto/get-costs.dto';
 
 @ApiTags('Observability')
 @Controller('observability')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 @ApiBearerAuth()
 export class ObservabilityController {
   constructor(

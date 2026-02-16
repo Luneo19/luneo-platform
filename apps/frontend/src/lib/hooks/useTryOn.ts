@@ -69,6 +69,10 @@ export function useTryOn(): UseTryOnReturn {
   // Performance metrics buffer
   const perfMetricsRef = useRef<PerformanceSample[]>([]);
 
+  // Refs for stable access in callbacks and cleanup
+  const sessionIdRef = useRef(sessionId);
+  const qualityRef = useRef(quality);
+
   /**
    * Start a new try-on session.
    */
@@ -216,13 +220,20 @@ export function useTryOn(): UseTryOnReturn {
   }, []);
 
   /**
-   * Switch the displayed product.
+   * Switch the displayed product and track it on the backend.
    */
   const switchProduct = useCallback((productId: string) => {
     setCurrentProductId(productId);
+
+    // Track product tried on backend (fire-and-forget)
+    const sid = sessionIdRef.current;
+    if (sid) {
+      endpoints.tryOn.trackProductTried(sid, productId).catch(() => {});
+    }
+
     analytics.track('try_on', 'tryon_product_tried', {
       label: productId,
-      metadata: { sessionId: sessionIdRef.current },
+      metadata: { sessionId: sid },
     });
   }, []);
 
@@ -250,8 +261,6 @@ export function useTryOn(): UseTryOnReturn {
   }, []);
 
   // Keep refs in sync for cleanup
-  const sessionIdRef = useRef(sessionId);
-  const qualityRef = useRef(quality);
   useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
   useEffect(() => { qualityRef.current = quality; }, [quality]);
 

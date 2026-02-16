@@ -79,11 +79,21 @@ module.exports = {
         },
         // Dark marketing palette
         dark: {
-          bg: '#0a0a0f',
-          card: '#12121a',
-          border: '#1e1e2e',
-          'border-hover': '#2a2a3e',
-          surface: '#1a1a2e',
+          bg: '#030014',
+          card: '#0a0a1a',
+          border: '#1a1a3e',
+          'border-hover': '#2a2a5e',
+          surface: '#0f0f2a',
+        },
+        // Premium accent colors (Stripe/Linear inspired)
+        indigo: {
+          950: '#1e1b4b',
+        },
+        violet: {
+          accent: '#7c3aed',
+        },
+        cyan: {
+          accent: '#06b6d4',
         },
       },
       borderRadius: {
@@ -108,6 +118,7 @@ module.exports = {
       fontFamily: {
         sans: [tokens.font.family, 'ui-sans-serif', 'system-ui'],
         display: ['var(--font-display)', tokens.font.family, 'ui-sans-serif', 'system-ui'],
+        editorial: ['var(--font-editorial)', 'Playfair Display', 'Georgia', 'Times New Roman', 'serif'],
       },
       fontSize: {
         base: tokens.font['size-base'],
@@ -122,11 +133,16 @@ module.exports = {
         sm: tokens.shadow.sm,
         md: tokens.shadow.md,
         lg: tokens.shadow.lg,
-        'glow-sm': '0 0 15px rgba(168, 85, 247, 0.15)',
-        'glow-md': '0 0 30px rgba(168, 85, 247, 0.2)',
-        'glow-lg': '0 0 60px rgba(168, 85, 247, 0.25)',
+        'glow-sm': '0 0 15px rgba(99, 102, 241, 0.15)',
+        'glow-md': '0 0 30px rgba(99, 102, 241, 0.2)',
+        'glow-lg': '0 0 60px rgba(99, 102, 241, 0.25)',
+        'glow-xl': '0 0 80px rgba(99, 102, 241, 0.3), 0 0 120px rgba(124, 58, 237, 0.15)',
         'glow-pink': '0 0 40px rgba(236, 72, 153, 0.2)',
-        'glow-purple': '0 0 40px rgba(168, 85, 247, 0.2)',
+        'glow-purple': '0 0 40px rgba(124, 58, 237, 0.25)',
+        'glow-indigo': '0 0 40px rgba(99, 102, 241, 0.25)',
+        'glow-cyan': '0 0 40px rgba(6, 182, 212, 0.2)',
+        'premium': '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+        'premium-hover': '0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 60px rgba(99, 102, 241, 0.15)',
       },
       keyframes: {
         'accordion-down': {
@@ -204,6 +220,35 @@ module.exports = {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-3px)' },
         },
+        'scan-pulse': {
+          '0%': { top: '20%', opacity: '0' },
+          '10%': { opacity: '0.6' },
+          '90%': { opacity: '0.6' },
+          '100%': { top: '70%', opacity: '0' },
+        },
+        // Orbiting animation (Madgicx-style)
+        'orbit-spin': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        // Electric grid scan lines
+        'electric-scan-h': {
+          '0%': { transform: 'translateY(-100vh)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '90%': { opacity: '1' },
+          '100%': { transform: 'translateY(100vh)', opacity: '0' },
+        },
+        'electric-scan-v': {
+          '0%': { transform: 'translateX(-100vw)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '90%': { opacity: '1' },
+          '100%': { transform: 'translateX(100vw)', opacity: '0' },
+        },
+        // Electric node pulse
+        'node-pulse': {
+          '0%, 100%': { opacity: '0.3', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(1.5)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -224,6 +269,12 @@ module.exports = {
         'scale-in': 'scale-in 0.3s ease-out',
         'text-shimmer': 'text-shimmer 4s linear infinite',
         'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
+        'scan-pulse': 'scan-pulse 2.5s ease-in-out infinite',
+        'orbit-spin': 'orbit-spin 20s linear infinite',
+        'orbit-spin-reverse': 'orbit-spin 20s linear infinite reverse',
+        'electric-scan-h': 'electric-scan-h 8s ease-in-out infinite',
+        'electric-scan-v': 'electric-scan-v 10s ease-in-out infinite',
+        'node-pulse': 'node-pulse 3s ease-in-out infinite',
       },
     },
   },

@@ -183,14 +183,14 @@ export class AdminToolsService {
       });
       const brands = await this.prisma.brand.findMany({
         where: { id: { in: users.map((u) => u.brandId).filter(Boolean) as string[] } },
-        select: { id: true, plan: true, name: true },
+        select: { id: true, subscriptionPlan: true, plan: true, name: true },
       });
       const brandMap = new Map(brands.map((b) => [b.id, b]));
       const rows = users.map((u) => ({
         id: u.id,
         email: u.email,
         name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email,
-        plan: u.brandId ? brandMap.get(u.brandId)?.plan ?? '' : '',
+        plan: u.brandId ? (brandMap.get(u.brandId)?.subscriptionPlan || brandMap.get(u.brandId)?.plan) ?? '' : '',
         signupDate: u.createdAt.toISOString(),
         lastActivity: u.lastLoginAt?.toISOString() ?? '',
       }));
@@ -253,6 +253,7 @@ export class AdminToolsService {
           select: {
             id: true,
             name: true,
+            subscriptionPlan: true,
             plan: true,
             planExpiresAt: true,
             stripeCustomerId: true,
@@ -269,7 +270,7 @@ export class AdminToolsService {
         ...brands.map((b) => ({
           brandId: b.id,
           brandName: b.name,
-          plan: b.plan,
+          plan: b.subscriptionPlan || b.plan,
           planExpiresAt: b.planExpiresAt?.toISOString() ?? '',
         })),
       ];

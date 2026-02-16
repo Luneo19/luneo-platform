@@ -63,7 +63,7 @@ export function useUsageSummary(autoLoad: boolean = true): UsageSummaryState {
       setLoading(true);
       setError(null);
 
-      const response = await api.get<BackendUsageSummaryResponse>('/usage-billing/summary');
+      const response = await api.get<BackendUsageSummaryResponse>('/api/v1/usage-billing/summary');
       setSummary(response.summary);
       setPlan(response.plan);
     } catch (err) {

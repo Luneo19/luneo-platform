@@ -322,6 +322,104 @@ export class EmailService {
   }
 
   /**
+   * Send subscription confirmation email (new subscription activated)
+   */
+  async sendSubscriptionConfirmationEmail(
+    to: string,
+    data: { planName: string; billingDate: string; features: string },
+  ): Promise<void> {
+    const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    let html = this.templateRenderer.render('subscription-created', {
+      planName: data.planName,
+      billingDate: data.billingDate,
+      features: data.features,
+      baseUrl,
+    });
+
+    if (!html) {
+      // Fallback inline HTML
+      html = emailLayout(
+        `<h1 style="color:#333;margin:0 0 20px">Bienvenue dans votre nouvel abonnement</h1>
+        <p>Votre abonnement <strong>${escapeHtml(data.planName)}</strong> a été activé avec succès.</p>
+        <div style="background:#f0fdf4;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #22c55e">
+          <p style="margin:0 0 8px"><strong>Plan :</strong> ${escapeHtml(data.planName)}</p>
+          <p style="margin:0"><strong>Prochaine facturation :</strong> ${escapeHtml(data.billingDate)}</p>
+        </div>
+        <p>Merci de votre confiance !</p>
+        <p>Cordialement,<br>L'équipe Luneo</p>`,
+        'Votre abonnement Luneo est activé',
+        baseUrl,
+      );
+    }
+
+    await this.sendEmail({
+      to,
+      subject: `Votre abonnement ${data.planName} est activé`,
+      html,
+    });
+  }
+
+  /**
+   * Send payment failed email using template
+   */
+  async sendPaymentFailedEmail(
+    to: string,
+    data: { amount: string; retryDate: string; firstName?: string },
+  ): Promise<void> {
+    const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    const updatePaymentUrl = `${baseUrl}/dashboard/billing`;
+    let html = this.templateRenderer.render('payment-failed', {
+      amount: data.amount,
+      retryDate: data.retryDate,
+      updatePaymentUrl,
+      baseUrl,
+    });
+
+    if (!html) {
+      html = emailLayout(
+        `<h1 style="color:#dc2626">Échec de paiement</h1>
+        <p>Bonjour ${escapeHtml(data.firstName || '')},</p>
+        <p>Nous n'avons pas pu traiter votre paiement de <strong>${escapeHtml(data.amount)}</strong>.</p>
+        <p>Prochaine tentative : ${escapeHtml(data.retryDate)}</p>
+        <p><a href="${updatePaymentUrl}" style="background:#dc2626;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Mettre à jour mon paiement</a></p>`,
+        'Échec de paiement',
+        baseUrl,
+      );
+    }
+
+    await this.sendEmail({ to, subject: 'Échec de paiement — Action requise', html });
+  }
+
+  /**
+   * Send trial ending reminder email using template
+   */
+  async sendTrialEndingEmail(
+    to: string,
+    data: { daysLeft: string; firstName?: string },
+  ): Promise<void> {
+    const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    const upgradeUrl = `${baseUrl}/dashboard/billing`;
+    let html = this.templateRenderer.render('trial-ending', {
+      daysLeft: data.daysLeft,
+      upgradeUrl,
+      baseUrl,
+    });
+
+    if (!html) {
+      html = emailLayout(
+        `<h1 style="color:#333">Votre essai se termine bientôt</h1>
+        <p>Bonjour ${escapeHtml(data.firstName || '')},</p>
+        <p>Il vous reste ${escapeHtml(data.daysLeft)} pour profiter de votre essai gratuit.</p>
+        <p><a href="${upgradeUrl}" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Passer à un abonnement</a></p>`,
+        'Votre essai se termine bientôt',
+        baseUrl,
+      );
+    }
+
+    await this.sendEmail({ to, subject: `Votre essai se termine dans ${data.daysLeft}`, html });
+  }
+
+  /**
    * Send order confirmation email
    */
   async sendOrderConfirmationEmail(

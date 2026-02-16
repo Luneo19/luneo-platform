@@ -11,6 +11,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { EmailService } from '@/modules/email/email.service';
 import { ReferralService } from '@/modules/referral/referral.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 import type Stripe from 'stripe';
 
 describe('StripeWebhookService', () => {
@@ -63,8 +64,11 @@ describe('StripeWebhookService', () => {
   };
 
   const mockEmailService = {
-    sendEmail: jest.fn(),
+    sendEmail: jest.fn().mockResolvedValue(undefined),
     sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+    sendPaymentFailedEmail: jest.fn().mockResolvedValue(undefined),
+    sendTrialEndingEmail: jest.fn().mockResolvedValue(undefined),
+    sendSubscriptionConfirmationEmail: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockStripeClientService = {
@@ -94,6 +98,9 @@ describe('StripeWebhookService', () => {
     // Restore email service mock
     mockEmailService.sendEmail.mockResolvedValue(undefined);
     mockEmailService.sendOrderConfirmationEmail.mockResolvedValue(undefined);
+    mockEmailService.sendPaymentFailedEmail.mockResolvedValue(undefined);
+    mockEmailService.sendTrialEndingEmail.mockResolvedValue(undefined);
+    mockEmailService.sendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -104,6 +111,10 @@ describe('StripeWebhookService', () => {
         { provide: StripeClientService, useValue: mockStripeClientService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: ReferralService, useValue: mockReferralService },
+        {
+          provide: DistributedLockService,
+          useValue: { acquire: jest.fn().mockResolvedValue(true), release: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 
@@ -271,10 +282,16 @@ describe('StripeWebhookService', () => {
       mockPrisma.brand.findFirst.mockResolvedValue({
         id: 'brand-1',
         stripeCustomerId: 'cus_test',
+        stripeSubscriptionId: 'sub_test',
         limits: {},
         users: [],
       });
       mockPrisma.brand.update.mockResolvedValue({});
+
+      // Mock Stripe retrieve to return canceled (race guard check)
+      mockStripeClientService.getStripe.mockResolvedValue({
+        subscriptions: { retrieve: jest.fn().mockRejectedValue(new Error('No such subscription: sub_test (resource_missing)')) },
+      });
 
       const result = await service.handleStripeWebhook(event);
 

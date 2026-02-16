@@ -18,13 +18,14 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { EnterprisePlanGuard } from '@/common/guards/enterprise-plan.guard';
 import { RequestWithUser } from '@/common/types/user.types';
 import { SSOEnterpriseService, CreateSSODto } from '../services/sso-enterprise.service';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('SSO Enterprise')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, EnterprisePlanGuard)
 @Controller('sso')
 export class SSOEnterpriseController {
   constructor(private readonly ssoService: SSOEnterpriseService) {}

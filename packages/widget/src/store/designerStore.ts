@@ -159,6 +159,10 @@ export const useDesignerStore = create<DesignerStore>()(
             locked: false,
             zIndex: state.design?.layers.length || 0,
             position: { x: 100, y: 100 },
+            x: 100,
+            y: 100,
+            width: 200,
+            height: 200,
             rotation: 0,
             scale: { x: 1, y: 1 },
             opacity: 1,
@@ -445,8 +449,9 @@ export const useDesignerStore = create<DesignerStore>()(
               ctx.textAlign = textData.textAlign as CanvasTextAlign;
               ctx.textBaseline = 'top';
               ctx.fillText(textData.content, layer.x, layer.y);
-            } else if (layer.type === 'image' && 'url' in layer.data) {
+            } else if (layer.type === 'image' && ('src' in layer.data || 'url' in layer.data)) {
               const imgData = layer.data as ImageLayerData;
+              const imgSrc = imgData.src || imgData.url || '';
               const img = new Image();
               img.crossOrigin = 'anonymous';
               await new Promise<void>((resolve, reject) => {
@@ -454,8 +459,8 @@ export const useDesignerStore = create<DesignerStore>()(
                   ctx.drawImage(img, layer.x, layer.y, layer.width, layer.height);
                   resolve();
                 };
-                img.onerror = () => reject(new Error(`Failed to load image: ${imgData.url}`));
-                img.src = imgData.url;
+                img.onerror = () => reject(new Error(`Failed to load image: ${imgSrc}`));
+                img.src = imgSrc;
               });
             } else if (layer.type === 'shape' && 'shapeType' in layer.data) {
               const shapeData = layer.data as ShapeLayerData;

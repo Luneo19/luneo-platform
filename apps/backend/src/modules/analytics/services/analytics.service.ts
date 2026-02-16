@@ -683,9 +683,9 @@ export class AnalyticsService {
 
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
-      const tier = normalizePlanTier(brand?.plan);
+      const tier = normalizePlanTier(brand?.subscriptionPlan || brand?.plan);
       const planConfig = PLAN_CONFIGS[tier];
 
       const now = new Date();

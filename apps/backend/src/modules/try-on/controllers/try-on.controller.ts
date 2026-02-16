@@ -25,6 +25,7 @@ import {
   ApiParam,
   ApiConsumes,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Request as ExpressRequest } from 'express';
 import { CurrentUser } from '@/common/types/user.types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -48,6 +49,8 @@ import { BatchScreenshotsDto } from '../dto/batch-screenshots.dto';
 import { CalibrationDataDto } from '../dto/calibration-data.dto';
 import { BatchPerformanceMetricsDto } from '../dto/performance-metric.dto';
 import { UpdateWidgetConfigDto } from '../dto/widget-config.dto';
+import { AttributeRevenueDto } from '../dto/track-conversion.dto';
+import { StartSessionDto, EndSessionDto, UpdateSessionDto } from '../dto/session.dto';
 
 @ApiTags('try-on')
 @ApiBearerAuth()
@@ -208,6 +211,7 @@ export class TryOnController {
   }
 
   @Post('sessions')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Démarre une nouvelle session try-on',
@@ -218,12 +222,7 @@ export class TryOnController {
   })
   async startSession(
     @Request() req: ExpressRequest & { user?: CurrentUser },
-    @Body()
-    body: {
-      configurationId: string;
-      visitorId: string;
-      deviceInfo?: Record<string, unknown>;
-    },
+    @Body() body: StartSessionDto,
   ) {
     // SECURITY FIX: Verify configuration belongs to user's brand before starting session
     if (req.user?.brandId) {
@@ -258,6 +257,21 @@ export class TryOnController {
     return session;
   }
 
+  @Post('sessions/:sessionId/product-tried')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Track a product tried during a try-on session',
+  })
+  @ApiParam({ name: 'sessionId', description: 'ID de la session' })
+  async trackProductTried(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('sessionId') sessionId: string,
+    @Body('productId') productId: string,
+  ) {
+    await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
+    return this.sessionService.addProductTried(sessionId, productId);
+  }
+
   @Get('sessions/:sessionId')
   @ApiOperation({
     summary: 'Récupère une session par son ID',
@@ -279,13 +293,7 @@ export class TryOnController {
   async updateSession(
     @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('sessionId') sessionId: string,
-    @Body()
-    updates: {
-      productsTried?: string[];
-      screenshotsTaken?: number;
-      shared?: boolean;
-      converted?: boolean;
-    },
+    @Body() updates: UpdateSessionDto,
   ) {
     // SECURITY FIX: Verify session belongs to user's brand
     await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
@@ -300,24 +308,51 @@ export class TryOnController {
   async endSession(
     @Request() req: ExpressRequest & { user?: CurrentUser },
     @Param('sessionId') sessionId: string,
+    @Body() body?: EndSessionDto,
   ) {
     // SECURITY FIX: Verify session belongs to user's brand
     await this.sessionService.verifySessionOwnership(sessionId, req.user?.brandId);
+
+    // Optionally update conversion/quality before ending
+    if (body?.conversionAction || body?.renderQuality) {
+      const session = await this.prisma.tryOnSession.findUnique({
+        where: { sessionId },
+        select: { id: true },
+      });
+      if (session) {
+        await this.prisma.tryOnSession.update({
+          where: { id: session.id },
+          data: {
+            ...(body.conversionAction && {
+              conversionAction: body.conversionAction as import('@prisma/client').ConversionAction,
+            }),
+            ...(body.renderQuality && { renderQuality: body.renderQuality }),
+          },
+        });
+      }
+    }
+
     const result = await this.sessionService.endSession(sessionId);
 
-    // Fire-and-forget: emit webhook for session completion
+    // Fire-and-forget: emit webhook for session completion with real duration
     const brandId = req.user?.brandId || null;
     if (brandId) {
       const ended = result as Record<string, unknown>;
+      const startedAt = ended?.startedAt as Date | string | undefined;
+      const endedAt = ended?.endedAt as Date | string | undefined;
+      const durationMs = startedAt && endedAt
+        ? new Date(endedAt).getTime() - new Date(startedAt).getTime()
+        : 0;
+
       this.eventsService
         .emitSessionCompleted(brandId, {
           sessionId,
           productsTried: (ended?.productsTried as string[]) || [],
           screenshotsTaken: (ended?.screenshotsTaken as number) || 0,
-          duration: 0,
-          converted: !!(ended?.converted),
-          conversionAction: ended?.conversionAction as string | undefined,
-          renderQuality: ended?.renderQuality as string | undefined,
+          duration: Math.round(durationMs / 1000),
+          converted: !!(ended?.converted || body?.conversionAction),
+          conversionAction: body?.conversionAction || (ended?.conversionAction as string | undefined),
+          renderQuality: body?.renderQuality || (ended?.renderQuality as string | undefined),
         })
         .catch(() => {});
     }
@@ -330,6 +365,7 @@ export class TryOnController {
   // ========================================
 
   @Post('sessions/:sessionId/screenshots')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crée un screenshot pour une session',
@@ -402,6 +438,7 @@ export class TryOnController {
   // ========================================
 
   @Post('configurations/:id/model')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Upload un modèle 3D dédié pour une configuration/produit',
@@ -526,7 +563,7 @@ export class TryOnController {
     @Request() req: ExpressRequest & { user?: CurrentUser },
     @Query('days') days?: number,
   ) {
-    return this.performanceService.getDeviceStats(req.user?.brandId, days);
+    return this.performanceService.getDeviceStats(req.user?.brandId ?? undefined, days);
   }
 
   // ========================================
@@ -584,6 +621,30 @@ export class TryOnController {
       limit,
       offset,
     });
+  }
+
+  @Post('conversions/:id/revenue')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Attribuer un revenu a une conversion (server-to-server, apres achat)',
+  })
+  @ApiParam({ name: 'id', description: 'Conversion ID' })
+  async attributeRevenue(
+    @Request() req: ExpressRequest & { user?: CurrentUser },
+    @Param('id') id: string,
+    @Body() dto: AttributeRevenueDto,
+  ) {
+    return this.conversionService.attributeRevenue(
+      id,
+      {
+        revenue: dto.revenue,
+        currency: dto.currency,
+        externalOrderId: dto.externalOrderId,
+      },
+      undefined,
+      req.user?.brandId ?? undefined,
+    );
   }
 
   @Get('conversions/report')
@@ -649,6 +710,7 @@ export class TryOnController {
   // ========================================
 
   @Get('analytics/roi')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Rapport ROI complet du Virtual Try-On' })
   async getROIReport(
     @Request() req: ExpressRequest & { user?: CurrentUser },
@@ -661,6 +723,7 @@ export class TryOnController {
   }
 
   @Get('analytics/funnel')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Funnel de conversion try-on' })
   async getConversionFunnel(
     @Request() req: ExpressRequest & { user?: CurrentUser },
@@ -673,6 +736,7 @@ export class TryOnController {
   }
 
   @Get('analytics/products')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Performance produits try-on' })
   async getProductPerformance(
     @Request() req: ExpressRequest & { user?: CurrentUser },
@@ -687,6 +751,7 @@ export class TryOnController {
   }
 
   @Get('analytics/devices')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Repartition par device' })
   async getDeviceBreakdown(
     @Request() req: ExpressRequest & { user?: CurrentUser },
@@ -699,6 +764,7 @@ export class TryOnController {
   }
 
   @Get('analytics/trend')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Tendance quotidienne sessions/conversions' })
   async getDailyTrend(
     @Request() req: ExpressRequest & { user?: CurrentUser },
@@ -711,6 +777,7 @@ export class TryOnController {
   }
 
   @Get('analytics/shares')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Analytique des partages sociaux' })
   async getShareAnalytics(
     @Request() req: ExpressRequest & { user?: CurrentUser },

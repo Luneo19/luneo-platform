@@ -83,6 +83,7 @@ export const AVAILABLE_FONTS = {
 export class TextEngraver {
   private fontLoader: FontLoader;
   private fontsCache: Map<string, Font> = new Map();
+  private materialsCache: Map<string, THREE.Material> = new Map();
 
   constructor() {
     this.fontLoader = new FontLoader();

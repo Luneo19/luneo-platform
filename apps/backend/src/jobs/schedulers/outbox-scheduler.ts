@@ -2,6 +2,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Queue } from 'bullmq';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 
 /**
  * Scheduler pour publier les événements de l'outbox
@@ -14,6 +15,7 @@ export class OutboxScheduler {
 
   constructor(
     @InjectQueue('outbox-publisher') private readonly outboxQueue: Queue,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -62,9 +64,32 @@ export class OutboxScheduler {
   @Cron('0 2 * * *') // Tous les jours à 2h du matin
   async cleanupOldEvents() {
     try {
-      // Le cleanup sera géré par OutboxService.cleanup()
-      // Appelé via un job séparé si nécessaire
-      this.logger.log('Outbox cleanup scheduled (to be implemented)');
+      const retentionDays = 30;
+      const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+
+      const deleted = await this.prisma.outboxEvent.deleteMany({
+        where: {
+          status: 'published',
+          publishedAt: { lt: cutoffDate },
+        },
+      });
+
+      if (deleted.count > 0) {
+        this.logger.log(`Outbox cleanup: deleted ${deleted.count} published event(s) older than ${retentionDays} days`);
+      }
+
+      // Also clean up permanently failed events older than retention
+      const deletedFailed = await this.prisma.outboxEvent.deleteMany({
+        where: {
+          status: 'failed',
+          updatedAt: { lt: cutoffDate },
+          attempts: { gte: 5 },
+        },
+      });
+
+      if (deletedFailed.count > 0) {
+        this.logger.log(`Outbox cleanup: deleted ${deletedFailed.count} permanently failed event(s)`);
+      }
     } catch (error) {
       this.logger.error('Failed to cleanup old outbox events:', error);
     }

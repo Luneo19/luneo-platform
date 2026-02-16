@@ -6,6 +6,7 @@ import { UsageTrackingService } from './services/usage-tracking.service';
 import { QuotasService } from './services/quotas.service';
 import { BillingCalculationService } from './services/billing-calculation.service';
 import { UsageReportingService } from './services/usage-reporting.service';
+import { UsageReconciliationService } from './services/usage-reconciliation.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { BillingModule } from '@/modules/billing/billing.module';
@@ -26,11 +27,13 @@ import { BillingModule } from '@/modules/billing/billing.module';
     QuotasService,
     BillingCalculationService,
     UsageReportingService,
+    UsageReconciliationService,
   ],
   exports: [
     UsageMeteringService,
     UsageTrackingService,
     QuotasService,
+    UsageReconciliationService,
   ],
 })
 export class UsageBillingModule {}

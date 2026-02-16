@@ -216,6 +216,73 @@ export class WebhooksService {
     }
   }
 
+  /**
+   * Dispatch a generic outbound webhook event (non-SendGrid).
+   * Used by modules like Try-On to emit branded events to external consumers.
+   * Logs the event with idempotency but does NOT route through SendGrid processing.
+   */
+  async dispatchEvent(
+    brandId: string,
+    event: string,
+    payload: Record<string, unknown>,
+  ): Promise<{ dispatched: boolean; event: string }> {
+    const key = this.generateIdempotencyKey(payload, brandId);
+
+    // Idempotency check
+    const existing = await this.prisma.webhookLog.findFirst({
+      where: {
+        payload: { path: ['idempotencyKey'], equals: key } as Prisma.JsonFilter,
+      },
+    });
+    if (existing) {
+      this.logger.debug(`Outbound event already dispatched: ${key}`);
+      return { dispatched: false, event };
+    }
+
+    try {
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        include: { webhooks: { where: { isActive: true }, take: 5 } },
+      });
+
+      const webhookId = brand?.webhooks[0]?.id || undefined;
+
+      // Log the event
+      await this.prisma.webhookLog.create({
+        data: {
+          webhookId,
+          event,
+          payload: { ...payload, idempotencyKey: key } as Prisma.InputJsonValue,
+          statusCode: 200,
+          response: JSON.stringify({ dispatched: true }),
+        },
+      });
+
+      // Deliver to registered webhook URLs (fire-and-forget)
+      if (brand?.webhooks?.length) {
+        for (const wh of brand.webhooks) {
+          if (wh.url) {
+            fetch(wh.url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ event, ...payload }),
+            }).catch((err) => {
+              this.logger.warn(`Webhook delivery failed to ${wh.url}: ${err}`);
+            });
+          }
+        }
+      }
+
+      return { dispatched: true, event };
+    } catch (error) {
+      this.logger.error(`Failed to dispatch event ${event}`, {
+        brandId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { dispatched: false, event };
+    }
+  }
+
   async logWebhookEvent(event: Record<string, unknown>) {
     this.logger.debug('Webhook event logged:', JSON.stringify(event, null, 2));
   }

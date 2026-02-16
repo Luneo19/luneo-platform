@@ -13,9 +13,10 @@ export class TryOnAnalyticsDashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   private getDateRange(days = 30): DateRange {
+    const safeDays = Math.min(Math.max(1, days), 365);
     return {
-      days,
-      since: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
+      days: safeDays,
+      since: new Date(Date.now() - safeDays * 24 * 60 * 60 * 1000),
     };
   }
 
@@ -60,16 +61,26 @@ export class TryOnAnalyticsDashboardService {
       ? Math.round((conversions / sessions) * 10000) / 100
       : 0;
 
+    const totalRevenue = revenue._sum.revenue ?? 0;
+    const totalCommission = revenue._sum.commissionAmount ?? 0;
+
     return {
       period: { days, since: since.toISOString() },
       kpis: {
         totalSessions: sessions,
         totalConversions: conversions,
         conversionRate,
-        totalRevenue: revenue._sum.revenue ?? 0,
+        totalRevenue,
+        netRevenue: Math.round((totalRevenue - totalCommission) * 100) / 100,
         averageOrderValue: revenue._avg.revenue ?? 0,
-        totalCommission: revenue._sum.commissionAmount ?? 0,
+        totalCommission,
+        commissionRate: totalRevenue > 0
+          ? Math.round((totalCommission / totalRevenue) * 10000) / 100
+          : 0,
         purchaseCount: revenue._count.id,
+        revenuePerSession: sessions > 0
+          ? Math.round((totalRevenue / sessions) * 100) / 100
+          : 0,
         totalShares: shares._count.id,
         totalShareViews: shares._sum.viewCount ?? 0,
         totalShareClicks: shares._sum.clickCount ?? 0,
@@ -100,7 +111,7 @@ export class TryOnAnalyticsDashboardService {
         where: {
           configuration: { project: { brandId } },
           startedAt: { gte: since },
-          productsTried: { not: null },
+          productsTried: { isEmpty: false },
         },
       }),
       this.prisma.tryOnSession.count({
@@ -250,34 +261,45 @@ export class TryOnAnalyticsDashboardService {
 
   /**
    * Daily trend: sessions and conversions per day.
+   * Uses raw SQL aggregation to avoid loading all sessions into memory.
    */
   async getDailyTrend(brandId: string, days = 30) {
-    const { since } = this.getDateRange(days);
+    const { since, days: safeDays } = this.getDateRange(days);
 
-    const sessions = await this.prisma.tryOnSession.findMany({
-      where: {
-        configuration: { project: { brandId } },
-        startedAt: { gte: since },
-      },
-      select: { startedAt: true, converted: true },
-    });
+    // Use raw SQL for efficient date-based aggregation
+    // Note: Prisma camelCase column names (no @map to snake_case)
+    const rows = await this.prisma.$queryRaw<
+      Array<{ day: string; sessions: bigint; conversions: bigint }>
+    >`
+      SELECT
+        DATE("startedAt") as day,
+        COUNT(*)::bigint as sessions,
+        COUNT(*) FILTER (WHERE "converted" = true)::bigint as conversions
+      FROM "TryOnSession" s
+      JOIN "TryOnConfiguration" c ON s."configurationId" = c."id"
+      JOIN "Project" p ON c."projectId" = p."id"
+      WHERE p."brandId" = ${brandId}
+        AND s."startedAt" >= ${since}
+      GROUP BY DATE("startedAt")
+      ORDER BY day ASC
+    `;
 
-    // Aggregate by day
+    // Build complete date range (fill gaps with zeros)
     const dayMap = new Map<string, { sessions: number; conversions: number }>();
-
-    for (let d = 0; d < days; d++) {
+    for (let d = 0; d < safeDays; d++) {
       const date = new Date(Date.now() - d * 24 * 60 * 60 * 1000);
       const key = date.toISOString().split('T')[0];
       dayMap.set(key, { sessions: 0, conversions: 0 });
     }
 
-    for (const s of sessions) {
-      const key = s.startedAt.toISOString().split('T')[0];
-      const existing = dayMap.get(key);
-      if (existing) {
-        existing.sessions++;
-        if (s.converted) existing.conversions++;
-      }
+    for (const row of rows) {
+      const key = typeof row.day === 'string'
+        ? row.day
+        : new Date(row.day).toISOString().split('T')[0];
+      dayMap.set(key, {
+        sessions: Number(row.sessions),
+        conversions: Number(row.conversions),
+      });
     }
 
     return Array.from(dayMap.entries())

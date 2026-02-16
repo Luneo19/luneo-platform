@@ -81,7 +81,10 @@ export function usePricingPage() {
         }
         window.location.href = result.url;
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
+        // Extract the actual backend error message from Axios response if available
+        const axiosData = (err as { response?: { data?: { message?: string } } })?.response?.data;
+        const backendMessage = axiosData?.message;
+        const message = backendMessage || (err instanceof Error ? err.message : String(err));
         if (message.includes('email') || message.includes('Email')) {
           throw new Error(t('pricing.card.emailRequired') || 'Une adresse email valide est requise.');
         }

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmailService } from '@/modules/email/email.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const GRACE_DAYS = 3;
@@ -12,6 +13,8 @@ const GRACE_DAYS = 3;
  * Runs every hour to:
  * 1. Set readOnlyMode = true for brands whose grace period has expired.
  * 2. Send grace period reminder emails at day 1 and day 2.
+ *
+ * Uses a distributed lock to prevent double execution in multi-instance deployments.
  */
 @Injectable()
 export class SubscriptionEnforcementScheduler {
@@ -21,6 +24,7 @@ export class SubscriptionEnforcementScheduler {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly lock: DistributedLockService,
   ) {}
 
   /**
@@ -28,16 +32,26 @@ export class SubscriptionEnforcementScheduler {
    */
   @Cron('0 * * * *') // Every hour at minute 0
   async enforceSubscription() {
+    const acquired = await this.lock.acquire('subscription-enforcement', 600);
+    if (!acquired) {
+      this.logger.debug('Subscription enforcement skipped — another instance holds the lock');
+      return;
+    }
     try {
       await this.activateReadOnlyMode();
       await this.sendGraceReminders();
+      await this.expireStaleTrials();
     } catch (error) {
       this.logger.error('Subscription enforcement failed', error instanceof Error ? error.stack : String(error));
+    } finally {
+      await this.lock.release('subscription-enforcement');
     }
   }
 
   /**
-   * Brands with gracePeriodEndsAt in the past and not yet in read-only mode → set readOnlyMode = true.
+   * Brands with gracePeriodEndsAt in the past and not yet in read-only mode:
+   * 1. Set readOnlyMode = true
+   * 2. Downgrade plan to FREE to prevent paid-tier quota access
    */
   private async activateReadOnlyMode() {
     const now = new Date();
@@ -46,10 +60,14 @@ export class SubscriptionEnforcementScheduler {
         gracePeriodEndsAt: { not: null, lt: now },
         readOnlyMode: false,
       },
-      data: { readOnlyMode: true },
+      data: {
+        readOnlyMode: true,
+        plan: 'free',
+        subscriptionPlan: 'FREE',
+      },
     });
     if (updated.count > 0) {
-      this.logger.log(`Read-only mode enabled for ${updated.count} brand(s) after grace period expiry`);
+      this.logger.log(`Read-only mode enabled + plan downgraded to FREE for ${updated.count} brand(s) after grace period expiry`);
     }
   }
 
@@ -96,6 +114,41 @@ export class SubscriptionEnforcementScheduler {
         this.logger.log(`Grace day 2 reminder sent for brand ${brand.id}`);
       }
     }
+  }
+
+  /**
+   * Safety net: expire trials that ended more than 24h ago but whose status was
+   * never updated (e.g. Stripe webhook lost). Downgrade to FREE + no subscription.
+   */
+  private async expireStaleTrials() {
+    const oneDayAgo = new Date(Date.now() - MS_PER_DAY);
+    const staleTrials = await this.prisma.brand.findMany({
+      where: {
+        subscriptionStatus: 'TRIALING',
+        trialEndsAt: { not: null, lt: oneDayAgo },
+      },
+      select: { id: true, trialEndsAt: true },
+    });
+
+    if (staleTrials.length === 0) return;
+
+    for (const brand of staleTrials) {
+      await this.prisma.brand.update({
+        where: { id: brand.id },
+        data: {
+          subscriptionStatus: 'CANCELED',
+          plan: 'free',
+          subscriptionPlan: 'FREE',
+          stripeSubscriptionId: null,
+          trialEndsAt: null,
+        },
+      });
+      this.logger.warn(
+        `Safety net: Brand ${brand.id} trial expired (trialEndsAt=${brand.trialEndsAt?.toISOString()}) — downgraded to FREE`,
+      );
+    }
+
+    this.logger.log(`Safety net: ${staleTrials.length} stale trial(s) expired and downgraded to FREE`);
   }
 
   private async sendReminderEmail(to: string, firstName: string, day: number, frontendUrl: string) {

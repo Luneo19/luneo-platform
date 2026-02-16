@@ -163,9 +163,9 @@ export class WebXRViewer {
     // Setup hit test
     if (this.config.enableHitTest) {
       const viewerSpace = await this.session.requestReferenceSpace('viewer');
-      this.hitTestSource = await this.session.requestHitTestSource({
+      this.hitTestSource = await this.session.requestHitTestSource?.({
         space: viewerSpace,
-      }) || null;
+      }) ?? null;
     }
     
     // Session end handler

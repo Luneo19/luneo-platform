@@ -142,7 +142,7 @@ export class UsageReportingService {
     try {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { name: true, plan: true, createdAt: true },
+        select: { name: true, subscriptionPlan: true, plan: true, createdAt: true },
       });
 
       if (!brand) {
@@ -184,7 +184,7 @@ export class UsageReportingService {
       return {
         brand: {
           name: brand.name,
-          plan: brand.plan,
+          plan: brand.subscriptionPlan || brand.plan,
           memberSince: brand.createdAt,
         },
         currentPeriod: {
@@ -340,6 +340,8 @@ export class UsageReportingService {
       webhook_deliveries: 'webhooks',
       custom_domains: 'domains',
       team_members: 'members',
+      virtual_tryons: 'sessions',
+      try_on_screenshots: 'screenshots',
     };
 
     return units[metric] || 'units';

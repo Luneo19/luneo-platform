@@ -198,6 +198,8 @@ export class UsageMeteringService {
       webhook_deliveries: 'prod_webhooks',
       custom_domains: 'prod_domains',
       team_members: 'prod_team',
+      virtual_tryons: 'prod_virtual_tryons',
+      try_on_screenshots: 'prod_tryon_screenshots',
     };
 
     const targetProductId = metricToStripeProductMap[metric];
@@ -230,6 +232,8 @@ export class UsageMeteringService {
       webhook_deliveries: 'webhooks',
       custom_domains: 'domains',
       team_members: 'members',
+      virtual_tryons: 'sessions',
+      try_on_screenshots: 'screenshots',
     };
 
     return units[metric] || 'units';

@@ -12,7 +12,7 @@ import { logger } from '@/lib/logger';
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Configuration
-const config = {
+const middlewareConfig = {
   // Rate limiting
   rateLimit: {
     windowMs: 60 * 1000, // 1 minute
@@ -137,7 +137,7 @@ export async function middleware(request: NextRequest) {
 
   // 6. Auth Protection for dashboard routes (server-side cookie check)
   // Prevents flash of unauthenticated content. Full validation happens client-side.
-  const isProtectedRoute = config.protectedRoutes.some(
+  const isProtectedRoute = middlewareConfig.protectedRoutes.some(
     (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
   );
 
@@ -188,7 +188,7 @@ export async function middleware(request: NextRequest) {
 
   // 9. Onboarding check — redirect to /onboarding if not completed
   // This is a lightweight cookie-based check. Full validation is in the dashboard layout.
-  const requiresOnboarding = config.onboardingRequiredRoutes.some(
+  const requiresOnboarding = middlewareConfig.onboardingRequiredRoutes.some(
     (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
   );
 
@@ -286,11 +286,11 @@ function handleCORS(request: NextRequest, response: NextResponse): NextResponse 
     
     preflightResponse.headers.set(
       'Access-Control-Allow-Methods',
-      config.cors.allowedMethods.join(', ')
+      middlewareConfig.cors.allowedMethods.join(', ')
     );
     preflightResponse.headers.set(
       'Access-Control-Allow-Headers',
-      config.cors.allowedHeaders.join(', ')
+      middlewareConfig.cors.allowedHeaders.join(', ')
     );
     preflightResponse.headers.set('Access-Control-Max-Age', '86400');
 
@@ -313,7 +313,7 @@ function isAllowedOrigin(origin: string): boolean {
       return true;
     }
   }
-  return config.cors.allowedOrigins.includes(origin);
+  return middlewareConfig.cors.allowedOrigins.includes(origin);
 }
 
 /**
@@ -404,9 +404,9 @@ function getRateLimitBucket(pathname: string): string {
 }
 
 function getMaxRequests(pathname: string): number {
-  if (pathname.startsWith('/api/auth')) return config.rateLimit.maxRequests.auth;
-  if (pathname.startsWith('/api/')) return config.rateLimit.maxRequests.api;
-  return config.rateLimit.maxRequests.public;
+  if (pathname.startsWith('/api/auth')) return middlewareConfig.rateLimit.maxRequests.auth;
+  if (pathname.startsWith('/api/')) return middlewareConfig.rateLimit.maxRequests.api;
+  return middlewareConfig.rateLimit.maxRequests.public;
 }
 
 /**
@@ -526,6 +526,6 @@ export const config = {
      * - public folder assets (images, etc.)
      * - manifest.json, sw.js, service-worker.js (PWA files)
      */
-    '/((?!_next/static|_next/image|favicon\\.(ico|png)|apple-touch-icon\\.png|robots\\.txt|sitemap\\.xml|manifest\\.json|sw\\.js|service-worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.(?:ico|png)|apple-touch-icon\\.png|robots\\.txt|sitemap\\.xml|manifest\\.json|sw\\.js|service-worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)',
   ],
 };

@@ -247,6 +247,7 @@ export class OrionMetricsService {
       },
       select: {
         id: true,
+        subscriptionPlan: true,
         plan: true,
         createdAt: true,
         invoices: {
@@ -281,7 +282,7 @@ export class OrionMetricsService {
     // Breakdown by plan
     const planCounts = new Map<string, number>();
     for (const brand of paidBrands) {
-      const plan = brand.plan || 'unknown';
+      const plan = brand.subscriptionPlan || brand.plan || 'unknown';
       planCounts.set(plan, (planCounts.get(plan) || 0) + 1);
     }
     const byPlan = Array.from(planCounts.entries()).map(([plan, count]) => ({ plan, count }));

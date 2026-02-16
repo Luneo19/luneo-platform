@@ -104,6 +104,18 @@ export default function TryOnView({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<TryOnEngine | null>(null);
 
+  // Stable callback refs (prevent startEngine recreation on callback identity change)
+  const onTrackingChangeRef = useRef(onTrackingChange);
+  const onFPSChangeRef = useRef(onFPSChange);
+  const onQualityChangeRef = useRef(onQualityChange);
+  const onPerformanceMetricRef = useRef(onPerformanceMetric);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { onTrackingChangeRef.current = onTrackingChange; }, [onTrackingChange]);
+  useEffect(() => { onFPSChangeRef.current = onFPSChange; }, [onFPSChange]);
+  useEffect(() => { onQualityChangeRef.current = onQualityChange; }, [onQualityChange]);
+  useEffect(() => { onPerformanceMetricRef.current = onPerformanceMetric; }, [onPerformanceMetric]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
   const [status, setStatus] = useState<'checking' | 'calibrating' | 'ready' | 'running' | 'error' | 'ar_fallback'>('checking');
   const [compatibility, setCompatibility] = useState<CompatibilityReport | null>(null);
   const [isTracking, setIsTracking] = useState(false);
@@ -155,6 +167,12 @@ export default function TryOnView({
     if (isInitializingRef.current) return;
     isInitializingRef.current = true;
 
+    // SAFETY: Destroy any existing engine before creating a new one (prevents WebGL context leak)
+    if (engineRef.current) {
+      engineRef.current.destroy();
+      engineRef.current = null;
+    }
+
     try {
       const config: TryOnEngineConfig = {
         category,
@@ -173,21 +191,21 @@ export default function TryOnView({
       const engine = new TryOnEngine(config, {
         onTracking: (tracking) => {
           setIsTracking(tracking);
-          onTrackingChange?.(tracking);
+          onTrackingChangeRef.current?.(tracking);
         },
         onFPSChange: (newFps) => {
           setFps(newFps);
-          onFPSChange?.(newFps);
+          onFPSChangeRef.current?.(newFps);
         },
         onQualityChange: (q) => {
           setQuality(q);
-          onQualityChange?.(q);
+          onQualityChangeRef.current?.(q);
         },
-        onPerformanceMetric,
+        onPerformanceMetric: onPerformanceMetricRef.current,
         onError: (err) => {
           logger.error('TryOnView engine error', { error: err.message });
           setErrorMessage(err.message);
-          onError?.(err);
+          onErrorRef.current?.(err);
         },
       });
 
@@ -221,7 +239,7 @@ export default function TryOnView({
     } finally {
       isInitializingRef.current = false;
     }
-  }, [category, modelUrl, lodLevels, scaleFactor, defaultPosition, defaultRotation, enableOcclusion, enableShadows, onTrackingChange, onFPSChange, onQualityChange, onPerformanceMetric, onError]);
+  }, [category, modelUrl, lodLevels, scaleFactor, defaultPosition, defaultRotation, enableOcclusion, enableShadows]);
 
   // Auto-start when ready (status change triggers, startEngine is stable)
   useEffect(() => {

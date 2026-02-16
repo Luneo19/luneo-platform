@@ -137,7 +137,7 @@ export class LogSanitizerService {
       options: { maskFull: true },
     },
     
-    // Stripe keys
+    // Stripe keys (named key=value)
     {
       pattern: /(?:stripe[_-]?(?:secret|api)[_-]?key)\s*[:=]\s*["']?(sk_[^"'\s]+)["']?/gi,
       name: 'stripe_key',
@@ -147,6 +147,35 @@ export class LogSanitizerService {
       pattern: /"stripe[_-]?(?:secret|api)[_-]?key"\s*:\s*"(sk_[^"]+)"/gi,
       name: 'stripe_key',
       options: { showStart: 7, showEnd: 4 },
+    },
+    // Stripe secret keys (raw sk_test_* / sk_live_* anywhere in text)
+    {
+      pattern: /\b(sk_(?:test|live)_[A-Za-z0-9]+)\b/g,
+      name: 'stripe_secret_raw',
+      options: { showStart: 7, showEnd: 4 },
+    },
+    // Card numbers (16 digits, optional spaces/dashes)
+    {
+      pattern: /\b(\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4})\b/g,
+      name: 'card_number',
+      options: { showStart: 4, showEnd: 4 },
+    },
+    // Card numbers (16 consecutive digits, e.g. 4242424242424242)
+    {
+      pattern: /\b(\d{16})\b/g,
+      name: 'card_number_consecutive',
+      options: { showStart: 4, showEnd: 4 },
+    },
+    // CVV/CVC (key=value or JSON)
+    {
+      pattern: /(?:cvv|cvc)\s*[:=]\s*["']?(\d{3,4})["']?/gi,
+      name: 'cvv',
+      options: { maskFull: true },
+    },
+    {
+      pattern: /"(?:cvv|cvc)"\s*:\s*"(\d{3,4})"/gi,
+      name: 'cvv',
+      options: { maskFull: true },
     },
     
     // JWT secrets
@@ -261,6 +290,14 @@ export class LogSanitizerService {
       return { showStart: 0, showEnd: 0 };
     }
     
+    // Payment: CVV/CVC fully masked
+    if (lowerKey === 'cvv' || lowerKey === 'cvc') {
+      return { maskFull: true };
+    }
+    // Payment: card number – show last 4 digits only
+    if (lowerKey.includes('card') && lowerKey.includes('number')) {
+      return { showStart: 4, showEnd: 4 };
+    }
     // API keys should be partially masked
     if (lowerKey.includes('apikey') || lowerKey.includes('api_key')) {
       return { showStart: 4, showEnd: 4 };
@@ -304,6 +341,11 @@ export class LogSanitizerService {
       'client_secret',
       'cloudinaryApiSecret',
       'cloudinary_api_secret',
+      // Payment / PCI
+      'cvv',
+      'cvc',
+      'cardNumber',
+      'card_number',
       // SEC-10: PII fields
       'email',
       'userEmail',

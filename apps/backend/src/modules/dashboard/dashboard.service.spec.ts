@@ -4,7 +4,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { KpiService } from './kpi/kpi.service';
@@ -151,9 +151,9 @@ describe('DashboardService', () => {
       expect(result).toEqual({ sidebar: [], widgets: [], kpis: [] });
     });
 
-    it('should throw BadRequestException when brandId is null', async () => {
-      await expect(service.getConfig(userId, null)).rejects.toThrow(BadRequestException);
-      await expect(service.getConfig(userId, null)).rejects.toThrow('Brand required');
+    it('should return empty config when brandId is null', async () => {
+      const result = await service.getConfig(userId, null);
+      expect(result).toEqual({ sidebar: [], widgets: [], kpis: [] });
     });
   });
 

@@ -145,15 +145,16 @@ describe('BillingCalculationService', () => {
       await expect(service.calculateCurrentBill('nonexistent')).rejects.toThrow(NotFoundException);
     });
 
-    it('should use starter plan if brand plan is null', async () => {
+    it('should use free plan if brand plan is null', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue({
         plan: null,
+        subscriptionPlan: null,
         country: 'FR',
       });
 
       mockQuotasService.getPlanLimits.mockReturnValue({
         ...mockPlanLimits,
-        plan: 'starter',
+        plan: 'free',
         basePrice: 0,
       });
 
@@ -161,7 +162,7 @@ describe('BillingCalculationService', () => {
 
       const result = await service.calculateCurrentBill(mockBrandId);
 
-      expect(mockQuotasService.getPlanLimits).toHaveBeenCalledWith('starter');
+      expect(mockQuotasService.getPlanLimits).toHaveBeenCalledWith('free');
       expect(result.basePrice).toBe(0);
     });
 

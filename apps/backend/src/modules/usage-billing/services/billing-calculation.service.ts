@@ -1,5 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { normalizePlanTier } from '@/libs/plans';
 import { UsageMeteringService } from './usage-metering.service';
 import { QuotasService } from './quotas.service';
 import { UsageMetricType } from '../interfaces/usage.interface';
@@ -116,7 +117,7 @@ export class BillingCalculationService {
       // ✅ Récupérer le plan du brand avec gardes
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId.trim() },
-        select: { plan: true, country: true },
+        select: { subscriptionPlan: true, plan: true, country: true },
       });
 
       if (!brand) {
@@ -124,11 +125,8 @@ export class BillingCalculationService {
         throw new NotFoundException('Brand not found');
       }
 
-      const planName = (brand.plan && typeof brand.plan === 'string' && brand.plan.trim().length > 0)
-        ? brand.plan.trim()
-        : 'starter';
-
-      const planLimits = this.quotasService.getPlanLimits(planName as 'starter' | 'professional' | 'business' | 'enterprise');
+      const planTier = normalizePlanTier(brand.subscriptionPlan ?? brand.plan);
+      const planLimits = this.quotasService.getPlanLimits(planTier);
 
       // ✅ Période de facturation avec validation
       const now = new Date();
@@ -223,14 +221,14 @@ export class BillingCalculationService {
     try {
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
 
       if (!brand) {
         throw new NotFoundException('Brand not found');
       }
 
-      const planLimits = this.quotasService.getPlanLimits(brand.plan || 'starter');
+      const planLimits = this.quotasService.getPlanLimits(brand.subscriptionPlan || brand.plan || 'starter');
       const quota = planLimits.quotas.find((q) => q.metric === metric);
 
       if (!quota) {
@@ -330,10 +328,10 @@ export class BillingCalculationService {
       // Projeter sur le nombre de jours demandé
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
 
-      const planLimits = this.quotasService.getPlanLimits(brand?.plan || 'starter');
+      const planLimits = this.quotasService.getPlanLimits(brand?.subscriptionPlan || brand?.plan || 'starter');
 
       let projectedOverage = 0;
       const recommendations: string[] = [];

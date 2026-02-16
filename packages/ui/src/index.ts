@@ -13,12 +13,11 @@ export * from './components/Select';
 
 // Utilities
 export * from './lib/utils';
-export * from './lib/cn';
 
 // Types
 export * from './types';
 
 // Styles
-export './styles/globals.css';
+import './styles/globals.css';
 
 

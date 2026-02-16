@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MarketplacePayoutScheduler } from '../marketplace-payout.scheduler';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StripeConnectService } from '@/modules/marketplace/services/stripe-connect.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
 describe('MarketplacePayoutScheduler', () => {
   let scheduler: MarketplacePayoutScheduler;
@@ -27,6 +28,10 @@ describe('MarketplacePayoutScheduler', () => {
         MarketplacePayoutScheduler,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: StripeConnectService, useValue: mockStripeConnect },
+        {
+          provide: DistributedLockService,
+          useValue: { acquire: jest.fn().mockResolvedValue(true), release: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

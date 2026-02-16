@@ -118,6 +118,9 @@ export class AuthService {
             name: company.trim(),
             slug,
             companyName: company.trim(),
+            plan: 'free',
+            subscriptionPlan: 'FREE',
+            subscriptionStatus: 'TRIALING',
             users: { connect: { id: user.id } },
           },
         });

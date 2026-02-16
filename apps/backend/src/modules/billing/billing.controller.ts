@@ -91,7 +91,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Récupérer les factures de l\'utilisateur' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
-  @ApiResponse({ status: 200, description: 'Factures récupérées avec succès' })
+  @ApiResponse({ status: 200, description: 'Factures récupérées. Note: le champ amount est en centimes (ex: 4900 = 49.00 EUR)' })
   async getInvoices(
     @Request() req: ExpressRequest & { user: CurrentUser },
     @Query('page') page?: string,
@@ -100,6 +100,38 @@ export class BillingController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 20;
     return this.billingService.getInvoices(req.user.id, pageNum, limitNum);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('invoices/export/csv')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Exporter les factures au format CSV' })
+  @ApiResponse({ status: 200, description: 'CSV généré avec succès' })
+  async exportInvoicesCSV(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const invoicesResult = await this.billingService.getInvoices(req.user.id, 1, 200);
+    const invoices = invoicesResult.invoices || [];
+
+    const header = 'Date,Numéro,Montant,Devise,Statut,PDF';
+    const rows = invoices.map((inv) =>
+      [
+        inv.created ? new Date(inv.created * 1000).toISOString().split('T')[0] : '',
+        inv.number || '',
+        typeof inv.amount === 'number' ? (inv.amount / 100).toFixed(2) : '0.00',
+        (inv.currency || 'EUR').toUpperCase(),
+        inv.status || '',
+        inv.invoicePdf || '',
+      ].join(','),
+    );
+
+    const csv = [header, ...rows].join('\n');
+
+    return {
+      csv,
+      filename: `factures-luneo-${new Date().toISOString().split('T')[0]}.csv`,
+      contentType: 'text/csv',
+    };
   }
 
   @UseGuards(JwtAuthGuard)

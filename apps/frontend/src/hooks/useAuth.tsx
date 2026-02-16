@@ -22,6 +22,8 @@ const mapBackendUser = (backendUser: Record<string, unknown>): AuthUser => ({
   email: String(backendUser.email ?? ''),
   firstName: String(backendUser.firstName ?? backendUser.first_name ?? ''),
   lastName: String(backendUser.lastName ?? backendUser.last_name ?? ''),
+  role: backendUser.role ? String(backendUser.role) : undefined,
+  brandId: backendUser.brandId ? String(backendUser.brandId) : undefined,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

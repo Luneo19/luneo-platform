@@ -69,12 +69,8 @@ export function FooterNew() {
 
   return (
     <footer className="relative bg-dark-bg border-t border-white/[0.04]">
-      {/* Wave separator */}
-      <div className="absolute top-0 left-0 right-0 -translate-y-full">
-        <svg viewBox="0 0 1440 60" fill="none" className="w-full h-[40px] sm:h-[60px]" preserveAspectRatio="none">
-          <path d="M0,60 C360,0 720,40 1080,20 C1260,10 1440,30 1440,60 L0,60 Z" fill="#0a0a0f" />
-        </svg>
-      </div>
+      {/* Gradient glow separator (replaces old wave) */}
+      <div className="absolute top-0 left-0 right-0 -translate-y-1/2 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-8 sm:pb-10">
         {/* Newsletter CTA */}

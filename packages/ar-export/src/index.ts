@@ -3,6 +3,9 @@
  * AR Export professionnel - USDZ, AR Quick Look, Scene Viewer, WebXR
  */
 
+import { ARQuickLook } from './ARQuickLook';
+import { SceneViewer } from './SceneViewer';
+
 export { USDZConverter } from './USDZConverter';
 export type { 
   USDZConversionOptions, 

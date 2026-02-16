@@ -13,6 +13,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { CartService } from './cart.service';
 import { AddCartItemDto } from './dto/add-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
@@ -22,7 +23,7 @@ import { Request as ExpressRequest } from 'express';
 @ApiTags('cart')
 @Controller('cart')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 

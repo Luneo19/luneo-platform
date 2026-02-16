@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { logger } from '@/lib/logger';
 
@@ -25,7 +25,7 @@ interface RecommendationPanelProps {
  * RecommendationPanel - Displays AI-powered product recommendations
  * during a Virtual Try-On session.
  *
- * Updates when the current product changes.
+ * Uses AbortController to cancel in-flight requests on unmount or parameter change.
  */
 export default function RecommendationPanel({
   sessionId,
@@ -37,34 +37,48 @@ export default function RecommendationPanel({
     [],
   );
   const [loading, setLoading] = useState(false);
-
-  const fetchRecommendations = useCallback(async () => {
-    if (!sessionId) return;
-
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (currentProductId) params.set('currentProductId', currentProductId);
-      params.set('limit', '5');
-
-      const res = await fetch(
-        `${API_BASE}/api/v1/public/try-on/sessions/${encodeURIComponent(sessionId)}/recommendations?${params}`,
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        setRecommendations(data);
-      }
-    } catch (err) {
-      logger.warn('Failed to fetch recommendations', { error: err });
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId, currentProductId]);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    fetchRecommendations();
-  }, [fetchRecommendations]);
+    if (!sessionId) return;
+
+    // Abort any previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    let mounted = true;
+
+    (async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (currentProductId) params.set('currentProductId', currentProductId);
+        params.set('limit', '5');
+
+        const res = await fetch(
+          `${API_BASE}/api/v1/public/try-on/sessions/${encodeURIComponent(sessionId)}/recommendations?${params}`,
+          { signal: controller.signal },
+        );
+
+        if (res.ok && mounted) {
+          const data = await res.json();
+          setRecommendations(data);
+        }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          logger.warn('Failed to fetch recommendations', { error: err });
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, [sessionId, currentProductId]);
 
   if (!sessionId || (recommendations.length === 0 && !loading)) {
     return null;

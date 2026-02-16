@@ -3,6 +3,8 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  role?: string;
+  brandId?: string;
 }
 
 export interface AuthContextType {

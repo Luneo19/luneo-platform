@@ -10,7 +10,7 @@ import {
   PaginationResult,
 } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
-import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
+import { PLAN_CONFIGS, normalizePlanTier } from '@/libs/plans/plan-config';
 
 @Injectable()
 export class AssetFileService {
@@ -261,12 +261,12 @@ export class AssetFileService {
       // Get brand's current plan
       const brand = await this.prisma.brand.findUnique({
         where: { id: brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
 
       if (!brand) return; // Skip if brand not found (shouldn't happen)
 
-      const planKey = (brand.plan || 'free').toLowerCase() as import('@/libs/plans/plan-config.types').PlanTier;
+      const planKey = normalizePlanTier(brand.subscriptionPlan || brand.plan);
       const planConfig = PLAN_CONFIGS[planKey];
       if (!planConfig) return;
 

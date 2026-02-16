@@ -20,7 +20,9 @@ export type UsageMetricType =
   | 'api_calls'
   | 'webhook_deliveries'
   | 'custom_domains'
-  | 'team_members';
+  | 'team_members'
+  | 'virtual_tryons'
+  | 'try_on_screenshots';
 
 export interface UsageQuota {
   metric: UsageMetricType;
@@ -81,6 +83,7 @@ export interface UsageSummary {
     message: string;
     metric: UsageMetricType;
     threshold: number;
+    timestamp: string;
   }>;
 }
 

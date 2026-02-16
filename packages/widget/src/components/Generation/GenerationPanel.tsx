@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { ApiService } from '../../services/api.service';
-import type { WidgetConfig } from '../../types/designer.types';
 
 interface GenerationPanelProps {
   apiService: ApiService;
@@ -21,7 +20,7 @@ export function GenerationPanel({
 }: GenerationPanelProps) {
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationId, setGenerationId] = useState<string | null>(null);
+  const [_generationId, setGenerationId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'pending' | 'processing' | 'completed' | 'failed'>('idle');
   const [progress, setProgress] = useState(0);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);

@@ -26,6 +26,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ProductsService } from './products.service';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -37,7 +38,7 @@ import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
 
 @ApiTags('products')
 @Controller('products')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 

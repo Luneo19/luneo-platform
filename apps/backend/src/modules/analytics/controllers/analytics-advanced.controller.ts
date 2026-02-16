@@ -3,13 +3,14 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { RequestWithUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { AdvancedAnalyticsService } from '../services/advanced-analytics.service';
 import { AnalyticsAdvancedService } from '../services/analytics-advanced.service';
 import { CreateFunnelDto } from '../dto/create-funnel.dto';
 
 @ApiTags('Analytics Advanced')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 @Controller('analytics/advanced')
 export class AnalyticsAdvancedController {
   constructor(

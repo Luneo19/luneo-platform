@@ -12,11 +12,12 @@ import { CreatePrintOrderDto } from './dto/create-print-order.dto';
 import { MockupDto } from './dto/mockup.dto';
 import { CalculatePricingDto } from './dto/calculate-pricing.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { UseGuards } from '@nestjs/common';
 
 @ApiTags('print-on-demand')
 @Controller('print-on-demand')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 @ApiBearerAuth()
 export class PrintOnDemandController {
   constructor(private readonly printOnDemandService: PrintOnDemandService) {}

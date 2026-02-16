@@ -296,6 +296,27 @@ export class CronJobsService {
         }
       }
 
+      // 6. Clean up old processed webhook events (older than 90 days)
+      try {
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        const { count } = await this.prisma.processedWebhookEvent.deleteMany({
+          where: {
+            createdAt: {
+              lt: ninetyDaysAgo,
+            },
+          },
+        });
+
+        this.logger.log('Cleanup: old webhook events deleted', { count });
+      } catch (error: unknown) {
+        const err = error as { code?: string };
+        if (err?.code !== 'P2001' && err?.code !== 'P2025') {
+          this.logger.error('Cleanup: failed to clean webhook events', error);
+        }
+      }
+
       this.logger.log('Cron job: cleanup completed', cleanupResults);
 
       return {

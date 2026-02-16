@@ -10,8 +10,10 @@ import { OutboxPublisherWorker } from '@/libs/outbox/outbox-publisher.worker';
 import { OutboxScheduler } from './schedulers/outbox-scheduler';
 import { SubscriptionEnforcementScheduler } from './schedulers/subscription-enforcement.scheduler';
 import { MarketplacePayoutScheduler } from './schedulers/marketplace-payout.scheduler';
+import { UsageReconciliationScheduler } from './schedulers/usage-reconciliation.scheduler';
 import { EmailModule } from '@/modules/email/email.module';
 import { MarketplaceModule } from '@/modules/marketplace/marketplace.module';
+import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
 import { RenderPreviewProcessor } from './workers/render/render-preview.processor';
 import { RenderFinalProcessor } from './workers/render/render-final.processor';
 import { ExportPackProcessor } from './workers/manufacturing/export-pack.processor';
@@ -43,6 +45,7 @@ import { AIOrchestratorModule } from '@/libs/ai/ai-orchestrator.module';
     AIOrchestratorModule,
     EmailModule,
     MarketplaceModule,
+    UsageBillingModule,
     BullModule.registerQueue({
       name: 'ai-generation',
     }),
@@ -79,6 +82,7 @@ import { AIOrchestratorModule } from '@/libs/ai/ai-orchestrator.module';
     OutboxScheduler,
     SubscriptionEnforcementScheduler,
     MarketplacePayoutScheduler,
+    UsageReconciliationScheduler,
     // NOUVEAU: Processors pour renders et exports
     RenderPreviewProcessor,
     RenderFinalProcessor,

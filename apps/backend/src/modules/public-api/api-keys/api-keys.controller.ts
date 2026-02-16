@@ -17,11 +17,13 @@ export class ApiKeysController {
   @ApiOperation({ summary: 'Create a new API key' })
   @ApiResponse({ status: 201, description: 'API key created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid API key data' })
+  @ApiResponse({ status: 403, description: 'API access not available on current plan' })
   async createApiKey(
     @CurrentUser() user: CurrentUserType,
     @Body() createApiKeyDto: CreateApiKeyDto,
   ) {
     const brandId = this.extractBrandId(user);
+    await this.apiKeysService.assertApiAccessAllowed(brandId, user.role);
     return this.apiKeysService.createApiKey(brandId, createApiKeyDto);
   }
 

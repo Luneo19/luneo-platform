@@ -21,7 +21,7 @@ export function ARViewer({ apiService, generationId, onClose }: ARViewerProps) {
   const controllerRef = useRef<THREE.XRTargetRaySpace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [arData, setArData] = useState<any>(null);
+  const [_arData, setArData] = useState<any>(null);
   const [isSupported, setIsSupported] = useState(false);
   const [isARSessionActive, setIsARSessionActive] = useState(false);
 
@@ -248,7 +248,7 @@ export function ARViewer({ apiService, generationId, onClose }: ARViewerProps) {
 
       referenceSpace = await session.requestReferenceSpace('local');
       const viewerSpace = await session.requestReferenceSpace('viewer');
-      hitTestSource = await session.requestHitTestSource?.(viewerSpace) || null;
+      hitTestSource = await session.requestHitTestSource?.({ space: viewerSpace }) ?? null;
 
       if (hitTestSource) {
         const updateHitTest = () => {

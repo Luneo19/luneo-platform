@@ -63,24 +63,34 @@ export class TryOnScreenshotService {
       generateSharedUrl?: boolean;
     },
   ) {
-    // Vérifier que la session existe
+    // Vérifier que la session existe et obtenir le brandId
     const session = await this.prisma.tryOnSession.findUnique({
       where: { sessionId },
-      select: { id: true },
+      select: {
+        id: true,
+        configuration: {
+          select: { project: { select: { brandId: true } } },
+        },
+      },
     });
 
     if (!session) {
       throw new NotFoundException(`Session with ID ${sessionId} not found`);
     }
 
-    // Vérifier que le produit existe
+    // SECURITY: Vérifier que le produit existe ET appartient à la même brand que la session
+    const sessionBrandId = session.configuration?.project?.brandId;
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true },
+      select: { id: true, brandId: true },
     });
 
     if (!product) {
       throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    if (sessionBrandId && product.brandId !== sessionBrandId) {
+      throw new ForbiddenException(`Product ${productId} does not belong to the session's brand`);
     }
 
     // Upload de l'image
@@ -223,14 +233,40 @@ export class TryOnScreenshotService {
       metadata?: Record<string, unknown>;
     }>,
   ) {
-    // Resolve session internal ID
+    // Resolve session internal ID + brand for tenant isolation
     const session = await this.prisma.tryOnSession.findUnique({
       where: { sessionId },
-      select: { id: true },
+      select: {
+        id: true,
+        configuration: {
+          select: { project: { select: { brandId: true } } },
+        },
+      },
     });
 
     if (!session) {
       throw new NotFoundException(`Session with ID ${sessionId} not found`);
+    }
+
+    // SECURITY: Verify all referenced products belong to the session's brand
+    const sessionBrandId = session.configuration?.project?.brandId;
+    if (sessionBrandId) {
+      const productIds = [...new Set(screenshots.map((s) => s.productId))];
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, brandId: true },
+      });
+      const invalidProducts = products.filter((p) => p.brandId !== sessionBrandId);
+      if (invalidProducts.length > 0) {
+        throw new ForbiddenException(
+          `Products [${invalidProducts.map((p) => p.id).join(', ')}] do not belong to the session's brand`,
+        );
+      }
+      const foundIds = new Set(products.map((p) => p.id));
+      const missingIds = productIds.filter((id) => !foundIds.has(id));
+      if (missingIds.length > 0) {
+        throw new NotFoundException(`Products not found: ${missingIds.join(', ')}`);
+      }
     }
 
     // Process all screenshots in parallel

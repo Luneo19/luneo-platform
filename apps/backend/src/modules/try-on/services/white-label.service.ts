@@ -68,16 +68,17 @@ export class WhiteLabelService {
         data: {
           brandId: brand.id,
           logo: brand.logo,
+          allowedDomains: [],
         },
       });
     }
 
     // Premium features gating
-    const isPremium = brand.whiteLabel || ['PREMIUM', 'ENTERPRISE'].includes(brand.subscriptionPlan);
+    const isPremium = brand.whiteLabel || ['BUSINESS', 'ENTERPRISE'].includes(brand.subscriptionPlan);
 
     return {
       ...config,
-      theme: config.theme as WidgetTheme,
+      theme: config.theme as unknown as WidgetTheme,
       translations: config.translations as Record<string, string> | null,
       brand: {
         name: brand.name,
@@ -137,6 +138,7 @@ export class WhiteLabelService {
       },
       create: {
         brandId,
+        allowedDomains: input.allowedDomains || [],
         ...(mergedTheme && { theme: mergedTheme }),
         ...(input.logo && { logo: input.logo }),
         ...(input.ctaText && { ctaText: input.ctaText }),

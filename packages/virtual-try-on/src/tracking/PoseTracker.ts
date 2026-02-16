@@ -241,7 +241,7 @@ export class PoseTracker {
         detected: true,
         keypoints,
         confidence,
-        segmentation: results.segmentationMask || null,
+        segmentation: (results.segmentationMask as unknown as ImageData | null) || null,
         timestamp: Date.now(),
       };
 

@@ -1,5 +1,6 @@
 import { CreditsModule } from '@/libs/credits/credits.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
+import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ZapierModule } from '@/modules/integrations/zapier/zapier.module';
@@ -14,7 +15,7 @@ import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
 
 @Module({
-  imports: [ConfigModule, CreditsModule, PrismaModule, PlansModule, EmailModule, SecurityModule, ZapierModule, ReferralModule],
+  imports: [ConfigModule, CreditsModule, PrismaModule, RedisOptimizedModule, PlansModule, EmailModule, SecurityModule, ZapierModule, ReferralModule],
   controllers: [BillingController],
   providers: [BillingService, StripeClientService, StripeWebhookService, CommissionService],
   exports: [BillingService, StripeClientService, CommissionService],

@@ -1,4 +1,4 @@
-import { Zap, Server, Shield } from 'lucide-react';
+import { Zap, Server, Shield, Eye, Camera } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export const metricIcons: Record<string, ReactNode> = {
@@ -9,6 +9,8 @@ export const metricIcons: Record<string, ReactNode> = {
   storage_gb: <Server className="h-4 w-4 text-amber-400" />,
   api_calls: <Zap className="h-4 w-4 text-blue-400" />,
   team_members: <Shield className="h-4 w-4 text-slate-300" />,
+  virtual_tryons: <Eye className="h-4 w-4 text-fuchsia-400" />,
+  try_on_screenshots: <Camera className="h-4 w-4 text-orange-400" />,
 };
 
 export const timelineSeverityDot: Record<string, string> = {

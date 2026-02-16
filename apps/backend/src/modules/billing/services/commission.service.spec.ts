@@ -58,9 +58,9 @@ describe('CommissionService', () => {
       expect(netAmount).toBe(300);
     });
 
-    it('should cap rate at max 20%', () => {
+    it('should cap rate at max 10%', () => {
       const { commissionAmount } = service.calculateCommission(1000, 0.5);
-      expect(commissionAmount).toBe(200);
+      expect(commissionAmount).toBe(100);
     });
   });
 
@@ -81,9 +81,9 @@ describe('CommissionService', () => {
       expect(commission).toBe(15);
     });
 
-    it('should cap percent at max 20%', () => {
+    it('should cap percent at max 10%', () => {
       const commission = service.calculateCommissionCents(10000, 50);
-      expect(commission).toBe(2000);
+      expect(commission).toBe(1000);
     });
   });
 
@@ -96,7 +96,7 @@ describe('CommissionService', () => {
       });
 
       const rate = await service.getCommissionRate('brand-1');
-      expect(rate).toBe(0.1);
+      expect(rate).toBe(0.03);
       expect(mockPrisma.brand.findUnique).toHaveBeenCalledWith({
         where: { id: 'brand-1' },
         select: {
@@ -111,7 +111,7 @@ describe('CommissionService', () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
 
       const rate = await service.getCommissionRate('missing');
-      expect(rate).toBe(0.12);
+      expect(rate).toBe(0.05);
     });
 
     it('should return FREE rate when subscription not active', async () => {
@@ -122,7 +122,7 @@ describe('CommissionService', () => {
       });
 
       const rate = await service.getCommissionRate('brand-1');
-      expect(rate).toBe(0.15);
+      expect(rate).toBe(0.1);
     });
   });
 
@@ -135,14 +135,14 @@ describe('CommissionService', () => {
       });
 
       const percent = await service.getCommissionPercent('brand-1');
-      expect(percent).toBe(7);
+      expect(percent).toBe(2);
     });
 
     it('should return default STARTER percent when brand not found', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
 
       const percent = await service.getCommissionPercent('missing');
-      expect(percent).toBe(12);
+      expect(percent).toBe(5);
     });
 
     it('should return ENTERPRISE percent when plan is ENTERPRISE', async () => {
@@ -153,7 +153,7 @@ describe('CommissionService', () => {
       });
 
       const percent = await service.getCommissionPercent('brand-1');
-      expect(percent).toBe(5);
+      expect(percent).toBe(1);
     });
   });
 
@@ -161,11 +161,11 @@ describe('CommissionService', () => {
     it('should return all plan commission rates', () => {
       const rates = service.getCommissionRates();
       expect(rates).toMatchObject({
-        FREE: 15,
-        STARTER: 12,
-        PROFESSIONAL: 10,
-        BUSINESS: 7,
-        ENTERPRISE: 5,
+        FREE: 10,
+        STARTER: 5,
+        PROFESSIONAL: 3,
+        BUSINESS: 2,
+        ENTERPRISE: 1,
       });
     });
   });
@@ -182,9 +182,9 @@ describe('CommissionService', () => {
 
       expect(result).toMatchObject({
         grossAmountCents: 10000,
-        commissionPercent: 10,
-        commissionCents: 1000,
-        netAmountCents: 9000,
+        commissionPercent: 3,
+        commissionCents: 300,
+        netAmountCents: 9700,
       });
     });
 
@@ -197,9 +197,9 @@ describe('CommissionService', () => {
 
       const result = await service.calculateNetAmount('brand-1', 10000);
 
-      expect(result.commissionPercent).toBe(5);
-      expect(result.commissionCents).toBe(500);
-      expect(result.netAmountCents).toBe(9500);
+      expect(result.commissionPercent).toBe(1);
+      expect(result.commissionCents).toBe(100);
+      expect(result.netAmountCents).toBe(9900);
     });
   });
 });

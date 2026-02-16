@@ -7,6 +7,7 @@
  */
 
 // Core
+import { VirtualTryOn } from './core/VirtualTryOn';
 export { VirtualTryOn } from './core/VirtualTryOn';
 export { CameraManager } from './core/CameraManager';
 export type { CameraState, CameraInfo } from './core/CameraManager';
@@ -56,7 +57,7 @@ export const VERSION = '1.0.0';
  */
 export function createVirtualTryOn(config: {
   container: HTMLElement;
-  category: 'glasses' | 'watch' | 'jewelry';
+  category: 'glasses' | 'watches' | 'jewelry';
   model3dUrl: string;
   debug?: boolean;
 }): VirtualTryOn {

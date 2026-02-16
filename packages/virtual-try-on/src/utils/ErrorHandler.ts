@@ -151,7 +151,7 @@ export class ErrorHandler {
    * Obtient le message user-friendly
    */
   getUserMessage(error: VirtualTryOnError): string {
-    return ERROR_MESSAGES[error.code] || error.message;
+    return ERROR_MESSAGES[error.code as ErrorCode] || error.message;
   }
 
   /**
@@ -206,7 +206,7 @@ export class ErrorHandler {
       INVALID_CONFIG: ['Contactez le support'],
     };
 
-    return suggestions[error.code] || ['Contactez le support technique'];
+    return suggestions[error.code as ErrorCode] || ['Contactez le support technique'];
   }
 
   /**

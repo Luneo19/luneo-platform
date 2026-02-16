@@ -108,13 +108,37 @@ export class BillingSyncService {
           select: { stripeCustomerId: true },
         });
         if (brand?.stripeCustomerId) {
-          await this.stripe.invoiceItems.create({
+          const periodKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+          const idempotencyKey = `ai-overage-${brandId}-${periodKey}`;
+
+          // Check for existing pending invoice item to prevent double-charge
+          const existing = await this.stripe.invoiceItems.list({
             customer: brand.stripeCustomerId,
-            amount: overageCostCents,
-            currency: CurrencyUtils.getStripeCurrency(),
-            description: `Usage IA - Overage ${overageTokens} tokens`,
+            pending: true,
+            limit: 100,
           });
-          this.logger.log(`Overage invoice item created for brand ${brandId}`);
+          const alreadyBilled = existing.data.some(
+            (item) => item.metadata?.idempotencyKey === idempotencyKey,
+          );
+
+          if (!alreadyBilled) {
+            await this.stripe.invoiceItems.create({
+              customer: brand.stripeCustomerId,
+              amount: overageCostCents,
+              currency: CurrencyUtils.getStripeCurrency(),
+              description: `Usage IA - Overage ${overageTokens} tokens`,
+              metadata: {
+                type: 'ai_overage',
+                brandId,
+                periodKey,
+                idempotencyKey,
+                overageTokens: String(overageTokens),
+              },
+            });
+            this.logger.log(`Overage invoice item created for brand ${brandId} (period: ${periodKey})`);
+          } else {
+            this.logger.warn(`Overage invoice item already exists for brand ${brandId} (period: ${periodKey}), skipping`);
+          }
         }
       } catch (err) {
         this.logger.error(`Failed to create overage invoice: ${err}`);
@@ -209,7 +233,7 @@ export class BillingSyncService {
 
     const brand = await this.prisma.brand.findUnique({
       where: { id: brandId },
-      select: { stripeCustomerId: true, plan: true },
+      select: { stripeCustomerId: true, subscriptionPlan: true, plan: true },
     });
 
     if (!brand?.stripeCustomerId) {

@@ -167,4 +167,23 @@ export class ModelOptimizationService {
 
     this.logger.log('Session cleanup cron scheduled (every 5 minutes)');
   }
+
+  /**
+   * Schedule monthly billing sync for try-on commissions and overages.
+   * Runs daily at 02:00 UTC to catch any missed billing periods.
+   */
+  async scheduleBillingSync() {
+    await this.tryOnQueue.add(
+      'billing-sync',
+      {},
+      {
+        repeat: { pattern: '0 2 * * *' }, // Daily at 02:00 UTC
+        jobId: 'tryon-billing-sync-cron',
+        removeOnComplete: { count: 30 },
+        removeOnFail: { count: 10 },
+      },
+    );
+
+    this.logger.log('Try-on billing sync cron scheduled (daily at 02:00 UTC)');
+  }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import TryOnView from '@/components/virtual-tryon/TryOnView';
 import TryOnScreenshotGallery from '@/components/virtual-tryon/TryOnScreenshotGallery';
 import RecommendationPanel from '@/components/virtual-tryon/RecommendationPanel';
@@ -88,6 +88,31 @@ export default function TryOnWidget({
   const [error, setError] = useState<string | null>(null);
   const [screenshots, setScreenshots] = useState<string[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  // Keep ref in sync for cleanup
+  useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
+
+  // End session on unmount or page unload
+  useEffect(() => {
+    const endSessionOnUnload = () => {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+      // Use sendBeacon for reliable delivery during page unload
+      const url = `${API_BASE}/api/v1/public/try-on/sessions/${encodeURIComponent(sid)}/end`;
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, JSON.stringify({}));
+      } else {
+        fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('beforeunload', endSessionOnUnload);
+    return () => {
+      window.removeEventListener('beforeunload', endSessionOnUnload);
+      endSessionOnUnload(); // Also end on component unmount
+    };
+  }, []);
 
   // Load configuration from public API
   useEffect(() => {
@@ -120,12 +145,24 @@ export default function TryOnWidget({
     return () => { mounted = false; };
   }, [brandSlug, productId, externalConfig]);
 
-  // Start a public session
+  // Start a public session (ends any previous session first to avoid orphans)
   useEffect(() => {
     if (!config) return;
 
+    let mounted = true;
     (async () => {
       try {
+        // End any previous session to prevent orphaned sessions
+        const prevSid = sessionIdRef.current;
+        if (prevSid) {
+          const endUrl = `${API_BASE}/api/v1/public/try-on/sessions/${encodeURIComponent(prevSid)}/end`;
+          await fetch(endUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          }).catch(() => {});
+        }
+
         const visitorId = localStorage.getItem('luneo_visitor_id') ||
           `v_${Date.now()}_${Math.random().toString(36).substring(2)}`;
         localStorage.setItem('luneo_visitor_id', visitorId);
@@ -143,7 +180,7 @@ export default function TryOnWidget({
           }),
         });
 
-        if (res.ok) {
+        if (res.ok && mounted) {
           const data = await res.json();
           setSessionId(data.sessionId || data.id);
         }
@@ -151,6 +188,8 @@ export default function TryOnWidget({
         logger.warn('Failed to start widget session', { error: err });
       }
     })();
+
+    return () => { mounted = false; };
   }, [config]);
 
   // Determine category from config

@@ -189,17 +189,17 @@ describe('QuotasService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should use starter plan when brand has no plan set', async () => {
+    it('should use free plan when brand has no plan set', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue({ plan: null });
       mockMeteringService.getCurrentUsage.mockResolvedValue({
-        ai_generations: 15,
+        ai_generations: 1,
       });
 
-      const result = await service.checkQuota(mockBrandId, 'ai_generations', 5);
+      const result = await service.checkQuota(mockBrandId, 'ai_generations', 1);
 
-      // Starter has 20 ai_generations limit
-      expect(result.limit).toBe(20);
-      expect(result.remaining).toBe(5); // remaining = limit - used = 20 - 15
+      // normalizePlanTier(null) returns FREE; Free has 3 ai_generations limit
+      expect(result.limit).toBe(3);
+      expect(result.remaining).toBe(2); // remaining = limit - used = 3 - 1
     });
 
     it('should handle zero current usage', async () => {

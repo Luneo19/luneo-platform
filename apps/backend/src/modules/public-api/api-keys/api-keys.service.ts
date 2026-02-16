@@ -1,7 +1,9 @@
 import { JsonValue } from '@/common/types/utility-types';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { getPlanConfig, normalizePlanTier } from '@/libs/plans/plan-config';
+import { Injectable, Logger, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 
@@ -67,6 +69,28 @@ export class ApiKeysService {
       requestsPerDay: typeof rl.requestsPerDay === 'number' ? rl.requestsPerDay : 10000,
       requestsPerMonth: typeof rl.requestsPerMonth === 'number' ? rl.requestsPerMonth : 300000,
     };
+  }
+
+  /**
+   * Vérifie que le plan du brand autorise l'accès API (création / gestion des clés).
+   * Free/Starter → ForbiddenException. Professional+ → OK. SUPER_ADMIN bypass.
+   */
+  async assertApiAccessAllowed(brandId: string, userRole: UserRole): Promise<void> {
+    if (userRole === UserRole.PLATFORM_ADMIN || (userRole as string) === 'SUPER_ADMIN') {
+      return;
+    }
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: brandId },
+      select: { plan: true, subscriptionPlan: true },
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand not found');
+    }
+    const tier = normalizePlanTier(brand.subscriptionPlan || brand.plan);
+    const planConfig = getPlanConfig(tier);
+    if (!planConfig.limits.apiAccess) {
+      throw new ForbiddenException('API access is not available on your current plan. Please upgrade to Professional or above.');
+    }
   }
 
   /**

@@ -42,11 +42,6 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
       return true;
     }
 
-    // Also skip for login endpoint
-    if (request.path.includes('/auth/login')) {
-      return true;
-    }
-
     // RATE LIMIT FIX: Skip webhook endpoints - external providers (Stripe, WooCommerce, Shopify)
     // send many requests in bursts; rate limiting would cause 429s and failed deliveries (P3-12)
     const webhookPathSuffixes = [

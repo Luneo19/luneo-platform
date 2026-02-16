@@ -160,34 +160,68 @@ function AdminHealthContent() {
         <div className="dash-card border-white/[0.06] p-6 bg-white/[0.03] backdrop-blur-sm">
           <h2 className="text-lg font-semibold text-white mb-4">{t('admin.health.recentIncidents')}</h2>
           <div className="space-y-3">
-            <div className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-              <CheckCircle2 className="h-5 w-5 text-[#4ade80] shrink-0 mt-0.5" />
-              <div>
-                <p className="text-white text-sm font-medium">{t('admin.health.resolvedIncident')}</p>
-                <p className="text-white/40 text-xs">{t('admin.health.resolvedAgo')}</p>
-              </div>
-            </div>
-            <p className="text-white/40 text-sm">{t('admin.health.noActiveIncidents')}</p>
+            {(() => {
+              const degradedServices = displaySystemStatus.filter(s => s.status !== 'operational' && s.status !== 'unknown');
+              if (degradedServices.length === 0) {
+                return (
+                  <div className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                    <CheckCircle2 className="h-5 w-5 text-[#4ade80] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-white text-sm font-medium">{t('admin.health.noActiveIncidents')}</p>
+                      <p className="text-white/40 text-xs">{t('admin.health.allServicesNormal')}</p>
+                    </div>
+                  </div>
+                );
+              }
+              return degradedServices.map(s => (
+                <div key={s.name} className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                  {s.status === 'degraded' ? (
+                    <AlertTriangle className="h-5 w-5 text-[#fbbf24] shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-[#f87171] shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <p className="text-white text-sm font-medium">{s.name} — {s.status}</p>
+                    <p className="text-white/40 text-xs">{t('admin.health.latency')}: {s.latency}</p>
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </div>
 
         <div className="dash-card border-white/[0.06] p-6 bg-white/[0.03] backdrop-blur-sm">
           <h2 className="text-lg font-semibold text-white mb-4">{t('admin.health.healthSummary')}</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60">{t('admin.health.servicesOperational')}</span>
-              <span className="text-[#4ade80] font-medium">3 / 4</span>
-            </div>
-            <div className="w-full bg-white/10 rounded-full h-2">
-              <div
-                className="h-2 rounded-full bg-[#4ade80]"
-                style={{ width: '75%' }}
-              />
-            </div>
-            <p className="text-white/40 text-xs">
-              {t('admin.health.aiEngineLatencyNote')}
-            </p>
-          </div>
+          {(() => {
+            const total = displaySystemStatus.length;
+            const operational = displaySystemStatus.filter(s => s.status === 'operational').length;
+            const pct = total > 0 ? Math.round((operational / total) * 100) : 0;
+            const allOk = operational === total;
+            return (
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">{t('admin.health.servicesOperational')}</span>
+                  <span className={`font-medium ${allOk ? 'text-[#4ade80]' : pct >= 50 ? 'text-[#fbbf24]' : 'text-[#f87171]'}`}>
+                    {operational} / {total}
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${allOk ? 'bg-[#4ade80]' : pct >= 50 ? 'bg-[#fbbf24]' : 'bg-[#f87171]'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {!allOk && (
+                  <p className="text-white/40 text-xs">
+                    {total - operational} {total - operational > 1 ? 'services nécessitent attention' : 'service nécessite attention'}
+                  </p>
+                )}
+                {allOk && (
+                  <p className="text-[#4ade80]/60 text-xs">{t('admin.health.allServicesNormal')}</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

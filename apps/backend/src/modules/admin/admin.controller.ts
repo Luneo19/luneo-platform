@@ -831,4 +831,115 @@ export class AdminController {
       testId: `test-${Date.now()}`,
     };
   }
+
+  // ========================================
+  // INVOICES - Full paginated list (Admin)
+  // ========================================
+
+  @Get('invoices')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all invoices across all brands with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'brandId', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
+  @ApiResponse({ status: 200, description: 'All invoices (paginated). Amount field is in cents.' })
+  async getAllInvoices(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('brandId') brandId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.adminService.getAllInvoices({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      status,
+      brandId,
+      sortBy,
+      sortOrder,
+    });
+  }
+
+  // ========================================
+  // PLAN CHANGE HISTORY (Admin)
+  // ========================================
+
+  @Get('plan-history')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get plan change history across all brands' })
+  @ApiQuery({ name: 'brandId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Plan change history' })
+  async getPlanChangeHistory(
+    @Query('brandId') brandId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getPlanChangeHistory({
+      brandId,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  // ========================================
+  // UPDATE CUSTOMER EMAIL (Admin)
+  // ========================================
+
+  @Patch('customers/:id/email')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update customer email (admin)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'Email updated' })
+  @ApiResponse({ status: 400, description: 'Invalid email or duplicate' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateCustomerEmail(
+    @Param('id') id: string,
+    @Body('email') email: string,
+  ) {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.adminService.updateCustomerEmail(id, email);
+  }
+
+  // ========================================
+  // GLOBAL DESIGNS LIST (Admin)
+  // ========================================
+
+  @Get('designs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all designs across all brands' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'brandId', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
+  @ApiResponse({ status: 200, description: 'All designs (paginated)' })
+  async getAllDesigns(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('brandId') brandId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.adminService.getAllDesigns({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      brandId,
+      sortBy,
+      sortOrder,
+    });
+  }
 }

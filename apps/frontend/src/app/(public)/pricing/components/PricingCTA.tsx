@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
 
 export function PricingCTA() {
@@ -10,21 +9,27 @@ export function PricingCTA() {
 
   return (
     <section className="relative border-t border-white/[0.04] py-16 sm:py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-pink-900/10" />
+      {/* Background glow */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-indigo-500/[0.05] rounded-full blur-[100px]" />
+      </div>
+
       <div className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="font-display text-3xl font-bold text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight">
           {t('pricing.cta.title')}{' '}
-          <span className="italic text-gradient-purple">{t('pricing.cta.titleHighlight')}</span>
+          <span className="bg-gradient-to-r from-violet-400 via-purple-300 to-pink-400 bg-clip-text text-transparent font-editorial italic">
+            {t('pricing.cta.titleHighlight')}
+          </span>
           {' '}{t('pricing.cta.titleEnd')}
         </h2>
-        <p className="mt-4 text-lg text-slate-300">
+        <p className="mt-4 text-base sm:text-lg text-white/50 leading-relaxed">
           {t('pricing.cta.subtitle')}
         </p>
-        <Link href="/contact?type=enterprise" className="mt-8 inline-block">
-          <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold shadow-lg shadow-purple-500/25">
+        <Link href="/contact?plan=enterprise&source=pricing" className="mt-8 inline-block">
+          <button className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 text-white text-sm sm:text-base font-semibold shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5">
             {t('pricing.cta.button')}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
         </Link>
       </div>
     </section>

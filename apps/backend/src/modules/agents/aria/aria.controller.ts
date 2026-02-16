@@ -26,6 +26,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { RateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -46,7 +47,7 @@ import {
 
 @ApiTags('Agents - Aria (B2C)')
 @Controller('agents/aria')
-@UseGuards(JwtAuthGuard, RateLimitGuard)
+@UseGuards(JwtAuthGuard, RateLimitGuard, BrandOwnershipGuard)
 export class AriaController {
   private readonly logger = new Logger(AriaController.name);
 

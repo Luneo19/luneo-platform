@@ -10,6 +10,7 @@ import { UsageTrackingService } from './services/usage-tracking.service';
 import { QuotasService } from './services/quotas.service';
 import { BillingCalculationService } from './services/billing-calculation.service';
 import { UsageReportingService } from './services/usage-reporting.service';
+import { UsageReconciliationService } from './services/usage-reconciliation.service';
 
 describe('UsageBillingController', () => {
   let controller: UsageBillingController;
@@ -50,6 +51,12 @@ describe('UsageBillingController', () => {
           provide: UsageReportingService,
           useValue: {
             generateReport: jest.fn(),
+          },
+        },
+        {
+          provide: UsageReconciliationService,
+          useValue: {
+            runDailyReconciliation: jest.fn(),
           },
         },
       ],

@@ -236,13 +236,13 @@ export class AriaService {
       if (brandId) {
         const brand = await this.prisma.brand.findUnique({
           where: { id: brandId },
-          select: { plan: true },
+          select: { subscriptionPlan: true, plan: true },
         });
 
         const usageCheck = await this.usageGuard.checkUsageBeforeCall(
           brandId,
           undefined,
-          brand?.plan,
+          brand?.subscriptionPlan || brand?.plan,
           1024, // Estimation tokens pour Aria
           'openai',
           'gpt-3.5-turbo',

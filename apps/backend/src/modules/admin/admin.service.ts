@@ -955,7 +955,6 @@ export class AdminService {
     const brandIds = await this.prisma.brand.findMany({
       where: { deletedAt: null },
       select: { id: true, subscriptionPlan: true },
-      take: 100,
     });
     const brandPlanMap = new Map(brandIds.map((b) => [b.id, b.subscriptionPlan]));
     for (const ob of ordersByBrandPlan) {
@@ -1323,7 +1322,6 @@ export class AdminService {
   async getBillingOverview() {
     const brands = await this.prisma.brand.findMany({
       where: { deletedAt: null },
-      take: 100,
       select: {
         id: true,
         name: true,
@@ -1369,7 +1367,11 @@ export class AdminService {
     });
 
     const totalRevenue = (revenue._sum.totalCents || 0) / 100;
-    const mrr = totalRevenue / Math.max(1, 12); // Simplified MRR calculation
+
+    // MRR = sum of monthly recurring price for all ACTIVE subscriptions
+    const mrr = brands
+      .filter(b => b.subscriptionStatus === SubscriptionStatus.ACTIVE)
+      .reduce((sum, b) => sum + getPlanPrice(b.subscriptionPlan), 0);
     const arr = mrr * 12;
 
     return {
@@ -2246,5 +2248,262 @@ export class AdminService {
       where: { id: brandId },
       data: updateData,
     });
+  }
+
+  // ========================================
+  // INVOICES - Full paginated list (Admin)
+  // ========================================
+
+  /**
+   * List ALL invoices across all brands with pagination, search and filters.
+   */
+  async getAllInvoices(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    brandId?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) {
+    const page = params?.page || 1;
+    const limit = Math.min(params?.limit || 20, 100);
+    const skip = (page - 1) * limit;
+    const sortBy = params?.sortBy || 'createdAt';
+    const sortOrder = params?.sortOrder || 'desc';
+
+    const where: Prisma.InvoiceWhereInput = {};
+    if (params?.brandId) where.brandId = params.brandId;
+    if (params?.status) where.status = params.status;
+    if (params?.search) {
+      where.OR = [
+        { id: { contains: params.search, mode: 'insensitive' } },
+        { stripeInvoiceId: { contains: params.search, mode: 'insensitive' } },
+        { brand: { name: { contains: params.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [invoices, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          brand: { select: { id: true, name: true, slug: true, subscriptionPlan: true } },
+        },
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+
+    return {
+      invoices: invoices.map((inv) => ({
+        id: inv.id,
+        stripeInvoiceId: inv.stripeInvoiceId,
+        brandId: inv.brandId,
+        brandName: inv.brand?.name || 'Unknown',
+        brandPlan: inv.brand?.subscriptionPlan || null,
+        amount: Number(inv.amount),
+        currency: inv.currency,
+        status: inv.status,
+        paidAt: inv.paidAt?.toISOString() || null,
+        invoicePdf: inv.pdfUrl || null,
+        createdAt: inv.createdAt.toISOString(),
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ========================================
+  // PLAN CHANGE HISTORY (Admin)
+  // ========================================
+
+  /**
+   * Get plan change history for a specific brand or all brands.
+   * Uses the AuditLog model to track subscription plan changes.
+   */
+  async getPlanChangeHistory(params?: {
+    brandId?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = params?.page || 1;
+    const limit = Math.min(params?.limit || 20, 100);
+    const skip = (page - 1) * limit;
+
+    // Get plan changes from AuditLog if available, otherwise reconstruct from brands
+    try {
+      const where: Prisma.AuditLogWhereInput = {
+        action: { in: ['SUBSCRIPTION_CREATED', 'SUBSCRIPTION_UPDATED', 'SUBSCRIPTION_CANCELED', 'PLAN_CHANGED', 'subscription.updated', 'subscription.deleted', 'checkout.session.completed'] },
+      };
+      if (params?.brandId) where.resourceId = params.brandId;
+
+      const [logs, total] = await Promise.all([
+        this.prisma.auditLog.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { timestamp: 'desc' },
+          select: {
+            id: true,
+            action: true,
+            resourceType: true,
+            resourceId: true,
+            userId: true,
+            metadata: true,
+            timestamp: true,
+          },
+        }),
+        this.prisma.auditLog.count({ where }),
+      ]);
+
+      // Enrich with brand names
+      const brandIds = [...new Set(logs.map(l => l.resourceId).filter(Boolean))] as string[];
+      const brands = brandIds.length > 0
+        ? await this.prisma.brand.findMany({
+            where: { id: { in: brandIds } },
+            select: { id: true, name: true, subscriptionPlan: true },
+          })
+        : [];
+      const brandMap = new Map(brands.map(b => [b.id, b]));
+
+      return {
+        history: logs.map((log) => {
+          const brand = log.resourceId ? brandMap.get(log.resourceId) : null;
+          const meta = log.metadata as Record<string, unknown> | null;
+          return {
+            id: log.id,
+            action: log.action,
+            brandId: log.resourceId,
+            brandName: brand?.name || 'Unknown',
+            currentPlan: brand?.subscriptionPlan || null,
+            previousPlan: meta?.previousPlan || meta?.fromPlan || null,
+            newPlan: meta?.newPlan || meta?.toPlan || meta?.plan || null,
+            userId: log.userId,
+            metadata: meta,
+            createdAt: log.timestamp.toISOString(),
+          };
+        }),
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      };
+    } catch {
+      // Fallback if AuditLog model doesn't have those actions
+      this.logger.warn('AuditLog query for plan changes failed, returning empty history');
+      return { history: [], meta: { total: 0, page, limit, totalPages: 0 } };
+    }
+  }
+
+  // ========================================
+  // UPDATE CUSTOMER EMAIL (Admin)
+  // ========================================
+
+  /**
+   * Update a customer's email address (admin action).
+   * Validates uniqueness before update.
+   */
+  async updateCustomerEmail(customerId: string, newEmail: string) {
+    const existing = await this.prisma.user.findUnique({ where: { id: customerId } });
+    if (!existing) {
+      throw new NotFoundException(`Customer with ID ${customerId} not found`);
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      throw new BadRequestException('Invalid email format');
+    }
+
+    // Check uniqueness
+    const duplicate = await this.prisma.user.findUnique({ where: { email: newEmail } });
+    if (duplicate && duplicate.id !== customerId) {
+      throw new BadRequestException('This email address is already used by another account');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: customerId },
+      data: { email: newEmail },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        updatedAt: true,
+      },
+    });
+
+    this.logger.log(`Admin updated email for user ${customerId}: ${existing.email} -> ${newEmail}`);
+    return updated;
+  }
+
+  // ========================================
+  // GLOBAL DESIGNS LIST (Admin)
+  // ========================================
+
+  /**
+   * List all designs across all brands with pagination and filters.
+   */
+  async getAllDesigns(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    brandId?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) {
+    const page = params?.page || 1;
+    const limit = Math.min(params?.limit || 20, 100);
+    const skip = (page - 1) * limit;
+    const sortBy = params?.sortBy || 'createdAt';
+    const sortOrder = params?.sortOrder || 'desc';
+
+    const where: Prisma.DesignWhereInput = {};
+    if (params?.brandId) where.brandId = params.brandId;
+    if (params?.search) {
+      where.OR = [
+        { name: { contains: params.search, mode: 'insensitive' } },
+        { brand: { name: { contains: params.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [designs, total] = await Promise.all([
+      this.prisma.design.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          previewUrl: true,
+          imageUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          brand: { select: { id: true, name: true } },
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.design.count({ where }),
+    ]);
+
+    return {
+      designs: designs.map((d) => ({
+        ...d,
+        thumbnailUrl: d.previewUrl || d.imageUrl || null,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

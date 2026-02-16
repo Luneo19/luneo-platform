@@ -484,6 +484,7 @@ export const endpoints = {
     cancelSubscription: (immediate?: boolean) =>
       api.post<{ success: boolean; message?: string; cancelAt?: string }>('/api/v1/billing/cancel-subscription', { immediate: !!immediate }),
     invoices: () => api.get('/api/v1/billing/invoices'),
+    exportInvoicesCSV: () => api.get<{ csv: string; filename: string }>('/api/v1/billing/invoices/export/csv'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
     addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
     removePaymentMethod: () => api.delete('/api/v1/billing/payment-methods'),
@@ -491,7 +492,7 @@ export const endpoints = {
     portal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
     changePlan: (data: { planId: string; billingInterval?: string }) => api.post('/api/v1/billing/change-plan', data),
     previewPlanChange: (planId: string, billingInterval?: string) => 
-      api.get('/api/v1/billing/preview-plan-change', { params: { planId, billingInterval } }),
+      api.get('/api/v1/billing/preview-plan-change', { params: { planId, interval: billingInterval } }),
     scheduledChanges: () => api.get('/api/v1/billing/scheduled-changes'),
   },
 
@@ -698,6 +699,10 @@ export const endpoints = {
     batchUploadScreenshots: (sessionId: string, body: { screenshots: Array<{ imageBase64: string; productId: string; metadata?: Record<string, unknown> }> }) =>
       api.post<{ created: number; failed: number; total: number }>(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/screenshots/batch`, body),
 
+    // Product tracking
+    trackProductTried: (sessionId: string, productId: string) =>
+      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/product-tried`, { productId }),
+
     // Performance
     submitPerformance: (sessionId: string, body: { metrics: Array<{ fps: number; detectionLatencyMs: number; renderLatencyMs: number; gpuInfo?: string; deviceType: string; browserInfo?: string }> }) =>
       api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/performance`, body),
@@ -715,6 +720,34 @@ export const endpoints = {
     // Analytics
     getAnalytics: (days?: number) =>
       api.get('/api/v1/try-on/analytics', { params: { days } }),
+    getAnalyticsROI: (days?: number) =>
+      api.get('/api/v1/try-on/analytics/roi', { params: { days } }),
+    getAnalyticsFunnel: (days?: number) =>
+      api.get('/api/v1/try-on/analytics/funnel', { params: { days } }),
+    getAnalyticsProducts: (days?: number) =>
+      api.get('/api/v1/try-on/analytics/products', { params: { days } }),
+    getAnalyticsDevices: (days?: number) =>
+      api.get('/api/v1/try-on/analytics/devices', { params: { days } }),
+    getAnalyticsTrend: (days?: number) =>
+      api.get('/api/v1/try-on/analytics/trend', { params: { days } }),
+    getAnalyticsShares: (days?: number) =>
+      api.get('/api/v1/try-on/analytics/shares', { params: { days } }),
+
+    // Conversions
+    getConversions: (params?: { days?: number; action?: string }) =>
+      api.get('/api/v1/try-on/conversions', { params }),
+    getConversionReport: (days?: number) =>
+      api.get('/api/v1/try-on/conversions/report', { params: { days } }),
+    attributeRevenue: (conversionId: string, body: { revenue: number; orderId?: string; commissionRate?: number }) =>
+      api.post(`/api/v1/try-on/conversions/${encodeURIComponent(conversionId)}/revenue`, body),
+
+    // Widget config
+    getWidgetConfig: () =>
+      api.get('/api/v1/try-on/widget-config'),
+    updateWidgetConfig: (body: Record<string, unknown>) =>
+      api.patch('/api/v1/try-on/widget-config', body),
+    getEmbedCode: (params?: { format?: string }) =>
+      api.get('/api/v1/try-on/widget-config/embed-code', { params }),
   },
 
   // Experiments (A/B)

@@ -11,6 +11,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
 import { AuditLogsService } from '@/modules/security/services/audit-logs.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
 describe('BillingService', () => {
   let service: BillingService;
@@ -120,6 +121,10 @@ describe('BillingService', () => {
         { provide: StripeClientService, useValue: mockStripeClient },
         { provide: StripeWebhookService, useValue: mockWebhookService },
         { provide: AuditLogsService, useValue: mockAuditLogsService },
+        {
+          provide: DistributedLockService,
+          useValue: { acquire: jest.fn().mockResolvedValue(true), release: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 
@@ -169,10 +174,10 @@ describe('BillingService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw NotFoundException for unknown plan', async () => {
+    it('should throw BadRequestException for unknown/non-self-service plan', async () => {
       await expect(
         service.createCheckoutSession('nonexistent_plan', 'user-123', 'test@test.com'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

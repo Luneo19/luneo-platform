@@ -226,7 +226,7 @@ export class HolisticTracker {
           keypoints: this.convertPoseLandmarksToKeypoints(results.poseLandmarks || []),
           confidence: this.calculatePoseConfidence(results.poseLandmarks || []),
         } : undefined,
-        segmentation: results.segmentationMask || null,
+        segmentation: (results.segmentationMask as unknown as ImageData | null) || null,
         timestamp: Date.now(),
       };
 

@@ -21,7 +21,9 @@ export type UsageMetricType =
   | 'api_calls'
   | 'webhook_deliveries'
   | 'custom_domains'
-  | 'team_members';
+  | 'team_members'
+  | 'virtual_tryons'
+  | 'try_on_screenshots';
 export type UsagePeriod = 'hour' | 'day' | 'month';
 export type OverageBehavior = 'block' | 'charge';
 
@@ -111,12 +113,14 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 3, period: 'month', overage: 'block', unit: 'générations' },
       { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 0.5, period: 'month', overage: 'block', unit: 'GB' },
       { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 0, period: 'month', overage: 'block', unit: 'appels' },
+      { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 10, period: 'month', overage: 'block', unit: 'sessions' },
+      { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 20, period: 'month', overage: 'block', unit: 'screenshots' },
       { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 1, period: 'month', overage: 'block', unit: 'membres' },
     ],
     features: [
       { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
       { id: 'configurator_3d', label: 'Configurateur 3D', enabled: false },
-      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: false },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Basique (10/mois)' },
       { id: 'ar_export', label: 'AR/VR Export', enabled: false },
       { id: 'api_access', label: 'Accès API', enabled: false },
       { id: 'white_label', label: 'White Label', enabled: false },
@@ -151,12 +155,14 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 20, period: 'month', overage: 'charge', overageRate: 75, unit: 'générations' },
       { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 5, period: 'month', overage: 'charge', overageRate: 50, unit: 'GB' },
       { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 10000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 30, unit: 'sessions' },
+      { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 500, period: 'month', overage: 'charge', overageRate: 10, unit: 'screenshots' },
       { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 3, period: 'month', overage: 'block', unit: 'membres' },
     ],
     features: [
       { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
       { id: 'configurator_3d', label: 'Configurateur 3D', enabled: false },
-      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: false },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: '100/mois' },
       { id: 'ar_export', label: 'AR/VR Export', enabled: false },
       { id: 'api_access', label: 'Accès API', enabled: false },
       { id: 'white_label', label: 'White Label', enabled: false },
@@ -191,12 +197,14 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 60, unit: 'générations' },
       { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 25, period: 'month', overage: 'charge', overageRate: 40, unit: 'GB' },
       { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 50000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 1000, period: 'month', overage: 'charge', overageRate: 20, unit: 'sessions' },
+      { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 5000, period: 'month', overage: 'charge', overageRate: 5, unit: 'screenshots' },
       { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 10, period: 'month', overage: 'block', unit: 'membres' },
     ],
     features: [
       { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
       { id: 'configurator_3d', label: 'Configurateur 3D', enabled: true },
-      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Partiel' },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: '1 000/mois' },
       { id: 'ar_export', label: 'AR/VR Export', enabled: true },
       { id: 'api_access', label: 'Accès API', enabled: true },
       { id: 'white_label', label: 'White Label', enabled: true },
@@ -231,12 +239,14 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 500, period: 'month', overage: 'charge', overageRate: 50, unit: 'générations' },
       { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 100, period: 'month', overage: 'charge', overageRate: 30, unit: 'GB' },
       { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 200000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 10000, period: 'month', overage: 'charge', overageRate: 10, unit: 'sessions' },
+      { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 50000, period: 'month', overage: 'charge', overageRate: 3, unit: 'screenshots' },
       { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 50, period: 'month', overage: 'block', unit: 'membres' },
     ],
     features: [
       { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
       { id: 'configurator_3d', label: 'Configurateur 3D', enabled: true },
-      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Complet' },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: '10 000/mois' },
       { id: 'ar_export', label: 'AR/VR Export', enabled: true },
       { id: 'api_access', label: 'Accès API', enabled: true },
       { id: 'white_label', label: 'White Label', enabled: true },
@@ -271,12 +281,14 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 40, unit: 'générations' },
       { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 500, period: 'month', overage: 'charge', overageRate: 20, unit: 'GB' },
       { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 9999999, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
+      { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 5, unit: 'sessions' },
+      { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 99999, period: 'month', overage: 'charge', overageRate: 2, unit: 'screenshots' },
       { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 999, period: 'month', overage: 'block', unit: 'membres' },
     ],
     features: [
       { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
       { id: 'configurator_3d', label: 'Configurateur 3D', enabled: true },
-      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Complet' },
+      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: 'Illimité' },
       { id: 'ar_export', label: 'AR/VR Export', enabled: true },
       { id: 'api_access', label: 'Accès API', enabled: true },
       { id: 'white_label', label: 'White Label', enabled: true },

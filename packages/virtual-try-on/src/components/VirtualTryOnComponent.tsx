@@ -355,13 +355,13 @@ export function VirtualTryOnComponent({
               borderRadius: '50%',
               backgroundColor: 'white',
             }} />
-            {category === 'watch' ? 'Main' : 'Visage'}
+            {category === 'watches' ? 'Main' : 'Visage'}
           </div>
         </div>
       )}
       
       {/* Controls */}
-      {showControls && state === 'running' && (
+      {showControls && (state === 'running' || state === 'paused') && (
         <div style={{
           position: 'absolute',
           bottom: 16,
@@ -427,7 +427,7 @@ export function VirtualTryOnComponent({
       )}
       
       {/* CSS animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }

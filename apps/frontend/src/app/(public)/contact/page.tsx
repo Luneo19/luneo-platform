@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Mail, Phone, MapPin, Send, CheckCircle, MessageSquare, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,10 @@ import { useI18n } from '@/i18n/useI18n';
 
 function ContactPageContent() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get('plan');
+  const sourceParam = searchParams.get('source');
+  const isEnterprisePricing = planParam === 'enterprise' && sourceParam === 'pricing';
 
   const contactInfo = [
     {
@@ -47,12 +52,24 @@ function ContactPageContent() {
     name: '',
     email: '',
     company: '',
-    subject: '',
-    message: ''
+    subject: isEnterprisePricing ? 'Demande de devis — Plan Enterprise' : '',
+    message: isEnterprisePricing
+      ? 'Bonjour,\n\nNous sommes intéressés par le plan Enterprise de Luneo. Pouvez-vous nous contacter pour discuter de nos besoins et obtenir un devis personnalisé ?\n\nMerci.'
+      : '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isEnterprisePricing && !formData.subject.includes('Enterprise')) {
+      setFormData(prev => ({
+        ...prev,
+        subject: 'Demande de devis — Plan Enterprise',
+        message: prev.message || 'Bonjour,\n\nNous sommes intéressés par le plan Enterprise de Luneo. Pouvez-vous nous contacter pour discuter de nos besoins et obtenir un devis personnalisé ?\n\nMerci.',
+      }));
+    }
+  }, [isEnterprisePricing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +93,9 @@ function ContactPageContent() {
 
       const data = await api.post<{ success?: boolean; error?: string; message?: string }>('/api/v1/contact', {
         ...formData,
-        type: 'general',
+        type: isEnterprisePricing ? 'enterprise_pricing' : 'general',
+        plan: planParam || undefined,
+        source: sourceParam || undefined,
         captchaToken,
       });
 
@@ -115,7 +134,20 @@ function ContactPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Form */}
           <Card className="p-5 sm:p-8 bg-dark-card/60 border-white/[0.04]">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">{t('public.contact.sendMessage')}</h2>
+            {isEnterprisePricing && (
+              <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-purple-500/10 border border-indigo-500/20">
+                <div className="flex items-start gap-3">
+                  <Building2 className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-indigo-300">Plan Enterprise — Demande de devis</h3>
+                    <p className="text-xs text-white/50 mt-1">
+                      Notre equipe commerciale vous contactera sous 24h pour discuter de vos besoins specifiques, des prestations sur-mesure et des conditions tarifaires adaptees a votre organisation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">{isEnterprisePricing ? 'Demandez votre devis Enterprise' : t('public.contact.sendMessage')}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

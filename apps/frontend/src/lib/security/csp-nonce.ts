@@ -5,15 +5,16 @@
  * to allow inline scripts and styles while maintaining security
  */
 
-import crypto from 'crypto';
-
 /**
  * Generate a cryptographically secure nonce
+ * Uses Web Crypto API (compatible with Edge Runtime)
  * @param length - Length of the nonce (default: 16 bytes = 32 hex chars)
  * @returns Base64-encoded nonce
  */
 export function generateNonce(length: number = 16): string {
-  return crypto.randomBytes(length).toString('base64');
+  const bytes = new Uint8Array(length);
+  globalThis.crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
 }
 
 /**

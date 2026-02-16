@@ -1,3 +1,6 @@
+/* Import corrections globales - must come before all other rules (v2) */
+@import '../styles/fixes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,9 +14,6 @@
     background-position: 200% 0;
   }
 }
-
-/* Import corrections globales */
-@import '../styles/fixes.css';
 
 @layer base {
   :root {
@@ -654,36 +654,6 @@
   }
 
   /* ===================================================================
-     DARK BACKGROUND TEXT CONTRAST BOOST
-     Boosts gray/slate text colors to white-ish on dark backgrounds
-     for better readability across all marketing & public pages
-     =================================================================== */
-
-  /* Gray-300 / Slate-300 → near-white (78% opacity) */
-  .bg-dark-bg .text-gray-300,
-  .bg-dark-bg .text-slate-300,
-  .bg-gray-900 .text-gray-300,
-  .bg-gray-900 .text-slate-300 {
-    color: rgba(255, 255, 255, 0.78);
-  }
-
-  /* Gray-400 / Slate-400 → visible white (68% opacity) */
-  .bg-dark-bg .text-gray-400,
-  .bg-dark-bg .text-slate-400,
-  .bg-gray-900 .text-gray-400,
-  .bg-gray-900 .text-slate-400 {
-    color: rgba(255, 255, 255, 0.68);
-  }
-
-  /* Gray-500 / Slate-500 → subtle white (55% opacity) */
-  .bg-dark-bg .text-gray-500,
-  .bg-dark-bg .text-slate-500,
-  .bg-gray-900 .text-gray-500,
-  .bg-gray-900 .text-slate-500 {
-    color: rgba(255, 255, 255, 0.55);
-  }
-
-  /* ===================================================================
      DASHBOARD DESIGN SYSTEM - Dark Glassmorphism
      =================================================================== */
 
@@ -913,4 +883,26 @@
     animation: pulse 2s ease-in-out infinite;
   }
 }
+
+/* ─── Electric Grid Animations (Madgicx-style) ─── */
+@keyframes electric-scan-h {
+  0% { transform: translateY(-100vh); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes electric-scan-v {
+  0% { transform: translateX(-100vw); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(100vw); opacity: 0; }
+}
+
+@keyframes orbit-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
 

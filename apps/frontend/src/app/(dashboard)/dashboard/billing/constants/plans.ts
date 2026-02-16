@@ -35,7 +35,7 @@ export const PLANS: Plan[] = [
       '50 designs/mois',
       '10 produits',
       '3 membres',
-      'Support prioritaire',
+      'Support email',
     ],
   },
   {

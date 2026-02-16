@@ -4,8 +4,7 @@
  */
 
 import * as THREE from "three";
-import { HAND_LANDMARKS_INDICES } from "@luneo/virtual-try-on/src/tracking/HandTracker";
-import { FACE_LANDMARKS_INDICES } from "@luneo/virtual-try-on/src/tracking/FaceTracker";
+import { HAND_LANDMARKS_INDICES, FACE_LANDMARKS_INDICES } from "@luneo/virtual-try-on";
 
 /**
  * Interface pour landmarks de main (depuis HandTracker)

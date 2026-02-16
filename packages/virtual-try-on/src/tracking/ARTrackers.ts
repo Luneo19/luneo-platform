@@ -264,24 +264,23 @@ export class ARTrackers {
     }
 
     if (this.handTracker) {
-      const handResults = this.handTracker.getLastResults();
       results.hands = {};
 
-      if (handResults.has('Left')) {
-        const left = handResults.get('Left')!;
+      const leftResult = this.handTracker.getLastResult('Left');
+      if (leftResult) {
         results.hands.left = {
           detected: true,
-          landmarks: left.landmarks,
-          confidence: left.confidence || 0.9,
+          landmarks: leftResult.landmarks,
+          confidence: leftResult.confidence || 0.9,
         };
       }
 
-      if (handResults.has('Right')) {
-        const right = handResults.get('Right')!;
+      const rightResult = this.handTracker.getLastResult('Right');
+      if (rightResult) {
         results.hands.right = {
           detected: true,
-          landmarks: right.landmarks,
-          confidence: right.confidence || 0.9,
+          landmarks: rightResult.landmarks,
+          confidence: rightResult.confidence || 0.9,
         };
       }
     }
@@ -343,12 +342,12 @@ export class ARTrackers {
 
     const disposePromises: Promise<void>[] = [];
 
-    if (this.faceTracker) {
-      disposePromises.push(this.faceTracker.dispose());
+    if (this.faceTracker && typeof (this.faceTracker as any).dispose === 'function') {
+      disposePromises.push((this.faceTracker as any).dispose());
     }
 
-    if (this.handTracker) {
-      disposePromises.push(this.handTracker.dispose());
+    if (this.handTracker && typeof (this.handTracker as any).dispose === 'function') {
+      disposePromises.push((this.handTracker as any).dispose());
     }
 
     if (this.poseTracker) {

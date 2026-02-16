@@ -6,7 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
-import { AnimatedBorder, AnimatedBorderCTA } from '@/components/ui/animated-border';
+// AnimatedBorder removed - using clean border styles directly
 import { useI18n } from '@/i18n/useI18n';
 import type { Plan } from '../data';
 
@@ -32,12 +32,12 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
     isYearly && price && price > 0 ? t('pricing.card.billedYearly', { amount: String(plan.priceYearly) }) : null;
 
   const handleClick = async () => {
-    if (plan.id === 'free' || plan.id === 'starter') {
+    if (plan.id === 'free') {
       window.location.href = plan.ctaHref || '/register';
       return;
     }
     if (plan.id === 'enterprise') {
-      window.location.href = plan.ctaHref || '/contact?type=enterprise';
+      window.location.href = plan.ctaHref || '/contact?plan=enterprise&source=pricing';
       return;
     }
     setIsLoading(true);
@@ -81,63 +81,60 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
   const cardContent = (
     <>
       {plan.popular && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
-          <span className="whitespace-nowrap rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-3 sm:px-4 py-1 text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider shadow-lg shadow-purple-500/30">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+          <span className="whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-0.5 text-[10px] font-bold text-white uppercase tracking-widest shadow-lg shadow-indigo-500/20">
             {plan.badge}
           </span>
         </div>
       )}
 
-      <div className="mb-6">
-        <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-        <p className="mt-2 text-sm text-slate-300">{plan.description}</p>
+      <div className="mb-5">
+        <h3 className="text-lg sm:text-xl font-bold text-white">{plan.name}</h3>
+        <p className="mt-1.5 text-xs sm:text-sm text-white/50 leading-relaxed">{plan.description}</p>
       </div>
 
       <div className="mb-6">
-        <div className="flex items-baseline">
-          <span className="text-4xl font-bold text-white font-display">{displayPrice}</span>
-          {period && <span className="ml-2 text-lg text-slate-300">{period}</span>}
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl sm:text-4xl font-bold text-white font-editorial tabular-nums">{displayPrice}</span>
+          {period && <span className="text-sm text-white/40">{period}</span>}
         </div>
         {yearlyNote && (
-          <p className="mt-1 text-sm text-slate-300">{yearlyNote}</p>
+          <p className="mt-1 text-xs text-white/40">{yearlyNote}</p>
         )}
         {isYearly &&
           price !== null &&
           price !== undefined &&
           price > 0 && (
-            <p className="mt-1 text-sm font-medium text-green-400">
+            <p className="mt-1 text-xs font-medium text-green-400">
               {t('pricing.card.save20')}
             </p>
           )}
       </div>
 
-      <AnimatedBorderCTA speed="normal" variant={plan.popular ? 'gradient' : 'white'}>
-        <Button
-          onClick={handleClick}
-          disabled={isLoading}
-          className={`w-full font-semibold ${
-            plan.popular
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
-              : 'bg-white text-black hover:bg-white/90 border-0'
-          }`}
-          size="lg"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {t('pricing.card.loading')}
-            </>
-          ) : (
-            plan.cta
-          )}
-        </Button>
-      </AnimatedBorderCTA>
+      <Button
+        onClick={handleClick}
+        disabled={isLoading}
+        className={`w-full font-semibold text-sm h-10 sm:h-11 rounded-lg transition-all duration-200 ${
+          plan.popular
+            ? 'bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/20'
+            : 'bg-white/[0.08] text-white hover:bg-white/[0.12] border border-white/[0.08]'
+        }`}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {t('pricing.card.loading')}
+          </>
+        ) : (
+          plan.cta
+        )}
+      </Button>
 
-      <ul className="mt-8 space-y-4">
+      <ul className="mt-6 space-y-3">
         {plan.features.map((feature, index) => (
-          <li key={index} className="flex items-start">
-            <Check className="mr-3 h-5 w-5 flex-shrink-0 text-green-400" />
-            <span className="text-sm text-slate-300">{feature}</span>
+          <li key={index} className="flex items-start gap-2.5">
+            <Check className="h-4 w-4 flex-shrink-0 text-green-400 mt-0.5" />
+            <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{feature}</span>
           </li>
         ))}
       </ul>
@@ -148,19 +145,17 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
     <motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative ${plan.popular ? 'scale-[1.02]' : ''}`}
+      className="relative h-full"
     >
-      {plan.popular ? (
-        <AnimatedBorder speed="normal" className="h-full">
-          <div className="relative p-8 rounded-2xl h-full">
-            {cardContent}
-          </div>
-        </AnimatedBorder>
-      ) : (
-        <div className="relative rounded-2xl border border-white/[0.04] bg-dark-card/60 hover:border-white/[0.08] p-8 transition-all duration-300 hover:-translate-y-1 h-full">
-          {cardContent}
-        </div>
-      )}
+      <div
+        className={`relative rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 h-full flex flex-col ${
+          plan.popular
+            ? 'bg-gradient-to-b from-indigo-500/[0.06] to-transparent border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.08)]'
+            : 'border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]'
+        }`}
+      >
+        {cardContent}
+      </div>
     </motion>
   );
 }

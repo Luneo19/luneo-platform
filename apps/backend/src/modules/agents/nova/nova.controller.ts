@@ -25,6 +25,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { RateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
@@ -37,7 +38,7 @@ import { NovaChatDto, NovaTicketDto, NovaFaqQueryDto } from './dto';
 
 @ApiTags('Agents - Nova (Support)')
 @Controller('agents/nova')
-@UseGuards(JwtAuthGuard, RateLimitGuard) // Auth + rate limiting global
+@UseGuards(JwtAuthGuard, RateLimitGuard, BrandOwnershipGuard)
 export class NovaController {
   private readonly logger = new Logger(NovaController.name);
 

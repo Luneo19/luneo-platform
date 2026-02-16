@@ -297,13 +297,13 @@ export class LunaService {
       // 0. Vérifier usage (Usage Guardian) - AVANT tout traitement
       const brand = await this.prisma.brand.findUnique({
         where: { id: validated.brandId },
-        select: { plan: true },
+        select: { subscriptionPlan: true, plan: true },
       });
 
       const usageCheck = await this.usageGuard.checkUsageBeforeCall(
         validated.brandId,
         validated.userId,
-        brand?.plan,
+        brand?.subscriptionPlan || brand?.plan,
         4096, // Estimation par défaut
         'anthropic',
         'claude-3-sonnet',

@@ -712,6 +712,42 @@ function Sidebar({ onClose }: SidebarProps = {}) {
         ))}
       </div>
 
+      {/* Admin Panel Link — visible only for PLATFORM_ADMIN */}
+      {user?.role === 'PLATFORM_ADMIN' && (
+        <div className="border-t border-white/[0.06] px-2 py-3">
+          <Link
+            href="/admin"
+            onClick={handleNavClick}
+            className={`flex items-center px-3 py-3 rounded-lg transition-all duration-200 border ${
+              pathname?.startsWith('/admin')
+                ? 'dash-sidebar-item-active'
+                : 'border-transparent hover:bg-gradient-to-r hover:from-red-500/10 hover:to-orange-500/10'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              effectiveCollapsed ? '' : 'mr-3'
+            } ${
+              pathname?.startsWith('/admin')
+                ? 'bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-400'
+                : 'bg-gradient-to-br from-red-500/10 to-orange-500/10 text-red-400/70'
+            }`}>
+              <Shield className="w-4 h-4" />
+            </div>
+            {!effectiveCollapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-red-400">Admin Panel</span>
+                  <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 shrink-0">
+                    Admin
+                  </span>
+                </div>
+                <p className="text-xs text-white/40">Gestion globale de la plateforme</p>
+              </div>
+            )}
+          </Link>
+        </div>
+      )}
+
       {/* User Section */}
       <div className="border-t border-white/[0.06] p-4">
         {!effectiveCollapsed ? (

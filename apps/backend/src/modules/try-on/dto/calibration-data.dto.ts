@@ -4,7 +4,7 @@ import {
   IsOptional,
   Min,
   Max,
-  IsEnum,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -21,7 +21,7 @@ export class CalibrationDataDto {
     enum: ['mobile', 'desktop', 'tablet'],
     example: 'mobile',
   })
-  @IsEnum(['mobile', 'desktop', 'tablet'] as const)
+  @IsIn(['mobile', 'desktop', 'tablet'])
   deviceType: 'mobile' | 'desktop' | 'tablet';
 
   @ApiProperty({

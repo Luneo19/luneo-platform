@@ -1,9 +1,10 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { TryOnScreenshotService } from '../services/try-on-screenshot.service';
 import { PerformanceService } from '../services/performance.service';
+import { TryOnBillingSyncService } from '../services/try-on-billing-sync.service';
 
 export interface ProcessScreenshotBatchPayload {
   sessionId: string;
@@ -46,6 +47,7 @@ export class TryOnProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly screenshotService: TryOnScreenshotService,
     private readonly performanceService: PerformanceService,
+    @Optional() private readonly billingSyncService?: TryOnBillingSyncService,
   ) {
     super();
   }
@@ -64,6 +66,8 @@ export class TryOnProcessor extends WorkerHost {
         );
       case 'expire-sessions':
         return this.expireSessions(job as Job<ExpireSessionsPayload>);
+      case 'billing-sync':
+        return this.runBillingSync();
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);
         return null;
@@ -129,6 +133,21 @@ export class TryOnProcessor extends WorkerHost {
       });
       throw error;
     }
+  }
+
+  /**
+   * Run the monthly billing sync for try-on commissions and overages.
+   */
+  private async runBillingSync() {
+    if (!this.billingSyncService) {
+      this.logger.warn('TryOnBillingSyncService not available, skipping billing sync');
+      return { skipped: true };
+    }
+
+    this.logger.log('Running try-on billing sync');
+    const result = await this.billingSyncService.syncAllBrands();
+    this.logger.log(`Billing sync complete: ${JSON.stringify(result)}`);
+    return result;
   }
 
   /**

@@ -199,8 +199,8 @@ describe('CalibrationService', () => {
 
       const result = await service.getRecommendation('desktop');
 
-      // (30 + 10 + 12) / 2 = 26 → medium (>= 20 but < 30)
-      expect(result.qualityLevel).toBe('medium');
+      // avgFps = (10 + 12) / 2 = 11 → low (< 20)
+      expect(result.qualityLevel).toBe('low');
     });
 
     it('should skip sessions without valid calibration data', async () => {

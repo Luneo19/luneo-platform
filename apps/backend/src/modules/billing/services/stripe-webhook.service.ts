@@ -14,11 +14,12 @@ import { Prisma, SubscriptionStatus, SubscriptionPlan } from '@prisma/client';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { CurrencyUtils } from '@/config/currency.config';
 import { EmailService } from '@/modules/email/email.service';
-import { normalizePlanTier, getMonthlyCredits } from '@/libs/plans/plan-config';
+import { normalizePlanTier, getMonthlyCredits, getPlanConfig } from '@/libs/plans/plan-config';
 import { PlanTier } from '@/libs/plans/plan-config.types';
 import { StripeClientService } from './stripe-client.service';
 import { ReferralService } from '@/modules/referral/referral.service';
 import { ZapierService } from '@/modules/integrations/zapier/zapier.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 import type Stripe from 'stripe';
 
 type WebhookResult = { processed: boolean; result?: Record<string, unknown> };
@@ -34,6 +35,7 @@ export class StripeWebhookService {
     private emailService: EmailService,
     private stripeClient: StripeClientService,
     private referralService: ReferralService,
+    private distributedLock: DistributedLockService,
     @Optional() private zapierService?: ZapierService,
   ) {}
 
@@ -44,22 +46,36 @@ export class StripeWebhookService {
   async handleStripeWebhook(event: Stripe.Event): Promise<WebhookResult> {
     this.logger.log(`Processing Stripe webhook: ${event.type}`, { eventId: event.id });
 
+    // Distributed lock to prevent parallel processing of the same event across workers
+    const lockKey = `webhook:${event.id}`;
+    const lockAcquired = await this.distributedLock.acquire(lockKey, 120);
+    if (!lockAcquired) {
+      this.logger.debug(`Webhook event ${event.id} is already being processed by another worker, skipping`);
+      return { processed: false, result: undefined };
+    }
+
+    try {
+      return await this._processWebhookWithLock(event);
+    } finally {
+      await this.distributedLock.release(lockKey);
+    }
+  }
+
+  private async _processWebhookWithLock(event: Stripe.Event): Promise<WebhookResult> {
     // BIL-07: Idempotency via ProcessedWebhookEvent table
     try {
-      // Atomic idempotency check: try to create/claim the event
       const eventRecord = await this.prisma.processedWebhookEvent.upsert({
         where: { eventId: event.id },
         create: { eventId: event.id, eventType: event.type, processed: false, attempts: 1 },
         update: { attempts: { increment: 1 } },
       });
-      // If already processed, skip
       if (eventRecord.processed) {
         this.logger.debug(`Webhook event already processed: ${event.id}`);
         return { processed: true, result: (eventRecord.result as Record<string, unknown>) ?? undefined };
       }
-      // If another worker already claimed it (attempts > 1 and we're not the first), skip
-      if (eventRecord.attempts > 1) {
-        this.logger.debug(`Webhook event being processed by another worker: ${event.id}`);
+      const MAX_WEBHOOK_ATTEMPTS = 5;
+      if (eventRecord.attempts > MAX_WEBHOOK_ATTEMPTS) {
+        this.logger.warn(`Webhook event ${event.id} exceeded max attempts (${MAX_WEBHOOK_ATTEMPTS}), giving up`);
         return { processed: false, result: undefined };
       }
     } catch (error: unknown) {
@@ -230,49 +246,83 @@ export class StripeWebhookService {
       const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
       const subscriptionId = typeof session.subscription === 'string' ? session.subscription : (session.subscription as { id?: string } | null)?.id;
 
+      // Resolve brand: prefer metadata.userId, fallback to stripeCustomerId
+      let brandId: string | null = null;
       if (session.metadata?.userId) {
-        const user = await this.prisma.user.findUnique({ where: { id: session.metadata.userId }, include: { brand: true } });
-        if (user?.brandId) {
-          const planId = session.metadata?.planId || 'starter';
-          let subscriptionStatus = 'ACTIVE';
-          let trialEndsAt: Date | null = null;
-          let currentPeriodEnd: Date | null = null;
-
-          if (subscriptionId) {
-            try {
-              const stripe = await this.stripeClient.getStripe();
-              const sub = await stripe.subscriptions.retrieve(subscriptionId);
-              subscriptionStatus = this.mapStripeStatusToAppStatus(sub.status);
-              trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
-              currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
-            } catch (err: unknown) {
-              const msg = err instanceof Error ? err.message : String(err);
-              this.logger.warn(`Could not retrieve subscription ${subscriptionId}: ${msg}`);
-            }
-          }
-
-          // BUGFIX: Also sync subscriptionPlan enum alongside plan string for consistency
-          const planToSubscriptionPlan: Record<string, string> = {
-            free: 'FREE', starter: 'STARTER', professional: 'PROFESSIONAL',
-            business: 'BUSINESS', enterprise: 'ENTERPRISE',
-          };
-          const subscriptionPlanEnum = planToSubscriptionPlan[planId.toLowerCase()] || 'STARTER';
-
-          await this.prisma.brand.update({
-            where: { id: user.brandId },
-            data: {
-              stripeCustomerId: customerId,
-              stripeSubscriptionId: subscriptionId || undefined,
-              plan: planId,
-              subscriptionPlan: subscriptionPlanEnum as any,
-              subscriptionStatus: subscriptionStatus as SubscriptionStatus,
-              trialEndsAt,
-              planExpiresAt: currentPeriodEnd,
-            },
-          });
-          this.logger.log(`Brand ${user.brandId} updated with subscription ${subscriptionId}, plan: ${planId}, subscriptionPlan: ${subscriptionPlanEnum}, status: ${subscriptionStatus}`);
-          this.zapierService?.triggerEvent(user.brandId, 'new_subscription', { brandId: user.brandId, stripeSubscriptionId: subscriptionId, plan: planId, status: subscriptionStatus }).catch((err) => this.logger.warn('Non-critical error triggering Zapier new_subscription', err instanceof Error ? err.message : String(err)));
+        const user = await this.prisma.user.findUnique({ where: { id: session.metadata.userId }, select: { brandId: true } });
+        brandId = user?.brandId || null;
+      }
+      if (!brandId && customerId) {
+        const brand = await this.prisma.brand.findFirst({ where: { stripeCustomerId: customerId }, select: { id: true } });
+        brandId = brand?.id || null;
+        if (brandId) {
+          this.logger.warn(`checkout.session.completed: metadata.userId missing, resolved brand ${brandId} via stripeCustomerId ${customerId}`);
         }
+      }
+
+      if (brandId) {
+        const planId = session.metadata?.planId || 'starter';
+        let subscriptionStatus = 'ACTIVE';
+        let trialEndsAt: Date | null = null;
+        let currentPeriodEnd: Date | null = null;
+
+        if (subscriptionId) {
+          try {
+            const stripe = await this.stripeClient.getStripe();
+            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            subscriptionStatus = this.mapStripeStatusToAppStatus(sub.status);
+            trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
+            currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.warn(`Could not retrieve subscription ${subscriptionId}: ${msg}`);
+          }
+        }
+
+        const planToSubscriptionPlan: Record<string, string> = {
+          free: 'FREE', starter: 'STARTER', professional: 'PROFESSIONAL',
+          business: 'BUSINESS', enterprise: 'ENTERPRISE',
+        };
+        const subscriptionPlanEnum = planToSubscriptionPlan[planId.toLowerCase()] || 'STARTER';
+        const checkoutPlanTier = normalizePlanTier(planId);
+        const checkoutWhiteLabel = getPlanConfig(checkoutPlanTier).limits.whiteLabel === true;
+
+        await this.prisma.brand.update({
+          where: { id: brandId },
+          data: {
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId || undefined,
+            plan: planId,
+            subscriptionPlan: subscriptionPlanEnum as any,
+            subscriptionStatus: subscriptionStatus as SubscriptionStatus,
+            trialEndsAt,
+            planExpiresAt: currentPeriodEnd,
+            whiteLabel: checkoutWhiteLabel,
+          },
+        });
+        this.logger.log(`Brand ${brandId} updated with subscription ${subscriptionId}, plan: ${planId}, subscriptionPlan: ${subscriptionPlanEnum}, status: ${subscriptionStatus}`);
+
+        // Initialize monthly credits for new subscription (including trial period)
+        const planTierForCredits = normalizePlanTier(planId);
+        const initialCredits = getMonthlyCredits(planTierForCredits);
+        if (initialCredits > 0) {
+          try {
+            const refill = await this.creditsService.refillMonthlyCredits(brandId, initialCredits);
+            if (refill.success && !refill.skipped) {
+              this.logger.log(`Initial credits allocated for brand ${brandId}: ${initialCredits} credits (checkout.session.completed)`);
+            }
+          } catch (creditError: unknown) {
+            const msg = creditError instanceof Error ? creditError.message : String(creditError);
+            this.logger.warn(`Failed to allocate initial credits for brand ${brandId}: ${msg}`);
+          }
+        }
+
+        this.zapierService?.triggerEvent(brandId, 'new_subscription', { brandId, stripeSubscriptionId: subscriptionId, plan: planId, status: subscriptionStatus }).catch((err) => this.logger.warn('Non-critical error triggering Zapier new_subscription', err instanceof Error ? err.message : String(err)));
+
+        // Send subscription confirmation email (fire-and-forget)
+        this.sendSubscriptionConfirmationSafe(brandId, planId, currentPeriodEnd).catch(() => {});
+      } else {
+        this.logger.error(`checkout.session.completed: Could not resolve brand for session ${session.id}, customerId=${customerId}, metadata=${JSON.stringify(session.metadata)}`);
       }
 
       return { processed: true, result: { type: 'subscription_created', customerId, subscriptionId, sessionId: session.id } };
@@ -374,6 +424,10 @@ export class StripeWebhookService {
     };
     const subscriptionPlanValue = planToSubscriptionPlan[normalizedTier] || SubscriptionPlan.FREE;
 
+    // Sync whiteLabel with plan: FREE/STARTER -> false, PROFESSIONAL+ -> true (audit fix)
+    const planConfig = getPlanConfig(normalizedTier);
+    const whiteLabel = planConfig.limits.whiteLabel === true;
+
     // Sync active add-ons
     const activeAddons: Array<{ type: string; quantity: number; stripePriceId: string }> = [];
     for (const item of subscription.items.data) {
@@ -389,7 +443,7 @@ export class StripeWebhookService {
     await this.prisma.$transaction([
       this.prisma.brand.update({
         where: { id: brand.id },
-        data: { stripeSubscriptionId: subscription.id, subscriptionStatus: appStatus, plan: planName, subscriptionPlan: subscriptionPlanValue, planExpiresAt: currentPeriodEnd, trialEndsAt: trialEnd },
+        data: { stripeSubscriptionId: subscription.id, subscriptionStatus: appStatus, plan: planName, subscriptionPlan: subscriptionPlanValue, planExpiresAt: currentPeriodEnd, trialEndsAt: trialEnd, whiteLabel },
       }),
       this.prisma.brand.update({
         where: { id: brand.id },
@@ -405,16 +459,15 @@ export class StripeWebhookService {
     if (previousStatus !== appStatus && (appStatus === 'PAST_DUE' || appStatus === 'CANCELED')) {
       const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
       if (owner?.email) {
-        try {
-          await this.emailService.sendEmail({
-            to: owner.email,
-            subject: appStatus === 'PAST_DUE' ? 'Action requise : Problème avec votre abonnement Luneo' : 'Votre abonnement Luneo a été annulé',
-            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">${appStatus === 'PAST_DUE' ? 'Paiement en attente' : 'Abonnement annulé'}</h1><p>Bonjour ${owner.firstName || ''},</p>${appStatus === 'PAST_DUE' ? '<p>Nous n\'avons pas pu traiter votre dernier paiement. Veuillez mettre à jour vos informations de paiement.</p>' : '<p>Votre abonnement Luneo a été annulé. Vous pouvez vous réabonner à tout moment.</p>'}<div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">${appStatus === 'PAST_DUE' ? 'Mettre à jour le paiement' : 'Se réabonner'}</a></div><p>L'équipe Luneo</p></div>`,
-          });
-        } catch (emailError: unknown) {
+        // Fire-and-forget: don't block webhook processing for email delivery
+        this.emailService.sendEmail({
+          to: owner.email,
+          subject: appStatus === 'PAST_DUE' ? 'Action requise : Problème avec votre abonnement Luneo' : 'Votre abonnement Luneo a été annulé',
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">${appStatus === 'PAST_DUE' ? 'Paiement en attente' : 'Abonnement annulé'}</h1><p>Bonjour ${owner.firstName || ''},</p>${appStatus === 'PAST_DUE' ? '<p>Nous n\'avons pas pu traiter votre dernier paiement. Veuillez mettre à jour vos informations de paiement.</p>' : '<p>Votre abonnement Luneo a été annulé. Vous pouvez vous réabonner à tout moment.</p>'}<div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">${appStatus === 'PAST_DUE' ? 'Mettre à jour le paiement' : 'Se réabonner'}</a></div><p>L'équipe Luneo</p></div>`,
+        }).catch((emailError: unknown) => {
           const msg = emailError instanceof Error ? emailError.message : String(emailError);
           this.logger.warn(`Failed to send subscription status email: ${msg}`);
-        }
+        });
       }
     }
 
@@ -428,7 +481,33 @@ export class StripeWebhookService {
     const brand = await this.prisma.brand.findFirst({ where: { stripeCustomerId: customerId }, include: { users: true } });
     if (!brand) return { processed: false };
 
-    // BUGFIX: Set plan to 'free' (not 'starter') on subscription deletion to align with app logic
+    // AUDIT FIX BLOQUANT: Only downgrade if the deleted subscription is the one we have on file.
+    if (brand.stripeSubscriptionId !== subscription.id) {
+      this.logger.log(`Ignoring subscription.deleted for ${subscription.id}: brand ${brand.id} has different subscription ${brand.stripeSubscriptionId}`);
+      return { processed: true, result: { type: 'subscription_deleted_ignored', subscriptionId: subscription.id, brandSubscriptionId: brand.stripeSubscriptionId } };
+    }
+
+    // RACE GUARD: Re-fetch subscription from Stripe to confirm it's truly canceled/unpaid.
+    // If invoice.payment_succeeded was processed just before us and reactivated the subscription,
+    // Stripe will show it as 'active' — we must NOT downgrade in that case.
+    try {
+      const stripe = await this.stripeClient.getStripe();
+      const liveSub = await stripe.subscriptions.retrieve(subscription.id);
+      if (liveSub.status === 'active' || liveSub.status === 'trialing') {
+        this.logger.warn(
+          `subscription.deleted received for ${subscription.id} but Stripe shows status="${liveSub.status}" — skipping downgrade for brand ${brand.id}`,
+        );
+        return { processed: true, result: { type: 'subscription_deleted_skipped_active', subscriptionId: subscription.id, stripeStatus: liveSub.status } };
+      }
+    } catch (retrieveError: unknown) {
+      // If subscription is truly deleted, Stripe returns resource_missing — proceed with downgrade
+      const errMsg = retrieveError instanceof Error ? retrieveError.message : String(retrieveError);
+      if (!errMsg.includes('resource_missing') && !errMsg.includes('No such subscription')) {
+        this.logger.warn(`Could not verify subscription ${subscription.id} status before downgrade: ${errMsg}`);
+      }
+    }
+
+    // Set plan to 'free' on subscription deletion
     // that treats canceled subscriptions as FREE tier. Also sync subscriptionPlan enum.
     const currentLimits = (brand.limits as Record<string, unknown>) || {};
     await this.prisma.brand.update({
@@ -439,23 +518,26 @@ export class StripeWebhookService {
         subscriptionStatus: SubscriptionStatus.CANCELED,
         stripeSubscriptionId: null,
         planExpiresAt: null,
+        gracePeriodEndsAt: null,
+        readOnlyMode: false,
+        lastGraceReminderDay: null,
+        whiteLabel: false,
         limits: { ...currentLimits, activeAddons: [], addonsUpdatedAt: new Date().toISOString(), canceledAt: new Date().toISOString() } as Prisma.InputJsonValue,
       },
     });
-    this.logger.log(`Brand ${brand.id} downgraded to free plan (subscription deleted), add-ons cleared`);
+    this.logger.log(`Brand ${brand.id} downgraded to free plan (subscription deleted), add-ons + grace period cleared`);
 
     const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
     if (owner?.email) {
-      try {
-        await this.emailService.sendEmail({
-          to: owner.email,
-          subject: 'Votre abonnement Luneo a pris fin',
-          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Abonnement terminé</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre abonnement Luneo a pris fin. Vous êtes maintenant sur le plan Free (gratuit).</p><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Voir les offres</a></div><p>L'équipe Luneo</p></div>`,
-        });
-      } catch (emailError: unknown) {
+      // Fire-and-forget: don't block webhook processing for email delivery
+      this.emailService.sendEmail({
+        to: owner.email,
+        subject: 'Votre abonnement Luneo a pris fin',
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Abonnement terminé</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre abonnement Luneo a pris fin. Vous êtes maintenant sur le plan Free (gratuit).</p><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Voir les offres</a></div><p>L'équipe Luneo</p></div>`,
+      }).catch((emailError: unknown) => {
         const msg = emailError instanceof Error ? emailError.message : String(emailError);
         this.logger.warn(`Failed to send subscription deleted email: ${msg}`);
-      }
+      });
     }
 
     return { processed: true, result: { type: 'subscription_deleted', brandId: brand.id, subscriptionId: subscription.id } };
@@ -498,17 +580,16 @@ export class StripeWebhookService {
       const daysLeft = trialEndDate ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
       const formattedDate = trialEndDate?.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-      try {
-        await this.emailService.sendEmail({
-          to: owner.email,
-          subject: `Votre période d'essai se termine dans ${daysLeft} jours`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Votre période d'essai touche à sa fin</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre période d'essai gratuite se terminera le <strong>${formattedDate}</strong>.</p><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Voir les offres</a></div><p>L'équipe Luneo</p></div>`,
-        });
+      // Fire-and-forget: don't block webhook processing for email delivery
+      this.emailService.sendTrialEndingEmail(owner.email, {
+        daysLeft: `${daysLeft} jours`,
+        firstName: owner.firstName || undefined,
+      }).then(() => {
         this.logger.log(`Trial reminder email sent to ${owner.email}`);
-      } catch (emailError: unknown) {
+      }).catch((emailError: unknown) => {
         const msg = emailError instanceof Error ? emailError.message : String(emailError);
         this.logger.warn(`Failed to send trial reminder email: ${msg}`);
-      }
+      });
     }
 
     return { processed: true, result: { type: 'trial_will_end', brandId: brand.id, trialEndDate, emailSent: !!owner?.email } };
@@ -520,41 +601,106 @@ export class StripeWebhookService {
 
   private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<WebhookResult> {
     const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
-    this.logger.log('Processing invoice payment succeeded', { invoiceId: invoice.id, customerId });
+    this.logger.log('Processing invoice payment succeeded', {
+      invoiceId: invoice.id,
+      customerId,
+      billingReason: invoice.billing_reason,
+    });
 
     if (customerId) {
       try {
-        const brand = await this.prisma.brand.findFirst({ where: { stripeCustomerId: customerId }, select: { id: true, subscriptionStatus: true, plan: true } });
-        if (brand && brand.subscriptionStatus !== 'ACTIVE') {
-          await this.prisma.brand.update({
-            where: { id: brand.id },
-            data: {
-              subscriptionStatus: 'ACTIVE',
-              gracePeriodEndsAt: null,
-              readOnlyMode: false,
-              lastGraceReminderDay: null,
-            },
-          });
+        const brand = await this.prisma.brand.findFirst({
+          where: { stripeCustomerId: customerId },
+          select: {
+            id: true,
+            subscriptionStatus: true,
+            subscriptionPlan: true,
+            plan: true,
+            stripeSubscriptionId: true,
+            readOnlyMode: true,
+          },
+        });
+
+        if (!brand) {
+          this.logger.warn(`No brand found for customer ${customerId} in invoice.payment_succeeded`);
+          return { processed: false };
+        }
+
+        // Restore subscription status to ACTIVE if it was in a degraded state
+        // This handles the case where payment succeeds after PAST_DUE grace period
+        if (brand.subscriptionStatus !== 'ACTIVE') {
+          const stripe = await this.stripeClient.getStripe();
+          const subscriptionId = brand.stripeSubscriptionId
+            || (typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id);
+
+          const updateData: Record<string, any> = {
+            subscriptionStatus: 'ACTIVE',
+            gracePeriodEndsAt: null,
+            readOnlyMode: false,
+            lastGraceReminderDay: null,
+          };
+
+          // If the brand was downgraded to FREE during grace period expiration,
+          // re-sync the plan from the actual Stripe subscription
+          if (subscriptionId && (brand.plan === 'free' || brand.subscriptionPlan === 'FREE')) {
+            try {
+              const sub = await stripe.subscriptions.retrieve(subscriptionId);
+              if (sub.status === 'canceled' || sub.status === 'incomplete_expired') {
+                this.logger.warn(`Subscription ${subscriptionId} is ${sub.status}, skipping plan restoration for brand ${brand.id}`);
+              } else {
+                const planName = (sub.metadata?.planId || sub.metadata?.plan || '').toLowerCase();
+                if (planName && planName !== 'free') {
+                  const planToEnum: Record<string, string> = {
+                    starter: 'STARTER', professional: 'PROFESSIONAL',
+                    business: 'BUSINESS', enterprise: 'ENTERPRISE',
+                  };
+                  updateData.plan = planName;
+                  updateData.subscriptionPlan = (planToEnum[planName] || brand.subscriptionPlan) as any;
+                  this.logger.log(`Restoring brand ${brand.id} plan to ${planName} from Stripe subscription after successful payment`);
+                }
+              }
+            } catch (subError: unknown) {
+              const msg = subError instanceof Error ? subError.message : String(subError);
+              this.logger.warn(`Could not retrieve subscription ${subscriptionId} to restore plan: ${msg}`);
+            }
+          }
+
+          await this.prisma.brand.update({ where: { id: brand.id }, data: updateData });
           this.logger.log(`Brand ${brand.id} status updated to ACTIVE after successful payment`);
         }
 
-        if (brand && invoice.subscription) {
-          const isSubscriptionPayment = typeof invoice.subscription === 'string' ? !!invoice.subscription : !!invoice.subscription?.id;
-          if (isSubscriptionPayment) {
-            const planTier = normalizePlanTier(brand.plan);
-            const monthlyCredits = getMonthlyCredits(planTier);
-            if (monthlyCredits > 0) {
-              try {
-                const refill = await this.creditsService.refillMonthlyCredits(brand.id, monthlyCredits);
-                if (refill.success && !refill.skipped) {
-                  this.logger.log(`Monthly credits refilled for brand ${brand.id}: ${monthlyCredits} credits`);
-                }
-              } catch (refillError: unknown) {
-                const msg = refillError instanceof Error ? refillError.message : String(refillError);
-                this.logger.error(`Failed to refill monthly credits for brand ${brand.id}: ${msg}`);
+        // Update planExpiresAt from invoice period_end on subscription_cycle
+        // This ensures dates stay in sync even if customer.subscription.updated webhook is delayed
+        const isMonthlyRenewal = invoice.billing_reason === 'subscription_cycle';
+        if (isMonthlyRenewal && invoice.lines?.data?.[0]?.period?.end) {
+          const newPeriodEnd = new Date(invoice.lines.data[0].period.end * 1000);
+          await this.prisma.brand.update({
+            where: { id: brand.id },
+            data: { planExpiresAt: newPeriodEnd },
+          });
+          this.logger.log(`Brand ${brand.id} planExpiresAt updated to ${newPeriodEnd.toISOString()} from invoice.payment_succeeded`);
+        }
+
+        // Only refill monthly credits on actual billing cycle renewals, NOT on
+        // proration invoices, manual invoices, or subscription_create (first invoice).
+        // billing_reason values: 'subscription_cycle', 'subscription_create',
+        // 'subscription_update', 'manual', 'upcoming', etc.
+        if (brand && invoice.subscription && isMonthlyRenewal) {
+          const planTier = normalizePlanTier(brand.subscriptionPlan || brand.plan);
+          const monthlyCredits = getMonthlyCredits(planTier);
+          if (monthlyCredits > 0) {
+            try {
+              const refill = await this.creditsService.refillMonthlyCredits(brand.id, monthlyCredits);
+              if (refill.success && !refill.skipped) {
+                this.logger.log(`Monthly credits refilled for brand ${brand.id}: ${monthlyCredits} credits (billing_reason: subscription_cycle)`);
               }
+            } catch (refillError: unknown) {
+              const msg = refillError instanceof Error ? refillError.message : String(refillError);
+              this.logger.error(`Failed to refill monthly credits for brand ${brand.id}: ${msg}`);
             }
           }
+        } else if (invoice.billing_reason && invoice.billing_reason !== 'subscription_cycle') {
+          this.logger.log(`Skipping credit refill for brand ${brand?.id}: billing_reason=${invoice.billing_reason} (not subscription_cycle)`);
         }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -587,17 +733,17 @@ export class StripeWebhookService {
           const attemptCount = invoice.attempt_count || 1;
           const nextAttempt = invoice.next_payment_attempt ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : null;
 
-          try {
-            await this.emailService.sendEmail({
-              to: owner.email,
-              subject: 'Échec de paiement — Action requise pour votre compte Luneo',
-              html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#dc2626">Échec de paiement</h1><p>Bonjour ${owner.firstName || ''},</p><p>Nous n'avons pas pu traiter votre paiement de <strong>${amountDue}</strong>.</p><div style="background:#fef2f2;border-left:4px solid #dc2626;padding:15px;margin:20px 0"><p style="margin:0;color:#dc2626"><strong>Tentative ${attemptCount}</strong> — ${nextAttempt ? `Prochaine tentative le ${nextAttempt}` : 'Aucune tentative automatique prévue'}</p></div><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#dc2626;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Mettre à jour mes informations de paiement</a></div><p>L'équipe Luneo</p></div>`,
-            });
+          // Fire-and-forget: don't block webhook processing for email delivery
+          this.emailService.sendPaymentFailedEmail(owner.email, {
+            amount: amountDue,
+            retryDate: nextAttempt || 'Aucune tentative automatique prévue',
+            firstName: owner.firstName || undefined,
+          }).then(() => {
             emailSent = true;
-          } catch (emailError: unknown) {
+          }).catch((emailError: unknown) => {
             const msg = emailError instanceof Error ? emailError.message : String(emailError);
             this.logger.warn(`Failed to send payment failure email: ${msg}`);
-          }
+          });
         }
         this.logger.warn(`Brand ${brand.id} subscription marked as PAST_DUE due to payment failure`);
       }
@@ -618,16 +764,15 @@ export class StripeWebhookService {
         const amountFormatted = CurrencyUtils.formatCents(invoice.amount_due || 0, invoice.currency || CurrencyUtils.getDefaultCurrency());
         const dueDate = invoice.due_date ? new Date(invoice.due_date * 1000).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'prochainement';
 
-        try {
-          await this.emailService.sendEmail({
-            to: owner.email,
-            subject: `Prochaine facturation Luneo — ${amountFormatted}`,
-            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Prochaine facturation</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre prochaine facture sera émise ${dueDate}.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><p style="margin:0;font-size:24px;font-weight:bold;color:#333">${amountFormatted}</p><p style="margin:5px 0 0;color:#666">Montant estimé TTC</p></div><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Gérer mon abonnement</a></div><p>L'équipe Luneo</p></div>`,
-          });
-        } catch (emailError: unknown) {
+        // Fire-and-forget: don't block webhook processing for email delivery
+        this.emailService.sendEmail({
+          to: owner.email,
+          subject: `Prochaine facturation Luneo — ${amountFormatted}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h1 style="color:#333">Prochaine facturation</h1><p>Bonjour ${owner.firstName || ''},</p><p>Votre prochaine facture sera émise ${dueDate}.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><p style="margin:0;font-size:24px;font-weight:bold;color:#333">${amountFormatted}</p><p style="margin:5px 0 0;color:#666">Montant estimé TTC</p></div><div style="margin:30px 0"><a href="${this.configService.get('app.frontendUrl')}/dashboard/billing" style="background:#6366f1;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">Gérer mon abonnement</a></div><p>L'équipe Luneo</p></div>`,
+        }).catch((emailError: unknown) => {
           const msg = emailError instanceof Error ? emailError.message : String(emailError);
           this.logger.warn(`Failed to send invoice upcoming email: ${msg}`);
-        }
+        });
       }
     }
 
@@ -650,11 +795,15 @@ export class StripeWebhookService {
     if (!refund) return { processed: true, result: { type: 'charge_refunded', chargeId: charge.id } };
 
     const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id;
+    let tryOnRefunded = 0;
+
     if (paymentIntentId) {
       const order = await this.prisma.order.findFirst({ where: { stripePaymentId: paymentIntentId }, include: { commissions: true } });
       if (order) {
         const isFullRefund = charge.amount_refunded === charge.amount;
         await this.prisma.order.update({ where: { id: order.id }, data: { status: isFullRefund ? 'REFUNDED' : 'CANCELLED' } });
+
+        // Cancel unpaid referral commissions
         const unpaidCommissionIds = order.commissions.filter((c) => c.status !== 'PAID').map((c) => c.id);
         if (unpaidCommissionIds.length > 0) {
           await this.prisma.commission.updateMany({
@@ -662,8 +811,50 @@ export class StripeWebhookService {
             data: { status: 'CANCELLED' },
           });
         }
+
+        // Cancel try-on commissions linked to this order via externalOrderId
+        const tryOnConversions = await this.prisma.tryOnConversion.findMany({
+          where: {
+            externalOrderId: order.orderNumber,
+            action: 'PURCHASE',
+            commissionAmount: { not: null, gt: 0 },
+          },
+        });
+
+        const refundRatio = charge.amount > 0 ? charge.amount_refunded / charge.amount : 1;
+
+        for (const conv of tryOnConversions) {
+          const existingData = (conv.attributionData as Record<string, unknown>) || {};
+          if (existingData.refunded) continue;
+
+          const originalCommission = Number(conv.commissionAmount) || 0;
+          // Full refund → commission = 0; partial refund → reduce proportionally
+          const adjustedCommission = isFullRefund ? 0 : Math.max(0, Math.round(originalCommission * (1 - refundRatio)));
+
+          await this.prisma.tryOnConversion.update({
+            where: { id: conv.id },
+            data: {
+              attributionData: {
+                ...existingData,
+                refunded: true,
+                refundedAt: new Date().toISOString(),
+                refundChargeId: charge.id,
+                originalCommission,
+                refundRatio,
+                isFullRefund,
+              },
+              commissionAmount: adjustedCommission,
+            },
+          });
+          tryOnRefunded++;
+        }
+
+        if (tryOnRefunded > 0) {
+          this.logger.log(`${tryOnRefunded} try-on commission(s) zeroed for order ${order.orderNumber} after refund`);
+        }
+
         this.logger.log(`Order ${order.id} marked as ${isFullRefund ? 'REFUNDED' : 'CANCELLED'}`);
-        return { processed: true, result: { type: 'charge_refunded', orderId: order.id, isFullRefund, amountRefunded: charge.amount_refunded } };
+        return { processed: true, result: { type: 'charge_refunded', orderId: order.id, isFullRefund, amountRefunded: charge.amount_refunded, tryOnCommissionsRefunded: tryOnRefunded } };
       }
     }
 
@@ -852,20 +1043,25 @@ export class StripeWebhookService {
       return { processed: true, result: { skipped: true, reason: 'no_brand' } };
     }
 
-    // Clear Stripe references but don't delete the brand
+    // Clear Stripe references, reset plan to FREE, cancel subscriptions
     try {
       await this.prisma.brand.update({
         where: { id: brand.id },
-        data: { stripeCustomerId: null },
+        data: {
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          plan: 'free',
+          subscriptionPlan: 'FREE' as any,
+          subscriptionStatus: 'CANCELED',
+          planExpiresAt: null,
+          gracePeriodEndsAt: null,
+          readOnlyMode: false,
+          lastGraceReminderDay: null,
+          whiteLabel: false,
+        },
       });
 
-      // Deactivate any active subscription on brand
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: { subscriptionStatus: 'CANCELED', stripeSubscriptionId: null },
-      });
-
-      this.logger.log(`Brand ${brand.id}: Stripe customer reference cleared and subscriptions cancelled`);
+      this.logger.log(`Brand ${brand.id}: Stripe customer reference cleared, subscriptions cancelled, grace period reset`);
 
       // Notify admins
       const adminUsers = await this.prisma.user.findMany({ where: { role: 'PLATFORM_ADMIN' }, select: { id: true } });
@@ -974,6 +1170,41 @@ export class StripeWebhookService {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.error(`Failed to send order confirmation email for ${order.orderNumber}: ${msg}`);
       });
+  }
+
+  /**
+   * Send subscription confirmation email safely (fire-and-forget, no throw)
+   */
+  private async sendSubscriptionConfirmationSafe(
+    brandId: string,
+    planId: string,
+    currentPeriodEnd: Date | null,
+  ): Promise<void> {
+    try {
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        include: { users: { take: 1, orderBy: { createdAt: 'asc' } } },
+      });
+      if (!brand) return;
+
+      const owner = brand.users?.[0];
+      if (!owner?.email) return;
+
+      const planName = (planId || 'starter').charAt(0).toUpperCase() + (planId || 'starter').slice(1);
+      const billingDate = currentPeriodEnd
+        ? currentPeriodEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+        : 'à venir';
+
+      await this.emailService.sendSubscriptionConfirmationEmail(owner.email, {
+        planName,
+        billingDate,
+        features: '',
+      });
+      this.logger.log(`Subscription confirmation email sent for brand ${brandId} (plan: ${planId})`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Failed to send subscription confirmation email for brand ${brandId}: ${msg}`);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════

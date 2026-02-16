@@ -67,7 +67,11 @@ interface CacheItem<T> {
  * ```
  */
 export class CacheManager {
-  private config: Required<CacheConfig>;
+  private config: {
+    redis?: { host: string; port: number; password?: string };
+    ttl: { memory: number; redis: number; cdn: number };
+    maxMemorySizeMB: number;
+  };
   private redis: Redis | null = null;
   
   // Memory cache
