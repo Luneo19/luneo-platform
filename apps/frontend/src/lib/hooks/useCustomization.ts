@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ★★★ HOOK - USE CUSTOMIZATION ★★★
  * Hook personnalisé pour gérer les personnalisations

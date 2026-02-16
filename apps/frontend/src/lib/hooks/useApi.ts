@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Hook professionnel pour les appels API
  * Gère les états de chargement, erreurs, et données de manière standardisée

@@ -36,10 +36,12 @@ interface I18nConfig {
 export async function loadI18nConfig(): Promise<I18nConfig> {
   const detectedLocale = await detectLocale();
   const fallbackMessages = await MESSAGE_LOADERS.en();
+  const loaded =
+    detectedLocale === 'en' ? fallbackMessages : await MESSAGE_LOADERS[detectedLocale]();
   const messages =
-    detectedLocale === 'en'
+    detectedLocale === 'en' || loaded == null
       ? fallbackMessages
-      : deepMerge(fallbackMessages, await MESSAGE_LOADERS[detectedLocale]());
+      : deepMerge(fallbackMessages, loaded);
 
   const meta = LOCALE_METADATA[detectedLocale];
 

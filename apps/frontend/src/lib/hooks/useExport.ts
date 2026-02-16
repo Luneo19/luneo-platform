@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * useExport Hook
  * A-008: Hook pour export CSV/PDF des rapports

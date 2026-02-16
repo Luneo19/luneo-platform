@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import type { OrderSummary } from '@/lib/types';
 import type { OrderItem, ShippingAddress, BillingAddress } from '@/lib/types/order';

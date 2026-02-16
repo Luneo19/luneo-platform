@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ★★★ HOOK - USE AR ★★★
  * Hook personnalisé pour gérer les sessions AR

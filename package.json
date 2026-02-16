@@ -10,7 +10,9 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --concurrency=15",
+    "dev:frontend": "cd apps/frontend && pnpm run dev",
+    "dev:backend": "cd apps/backend && pnpm run start:dev",
+    "dev:all": "echo '⚠️  ATTENTION: lance TOUT le monorepo (~8 Go RAM minimum). Ctrl+C pour annuler.' && sleep 3 && turbo run dev --concurrency=15",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "type-check": "turbo run type-check",

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ApiKeySummary } from '@/lib/types';
 import { logger } from '@/lib/logger';

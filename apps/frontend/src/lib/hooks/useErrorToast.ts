@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * useErrorToast - Hook centralisé pour afficher des erreurs user-friendly
  * Remplace les `error.message` bruts par des messages traduits et sécurisés.

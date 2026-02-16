@@ -19,7 +19,7 @@ import {
   SUPPORTED_LOCALES,
   LOCALE_NAMES,
   LOCALE_FLAGS,
-} from './index';
+} from './_core';
 import { useI18nContextOptional } from './provider';
 
 interface AvailableLocale {

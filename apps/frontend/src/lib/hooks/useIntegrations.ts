@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback } from 'react';
 import { trpc } from '@/lib/trpc/client';
 import { api } from '@/lib/api/client';

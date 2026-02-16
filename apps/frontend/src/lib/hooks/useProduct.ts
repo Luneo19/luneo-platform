@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ★★★ HOOK - USE PRODUCT ★★★
  * Hook personnalisé pour gérer les produits

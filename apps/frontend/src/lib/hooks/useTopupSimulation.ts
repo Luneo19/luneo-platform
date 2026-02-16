@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { UsageMetricType } from '@/lib/billing-plans';
 import { api } from '@/lib/api/client';

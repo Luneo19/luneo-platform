@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, memo, useEffect } from 'react';
+import React, { useState, useCallback, memo, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Mail, Phone, MapPin, Send, CheckCircle, MessageSquare, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
 import { useI18n } from '@/i18n/useI18n';
 
-function ContactPageContent() {
+function ContactPageContentInner() {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const planParam = searchParams.get('plan');
@@ -287,12 +287,24 @@ function ContactPageContent() {
   );
 }
 
-const MemoizedContactPageContent = memo(ContactPageContent);
+const MemoizedContactPageContentInner = memo(ContactPageContentInner);
+
+function ContactPageContent() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-14 sm:py-20">
+        <div className="h-12 w-48 bg-white/5 rounded-lg animate-pulse" aria-hidden />
+      </div>
+    }>
+      <MemoizedContactPageContentInner />
+    </Suspense>
+  );
+}
 
 export default function ContactPage() {
   return (
     <ErrorBoundary level="page" componentName="ContactPage">
-      <MemoizedContactPageContent />
+      <ContactPageContent />
     </ErrorBoundary>
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
