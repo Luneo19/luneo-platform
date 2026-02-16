@@ -1,5 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
+import { BullModule } from '@nestjs/bull';
 import { TryOnController } from './controllers/try-on.controller';
 import { WidgetTryOnController } from './controllers/widget-try-on.controller';
 import { TryOnConfigurationService } from './services/try-on-configuration.service';

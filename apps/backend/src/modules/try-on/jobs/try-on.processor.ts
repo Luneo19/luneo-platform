@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, Process } from '@nestjs/bull';
 import { Logger, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -40,7 +40,7 @@ export interface ExpireSessionsPayload {
  * - expire-sessions: Cron-triggered cleanup of stale sessions
  */
 @Processor('try-on-processing')
-export class TryOnProcessor extends WorkerHost {
+export class TryOnProcessor {
   private readonly logger = new Logger(TryOnProcessor.name);
 
   constructor(
@@ -48,30 +48,30 @@ export class TryOnProcessor extends WorkerHost {
     private readonly screenshotService: TryOnScreenshotService,
     private readonly performanceService: PerformanceService,
     @Optional() private readonly billingSyncService?: TryOnBillingSyncService,
-  ) {
-    super();
+  ) {}
+
+  @Process('process-screenshot-batch')
+  async handleScreenshotBatch(job: Job<ProcessScreenshotBatchPayload>): Promise<unknown> {
+    this.logger.log(`Processing job ${job.name} (${job.id})`);
+    return this.processScreenshotBatch(job);
   }
 
-  async process(job: Job): Promise<unknown> {
+  @Process('aggregate-session-metrics')
+  async handleAggregateMetrics(job: Job<AggregateSessionMetricsPayload>): Promise<unknown> {
     this.logger.log(`Processing job ${job.name} (${job.id})`);
+    return this.aggregateSessionMetrics(job);
+  }
 
-    switch (job.name) {
-      case 'process-screenshot-batch':
-        return this.processScreenshotBatch(
-          job as Job<ProcessScreenshotBatchPayload>,
-        );
-      case 'aggregate-session-metrics':
-        return this.aggregateSessionMetrics(
-          job as Job<AggregateSessionMetricsPayload>,
-        );
-      case 'expire-sessions':
-        return this.expireSessions(job as Job<ExpireSessionsPayload>);
-      case 'billing-sync':
-        return this.runBillingSync();
-      default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
-        return null;
-    }
+  @Process('expire-sessions')
+  async handleExpireSessions(job: Job<ExpireSessionsPayload>): Promise<unknown> {
+    this.logger.log(`Processing job ${job.name} (${job.id})`);
+    return this.expireSessions(job);
+  }
+
+  @Process('billing-sync')
+  async handleBillingSync(job: Job): Promise<unknown> {
+    this.logger.log(`Processing job ${job.name} (${job.id})`);
+    return this.runBillingSync();
   }
 
   /**
