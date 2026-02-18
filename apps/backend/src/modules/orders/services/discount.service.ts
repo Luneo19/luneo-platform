@@ -96,72 +96,84 @@ export class DiscountService {
       throw new BadRequestException(`Discount code ${code} is expired or not yet valid`);
     }
 
-    // Vérifier la limite d'utilisation
-    if (discount.usageLimit && discount.usageCount >= discount.usageLimit) {
-      throw new BadRequestException(`Discount code ${code} has reached its usage limit`);
-    }
-
-    // Vérifier le montant minimum d'achat
-    if (discount.minPurchaseCents && subtotalCents < discount.minPurchaseCents) {
-      throw new BadRequestException(
-        `Minimum purchase amount of ${discount.minPurchaseCents / 100}€ required for this discount code`,
-      );
-    }
-
-    // Vérifier si le code est spécifique à une marque
-    // ✅ FIX: Rejeter si le discount a un brandId mais que brandId n'est pas fourni
-    if (discount.brandId) {
-      if (!brandId) {
-        throw new BadRequestException(`Discount code ${code} is restricted to a specific brand`);
-      }
-      if (discount.brandId !== brandId) {
-        throw new BadRequestException(`Discount code ${code} is not valid for this brand`);
-      }
-    }
-
-    // Vérifier si l'utilisateur a déjà utilisé ce code
-    if (userId) {
-      const existingUsage = await this.prisma.discountUsage.findFirst({
-        where: {
-          discountId: discount.id,
-          userId,
-        },
+    // SECURITY FIX: Wrap all validations in a transaction with RepeatableRead
+    // to prevent TOCTOU race conditions on usage limits and per-user checks
+    return this.prisma.$transaction(async (tx) => {
+      // Re-read discount inside transaction with implicit row-level lock
+      const txDiscount = await tx.discount.findUnique({
+        where: { code: normalizedCode },
       });
-
-      if (existingUsage) {
-        throw new BadRequestException(`You have already used discount code ${code}`);
+      if (!txDiscount || !txDiscount.isActive) {
+        throw new BadRequestException(`Discount code ${code} is no longer valid`);
       }
-    }
+
+      // Vérifier la limite d'utilisation (inside transaction - prevents race condition)
+      if (txDiscount.usageLimit && txDiscount.usageCount >= txDiscount.usageLimit) {
+        throw new BadRequestException(`Discount code ${code} has reached its usage limit`);
+      }
+
+      // Vérifier le montant minimum d'achat
+      if (txDiscount.minPurchaseCents && subtotalCents < txDiscount.minPurchaseCents) {
+        throw new BadRequestException(
+          `Minimum purchase amount of ${txDiscount.minPurchaseCents / 100}€ required for this discount code`,
+        );
+      }
+
+      // Vérifier si le code est spécifique à une marque
+      if (txDiscount.brandId) {
+        if (!brandId) {
+          throw new BadRequestException(`Discount code ${code} is restricted to a specific brand`);
+        }
+        if (txDiscount.brandId !== brandId) {
+          throw new BadRequestException(`Discount code ${code} is not valid for this brand`);
+        }
+      }
+
+      // SECURITY FIX: Per-user usage check inside transaction (prevents race condition)
+      if (userId) {
+        const existingUsage = await tx.discountUsage.findFirst({
+          where: {
+            discountId: txDiscount.id,
+            userId,
+          },
+        });
+
+        if (existingUsage) {
+          throw new BadRequestException(`You have already used discount code ${code}`);
+        }
+      }
 
     // Calculer la réduction
-    let discountCents = 0;
+    let discountCentsCalc = 0;
 
-    if (discount.type === 'FIXED') {
-      // Réduction fixe
-      discountCents = Math.min(discount.value, subtotalCents);
+    if (txDiscount.type === 'FIXED') {
+      discountCentsCalc = Math.min(txDiscount.value, subtotalCents);
     } else {
-      // Réduction en pourcentage
-      discountCents = Math.round((subtotalCents * discount.value) / 100);
+      discountCentsCalc = Math.round((subtotalCents * txDiscount.value) / 100);
     }
 
     // Appliquer la limite maximale de réduction si définie
-    if (discount.maxDiscountCents) {
-      discountCents = Math.min(discountCents, discount.maxDiscountCents);
+    if (txDiscount.maxDiscountCents) {
+      discountCentsCalc = Math.min(discountCentsCalc, txDiscount.maxDiscountCents);
     }
 
     // Ne pas permettre une réduction supérieure au montant total
-    discountCents = Math.min(discountCents, subtotalCents);
+    discountCentsCalc = Math.min(discountCentsCalc, subtotalCents);
 
-    this.logger.log(`Applied discount code ${normalizedCode}: ${discountCents} cents off`);
+    this.logger.log(`Applied discount code ${normalizedCode}: ${discountCentsCalc} cents off`);
 
     return {
-      discountId: discount.id,
-      discountCents,
-      discountPercent: discount.type === 'PERCENTAGE' ? discount.value : 0,
+      discountId: txDiscount.id,
+      discountCents: discountCentsCalc,
+      discountPercent: txDiscount.type === 'PERCENTAGE' ? txDiscount.value : 0,
       code: normalizedCode,
-      type: discount.type === 'FIXED' ? 'fixed' : 'percentage',
-      description: discount.description || undefined,
+      type: txDiscount.type === 'FIXED' ? 'fixed' : 'percentage',
+      description: txDiscount.description || undefined,
     };
+    }, {
+      timeout: 5000,
+      isolationLevel: 'RepeatableRead',
+    });
   }
 
   /**

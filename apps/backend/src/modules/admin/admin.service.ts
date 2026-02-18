@@ -1,9 +1,10 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UserRole, Prisma, PaymentStatus, SubscriptionPlan, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
+import { AuditLogService, AuditAction } from '@/modules/audit/services/audit-log.service';
 import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
 import { PlanTier } from '@/libs/plans/plan-config.types';
 
@@ -34,6 +35,7 @@ export class AdminService {
     private emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly billingService: BillingService,
+    @Optional() private readonly auditLogService?: AuditLogService,
   ) {}
 
   // ========================================
@@ -357,6 +359,30 @@ export class AdminService {
     });
 
     this.logger.log(`Brand ${brandId} updated by admin`);
+
+    // SECURITY FIX: Audit log all admin brand modifications with before/after values
+    try {
+      const auditAction = planChanged
+        ? AuditAction.ADMIN_BRAND_PLAN_CHANGED
+        : AuditAction.ADMIN_BRAND_UPDATED;
+
+      await this.auditLogService?.log({
+        action: auditAction,
+        resourceType: 'Brand',
+        resourceId: brandId,
+        success: true,
+        metadata: {
+          changes: Object.keys(updateData),
+          previousPlan: brand.subscriptionPlan,
+          newPlan: newPlan || brand.subscriptionPlan,
+          planChanged,
+          syncedToStripe: data.syncStripe === true && planChanged,
+        },
+      });
+    } catch (auditError) {
+      this.logger.warn(`Failed to write audit log for brand update: ${auditError instanceof Error ? auditError.message : String(auditError)}`);
+    }
+
     return updated;
   }
 
@@ -2504,6 +2530,122 @@ export class AdminService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  /**
+   * Get AR Studio usage metrics across all brands.
+   * Admin-only endpoint for monitoring AR feature adoption.
+   */
+  async getARStudioMetrics(periodDays: number = 30) {
+    const since = new Date();
+    since.setDate(since.getDate() - periodDays);
+
+    const [
+      totalProjects,
+      totalModels,
+      totalSessions,
+      totalQRCodes,
+      totalCollaborationRooms,
+      sessionsInPeriod,
+      platformDistribution,
+      topProjects,
+      conversionFunnels,
+    ] = await Promise.all([
+      // Total counts
+      this.prisma.aRProject.count(),
+      this.prisma.aR3DModel.count(),
+      this.prisma.aRSession.count(),
+      this.prisma.aRQRCode.count(),
+      this.prisma.aRCollaborationRoom.count(),
+
+      // Sessions in period
+      this.prisma.aRSession.count({
+        where: { startedAt: { gte: since } },
+      }),
+
+      // Platform distribution
+      this.prisma.aRSession.groupBy({
+        by: ['platform'],
+        where: { startedAt: { gte: since } },
+        _count: true,
+      }),
+
+      // Top projects by sessions
+      this.prisma.aRSession.groupBy({
+        by: ['projectId'],
+        where: { startedAt: { gte: since } },
+        _count: true,
+        orderBy: { _count: { projectId: 'desc' } },
+        take: 10,
+      }),
+
+      // Conversion funnels in period
+      this.prisma.aRConversionFunnel.findMany({
+        where: { date: { gte: since } },
+        select: {
+          qrScans: true,
+          arLaunches: true,
+          modelPlacements: true,
+          engagedSessions: true,
+          screenshots: true,
+          shares: true,
+          addToCarts: true,
+          purchases: true,
+          totalRevenue: true,
+        },
+      }),
+    ]);
+
+    // Aggregate funnel data
+    const aggregatedFunnel = conversionFunnels.reduce(
+      (acc, f) => ({
+        qrScans: acc.qrScans + f.qrScans,
+        arLaunches: acc.arLaunches + f.arLaunches,
+        modelPlacements: acc.modelPlacements + f.modelPlacements,
+        engagedSessions: acc.engagedSessions + f.engagedSessions,
+        screenshots: acc.screenshots + f.screenshots,
+        shares: acc.shares + f.shares,
+        addToCarts: acc.addToCarts + f.addToCarts,
+        purchases: acc.purchases + f.purchases,
+        totalRevenue: acc.totalRevenue + f.totalRevenue,
+      }),
+      {
+        qrScans: 0,
+        arLaunches: 0,
+        modelPlacements: 0,
+        engagedSessions: 0,
+        screenshots: 0,
+        shares: 0,
+        addToCarts: 0,
+        purchases: 0,
+        totalRevenue: 0,
+      },
+    );
+
+    return {
+      period: { days: periodDays, since: since.toISOString() },
+      totals: {
+        projects: totalProjects,
+        models: totalModels,
+        sessions: totalSessions,
+        qrCodes: totalQRCodes,
+        collaborationRooms: totalCollaborationRooms,
+      },
+      periodMetrics: {
+        sessions: sessionsInPeriod,
+        sessionsPerDay: Math.round(sessionsInPeriod / periodDays),
+      },
+      platformDistribution: platformDistribution.map((p) => ({
+        platform: p.platform,
+        count: p._count,
+        percentage: sessionsInPeriod > 0 ? Math.round((p._count / sessionsInPeriod) * 100) : 0,
+      })),
+      conversionFunnel: aggregatedFunnel,
+      topProjects: topProjects.map((p) => ({
+        projectId: p.projectId,
+        sessionCount: p._count,
+      })),
     };
   }
 }

@@ -1,124 +1,234 @@
 /**
- * @fileoverview Composant AR Viewer pour essayage virtuel
- * @module ARViewer
- *
- * RÈGLES RESPECTÉES:
- * - ✅ 'use client' car utilise des hooks et APIs browser
- * - ✅ Composant < 300 lignes
- * - ✅ Types explicites
- * - ✅ Gestion d'erreurs avec ErrorBoundary
- * - ✅ Cleanup des ressources
+ * ARViewer – Platform-aware AR/3D viewer
+ * Integrates PlatformRouter: WebXR, Quick Look (iOS), Scene Viewer (Android), 3D fallback.
+ * Also supports try-on mode (products + trackerType) via AREngine.
  */
 
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useI18n } from '@/i18n/useI18n';
-import { Camera, CameraOff, Download, RotateCcw, Loader2 } from 'lucide-react';
-
-// UI Components
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Script from 'next/script';
+import { getPlatformConfig, type ARLaunchMethod, type ARPlatform } from '@/lib/ar/platforms/PlatformRouter';
+import { launch as launchQuickLook } from '@/lib/ar/platforms/ARQuickLookProvider';
+import { launch as launchSceneViewer } from '@/lib/ar/platforms/SceneViewerProvider';
+import { logger } from '@/lib/logger';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Camera, Loader2, Smartphone, X } from 'lucide-react';
+import { ARPreview } from '@/components/ar/ARPreview';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AREngine, type ARProduct, type TrackerType } from '@/lib/ar/AREngine';
+import { useI18n } from '@/i18n/useI18n';
 
-// AR Engine
-import { AREngine, TrackerType, TrackingData, ARProduct } from '@/lib/ar/AREngine';
-import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
-import { logger } from '@/lib/logger';
+export type ARViewerMode = 'webxr' | 'quick-look' | 'scene-viewer' | 'fallback' | 'try-on';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface ARViewerProps {
-  products: ARProduct[];
-  trackerType: TrackerType;
-  onCapture?: (imageDataUrl: string) => void;
-  onTrackingUpdate?: (data: TrackingData) => void;
+export interface ARViewerProps {
+  /** 3D model URL (GLB/GLTF) for placement AR or fallback viewer */
+  modelUrl?: string;
+  /** USDZ URL for iOS AR Quick Look */
+  usdzUrl?: string;
+  /** Callback when AR session starts */
+  onSessionStart?: () => void;
+  /** Callback when AR session ends */
+  onSessionEnd?: () => void;
+  /** Callback when user takes a screenshot */
+  onScreenshot?: (dataUrl: string) => void;
+  /** Callback for add-to-cart (e.g. from overlay) */
+  onAddToCart?: () => void;
+  /** Try-on mode: products to overlay */
+  products?: ARProduct[];
+  /** Try-on mode: tracker type */
+  trackerType?: TrackerType;
   className?: string;
 }
 
-type ARStatus = 'idle' | 'loading' | 'ready' | 'error' | 'no-camera';
-
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
 export function ARViewer({
+  modelUrl,
+  usdzUrl,
+  onSessionStart,
+  onSessionEnd,
+  onScreenshot,
+  onAddToCart,
   products,
-  trackerType,
-  onCapture,
-  onTrackingUpdate,
+  trackerType = 'face',
   className,
 }: ARViewerProps) {
-  const { t } = useI18n();
-  // Refs
+  const [platformConfig, setPlatformConfig] = useState<{ platform: ARPlatform; method: ARLaunchMethod } | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const isTryOn = useMemo(() => Boolean(products?.length && trackerType), [products, trackerType]);
+  const hasModel = Boolean(modelUrl || usdzUrl);
+
+  useEffect(() => {
+    if (!hasModel && !isTryOn) return;
+    let cancelled = false;
+    setStatus('loading');
+    getPlatformConfig()
+      .then((config) => {
+        if (!cancelled) {
+          setPlatformConfig({ platform: config.platform, method: config.method });
+          setStatus('ready');
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          logger.error('ARViewer: platform config failed', { error: e });
+          setError(getErrorDisplayMessage(e));
+          setStatus('error');
+        }
+      });
+    return () => { cancelled = true; };
+  }, [hasModel, isTryOn]);
+
+  const handleLaunchAR = useCallback(() => {
+    if (platformConfig?.platform === 'ios' && usdzUrl) {
+      launchQuickLook(usdzUrl);
+      onSessionStart?.();
+      return;
+    }
+    if (platformConfig?.platform === 'android' && modelUrl) {
+      launchSceneViewer(modelUrl, { fallbackUrl: typeof window !== 'undefined' ? window.location.href : '' });
+      onSessionStart?.();
+      return;
+    }
+    if (platformConfig?.method === 'webxr' && modelUrl && typeof window !== 'undefined') {
+      window.location.href = `/ar/viewer?model=${encodeURIComponent(modelUrl)}`;
+      onSessionStart?.();
+      return;
+    }
+    onSessionStart?.();
+  }, [platformConfig, modelUrl, usdzUrl, onSessionStart]);
+
+  if (isTryOn) {
+    return (
+      <ErrorBoundary componentName="ARViewer">
+        <ARTryOnViewer products={products!} trackerType={trackerType!} className={className} onCapture={onScreenshot} />
+      </ErrorBoundary>
+    );
+  }
+
+  if (!hasModel) {
+    return (
+      <Card className={`flex items-center justify-center p-8 text-muted-foreground ${className ?? ''}`}>
+        <p className="text-sm">No model URL provided.</p>
+      </Card>
+    );
+  }
+
+  if (status === 'loading' || status === 'error') {
+    return (
+      <Card className={`flex flex-col items-center justify-center p-8 min-h-[280px] ${className ?? ''}`}>
+        {status === 'loading' && <Loader2 className="h-10 w-10 animate-spin text-muted-foreground mb-2" aria-hidden />}
+        {status === 'error' && <p className="text-sm text-destructive">{error}</p>}
+      </Card>
+    );
+  }
+
+  const isDesktop = platformConfig?.platform === 'desktop';
+
+  return (
+    <>
+      <Script
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"
+        type="module"
+        strategy="lazyOnload"
+      />
+      <div ref={containerRef} className={`relative rounded-lg overflow-hidden bg-black ${className ?? ''}`}>
+        {isDesktop ? (
+          <>
+            <ARPreview modelUrl={modelUrl!} autoRotate onScreenshot={onScreenshot} />
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <Button size="lg" onClick={handleLaunchAR} className="gap-2" aria-label="Show QR code to scan for AR">
+                <Smartphone className="h-5 w-5" />
+                Scan with your phone for AR
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* @ts-ignore model-viewer web component */}
+            <model-viewer
+              src={modelUrl ?? ''}
+              alt="AR model"
+              ar
+              ar-modes="webxr scene-viewer quick-look"
+              camera-controls
+              auto-rotate
+              shadow-intensity="1"
+              style={{ width: '100%', height: '100%', minHeight: 320, display: 'block' }}
+            >
+              <Button
+                slot="ar-button"
+                onClick={handleLaunchAR}
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground rounded-xl px-6 py-3 font-semibold gap-2"
+                aria-label="View in your space"
+              >
+                <Smartphone className="h-5 w-5" />
+                View in your space
+              </Button>
+            </model-viewer>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** Try-on viewer (face/hand/body) using AREngine – kept for backward compatibility */
+function ARTryOnViewer({
+  products,
+  trackerType,
+  className,
+  onCapture,
+}: {
+  products: ARProduct[];
+  trackerType: TrackerType;
+  className?: string;
+  onCapture?: (dataUrl: string) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const arEngineRef = useRef<AREngine | null>(null);
-
-  // State
-  const [status, setStatus] = useState<ARStatus>('idle');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
   const [isTracking, setIsTracking] = useState(false);
   const [confidence, setConfidence] = useState(0);
+  const { t } = useI18n();
 
-  /**
-   * Initialise le moteur AR
-   */
   const initializeAR = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
-
     setStatus('loading');
     setErrorMessage('');
-
     try {
-      // Créer le moteur AR
       const engine = new AREngine({
         videoElement: videoRef.current,
         canvasElement: canvasRef.current,
         trackerType,
-        onTrackingUpdate: (data) => {
+        onTrackingUpdate: (data: { confidence: number }) => {
           setIsTracking(true);
           setConfidence(data.confidence);
-          onTrackingUpdate?.(data);
         },
-        onError: (error) => {
-          logger.error('[ARViewer] Error', error);
+        onError: (err: Error) => {
+          logger.error('[ARViewer] Error', err);
           setStatus('error');
-          setErrorMessage(error.message);
+          setErrorMessage(err.message);
         },
       });
-
-      // Initialiser
       await engine.initialize();
-
-      // Charger les produits
-      for (const product of products) {
-        await engine.loadProduct(product);
-      }
-
-      // Démarrer
+      for (const product of products) await engine.loadProduct(product);
       engine.start();
-
       arEngineRef.current = engine;
       setStatus('ready');
-    } catch (error) {
-      logger.error('[ARViewer] Initialization failed', error as Error);
-
-      if (error instanceof Error && error.message.includes('Camera')) {
-        setStatus('no-camera');
-        setErrorMessage('Accès à la caméra refusé');
-      } else {
-        setStatus('error');
-        setErrorMessage(getErrorDisplayMessage(error));
-      }
+    } catch (err) {
+      logger.error('[ARViewer] Init failed', err as Error);
+      setStatus('error');
+      setErrorMessage(getErrorDisplayMessage(err));
     }
-  }, [trackerType, products, onTrackingUpdate]);
+  }, [trackerType, products]);
 
-  /**
-   * Arrête le moteur AR
-   */
   const stopAR = useCallback(() => {
     arEngineRef.current?.dispose();
     arEngineRef.current = null;
@@ -126,212 +236,47 @@ export function ARViewer({
     setIsTracking(false);
   }, []);
 
-  /**
-   * Capture une image
-   */
   const handleCapture = useCallback(() => {
-    if (!arEngineRef.current) return;
-
     try {
-      const imageDataUrl = arEngineRef.current.captureImage();
-      onCapture?.(imageDataUrl);
-    } catch (error) {
-      logger.error('[ARViewer] Capture failed', error as Error);
+      const dataUrl = arEngineRef.current?.captureImage?.();
+      if (dataUrl) onCapture?.(dataUrl);
+    } catch (e) {
+      logger.error('[ARViewer] Capture failed', e as Error);
     }
   }, [onCapture]);
 
-  /**
-   * Redémarre la session AR
-   */
-  const handleRestart = useCallback(() => {
-    stopAR();
-    setTimeout(initializeAR, 100);
-  }, [stopAR, initializeAR]);
-
-  // Cleanup au démontage
-  useEffect(() => {
-    return () => {
-      arEngineRef.current?.dispose();
-    };
-  }, []);
-
-  // Charger/décharger les produits quand ils changent
-  useEffect(() => {
-    if (!arEngineRef.current || status !== 'ready') return;
-
-    const engine = arEngineRef.current;
-
-    // Charger les nouveaux produits
-    products.forEach(async (product) => {
-      try {
-        await engine.loadProduct(product);
-      } catch (error) {
-        logger.error(`[ARViewer] Failed to load product ${product.id}`, error as Error);
-      }
-    });
-  }, [products, status]);
+  useEffect(() => () => { arEngineRef.current?.dispose(); }, []);
 
   return (
-    <Card className={`relative overflow-hidden bg-black ${className}`}>
-      {/* Video + Canvas */}
+    <Card className={`relative overflow-hidden bg-black ${className ?? ''}`}>
       <div className="relative aspect-[4/3]">
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          playsInline
-          muted
-        />
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none"
-        />
-
-        {/* Overlay Status */}
-        <ARStatusOverlay
-          status={status}
-          errorMessage={errorMessage}
-          isTracking={isTracking}
-          confidence={confidence}
-          trackerType={trackerType}
-        />
-      </div>
-
-      {/* Controls */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {status === 'idle' && (
-          <Button onClick={initializeAR} size="lg">
-            <Camera className="h-5 w-5 mr-2" />
-            Démarrer la caméra
-          </Button>
-        )}
-
+        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
         {status === 'loading' && (
-          <Button disabled size="lg">
-            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            Chargement...
-          </Button>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+          </div>
         )}
-
         {status === 'ready' && (
-          <>
-            <Button onClick={handleCapture} size="icon" variant="secondary" aria-label="Capture screenshot">
-              <Download className="h-5 w-5" />
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            <Button size="icon" variant="secondary" onClick={handleCapture} aria-label="Capture">
+              <Camera className="h-5 w-5" />
             </Button>
-            <Button onClick={handleRestart} size="icon" variant="secondary" aria-label="Restart AR">
-              <RotateCcw className="h-5 w-5" />
+            <Button size="icon" variant="destructive" onClick={stopAR} aria-label="Stop AR">
+              <X className="h-5 w-5" />
             </Button>
-            <Button onClick={stopAR} size="icon" variant="destructive" aria-label="Stop AR camera">
-              <CameraOff className="h-5 w-5" />
-            </Button>
-          </>
+          </div>
         )}
-
-        {(status === 'error' || status === 'no-camera') && (
-          <Button onClick={handleRestart} variant="secondary">
-            <RotateCcw className="h-5 w-5 mr-2" />
-            Réessayer
-      </Button>
-      )}
-    </div>
+        {(status === 'error' || status === 'idle') && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <Button onClick={status === 'idle' ? initializeAR : () => initializeAR()} variant="secondary">
+              {status === 'idle' ? t('arStudio.startCamera') : t('common.retry')}
+            </Button>
+          </div>
+        )}
+      </div>
     </Card>
   );
-}
-
-// ============================================================================
-// SUB-COMPONENTS
-// ============================================================================
-
-/**
- * Overlay de statut AR
- */
-function ARStatusOverlay({
-  status,
-  errorMessage,
-  isTracking,
-  confidence,
-  trackerType,
-}: {
-  status: ARStatus;
-  errorMessage: string;
-  isTracking: boolean;
-  confidence: number;
-  trackerType: TrackerType;
-}) {
-  const { t } = useI18n();
-  const trackingMessages = {
-    face: isTracking ? 'Visage détecté' : 'Positionnez votre visage',
-    hand: isTracking ? 'Main détectée' : 'Montrez votre main',
-    body: isTracking ? 'Corps détecté' : 'Reculez pour voir votre corps',
-  };
-
-  if (status === 'loading') {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-        <div className="text-center text-white">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Initialisation de la caméra...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'error' || status === 'no-camera') {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-        <div className="text-center text-white max-w-xs">
-          <CameraOff className="h-8 w-8 mx-auto mb-2 text-red-400" />
-          <p className="font-medium">
-            {status === 'no-camera' ? t('arStudio.cameraUnavailable') : t('common.error')}
-          </p>
-          <p className="text-sm text-white/70 mt-1">{errorMessage}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'ready') {
-  return (
-      <>
-        {/* Badge de tracking */}
-        <div className="absolute top-4 left-4">
-          <Badge
-            variant={isTracking ? 'default' : 'secondary'}
-            className={isTracking ? 'bg-green-500' : ''}
-          >
-            {trackingMessages[trackerType]}
-          </Badge>
-        </div>
-
-        {/* Indicateur de confiance */}
-        {isTracking && (
-          <div className="absolute top-4 right-4">
-            <Badge variant="outline" className="bg-black/50 text-white border-white/30">
-              {Math.round(confidence * 100)}% confiance
-            </Badge>
-          </div>
-        )}
-
-        {/* Guide visuel amélioré - Conforme au plan PHASE 3 - ARViewer UX claire */}
-        {!isTracking && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center text-white">
-              <div className="w-48 h-48 border-2 border-dashed border-white/50 rounded-full flex items-center justify-center mb-4">
-                <div className="w-32 h-32 border-2 border-white/30 rounded-full" />
-              </div>
-              <p className="text-sm font-medium mb-1">{trackingMessages[trackerType]}</p>
-              <p className="text-xs text-white/60">
-                {trackerType === 'face' && 'Assurez-vous que votre visage est bien éclairé'}
-                {trackerType === 'hand' && 'Tenez votre main devant la caméra'}
-                {trackerType === 'body' && 'Reculez pour que votre corps soit visible'}
-              </p>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  return null;
 }
 
 export default ARViewer;

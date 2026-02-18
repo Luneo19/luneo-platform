@@ -31,7 +31,7 @@ export class LunaChatContextDto {
 
   @ApiPropertyOptional({ description: 'Selected product ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   selectedProductId?: string;
 
@@ -53,7 +53,7 @@ export class LunaChatDto {
 
   @ApiPropertyOptional({ description: 'Conversation ID (UUID) for continuity' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   conversationId?: string;
 

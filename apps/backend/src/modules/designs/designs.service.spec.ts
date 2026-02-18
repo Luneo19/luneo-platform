@@ -365,13 +365,14 @@ describe('DesignsService', () => {
         user: {},
       } as any;
       mockPrisma.design.findUnique.mockResolvedValue(design);
-      mockPrisma.design.delete.mockResolvedValue(design);
+      mockPrisma.design.update.mockResolvedValue(design);
 
       const result = await service.delete('design-1', brandUser as any);
 
       expect(result.success).toBe(true);
-      expect(mockPrisma.design.delete).toHaveBeenCalledWith({
+      expect(mockPrisma.design.update).toHaveBeenCalledWith({
         where: { id: 'design-1' },
+        data: { deletedAt: expect.any(Date) },
       });
     });
 
@@ -391,7 +392,7 @@ describe('DesignsService', () => {
       await expect(
         service.delete('design-1', brandUser as any),
       ).rejects.toThrow(/blocked due to an IP claim/);
-      expect(mockPrisma.design.delete).not.toHaveBeenCalled();
+      expect(mockPrisma.design.update).not.toHaveBeenCalled();
     });
   });
 

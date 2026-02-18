@@ -101,6 +101,10 @@ export class ApiKeysService {
     const keyValue = `lun_${crypto.randomBytes(16).toString('hex')}`;
     const hashedSecret = await bcrypt.hash(keyValue, 13);
 
+    // SECURITY FIX: API keys expire by default after 1 year (can be customized)
+    const defaultExpirationDays = 365;
+    const expiresAt = new Date(Date.now() + defaultExpirationDays * 24 * 60 * 60 * 1000);
+
     const apiKey = await this.prisma.apiKey.create({
       data: {
         name: data.name,
@@ -110,6 +114,7 @@ export class ApiKeysService {
         rateLimit: data.rateLimit,
         brandId,
         isActive: true,
+        expiresAt, // SECURITY FIX: Mandatory expiration
       },
       include: {
         brand: {
@@ -202,6 +207,27 @@ export class ApiKeysService {
       ...apiKey,
       lastUsedAt: apiKey.lastUsedAt ?? undefined,
     };
+  }
+
+  /**
+   * FIX-1: Enforce API key permissions/scopes for a given operation.
+   * Throws ForbiddenException if the key doesn't have the required permission.
+   */
+  assertPermission(apiKey: { permissions: string[] }, requiredPermission: string): void {
+    if (!apiKey.permissions || apiKey.permissions.length === 0) {
+      // Legacy keys with no permissions set → allow all (backward-compatible)
+      return;
+    }
+    // Check for wildcard or exact match
+    if (apiKey.permissions.includes('*') || apiKey.permissions.includes(requiredPermission)) {
+      return;
+    }
+    // Check for namespace wildcard (e.g., 'generation:*' matches 'generation:create')
+    const namespace = requiredPermission.split(':')[0];
+    if (apiKey.permissions.includes(`${namespace}:*`)) {
+      return;
+    }
+    throw new ForbiddenException(`API key does not have '${requiredPermission}' permission`);
   }
 
   /**

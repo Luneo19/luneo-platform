@@ -4,19 +4,26 @@
  */
 
 import React from 'react';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useBilling } from '@/lib/hooks/useBilling';
 import { AllProviders } from '../utils/test-utils';
-import { mockPlans } from '../fixtures';
 
-// Mock fetch
-const mockFetch = vi.fn();
+// Mock API client (hook uses endpoints.billing, not fetch)
+const mockSubscription = vi.fn();
+const mockInvoices = vi.fn();
+vi.mock('@/lib/api/client', () => ({
+  endpoints: {
+    billing: {
+      subscription: () => mockSubscription(),
+      invoices: () => mockInvoices(),
+    },
+  },
+}));
 
 describe('useBilling Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = mockFetch;
   });
 
   // ============================================
@@ -25,27 +32,23 @@ describe('useBilling Hook', () => {
 
   describe('Initial State', () => {
     it('should start with loading state', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ data: { subscription: null } }),
-      });
+      mockSubscription.mockResolvedValue({ data: { subscription: null } });
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
       });
 
       expect(result.current.loading).toBe(true);
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
     });
 
     it('should have null subscription initially', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ data: { subscription: null } }),
-      });
+      mockSubscription.mockResolvedValue({ data: { subscription: null } });
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -57,10 +60,8 @@ describe('useBilling Hook', () => {
     });
 
     it('should have empty invoices initially', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ data: { subscription: null, invoices: [] } }),
-      });
+      mockSubscription.mockResolvedValue({ data: { subscription: null } });
+      mockInvoices.mockResolvedValue({ data: { invoices: [], subscription: null } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -78,47 +79,22 @@ describe('useBilling Hook', () => {
 
   describe('Loading Subscription', () => {
     it('should load subscription successfully', async () => {
-      const mockSubscription = {
-        tier: 'professional',
-        status: 'active',
-        period: 'monthly',
-      };
-
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes('/subscription')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: { subscription: mockSubscription } }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: { invoices: [] } }),
-        });
-      });
+      const sub = { tier: 'professional', status: 'active', period: 'monthly' };
+      mockSubscription.mockResolvedValue({ data: { subscription: sub } });
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
       });
 
       await waitFor(() => {
-        expect(result.current.subscription).toEqual(mockSubscription);
+        expect(result.current.subscription).toEqual(sub);
       });
     });
 
     it('should handle subscription loading error', async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes('/subscription')) {
-          return Promise.resolve({
-            ok: false,
-            json: () => Promise.resolve({ error: 'Subscription not found' }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: { invoices: [] } }),
-        });
-      });
+      mockSubscription.mockRejectedValue(new Error('Subscription not found'));
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -136,7 +112,7 @@ describe('useBilling Hook', () => {
 
   describe('Loading Invoices', () => {
     it('should load invoices successfully', async () => {
-      const mockInvoices = [
+      const invs = [
         {
           id: 'inv_001',
           number: 'INV-001',
@@ -148,19 +124,8 @@ describe('useBilling Hook', () => {
           description: 'Professional Plan - Monthly',
         },
       ];
-
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes('/invoices')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: { invoices: mockInvoices } }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: { subscription: null } }),
-        });
-      });
+      mockSubscription.mockResolvedValue({ data: { subscription: null } });
+      mockInvoices.mockResolvedValue({ data: { invoices: invs } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -179,7 +144,8 @@ describe('useBilling Hook', () => {
 
   describe('Error Handling', () => {
     it('should handle network errors gracefully', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      mockSubscription.mockRejectedValue(new Error('Network error'));
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -188,17 +154,13 @@ describe('useBilling Hook', () => {
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
-      // Should not crash
+
       expect(result.current.error).toBeTruthy();
     });
 
     it('should handle API errors gracefully', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: () => Promise.resolve({ error: 'Internal server error' }),
-      });
+      mockSubscription.mockRejectedValue(new Error('Internal server error'));
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -216,22 +178,10 @@ describe('useBilling Hook', () => {
 
   describe('Subscription Status', () => {
     it('should identify active subscription', async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes('/subscription')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              data: {
-                subscription: { tier: 'professional', status: 'active' },
-              },
-            }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: { invoices: [] } }),
-        });
+      mockSubscription.mockResolvedValue({
+        data: { subscription: { tier: 'professional', status: 'active' } },
       });
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,
@@ -243,26 +193,16 @@ describe('useBilling Hook', () => {
     });
 
     it('should identify trial subscription', async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes('/subscription')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              data: {
-                subscription: {
-                  tier: 'professional',
-                  status: 'trialing',
-                  trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-                },
-              },
-            }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: { invoices: [] } }),
-        });
+      mockSubscription.mockResolvedValue({
+        data: {
+          subscription: {
+            tier: 'professional',
+            status: 'trialing',
+            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+        },
       });
+      mockInvoices.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling(), {
         wrapper: AllProviders,

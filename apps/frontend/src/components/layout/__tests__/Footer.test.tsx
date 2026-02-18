@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Footer } from '../Footer';
@@ -10,10 +10,54 @@ vi.mock('next/image', () => ({
   ),
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  },
+vi.mock('@/lib/performance/dynamic-motion', () => ({
+  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}));
+
+// Mock i18n for French footer strings expected by tests
+vi.mock('@/i18n/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      if (key === 'components.footer.jobsCount' && params?.count !== undefined) {
+        return `${params.count} postes`;
+      }
+      const map: Record<string, string> = {
+        'components.footer.newsletterTitle': 'Restez informé des dernières nouveautés',
+        'components.footer.newsletterDesc': 'Recevez nos conseils et actualités.',
+        'components.footer.emailPlaceholder': 'votre@email.com',
+        'components.footer.subscribe': "S'inscrire",
+        'components.footer.subscribed': 'Inscrit !',
+        'components.footer.product': 'Produit',
+        'components.footer.integrations': 'Intégrations',
+        'components.footer.industries': 'Industries',
+        'components.footer.resources': 'Ressources',
+        'components.footer.company': 'Entreprise',
+        'components.footer.legal': 'Légal',
+        'components.footer.customizer': 'Customizer',
+        'components.footer.configurator3d': 'Configurateur 3D',
+        'components.footer.pricing': 'Tarifs',
+        'components.footer.terms': 'CGU',
+        'components.footer.privacy': 'Confidentialité',
+        'components.footer.new': 'Nouveau',
+        'components.footer.rgpdCompliant': 'RGPD Compliant',
+        'components.footer.soc2': 'SOC 2 Type II',
+        'components.footer.cdnEurope': 'CDN Europe',
+        'components.footer.platformDesc': 'La plateforme de personnalisation produit',
+        'components.footer.paris': 'Paris, France',
+        'components.footer.inParis': 'en France',
+        'components.footer.allSystemsOperational': 'Tous les systèmes opérationnels',
+        'components.footer.statusPage': 'Page statut',
+        'components.footer.allRightsReserved': 'Tous droits réservés.',
+        'components.footer.termsLink': 'CGU',
+        'components.footer.privacyLinkLabel': 'Confidentialité',
+        'components.footer.cookiesLink': 'Cookies',
+        'components.footer.madeWith': 'Fait avec',
+      };
+      return map[key] ?? key;
+    },
+    locale: 'fr',
+    setLocale: () => {},
+  }),
 }));
 
 describe('Footer', () => {
@@ -64,8 +108,9 @@ describe('Footer', () => {
       expect(screen.getByText('Shopify')).toBeInTheDocument();
       expect(screen.getByText('WooCommerce')).toBeInTheDocument();
       
-      // Legal links - use getAllByText since "Confidentialité" appears multiple times
-      expect(screen.getByText('CGU')).toBeInTheDocument();
+      // Legal links - use getAllByText since "CGU" and "Confidentialité" may appear multiple times
+      const cguLinks = screen.getAllByText('CGU');
+      expect(cguLinks.length).toBeGreaterThan(0);
       const privacyLinks = screen.getAllByText('Confidentialité');
       expect(privacyLinks.length).toBeGreaterThan(0);
     });

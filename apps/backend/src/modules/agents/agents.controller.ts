@@ -14,13 +14,16 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
+  Param,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
   Logger,
   BadRequestException,
+  NotFoundException,
   HttpException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
@@ -37,6 +40,7 @@ import { ConversationService } from './services/conversation.service';
 import { LunaService } from './luna/luna.service';
 import { AriaService } from './aria/aria.service';
 import { NovaService } from './nova/nova.service';
+import { PrismaService } from '@/libs/prisma/prisma.service';
 
 // ============================================================================
 // CONTROLLER
@@ -56,6 +60,7 @@ export class AgentsController {
     private readonly lunaService: LunaService,
     private readonly ariaService: AriaService,
     private readonly novaService: NovaService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -166,5 +171,109 @@ export class AgentsController {
     );
 
     return status;
+  }
+
+  /**
+   * Liste les conversations d'un utilisateur
+   */
+  @Get('conversations')
+  @ApiOperation({ summary: 'Liste des conversations' })
+  @ApiResponse({ status: 200, description: 'Liste des conversations' })
+  async getConversations(
+    @CurrentBrand() brand: { id: string } | null,
+    @CurrentUser() user: CurrentUserType,
+    @Query('agentType') agentType?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const conversations = await this.conversationService.listConversations({
+      userId: user.id,
+      brandId: brand?.id,
+      agentType,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
+
+    return { success: true, data: conversations };
+  }
+
+  /**
+   * Récupère une conversation spécifique avec ses messages
+   */
+  @Get('conversations/:conversationId')
+  @ApiOperation({ summary: 'Détails d\'une conversation' })
+  @ApiResponse({ status: 200, description: 'Conversation avec messages' })
+  async getConversation(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    const conversation = await this.conversationService.getConversation(conversationId, user.id);
+
+    if (!conversation) {
+      throw new NotFoundException('Conversation not found');
+    }
+
+    return { success: true, data: conversation };
+  }
+
+  /**
+   * Supprime une conversation
+   */
+  @Delete('conversations/:conversationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Supprimer une conversation' })
+  async deleteConversation(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    await this.conversationService.deleteConversation(conversationId, user.id);
+  }
+
+  /**
+   * Soumet un feedback sur une réponse agent
+   */
+  @Post('feedback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soumettre un feedback' })
+  @ApiResponse({ status: 200, description: 'Feedback enregistré' })
+  async submitFeedback(
+    @Body() body: {
+      messageId: string;
+      conversationId: string;
+      rating: 'positive' | 'negative';
+      comment?: string;
+      agentType?: string;
+    },
+    @CurrentUser() user: CurrentUserType,
+    @CurrentBrand() brand: { id: string } | null,
+  ) {
+    this.logger.log(`Agent feedback received: messageId=${body.messageId}, rating=${body.rating}, userId=${user.id}, agentType=${body.agentType || 'unknown'}`);
+
+    try {
+      await this.prisma.aIUsageLog.create({
+        data: {
+          userId: user.id,
+          brandId: brand?.id,
+          operation: 'agent_feedback',
+          provider: body.agentType || 'unknown',
+          model: 'feedback',
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+          costCents: 0,
+          latencyMs: 0,
+          success: true,
+          metadata: {
+            messageId: body.messageId,
+            conversationId: body.conversationId,
+            rating: body.rating,
+            comment: body.comment,
+            agentType: body.agentType,
+          },
+        },
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to persist feedback: ${error}`);
+    }
+
+    return { success: true, message: 'Feedback enregistré' };
   }
 }

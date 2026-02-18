@@ -13,6 +13,7 @@ import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
+import { EnterprisePlanGuard } from '@/common/guards/enterprise-plan.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { WhiteLabelService } from './services/white-label.service';
 import { SSOService } from './services/sso.service';
@@ -26,7 +27,8 @@ import { UpdateSLATicketStatusDto } from './dto/update-sla-ticket-status.dto';
 
 @ApiTags('Enterprise')
 @Controller('enterprise')
-@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
+// SECURITY FIX P0-5: Enterprise features restricted to Enterprise plan only
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard, EnterprisePlanGuard)
 @ApiBearerAuth()
 export class EnterpriseController {
   constructor(

@@ -342,6 +342,10 @@ export class UsageReportingService {
       team_members: 'members',
       virtual_tryons: 'sessions',
       try_on_screenshots: 'screenshots',
+      ar_sessions: 'sessions',
+      ar_models: 'models',
+      ar_conversions_3d: 'conversions',
+      ar_qr_codes: 'codes',
     };
 
     return units[metric] || 'units';

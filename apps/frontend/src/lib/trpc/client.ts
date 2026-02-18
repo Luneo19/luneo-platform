@@ -25,6 +25,9 @@ import type { AppRouter } from './routers/_app';
 
 export const trpc = createTRPCReact<AppRouter>();
 
+// Export as 'api' for backward compatibility
+export const api = trpc;
+
 // ========================================
 // QUERY CLIENT
 // ========================================

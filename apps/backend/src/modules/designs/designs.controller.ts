@@ -22,6 +22,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { DesignsService } from './designs.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { CreateDesignDto } from './dto/create-design.dto';
 import { FindAllDesignsQueryDto } from './dto/find-all-designs-query.dto';
 import { GetVersionsQueryDto } from './dto/get-versions-query.dto';
@@ -33,7 +34,8 @@ import { Request as ExpressRequest } from 'express';
 
 @ApiTags('designs')
 @Controller('designs')
-@UseGuards(JwtAuthGuard)
+// SECURITY FIX: Added BrandOwnershipGuard for brand-level data isolation
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 @ApiBearerAuth()
 export class DesignsController {
   constructor(private readonly designsService: DesignsService) {}
@@ -80,8 +82,8 @@ export class DesignsController {
     @Query() query: FindAllDesignsQueryDto,
   ) {
     return this.designsService.findAll(req.user! as import('@/common/types/user.types').CurrentUser, {
-      page: query.page,
-      limit: query.limit,
+      page: query.page != null ? Number(query.page) : undefined,
+      limit: query.limit != null ? Number(query.limit) : undefined,
       status: query.status,
       search: query.search,
     });
@@ -150,8 +152,8 @@ export class DesignsController {
     @Query() query: GetVersionsQueryDto,
   ) {
     return this.designsService.getVersions(id, req.user! as import('@/common/types/user.types').CurrentUser, {
-      page: query.page,
-      limit: query.limit,
+      page: query.page != null ? Number(query.page) : undefined,
+      limit: query.limit != null ? Number(query.limit) : undefined,
       autoOnly: query.autoOnly,
     });
   }

@@ -35,6 +35,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret,
       callbackURL: callbackURL || '/api/v1/auth/google/callback',
       scope: ['email', 'profile'],
+      // SECURITY FIX: Enable state parameter for CSRF protection on OAuth callbacks
+      state: true,
+      // SECURITY FIX: Enable PKCE (Proof Key for Code Exchange) to prevent authorization code interception
+      pkce: true,
+      passReqToCallback: false,
     });
   }
 

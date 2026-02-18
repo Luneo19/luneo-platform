@@ -1,17 +1,9 @@
-/**
- * @fileoverview Module Nova (Agent Support)
- * @module NovaModule
- */
-
-/**
- * @fileoverview Module Nova (Agent Support)
- * @module NovaModule
- */
-
 import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { NovaController } from './nova.controller';
 import { NovaService } from './nova.service';
+import { NovaTicketsService } from './services/nova-tickets.service';
+import { NovaEscalationService } from './services/nova-escalation.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { AgentsModule } from '../agents.module';
@@ -22,13 +14,13 @@ import { AIMonitorModule } from '../ai-monitor/ai-monitor.module';
   imports: [
     PrismaModule,
     SmartCacheModule,
-    forwardRef(() => AgentsModule), // Pour LLMRouterService et tous ses dépendances
-    UsageGuardianModule, // Usage Guardian
-    AIMonitorModule, // AI Monitor
+    forwardRef(() => AgentsModule),
+    UsageGuardianModule,
+    AIMonitorModule,
     HttpModule,
   ],
   controllers: [NovaController],
-  providers: [NovaService],
-  exports: [NovaService],
+  providers: [NovaService, NovaTicketsService, NovaEscalationService],
+  exports: [NovaService, NovaTicketsService, NovaEscalationService],
 })
 export class NovaModule {}

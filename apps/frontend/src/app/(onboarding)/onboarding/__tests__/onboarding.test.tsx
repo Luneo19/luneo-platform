@@ -92,6 +92,32 @@ vi.mock('../components/Step2Industry', () => ({
   ),
 }));
 
+// Mock i18n for step 1 placeholders and labels
+vi.mock('@/i18n/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'onboarding.welcome': 'Bienvenue sur Luneo',
+        'onboarding.letsGetStarted': 'Commençons par faire connaissance',
+        'onboarding.step1.profile': 'Profil',
+        'onboarding.step1.fullName': 'Nom complet',
+        'onboarding.step1.companyName': 'Entreprise',
+        'onboarding.step1.role': 'Rôle',
+        'onboarding.step1.teamSize': 'Taille de l\'équipe',
+        'onboarding.step1.fullNamePlaceholder': 'Jean Dupont',
+        'onboarding.step1.companyPlaceholder': 'Ma super entreprise',
+        'onboarding.step1.rolePlaceholder': 'CEO, Marketing',
+        'onboarding.step1.teamSizePlaceholder': '1-10, 10-50',
+        'onboarding.continue': 'Continuer',
+        'onboarding.skip': 'Passer',
+      };
+      return map[key] ?? key;
+    },
+    locale: 'fr',
+    setLocale: () => {},
+  }),
+}));
+
 describe('OnboardingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();

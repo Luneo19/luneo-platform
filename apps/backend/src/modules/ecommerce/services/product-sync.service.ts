@@ -38,8 +38,8 @@ export class ProductSyncService {
   /**
    * Synchronise les produits d'une intégration
    */
-  async syncProducts(request: ProductSyncRequest): Promise<SyncResult> {
-    const { integrationId, productIds, options } = request;
+  async syncProducts(request: ProductSyncRequest & { brandId?: string }): Promise<SyncResult> {
+    const { integrationId, productIds, options, brandId } = request;
 
     try {
       // Récupérer l'intégration
@@ -49,6 +49,11 @@ export class ProductSyncService {
 
       if (!integration) {
         throw new NotFoundException(`Integration ${integrationId} not found`);
+      }
+
+      // SECURITY FIX P1-9: Verify the integration belongs to the requesting brand
+      if (brandId && integration.brandId !== brandId) {
+        throw new BadRequestException('Integration does not belong to this brand');
       }
 
       this.logger.log(`Starting product sync for ${integration.platform} integration ${integrationId}`);

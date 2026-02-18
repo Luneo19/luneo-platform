@@ -462,6 +462,8 @@ export class BillingController {
         throw new BadRequestException('Missing raw body for webhook verification. Ensure rawBody is enabled.');
       }
       const stripe = await this.billingService.getStripe();
+      // SECURITY FIX: constructEvent validates signature + timestamp (default tolerance: 300s)
+      // This prevents replay attacks with events older than 5 minutes
       event = stripe.webhooks.constructEvent(
         payload,
         signature,
@@ -471,6 +473,14 @@ export class BillingController {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn('Invalid Stripe webhook signature', { error: message });
       throw new BadRequestException(`Webhook signature verification failed: ${message}`);
+    }
+
+    // SECURITY FIX: Defense-in-depth - reject events older than 1 hour
+    // (constructEvent already rejects > 5 min, but this catches edge cases)
+    const eventAge = Date.now() / 1000 - event.created;
+    if (eventAge > 3600) {
+      this.logger.warn(`Rejecting stale webhook event ${event.id} (age: ${Math.round(eventAge)}s)`);
+      throw new BadRequestException('Webhook event too old');
     }
 
     this.logger.log('Stripe webhook received', {

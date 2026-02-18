@@ -200,6 +200,10 @@ export class UsageMeteringService {
       team_members: 'prod_team',
       virtual_tryons: 'prod_virtual_tryons',
       try_on_screenshots: 'prod_tryon_screenshots',
+      ar_sessions: 'prod_ar_sessions',
+      ar_models: 'prod_ar_models',
+      ar_conversions_3d: 'prod_ar_conversions',
+      ar_qr_codes: 'prod_ar_qr_codes',
     };
 
     const targetProductId = metricToStripeProductMap[metric];
@@ -234,6 +238,10 @@ export class UsageMeteringService {
       team_members: 'members',
       virtual_tryons: 'sessions',
       try_on_screenshots: 'screenshots',
+      ar_sessions: 'sessions',
+      ar_models: 'models',
+      ar_conversions_3d: 'conversions',
+      ar_qr_codes: 'codes',
     };
 
     return units[metric] || 'units';

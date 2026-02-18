@@ -129,9 +129,12 @@ export class DesignsService {
   }
 
   /** J2: Commandes issues d'un design */
-  async getOrdersByDesign(designId: string) {
+  async getOrdersByDesign(designId: string, brandId?: string) {
+    // SECURITY FIX P0-4: Filter orders by brandId to prevent cross-brand data leakage.
     const orders = await this.prisma.order.findMany({
       where: {
+        ...(brandId ? { brandId } : {}),
+        deletedAt: null,
         OR: [
           { designId },
           { items: { some: { designId } } },
@@ -725,8 +728,9 @@ export class DesignsService {
       );
     }
 
-    await this.prisma.design.delete({
+    await this.prisma.design.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
 
     return { success: true, message: 'Design deleted successfully' };
@@ -1179,15 +1183,22 @@ export class DesignsService {
     }
 
     const d = design as typeof design & { product: { id: string; name: string | null; price: number | null; description: string | null } | null; brand: { id: string; name: string; logo: string | null } | null };
+    // P10-2: Filter sensitive data from shared designs (no highResUrl, no internal price)
     return {
       id: d.id,
       name: d.name,
       description: d.description,
       previewUrl: d.previewUrl,
-      highResUrl: d.highResUrl,
       imageUrl: d.imageUrl,
-      product: d.product,
-      brand: d.brand,
+      product: d.product ? {
+        id: d.product.id,
+        name: d.product.name,
+        description: d.product.description,
+      } : null,
+      brand: d.brand ? {
+        name: d.brand.name,
+        logo: d.brand.logo,
+      } : null,
       createdAt: d.createdAt,
       isShared: true,
     };

@@ -23,6 +23,7 @@ export default defineConfig({
       '**/*.e2e.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       '**/tests/e2e/**',
       '**/__tests__/e2e/**',
+      '**/tests/a11y/**',
     ],
     // Continue même si certains tests échouent (pour générer coverage)
     bail: 0,

@@ -1,0 +1,47 @@
+'use client';
+
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Button } from '@/components/ui/button';
+import { CustomizerForm } from '@/components/Customizer/admin/CustomizerForm';
+
+function NewCustomizerContent() {
+  const router = useRouter();
+
+  const handleSuccess = (config: { id?: string }) => {
+    const id = config.id;
+    if (id) {
+      router.push(`/dashboard/customizer/${id}`);
+    } else {
+      router.push('/dashboard/customizer');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard/customizer">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Customizers
+          </Link>
+        </Button>
+        <h1 className="mt-4 text-2xl font-bold">Create New Customizer</h1>
+        <p className="text-muted-foreground">Set up a new visual customizer for your products</p>
+      </div>
+
+      <CustomizerForm onSuccess={handleSuccess} onCancel={() => router.push('/dashboard/customizer')} />
+    </div>
+  );
+}
+
+export default function NewCustomizerPage() {
+  return (
+    <ErrorBoundary level="page" componentName="NewCustomizerPage">
+      <NewCustomizerContent />
+    </ErrorBoundary>
+  );
+}

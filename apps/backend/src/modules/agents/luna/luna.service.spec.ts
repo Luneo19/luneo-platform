@@ -358,10 +358,10 @@ describe('LunaService', () => {
       ).rejects.toThrow();
     });
 
-    it('should validate input with Zod schema', async () => {
+    it('should validate input with Zod schema (empty brandId rejected)', async () => {
       await expect(
         service.chat({
-          brandId: 'invalid-uuid',
+          brandId: '',
           userId: '550e8400-e29b-41d4-a716-446655440002',
           message: 'Test',
         }),

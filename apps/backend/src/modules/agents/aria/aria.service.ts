@@ -38,9 +38,9 @@ export enum AriaIntentType {
 }
 
 const AriaMessageSchema = z.object({
-  sessionId: z.string().uuid(),
-  productId: z.string().uuid(),
-  brandId: z.string().uuid().optional(), // Optionnel, sera récupéré depuis product si absent
+  sessionId: z.string().min(1),
+  productId: z.string().min(1),
+  brandId: z.string().min(1).optional(),
   message: z.string().min(1).max(1000),
   context: z.object({
     occasion: z.string().optional(),

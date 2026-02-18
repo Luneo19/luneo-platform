@@ -63,10 +63,10 @@ export enum LunaIntentType {
  * Schema pour les messages utilisateur
  */
 const UserMessageSchema = z.object({
-  brandId: z.string().uuid(),
-  userId: z.string().uuid(),
+  brandId: z.string().min(1),
+  userId: z.string().min(1),
   message: z.string().min(1).max(4000),
-  conversationId: z.string().uuid().optional(),
+  conversationId: z.string().min(1).optional(),
   context: z.object({
     currentPage: z.string().optional(),
     selectedProductId: z.string().optional(),

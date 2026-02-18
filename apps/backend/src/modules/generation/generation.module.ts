@@ -6,6 +6,7 @@ import { GenerationService } from './generation.service';
 import { GenerationProcessor } from './generation.processor';
 import { PromptBuilderService } from './services/prompt-builder.service';
 import { ImageProcessorService } from './services/image-processor.service';
+import { PromptSecurityService } from '@/modules/agents/services/prompt-security.service';
 
 // Providers IA
 import { OpenAIProvider } from '@/libs/ai/providers/openai.provider';
@@ -44,6 +45,7 @@ import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module
     GenerationService,
     GenerationProcessor,
     PromptBuilderService,
+    PromptSecurityService,
     ImageProcessorService,
     OpenAIProvider,
     ReplicateSDXLProvider,

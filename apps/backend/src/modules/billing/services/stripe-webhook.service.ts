@@ -455,6 +455,40 @@ export class StripeWebhookService {
       this.logger.log(`Synced ${activeAddons.length} add-ons for brand ${brand.id}: ${activeAddons.map(a => `${a.type} x${a.quantity}`).join(', ')}`);
     }
 
+    // P10-1: Eager enforcement — when plan downgrades, enforce new limits immediately
+    const previousTier = normalizePlanTier(brand.plan);
+    const tierOrder: Record<string, number> = { free: 0, starter: 1, professional: 2, business: 3, enterprise: 4 };
+    const isDowngrade = (tierOrder[normalizedTier] ?? 0) < (tierOrder[previousTier] ?? 0);
+    if (isDowngrade) {
+      this.logger.log(`Plan downgrade detected for brand ${brand.id}: ${previousTier} → ${normalizedTier}. Enforcing new limits.`);
+      try {
+        // Deactivate excess API keys beyond new plan limit
+        const apiKeyLimits: Record<string, number> = { free: 0, starter: 0, professional: 3, business: 10, enterprise: 50 };
+        const newPlanMaxApiKeys = planConfig.limits.apiAccess ? (apiKeyLimits[normalizedTier] ?? 5) : 0;
+        const activeApiKeys = await this.prisma.apiKey.findMany({
+          where: { brandId: brand.id, isActive: true },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (activeApiKeys.length > newPlanMaxApiKeys) {
+          const keysToDeactivate = activeApiKeys.slice(newPlanMaxApiKeys);
+          await this.prisma.apiKey.updateMany({
+            where: { id: { in: keysToDeactivate.map(k => k.id) } },
+            data: { isActive: false },
+          });
+          this.logger.log(`Deactivated ${keysToDeactivate.length} excess API keys for brand ${brand.id} (limit: ${newPlanMaxApiKeys})`);
+        }
+        // Update monthly credits to new plan allocation
+        const newMonthlyCredits = getMonthlyCredits(normalizedTier);
+        await this.prisma.user.updateMany({
+          where: { brandId: brand.id },
+          data: { aiCredits: Math.min(newMonthlyCredits, newMonthlyCredits) },
+        });
+        this.logger.log(`Reset AI credits to ${newMonthlyCredits} for brand ${brand.id} users`);
+      } catch (enforceError) {
+        this.logger.error(`Failed to enforce downgrade limits for brand ${brand.id}`, enforceError instanceof Error ? enforceError.stack : String(enforceError));
+      }
+    }
+
     // Notify on status degradation
     if (previousStatus !== appStatus && (appStatus === 'PAST_DUE' || appStatus === 'CANCELED')) {
       const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];

@@ -157,6 +157,8 @@ export class RAGService {
       // Générer embedding pour la requête
       const queryEmbedding = await this.generateEmbedding(query);
       // Recherche vectorielle avec pgvector (si extension et colonne embedding disponibles)
+      // NOTE: KnowledgeBaseArticle is a global knowledge base (no brandId column).
+      // Articles are curated content shared across all brands.
       const results = await this.prisma.$queryRaw<Array<{
         id: string;
         content: string;
@@ -184,6 +186,7 @@ export class RAGService {
       }));
     } catch {
       // Fallback: simple text search with ILIKE when pgvector is not available
+      // NOTE: KnowledgeBaseArticle is a global KB (no brandId column) - shared content is intentional
       const pattern = `%${query.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`;
       const results = await this.prisma.$queryRaw<Array<{
         id: string;
@@ -221,8 +224,9 @@ export class RAGService {
     brandId: string,
     limit: number,
   ): Promise<Document[]> {
-    // Recherche dans KnowledgeBaseArticle avec Prisma
-    // Note: KnowledgeBaseArticle n'a pas de brandId, on cherche dans tous les articles publiés
+    // NOTE: KnowledgeBaseArticle is a global knowledge base (no brandId column).
+    // Articles are curated content, not brand-specific data, so cross-brand access is intentional.
+    // If brand-specific KB articles are needed in the future, add a brandId column to the model.
     const articles = await this.prisma.knowledgeBaseArticle.findMany({
       where: {
         isPublished: true,

@@ -150,6 +150,24 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
+
+    // SECURITY FIX P1-5: Check JWT expiration (lightweight, no crypto verification).
+    // If both tokens are expired, redirect to login. Backend does full verification.
+    if (accessToken) {
+      try {
+        const payload = JSON.parse(
+          Buffer.from(accessToken.split('.')[1], 'base64').toString()
+        );
+        const isExpired = payload.exp && payload.exp * 1000 < Date.now();
+        if (isExpired && !refreshToken) {
+          const loginUrl = new URL('/login', request.url);
+          loginUrl.searchParams.set('redirect', pathname);
+          return NextResponse.redirect(loginUrl);
+        }
+      } catch {
+        // Malformed token — let backend handle it
+      }
+    }
   }
 
   // 7. Admin role verification
@@ -227,12 +245,12 @@ function setSecurityHeaders(response: NextResponse, nonce?: string): void {
     // Use nonce-based CSP for better security
     csp = buildCSPWithNonce(nonce);
   } else {
-    // Fallback to unsafe-inline CSP (only for debugging when DISABLE_CSP_NONCES=true)
+    // SECURITY FIX: Fallback CSP - removed unsafe-eval, restricted img-src wildcards
     csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https: http:",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://cdn.luneo.app https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://*.stripe.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "connect-src 'self' https://api.luneo.app https://*.luneo.app https://api.stripe.com https://*.sentry.io https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",

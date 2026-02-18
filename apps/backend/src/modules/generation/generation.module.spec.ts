@@ -11,6 +11,7 @@ import { GenerationService } from './generation.service';
 import { GenerationController } from './generation.controller';
 import { GenerationProcessor } from './generation.processor';
 import { PromptBuilderService } from './services/prompt-builder.service';
+import { PromptSecurityService } from '@/modules/agents/services/prompt-security.service';
 import { ImageProcessorService } from './services/image-processor.service';
 import { AIProviderFactory } from './providers/ai-provider.factory';
 import { OpenAIProvider } from '@/libs/ai/providers/openai.provider';
@@ -108,6 +109,7 @@ describe('GenerationModule', () => {
         GenerationService,
         GenerationProcessor,
         PromptBuilderService,
+        { provide: PromptSecurityService, useValue: { validatePrompt: jest.fn().mockResolvedValue({ safe: true, sanitized: '' }), sanitizePrompt: jest.fn().mockImplementation((p: string) => p), validateAndSanitize: jest.fn().mockImplementation((p: string) => p) } },
         ImageProcessorService,
         AIProviderFactory,
         OpenAIProvider,

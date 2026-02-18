@@ -30,14 +30,22 @@ export class ProductsService {
   async findAll(query: Record<string, unknown> = {}, pagination: PaginationParams = {}): Promise<PaginationResult<unknown>> {
     const { brandId, isPublic, isActive } = query;
     const { skip, take, page, limit } = normalizePagination(pagination);
+
+    // SECURITY FIX P0-1: When no brandId is provided, only return public active products.
+    // Authenticated brand users MUST pass their brandId to see their own products.
+    // This prevents cross-brand data leakage.
+    const where: Record<string, unknown> = {
+      deletedAt: null,
+      ...(brandId != null && brandId !== ''
+        ? { brandId: brandId as string }
+        : { isPublic: true, isActive: true }),
+      ...(typeof isPublic === 'boolean' ? { isPublic } : {}),
+      ...(typeof isActive === 'boolean' ? { isActive } : {}),
+    };
     
     const [data, total] = await Promise.all([
       this.prisma.product.findMany({
-        where: {
-          ...(brandId != null && brandId !== '' ? { brandId: brandId as string } : {}),
-          ...(typeof isPublic === 'boolean' ? { isPublic } : {}),
-          ...(typeof isActive === 'boolean' ? { isActive } : {}),
-        },
+        where,
         select: {
           id: true,
           name: true,
@@ -60,13 +68,7 @@ export class ProductsService {
         skip,
         take,
       }),
-      this.prisma.product.count({
-        where: {
-          ...(brandId != null && brandId !== '' ? { brandId: brandId as string } : {}),
-          ...(typeof isPublic === 'boolean' ? { isPublic } : {}),
-          ...(typeof isActive === 'boolean' ? { isActive } : {}),
-        },
-      }),
+      this.prisma.product.count({ where }),
     ]);
     
     return createPaginationResult(data, total, { page, limit });

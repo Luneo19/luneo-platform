@@ -91,9 +91,10 @@ export class BruteForceService {
         ]) as string | null;
       } catch (redisError: unknown) {
         if (this.isTimeoutError(redisError)) {
-          // Timeout: fail-open (don't block users if Redis is slow)
-          this.logger.warn('Redis timeout in brute force check, allowing request');
-          return true;
+          // SECURITY FIX P1-1: Timeout — fail-close with in-memory fallback (not fail-open)
+          this.logger.warn('Redis timeout in brute force check, using in-memory fallback');
+          const memAttempts = this.checkInMemory(identifier);
+          return memAttempts < 5;
         }
         // SECURITY FIX: Connection error: fail-close with in-memory fallback
         this.logger.error('Redis connection error in brute force check, using in-memory fallback');
@@ -266,12 +267,14 @@ export class BruteForceService {
    */
   async checkAndThrow(email: string, ip: string): Promise<void> {
     try {
-      // Timeout global de 3 secondes pour toute la vérification brute-force
+      // SECURITY FIX P1-1: Timeout global 3s — fail-close with in-memory fallback instead of fail-open
       const canAttempt = await Promise.race([
         this.canAttempt(email, ip),
         new Promise<boolean>((resolve) => setTimeout(() => {
-          this.logger.debug('Brute force check timeout, allowing request');
-          resolve(true); // Fail open - allow request
+          this.logger.warn('Brute force global check timeout, using in-memory fallback');
+          const identifier = this.getIdentifier(email, ip);
+          const memAttempts = this.checkInMemory(identifier);
+          resolve(memAttempts < 5);
         }, 3000)),
       ]);
 

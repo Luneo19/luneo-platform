@@ -16,11 +16,9 @@ import { PrometheusService } from '@/libs/metrics/prometheus.service';
 // ============================================================================
 
 export type AgentType = 'luna' | 'aria' | 'nova';
-export type LLMProvider = 'openai' | 'anthropic' | 'mistral';
-
 export interface AgentMetricsLabels {
   agent: AgentType;
-  provider?: LLMProvider;
+  provider?: string;
   model?: string;
   brandId?: string;
   intent?: string;
@@ -259,7 +257,7 @@ export class AgentMetricsService implements OnModuleInit {
    * Met à jour l'état du circuit breaker
    */
   updateCircuitBreakerState(
-    provider: LLMProvider,
+    provider: string,
     state: 'CLOSED' | 'OPEN' | 'HALF_OPEN',
   ): void {
     const stateValue = state === 'CLOSED' ? 0 : state === 'OPEN' ? 1 : 2;

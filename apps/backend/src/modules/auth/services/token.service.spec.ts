@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 import { TokenService } from './token.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { UserRole } from '@prisma/client';
 
@@ -44,6 +45,7 @@ describe('TokenService', () => {
         update: jest.fn(),
         updateMany: jest.fn(),
         deleteMany: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
     };
 
@@ -78,6 +80,10 @@ describe('TokenService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: TokenBlacklistService,
+          useValue: { blacklistUser: jest.fn().mockResolvedValue(undefined), isBlacklisted: jest.fn().mockResolvedValue(false) },
         },
       ],
     }).compile();

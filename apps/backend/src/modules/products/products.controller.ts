@@ -27,6 +27,8 @@ import { ProductsService } from './products.service';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
+import { RolesGuard, Roles } from '@/common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -38,7 +40,8 @@ import { CacheTTL } from '@/common/interceptors/cache-control.interceptor';
 
 @ApiTags('products')
 @Controller('products')
-@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
+// SECURITY FIX P1-4: Added RolesGuard for RBAC on mutations
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard, RolesGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
@@ -86,7 +89,10 @@ export class ProductsController {
   @ApiResponse({ status: 400, description: 'Paramètres de requête invalides' })
   async findAll(@Query() query: ProductQueryDto) {
     const { page = 1, limit = 50, ...filters } = query;
-    return this.productsService.findAll(filters, { page, limit });
+    return this.productsService.findAll(filters, {
+      page: page != null ? Number(page) : undefined,
+      limit: limit != null ? Number(limit) : undefined,
+    });
   }
 
   @Get('brand/:slug')
@@ -153,6 +159,7 @@ export class ProductsController {
 
   @Post()
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ 
     summary: 'Créer un nouveau produit',
@@ -186,6 +193,7 @@ export class ProductsController {
 
   @Post('brands/:brandId/products')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Créer un nouveau produit (legacy)' })
   @ApiParam({ name: 'brandId', description: 'ID de la marque' })
@@ -203,6 +211,7 @@ export class ProductsController {
 
   @Patch(':id')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Mettre à jour un produit' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
@@ -223,6 +232,7 @@ export class ProductsController {
 
   @Patch('brands/:brandId/products/:id')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Mettre à jour un produit (legacy)' })
   @ApiParam({ name: 'brandId', description: 'ID de la marque' })
@@ -242,6 +252,7 @@ export class ProductsController {
 
   @Delete(':id')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Supprimer un produit' })
@@ -263,6 +274,7 @@ export class ProductsController {
 
   @Post('bulk')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Actions en masse sur les produits' })
   @ApiResponse({
@@ -298,6 +310,7 @@ export class ProductsController {
 
   @Post('import')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Importer des produits depuis CSV' })
   @ApiResponse({
@@ -339,6 +352,7 @@ export class ProductsController {
 
   @Post(':id/upload-model')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Upload un modèle 3D pour un produit' })
   @ApiParam({ name: 'id', description: 'ID du produit' })
@@ -367,6 +381,7 @@ export class ProductsController {
 
   @Post(':id/variants')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a product variant' })
   async createVariant(
@@ -380,6 +395,7 @@ export class ProductsController {
 
   @Post(':id/variants/bulk')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Bulk create variants from attribute matrix' })
   async bulkCreateVariants(
@@ -393,6 +409,7 @@ export class ProductsController {
 
   @Patch(':id/variants/:variantId')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Update a product variant' })
   async updateVariant(
@@ -407,6 +424,7 @@ export class ProductsController {
 
   @Patch(':id/variants/:variantId/stock')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Update variant stock' })
   async updateStock(
@@ -421,6 +439,7 @@ export class ProductsController {
 
   @Delete(':id/variants/:variantId')
   @ApiBearerAuth()
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Delete a product variant' })
   async deleteVariant(

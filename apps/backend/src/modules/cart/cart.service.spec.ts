@@ -4,6 +4,9 @@ import { CartService } from './cart.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 const mockPrisma = {
+  product: {
+    findUnique: jest.fn(),
+  },
   cart: {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
@@ -112,6 +115,7 @@ describe('CartService', () => {
         brandId: 'brand-1',
         updatedAt: new Date(),
       };
+      mockPrisma.product.findUnique.mockResolvedValue({ id: 'prod-1', isActive: true, status: 'ACTIVE', brandId: 'brand-1' });
       mockPrisma.cart.upsert.mockResolvedValue(cart);
       mockPrisma.cartItem.findFirst.mockResolvedValue(null);
       mockPrisma.cartItem.create.mockResolvedValue({});
@@ -171,6 +175,7 @@ describe('CartService', () => {
         customizationId: null,
         metadata: null,
       };
+      mockPrisma.product.findUnique.mockResolvedValue({ id: 'prod-1', isActive: true, status: 'ACTIVE', brandId: 'brand-1' });
       mockPrisma.cart.upsert.mockResolvedValue(cart);
       mockPrisma.cartItem.findFirst.mockResolvedValue(existingItem);
       mockPrisma.cartItem.update.mockResolvedValue({});

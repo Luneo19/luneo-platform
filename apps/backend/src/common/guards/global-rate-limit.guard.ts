@@ -1,8 +1,9 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
 import { RATE_LIMIT_SKIP_METADATA } from '@/libs/rate-limit/rate-limit.decorator';
+import { getPlanConfig, normalizePlanTier } from '@/libs/plans/plan-config';
 
 /**
  * Global Rate Limit Guard
@@ -94,7 +95,27 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
       return { limit: 10, ttl: 60000 }; // 10 requests per minute
     }
 
-    // API endpoints - moderate limits
+    // SECURITY FIX: Plan-based rate limiting for authenticated users
+    const user = (request as Request & { user?: { brandPlan?: string; role?: string } }).user;
+    if (user?.brandPlan) {
+      try {
+        const tier = normalizePlanTier(user.brandPlan);
+        const planConfig = getPlanConfig(tier);
+        if (planConfig.agentLimits?.rateLimit) {
+          const planRate = planConfig.agentLimits.rateLimit;
+          // Scale API rate limits based on plan tier
+          const multiplier = method === 'GET' ? 3 : 1;
+          return {
+            limit: planRate.requests * multiplier,
+            ttl: planRate.windowMs,
+          };
+        }
+      } catch {
+        // Fall through to default limits if plan parsing fails
+      }
+    }
+
+    // API endpoints - default limits for unauthenticated or unknown plan
     if (path.startsWith('/api/')) {
       if (method === 'GET') {
         return { limit: 100, ttl: 60000 }; // 100 requests per minute

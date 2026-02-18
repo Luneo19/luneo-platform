@@ -10,6 +10,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
+import { ApiPermissionGuard } from './guards/api-permission.guard';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module
     UsageBillingModule, // ApiQuotaGuard needs QuotasService, UsageTrackingService
   ],
   controllers: [PublicApiController],
-  providers: [PublicApiService],
+  providers: [PublicApiService, ApiPermissionGuard],
   exports: [PublicApiService],
 })
 export class PublicApiModule {}

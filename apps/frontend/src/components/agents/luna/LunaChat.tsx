@@ -12,7 +12,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, Sparkles, BarChart3, Lightbulb } from 'lucide-react';
+import { Send, Loader2, Sparkles, BarChart3, Lightbulb, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import type { LunaResponse, LunaAction } from '@/types/agents';
 
 // Hooks
 import { useLunaChat } from '@/hooks/agents/useLunaChat';
+import { useFeedback } from '@/hooks/agents/useFeedback';
 
 // ============================================================================
 // TYPES
@@ -66,6 +67,7 @@ export function LunaChat({
 
   // Hooks
   const { sendMessage, isLoading, executeAction } = useLunaChat();
+  const { submitFeedback, submittedMessages } = useFeedback();
 
   // Auto-scroll vers le bas quand nouveaux messages
   useEffect(() => {
@@ -217,6 +219,8 @@ export function LunaChat({
                   message={message}
                   onActionClick={handleActionClick}
                   onSuggestionClick={handleSuggestionClick}
+                  onFeedback={(msgId, rating) => submitFeedback(msgId, rating)}
+                  feedbackGiven={submittedMessages.has(message.id)}
                 />
               ))}
               {isLoading && <TypingIndicator />}
@@ -316,10 +320,14 @@ function MessageBubble({
   message,
   onActionClick,
   onSuggestionClick,
+  onFeedback,
+  feedbackGiven,
 }: {
   message: ChatMessage;
   onActionClick: (action: LunaAction) => void;
   onSuggestionClick: (suggestion: string) => void;
+  onFeedback?: (messageId: string, rating: number) => void;
+  feedbackGiven?: boolean;
 }) {
   const isUser = message.role === 'user';
 
@@ -367,10 +375,34 @@ function MessageBubble({
           </div>
         )}
 
-        {/* Timestamp */}
-        <p className={`text-xs mt-1 ${isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          <p className={`text-xs ${isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+
+          {/* Feedback buttons for assistant messages */}
+          {!isUser && onFeedback && !feedbackGiven && (
+            <div className="flex gap-1 ml-2">
+              <button
+                onClick={() => onFeedback(message.id, 5)}
+                className="p-1 rounded hover:bg-green-100 text-muted-foreground hover:text-green-600 transition-colors"
+                title="Utile"
+              >
+                <ThumbsUp className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => onFeedback(message.id, 1)}
+                className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors"
+                title="Pas utile"
+              >
+                <ThumbsDown className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          {!isUser && feedbackGiven && (
+            <span className="text-xs text-muted-foreground ml-2">Merci !</span>
+          )}
+        </div>
       </div>
     </div>
   );

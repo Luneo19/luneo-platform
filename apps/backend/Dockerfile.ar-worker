@@ -1,0 +1,148 @@
+# =============================================================================
+# AR Worker with Blender support - Multi-stage build
+# Base: Ubuntu 22.04 (Blender requires glibc; Alpine is not supported)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Builder - Blender, Node, pnpm, npm tools, meshoptimizer
+# -----------------------------------------------------------------------------
+FROM ubuntu:22.04 AS builder
+
+ARG BLENDER_VERSION=3.6.23
+ARG NODE_VERSION=22
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+# System deps + Python 3.10, build tools for meshoptimizer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    xz-utils \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    build-essential \
+    cmake \
+    git \
+    libxi-dev \
+    libxrender-dev \
+    libxkbcommon-dev \
+    libxxf86vm-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libxinerama-dev \
+    libxcursor-dev \
+    libxrandr-dev \
+    libwayland-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Blender 3.6 LTS (official tarball)
+RUN curl -fsSL "https://download.blender.org/release/Blender3.6/blender-${BLENDER_VERSION}-linux-x64.tar.xz" -o /tmp/blender.tar.xz \
+    && tar -xf /tmp/blender.tar.xz -C /opt \
+    && mv /opt/blender-${BLENDER_VERSION}-linux-x64 /opt/blender \
+    && rm /tmp/blender.tar.xz
+ENV BLENDER_PATH=/opt/blender
+ENV PATH="${BLENDER_PATH}:${PATH}"
+
+# Install Node.js 22 and pnpm
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y nodejs \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate \
+    && pnpm --version
+
+# Install global npm tools for 3D pipeline
+RUN pnpm add -g gltf-pipeline \
+    && (pnpm add -g @gltf-transform/draco3d 2>/dev/null || true)
+
+# Build meshoptimizer (gltfpack) from source
+RUN git clone --depth 1 https://github.com/zeux/meshoptimizer.git /tmp/meshoptimizer \
+    && cd /tmp/meshoptimizer \
+    && cmake . -B build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build --target gltfpack \
+    && install -m 755 build/gltfpack /usr/local/bin/ \
+    && rm -rf /tmp/meshoptimizer
+
+# -----------------------------------------------------------------------------
+# Stage 2: Monorepo deps and build (build context MUST be repo root)
+# -----------------------------------------------------------------------------
+FROM builder AS backend-build
+
+WORKDIR /app
+
+# Copy full monorepo structure (run: docker build -f apps/backend/Dockerfile.ar-worker .)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend ./apps/backend
+COPY packages ./packages
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma client and build NestJS app
+RUN cd apps/backend && pnpm exec prisma generate && pnpm run build
+
+# -----------------------------------------------------------------------------
+# Stage 4: Production - minimal image
+# -----------------------------------------------------------------------------
+FROM ubuntu:22.04 AS production
+
+ARG BLENDER_VERSION=3.6.23
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NODE_ENV=production
+ENV BLENDER_PATH=/opt/blender
+ENV PATH="${BLENDER_PATH}:/opt/node/bin:${PATH}"
+
+# Runtime deps only (no build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3.10 \
+    python3.10-venv \
+    libxi6 \
+    libxrender1 \
+    libxkbcommon0 \
+    libxxf86vm1 \
+    libgl1 \
+    libglu1-mesa \
+    libxinerama1 \
+    libxcursor1 \
+    libxrandr2 \
+    libwayland-client0 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Blender from builder (use builder stage)
+COPY --from=builder /opt/blender /opt/blender
+
+# Copy Node.js 22 runtime (from builder)
+RUN mkdir -p /opt/node/bin
+COPY --from=builder /usr/bin/node /opt/node/bin/node
+COPY --from=builder /usr/bin/npm /opt/node/bin/npm
+
+# Copy gltfpack
+COPY --from=builder /usr/local/bin/gltfpack /usr/local/bin/gltfpack
+
+# Non-root user
+RUN groupadd -r arworker --gid=1000 \
+    && useradd -r -g arworker --uid=1000 --create-home arworker
+
+WORKDIR /app
+
+# Copy built app and node_modules from backend build stage
+COPY --from=backend-build /app/apps/backend/dist ./dist
+COPY --from=backend-build /app/apps/backend/node_modules ./node_modules
+COPY --from=backend-build /app/apps/backend/package.json ./
+COPY --from=backend-build /app/apps/backend/prisma ./prisma
+COPY --from=backend-build /app/apps/backend/scripts ./scripts
+
+# Ensure scripts are readable
+RUN chown -R arworker:arworker /app
+
+USER arworker
+
+# AR worker entrypoint
+ENTRYPOINT ["node", "dist/src/modules/ar/workers/main.js"]
+
+# Health check (adjust if worker exposes HTTP; otherwise process liveness)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD node -e "process.exit(0)" || exit 1

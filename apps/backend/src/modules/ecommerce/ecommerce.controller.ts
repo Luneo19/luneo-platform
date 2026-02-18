@@ -166,7 +166,9 @@ export class EcommerceController {
     @Param('integrationId') integrationId: string,
     @Query('limit') limit?: number,
   ): Promise<{ products: ShopifyProduct[]; total: number }> {
-    const products = await this.shopifyConnector.getProducts(integrationId, { limit });
+    const products = await this.shopifyConnector.getProducts(integrationId, {
+      limit: limit != null ? Number(limit) : undefined,
+    });
     // getProducts retourne directement ShopifyProduct[]
     return {
       products,
@@ -454,7 +456,8 @@ export class EcommerceController {
     @Param('integrationId') integrationId: string,
     @Query('limit') limit: number = 50,
   ): Promise<WebhookHistory[]> {
-    const logs = await this.webhookHandlerService.getWebhookHistory(integrationId, limit);
+    const limitNum = limit != null ? Number(limit) : 50;
+    const logs = await this.webhookHandlerService.getWebhookHistory(integrationId, limitNum);
     return logs.map((log) => ({
       id: log.id,
       integrationId,
@@ -714,7 +717,8 @@ export class EcommerceController {
     @Param('integrationId') integrationId: string,
     @Query('limit') limit?: number,
   ): Promise<Record<string, unknown>[]> {
-    return this.syncEngine.getIntegrationJobs(integrationId, limit || 50) as unknown as Record<string, unknown>[];
+    const limitNum = limit != null ? Number(limit) : 50;
+    return this.syncEngine.getIntegrationJobs(integrationId, limitNum) as unknown as Record<string, unknown>[];
   }
 
   @Post('sync/jobs/:jobId/cancel')

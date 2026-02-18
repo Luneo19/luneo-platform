@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { UserRole } from '@prisma/client';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 
@@ -13,6 +14,7 @@ export class TokenService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly tokenBlacklist: TokenBlacklistService,
   ) {}
 
   /**
@@ -58,17 +60,62 @@ export class TokenService {
   }
 
   /**
-   * SEC-08: Sauvegarde du refresh token avec gestion de famille
+   * SEC-08: Sauvegarde du refresh token avec gestion de famille et metadata
    * 
    * @param userId - ID de l'utilisateur
    * @param token - Le refresh token JWT
    * @param family - Optionnel: famille de tokens pour rotation (nouvelle famille si non fourni)
+   * @param metadata - Optionnel: IP, user-agent pour traçabilite session
    */
-  async saveRefreshToken(userId: string, token: string, family?: string) {
+  /** Maximum number of concurrent active sessions per user */
+  private readonly MAX_SESSIONS_PER_USER = 10;
+
+  async saveRefreshToken(
+    userId: string,
+    token: string,
+    family?: string,
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
     // AUTH FIX: Use configurable refresh token expiration instead of hardcoded 7 days
     const refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
     const durationMs = this.parseDuration(refreshExpiresIn);
     const expiresAt = new Date(Date.now() + durationMs);
+
+    // SECURITY FIX: Enforce maximum concurrent sessions per user
+    // Only count active tokens (not used, not revoked, not expired) for session count
+    if (!family) {
+      // This is a new session (not a rotation) - check session limit
+      const activeSessions = await this.prisma.refreshToken.count({
+        where: {
+          userId,
+          usedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (activeSessions >= this.MAX_SESSIONS_PER_USER) {
+        // Revoke the oldest session to make room
+        const oldestSession = await this.prisma.refreshToken.findFirst({
+          where: {
+            userId,
+            usedAt: null,
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (oldestSession) {
+          await this.prisma.refreshToken.update({
+            where: { id: oldestSession.id },
+            data: { revokedAt: new Date() },
+          });
+          this.logger.warn(
+            `Max sessions (${this.MAX_SESSIONS_PER_USER}) reached for user ${userId}. Oldest session revoked.`
+          );
+        }
+      }
+    }
 
     await this.prisma.refreshToken.create({
       data: {
@@ -76,10 +123,13 @@ export class TokenService {
         token,
         expiresAt,
         // SEC-08: Si family fourni, utiliser la même famille (rotation)
-        // Sinon, Prisma génère un nouveau cuid() (nouvelle session)
         ...(family && { family }),
+        // SECURITY FIX: Store session metadata for suspicious activity detection
+        ...(metadata?.ipAddress && { ipAddress: metadata.ipAddress }),
+        ...(metadata?.userAgent && { userAgent: metadata.userAgent.substring(0, 500) }),
       },
     });
+
   }
 
   /**
@@ -90,8 +140,12 @@ export class TokenService {
    * - Un nouveau token est généré à chaque utilisation
    * - Si un token déjà utilisé est réutilisé, toute la famille est invalidée
    *   (indique potentiellement un vol de token)
+   * - SECURITY FIX: IP/User-Agent binding to detect token theft across different clients
    */
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+  async refreshToken(
+    refreshTokenDto: RefreshTokenDto,
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
     const { refreshToken } = refreshTokenDto;
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token is required');
@@ -152,6 +206,18 @@ export class TokenService {
         throw new UnauthorizedException('User account is inactive');
       }
 
+      // SECURITY FIX: IP/User-Agent binding - warn on suspicious changes
+      if (metadata?.ipAddress && tokenRecord.ipAddress && metadata.ipAddress !== tokenRecord.ipAddress) {
+        this.logger.warn(
+          `Refresh token IP mismatch for user ${tokenRecord.userId}: ` +
+          `original=${tokenRecord.ipAddress}, current=${metadata.ipAddress}. ` +
+          `Token family: ${tokenRecord.family}`
+        );
+        // Note: We log but don't block (IPs change legitimately with mobile/VPN).
+        // For high-security mode, uncomment the line below:
+        // throw new UnauthorizedException('Session security violation. Please login again.');
+      }
+
       // Generate new tokens
       const tokens = await this.generateTokens(
         tokenRecord.user.id,
@@ -165,11 +231,12 @@ export class TokenService {
         data: { usedAt: new Date() },
       });
 
-      // Save new refresh token with same family
+      // Save new refresh token with same family and updated metadata
       await this.saveRefreshToken(
         tokenRecord.user.id, 
         tokens.refreshToken,
         tokenRecord.family, // Conserver la famille pour traçabilité
+        metadata, // SECURITY FIX: Propagate session metadata
       );
 
       return {
@@ -193,9 +260,13 @@ export class TokenService {
   }
 
   /**
-   * Delete all refresh tokens for a user
+   * Delete all refresh tokens for a user and blacklist active access tokens
    */
   async logout(userId: string) {
+    // SECURITY FIX: Blacklist access tokens in Redis so they're immediately rejected
+    // This closes the 15-minute window where revoked tokens could still be used
+    await this.tokenBlacklist.blacklistUser(userId);
+
     // Delete all refresh tokens for user
     await this.prisma.refreshToken.deleteMany({
       where: { userId },

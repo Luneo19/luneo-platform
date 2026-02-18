@@ -166,29 +166,31 @@ export class RateLimiterService {
     count: number,
   ): Promise<void> {
     try {
-      // Upsert en DB (peut être fait en background via queue)
-      const where = entityType === 'brand'
+      // Use findFirst + create/update instead of upsert to avoid NULL unique constraint issues
+      const whereClause = entityType === 'brand'
         ? { brandId: entityId, windowStart }
         : { userId: entityId, windowStart };
 
-      await this.prisma.aIRateLimit.upsert({
-        where: {
-          brandId_userId_windowStart: (entityType === 'brand'
-            ? { brandId: entityId, userId: null, windowStart }
-            : { brandId: null, userId: entityId, windowStart }) as unknown as import('@prisma/client').Prisma.AIRateLimitBrandIdUserIdWindowStartCompoundUniqueInput,
-        },
-        create: {
-          [entityType === 'brand' ? 'brandId' : 'userId']: entityId,
-          windowStart,
-          requestCount: count,
-          tokenCount: 0, // Sera mis à jour séparément si nécessaire
-        },
-        update: {
-          requestCount: count,
-        },
+      const existing = await this.prisma.aIRateLimit.findFirst({
+        where: whereClause,
       });
+
+      if (existing) {
+        await this.prisma.aIRateLimit.update({
+          where: { id: existing.id },
+          data: { requestCount: count },
+        });
+      } else {
+        await this.prisma.aIRateLimit.create({
+          data: {
+            ...(entityType === 'brand' ? { brandId: entityId } : { userId: entityId }),
+            windowStart,
+            requestCount: count,
+            tokenCount: 0,
+          },
+        });
+      }
     } catch (error) {
-      // Ne pas faire échouer la requête si la persistance échoue
       this.logger.warn(`Failed to persist rate limit: ${error}`);
     }
   }

@@ -63,7 +63,7 @@ const COST_PER_1M_TOKENS: Record<
     'claude-3-haiku-20240307': { input: 0.25, output: 1.25 }, // $0.25/$1.25 per 1M tokens
   },
   mistral: {
-    'mistral-large-latest': { input: 8, output: 24 }, // $8/$24 per 1M tokens
+    'mistral-large-latest': { input: 2, output: 6 }, // $2/$6 per 1M tokens
     'mistral-medium-latest': { input: 2.7, output: 8.1 }, // $2.7/$8.1 per 1M tokens
     'mistral-small-latest': { input: 0.2, output: 0.6 }, // $0.2/$0.6 per 1M tokens
   },

@@ -2,7 +2,19 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { createCanvas, loadImage, type CanvasRenderingContext2D, type CanvasTextAlign, type Image } from 'canvas';
+// Canvas is an optional native dependency - gracefully handle missing builds
+let createCanvas: typeof import('canvas').createCanvas;
+let loadImage: typeof import('canvas').loadImage;
+type CanvasRenderingContext2D = import('canvas').CanvasRenderingContext2D;
+type CanvasTextAlign = import('canvas').CanvasTextAlign;
+type Image = import('canvas').Image;
+try {
+  const canvasModule = require('canvas');
+  createCanvas = canvasModule.createCanvas;
+  loadImage = canvasModule.loadImage;
+} catch {
+  // Canvas native module not available - render features will be disabled
+}
 import sharp from 'sharp';
 // Types from widget package (will be imported from shared types later)
 interface DesignData {
@@ -316,6 +328,12 @@ export class RenderPrintReadyService {
    * Render design to print-ready image
    */
   async renderPrintReady(request: PrintReadyRenderRequest): Promise<PrintReadyRenderResult> {
+    // Guard: canvas module must be available
+    if (!createCanvas || !loadImage) {
+      this.logger.error('Canvas native module not available - cannot render print-ready images. Install: pnpm add canvas');
+      throw new InternalServerErrorException('Print rendering service unavailable (canvas module not installed)');
+    }
+
     const startTime = Date.now();
     
     try {

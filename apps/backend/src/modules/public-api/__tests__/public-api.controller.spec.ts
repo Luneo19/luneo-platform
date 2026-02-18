@@ -5,6 +5,7 @@ import { PublicApiService } from '../public-api.service';
 import { ApiKeyGuard } from '../guards/api-key.guard';
 import { ApiQuotaGuard } from '../guards/api-quota.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
+import { ApiKeysService } from '../api-keys/api-keys.service';
 
 describe('PublicApiController', () => {
   let controller: PublicApiController;
@@ -33,6 +34,7 @@ describe('PublicApiController', () => {
       controllers: [PublicApiController],
       providers: [
         { provide: PublicApiService, useValue: mockPublicApiService },
+        { provide: ApiKeysService, useValue: { validateApiKey: jest.fn().mockResolvedValue({ valid: true, brandId: 'brand-1' }), findByKey: jest.fn() } },
       ],
     })
       .overrideGuard(ApiKeyGuard)

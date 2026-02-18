@@ -109,7 +109,11 @@ function RequireAuthTestComponent() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  
+  // Non-public path so AuthProvider calls /auth/me (public paths skip fetch)
+  Object.defineProperty(window, 'location', {
+    value: { pathname: '/dashboard', href: 'http://localhost/dashboard' },
+    writable: true,
+  });
   // Default: /auth/me returns no user (not logged in)
   mockFetch.mockResolvedValue({
     ok: false,
@@ -188,6 +192,7 @@ describe('useAuth Hook', () => {
     });
 
     it('handles no user session', async () => {
+      // pathname already /dashboard from beforeEach; mock returns 401
       render(
         <AuthProvider>
           <TestComponent />
@@ -364,7 +369,7 @@ describe('useAuth Hook', () => {
       });
       
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/login');
+        expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/login/));
       });
     });
 

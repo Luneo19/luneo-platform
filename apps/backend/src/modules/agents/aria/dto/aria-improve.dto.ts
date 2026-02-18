@@ -28,13 +28,13 @@ export class AriaImproveTextDto {
 
   @ApiPropertyOptional({ description: 'Product ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   productId?: string;
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 }

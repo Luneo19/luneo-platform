@@ -223,6 +223,12 @@ export class BillingService {
 
       // ✅ Ajouter les add-ons si fournis (utilise les Price IDs Stripe dédiés)
       if (options?.addOns && options.addOns.length > 0) {
+        // SECURITY FIX: Limit number of add-ons per checkout to prevent abuse
+        const MAX_ADDONS_PER_CHECKOUT = 10;
+        if (options.addOns.length > MAX_ADDONS_PER_CHECKOUT) {
+          throw new BadRequestException(`Maximum ${MAX_ADDONS_PER_CHECKOUT} add-ons per checkout session`);
+        }
+
         const addonsConfig = this.configService.get<Record<string, Record<string, string>>>('stripe.addons') || {};
         const addonTypeMap: Record<string, string> = {
           'extra_designs': 'extraDesigns',
@@ -233,6 +239,15 @@ export class BillingService {
         };
 
         for (const addon of options.addOns) {
+          // SECURITY FIX: Validate addon quantity (must be positive integer, max 100)
+          const quantity = Math.floor(Number(addon.quantity));
+          if (!Number.isFinite(quantity) || quantity < 1) {
+            throw new BadRequestException(`Invalid quantity for add-on ${addon.type}: must be at least 1`);
+          }
+          if (quantity > 100) {
+            throw new BadRequestException(`Invalid quantity for add-on ${addon.type}: maximum is 100`);
+          }
+
           const configKey = addonTypeMap[addon.type];
           if (!configKey || !addonsConfig[configKey]) {
             this.logger.warn(`Unknown add-on type: ${addon.type}, skipping`);
@@ -243,9 +258,9 @@ export class BillingService {
           if (addonPriceId) {
             lineItems.push({
               price: addonPriceId,
-              quantity: addon.quantity || 1,
+              quantity,
             });
-            this.logger.log(`Add-on added to checkout: ${addon.type} x${addon.quantity} (${addonPriceId})`);
+            this.logger.log(`Add-on added to checkout: ${addon.type} x${quantity} (${addonPriceId})`);
           } else {
             this.logger.warn(`No price ID found for add-on: ${addon.type} (${billingInterval})`);
           }

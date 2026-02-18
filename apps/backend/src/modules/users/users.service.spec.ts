@@ -8,6 +8,7 @@ import { UsersService } from './users.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { CurrentUser } from '@/common/types/user.types';
 
 describe('UsersService', () => {
@@ -39,8 +40,9 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: SmartCacheService, useValue: mockCache },
         { provide: CloudinaryService, useValue: mockCloudinary },
+        { provide: SmartCacheService, useValue: mockCache },
+        { provide: TokenBlacklistService, useValue: { blacklistUser: jest.fn().mockResolvedValue(undefined), isBlacklisted: jest.fn().mockResolvedValue(false) } },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
@@ -164,7 +166,7 @@ describe('UsersService', () => {
       expect(result.sessions[1].current).toBe(false);
       expect(mockPrisma.refreshToken.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { userId: 'user-1', expiresAt: { gt: expect.any(Date) } },
+          where: expect.objectContaining({ userId: 'user-1', expiresAt: { gt: expect.any(Date) } }),
           orderBy: { createdAt: 'desc' },
           take: 50,
         }),
@@ -204,7 +206,7 @@ describe('UsersService', () => {
 
     it('should throw BadRequestException when file is not an image', async () => {
       await expect(service.uploadAvatar('user-1', { buffer: Buffer.from(''), mimetype: 'application/pdf', size: 100 })).rejects.toThrow(BadRequestException);
-      await expect(service.uploadAvatar('user-1', { buffer: Buffer.from(''), mimetype: 'application/pdf', size: 100 })).rejects.toThrow('File must be an image');
+      await expect(service.uploadAvatar('user-1', { buffer: Buffer.from(''), mimetype: 'application/pdf', size: 100 })).rejects.toThrow(/File type not allowed/);
     });
 
     it('should throw BadRequestException when image exceeds 2MB', async () => {
@@ -216,7 +218,9 @@ describe('UsersService', () => {
       const avatarUrl = 'https://cloudinary.com/avatar.jpg';
       mockCloudinary.uploadImage.mockResolvedValue(avatarUrl);
       mockPrisma.user.update.mockResolvedValue({ avatar: avatarUrl });
-      const result = await service.uploadAvatar('user-1', { buffer: Buffer.from('png'), mimetype: 'image/png', size: 1024 });
+      // PNG magic bytes so validateMagicBytes passes
+      const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...Array(1016).fill(0)]);
+      const result = await service.uploadAvatar('user-1', { buffer: pngBuffer, mimetype: 'image/png', size: 1024 });
       expect(result).toEqual({ avatar: avatarUrl });
       expect(mockCloudinary.uploadImage).toHaveBeenCalledWith(expect.any(Buffer), 'avatars');
       expect(mockPrisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { avatar: avatarUrl } });

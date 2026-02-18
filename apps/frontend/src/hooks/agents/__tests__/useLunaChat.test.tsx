@@ -3,19 +3,23 @@
  */
 
 import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLunaChat } from '../useLunaChat';
 import { endpoints } from '@/lib/api/client';
 
-// Mock API client
-jest.mock('@/lib/api/client', () => ({
+const mockChatFn = vi.fn();
+const mockActionFn = vi.fn();
+const mockConversationsFn = vi.fn();
+
+vi.mock('@/lib/api/client', () => ({
   endpoints: {
     agents: {
       luna: {
-        chat: jest.fn(),
-        action: jest.fn(),
-        conversations: jest.fn(),
+        chat: (...args: unknown[]) => mockChatFn(...args),
+        action: (...args: unknown[]) => mockActionFn(...args),
+        conversations: (...args: unknown[]) => mockConversationsFn(...args),
       },
     },
   },
@@ -31,7 +35,7 @@ describe('useLunaChat', () => {
         mutations: { retry: false },
       },
     });
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -54,7 +58,7 @@ describe('useLunaChat', () => {
       },
     };
 
-    (endpoints.agents.luna.chat as jest.Mock).mockResolvedValue(mockResponse);
+    mockChatFn.mockResolvedValue(mockResponse);
 
     // Act
     const { result } = renderHook(() => useLunaChat(), { wrapper });
@@ -70,13 +74,13 @@ describe('useLunaChat', () => {
 
     expect(response).toBeDefined();
     expect(response.message).toBe('Réponse de Luna');
-    expect(endpoints.agents.luna.chat).toHaveBeenCalled();
+    expect(mockChatFn).toHaveBeenCalled();
   });
 
   it('should handle errors gracefully', async () => {
     // Arrange
     const error = new Error('API Error');
-    (endpoints.agents.luna.chat as jest.Mock).mockRejectedValue(error);
+    mockChatFn.mockRejectedValue(error);
 
     // Act
     const { result } = renderHook(() => useLunaChat(), { wrapper });
@@ -96,7 +100,7 @@ describe('useLunaChat', () => {
       requiresConfirmation: false,
     };
 
-    (endpoints.agents.luna.action as jest.Mock).mockResolvedValue({
+    mockActionFn.mockResolvedValue({
       success: true,
       data: {},
     });
@@ -107,7 +111,7 @@ describe('useLunaChat', () => {
     await result.current.executeAction(mockAction);
 
     // Assert
-    expect(endpoints.agents.luna.action).toHaveBeenCalledWith({
+    expect(mockActionFn).toHaveBeenCalledWith({
       action: mockAction,
     });
   });

@@ -102,6 +102,8 @@ export class MarketplaceService {
 
   async createItem(sellerId: string, dto: CreateMarketplaceItemDto) {
     const price = dto.price ?? 0;
+    // P2-4: New items start as inactive (pending moderation).
+    // Admin must approve via updateItem before they appear in public listings.
     return this.prisma.marketplaceItem.create({
       data: {
         sellerId,
@@ -116,6 +118,7 @@ export class MarketplaceService {
         fileUrl: dto.fileUrl ?? null,
         fileType: dto.fileType ?? null,
         isFeatured: dto.isFeatured ?? false,
+        isActive: false,
         metadata: dto.metadata ? (dto.metadata as Prisma.InputJsonValue) : undefined,
       },
       include: {

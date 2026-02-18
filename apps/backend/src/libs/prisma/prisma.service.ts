@@ -23,13 +23,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     });
 
     // Soft-delete middleware: automatically filter deleted records
+    // P2-1/P2-7: Extended to cover findUnique + aggregate + groupBy + all soft-deletable models
     this.$use(async (params, next) => {
-      // Models with soft delete
-      const softDeleteModels = ['User', 'Brand', 'Product', 'Design', 'Order', 'Generation', 'Workspace', 'Template'];
+      const softDeleteModels = [
+        'User', 'Brand', 'Product', 'Design', 'Order',
+        'Workspace', 'Project',
+      ];
       
       if (softDeleteModels.includes(params.model || '')) {
-        // For find operations, add deletedAt: null filter
-        if (params.action === 'findMany' || params.action === 'findFirst') {
+        // For ALL find/read operations, add deletedAt: null filter
+        if (['findMany', 'findFirst', 'findUnique', 'findFirstOrThrow', 'findUniqueOrThrow'].includes(params.action)) {
           if (!params.args) params.args = {};
           if (!params.args.where) params.args.where = {};
           // Don't override if explicitly querying for deleted records
@@ -37,8 +40,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             params.args.where.deletedAt = null;
           }
         }
-        // For count operations
-        if (params.action === 'count') {
+        // For count and aggregate operations
+        if (['count', 'aggregate', 'groupBy'].includes(params.action)) {
           if (!params.args) params.args = {};
           if (!params.args.where) params.args.where = {};
           if (params.args.where.deletedAt === undefined) {
@@ -50,13 +53,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           params.action = 'update';
           if (!params.args) params.args = {};
           params.args['data'] = { deletedAt: new Date() };
-          // where clause is already in params.args.where
         }
         if (params.action === 'deleteMany') {
           params.action = 'updateMany';
           if (!params.args) params.args = {};
           params.args['data'] = { deletedAt: new Date() };
-          // where clause is already in params.args.where
         }
       }
       

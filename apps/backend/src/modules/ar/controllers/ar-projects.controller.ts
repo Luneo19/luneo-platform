@@ -21,7 +21,9 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { ARPlanGuard } from '@/common/guards/ar-plan.guard';
 import { ArCollaborationService } from '../services/ar-collaboration.service';
 import { CurrentUser } from '@/common/types/user.types';
 import { User } from '@/common/decorators/user.decorator';
@@ -30,7 +32,8 @@ import { AddCommentDto } from '../dto/add-comment.dto';
 
 @ApiTags('AR Studio - Projects')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ARPlanGuard)
+@Throttle({ default: { limit: 30, ttl: 60000 } })
 @Controller('ar-studio/projects')
 export class ArProjectsController {
   constructor(private readonly arCollaborationService: ArCollaborationService) {}

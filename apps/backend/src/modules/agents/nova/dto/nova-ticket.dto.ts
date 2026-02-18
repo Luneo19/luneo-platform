@@ -49,13 +49,13 @@ export class NovaTicketDto {
 
   @ApiPropertyOptional({ description: 'User ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   userId?: string;
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 

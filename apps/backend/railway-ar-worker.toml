@@ -1,0 +1,21 @@
+# Railway configuration for AR Worker service
+# Runs Blender-based 3D conversion workers in a separate container
+
+[build]
+dockerfilePath = "apps/backend/Dockerfile.ar-worker"
+watchPatterns = [
+  "apps/backend/src/modules/ar/workers/**",
+  "apps/backend/src/modules/ar/conversion/**",
+  "apps/backend/scripts/blender/**",
+  "apps/backend/prisma/schema.prisma",
+]
+
+[deploy]
+startCommand = "node dist/src/modules/ar/workers/main.js"
+healthcheckPath = "/"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Resource requirements (Blender needs significant resources)
+numReplicas = 1

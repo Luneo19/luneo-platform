@@ -150,6 +150,9 @@ vi.mock('../hooks/usePricingPage', () => ({
     isYearly: false,
     setIsYearly: vi.fn(),
     handleCheckout: mockHandleCheckout,
+    t: (key: string) => key,
+    translatedFeatures: [],
+    translatedFaqs: [],
   }),
 }));
 

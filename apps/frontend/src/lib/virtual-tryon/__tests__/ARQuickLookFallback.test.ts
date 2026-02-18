@@ -1,8 +1,8 @@
+import { describe, it, expect, vi } from 'vitest';
 import { ARQuickLookFallback } from '../ARQuickLookFallback';
 
-// Mock logger
-jest.mock('@/lib/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+vi.mock('@/lib/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 describe('ARQuickLookFallback', () => {

@@ -1,45 +1,51 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTryOn } from '../useTryOn';
-import { endpoints } from '@/lib/api/client';
 import { DeviceCompatibility } from '@/lib/virtual-tryon/DeviceCompatibility';
 
-// Mock dependencies
-jest.mock('@/lib/api/client', () => ({
+const createSessionFn = vi.fn();
+const endSessionFn = vi.fn();
+const batchUploadScreenshotsFn = vi.fn();
+const submitPerformanceFn = vi.fn();
+
+vi.mock('@/lib/api/client', () => ({
   endpoints: {
     tryOn: {
-      createSession: jest.fn(),
-      endSession: jest.fn(),
-      batchUploadScreenshots: jest.fn(),
-      submitPerformance: jest.fn(),
+      createSession: (...args: unknown[]) => createSessionFn(...args),
+      endSession: (...args: unknown[]) => Promise.resolve(endSessionFn(...args)),
+      batchUploadScreenshots: (...args: unknown[]) => batchUploadScreenshotsFn(...args),
+      submitPerformance: (...args: unknown[]) => submitPerformanceFn(...args),
     },
   },
 }));
 
-jest.mock('@/lib/virtual-tryon/DeviceCompatibility', () => ({
+vi.mock('@/lib/virtual-tryon/DeviceCompatibility', () => ({
   DeviceCompatibility: {
-    getDeviceType: jest.fn(() => 'desktop'),
-    getGPUInfo: jest.fn(() => 'NVIDIA RTX 3080'),
-    getBrowserInfo: jest.fn(() => 'Chrome 121'),
-    check: jest.fn(),
+    getDeviceType: vi.fn(() => 'desktop'),
+    getGPUInfo: vi.fn(() => 'NVIDIA RTX 3080'),
+    getBrowserInfo: vi.fn(() => 'Chrome 121'),
+    check: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+vi.mock('@/lib/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+vi.mock('@/lib/analytics', () => ({
+  analytics: { track: vi.fn() },
 }));
 
-// Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
       store[key] = value;
     }),
-    removeItem: jest.fn((key: string) => {
+    removeItem: vi.fn((key: string) => {
       delete store[key];
     }),
-    clear: jest.fn(() => {
+    clear: vi.fn(() => {
       store = {};
     }),
   };
@@ -48,7 +54,7 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 describe('useTryOn', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorageMock.clear();
   });
 
@@ -68,7 +74,7 @@ describe('useTryOn', () => {
 
   describe('startSession', () => {
     it('should start a session and return session ID', async () => {
-      (endpoints.tryOn.createSession as jest.Mock).mockResolvedValue({
+      createSessionFn.mockResolvedValue({
         data: { sessionId: 'session-123' },
       });
 
@@ -83,7 +89,7 @@ describe('useTryOn', () => {
       expect(result.current.sessionId).toBe('session-123');
       expect(result.current.currentProductId).toBe('prod-1');
       expect(result.current.isLoading).toBe(false);
-      expect(endpoints.tryOn.createSession).toHaveBeenCalledWith(
+      expect(createSessionFn).toHaveBeenCalledWith(
         expect.objectContaining({
           configurationId: 'config-1',
         }),
@@ -91,7 +97,7 @@ describe('useTryOn', () => {
     });
 
     it('should handle errors during session start', async () => {
-      (endpoints.tryOn.createSession as jest.Mock).mockRejectedValue(
+      createSessionFn.mockRejectedValue(
         new Error('Network error'),
       );
 
@@ -191,12 +197,12 @@ describe('useTryOn', () => {
 
   describe('endSession', () => {
     it('should upload screenshots and metrics, then end session', async () => {
-      (endpoints.tryOn.createSession as jest.Mock).mockResolvedValue({
+      createSessionFn.mockResolvedValue({
         data: { sessionId: 'session-123' },
       });
-      (endpoints.tryOn.batchUploadScreenshots as jest.Mock).mockResolvedValue({});
-      (endpoints.tryOn.submitPerformance as jest.Mock).mockResolvedValue({});
-      (endpoints.tryOn.endSession as jest.Mock).mockResolvedValue({});
+      batchUploadScreenshotsFn.mockResolvedValue({});
+      submitPerformanceFn.mockResolvedValue({});
+      endSessionFn.mockResolvedValue({});
 
       const { result } = renderHook(() => useTryOn());
 
@@ -225,7 +231,7 @@ describe('useTryOn', () => {
         await result.current.endSession('purchased');
       });
 
-      expect(endpoints.tryOn.batchUploadScreenshots).toHaveBeenCalledWith(
+      expect(batchUploadScreenshotsFn).toHaveBeenCalledWith(
         'session-123',
         expect.objectContaining({
           screenshots: expect.arrayContaining([
@@ -236,8 +242,8 @@ describe('useTryOn', () => {
           ]),
         }),
       );
-      expect(endpoints.tryOn.submitPerformance).toHaveBeenCalled();
-      expect(endpoints.tryOn.endSession).toHaveBeenCalledWith(
+      expect(submitPerformanceFn).toHaveBeenCalled();
+      expect(endSessionFn).toHaveBeenCalledWith(
         'session-123',
         expect.objectContaining({
           conversionAction: 'purchased',
@@ -257,7 +263,7 @@ describe('useTryOn', () => {
         await result.current.endSession();
       });
 
-      expect(endpoints.tryOn.endSession).not.toHaveBeenCalled();
+      expect(endSessionFn).not.toHaveBeenCalled();
     });
   });
 
@@ -285,7 +291,7 @@ describe('useTryOn', () => {
         },
       };
 
-      (DeviceCompatibility.check as jest.Mock).mockResolvedValue(mockReport);
+      vi.mocked(DeviceCompatibility.check).mockResolvedValue(mockReport);
 
       const { result } = renderHook(() => useTryOn());
 

@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
+  Put,
   Delete,
   Body,
   Param,
@@ -10,6 +10,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,108 +19,258 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '@/common/guards/optional-jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { CurrentUser as CurrentUserType } from '@/common/types/user.types';
 import { VisualCustomizerService } from '../services/visual-customizer.service';
-import { CreateVisualCustomizerDto } from '../dto/create-visual-customizer.dto';
-import { UpdateVisualCustomizerDto } from '../dto/update-visual-customizer.dto';
-import { AddLayerDto } from '../dto/add-layer.dto';
+import { CreateCustomizerDto } from '../dto/configuration/create-customizer.dto';
+import { UpdateCustomizerDto } from '../dto/configuration/update-customizer.dto';
+import { CustomizerQueryDto } from '../dto/configuration/customizer-query.dto';
+import { CustomizerLoggingInterceptor } from '../interceptors/customizer-logging.interceptor';
+import { CustomizerPublicAccess } from '../decorators/customizer-permissions.decorator';
 
-@ApiTags('visual-customizer')
-@ApiBearerAuth()
+@ApiTags('Visual Customizer')
 @Controller('visual-customizer')
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(CustomizerLoggingInterceptor)
 export class VisualCustomizerController {
   constructor(private readonly customizerService: VisualCustomizerService) {}
 
-  @Get('customizers')
+  @Post('customizers')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Liste les customizers d\'un projet',
+    summary: 'Create a new customizer',
+    description: 'Creates a new visual customizer configuration',
   })
-  @ApiParam({ name: 'projectId', description: 'ID du projet' })
   @ApiResponse({
-    status: 200,
-    description: 'Liste des customizers récupérée avec succès',
+    status: HttpStatus.CREATED,
+    description: 'Customizer created successfully',
   })
-  async findAllCustomizers(
-    @Query('projectId') projectId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+  })
+  async create(
+    @Body(ValidationPipe) dto: CreateCustomizerDto,
+    @CurrentUser() user: CurrentUserType,
   ) {
-    return this.customizerService.findAll(projectId, { page, limit });
+    return this.customizerService.create(dto, user);
+  }
+
+  @Get('customizers')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List customizers',
+    description: 'Get a paginated list of customizers with optional filters',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of customizers retrieved successfully',
+  })
+  async list(
+    @Query(ValidationPipe) query: CustomizerQueryDto,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    return this.customizerService.findAll(user.brandId!, query);
   }
 
   @Get('customizers/:id')
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Récupère un customizer par son ID',
+    summary: 'Get customizer by ID',
+    description: 'Retrieves a single customizer with all its zones and presets',
   })
-  @ApiParam({ name: 'id', description: 'ID du customizer' })
-  async findOneCustomizer(
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Customizer retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Customizer not found',
+  })
+  async getOne(
     @Param('id') id: string,
-    @Query('projectId') projectId: string,
+    @CurrentUser() user: CurrentUserType,
   ) {
-    return this.customizerService.findOne(id, projectId);
+    return this.customizerService.findOne(id, user.brandId!);
   }
 
-  @Post('customizers')
-  @HttpCode(HttpStatus.CREATED)
+  @Get('public/customizers/:id')
+  @Public()
+  @CustomizerPublicAccess()
   @ApiOperation({
-    summary: 'Crée un nouveau customizer',
+    summary: 'Get public customizer',
+    description: 'Retrieves a published public customizer (no authentication required)',
   })
-  async createCustomizer(
-    @Body() dto: CreateVisualCustomizerDto,
-    @Query('projectId') projectId: string,
-  ) {
-    return this.customizerService.create(projectId, dto);
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Public customizer retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Public customizer not found',
+  })
+  async getPublic(@Param('id') id: string) {
+    return this.customizerService.findOnePublic(id);
   }
 
-  @Patch('customizers/:id')
+  @Put('customizers/:id')
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Met à jour un customizer',
+    summary: 'Update customizer',
+    description: 'Updates an existing customizer configuration',
   })
-  async updateCustomizer(
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Customizer updated successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Customizer not found',
+  })
+  async update(
     @Param('id') id: string,
-    @Query('projectId') projectId: string,
-    @Body() dto: UpdateVisualCustomizerDto,
+    @Body(ValidationPipe) dto: UpdateCustomizerDto,
+    @CurrentUser() user: CurrentUserType,
   ) {
-    return this.customizerService.update(id, projectId, dto);
+    return this.customizerService.update(id, dto, user);
   }
 
   @Delete('customizers/:id')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Supprime un customizer',
+    summary: 'Delete customizer',
+    description: 'Soft deletes a customizer',
   })
-  async removeCustomizer(
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Customizer deleted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Customizer not found',
+  })
+  async delete(
     @Param('id') id: string,
-    @Query('projectId') projectId: string,
+    @CurrentUser() user: CurrentUserType,
   ) {
-    return this.customizerService.remove(id, projectId);
+    await this.customizerService.delete(id, user);
+    return;
   }
 
-  @Post('customizers/:id/layers')
+  @Post('customizers/:id/publish')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Publish customizer',
+    description: 'Publishes a customizer, making it available for public use',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Customizer published successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Customizer not found',
+  })
+  async publish(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserType,
+  ) {
+    return this.customizerService.publish(id, user);
+  }
+
+  @Post('customizers/:id/clone')
   @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Ajoute une couche à un customizer',
+    summary: 'Clone customizer',
+    description: 'Creates a copy of an existing customizer',
   })
-  async addLayer(
-    @Param('id') customizerId: string,
-    @Query('projectId') projectId: string,
-    @Body() dto: AddLayerDto,
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Customizer cloned successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Customizer not found',
+  })
+  async clone(
+    @Param('id') id: string,
+    @Body(ValidationPipe) body: { name?: string },
+    @CurrentUser() user: CurrentUserType,
   ) {
-    return this.customizerService.addLayer(customizerId, projectId, dto);
+    return this.customizerService.clone(id, body.name || `Copy of ${id}`, user);
   }
 
-  @Delete('customizers/:id/layers/:layerId')
-  @HttpCode(HttpStatus.OK)
+  @Get('customizers/:id/embed')
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Retire une couche d\'un customizer',
+    summary: 'Get embed code',
+    description: 'Generates embed code for the customizer widget',
   })
-  async removeLayer(
-    @Param('id') customizerId: string,
-    @Query('projectId') projectId: string,
-    @Param('layerId') layerId: string,
+  @ApiParam({
+    name: 'id',
+    description: 'Customizer UUID',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'width',
+    description: 'Widget width',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'height',
+    description: 'Widget height',
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Embed code generated successfully',
+  })
+  async getEmbedCode(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserType,
+    @Query('width') width?: number,
+    @Query('height') height?: number,
   ) {
-    return this.customizerService.removeLayer(customizerId, projectId, layerId);
+    return this.customizerService.getEmbedCode(id, { width, height }, user);
   }
 }

@@ -39,10 +39,10 @@ export class RedisOptimizedService {
   constructor(private configService: ConfigService) {
     const redisUrl = this.configService.get('redis.url') || 'redis://localhost:6379';
     
-    // Valider que l'URL Redis est complète et valide
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
     const isValidRedisUrl = (url: string): boolean => {
-      if (!url || url === 'redis://localhost:6379') return false;
-      // Vérifier que l'URL contient au moins le host après les credentials
+      if (!url) return false;
+      if (isProduction && url === 'redis://localhost:6379') return false;
       try {
         const parsed = new URL(url);
         return !!parsed.hostname && parsed.hostname.length > 0;

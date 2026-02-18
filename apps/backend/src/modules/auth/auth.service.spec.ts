@@ -16,6 +16,7 @@ import { CaptchaService } from './services/captcha.service';
 import { TokenService } from './services/token.service';
 import { OAuthService } from './services/oauth.service';
 import { ReferralService } from '../referral/referral.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { testFixtures } from '@/common/test/test-setup';
 import { UserRole } from '@prisma/client';
@@ -172,6 +173,10 @@ describe('AuthService', () => {
         {
           provide: ReferralService,
           useValue: mockReferralService,
+        },
+        {
+          provide: TokenBlacklistService,
+          useValue: { blacklistUser: jest.fn().mockResolvedValue(undefined), isBlacklisted: jest.fn().mockResolvedValue(false) },
         },
       ],
     }).compile();

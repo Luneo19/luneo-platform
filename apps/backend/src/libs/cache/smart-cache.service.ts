@@ -13,6 +13,8 @@ interface CacheStrategy {
 export class SmartCacheService {
   private readonly logger = new Logger(SmartCacheService.name);
   
+  private readonly defaultStrategy: CacheStrategy = { ttl: 1800, refreshThreshold: 0.7, maxRetries: 3, fallbackToCache: true };
+
   private readonly strategies: Record<string, CacheStrategy> = {
     user: { ttl: 1800, refreshThreshold: 0.8, maxRetries: 3, fallbackToCache: true },
     brand: { ttl: 3600, refreshThreshold: 0.7, maxRetries: 3, fallbackToCache: true },
@@ -20,6 +22,9 @@ export class SmartCacheService {
     design: { ttl: 900, refreshThreshold: 0.9, maxRetries: 5, fallbackToCache: false },
     analytics: { ttl: 300, refreshThreshold: 0.5, maxRetries: 2, fallbackToCache: true },
     session: { ttl: 86400, refreshThreshold: 0.9, maxRetries: 3, fallbackToCache: true },
+    api: { ttl: 1800, refreshThreshold: 0.7, maxRetries: 3, fallbackToCache: true },
+    cache: { ttl: 3600, refreshThreshold: 0.7, maxRetries: 2, fallbackToCache: true },
+    default: { ttl: 1800, refreshThreshold: 0.7, maxRetries: 3, fallbackToCache: true },
   };
 
   constructor(
@@ -36,7 +41,7 @@ export class SmartCacheService {
     fetchFn: () => Promise<T>,
     options: { ttl?: number; tags?: string[] } = {}
   ): Promise<T | null> {
-    const strategy = this.strategies[type] || this.strategies.api;
+    const strategy = this.strategies[type] || this.defaultStrategy;
     const cacheKey = `${type}:${key}`;
     
     try {
@@ -115,7 +120,7 @@ export class SmartCacheService {
     data: T,
     options: { ttl?: number; tags?: string[] } = {}
   ): Promise<boolean> {
-    const strategy = this.strategies[type] || this.strategies.api;
+    const strategy = this.strategies[type] || this.defaultStrategy;
     const cacheKey = `${type}:${key}`;
     const ttl = options.ttl || strategy.ttl;
 
@@ -181,7 +186,7 @@ export class SmartCacheService {
     fetchFn: (key: string) => Promise<T>,
     options: { ttl?: number; tags?: string[] } = {}
   ): Promise<void> {
-    const strategy = this.strategies[type] || this.strategies.api;
+    const strategy = this.strategies[type] || this.defaultStrategy;
     
     try {
       const promises = keys.map(async (key) => {

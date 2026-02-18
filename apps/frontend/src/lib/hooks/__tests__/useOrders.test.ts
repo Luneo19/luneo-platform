@@ -15,9 +15,23 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-// Mock global fetch
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+const mockList = vi.fn();
+const mockGet = vi.fn();
+const mockCreate = vi.fn();
+const mockUpdate = vi.fn();
+const mockCancel = vi.fn();
+
+vi.mock('@/lib/api/client', () => ({
+  endpoints: {
+    orders: {
+      list: (params: unknown) => mockList(params),
+      get: (id: string) => mockGet(id),
+      create: (data: unknown) => mockCreate(data),
+      update: (id: string, data: unknown) => mockUpdate(id, data),
+      cancel: (id: string) => mockCancel(id),
+    },
+  },
+}));
 
 describe('useOrders', () => {
   beforeEach(() => {
@@ -34,7 +48,6 @@ describe('useOrders', () => {
         { id: 'order-1', orderNumber: 'ORD-001', status: 'PENDING' },
         { id: 'order-2', orderNumber: 'ORD-002', status: 'SHIPPED' },
       ];
-
       const mockPagination = {
         page: 1,
         limit: 20,
@@ -44,16 +57,7 @@ describe('useOrders', () => {
         hasPrev: false,
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            orders: mockOrders,
-            pagination: mockPagination,
-          },
-        }),
-      });
+      mockList.mockResolvedValue({ data: { orders: mockOrders, pagination: mockPagination } });
 
       const { result } = renderHook(() => useOrders());
 
@@ -67,15 +71,11 @@ describe('useOrders', () => {
     });
 
     it('should load orders with custom params', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            orders: [],
-            pagination: { page: 2, limit: 10, total: 0, totalPages: 0, hasNext: false, hasPrev: true },
-          },
-        }),
+      mockList.mockResolvedValue({
+        data: {
+          orders: [],
+          pagination: { page: 2, limit: 10, total: 0, totalPages: 0, hasNext: false, hasPrev: true },
+        },
       });
 
       const { result } = renderHook(() => useOrders({ page: 2, limit: 10, status: 'PENDING' }));
@@ -84,19 +84,11 @@ describe('useOrders', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('page=2'));
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('limit=10'));
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('status=PENDING'));
+      expect(mockList).toHaveBeenCalledWith(expect.objectContaining({ page: 2, limit: 10, status: 'PENDING' }));
     });
 
     it('should handle error loading orders', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: false,
-          error: 'Failed to load orders',
-        }),
-      });
+      mockList.mockRejectedValue(new Error('Failed to load orders'));
 
       const { result } = renderHook(() => useOrders());
 
@@ -110,23 +102,15 @@ describe('useOrders', () => {
     });
 
     it('should refresh orders', async () => {
-      mockFetch
+      mockList
         .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            success: true,
-            data: { orders: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false } },
-          }),
+          data: { orders: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false } },
         })
         .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            success: true,
-            data: {
-              orders: [{ id: 'order-1' }],
-              pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
-            },
-          }),
+          data: {
+            orders: [{ id: 'order-1' }],
+            pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+          },
         });
 
       const { result } = renderHook(() => useOrders());
@@ -151,13 +135,7 @@ describe('useOrders', () => {
         status: 'PENDING',
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: { order: mockOrder },
-        }),
-      });
+      mockGet.mockResolvedValue({ data: { order: mockOrder } });
 
       const { result } = renderHook(() => useOrder('order-123'));
 
@@ -172,19 +150,12 @@ describe('useOrders', () => {
     it('should not load if id is empty', async () => {
       const { result } = renderHook(() => useOrder(''));
 
-      // Should not make any fetch calls
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
       expect(result.current.order).toBeNull();
     });
 
     it('should handle error loading order', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: false,
-          error: 'Order not found',
-        }),
-      });
+      mockGet.mockRejectedValue(new Error('Order not found'));
 
       const { result } = renderHook(() => useOrder('order-123'));
 
@@ -204,20 +175,13 @@ describe('useOrders', () => {
         items: [{ productId: 'prod-1', quantity: 1 }],
         shipping_address: { street: '123 Main St', city: 'Paris' },
       };
-
       const mockCreatedOrder = {
         id: 'order-new',
         orderNumber: 'ORD-002',
         status: 'PENDING',
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: { order: mockCreatedOrder },
-        }),
-      });
+      mockCreate.mockResolvedValue({ data: { order: mockCreatedOrder } });
 
       const { result } = renderHook(() => useCreateOrder());
 
@@ -229,13 +193,7 @@ describe('useOrders', () => {
     });
 
     it('should handle error creating order', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: false,
-          error: 'Failed to create order',
-        }),
-      });
+      mockCreate.mockRejectedValue(new Error('Failed to create order'));
 
       const { result } = renderHook(() => useCreateOrder());
 
@@ -261,13 +219,7 @@ describe('useOrders', () => {
         tracking_number: 'TRACK123',
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: { order: mockUpdatedOrder },
-        }),
-      });
+      mockUpdate.mockResolvedValue({ data: { order: mockUpdatedOrder } });
 
       const { result } = renderHook(() => useUpdateOrder());
 
@@ -282,13 +234,7 @@ describe('useOrders', () => {
     });
 
     it('should cancel order successfully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: { message: 'Order cancelled' },
-        }),
-      });
+      mockCancel.mockResolvedValue({ data: { message: 'Order cancelled' }, success: true });
 
       const { result } = renderHook(() => useUpdateOrder());
 
@@ -299,13 +245,7 @@ describe('useOrders', () => {
     });
 
     it('should handle error updating order', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: false,
-          error: 'Failed to update',
-        }),
-      });
+      mockUpdate.mockRejectedValue(new Error('Failed to update'));
 
       const { result } = renderHook(() => useUpdateOrder());
 

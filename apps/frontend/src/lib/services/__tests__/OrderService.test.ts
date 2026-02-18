@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OrderService } from '../OrderService';
 import { trpcVanilla } from '@/lib/trpc/vanilla-client';
 import { cacheService } from '@/lib/cache/CacheService';
+import { api } from '@/lib/api/client';
 import type { Order, OrderItem } from '@/lib/types/order';
 
 // Mocks
@@ -44,8 +45,17 @@ vi.mock('@/lib/cache/CacheService', () => ({
   },
 }));
 
-// Mock fetch for POD API
-global.fetch = vi.fn();
+// Mock the api client for POD API
+vi.mock('@/lib/api/client', () => ({
+  api: {
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  },
+  endpoints: {},
+}));
 
 describe('OrderService', () => {
   let orderService: OrderService;
@@ -542,15 +552,12 @@ describe('OrderService', () => {
 
   describe('sendToPOD', () => {
     it('should send order to POD', async () => {
-      (global.fetch as vi.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          data: {
-            podOrderId: 'pod-123',
-            status: 'pending',
-            trackingUrl: 'https://tracking.example.com',
-          },
-        }),
+      (api.post as vi.Mock).mockResolvedValue({
+        data: {
+          podOrderId: 'pod-123',
+          status: 'pending',
+          trackingUrl: 'https://tracking.example.com',
+        },
       });
 
       const result = await orderService.sendToPOD('order-123', 'printful', {
@@ -560,21 +567,16 @@ describe('OrderService', () => {
 
       expect(result).toBeDefined();
       expect(result.podOrderId).toBe('pod-123');
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/pod/printful/submit',
+      expect(api.post).toHaveBeenCalledWith(
+        '/api/v1/pod/printful/submit',
         expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          orderId: 'order-123',
         })
       );
     });
 
     it('should handle POD API errors', async () => {
-      (global.fetch as vi.Mock).mockResolvedValue({
-        ok: false,
-        statusText: 'Bad Request',
-        json: async () => ({ message: 'Invalid order' }),
-      });
+      (api.post as vi.Mock).mockRejectedValue(new Error('Bad Request'));
 
       await expect(
         orderService.sendToPOD('order-123', 'printful')

@@ -15,13 +15,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class NovaChatContextDto {
   @ApiPropertyOptional({ description: 'User ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   userId?: string;
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 
@@ -42,15 +42,21 @@ export class NovaChatDto {
 
   @ApiPropertyOptional({ description: 'Session ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   sessionId?: string;
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
+
+  @ApiPropertyOptional({ description: 'Conversation ID (UUID)' })
+  @IsString()
+
+  @IsOptional()
+  conversationId?: string;
 
   @ApiPropertyOptional({ description: 'Context' })
   @ValidateNested()

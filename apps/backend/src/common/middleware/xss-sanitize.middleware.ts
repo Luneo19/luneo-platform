@@ -9,7 +9,14 @@ import { Request, Response, NextFunction } from 'express';
  */
 @Injectable()
 export class XssSanitizeMiddleware implements NestMiddleware {
-  use(req: Request, _res: Response, next: NextFunction) {
+  use(req: Request, res: Response, next: NextFunction) {
+    // SECURITY FIX: Path traversal protection - reject requests with directory traversal patterns
+    const url = req.url || req.originalUrl || '';
+    if (url.includes('..') || url.includes('%2e%2e') || url.includes('%252e')) {
+      res.status(400).json({ message: 'Invalid request path' });
+      return;
+    }
+
     if (req.body && typeof req.body === 'object') {
       req.body = this.sanitizeObject(req.body);
     }
@@ -39,7 +46,7 @@ export class XssSanitizeMiddleware implements NestMiddleware {
   }
 
   private sanitizeString(input: string): string {
-    return input
+    let sanitized = input
       // Remove <script> tags and their content
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       // Remove on* event handlers (onclick, onerror, onload, etc.)
@@ -59,6 +66,26 @@ export class XssSanitizeMiddleware implements NestMiddleware {
       .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
       .replace(/<object\b[^>]*\/?>/gi, '')
       // Remove <embed> tags
-      .replace(/<embed\b[^>]*\/?>/gi, '');
+      .replace(/<embed\b[^>]*\/?>/gi, '')
+      // SECURITY FIX: Remove <form> tags (prevent form injection)
+      .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
+      .replace(/<form\b[^>]*\/?>/gi, '')
+      // SECURITY FIX: Remove <base> tags (prevent base URL hijacking)
+      .replace(/<base\b[^>]*\/?>/gi, '')
+      // SECURITY FIX: Remove <meta> tags (prevent redirect/refresh injection)
+      .replace(/<meta\b[^>]*\/?>/gi, '')
+      // SECURITY FIX: Remove <link> tags with rel=import or rel=stylesheet (prevent CSS injection)
+      .replace(/<link\b[^>]*\/?>/gi, '')
+      // SECURITY FIX: Remove <svg> onload and similar vectors
+      .replace(/<svg\b[^>]*\bon\w+\s*=[^>]*>/gi, '');
+
+    // SECURITY FIX: Encode remaining dangerous HTML entities in strings
+    // that contain potential HTML (has < or > characters)
+    if (sanitized.includes('<') || sanitized.includes('>')) {
+      // Remove any remaining HTML tags that weren't caught above
+      sanitized = sanitized.replace(/<[^>]*>/g, '');
+    }
+
+    return sanitized;
   }
 }

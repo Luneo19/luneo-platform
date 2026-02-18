@@ -22,6 +22,11 @@ import { abTestingRouter } from './ab-testing';
 import { analyticsAdvancedRouter } from './analytics-advanced';
 import { aiStudioRouter } from './ai-studio';
 import { collaborationRouter } from './collaboration';
+import { customizerRouter } from './customizer';
+import { customizerZonesRouter } from './customizer-zones';
+import { customizerAssetsRouter } from './customizer-assets';
+import { customizerSessionsRouter } from './customizer-sessions';
+import { customizerExportRouter } from './customizer-export';
 
 // ========================================
 // APP ROUTER
@@ -46,6 +51,13 @@ export const appRouter = router({
   analyticsAdvanced: analyticsAdvancedRouter,
   aiStudio: aiStudioRouter,
   collaboration: collaborationRouter,
+  visualCustomizer: router({
+    customizer: customizerRouter,
+    zones: customizerZonesRouter,
+    assets: customizerAssetsRouter,
+    sessions: customizerSessionsRouter,
+    export: customizerExportRouter,
+  }),
 });
 
 export type AppRouter = typeof appRouter;

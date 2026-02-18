@@ -20,6 +20,7 @@ import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { TokenService } from './services/token.service';
 import { OAuthService } from './services/oauth.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { ReferralService } from '../referral/referral.service';
 import * as crypto from 'crypto';
 
@@ -39,6 +40,8 @@ export class AuthService {
     private tokenService: TokenService,
     private oauthService: OAuthService,
     private referralService: ReferralService,
+    // SECURITY FIX: Inject token blacklist for immediate revocation on password changes
+    private tokenBlacklist: TokenBlacklistService,
   ) {}
 
   /**
@@ -679,8 +682,13 @@ export class AuthService {
    * SEC-08: Sauvegarde du refresh token avec gestion de famille
    * Delegates to TokenService
    */
-  async saveRefreshToken(userId: string, token: string, family?: string) {
-    return this.tokenService.saveRefreshToken(userId, token, family);
+  async saveRefreshToken(
+    userId: string,
+    token: string,
+    family?: string,
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
+    return this.tokenService.saveRefreshToken(userId, token, family, metadata);
   }
 
   /**
@@ -759,6 +767,12 @@ export class AuthService {
         throw new BadRequestException('Invalid token type');
       }
 
+      // SECURITY FIX P0-3: Ensure reset token is single-use.
+      // We use the token's iat (issued-at) timestamp to check if the user's password
+      // was already changed after this token was issued. If passwordChangedAt > iat,
+      // the token has already been used or is stale.
+      const tokenIssuedAt = payload.iat ? new Date(payload.iat * 1000) : null;
+
       // Find user
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
@@ -767,6 +781,17 @@ export class AuthService {
       if (!user) {
         this.logger.warn('User not found for password reset', { userId: payload.sub });
         throw new NotFoundException('User not found');
+      }
+
+      // SECURITY FIX P0-3: Check if password was already changed after this token was issued.
+      // updatedAt changes when password is updated, making the token effectively single-use.
+      if (tokenIssuedAt && user.updatedAt && user.updatedAt > tokenIssuedAt) {
+        this.logger.warn('Reset token already used (password changed after token issued)', {
+          userId: user.id,
+          tokenIssuedAt: tokenIssuedAt.toISOString(),
+          userUpdatedAt: user.updatedAt.toISOString(),
+        });
+        throw new BadRequestException('This reset link has already been used. Please request a new one.');
       }
 
       // ✅ Validate password strength (additional check)
@@ -791,7 +816,8 @@ export class AuthService {
         data: { password: hashedPassword },
       });
 
-      // Delete all refresh tokens for security (force re-login)
+      // SECURITY FIX: Blacklist access tokens immediately + delete all refresh tokens
+      await this.tokenBlacklist.blacklistUser(user.id);
       await this.prisma.refreshToken.deleteMany({
         where: { userId: user.id },
       });

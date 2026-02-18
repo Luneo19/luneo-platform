@@ -33,6 +33,8 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       clientSecret,
       callbackURL: callbackURL || '/api/v1/auth/github/callback',
       scope: ['user:email'],
+      // SECURITY FIX: Enable state parameter for CSRF protection on OAuth callbacks
+      state: true,
     });
   }
 

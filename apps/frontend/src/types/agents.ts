@@ -123,30 +123,95 @@ export interface NovaResponse {
 }
 
 // ============================================================================
+// ARIA - DESIGN ANALYSIS
+// ============================================================================
+
+export interface DesignScore {
+  overall: number;
+  color: number;
+  typography: number;
+  layout: number;
+  contrast: number;
+  accessibility: number;
+  consistency: number;
+}
+
+export interface DesignFeedback {
+  category: string;
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+  suggestion?: string;
+}
+
+export interface DesignSuggestion {
+  type: string;
+  description: string;
+  autoApplicable: boolean;
+  impact: number;
+}
+
+export interface AriaAnalyzeResponse {
+  analysisId: string;
+  scores: DesignScore;
+  feedback: DesignFeedback[];
+  suggestions: DesignSuggestion[];
+}
+
+// ============================================================================
+// NOVA - STREAMING CHUNKS
+// ============================================================================
+
+export interface NovaStreamChunk {
+  type: 'content' | 'source' | 'escalation' | 'suggestion' | 'action' | 'done' | 'error';
+  content?: string;
+  source?: { title: string; url?: string; score?: number };
+  escalation?: { reason: string; priority: string; ticketId?: string };
+  suggestion?: string;
+  action?: { type: string; label: string; payload: Record<string, unknown> };
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+  error?: string;
+}
+
+// ============================================================================
+// FEEDBACK
+// ============================================================================
+
+export interface MessageFeedback {
+  messageId: string;
+  rating: number;
+  comment?: string;
+  category?: 'helpful' | 'accurate' | 'fast' | 'other';
+}
+
+// ============================================================================
 // SHARED
 // ============================================================================
 
-/**
- * Message de conversation
- */
 export interface AgentMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   timestamp: Date;
   metadata?: Record<string, unknown>;
+  tokenCount?: number;
+  costCents?: number;
+  provider?: string;
+  model?: string;
+  feedback?: { rating: number; comment?: string } | null;
 }
 
-/**
- * Conversation avec un agent
- */
 export interface AgentConversation {
   id: string;
   agentType: 'luna' | 'aria' | 'nova';
   brandId?: string;
   userId?: string;
   sessionId?: string;
+  title?: string;
+  status: 'ACTIVE' | 'ARCHIVED' | 'ESCALATED' | 'RESOLVED';
   messages: AgentMessage[];
+  totalTokens: number;
+  totalCostCents: number;
+  messageCount: number;
   createdAt: Date;
   updatedAt: Date;
 }

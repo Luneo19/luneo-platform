@@ -24,6 +24,7 @@ import { RequestRefundDto } from './dto/request-refund.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { UserRole, OrderStatus } from '@prisma/client';
 import { Request as ExpressRequest } from 'express';
@@ -31,7 +32,8 @@ import { Request as ExpressRequest } from 'express';
 @ApiTags('orders')
 @Controller('orders')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+// SECURITY FIX: Added BrandOwnershipGuard for brand-level data isolation
+@UseGuards(JwtAuthGuard, BrandOwnershipGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 

@@ -11,6 +11,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { LunaController } from './luna.controller';
 import { LunaService } from './luna.service';
+import { LunaDesignService } from './services/luna-design.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { StorageModule } from '@/libs/storage/storage.module';
@@ -26,14 +27,14 @@ import { AIMonitorModule } from '../ai-monitor/ai-monitor.module';
     SmartCacheModule,
     StorageModule,
     ProductsModule,
-    AnalyticsModule, // Pour ReportsService
-    forwardRef(() => AgentsModule), // Pour LLMRouterService, ConversationService, AgentMemoryService et tous leurs dépendances
-    UsageGuardianModule, // Usage Guardian
-    AIMonitorModule, // AI Monitor
+    AnalyticsModule,
+    forwardRef(() => AgentsModule),
+    UsageGuardianModule,
+    AIMonitorModule,
     HttpModule,
   ],
   controllers: [LunaController],
-  providers: [LunaService],
-  exports: [LunaService], // ✅ RÈGLE: Export obligatoire
+  providers: [LunaService, LunaDesignService],
+  exports: [LunaService, LunaDesignService],
 })
 export class LunaModule {}

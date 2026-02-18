@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader 
 import { PublicApiService } from './public-api.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { ApiQuotaGuard } from './guards/api-quota.guard';
+import { ApiPermissionGuard, RequireApiPermission } from './guards/api-permission.guard';
 import { RateLimitGuard } from './rate-limit/rate-limit.guard';
 import { CreateDesignDto, UpdateDesignDto, CreateOrderDto, GetAnalyticsDto, TestWebhookDto, GetProductsQueryDto, GetDesignsQueryDto, GetOrdersQueryDto } from './dto';
 import { Public } from '@/common/decorators/public.decorator';
@@ -12,10 +13,11 @@ import { BrandId } from './decorators/brand-id.decorator';
  * Public REST API with API key authentication.
  * Base path: /api/v1/public
  * Authenticate via x-api-key header.
+ * FIX-1: ApiPermissionGuard enforces scoped permissions per endpoint.
  */
 @ApiTags('Public API')
 @Controller('public')
-@UseGuards(ApiKeyGuard, RateLimitGuard, ApiQuotaGuard)
+@UseGuards(ApiKeyGuard, RateLimitGuard, ApiQuotaGuard, ApiPermissionGuard)
 @ApiHeader({ name: 'x-api-key', description: 'API key (lun_...)', required: true })
 export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
@@ -40,6 +42,7 @@ export class PublicApiController {
   }
 
   @Get('products')
+  @RequireApiPermission('products:read')
   @ApiOperation({ summary: 'List products' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   async getProducts(
@@ -51,6 +54,7 @@ export class PublicApiController {
   }
 
   @Get('products/:id')
+  @RequireApiPermission('products:read')
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'Product retrieved successfully' })
@@ -60,6 +64,7 @@ export class PublicApiController {
   }
 
   @Get('designs')
+  @RequireApiPermission('designs:read')
   @ApiOperation({ summary: 'List designs for the brand' })
   @ApiResponse({ status: 200, description: 'Designs retrieved successfully' })
   async getDesigns(
@@ -71,6 +76,7 @@ export class PublicApiController {
   }
 
   @Get('designs/:id')
+  @RequireApiPermission('designs:read')
   @ApiOperation({ summary: 'Get design by ID' })
   @ApiParam({ name: 'id', description: 'Design ID' })
   @ApiResponse({ status: 200, description: 'Design retrieved successfully' })
@@ -80,6 +86,7 @@ export class PublicApiController {
   }
 
   @Post('designs')
+  @RequireApiPermission('designs:write')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a design' })
   @ApiResponse({ status: 201, description: 'Design created successfully' })
@@ -89,6 +96,7 @@ export class PublicApiController {
   }
 
   @Put('designs/:id')
+  @RequireApiPermission('designs:write')
   @ApiOperation({ summary: 'Update a design' })
   @ApiParam({ name: 'id', description: 'Design ID' })
   @ApiResponse({ status: 200, description: 'Design updated successfully' })
@@ -102,6 +110,7 @@ export class PublicApiController {
   }
 
   @Delete('designs/:id')
+  @RequireApiPermission('designs:delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a design' })
   @ApiParam({ name: 'id', description: 'Design ID' })
@@ -112,6 +121,7 @@ export class PublicApiController {
   }
 
   @Get('orders')
+  @RequireApiPermission('orders:read')
   @ApiOperation({ summary: 'List orders' })
   @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
   async getOrders(
@@ -123,6 +133,7 @@ export class PublicApiController {
   }
 
   @Get('orders/:id')
+  @RequireApiPermission('orders:read')
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order retrieved successfully' })
@@ -132,6 +143,7 @@ export class PublicApiController {
   }
 
   @Post('orders')
+  @RequireApiPermission('orders:write')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
@@ -141,6 +153,7 @@ export class PublicApiController {
   }
 
   @Get('analytics')
+  @RequireApiPermission('analytics:read')
   @ApiOperation({ summary: 'Get analytics data' })
   @ApiResponse({ status: 200, description: 'Analytics retrieved successfully' })
   async getAnalytics(@BrandId() brandId: string, @Query() query: GetAnalyticsDto) {
@@ -148,6 +161,7 @@ export class PublicApiController {
   }
 
   @Post('webhooks/test')
+  @RequireApiPermission('webhooks:write')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Test webhook endpoint' })
   @ApiResponse({ status: 200, description: 'Webhook test successful' })

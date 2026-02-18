@@ -91,11 +91,14 @@ export class TryOnController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    // PLATFORM_ADMIN without brandId can list configurations
-    if (!req.user?.brandId && req.user?.role === 'PLATFORM_ADMIN') {
-      if (!projectId) return { data: [], total: 0, page: 1, limit: 20 };
+    if (!projectId) {
+      return { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
     }
-    return this.configurationService.findAll(projectId, { page, limit }, req.user?.brandId);
+    return this.configurationService.findAll(
+      projectId,
+      { page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined },
+      req.user?.brandId,
+    );
   }
 
   @Get('configurations/:id')

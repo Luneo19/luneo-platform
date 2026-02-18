@@ -60,6 +60,35 @@ vi.mock('@/components/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+// Mock i18n so login page renders expected French text
+vi.mock('@/i18n/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'auth.login.welcomeBack': 'Bon retour',
+        'auth.login.subtitleLuneo': 'Connectez-vous à votre espace Luneo',
+        'auth.login.email': 'Email',
+        'auth.login.emailPlaceholder': 'votre@email.com',
+        'auth.login.password': 'Password',
+        'auth.login.forgotPassword': 'Mot de passe oublié ?',
+        'auth.login.rememberMe': 'Se souvenir de moi',
+        'auth.login.secureConnection': 'Connexion sécurisée',
+        'auth.login.submit': 'Se connecter',
+        'auth.login.submitting': 'Connexion...',
+        'auth.login.noAccount': 'Pas encore de compte ?',
+        'auth.login.createAccount': 'Créer un compte',
+        'auth.login.orContinueWith': 'Ou continuer avec',
+        'auth.login.securityIndicators.ssl': 'SSL/TLS',
+        'auth.login.securityIndicators.twoFA': '2FA disponible',
+        'auth.login.securityIndicators.gdpr': 'RGPD',
+      };
+      return map[key] ?? key;
+    },
+    locale: 'fr',
+    setLocale: () => {},
+  }),
+}));
+
 // Mock TwoFactorForm component
 vi.mock('@/components/auth/TwoFactorForm', () => ({
   TwoFactorForm: ({ tempToken, email, onSuccess, onError }: any) => (

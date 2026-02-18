@@ -95,9 +95,9 @@ export interface NovaResponse {
 
 const NovaMessageSchema = z.object({
   message: z.string().min(1).max(4000),
-  brandId: z.string().uuid().optional(),
-  userId: z.string().uuid().optional(),
-  conversationId: z.string().uuid().optional(),
+  brandId: z.string().min(1).optional(),
+  userId: z.string().min(1).optional(),
+  conversationId: z.string().min(1).optional(),
   context: z.object({
     currentPage: z.string().optional(),
     locale: z.string().optional(),

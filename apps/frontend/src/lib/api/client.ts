@@ -904,6 +904,102 @@ export const endpoints = {
       ticket: (data: { subject: string; description: string; priority: 'low' | 'medium' | 'high' | 'urgent'; category?: 'TECHNICAL' | 'BILLING' | 'FEATURE' | 'OTHER' }) =>
         api.post<{ success: boolean; data: { id: string; ticketNumber: string } }>('/api/v1/agents/nova/ticket', data),
     },
+    // Shared endpoints
+    conversations: (agentType?: string) =>
+      api.get<{ success: boolean; data: { conversations: AgentConversation[] } }>(`/api/v1/agents/conversations${agentType ? `?agentType=${agentType}` : ''}`),
+    conversation: (conversationId: string) =>
+      api.get<{ success: boolean; data: AgentConversation }>(`/api/v1/agents/conversations/${conversationId}`),
+    feedback: (data: { messageId: string; rating: number; comment?: string; category?: string }) =>
+      api.post<{ success: boolean }>('/api/v1/agents/feedback', data),
+  },
+
+  // AR Studio
+  ar: {
+    /** Resolve short code: follows redirect manually and returns redirect URL + parsed modelId if path is /ar/viewer/:modelId */
+    view: {
+      resolve: async (shortCode: string): Promise<{ redirectUrl: string; modelId?: string; platform?: string; method?: string }> => {
+        const url = `${API_BASE_URL}/api/v1/ar/view/${encodeURIComponent(shortCode)}`;
+        const res = await axios.get(url, { maxRedirects: 0, validateStatus: (s) => s === 302 || s === 404 });
+        if (res.status === 404) {
+          const err = new Error('Short link not found or expired');
+          (err as Error & { response?: { status: number } }).response = { status: 404 };
+          throw err;
+        }
+        const location = res.headers?.location;
+        if (!location) {
+          throw new Error('Invalid response from AR view');
+        }
+        try {
+          const parsed = new URL(location, typeof window !== 'undefined' ? window.location.origin : 'https://localhost');
+          const match = parsed.pathname.match(/\/ar\/viewer\/([^/]+)/);
+          return {
+            redirectUrl: location,
+            modelId: match?.[1],
+            platform: parsed.searchParams.get('platform') ?? undefined,
+            method: parsed.searchParams.get('method') ?? undefined,
+          };
+        } catch {
+          return { redirectUrl: location };
+        }
+      },
+    },
+    /** Get viewer config for a model (URLs per platform, features). Public. */
+    viewerConfig: (modelId: string) =>
+      api.get<{
+        platform: string;
+        method: string;
+        format: string;
+        features: Record<string, boolean>;
+        ios: { arQuickLookUrl: string; ready: boolean };
+        android: { intentUrl: string; modelUrl: string; webxrFallback: boolean };
+        web: unknown;
+        desktop: { qrTargetUrl: string; landingPageUrl: string };
+      }>(`/api/v1/ar/viewer/${modelId}`),
+    embedConfig: (projectId: string) =>
+      api.get<{ projectId: string; embedUrl: string; models: Array<{ id: string; name: string; viewerUrl: string }> }>(`/api/v1/ar/embed/${projectId}`),
+    projects: {
+      get: (projectId: string) => api.get(`/api/v1/ar/projects/${projectId}`),
+      models: {
+        list: (projectId: string, params?: { page?: number; limit?: number }) =>
+          api.get<{ data: unknown[]; meta?: { total: number; page: number; limit: number } }>(`/api/v1/ar/projects/${projectId}/models`, { params }),
+        upload: (projectId: string, formData: FormData) =>
+          api.post<{ id: string; name: string; status: string }>(`/api/v1/ar/projects/${projectId}/models`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+        convert: (projectId: string, modelId: string) =>
+          api.post(`/api/v1/ar/projects/${projectId}/models/${modelId}/convert`, {}),
+        optimize: (projectId: string, modelId: string) =>
+          api.post(`/api/v1/ar/projects/${projectId}/models/${modelId}/optimize`, {}),
+        delete: (projectId: string, modelId: string) =>
+          api.delete(`/api/v1/ar/projects/${projectId}/models/${modelId}`),
+      },
+      targets: {
+        list: (projectId: string) => api.get<{ data: unknown[] }>(`/api/v1/ar/projects/${projectId}/targets`),
+        create: (projectId: string, formData: FormData) =>
+          api.post(`/api/v1/ar/projects/${projectId}/targets`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+        analyze: (projectId: string, targetId: string) =>
+          api.post<{ qualityScore: number; trackingQuality: string }>(`/api/v1/ar/projects/${projectId}/targets/${targetId}/analyze`, {}),
+        linkModel: (projectId: string, targetId: string, modelId: string) =>
+          api.patch(`/api/v1/ar/projects/${projectId}/targets/${targetId}/link`, { modelId }),
+      },
+      qrCodes: {
+        list: (projectId: string) => api.get<{ data: unknown[] }>(`/api/v1/ar/projects/${projectId}/qr-codes`),
+        create: (projectId: string, data: { url: string; options?: { fgColor?: string; bgColor?: string; logo?: string; style?: string } }) =>
+          api.post<{ id: string; imageUrl: string }>(`/api/v1/ar/projects/${projectId}/qr-codes`, data),
+        download: (projectId: string, qrId: string, format: 'png' | 'svg' | 'pdf') =>
+          api.get<Blob>(`/api/v1/ar/projects/${projectId}/qr-codes/${qrId}/download`, { params: { format }, responseType: 'blob' }),
+      },
+      analytics: (projectId: string, params?: { startDate?: string; endDate?: string }) =>
+        api.get<{ sessions: number; avgDuration: number; placements: number; conversions: number; sessionsOverTime?: unknown[]; platformDistribution?: unknown[] }>(`/api/v1/ar/projects/${projectId}/analytics`, { params }),
+    },
+    analytics: {
+      dashboard: (params?: { startDate?: string; endDate?: string }) =>
+        api.get<{ totalSessions: number; avgDuration: number; conversionRate: number; revenue: number; sessionsTrend?: unknown[]; platformDistribution?: unknown[]; topModels?: unknown[] }>(`/api/v1/ar/analytics/dashboard`, { params }),
+      sessions: (params?: { startDate?: string; endDate?: string; platform?: string; projectId?: string; page?: number; limit?: number }) =>
+        api.get<{ data: unknown[]; meta?: { total: number; page: number; limit: number } }>(`/api/v1/ar/analytics/sessions`, { params }),
+      conversions: (params?: { startDate?: string; endDate?: string }) =>
+        api.get<{ funnel: unknown[]; rates: Record<string, number>; revenue: number }>(`/api/v1/ar/analytics/conversions`, { params }),
+      heatmaps: (params?: { modelId?: string }) =>
+        api.get<{ viewAngleDistribution?: unknown[]; scaleDistribution?: unknown[]; placementZones?: unknown[] }>(`/api/v1/ar/analytics/heatmaps`, { params }),
+    },
   },
 };
 

@@ -42,19 +42,32 @@ const COST_PER_1M_TOKENS: Record<
   Record<string, { input: number; output: number }>
 > = {
   [LLMProvider.OPENAI]: {
-    'gpt-4-turbo-preview': { input: 10, output: 30 }, // $10/$30 per 1M tokens
-    'gpt-4': { input: 30, output: 60 }, // $30/$60 per 1M tokens
-    'gpt-3.5-turbo': { input: 0.5, output: 1.5 }, // $0.5/$1.5 per 1M tokens
+    'gpt-4o': { input: 2.5, output: 10 },
+    'gpt-4o-mini': { input: 0.15, output: 0.6 },
+    'gpt-4-turbo-preview': { input: 10, output: 30 },
+    'gpt-4': { input: 30, output: 60 },
+    'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
   },
   [LLMProvider.ANTHROPIC]: {
-    'claude-3-opus-20240229': { input: 15, output: 75 }, // $15/$75 per 1M tokens
-    'claude-3-sonnet-20240229': { input: 3, output: 15 }, // $3/$15 per 1M tokens
-    'claude-3-haiku-20240307': { input: 0.25, output: 1.25 }, // $0.25/$1.25 per 1M tokens
+    'claude-3-5-sonnet-20241022': { input: 3, output: 15 },
+    'claude-3-opus-20240229': { input: 15, output: 75 },
+    'claude-3-sonnet-20240229': { input: 3, output: 15 },
+    'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
   },
   [LLMProvider.MISTRAL]: {
-    'mistral-large-latest': { input: 8, output: 24 }, // $8/$24 per 1M tokens
-    'mistral-medium-latest': { input: 2.7, output: 8.1 }, // $2.7/$8.1 per 1M tokens
-    'mistral-small-latest': { input: 0.2, output: 0.6 }, // $0.2/$0.6 per 1M tokens
+    'mistral-large-latest': { input: 2, output: 6 },
+    'mistral-medium-latest': { input: 2.7, output: 8.1 },
+    'mistral-small-latest': { input: 0.2, output: 0.6 },
+  },
+  [LLMProvider.GROQ]: {
+    'llama-3.1-70b-versatile': { input: 0.59, output: 0.79 },
+    'llama-3.1-8b-instant': { input: 0.05, output: 0.08 },
+    'mixtral-8x7b-32768': { input: 0.24, output: 0.24 },
+  },
+  [LLMProvider.OLLAMA]: {
+    'llama3': { input: 0, output: 0 },
+    'mistral': { input: 0, output: 0 },
+    'codellama': { input: 0, output: 0 },
   },
 };
 

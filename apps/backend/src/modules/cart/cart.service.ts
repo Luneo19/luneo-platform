@@ -59,6 +59,26 @@ export class CartService {
       metadata?: Record<string, unknown>;
     },
   ) {
+    // FIX-7: Validate quantity is positive
+    if (!data.quantity || data.quantity < 1) {
+      throw new BadRequestException('Quantity must be at least 1');
+    }
+
+    // P2-5: Validate product is available before adding to cart
+    const product = await this.prisma.product.findUnique({
+      where: { id: data.productId },
+      select: { id: true, isActive: true, status: true, brandId: true },
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+    if (!product.isActive || product.status !== 'ACTIVE') {
+      throw new BadRequestException('This product is currently unavailable');
+    }
+    if (product.brandId !== brandId) {
+      throw new BadRequestException('Product does not belong to this brand');
+    }
+
     // Get or create cart
     const cart = await this.prisma.cart.upsert({
       where: { userId_brandId: { userId, brandId } },

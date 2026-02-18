@@ -6,7 +6,7 @@ export class AriaQuickSuggestQueryDto {
   @ApiProperty({ description: 'Product ID (UUID)' })
   @IsString()
   @IsNotEmpty()
-  @IsUUID()
+
   productId: string;
 
   @ApiProperty({ description: 'Occasion for suggestions' })
@@ -22,7 +22,7 @@ export class AriaQuickSuggestQueryDto {
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 }
@@ -46,7 +46,7 @@ export class RecommendStyleDto {
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 }
@@ -70,7 +70,7 @@ export class AriaTranslateDto {
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 }
@@ -89,7 +89,7 @@ export class AriaSpellCheckDto {
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 }
@@ -118,7 +118,7 @@ export class AriaGiftIdeasDto {
 
   @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
   @IsString()
-  @IsUUID()
+
   @IsOptional()
   brandId?: string;
 }

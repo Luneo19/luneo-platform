@@ -20,6 +20,7 @@ import { MetricsService } from './services/metrics.service';
 import { LoggerService } from './services/logger.service';
 import { AnalyticsService } from './services/analytics.service';
 import { AlertsService } from './services/alerts.service';
+import { AgentAlertsService } from './services/agent-alerts.service';
 
 @Module({
   imports: [PrismaModule, SmartCacheModule, UsageGuardianModule, EmailModule],
@@ -29,14 +30,15 @@ import { AlertsService } from './services/alerts.service';
     LoggerService,
     AnalyticsService,
     AlertsService,
+    AgentAlertsService,
   ],
   exports: [
-    // ✅ RÈGLE: Exporter tous les services utilisés ailleurs
     TrackerService,
     MetricsService,
     LoggerService,
     AnalyticsService,
     AlertsService,
+    AgentAlertsService,
   ],
 })
 export class AIMonitorModule {}

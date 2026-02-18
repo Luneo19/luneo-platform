@@ -13,6 +13,8 @@ import { Observable } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { LLMProvider, LLM_MODELS, Message } from './llm-router.service';
+import { PromptSecurityService } from './prompt-security.service';
+import { OutputSanitizerService } from '../security/output-sanitizer.service';
 import { firstValueFrom } from 'rxjs';
 
 // ============================================================================
@@ -50,6 +52,8 @@ export class LLMStreamService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly security: PromptSecurityService,
+    private readonly outputSanitizer: OutputSanitizerService,
   ) {
     this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
     this.anthropicApiKey = this.configService.get<string>('ANTHROPIC_API_KEY') || '';
@@ -70,8 +74,42 @@ export class LLMStreamService {
       agentType?: string;
     } = {},
   ): Observable<StreamChunk> {
+    // Securiser les inputs avant streaming
+    const sanitizedMessages = messages.map((msg) => {
+      if (msg.role === 'user') {
+        const check = this.security.checkInput(msg.content);
+        if (!check.safe) {
+          this.logger.warn(`Security threat in stream input: ${check.threats.join(', ')}`);
+          return { ...msg, content: this.security.sanitizeInput(msg.content) };
+        }
+      }
+      return msg;
+    });
+
     return new Observable((observer) => {
-      this.streamLLM(provider, model, messages, options, observer)
+      let fullContent = '';
+
+      const wrappedObserver = {
+        next: (chunk: StreamChunk) => {
+          if (chunk.content) {
+            fullContent += chunk.content;
+          }
+          observer.next(chunk);
+        },
+        error: (error: Error) => observer.error(error),
+        complete: () => {
+          // Sanitiser le contenu complet a la fin du stream
+          if (fullContent.length > 0) {
+            const sanitized = this.outputSanitizer.sanitize(fullContent);
+            if (sanitized.wasModified) {
+              this.logger.warn(`Stream output sanitized, removed: ${sanitized.removedPatterns.join(', ')}`);
+            }
+          }
+          observer.complete();
+        },
+      };
+
+      this.streamLLM(provider, model, sanitizedMessages, options, wrappedObserver)
         .catch((error) => {
           this.logger.error(`Stream error: ${error.message}`);
           observer.error(error);

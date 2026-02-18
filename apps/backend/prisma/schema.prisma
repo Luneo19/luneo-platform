@@ -223,6 +223,45 @@ enum WorkspaceEnvironment {
 // ENUMS POUR CONFIGURATOR 3D
 // ========================================
 
+enum ConfiguratorType {
+  JEWELRY
+  WATCH
+  EYEWEAR
+  FURNITURE
+  APPAREL
+  ACCESSORIES
+  CUSTOM
+}
+
+enum ConfiguratorStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ComponentType {
+  MESH
+  MATERIAL
+  TEXTURE
+  COLOR
+  DECAL
+  ACCESSORY
+  SIZE
+  ENGRAVING
+}
+
+enum SelectionMode {
+  SINGLE
+  MULTIPLE
+  REQUIRED
+  OPTIONAL
+}
+
+enum DependencyMode {
+  ALL
+  ANY
+}
+
 enum Configurator3DOptionType {
   COLOR
   TEXTURE
@@ -231,6 +270,24 @@ enum Configurator3DOptionType {
   TEXT
   IMAGE
   MODEL
+  NUMBER
+  BOOLEAN
+}
+
+enum PricingType {
+  FIXED
+  PERCENTAGE
+  REPLACEMENT
+  FORMULA
+}
+
+enum RuleType {
+  DEPENDENCY
+  EXCLUSION
+  COMBINATION
+  VISIBILITY
+  PRICING
+  VALIDATION
 }
 
 enum Configurator3DSessionStatus {
@@ -238,6 +295,56 @@ enum Configurator3DSessionStatus {
   SAVED
   COMPLETED
   ABANDONED
+  CONVERTED
+  EXPIRED
+}
+
+enum ConversionType {
+  ADD_TO_CART
+  PURCHASE
+  QUOTE_REQUEST
+  SAVE_DESIGN
+  SHARE
+}
+
+enum InteractionType {
+  SESSION_START
+  SESSION_END
+  COMPONENT_SELECT
+  OPTION_SELECT
+  OPTION_CHANGE
+  CAMERA_MOVE
+  CAMERA_ZOOM
+  CAMERA_ROTATE
+  SCREENSHOT_CAPTURE
+  AR_LAUNCH
+  AR_PLACEMENT
+  PRICE_VIEW
+  ADD_TO_CART
+  SAVE_DESIGN
+  SHARE
+  EXPORT
+  UNDO
+  REDO
+  RESET
+  HELP_OPEN
+  ERROR
+}
+
+enum ExportType {
+  PDF
+  AR_IOS
+  AR_ANDROID
+  MODEL_3D
+  IMAGE
+  VIDEO
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
   EXPIRED
 }
 
@@ -443,6 +550,16 @@ model User {
   // NPS
   npsResponses NPSResponse[] @relation("UserNPSResponses")
 
+  // Visual Customizer V2 relations
+  createdCustomizers        VisualCustomizer[]         @relation("UserCreatedCustomizers")
+  createdPresets            VisualCustomizerPreset[]   @relation("UserCreatedPresets")
+  uploadedAssets            CustomizerAsset[]          @relation("UserUploadedAssets")
+  customizerSessions        CustomizerSession[]        @relation("UserCustomizerSessions")
+  savedDesigns              CustomizerSavedDesign[]    @relation("UserSavedDesigns")
+  customizerExports         CustomizerExport[]         @relation("UserCustomizerExports")
+  moderationReviews         CustomizerModerationRecord[] @relation("UserModerationReviews")
+  customizerAuditLogs       CustomizerAuditLog[]       @relation("UserCustomizerAuditLogs")
+
   @@index([email])
   @@index([brandId])
   @@index([role])
@@ -502,6 +619,11 @@ model RefreshToken {
   family    String    @default(cuid()) // Identifiant de chaîne de tokens
   usedAt    DateTime? // Null si pas encore utilisé, date si déjà consommé
   revokedAt DateTime? // Révoqué suite à détection de réutilisation
+
+  // SECURITY FIX: Session metadata for suspicious activity detection
+  ipAddress String?   // IP address at token creation
+  userAgent String?   // User agent at token creation
+  deviceInfo String?  // Parsed device info (browser, OS)
 
   // Relations
   userId String
@@ -608,6 +730,13 @@ model Brand {
 
   // Agents IA
   agentConversations AgentConversation[]
+  novaTickets        NovaTicket[]
+  lunaGenerations    LunaGeneration[]
+  ariaAnalyses       AriaAnalysis[]
+  ragDocuments       RAGDocument[]
+  agentPromptTemplates AgentPromptTemplate[]
+  agentMetrics         AgentMetric[]
+  agentAlerts          AgentAlert[]
 
   // SSO Enterprise
   ssoConfigurations SSOConfiguration[]
@@ -625,6 +754,7 @@ model Brand {
   // Workspaces & Projects
   workspaces Workspace[]
   projects   Project[]
+  configurator3DConfigurations Configurator3DConfiguration[]
 
   // AR Collaboration
   arProjects ARProject[] @relation("BrandARProjects")
@@ -651,6 +781,18 @@ model Brand {
   // Organization
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // P2-6: Multi-tenancy relations for CRM/Email/Experiment models
+  experiments      Experiment[]       @relation("BrandExperiments")
+  customerSegments CustomerSegment[]  @relation("BrandCustomerSegments")
+  emailCampaigns   EmailCampaign[]    @relation("BrandEmailCampaigns")
+  emailAutomations EmailAutomation[]  @relation("BrandEmailAutomations")
+
+  // Visual Customizer V2 relations
+  visualCustomizers         VisualCustomizer[]         @relation("BrandVisualCustomizers")
+  customizerAssets          CustomizerAsset[]          @relation("BrandCustomizerAssets")
+  clipartCategories         ClipartCategory[]          @relation("BrandClipartCategories")
+  customizerModerations     CustomizerModerationRecord[] @relation("BrandCustomizerModerations")
 
   @@index([slug])
   @@index([status])
@@ -946,6 +1088,15 @@ model ARProject {
   members  ARProjectMember[]
   comments ARProjectComment[]
 
+  // AR Studio Enterprise relations
+  models              AR3DModel[]
+  imageTargets        ARImageTarget[]
+  qrCodes             ARQRCode[]
+  sessions            ARSession[]          @relation("ProjectARSessions")
+  conversionFunnels   ARConversionFunnel[]
+  heatmapData         ARHeatmapData[]
+  collaborationRooms  ARCollaborationRoom[]
+
   @@index([brandId])
   @@index([ownerId])
 }
@@ -977,6 +1128,527 @@ model ARProjectComment {
   user   User      @relation("UserARProjectComments", fields: [userId], references: [id])
 
   @@index([projectId])
+  @@index([userId])
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - ENUMS
+// ========================================
+
+enum ModelValidationStatus {
+  PENDING
+  VALIDATING
+  VALID
+  INVALID
+  FIXED_AUTOMATICALLY
+}
+
+enum ARConversionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TrackingQuality {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  UNUSABLE
+}
+
+enum TriggerAction {
+  SHOW_3D_MODEL
+  PLAY_VIDEO
+  OPEN_URL
+  SHOW_INFO_CARD
+  START_ANIMATION
+  LAUNCH_CONFIGURATOR
+}
+
+enum QRCodeType {
+  AR_VIEWER
+  PRODUCT_PAGE
+  CONFIGURATOR
+  MARKETING_CAMPAIGN
+  PRINT_CATALOG
+}
+
+enum ARInteractionType {
+  SESSION_START
+  SESSION_END
+  MODEL_PLACED
+  MODEL_MOVED
+  MODEL_ROTATED
+  MODEL_SCALED
+  MODEL_REMOVED
+  SCREENSHOT_TAKEN
+  SCREENSHOT_SHARED
+  SURFACE_DETECTED
+  SURFACE_SELECTED
+  TARGET_RECOGNIZED
+  TARGET_LOST
+  ERROR_OCCURRED
+  CONVERSION
+}
+
+enum PlacementMode {
+  GROUND_PLANE
+  TABLE_TOP
+  WALL
+  WRIST
+  FACE
+  FREE
+}
+
+enum ARTrackingType {
+  WORLD
+  IMAGE
+  BODY
+  FACE
+}
+
+enum ARRoomStatus {
+  WAITING
+  ACTIVE
+  ENDED
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - 3D MODELS
+// ========================================
+
+model AR3DModel {
+  id        String @id @default(cuid())
+  projectId String
+  project   ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+
+  // Source file
+  originalFileName String
+  originalFormat   String
+  originalFileURL  String
+  originalFileSize Int
+
+  // Converted files
+  gltfURL      String?
+  gltfDracoURL String?
+  usdzURL      String?
+  thumbnailURL String?
+
+  // LODs (Level of Detail)
+  lodLevels Json? // { lod0: url, lod1: url, lod2: url }
+
+  // Metadata
+  polyCount     Int      @default(0)
+  textureCount  Int      @default(0)
+  materialCount Int      @default(0)
+  dimensions    Json?    // { width, height, depth } in cm
+  boundingBox   Json?    // { min: {x,y,z}, max: {x,y,z} }
+
+  // Validation
+  validationStatus ModelValidationStatus @default(PENDING)
+  validationErrors String[]
+  autoFixApplied   String[]
+
+  // Performance estimates
+  estimatedLoadTime Json?   // { mobile: ms, desktop: ms }
+  recommendedLOD    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  conversions    ARModelConversion[]
+  imageTargets   ARImageTarget[]   @relation("ModelImageTargets")
+  sessions       ARSession[]       @relation("ModelARSessions")
+  heatmapData    ARHeatmapData[]   @relation("ModelHeatmaps")
+  productConfigs ProductARConfig[] @relation("PrimaryARModel")
+
+  @@index([projectId])
+  @@index([validationStatus])
+}
+
+model ARModelConversion {
+  id      String @id @default(cuid())
+  modelId String
+  model   AR3DModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  sourceFormat String
+  targetFormat String
+  status       ARConversionStatus @default(PENDING)
+
+  // Metrics
+  processingTime   Int?   // ms
+  compressionRatio Float? // 0.x = x% of original size
+  qualityScore     Float? // 0-1
+
+  // Error details
+  errorMessage String? @db.Text
+  errorStack   String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([modelId])
+  @@index([status])
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - IMAGE TARGETS
+// ========================================
+
+model ARImageTarget {
+  id        String    @id @default(cuid())
+  projectId String
+  project   ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name         String
+  imageURL     String
+  thumbnailURL String?
+
+  // Tracking data
+  featureDescriptor Bytes?
+  featurePoints     Int?
+
+  // Quality assessment
+  trackingQuality TrackingQuality @default(FAIR)
+  qualityScore    Float           @default(0)
+  qualityIssues   String[]
+  recommendations String[]
+
+  // Physical dimensions (for AR scale)
+  physicalWidth  Float // cm
+  physicalHeight Float // cm
+
+  // Linked 3D model
+  linkedModelId String?
+  linkedModel   AR3DModel? @relation("ModelImageTargets", fields: [linkedModelId], references: [id], onDelete: SetNull)
+
+  // Trigger configuration
+  triggerAction TriggerAction @default(SHOW_3D_MODEL)
+  triggerConfig Json?         // { animation: "rotate", autoplay: true, etc. }
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([linkedModelId])
+  @@index([isActive])
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - QR CODES
+// ========================================
+
+model ARQRCode {
+  id        String    @id @default(cuid())
+  projectId String
+  project   ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Content
+  type      QRCodeType
+  targetURL String
+  shortCode String     @unique
+
+  // Customization
+  logoURL         String?
+  foregroundColor String  @default("#000000")
+  backgroundColor String  @default("#FFFFFF")
+  style           String  @default("squares") // squares, dots, rounded
+  size            Int     @default(300) // pixels
+  errorCorrection String  @default("M") // L, M, Q, H
+
+  // Generated files
+  pngURL String?
+  svgURL String?
+  pdfURL String?
+
+  // Analytics counters
+  scanCount      Int       @default(0)
+  uniqueScanners Int       @default(0)
+  lastScannedAt  DateTime?
+
+  // Metadata
+  name        String
+  description String?
+  tags        String[]
+
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  scans ARQRScan[]
+
+  @@index([shortCode])
+  @@index([projectId])
+  @@index([isActive])
+}
+
+model ARQRScan {
+  id       String   @id @default(cuid())
+  qrCodeId String
+  qrCode   ARQRCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  // Context
+  platform String
+  browser  String
+  device   String
+  country  String?
+  city     String?
+
+  // Session tracking
+  sessionId String?
+  userId    String?
+
+  // AR journey
+  landedOnAR Boolean @default(false)
+  arDuration Int?    // seconds
+  conversion String? // add_to_cart, purchase, share
+
+  scannedAt DateTime @default(now())
+
+  @@index([qrCodeId, scannedAt])
+  @@index([platform])
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - SESSIONS & ANALYTICS
+// ========================================
+
+model ARSession {
+  id        String  @id @default(cuid())
+  projectId String
+  project   ARProject @relation("ProjectARSessions", fields: [projectId], references: [id], onDelete: Cascade)
+  modelId   String?
+  model     AR3DModel? @relation("ModelARSessions", fields: [modelId], references: [id], onDelete: SetNull)
+  userId    String?
+
+  // Device context
+  platform String // ios, android, desktop
+  device   String
+  browser  String
+  arMethod String // webxr, quick-look, scene-viewer
+
+  // Features used during session
+  featuresUsed String[] // plane-detection, light-estimation, etc.
+
+  // Duration
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  duration  Int?      // seconds
+
+  // Interaction counters
+  placementCount   Int @default(0)
+  rotationCount    Int @default(0)
+  scaleChangeCount Int @default(0)
+  screenshotsTaken Int @default(0)
+  shareCount       Int @default(0)
+
+  // Experience quality
+  trackingQuality Float? // 0-1 average over session
+  fpsAverage      Int?
+  fpsMin          Int?
+  errors          String[]
+
+  // Conversion
+  conversionAction String? // add_to_cart, purchase, wishlist
+  conversionValue  Float?  // value in EUR
+
+  // Geolocation (for analytics)
+  country String?
+  region  String?
+
+  // Relations
+  interactions       ARInteraction[]
+  performanceMetrics ARPerformanceMetric[]
+
+  @@index([projectId, startedAt])
+  @@index([modelId])
+  @@index([platform])
+  @@index([userId])
+}
+
+model ARInteraction {
+  id        String    @id @default(cuid())
+  sessionId String
+  session   ARSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  type      ARInteractionType
+  timestamp DateTime @default(now())
+
+  // 3D position in AR space
+  position Json?  // { x, y, z }
+  rotation Json?  // { x, y, z, w }
+  scale    Float?
+
+  // Context
+  modelId  String?
+  targetId String? // Image target ID
+
+  // Additional data
+  metadata Json?
+
+  @@index([sessionId, timestamp])
+  @@index([type])
+}
+
+model ARPerformanceMetric {
+  id        String    @id @default(cuid())
+  sessionId String
+  session   ARSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  timestamp    DateTime @default(now())
+  fps          Int
+  memoryUsage  Int      // MB
+  batteryDrain Float?   // % per minute
+  thermalState String?  // normal, fair, serious, critical
+  trackingState String  // tracking, limited, notAvailable
+
+  @@index([sessionId, timestamp])
+}
+
+model ARConversionFunnel {
+  id        String    @id @default(cuid())
+  projectId String
+  project   ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+
+  // Funnel stages
+  qrScans          Int @default(0)
+  arLaunches       Int @default(0)
+  modelPlacements  Int @default(0)
+  engagedSessions  Int @default(0) // >30s
+  screenshots      Int @default(0)
+  shares           Int @default(0)
+  addToCarts       Int @default(0)
+  purchases        Int @default(0)
+
+  // Revenue
+  totalRevenue  Float @default(0)
+  avgOrderValue Float @default(0)
+
+  @@unique([projectId, date])
+  @@index([projectId])
+}
+
+model ARHeatmapData {
+  id        String    @id @default(cuid())
+  projectId String
+  project   ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  modelId   String
+  model     AR3DModel @relation("ModelHeatmaps", fields: [modelId], references: [id], onDelete: Cascade)
+
+  // Aggregated data (daily update)
+  viewAngleDistribution Json // Distribution of viewing angles
+  scaleDistribution     Json // Distribution of scales used
+  placementHeatmap      Json // Frequent placement zones
+  interactionHotspots   Json // Frequent interaction points
+
+  date DateTime
+
+  @@unique([projectId, modelId, date])
+  @@index([projectId])
+  @@index([modelId])
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - E-COMMERCE AR CONFIG
+// ========================================
+
+model ProductARConfig {
+  id        String @id @default(cuid())
+  productId String @unique
+  product   Product @relation("ProductARConfiguration", fields: [productId], references: [id], onDelete: Cascade)
+
+  // Primary 3D model
+  primaryModelId String
+  primaryModel   AR3DModel @relation("PrimaryARModel", fields: [primaryModelId], references: [id])
+
+  // Variant models mapping
+  variantModels Json? // { "color:gold": modelId, "color:silver": modelId }
+
+  // Placement configuration
+  defaultScale    Float @default(1.0)
+  defaultRotation Json  @default("{\"x\":0,\"y\":0,\"z\":0}")
+  placementMode   PlacementMode @default(GROUND_PLANE)
+
+  // UI overlay in AR
+  showPriceInAR     Boolean @default(true)
+  showBuyButton     Boolean @default(true)
+  showVariantPicker Boolean @default(true)
+  overlayPosition   String  @default("bottom") // top, bottom, floating
+
+  // Tracking type
+  trackingType   ARTrackingType @default(WORLD)
+  imageTargetId  String?
+
+  // Analytics counters
+  impressions Int @default(0)
+  arLaunches  Int @default(0)
+  conversions Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([primaryModelId])
+}
+
+// ========================================
+// AR STUDIO ENTERPRISE - COLLABORATION ROOMS
+// ========================================
+
+model ARCollaborationRoom {
+  id        String    @id @default(cuid())
+  projectId String
+  project   ARProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name       String
+  hostUserId String
+
+  // State
+  status          ARRoomStatus @default(WAITING)
+  maxParticipants Int          @default(10)
+
+  // Configuration
+  allowVoiceChat    Boolean @default(true)
+  allowAnnotations  Boolean @default(true)
+  allowModelEditing Boolean @default(false)
+
+  // Cloud Anchors (shared spatial anchors)
+  cloudAnchors Json? // Array of cloud anchor data
+
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  // Relations
+  participants ARRoomParticipant[]
+
+  @@index([projectId, status])
+  @@index([hostUserId])
+}
+
+model ARRoomParticipant {
+  id     String              @id @default(cuid())
+  roomId String
+  room   ARCollaborationRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId String
+
+  role     String   @default("viewer") // host, editor, viewer
+  joinedAt DateTime @default(now())
+  leftAt   DateTime?
+
+  // Presence
+  platform   String
+  lastPingAt DateTime @default(now())
+
+  @@unique([roomId, userId])
+  @@index([roomId])
   @@index([userId])
 }
 
@@ -1105,8 +1777,14 @@ model Product {
   // 3D configurator
   product3DConfig Product3DConfiguration?
 
+  // AR Studio Enterprise
+  productARConfig ProductARConfig? @relation("ProductARConfiguration")
+
   // Variants & Inventory
   variants ProductVariant[]
+
+  // Visual Customizer V2
+  visualCustomizers VisualCustomizer[] @relation("ProductVisualCustomizers")
 
   @@unique([brandId, slug]) // NOUVEAU: Unique par brand
   @@index([brandId])
@@ -2977,6 +3655,10 @@ model Experiment {
   endDate        DateTime?
   targetAudience Json? // brands, countries, userRoles
 
+  // P2-6: Multi-tenancy isolation
+  brandId String?
+  brand   Brand?  @relation("BrandExperiments", fields: [brandId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2986,6 +3668,7 @@ model Experiment {
   @@index([status])
   @@index([type])
   @@index([startDate])
+  @@index([brandId])
 }
 
 model ExperimentAssignment {
@@ -3942,6 +4625,49 @@ model TeamInvite {
 // AGENTS IA
 // ========================================
 
+enum AgentConversationStatus {
+  ACTIVE
+  ARCHIVED
+  ESCALATED
+  RESOLVED
+}
+
+enum AgentConversationChannel {
+  WEB
+  API
+  WIDGET
+  MOBILE
+}
+
+enum AgentMetricType {
+  LATENCY
+  TOKEN_COUNT
+  COST
+  ERROR_RATE
+  SUCCESS_RATE
+  SATISFACTION
+  ESCALATION_RATE
+  CACHE_HIT_RATE
+  THROUGHPUT
+}
+
+enum AgentAlertType {
+  BUDGET_EXCEEDED
+  PROVIDER_DOWN
+  HIGH_ERROR_RATE
+  HIGH_LATENCY
+  CIRCUIT_BREAKER_OPEN
+  QUOTA_EXCEEDED
+  SECURITY_THREAT
+}
+
+enum AgentAlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  SILENCED
+}
+
 model AgentConversation {
   id      String  @id @default(cuid())
   brandId String?
@@ -3950,19 +4676,40 @@ model AgentConversation {
   agentType String // luna, aria, nova
   sessionId String?
   userId    String?
+  title     String?
+
+  status  AgentConversationStatus  @default(ACTIVE)
+  channel AgentConversationChannel @default(WEB)
 
   // Contexte
-  context Json @default("{}")
+  context  Json @default("{}")
+  metadata Json @default("{}")
+
+  // Compteurs
+  totalTokens Int @default(0)
+  totalCostCents Int @default(0)
+  messageCount Int @default(0)
 
   // Messages
   messages AgentMessage[]
+  events   ConversationEvent[]
+  tags     ConversationTag[]
+
+  // Relations agents
+  novaTickets     NovaTicket[]
+  lunaGenerations LunaGeneration[]
+  ariaAnalyses    AriaAnalysis[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  closedAt  DateTime?
 
   @@index([brandId])
   @@index([agentType])
   @@index([sessionId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
   @@map("AgentConversation")
 }
 
@@ -3971,19 +4718,420 @@ model AgentMessage {
   conversationId String
   conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  role    String // user, assistant, system
-  content String
+  role    String // user, assistant, system, tool
+  content String @db.Text
 
   // Metadata
-  intent   String?
-  actions  Json?
-  metadata Json    @default("{}")
+  intent     String?
+  actions    Json?
+  metadata   Json    @default("{}")
+  toolCalls  Json?
+  toolResult Json?
+
+  // Tracking
+  tokenCount Int @default(0)
+  costCents  Int @default(0)
+  latencyMs  Int @default(0)
+  provider   String?
+  model      String?
+
+  // Feedback
+  feedback MessageFeedback?
 
   createdAt DateTime @default(now())
 
   @@index([conversationId])
   @@index([createdAt])
+  @@index([role])
   @@map("AgentMessage")
+}
+
+model MessageFeedback {
+  id        String @id @default(cuid())
+  messageId String @unique
+  message   AgentMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String?
+
+  rating    Int // 1-5 or thumbs: 1 = down, 5 = up
+  comment   String?
+  category  String? // helpful, accurate, fast, other
+
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+  @@index([userId])
+  @@map("MessageFeedback")
+}
+
+model ConversationEvent {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  type     String // status_change, escalation, tag_added, agent_switch, etc.
+  data     Json   @default("{}")
+  actorId  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("ConversationEvent")
+}
+
+model ConversationTag {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  tag String
+
+  createdAt DateTime @default(now())
+
+  @@unique([conversationId, tag])
+  @@index([tag])
+  @@map("ConversationTag")
+}
+
+// ========================================
+// AGENTS IA - RAG
+// ========================================
+
+model RAGDocument {
+  id      String  @id @default(cuid())
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  title     String
+  content   String  @db.Text
+  source    String? // url, upload, api
+  sourceUrl String?
+  mimeType  String?
+
+  // Chunking
+  chunkIndex  Int     @default(0)
+  chunkTotal  Int     @default(1)
+  parentId    String? // ID du document parent si chunk
+
+  // Embedding - stored as JSON array for compatibility; use pgvector raw SQL for similarity search
+  embedding     Json?
+  embeddingModel String @default("text-embedding-3-small")
+
+  // Metadata
+  metadata   Json    @default("{}")
+  isActive   Boolean @default(true)
+  tokenCount Int     @default(0)
+
+  // Relations
+  queries RAGQuery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([isActive])
+  @@index([source])
+  @@index([parentId])
+  @@map("RAGDocument")
+}
+
+model RAGQuery {
+  id         String @id @default(cuid())
+  documentId String?
+  document   RAGDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  query          String @db.Text
+  agentType      String?
+  userId         String?
+  resultCount    Int     @default(0)
+  relevanceScore Float?
+  latencyMs      Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([agentType])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("RAGQuery")
+}
+
+// ========================================
+// AGENTS IA - ARIA ANALYSIS
+// ========================================
+
+model AriaAnalysis {
+  id             String            @id @default(cuid())
+  conversationId String?
+  conversation   AgentConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  brandId        String?
+  brand          Brand?            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  userId         String?
+  designId       String?
+
+  // Scores (0-100)
+  overallScore      Float  @default(0)
+  colorScore        Float  @default(0)
+  typographyScore   Float  @default(0)
+  layoutScore       Float  @default(0)
+  contrastScore     Float  @default(0)
+  accessibilityScore Float @default(0)
+  consistencyScore  Float  @default(0)
+
+  // Feedback détaillé
+  feedback     Json   @default("[]") // Array of { category, severity, message, suggestion }
+  suggestions  Json   @default("[]") // Array of { type, description, autoApplicable, impact }
+  rawAnalysis  Json?
+
+  status String @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+
+  // Améliorations appliquées
+  improvements AriaAppliedImprovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([brandId])
+  @@index([userId])
+  @@index([designId])
+  @@index([status])
+  @@map("AriaAnalysis")
+}
+
+model AriaAppliedImprovement {
+  id         String       @id @default(cuid())
+  analysisId String
+  analysis   AriaAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  type        String // color, typography, layout, contrast, accessibility
+  description String
+  before      Json?
+  after       Json?
+  impact      Float  @default(0) // Score improvement
+
+  appliedAt DateTime @default(now())
+
+  @@index([analysisId])
+  @@index([type])
+  @@map("AriaAppliedImprovement")
+}
+
+// ========================================
+// AGENTS IA - LUNA GENERATION
+// ========================================
+
+model LunaGeneration {
+  id             String            @id @default(cuid())
+  conversationId String?
+  conversation   AgentConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  brandId        String?
+  brand          Brand?            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  userId         String?
+
+  type     String // design, palette, text, logo, banner, social_post
+  prompt   String @db.Text
+  result   Json?  // Generation result (URLs, data, etc.)
+
+  // Parameters
+  parameters Json   @default("{}")
+  style      String?
+  dimensions Json?  // { width, height }
+
+  status String @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+
+  // Costs
+  tokenCount Int @default(0)
+  costCents  Int @default(0)
+  latencyMs  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([brandId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("LunaGeneration")
+}
+
+// ========================================
+// AGENTS IA - NOVA TICKETS
+// ========================================
+
+model NovaTicket {
+  id             String            @id @default(cuid())
+  conversationId String?
+  conversation   AgentConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  brandId        String?
+  brand          Brand?            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  userId         String?
+  assignedTo     String?
+
+  subject    String
+  description String @db.Text
+  status     String @default("OPEN") // OPEN, IN_PROGRESS, WAITING_CUSTOMER, ESCALATED, RESOLVED, CLOSED
+  priority   String @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT, CRITICAL
+  category   String @default("GENERAL") // GENERAL, BILLING, TECHNICAL, PRODUCT, SHIPPING, RETURNS, ACCOUNT
+
+  // Metadata
+  metadata Json @default("{}")
+  tags     String[] @default([])
+
+  // Resolution
+  resolution     String?  @db.Text
+  satisfactionScore Int?
+  resolvedAt     DateTime?
+  firstResponseAt DateTime?
+
+  // Messages et activité
+  messages   NovaTicketMessage[]
+  activities NovaTicketActivity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([brandId])
+  @@index([userId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([createdAt])
+  @@map("NovaTicket")
+}
+
+model NovaTicketMessage {
+  id       String     @id @default(cuid())
+  ticketId String
+  ticket   NovaTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  role    String // customer, agent, system, bot
+  content String @db.Text
+  attachments Json?
+
+  isInternal Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("NovaTicketMessage")
+}
+
+model NovaTicketActivity {
+  id       String     @id @default(cuid())
+  ticketId String
+  ticket   NovaTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  type    String // status_change, assignment, escalation, note, tag_change
+  data    Json   @default("{}")
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("NovaTicketActivity")
+}
+
+// ========================================
+// AGENTS IA - PROMPT TEMPLATES
+// ========================================
+
+model AgentPromptTemplate {
+  id      String  @id @default(cuid())
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  name      String
+  agentType String // luna, aria, nova, system
+  type      String // system, user, few_shot, tool_instruction
+  content   String @db.Text
+
+  // Versioning
+  version   Int     @default(1)
+  isActive  Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  // Variables supportées
+  variables Json @default("[]")
+
+  // Performance tracking
+  usageCount   Int   @default(0)
+  avgRating    Float @default(0)
+
+  metadata Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, agentType, name, version])
+  @@index([agentType])
+  @@index([type])
+  @@index([isActive])
+  @@map("AgentPromptTemplate")
+}
+
+// ========================================
+// AGENTS IA - METRICS & ALERTS
+// ========================================
+
+model AgentMetric {
+  id      String  @id @default(cuid())
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  agentType  String?
+  provider   String?
+  model      String?
+  metricType AgentMetricType
+
+  value     Float
+  unit      String? // ms, tokens, usd, percent
+  tags      Json    @default("{}")
+
+  timestamp DateTime @default(now())
+
+  @@index([brandId])
+  @@index([agentType])
+  @@index([provider])
+  @@index([metricType])
+  @@index([timestamp])
+  @@map("AgentMetric")
+}
+
+model AgentAlert {
+  id      String  @id @default(cuid())
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  type     AgentAlertType
+  severity AlertSeverity
+  status   AgentAlertStatus @default(ACTIVE)
+
+  title   String
+  message String @db.Text
+  data    Json   @default("{}")
+
+  // Resolution
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  resolvedAt     DateTime?
+  resolvedBy     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("AgentAlert")
 }
 
 // ========================================
@@ -4051,6 +5199,10 @@ model CustomerSegment {
   // Critères dynamiques
   criteria Json // { engagementScore: { gte: 80 }, plan: "pro" }
 
+  // P2-6: Multi-tenancy isolation
+  brandId String?
+  brand   Brand?  @relation("BrandCustomerSegments", fields: [brandId], references: [id], onDelete: SetNull)
+
   // Relations
   customers Customer[]
   campaigns EmailCampaign[] @relation("CampaignSegment")
@@ -4059,6 +5211,7 @@ model CustomerSegment {
   updatedAt DateTime @updatedAt
 
   @@index([name])
+  @@index([brandId])
 }
 
 // ========================================
@@ -4095,6 +5248,10 @@ model EmailCampaign {
 
   status CampaignStatus @default(DRAFT) // ENUM-01: Utilise enum au lieu de string
 
+  // P2-6: Multi-tenancy isolation
+  brandId String?
+  brand   Brand?  @relation("BrandEmailCampaigns", fields: [brandId], references: [id], onDelete: SetNull)
+
   // Ciblage
   segmentId String?
   segment   CustomerSegment? @relation("CampaignSegment", fields: [segmentId], references: [id], onDelete: SetNull)
@@ -4115,6 +5272,7 @@ model EmailCampaign {
 
   @@index([status])
   @@index([scheduledAt])
+  @@index([brandId])
 }
 
 model EmailAutomation {
@@ -4126,6 +5284,10 @@ model EmailAutomation {
 
   status AutomationStatus @default(draft)
 
+  // P2-6: Multi-tenancy isolation
+  brandId String?
+  brand   Brand?  @relation("BrandEmailAutomations", fields: [brandId], references: [id], onDelete: SetNull)
+
   // Relations
   steps AutomationStep[]
   runs  AutomationRun[]
@@ -4136,6 +5298,7 @@ model EmailAutomation {
 
   @@index([trigger])
   @@index([status])
+  @@index([brandId])
 }
 
 model AutomationStep {
@@ -5211,6 +6374,7 @@ model Project {
   @@index([workspaceId])
   @@index([type])
   @@index([status])
+  @@index([deletedAt])
   @@index([brandId, status])
   @@index([brandId, type])
 }
@@ -5224,64 +6388,179 @@ model Configurator3DConfiguration {
   brandId   String
   productId String?
   projectId String?
+  createdById String?
 
+  // Identification
   name        String
-  description String?
+  description String? @db.Text
+  slug        String  @unique @default(cuid())
+  type        ConfiguratorType @default(CUSTOM)
+  status      ConfiguratorStatus @default(DRAFT)
 
   // 3D Model
   modelUrl     String?
+  modelFormat  String  @default("gltf")
+  modelSize    Int?
   thumbnailUrl String?
 
   // Settings & Scene
-  settings    Json?
-  sceneConfig Json? // 3D scene configuration (lighting, camera, etc.)
-  uiConfig    Json? // UI configuration
+  settings        Json?
+  sceneConfig     Json?
+  cameraSettings  Json?
+  pricingSettings Json?
+  uiConfig        Json?
 
-  isActive Boolean @default(true)
+  // Access & Security
+  isActive           Boolean  @default(true)
+  isPublic           Boolean  @default(false)
+  isPasswordProtected Boolean @default(false)
+  password           String?
+  allowedDomains     String[]
+  expiresAt          DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Features
+  enableAR          Boolean @default(true)
+  enableScreenshots Boolean @default(true)
+  enableSharing     Boolean @default(true)
+  enablePricing     Boolean @default(true)
+  enableComparison  Boolean @default(false)
+
+  // Embed
+  customCss String? @db.Text
+  customJs  String? @db.Text
+
+  // SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+  ogImage         String?
+
+  // Metadata
+  tags     String[]
+  metadata Json?
+
+  // Versioning
+  version          Int @default(1)
+  publishedVersion Int?
+
+  // Counters
+  viewCount       Int @default(0)
+  sessionCount    Int @default(0)
+  conversionCount Int @default(0)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  deletedAt   DateTime?
 
   // Relations
-  project    Project?                     @relation(fields: [projectId], references: [id])
-  options    Configurator3DOption[]
-  sessions   Configurator3DSession[]
-  components Configurator3DComponent[]
+  brand         Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  project       Project?                     @relation(fields: [projectId], references: [id])
+  options       Configurator3DOption[]
+  sessions      Configurator3DSession[]
+  components    Configurator3DComponent[]
+  rules         Configurator3DRule[]
+  savedDesigns  Configurator3DSavedDesign[]
+  exports       Configurator3DExport[]
+  auditLogs     Configurator3DAuditLog[]
+  analytics     Configurator3DAnalytics[]
+  componentGroups Configurator3DComponentGroup[]
 
   @@index([brandId])
   @@index([productId])
   @@index([projectId])
   @@index([isActive])
   @@index([brandId, isActive])
+  @@index([brandId, status])
+  @@index([status, isPublic])
+  @@index([slug])
+  @@index([createdAt])
+}
+
+model Configurator3DComponentGroup {
+  id              String @id @default(cuid())
+  configurationId String
+
+  name          String
+  description   String?
+  sortOrder     Int     @default(0)
+  isCollapsible Boolean @default(true)
+  isCollapsed   Boolean @default(false)
+  iconUrl       String?
+
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  components    Configurator3DComponent[]
+
+  @@index([configurationId, sortOrder])
+  @@map("configurator_3d_component_groups")
 }
 
 model Configurator3DComponent {
   id              String @id @default(cuid())
   configurationId String
 
-  name       String
-  type       String
-  meshName   String? // 3D mesh reference
-  settings   Json?
-  isVisible  Boolean @default(true)
-  isOptional Boolean @default(false)
+  // Identification
+  name        String
+  technicalId String?
+  description String? @db.Text
+  type        String
+  meshName    String?
+
+  // Selection
+  selectionMode SelectionMode @default(SINGLE)
+  isRequired    Boolean       @default(false)
+  minSelections Int           @default(0)
+  maxSelections Int           @default(1)
+
+  // Display
+  sortOrder       Int     @default(0)
+  isVisible       Boolean @default(true)
+  isOptional      Boolean @default(false)
+  isEnabled       Boolean @default(true)
+  iconUrl         String?
+  previewImageUrl String?
+
+  // 3D
+  settings       Json?
+  bounds         Json?
+  cameraFocusPoint Json?
+  highlightColor String?
+
+  // Dependencies
+  dependencies   String[]
+  dependencyMode DependencyMode @default(ALL)
+
+  // Grouping
+  groupId String?
+  group   Configurator3DComponentGroup? @relation(fields: [groupId], references: [id])
+
+  // Metadata
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  options       Configurator3DOption[]
 
+  @@unique([configurationId, technicalId])
   @@index([configurationId])
+  @@index([configurationId, sortOrder])
+  @@index([configurationId, type])
 }
 
 model Configurator3DOption {
-  id              String @id @default(cuid())
+  id              String  @id @default(cuid())
   configurationId String
+  componentId     String?
 
+  // Identification
   name        String
-  label       String? // Display label
+  label       String?
+  sku         String?
   type        Configurator3DOptionType
-  description String?
+  description String? @db.Text
 
   // Values
   value        String?
@@ -5289,62 +6568,350 @@ model Configurator3DOption {
   defaultValue String?
 
   // Display
-  sortOrder   Int     @default(0)
-  order       Int     @default(0) // Alias for services
-  isRequired  Boolean @default(false)
+  sortOrder       Int     @default(0)
+  order           Int     @default(0)
+  isDefault       Boolean @default(false)
+  isRequired      Boolean @default(false)
+  isEnabled       Boolean @default(true)
+  isVisible       Boolean @default(true)
+  previewImageUrl String?
+  swatchImageUrl  String?
 
   // Constraints
   constraints Json?
 
   // Pricing
-  priceDelta Int @default(0)
+  priceDelta   Int         @default(0)
+  pricingType  PricingType @default(FIXED)
+  priceModifier Float      @default(0)
+  priceFormula  String?
+  currency      String     @default("EUR")
+
+  // Stock
+  inStock       Boolean @default(true)
+  stockQuantity Int?
+  leadTimeDays  Int?
+
+  // 3D Assets
+  textureUrls Json?
+  modelUrl    String?
+
+  // Metadata
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  component     Configurator3DComponent?    @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
   @@index([configurationId])
+  @@index([componentId])
+  @@index([componentId, sortOrder])
+  @@index([componentId, isDefault])
   @@index([type])
   @@index([order])
+  @@index([sku])
+}
+
+model Configurator3DRule {
+  id              String @id @default(cuid())
+  configurationId String
+
+  name        String
+  description String? @db.Text
+  type        RuleType
+
+  // Conditions (AND logic)
+  conditions Json
+
+  // Actions
+  actions Json
+
+  // Execution
+  priority       Int     @default(0)
+  isEnabled      Boolean @default(true)
+  stopProcessing Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([configurationId, priority])
+  @@index([configurationId, isEnabled])
+  @@map("configurator_3d_rules")
 }
 
 model Configurator3DSession {
   id              String  @id @default(cuid())
-  sessionId       String? @unique // External session ID
+  sessionId       String? @unique
   configurationId String
   userId          String?
-  visitorId       String? // Anonymous visitor tracking
+  visitorId       String?
+  anonymousId     String?
 
   status Configurator3DSessionStatus @default(ACTIVE)
 
   // Session data
   selectedOptions Json?
+  selections      Json?
   previewUrl      String?
-  previewImageUrl String? // Alias for compatibility
-  state           Json? // Full session state
+  previewImageUrl String?
+  state           Json?
+
+  // Pricing
+  calculatedPrice Float?
+  priceBreakdown  Json?
+  currency        String @default("EUR")
+
+  // Tracking
+  source   String?
+  referrer String?
+  utmParams Json?
 
   // Metadata
   deviceInfo String?
   ipAddress  String?
 
+  // Geo
+  country String?
+  region  String?
+  city    String?
+
   // Timestamps
-  startedAt   DateTime  @default(now())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  savedAt     DateTime?
-  completedAt DateTime?
-  expiresAt   DateTime?
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  savedAt        DateTime?
+  completedAt    DateTime?
+  expiresAt      DateTime?
+
+  // Conversion
+  convertedAt    DateTime?
+  conversionType ConversionType?
+  conversionValue Float?
+  orderId        String?
 
   // Relations
   configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  interactions  Configurator3DInteraction[]
+  exports       Configurator3DExport[]
+  savedDesign   Configurator3DSavedDesign?
 
   @@index([configurationId])
+  @@index([configurationId, status])
+  @@index([configurationId, startedAt])
   @@index([userId])
   @@index([status])
   @@index([sessionId])
   @@index([visitorId])
+  @@index([anonymousId])
+  @@index([status, lastActivityAt])
+}
+
+model Configurator3DInteraction {
+  id        String @id @default(cuid())
+  sessionId String
+
+  type InteractionType
+
+  // Interaction data
+  componentId      String?
+  optionId         String?
+  previousOptionId String?
+
+  // Camera
+  cameraPosition Json?
+  cameraTarget   Json?
+
+  // Timing
+  timestamp  DateTime @default(now())
+  durationMs Int?
+
+  // Metadata
+  metadata Json?
+
+  session Configurator3DSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, timestamp])
+  @@index([sessionId, type])
+  @@index([componentId])
+  @@map("configurator_3d_interactions")
+}
+
+model Configurator3DSavedDesign {
+  id              String @id @default(cuid())
+  configurationId String
+  sessionId       String? @unique
+  userId          String?
+
+  // Design
+  name        String
+  description String? @db.Text
+  selections  Json
+
+  // Pricing
+  savedPrice Float?
+  currency   String @default("EUR")
+
+  // Images
+  thumbnailUrl  String?
+  previewImages String[]
+
+  // Sharing
+  shareToken String  @unique @default(cuid())
+  isPublic   Boolean @default(false)
+  shareUrl   String?
+  viewCount  Int     @default(0)
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  session       Configurator3DSession?      @relation(fields: [sessionId], references: [id])
+
+  @@index([configurationId, userId])
+  @@index([shareToken])
+  @@index([userId, createdAt])
+  @@map("configurator_3d_saved_designs")
+}
+
+model Configurator3DExport {
+  id              String  @id @default(cuid())
+  configurationId String
+  sessionId       String?
+  userId          String
+
+  type   ExportType
+  format String
+  status ExportStatus @default(PENDING)
+
+  // File
+  fileUrl  String?
+  fileName String?
+  fileSize Int?
+
+  // Options
+  options Json?
+
+  // Progress
+  progress Int @default(0)
+
+  // Error
+  errorMessage String? @db.Text
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  expiresAt   DateTime?
+
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id])
+  session       Configurator3DSession?      @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("configurator_3d_exports")
+}
+
+model Configurator3DAuditLog {
+  id              String @id @default(cuid())
+  configurationId String
+  userId          String
+
+  action     String
+  entityType String
+  entityId   String?
+
+  // Changes
+  previousValue Json?
+  newValue      Json?
+
+  // Context
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([configurationId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action])
+  @@map("configurator_3d_audit_logs")
+}
+
+model Configurator3DAnalytics {
+  id              String   @id @default(cuid())
+  configurationId String
+  date            DateTime @db.Date
+
+  // Metrics
+  views             Int @default(0)
+  uniqueViews       Int @default(0)
+  sessions          Int @default(0)
+  completedSessions Int @default(0)
+  avgSessionDuration Int @default(0)
+
+  // Interactions
+  totalInteractions Int @default(0)
+  optionChanges     Int @default(0)
+  screenshots       Int @default(0)
+  arLaunches        Int @default(0)
+
+  // Conversions
+  addToCarts    Int @default(0)
+  purchases     Int @default(0)
+  quoteRequests Int @default(0)
+  savedDesigns  Int @default(0)
+  shares        Int @default(0)
+
+  // Revenue
+  revenue       Float @default(0)
+  avgOrderValue Float @default(0)
+
+  // Performance
+  avgLoadTime Int?
+  errorCount  Int @default(0)
+
+  // Breakdown
+  deviceBreakdown   Json?
+  platformBreakdown Json?
+
+  configuration Configurator3DConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@unique([configurationId, date])
+  @@index([configurationId, date])
+  @@map("configurator_3d_analytics")
+}
+
+model Configurator3DOptionAnalytics {
+  id              String   @id @default(cuid())
+  configurationId String
+  componentId     String
+  optionId        String
+  date            DateTime @db.Date
+
+  // Selections
+  selections       Int @default(0)
+  uniqueSelections Int @default(0)
+
+  // Conversions
+  addToCarts Int @default(0)
+  purchases  Int @default(0)
+
+  // Revenue
+  revenue Float @default(0)
+
+  @@unique([optionId, date])
+  @@index([configurationId, date])
+  @@index([componentId, date])
+  @@map("configurator_3d_option_analytics")
 }
 
 // ========================================
@@ -5661,8 +7228,10 @@ model TryOnShare {
 }
 
 // ========================================
-// VISUAL CUSTOMIZER MODULE
+// VISUAL CUSTOMIZER MODULE (V2)
 // ========================================
+
+// -- Enums --
 
 enum VisualCustomizerLayerType {
   IMAGE
@@ -5670,34 +7239,448 @@ enum VisualCustomizerLayerType {
   SHAPE
   PATTERN
   CLIPART
+  DRAWING
+  QR_CODE
+  GROUP
 }
 
-model VisualCustomizer {
-  id          String  @id @default(cuid())
-  projectId   String
-  name        String
-  description String?
+enum CustomizerType {
+  PRODUCT
+  APPAREL
+  STATIONERY
+  PACKAGING
+  SIGNAGE
+  JEWELRY
+  ACCESSORIES
+  GIFT
+  CUSTOM
+}
 
-  // Canvas configuration
-  canvasConfig Json
+enum CustomizerStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CanvasUnit {
+  PIXEL
+  MM
+  CM
+  INCH
+}
+
+enum ZoneType2D {
+  EDITABLE
+  READONLY
+  MASK
+  BLEED
+  SAFE
+}
+
+enum ZoneShape {
+  RECTANGLE
+  CIRCLE
+  ELLIPSE
+  POLYGON
+  FREEFORM
+}
+
+enum BlendMode {
+  NORMAL
+  MULTIPLY
+  SCREEN
+  OVERLAY
+  DARKEN
+  LIGHTEN
+  COLOR_DODGE
+  COLOR_BURN
+  HARD_LIGHT
+  SOFT_LIGHT
+  DIFFERENCE
+  EXCLUSION
+}
+
+enum CustomizerSessionStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+  CONVERTED
+  EXPIRED
+}
+
+enum CustomizerConversionType {
+  ADD_TO_CART
+  PURCHASE
+  QUOTE_REQUEST
+  SAVE_DESIGN
+  SHARE
+  EXPORT
+}
+
+enum CustomizerInteractionType {
+  SESSION_START
+  SESSION_END
+  TOOL_SELECT
+  LAYER_CREATE
+  LAYER_UPDATE
+  LAYER_DELETE
+  LAYER_SELECT
+  LAYER_MOVE
+  LAYER_RESIZE
+  LAYER_ROTATE
+  TEXT_EDIT
+  IMAGE_UPLOAD
+  IMAGE_FILTER
+  CLIPART_ADD
+  SHAPE_ADD
+  DRAWING_START
+  DRAWING_END
+  COLOR_CHANGE
+  FONT_CHANGE
+  PRESET_APPLY
+  UNDO
+  REDO
+  ZOOM
+  PAN
+  VIEW_CHANGE
+  SCREENSHOT
+  EXPORT_ACTION
+  SAVE_DESIGN
+  SHARE_ACTION
+  ADD_TO_CART
+  ERROR
+}
+
+enum CustomizerExportType {
+  IMAGE
+  PDF
+  PRINT
+  SVG
+  THUMBNAIL
+}
+
+enum CustomizerExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum CustomizerAssetType {
+  IMAGE
+  CLIPART
+  FONT
+  TEMPLATE
+  BACKGROUND
+  MASK
+}
+
+enum CustomizerAssetVisibility {
+  PRIVATE
+  BRAND
+  PUBLIC
+}
+
+enum CustomizerModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+}
+
+// -- Main Model --
+
+model VisualCustomizer {
+  id        String  @id @default(cuid())
+  projectId String?
+
+  // Brand scoping (primary)
+  brandId String
+  brand   Brand  @relation("BrandVisualCustomizers", fields: [brandId], references: [id], onDelete: Cascade)
+
+  // Product link
+  productId String?
+  product   Product? @relation("ProductVisualCustomizers", fields: [productId], references: [id], onDelete: SetNull)
+
+  // Created by
+  createdById String?
+  createdBy   User? @relation("UserCreatedCustomizers", fields: [createdById], references: [id], onDelete: SetNull)
+
+  // Basic info
+  name        String
+  description String? @db.Text
+  slug        String  @unique
+
+  type   CustomizerType   @default(PRODUCT)
+  status CustomizerStatus @default(DRAFT)
+
+  // Product images
+  productImageUrl String?
+  productMaskUrl  String?
+  thumbnailUrl    String?
+
+  // Canvas settings
+  canvasConfig    Json
+  canvasWidth     Int      @default(800)
+  canvasHeight    Int      @default(800)
+  canvasUnit      CanvasUnit @default(PIXEL)
+  canvasDPI       Int      @default(72)
+  backgroundColor String?
+  backgroundImageUrl String?
+
+  // Grid & guides
+  showGrid       Boolean @default(false)
+  gridSize       Int     @default(20)
+  snapToGrid     Boolean @default(true)
+  showRulers     Boolean @default(true)
+  showSafeZone   Boolean @default(true)
+  safeZoneMargin Int     @default(10)
+  showBleedArea  Boolean @default(false)
+  bleedSize      Float   @default(3)
+
+  // Tool settings (JSON)
+  toolSettings  Json?
+  textSettings  Json?
+  imageSettings Json?
 
   // UI configuration
   uiConfig Json?
 
-  // Status
-  isActive Boolean @default(true)
+  // Pricing
+  pricingEnabled Boolean @default(false)
+  basePrice      Float   @default(0)
+  currency       String  @default("EUR")
+  pricePerText   Float   @default(0)
+  pricePerImage  Float   @default(0)
+  pricePerColor  Float   @default(0)
+
+  // Moderation settings
+  moderationEnabled   Boolean  @default(true)
+  nsfwDetection       Boolean  @default(true)
+  profanityFilter     Boolean  @default(true)
+  trademarkDetection  Boolean  @default(false)
+  autoRejectFlagged   Boolean  @default(false)
+  quarantineFlagged   Boolean  @default(true)
+  blockedWords        String[] @default([])
+
+  // Multi-view
+  enableMultiView Boolean @default(false)
+
+  // Access
+  isActive            Boolean   @default(true)
+  isPublic            Boolean   @default(false)
+  isPasswordProtected Boolean   @default(false)
+  password            String?
+  allowedDomains      String[]  @default([])
+  expiresAt           DateTime?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+  ogImage         String?
+
+  // Stats (denormalized counters)
+  viewCount    Int @default(0)
+  sessionCount Int @default(0)
+  designsSaved Int @default(0)
+  conversions  Int @default(0)
+
+  // Metadata
+  tags     String[] @default([])
+  metadata Json?
+  version  Int      @default(1)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  deletedAt   DateTime?
+
+  // Relations
+  project  Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  views    CustomizerView[]
+  zones    CustomizerZone[]
+  layers   VisualCustomizerLayer[]
+  presets  VisualCustomizerPreset[]
+  sessions CustomizerSession[]
+  assets   CustomizerAsset[]
+  analytics    CustomizerAnalytics[]
+  auditLogs    CustomizerAuditLog[]
+  savedDesigns CustomizerSavedDesign[]
+
+  @@unique([brandId, slug])
+  @@index([projectId])
+  @@index([brandId, status])
+  @@index([status, isPublic])
+  @@index([slug])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([brandId, productId])
+
+  @@map("visual_customizers")
+}
+
+// -- Multi-View --
+
+model CustomizerView {
+  id           String           @id @default(cuid())
+  customizerId String
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
+
+  name         String
+  imageUrl     String
+  maskUrl      String?
+  thumbnailUrl String?
+
+  isDefault Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  canvasWidth  Int?
+  canvasHeight Int?
+
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  project Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  layers  VisualCustomizerLayer[]
-  presets VisualCustomizerPreset[]
+  zones CustomizerZone[]
 
-  @@index([projectId])
-  @@index([isActive])
+  @@index([customizerId, sortOrder])
+  @@map("customizer_views")
 }
+
+// -- Zones (Editable Areas) --
+
+model CustomizerZone {
+  id           String           @id @default(cuid())
+  customizerId String
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
+
+  viewId String?
+  view   CustomizerView? @relation(fields: [viewId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String? @db.Text
+
+  type  ZoneType2D
+  shape ZoneShape
+
+  // Bounds
+  x        Float
+  y        Float
+  width    Float
+  height   Float
+  rotation Float @default(0)
+
+  // For polygon shapes
+  polygonPoints Json?
+
+  // Styling
+  borderRadius    Float   @default(0)
+  backgroundColor String?
+  borderColor     String?
+  borderWidth     Float   @default(0)
+  opacity         Float   @default(1)
+
+  // Constraints
+  allowText       Boolean @default(true)
+  allowImages     Boolean @default(true)
+  allowShapes     Boolean @default(true)
+  allowClipart    Boolean @default(true)
+  allowDrawing    Boolean @default(false)
+  maxElements     Int     @default(10)
+  lockAspectRatio Boolean @default(false)
+  minScale        Float   @default(0.1)
+  maxScale        Float   @default(5)
+  allowRotation   Boolean @default(true)
+  snapToBounds    Boolean @default(false)
+  clipContent     Boolean @default(true)
+
+  // Display
+  sortOrder Int     @default(0)
+  isVisible Boolean @default(true)
+  isLocked  Boolean @default(false)
+
+  // Pricing
+  priceModifier Float @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  layers CustomizerLayer[]
+
+  @@index([customizerId, sortOrder])
+  @@index([viewId])
+  @@map("customizer_zones")
+}
+
+// -- Layers (Design Elements in Zones) --
+
+model CustomizerLayer {
+  id     String         @id @default(cuid())
+  zoneId String
+  zone   CustomizerZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  // Session association (for user-created layers)
+  sessionId String?
+  session   CustomizerSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  name String
+  type VisualCustomizerLayerType
+
+  // Transform
+  x        Float
+  y        Float
+  width    Float?
+  height   Float?
+  scaleX   Float   @default(1)
+  scaleY   Float   @default(1)
+  rotation Float   @default(0)
+  skewX    Float   @default(0)
+  skewY    Float   @default(0)
+  flipX    Boolean @default(false)
+  flipY    Boolean @default(false)
+
+  // Content (type-specific, stored as JSON)
+  content Json
+
+  // Styling
+  opacity   Float     @default(1)
+  blendMode BlendMode @default(NORMAL)
+
+  // Shadow
+  shadowEnabled Boolean @default(false)
+  shadowColor   String?
+  shadowOffsetX Float   @default(0)
+  shadowOffsetY Float   @default(0)
+  shadowBlur    Float   @default(0)
+
+  // State
+  sortOrder    Int     @default(0)
+  isVisible    Boolean @default(true)
+  isLocked     Boolean @default(false)
+  isSelectable Boolean @default(true)
+
+  // Hierarchy
+  parentLayerId String?
+  parentLayer   CustomizerLayer?  @relation("LayerHierarchy", fields: [parentLayerId], references: [id])
+  childLayers   CustomizerLayer[] @relation("LayerHierarchy")
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([zoneId, sortOrder])
+  @@index([sessionId])
+  @@map("customizer_layers")
+}
+
+// -- Legacy Layer model (kept for backward compatibility) --
 
 model VisualCustomizerLayer {
   id           String                    @id @default(cuid())
@@ -5706,21 +7689,16 @@ model VisualCustomizerLayer {
   type         VisualCustomizerLayerType
   order        Int                       @default(0)
 
-  // Layer properties
-  properties Json @default("{}")
-  config     Json? // Layer configuration
-
-  // Constraints
+  properties  Json    @default("{}")
+  config      Json?
   constraints Json?
 
-  // Visibility
   isLocked  Boolean @default(false)
   isVisible Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   customizer VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
 
   @@index([customizerId])
@@ -5728,28 +7706,456 @@ model VisualCustomizerLayer {
   @@index([order])
 }
 
+// -- Presets / Templates --
+
 model VisualCustomizerPreset {
   id           String @id @default(cuid())
   customizerId String
-  name         String
-  description  String?
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
 
-  // Preset data
-  layerConfig Json
+  createdById String?
+  createdBy   User? @relation("UserCreatedPresets", fields: [createdById], references: [id])
 
-  // Display
+  name        String
+  description String? @db.Text
   thumbnailUrl    String?
-  previewImageUrl String? // Alias for compatibility
-  sortOrder       Int     @default(0)
-  isDefault       Boolean @default(false)
+  previewImageUrl String?
+
+  // Canvas data (Konva JSON)
+  layerConfig Json
+  canvasData  Json?
+
+  // Category
+  category String?
+  tags     String[] @default([])
+
+  // Visibility
+  isPublic   Boolean @default(false)
+  isDefault  Boolean @default(false)
+  isFeatured Boolean @default(false)
+
+  // Stats
+  usageCount Int @default(0)
+
+  sortOrder Int @default(0)
+
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  customizer VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
+  @@index([customizerId, isPublic])
+  @@index([customizerId, category])
+  @@map("customizer_presets")
+}
 
-  @@index([customizerId])
+// -- Assets (Images, Fonts, Clipart) --
+
+model CustomizerAsset {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation("BrandCustomizerAssets", fields: [brandId], references: [id], onDelete: Cascade)
+
+  uploadedById String?
+  uploadedBy   User? @relation("UserUploadedAssets", fields: [uploadedById], references: [id])
+
+  customizerId String?
+  customizer   VisualCustomizer? @relation(fields: [customizerId], references: [id], onDelete: SetNull)
+
+  name        String
+  description String? @db.Text
+
+  type       CustomizerAssetType
+  visibility CustomizerAssetVisibility @default(PRIVATE)
+
+  // File info
+  fileUrl          String
+  thumbnailUrl     String?
+  originalFileName String
+  mimeType         String
+  fileSize         Int
+
+  // Image-specific
+  width    Int?
+  height   Int?
+  format   String?
+  hasAlpha Boolean @default(false)
+
+  // Font-specific
+  fontFamily  String?
+  fontVariant String?
+  fontFormat  String?
+
+  // Categorization
+  category String?
+  tags     String[] @default([])
+
+  // Moderation
+  moderationStatus CustomizerModerationStatus @default(PENDING)
+  moderationNotes  String?
+  moderatedAt      DateTime?
+  moderatedById    String?
+
+  // Stats
+  usageCount Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([brandId, type])
+  @@index([brandId, visibility])
+  @@index([category])
+  @@map("customizer_assets")
+}
+
+// -- Clipart Categories --
+
+model ClipartCategory {
+  id      String  @id @default(cuid())
+  brandId String?
+  brand   Brand? @relation("BrandClipartCategories", fields: [brandId], references: [id], onDelete: Cascade)
+
+  name        String
+  slug        String
+  description String?
+  thumbnailUrl String?
+
+  parentId String?
+  parent   ClipartCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children ClipartCategory[] @relation("CategoryHierarchy")
+
+  sortOrder    Int     @default(0)
+  isActive     Boolean @default(true)
+  clipartCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, slug])
+  @@index([brandId, isActive])
+  @@map("clipart_categories")
+}
+
+// -- Sessions --
+
+model CustomizerSession {
+  id           String           @id @default(cuid())
+  customizerId String
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
+
+  // User (optional for anonymous)
+  userId      String?
+  user        User? @relation("UserCustomizerSessions", fields: [userId], references: [id])
+  anonymousId String?
+
+  status CustomizerSessionStatus @default(ACTIVE)
+
+  // Current canvas state
+  canvasData Json?
+
+  // Selected view (for multi-view)
+  activeViewId String?
+
+  // Calculated pricing
+  calculatedPrice Float?
+  priceBreakdown  Json?
+  currency        String @default("EUR")
+
+  // Tracking
+  source   String?
+  referrer String?
+  utmParams Json?
+
+  // Device
+  ipAddress String?
+  userAgent String?
+  deviceInfo Json?
+
+  // Geo
+  country String?
+  region  String?
+  city    String?
+
+  // Timing
+  startedAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  completedAt    DateTime?
+
+  // Conversion
+  convertedAt     DateTime?
+  conversionType  CustomizerConversionType?
+  conversionValue Float?
+  orderId         String?
+  cartItemId      String?
+
+  // Relations
+  layers       CustomizerLayer[]
+  interactions CustomizerInteraction[]
+  savedDesign  CustomizerSavedDesign?
+  exports      CustomizerExport[]
+
+  @@index([customizerId, status])
+  @@index([userId])
+  @@index([anonymousId])
+  @@index([status, lastActivityAt])
+  @@map("customizer_sessions")
+}
+
+// -- Interactions (Analytics) --
+
+model CustomizerInteraction {
+  id        String            @id @default(cuid())
+  sessionId String
+  session   CustomizerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  type CustomizerInteractionType
+
+  // Context
+  zoneId   String?
+  layerId  String?
+  toolUsed String?
+
+  data Json?
+
+  timestamp  DateTime @default(now())
+  durationMs Int?
+
+  @@index([sessionId, timestamp])
+  @@index([type])
+  @@map("customizer_interactions")
+}
+
+// -- Saved Designs --
+
+model CustomizerSavedDesign {
+  id           String           @id @default(cuid())
+  customizerId String
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id])
+
+  sessionId String?            @unique
+  session   CustomizerSession? @relation(fields: [sessionId], references: [id])
+
+  userId String?
+  user   User? @relation("UserSavedDesigns", fields: [userId], references: [id])
+
+  name        String
+  description String? @db.Text
+
+  canvasData Json
+
+  // Generated images
+  thumbnailUrl String?
+  previewUrls  String[] @default([])
+
+  // Pricing snapshot
+  savedPrice Float?
+  currency   String @default("EUR")
+
+  // Sharing
+  shareToken String   @unique @default(cuid())
+  isPublic   Boolean  @default(false)
+  allowRemix Boolean  @default(false)
+  shareUrl   String?
+
+  // Stats
+  viewCount  Int @default(0)
+  remixCount Int @default(0)
+
+  // Moderation
+  moderationStatus  CustomizerModerationStatus @default(APPROVED)
+  moderationReasons String[]                   @default([])
+  moderationNotes   String?
+
+  // Remix
+  remixedFromId String?
+  remixedFrom   CustomizerSavedDesign?  @relation("DesignRemix", fields: [remixedFromId], references: [id])
+  remixes       CustomizerSavedDesign[] @relation("DesignRemix")
+
+  expiresAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([customizerId, userId])
+  @@index([shareToken])
+  @@index([userId, createdAt])
+  @@index([isPublic, moderationStatus])
+  @@map("customizer_saved_designs")
+}
+
+// -- Exports --
+
+model CustomizerExport {
+  id        String            @id @default(cuid())
+  sessionId String
+  session   CustomizerSession @relation(fields: [sessionId], references: [id])
+
+  userId String?
+  user   User? @relation("UserCustomizerExports", fields: [userId], references: [id])
+
+  type   CustomizerExportType
+  format String
+  status CustomizerExportStatus @default(PENDING)
+
+  options Json?
+
+  width   Int?
+  height  Int?
+  dpi     Int?
+  quality Int?
+
+  fileUrl  String?
+  fileName String?
+  fileSize Int?
+
+  progress Int @default(0)
+
+  errorMessage String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  expiresAt   DateTime?
+
+  @@index([sessionId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("customizer_exports")
+}
+
+// -- Moderation Records --
+
+model CustomizerModerationRecord {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation("BrandCustomizerModerations", fields: [brandId], references: [id])
+
+  designId String?
+  assetId  String?
+
+  contentType       String
+  contentPreviewUrl String?
+  flaggedContent    Json?
+
+  detectionMethod String
+  reasons         String[] @default([])
+  confidence      Float?
+
+  detectedContent Json?
+
+  status CustomizerModerationStatus @default(PENDING)
+
+  reviewedById String?
+  reviewedBy   User? @relation("UserModerationReviews", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  reviewNotes  String? @db.Text
+
+  actionTaken  String?
+  userNotified Boolean @default(false)
+
+  contentUserId    String?
+  contentUserEmail String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId, status])
+  @@index([status, createdAt])
+  @@index([designId])
+  @@index([assetId])
+  @@map("customizer_moderation_records")
+}
+
+// -- Analytics (Daily Aggregates) --
+
+model CustomizerAnalytics {
+  id           String           @id @default(cuid())
+  customizerId String
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
+
+  date DateTime @db.Date
+
+  // Sessions
+  sessions           Int @default(0)
+  uniqueUsers        Int @default(0)
+  avgSessionDuration Int @default(0)
+
+  // Engagement
+  totalInteractions Int @default(0)
+  textEdits         Int @default(0)
+  imageUploads      Int @default(0)
+  clipartAdded      Int @default(0)
+  shapesAdded       Int @default(0)
+  presetsApplied    Int @default(0)
+
+  // Conversions
+  designsSaved   Int @default(0)
+  exportsCreated Int @default(0)
+  addToCarts     Int @default(0)
+  purchases      Int @default(0)
+  shares         Int @default(0)
+
+  // Revenue
+  revenue       Float @default(0)
+  avgOrderValue Float @default(0)
+
+  // Performance
+  avgLoadTime Int? // ms
+  errorCount  Int  @default(0)
+
+  // Breakdowns (JSON)
+  deviceBreakdown   Json?
+  platformBreakdown Json?
+
+  @@unique([customizerId, date])
+  @@index([customizerId, date])
+  @@map("customizer_analytics")
+}
+
+model CustomizerToolAnalytics {
+  id           String   @id @default(cuid())
+  customizerId String
+  date         DateTime @db.Date
+
+  toolName    String
+  usageCount  Int @default(0)
+  uniqueUsers Int @default(0)
+  avgTimeSpent Int @default(0)
+
+  @@unique([customizerId, date, toolName])
+  @@index([customizerId, date])
+  @@map("customizer_tool_analytics")
+}
+
+// -- Audit Logs --
+
+model CustomizerAuditLog {
+  id           String           @id @default(cuid())
+  customizerId String
+  customizer   VisualCustomizer @relation(fields: [customizerId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation("UserCustomizerAuditLogs", fields: [userId], references: [id])
+
+  action     String
+  entityType String
+  entityId   String?
+
+  previousValue Json?
+  newValue      Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([customizerId, createdAt])
+  @@index([userId, createdAt])
+  @@map("customizer_audit_logs")
 }
 
 // ========================================

@@ -3,11 +3,19 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock dependencies BEFORE importing Sidebar
-const mockPathname = '/dashboard';
+let mockPathname = '/dashboard';
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: '1', email: 'test@example.com', firstName: 'Test', lastName: 'User' },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/components/Logo', () => ({
@@ -18,10 +26,8 @@ vi.mock('@/components/Logo', () => ({
   ),
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  },
+vi.mock('@/lib/performance/dynamic-motion', () => ({
+  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
 }));
 
 // Mock React.useMemo to work at module level
@@ -110,30 +116,6 @@ describe('Sidebar', () => {
       expect(screen.queryByText('Support')).not.toBeInTheDocument();
     });
 
-    it('should render plan status when not collapsed', () => {
-      render(<Sidebar {...defaultProps} />);
-      
-      expect(screen.getByText('Plan Professional')).toBeInTheDocument();
-      expect(screen.getByText('Accès complet à toutes les fonctionnalités')).toBeInTheDocument();
-      expect(screen.getByText('Utilisation ce mois')).toBeInTheDocument();
-      expect(screen.getByText('68%')).toBeInTheDocument();
-    });
-
-    it('should not render plan status when collapsed', () => {
-      render(<Sidebar isCollapsed={true} onToggle={defaultProps.onToggle} />);
-      
-      expect(screen.queryByText('Plan Professional')).not.toBeInTheDocument();
-    });
-
-    it('should render quick stats when not collapsed', () => {
-      render(<Sidebar {...defaultProps} />);
-      
-      expect(screen.getByText('2.8K')).toBeInTheDocument();
-      expect(screen.getByText('Designs')).toBeInTheDocument();
-      expect(screen.getByText('€8.4K')).toBeInTheDocument();
-      expect(screen.getByText('Revenus')).toBeInTheDocument();
-    });
-
     it('should render settings link in footer', () => {
       render(<Sidebar {...defaultProps} />);
       
@@ -146,7 +128,7 @@ describe('Sidebar', () => {
       render(<Sidebar {...defaultProps} />);
       
       expect(screen.getByText('Nouveau')).toBeInTheDocument(); // AI Studio badge
-      expect(screen.getByText('247')).toBeInTheDocument(); // Produits badge
+      expect(screen.getByText('OK')).toBeInTheDocument(); // Statut badge
     });
 
     it('should render item descriptions when not collapsed', () => {
@@ -156,11 +138,13 @@ describe('Sidebar', () => {
       expect(screen.getByText("Création de designs avec l'IA")).toBeInTheDocument();
     });
 
-    it('should highlight active navigation item', () => {
+    it('should highlight active navigation item when pathname matches', () => {
+      mockPathname = '/overview';
       render(<Sidebar {...defaultProps} />);
       
       const dashboardLink = screen.getByText('Tableau de bord').closest('a');
       expect(dashboardLink).toHaveClass('bg-gradient-to-r', 'from-blue-600', 'to-purple-600');
+      mockPathname = '/dashboard';
     });
   });
 

@@ -535,7 +535,7 @@ export class WidgetTryOnController {
     return this.recommendationService.getRecommendations(
       sessionId,
       currentProductId,
-      limit ? Math.min(limit, 10) : 5,
+      limit != null ? Math.min(Number(limit), 10) : 5,
     );
   }
 }

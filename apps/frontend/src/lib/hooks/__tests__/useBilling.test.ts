@@ -15,9 +15,17 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-// Mock global fetch
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// Mock API client (hook uses endpoints.billing, not fetch)
+const mockSubscriptionFn = vi.fn();
+const mockInvoicesFn = vi.fn();
+vi.mock('@/lib/api/client', () => ({
+  endpoints: {
+    billing: {
+      subscription: () => mockSubscriptionFn(),
+      invoices: () => mockInvoicesFn(),
+    },
+  },
+}));
 
 describe('useBilling', () => {
   beforeEach(() => {
@@ -30,13 +38,8 @@ describe('useBilling', () => {
 
   describe('Initial State', () => {
     it('should start with loading state', () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: { subscription: null } }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: { invoices: [] } }),
-      });
+      mockSubscriptionFn.mockResolvedValue({ data: { subscription: null } });
+      mockInvoicesFn.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling());
 
@@ -47,34 +50,12 @@ describe('useBilling', () => {
     });
 
     it('should load subscription and invoices on mount', async () => {
-      const mockSubscription = {
-        tier: 'pro',
-        status: 'active',
-        period: 'monthly',
-      };
-
-      const mockInvoices = [
-        {
-          id: 'inv-1',
-          number: 'INV-001',
-          amount: 100,
-          currency: 'eur',
-          status: 'paid',
-          paid: true,
-          created: '2024-01-01',
-          description: 'Subscription',
-        },
+      const sub = { tier: 'pro', status: 'active', period: 'monthly' };
+      const invs = [
+        { id: 'inv-1', number: 'INV-001', amount: 100, currency: 'eur', status: 'paid', paid: true, created: '2024-01-01', description: 'Subscription' },
       ];
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { subscription: mockSubscription } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { invoices: mockInvoices } }),
-        });
+      mockSubscriptionFn.mockResolvedValue({ data: { subscription: sub } });
+      mockInvoicesFn.mockResolvedValue({ data: { invoices: invs } });
 
       const { result } = renderHook(() => useBilling());
 
@@ -82,23 +63,16 @@ describe('useBilling', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.subscription).toEqual(mockSubscription);
-      expect(result.current.invoices).toEqual(mockInvoices);
+      expect(result.current.subscription).toEqual(sub);
+      expect(result.current.invoices).toEqual(invs);
       expect(result.current.error).toBeNull();
     });
   });
 
   describe('Error Handling', () => {
     it('should handle subscription loading error', async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          json: async () => ({ error: 'Failed to load subscription' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { invoices: [] } }),
-        });
+      mockSubscriptionFn.mockRejectedValue(new Error('Failed to load subscription'));
+      mockInvoicesFn.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling());
 
@@ -112,15 +86,8 @@ describe('useBilling', () => {
     });
 
     it('should handle invoices loading error gracefully', async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { subscription: null } }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: async () => ({ error: 'Failed to load invoices' }),
-        });
+      mockSubscriptionFn.mockResolvedValue({ data: { subscription: null } });
+      mockInvoicesFn.mockRejectedValue(new Error('Failed to load invoices'));
 
       const { result } = renderHook(() => useBilling());
 
@@ -128,18 +95,13 @@ describe('useBilling', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Invoices error doesn't set the error state, just logs
       expect(result.current.invoices).toEqual([]);
       expect(logger.error).toHaveBeenCalled();
     });
 
     it('should handle network errors', async () => {
-      mockFetch
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { invoices: [] } }),
-        });
+      mockSubscriptionFn.mockRejectedValue(new Error('Network error'));
+      mockInvoicesFn.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling());
 
@@ -154,28 +116,11 @@ describe('useBilling', () => {
 
   describe('Refresh', () => {
     it('should refresh subscription and invoices', async () => {
-      const mockSubscription = {
-        tier: 'starter',
-        status: 'active',
-      };
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { subscription: null } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { invoices: [] } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { subscription: mockSubscription } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { invoices: [] } }),
-        });
+      const sub = { tier: 'starter', status: 'active' };
+      mockSubscriptionFn
+        .mockResolvedValueOnce({ data: { subscription: null } })
+        .mockResolvedValueOnce({ data: { subscription: sub } });
+      mockInvoicesFn.mockResolvedValue({ data: { invoices: [] } });
 
       const { result } = renderHook(() => useBilling());
 
@@ -183,31 +128,23 @@ describe('useBilling', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Refresh
       await result.current.refresh();
 
       await waitFor(() => {
-        expect(result.current.subscription).toEqual(mockSubscription);
+        expect(result.current.subscription).toEqual(sub);
       });
 
-      expect(mockFetch).toHaveBeenCalledTimes(4); // 2 initial + 2 refresh
+      expect(mockSubscriptionFn).toHaveBeenCalledTimes(2);
+      expect(mockInvoicesFn).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('Memoization', () => {
     it('should memoize subscription and invoices', async () => {
-      const mockSubscription = { tier: 'pro', status: 'active' };
-      const mockInvoices = [{ id: 'inv-1', number: 'INV-001', amount: 100, currency: 'eur', status: 'paid', paid: true, created: '2024-01-01', description: 'Test' }];
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { subscription: mockSubscription } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { invoices: mockInvoices } }),
-        });
+      const sub = { tier: 'pro', status: 'active' };
+      const invs = [{ id: 'inv-1', number: 'INV-001', amount: 100, currency: 'eur', status: 'paid', paid: true, created: '2024-01-01', description: 'Test' }];
+      mockSubscriptionFn.mockResolvedValue({ data: { subscription: sub } });
+      mockInvoicesFn.mockResolvedValue({ data: { invoices: invs } });
 
       const { result, rerender } = renderHook(() => useBilling());
 
@@ -220,7 +157,6 @@ describe('useBilling', () => {
 
       rerender();
 
-      // Should be the same reference due to memoization
       expect(result.current.subscription).toBe(firstSubscription);
       expect(result.current.invoices).toBe(firstInvoices);
     });

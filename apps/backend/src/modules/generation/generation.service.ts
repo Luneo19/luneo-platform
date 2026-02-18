@@ -4,6 +4,7 @@ import { Queue } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { PromptBuilderService } from './services/prompt-builder.service';
+import { PromptSecurityService } from '@/modules/agents/services/prompt-security.service';
 import { CreateGenerationDto } from './dto/create-generation.dto';
 import { GenerationStatus, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
@@ -21,6 +22,7 @@ export class GenerationService {
   constructor(
     private prisma: PrismaService,
     private promptBuilder: PromptBuilderService,
+    private promptSecurity: PromptSecurityService,
     private eventEmitter: EventEmitter2,
     @InjectQueue('generation') private generationQueue: Queue,
     private readonly quotasService: QuotasService,
@@ -57,6 +59,11 @@ export class GenerationService {
 
     // 3. Valider les personnalisations
     this.validateCustomizations(dto.customizations, product.customizationZones as Array<{ id: string; name: string; required?: boolean; type?: string; maxLength?: number }>);
+
+    // SECURITY FIX P1-7: Sanitize user prompt against injection attacks
+    if (dto.userPrompt) {
+      dto.userPrompt = this.promptSecurity.validateAndSanitize(dto.userPrompt, true);
+    }
 
     // 4. Construire le prompt final
     const { finalPrompt, negativePrompt } = await this.promptBuilder.build({

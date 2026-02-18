@@ -16,6 +16,12 @@ import { BullModule } from '@nestjs/bull';
 import { LunaModule } from './luna/luna.module';
 import { AriaModule } from './aria/aria.module';
 import { NovaModule } from './nova/nova.module';
+import { LLMModule } from './llm/llm.module';
+import { AgentSecurityModule } from './security/security.module';
+import { PromptsModule } from './prompts/prompts.module';
+import { MemoryModule } from './memory/memory.module';
+import { RAGModule } from './rag/rag.module';
+import { CostManagementModule } from './cost-management/cost-management.module';
 
 // Shared services
 import { AgentOrchestratorService } from './services/agent-orchestrator.service';
@@ -33,6 +39,10 @@ import { LLMStreamService } from './services/llm-stream.service';
 import { RAGService } from './services/rag.service';
 import { AgentUsageGuardService } from './services/agent-usage-guard.service';
 
+// Controllers
+import { AgentsController } from './agents.controller';
+import { AgentsAdminController } from './agents-admin.controller';
+
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
@@ -47,10 +57,16 @@ import { AIMonitorModule } from './ai-monitor/ai-monitor.module';
   imports: [
     PrismaModule,
     SmartCacheModule,
-    AiModule, // Pour AiService.recordAICost()
-    MetricsModule, // Pour PrometheusService
-    UsageGuardianModule, // Usage Guardian
-    AIMonitorModule, // AI Monitor
+    AiModule,
+    MetricsModule,
+    LLMModule,
+    AgentSecurityModule,
+    PromptsModule,
+    MemoryModule,
+    RAGModule,
+    CostManagementModule,
+    UsageGuardianModule,
+    AIMonitorModule,
     HttpModule.register({
       timeout: 30000,
       maxRedirects: 3,
@@ -67,11 +83,11 @@ import { AIMonitorModule } from './ai-monitor/ai-monitor.module';
         },
       },
     }),
-    // Sub-modules - utiliser forwardRef pour éviter dépendance circulaire
     forwardRef(() => LunaModule),
     forwardRef(() => AriaModule),
     forwardRef(() => NovaModule),
   ],
+  controllers: [AgentsController, AgentsAdminController],
   providers: [
     AgentOrchestratorService,
     LLMRouterService,
@@ -89,7 +105,6 @@ import { AIMonitorModule } from './ai-monitor/ai-monitor.module';
     AgentUsageGuardService,
   ],
   exports: [
-    // ✅ RÈGLE: Exporter tous les services utilisés ailleurs
     AgentOrchestratorService,
     LLMRouterService,
     ConversationService,
@@ -104,11 +119,15 @@ import { AIMonitorModule } from './ai-monitor/ai-monitor.module';
     LLMStreamService,
     RAGService,
     AgentUsageGuardService,
-    // Sub-modules exports
+    LLMModule,
+    AgentSecurityModule,
+    PromptsModule,
+    MemoryModule,
+    RAGModule,
+    CostManagementModule,
     LunaModule,
     AriaModule,
     NovaModule,
-    // Usage Guardian & AI Monitor exports
     UsageGuardianModule,
     AIMonitorModule,
   ],

@@ -185,7 +185,8 @@ function ARViewerContent() {
       renderer.setAnimationLoop(() => {
         if (session && hitTestSource && !modelPlaced) {
           const frame = renderer.xr.getFrame();
-          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          const hitTestResults = frame?.getHitTestResults?.(hitTestSource);
+          if (!hitTestResults) return;
 
           if (hitTestResults.length > 0 && model) {
             const hit = hitTestResults[0];

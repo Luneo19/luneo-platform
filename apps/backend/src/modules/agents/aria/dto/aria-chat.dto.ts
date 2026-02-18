@@ -53,21 +53,18 @@ export class AriaChatContextDto {
 
 /** POST /agents/aria/chat */
 export class AriaChatDto {
-  @ApiProperty({ description: 'Session ID (UUID)' })
+  @ApiProperty({ description: 'Session ID' })
   @IsString()
   @IsNotEmpty()
-  @IsUUID()
   sessionId: string;
 
-  @ApiProperty({ description: 'Product ID (UUID)' })
+  @ApiProperty({ description: 'Product ID' })
   @IsString()
   @IsNotEmpty()
-  @IsUUID()
   productId: string;
 
-  @ApiPropertyOptional({ description: 'Brand ID (UUID)' })
+  @ApiPropertyOptional({ description: 'Brand ID' })
   @IsString()
-  @IsUUID()
   @IsOptional()
   brandId?: string;
 

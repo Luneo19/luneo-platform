@@ -1,17 +1,8 @@
-/**
- * @fileoverview Module Aria (Agent B2C)
- * @module AriaModule
- */
-
-/**
- * @fileoverview Module Aria (Agent B2C)
- * @module AriaModule
- */
-
 import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AriaController } from './aria.controller';
 import { AriaService } from './aria.service';
+import { AriaAnalysisService } from './services/aria-analysis.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { AgentsModule } from '../agents.module';
@@ -22,13 +13,13 @@ import { AIMonitorModule } from '../ai-monitor/ai-monitor.module';
   imports: [
     PrismaModule,
     SmartCacheModule,
-    forwardRef(() => AgentsModule), // Pour LLMRouterService et tous ses dépendances
-    UsageGuardianModule, // Usage Guardian
-    AIMonitorModule, // AI Monitor
+    forwardRef(() => AgentsModule),
+    UsageGuardianModule,
+    AIMonitorModule,
     HttpModule,
   ],
   controllers: [AriaController],
-  providers: [AriaService],
-  exports: [AriaService],
+  providers: [AriaService, AriaAnalysisService],
+  exports: [AriaService, AriaAnalysisService],
 })
 export class AriaModule {}

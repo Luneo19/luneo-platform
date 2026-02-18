@@ -6,6 +6,7 @@ import { CurrentUser } from '@/common/types/user.types';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { hashPassword, verifyPassword } from '@/libs/crypto/password-hasher';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 
 /**
  * CACHE-01: Service utilisateurs avec cache Redis
@@ -21,6 +22,8 @@ export class UsersService {
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
     private cache: SmartCacheService,
+    // SECURITY FIX: Token blacklist for immediate revocation on password change
+    private tokenBlacklist: TokenBlacklistService,
   ) {}
 
   /**
@@ -207,8 +210,8 @@ export class UsersService {
       data: { password: hashedPassword },
     });
 
-    // SECURITY FIX: Invalidate all refresh tokens after password change
-    // (prevents continued access with stolen tokens after password change)
+    // SECURITY FIX: Blacklist access tokens immediately + invalidate all refresh tokens
+    await this.tokenBlacklist.blacklistUser(userId);
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
@@ -222,6 +225,8 @@ export class UsersService {
       where: {
         userId,
         expiresAt: { gt: new Date() },
+        revokedAt: null,
+        usedAt: null, // Only show active (unused) tokens as sessions
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -229,21 +234,55 @@ export class UsersService {
         id: true,
         createdAt: true,
         expiresAt: true,
+        // SECURITY FIX: Include real session metadata
+        ipAddress: true,
+        userAgent: true,
+        deviceInfo: true,
       },
     });
 
     return {
       sessions: tokens.map((token, index) => ({
         id: token.id,
-        device: 'Unknown',
-        browser: 'Unknown',
-        location: 'Unknown',
-        ip: 'Unknown',
+        // SECURITY FIX: Return real metadata instead of 'Unknown'
+        device: token.deviceInfo || this.parseDevice(token.userAgent),
+        browser: this.parseBrowser(token.userAgent),
+        ip: token.ipAddress ? this.maskIp(token.ipAddress) : 'Unknown',
         current: index === 0,
         lastActive: token.createdAt,
         createdAt: token.createdAt,
       })),
     };
+  }
+
+  /** Parse browser from user-agent string */
+  private parseBrowser(userAgent: string | null): string {
+    if (!userAgent) return 'Unknown';
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
+    if (userAgent.includes('Firefox')) return 'Firefox';
+    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+    if (userAgent.includes('Edg')) return 'Edge';
+    return 'Other';
+  }
+
+  /** Parse device from user-agent string */
+  private parseDevice(userAgent: string | null): string {
+    if (!userAgent) return 'Unknown';
+    if (userAgent.includes('Mobile') || userAgent.includes('Android')) return 'Mobile';
+    if (userAgent.includes('Tablet') || userAgent.includes('iPad')) return 'Tablet';
+    return 'Desktop';
+  }
+
+  /** Mask IP address for privacy (show only first two octets) */
+  private maskIp(ip: string): string {
+    const parts = ip.split('.');
+    if (parts.length === 4) return `${parts[0]}.${parts[1]}.*.*`;
+    // IPv6 or other format - show first half
+    if (ip.includes(':')) {
+      const v6parts = ip.split(':');
+      return v6parts.slice(0, 3).join(':') + ':***';
+    }
+    return ip;
   }
 
   async deleteSession(userId: string, sessionId: string) {
@@ -273,18 +312,56 @@ export class UsersService {
     return { success: true, message: 'All sessions deleted successfully' };
   }
 
+  // SECURITY FIX: Allowed MIME types and magic bytes for image upload validation
+  private static readonly ALLOWED_IMAGE_TYPES: Record<string, number[][]> = {
+    'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+    'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+    'image/gif': [[0x47, 0x49, 0x46, 0x38]],
+    'image/webp': [[0x52, 0x49, 0x46, 0x46]], // RIFF header
+    'image/svg+xml': [], // SVG is text-based, checked differently
+  };
+
+  /** Validate file magic bytes match declared MIME type */
+  private validateMagicBytes(buffer: Buffer, mimetype: string): boolean {
+    const signatures = UsersService.ALLOWED_IMAGE_TYPES[mimetype];
+    if (!signatures || signatures.length === 0) {
+      // For SVG, check for XML-like content
+      if (mimetype === 'image/svg+xml') {
+        const header = buffer.subarray(0, 500).toString('utf8').toLowerCase();
+        return header.includes('<svg') && !header.includes('<script');
+      }
+      return false;
+    }
+    return signatures.some(sig =>
+      sig.every((byte, i) => buffer[i] === byte)
+    );
+  }
+
   async uploadAvatar(userId: string, file: { buffer: Buffer; mimetype: string; size: number }) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
 
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('File must be an image');
+    // SECURITY FIX: Strict whitelist of allowed image MIME types
+    const allowedTypes = Object.keys(UsersService.ALLOWED_IMAGE_TYPES);
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException(`File type not allowed. Allowed types: ${allowedTypes.join(', ')}`);
     }
 
     const maxSize = 2 * 1024 * 1024; // 2MB
     if (file.size > maxSize) {
       throw new BadRequestException('Image size must not exceed 2MB');
+    }
+
+    // SECURITY FIX: Validate magic bytes match declared MIME type (prevent MIME spoofing)
+    if (!this.validateMagicBytes(file.buffer, file.mimetype)) {
+      this.logger.warn(`Magic bytes mismatch for upload by user ${userId}: declared ${file.mimetype}`);
+      throw new BadRequestException('File content does not match declared type');
+    }
+
+    // SECURITY FIX: Reject SVG to prevent XSS via SVG (SVG can contain JavaScript)
+    if (file.mimetype === 'image/svg+xml') {
+      throw new BadRequestException('SVG uploads are not allowed for security reasons');
     }
 
     const avatarUrl = await this.cloudinaryService.uploadImage(file.buffer, 'avatars');

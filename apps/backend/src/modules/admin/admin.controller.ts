@@ -244,6 +244,15 @@ export class AdminController {
     return this.adminService.getAnalyticsOverview();
   }
 
+  @Get('analytics/ar-studio')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get AR Studio usage metrics across all brands' })
+  @ApiQuery({ name: 'period', required: false, description: 'Period in days (default: 30)' })
+  @ApiResponse({ status: 200, description: 'AR Studio metrics' })
+  async getARStudioMetrics(@Query('period') period?: string) {
+    return this.adminService.getARStudioMetrics(parseInt(period || '30', 10));
+  }
+
   @Get('analytics/revenue')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get revenue metrics' })

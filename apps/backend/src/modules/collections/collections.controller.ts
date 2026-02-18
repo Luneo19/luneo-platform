@@ -45,8 +45,8 @@ export class CollectionsController {
   ) {
     const u = req.user as { id: string; brandId?: string | null };
     return this.collectionsService.findAll(u.id, u.brandId || '', {
-      page: query.page,
-      limit: query.limit,
+      page: query.page != null ? Number(query.page) : undefined,
+      limit: query.limit != null ? Number(query.limit) : undefined,
       includePublic: query.includePublic === 'true',
     });
   }

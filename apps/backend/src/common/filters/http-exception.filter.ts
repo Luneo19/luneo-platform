@@ -34,20 +34,30 @@ export class HttpExceptionFilter implements ExceptionFilter {
         error = exception.message;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
-      error = exception.name;
+      // SECURITY FIX: Never expose internal error details to clients
+      // Log the real error internally, but return a generic message
+      this.logger.error(
+        `Unhandled error: ${exception.message}`,
+        exception.stack,
+      );
+      message = 'An unexpected error occurred';
+      error = 'Internal Server Error';
     }
 
-    // Log error
+    // Log error details internally
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${message}`,
-      exception instanceof Error ? exception.stack : undefined,
+      exception instanceof HttpException ? undefined : (exception instanceof Error ? exception.stack : undefined),
     );
+
+    // SECURITY FIX: For 500 errors, always return generic message to prevent info leakage
+    const safeMessage = status >= 500 ? 'An unexpected error occurred. Please try again later.' : message;
+    const safeError = status >= 500 ? 'Internal Server Error' : error;
 
     const errorResponse = {
       success: false,
-      error,
-      message,
+      error: safeError,
+      message: safeMessage,
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,

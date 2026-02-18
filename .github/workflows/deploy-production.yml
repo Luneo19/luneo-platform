@@ -56,6 +56,11 @@ jobs:
           cd apps/backend
           pnpm exec jest --passWithNoTests --coverage
       
+      - name: Run agents security tests
+        run: |
+          cd apps/backend
+          pnpm exec jest --testPathPattern="agents/tests" --passWithNoTests --no-coverage
+      
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
@@ -79,6 +84,27 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
       
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Prisma migrations
+        run: |
+          cd apps/backend
+          pnpm exec prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Deploy to Railway
         run: railway up --service backend
         env:

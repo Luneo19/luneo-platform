@@ -22,7 +22,11 @@ export type UsageMetricType =
   | 'custom_domains'
   | 'team_members'
   | 'virtual_tryons'
-  | 'try_on_screenshots';
+  | 'try_on_screenshots'
+  | 'ar_sessions'
+  | 'ar_models'
+  | 'ar_conversions_3d'
+  | 'ar_qr_codes';
 
 export interface UsageQuota {
   metric: UsageMetricType;

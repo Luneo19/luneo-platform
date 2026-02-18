@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { CronJobsService } from './cron-jobs.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmailService } from '@/modules/email/email.service';
+import { CreditsService } from '@/libs/credits/credits.service';
 
 describe('CronJobsService', () => {
   let service: CronJobsService;
@@ -29,6 +30,7 @@ describe('CronJobsService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: CreditsService, useValue: { getBalance: jest.fn().mockResolvedValue(100), deduct: jest.fn().mockResolvedValue(undefined), refill: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
     service = module.get<CronJobsService>(CronJobsService);

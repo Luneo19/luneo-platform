@@ -48,8 +48,8 @@ export class SupportController {
     return this.supportService.getTickets((req.user as { id: string }).id, {
       status: query.status,
       category: query.category,
-      page: query.page,
-      limit: query.limit,
+      page: query.page != null ? Number(query.page) : undefined,
+      limit: query.limit != null ? Number(query.limit) : undefined,
     });
   }
 
@@ -105,8 +105,8 @@ export class SupportController {
     return this.supportService.getKnowledgeBaseArticles({
       category: query.category,
       search: query.search,
-      page: query.page,
-      limit: query.limit,
+      page: query.page != null ? Number(query.page) : undefined,
+      limit: query.limit != null ? Number(query.limit) : undefined,
     });
   }
 

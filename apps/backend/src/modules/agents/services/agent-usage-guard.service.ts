@@ -10,10 +10,11 @@
  * - ✅ Logger au lieu de console.log
  */
 
-import { Injectable, Logger, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { QuotaManagerService, QuotaCheckResult } from '../usage-guardian/services/quota-manager.service';
 import { RateLimiterService, RateLimitCheckResult } from '../usage-guardian/services/rate-limiter.service';
 import { CostCalculatorService } from '../usage-guardian/services/cost-calculator.service';
+import { BudgetGuardService } from '../cost-management/budget-guard.service';
 import { TrackerService } from '../ai-monitor/services/tracker.service';
 import { LoggerService } from '../ai-monitor/services/logger.service';
 import { AlertsService } from '../ai-monitor/services/alerts.service';
@@ -50,6 +51,7 @@ export class AgentUsageGuardService {
     private readonly quotaManager: QuotaManagerService,
     private readonly rateLimiter: RateLimiterService,
     private readonly costCalculator: CostCalculatorService,
+    private readonly budgetGuard: BudgetGuardService,
     private readonly tracker: TrackerService,
     private readonly aiLogger: LoggerService,
     private readonly alerts: AlertsService,
@@ -126,9 +128,49 @@ export class AgentUsageGuardService {
           provider,
           model,
           estimatedTokens,
-          Math.floor(estimatedTokens * 0.3), // Estimation: 30% output tokens
+          Math.floor(estimatedTokens * 0.3),
         );
         estimatedCostCents = estimate.estimatedCostCents;
+      }
+
+      // 4. Vérifier le budget plan (daily/monthly) si brandId disponible
+      if (brandId) {
+        try {
+          const budgetCheck = await this.budgetGuard.checkBudget(
+            brandId,
+            estimatedCostCents ?? 0,
+          );
+
+          if (!budgetCheck.allowed) {
+            this.aiLogger.logWarn('Budget limit exceeded', {
+              brandId,
+              userId: userId ?? undefined,
+              warning: budgetCheck.warning,
+              usagePercent: budgetCheck.usagePercent,
+            });
+
+            return {
+              allowed: false,
+              quota: quotaCheck.quota,
+              rateLimit: rateLimitCheck,
+              estimatedCostCents,
+              reason: budgetCheck.warning || 'Budget limit exceeded for your plan',
+            };
+          }
+
+          if (budgetCheck.warning) {
+            this.aiLogger.logWarn('Budget warning', {
+              brandId,
+              warning: budgetCheck.warning,
+              usagePercent: budgetCheck.usagePercent,
+            });
+          }
+        } catch (budgetError) {
+          if (budgetError instanceof ForbiddenException) {
+            throw budgetError;
+          }
+          this.logger.warn(`Budget check failed (non-blocking): ${budgetError}`);
+        }
       }
 
       const duration = Date.now() - startTime;

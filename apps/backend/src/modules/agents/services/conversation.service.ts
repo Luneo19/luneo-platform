@@ -8,7 +8,7 @@
  * - ✅ Validation Zod
  */
 
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -18,11 +18,11 @@ import { z } from 'zod';
 // ============================================================================
 
 const ConversationCreateSchema = z.object({
-  id: z.string().uuid().optional(),
-  shopId: z.string().uuid().optional(), // Alias pour brandId pour compatibilité
-  brandId: z.string().uuid().optional(),
-  userId: z.string().uuid().optional(),
-  sessionId: z.string().uuid().optional(),
+  id: z.string().min(1).optional(),
+  shopId: z.string().min(1).optional(),
+  brandId: z.string().min(1).optional(),
+  userId: z.string().min(1).optional(),
+  sessionId: z.string().min(1).optional(),
   agentType: z.enum(['luna', 'aria', 'nova']),
 });
 
@@ -183,6 +183,119 @@ export class ConversationService {
     });
 
     return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  /**
+   * Liste les conversations d'un utilisateur
+   */
+  async listConversations(params: {
+    userId: string;
+    brandId?: string;
+    agentType?: string;
+    limit?: number;
+  }): Promise<Array<{
+    id: string;
+    agentType: string;
+    createdAt: Date;
+    updatedAt: Date;
+    messageCount: number;
+    lastMessage?: string;
+  }>> {
+    try {
+      const where: Prisma.AgentConversationWhereInput = {
+        userId: params.userId,
+      };
+      if (params.brandId) where.brandId = params.brandId;
+      if (params.agentType) where.agentType = params.agentType;
+
+      const conversations = await this.prisma.agentConversation.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        take: params.limit || 20,
+        include: {
+          _count: { select: { messages: true } },
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { content: true },
+          },
+        },
+      });
+
+      return conversations.map((conv) => ({
+        id: conv.id,
+        agentType: conv.agentType,
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt,
+        messageCount: conv._count.messages,
+        lastMessage: conv.messages[0]?.content?.substring(0, 100),
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to list conversations: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return [];
+    }
+  }
+
+  /**
+   * Récupère une conversation spécifique avec ses messages
+   */
+  async getConversation(conversationId: string, userId: string): Promise<{
+    id: string;
+    agentType: string;
+    createdAt: Date;
+    updatedAt: Date;
+    messages: ConversationMessage[];
+  } | null> {
+    try {
+      const conversation = await this.prisma.agentConversation.findFirst({
+        where: { id: conversationId, userId },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+
+      if (!conversation) return null;
+
+      return {
+        id: conversation.id,
+        agentType: conversation.agentType,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        messages: conversation.messages.map((msg) => this.normalizeMessage(msg)),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get conversation: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return null;
+    }
+  }
+
+  /**
+   * Supprime une conversation
+   */
+  async deleteConversation(conversationId: string, userId: string): Promise<void> {
+    try {
+      const conversation = await this.prisma.agentConversation.findFirst({
+        where: { id: conversationId, userId },
+      });
+
+      if (!conversation) {
+        throw new NotFoundException('Conversation not found');
+      }
+
+      await this.prisma.agentMessage.deleteMany({
+        where: { conversationId },
+      });
+
+      await this.prisma.agentConversation.delete({
+        where: { id: conversationId },
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.error(`Failed to delete conversation: ${error instanceof Error ? error.message : 'Unknown'}`);
+      throw error;
+    }
   }
 
   /**

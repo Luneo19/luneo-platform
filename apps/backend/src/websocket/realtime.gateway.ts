@@ -111,6 +111,14 @@ export class RealtimeGateway {
   private rooms: Map<string, CollaborationRoom> = new Map();
   private connections: Map<string, AuthenticatedSocket> = new Map();
 
+  // SECURITY FIX: Rate limiting for WebSocket connections (per IP)
+  private connectionAttempts: Map<string, { count: number; resetAt: number }> = new Map();
+  private readonly MAX_CONNECTIONS_PER_IP = 20;
+  private readonly CONNECTION_WINDOW_MS = 60000; // 1 minute
+  // SECURITY FIX: Max concurrent connections per user
+  private readonly MAX_CONCURRENT_PER_USER = 5;
+  private userConnectionCount: Map<string, number> = new Map();
+
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService
@@ -122,6 +130,25 @@ export class RealtimeGateway {
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
+      // SECURITY FIX: Rate limit WebSocket connections per IP
+      const clientIp = (client.handshake as Record<string, unknown>)?.address as string || client.handshake?.headers?.['x-forwarded-for'] as string || 'unknown';
+      const now = Date.now();
+      const attempts = this.connectionAttempts.get(clientIp);
+      if (attempts) {
+        if (now < attempts.resetAt) {
+          if (attempts.count >= this.MAX_CONNECTIONS_PER_IP) {
+            logger.warn(`WebSocket rate limit: IP ${clientIp} exceeded ${this.MAX_CONNECTIONS_PER_IP} connections/min`);
+            client.disconnect();
+            return;
+          }
+          attempts.count++;
+        } else {
+          this.connectionAttempts.set(clientIp, { count: 1, resetAt: now + this.CONNECTION_WINDOW_MS });
+        }
+      } else {
+        this.connectionAttempts.set(clientIp, { count: 1, resetAt: now + this.CONNECTION_WINDOW_MS });
+      }
+
       // Extract token from query or auth header
       const queryToken = client.handshake?.query?.token;
       const authHeader = client.handshake?.headers?.authorization;
@@ -147,6 +174,18 @@ export class RealtimeGateway {
       });
 
       client.userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown';
+
+      // SECURITY FIX: Limit concurrent connections per user
+      if (client.userId) {
+        const currentCount = this.userConnectionCount.get(client.userId) || 0;
+        if (currentCount >= this.MAX_CONCURRENT_PER_USER) {
+          logger.warn(`Max concurrent connections (${this.MAX_CONCURRENT_PER_USER}) reached for user ${client.userId}`);
+          client.emit('error', { message: 'Too many concurrent connections' });
+          client.disconnect();
+          return;
+        }
+        this.userConnectionCount.set(client.userId, currentCount + 1);
+      }
 
       this.connections.set(client.id, client);
 
@@ -175,6 +214,16 @@ export class RealtimeGateway {
       socketId: client.id,
       userId: client.userId,
     });
+
+    // SECURITY FIX: Decrement user connection counter
+    if (client.userId) {
+      const count = this.userConnectionCount.get(client.userId) || 0;
+      if (count <= 1) {
+        this.userConnectionCount.delete(client.userId);
+      } else {
+        this.userConnectionCount.set(client.userId, count - 1);
+      }
+    }
 
     // Remove from all rooms
     for (const [roomId, room] of this.rooms.entries()) {

@@ -50,11 +50,28 @@ vi.mock('@/components/navigation/LocaleSwitcher', () => ({
   ),
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+vi.mock('@/lib/performance/dynamic-motion', () => ({
+  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  LazyAnimatePresence: ({ children }: any) => <>{children}</>,
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: {
+      id: '1',
+      email: 'john@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      role: 'user',
+    },
+    isAuthenticated: true,
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock('@/components/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: any) => <>{children}</>,
 }));
 
 describe('Header', () => {

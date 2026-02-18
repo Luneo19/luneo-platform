@@ -25,22 +25,30 @@ export class StorageService {
   /**
    * Upload un fichier vers le stockage (Cloudinary)
    * AWS S3 a été remplacé par Cloudinary pour économiser 1200$/mois
+   * 
+   * SECURITY FIX: Added brandId parameter for brand-level file isolation.
+   * When brandId is provided, files are stored in brand-specific folders.
    */
   async uploadFile(
     key: string,
     buffer: Buffer,
     contentType: string,
-    bucket?: string
+    bucket?: string,
+    brandId?: string,
   ): Promise<string> {
     try {
-      this.logger.log(`Upload vers Cloudinary: ${key}`);
+      // SECURITY FIX: Brand-scoped folder structure for data isolation
+      const baseFolder = bucket || 'luneo-assets';
+      const folder = brandId ? `${baseFolder}/brands/${brandId}` : baseFolder;
+
+      this.logger.log(`Upload vers Cloudinary: ${key} (folder: ${folder})`);
       
       // Utiliser Cloudinary au lieu de S3
       const base64 = buffer.toString('base64');
       const dataUri = `data:${contentType};base64,${base64}`;
       
       const result = await cloudinary.uploader.upload(dataUri, {
-        folder: bucket || 'luneo-assets',
+        folder,
         public_id: key.replace(/\.[^/.]+$/, ''), // Remove extension
         resource_type: 'auto',
       });

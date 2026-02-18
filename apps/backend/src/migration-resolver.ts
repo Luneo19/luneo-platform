@@ -308,6 +308,7 @@ export async function ensureCriticalColumns(
     'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
     'DO $$ BEGIN CREATE TYPE "ProductStatus" AS ENUM (\'DRAFT\', \'ACTIVE\', \'ARCHIVED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
     'DO $$ BEGIN CREATE TYPE "DesignStatus" AS ENUM (\'PENDING\', \'PROCESSING\', \'COMPLETED\', \'FAILED\', \'CANCELLED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
+    'DO $$ BEGIN CREATE TYPE "MarketplacePayoutStatus" AS ENUM (\'PENDING\', \'COMPLETED\', \'FAILED\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
   ];
 
   const columnQueries = [
@@ -347,6 +348,10 @@ export async function ensureCriticalColumns(
     'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
     'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
     'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "trialEndsAt" TIMESTAMP(3)',
+    // Grace period & read-only (failed payment)
+    'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "gracePeriodEndsAt" TIMESTAMP(3)',
+    'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "readOnlyMode" BOOLEAN NOT NULL DEFAULT false',
+    'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "lastGraceReminderDay" INTEGER',
     'ALTER TABLE "WorkOrder" ADD COLUMN IF NOT EXISTS "snapshotId" TEXT',
     'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "promptHash" TEXT',
     'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT',
@@ -356,6 +361,11 @@ export async function ensureCriticalColumns(
     'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "canvasBackgroundColor" TEXT DEFAULT \'#ffffff\'',
     'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "designData" JSONB',
     'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "optionsJson" JSONB',
+    // MarketplacePurchase - payout columns
+    'ALTER TABLE "MarketplacePurchase" ADD COLUMN IF NOT EXISTS "commissionPercent" INTEGER',
+    'ALTER TABLE "MarketplacePurchase" ADD COLUMN IF NOT EXISTS "commissionCents" INTEGER',
+    'ALTER TABLE "MarketplacePurchase" ADD COLUMN IF NOT EXISTS "payoutScheduledAt" TIMESTAMP(3)',
+    'ALTER TABLE "MarketplacePurchase" ADD COLUMN IF NOT EXISTS "paidOutAt" TIMESTAMP(3)',
   ];
 
   const enumColumnQueries = [
@@ -363,6 +373,7 @@ export async function ensureCriticalColumns(
     'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
     'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "status" "ProductStatus" NOT NULL DEFAULT \'DRAFT\'',
     'ALTER TABLE "Design" ADD COLUMN IF NOT EXISTS "status" "DesignStatus" NOT NULL DEFAULT \'PENDING\'',
+    'ALTER TABLE "MarketplacePurchase" ADD COLUMN IF NOT EXISTS "payoutStatus" "MarketplacePayoutStatus" NOT NULL DEFAULT \'PENDING\'',
   ];
 
   try {

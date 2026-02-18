@@ -63,6 +63,8 @@ describe('Image Optimization', () => {
   describe('getResponsiveImage', () => {
     it('should generate srcSet with multiple widths', () => {
       const config = getResponsiveImage('sample.jpg');
+      // srcSet is a string (e.g. "url1 320w, url2 640w, ...")
+      expect(typeof config.srcSet).toBe('string');
       expect(config.srcSet.length).toBeGreaterThan(0);
     });
 
@@ -74,14 +76,19 @@ describe('Image Optimization', () => {
 
     it('should respect maxWidth option', () => {
       const config = getResponsiveImage('sample.jpg', { maxWidth: 800, widths: [320, 640, 960, 1280] });
-      const maxSrcSetWidth = Math.max(...config.srcSet.map(s => s.width));
-      expect(maxSrcSetWidth).toBeLessThanOrEqual(800);
+      // srcSet is a string like "url1 320w, url2 640w, ..." - no width in srcSet should exceed 800
+      const widthMatches = config.srcSet.match(/\d+(?=w)/g) || [];
+      const maxWidth = Math.max(...widthMatches.map(Number));
+      expect(maxWidth).toBeLessThanOrEqual(800);
     });
 
     it('should use custom widths', () => {
       const customWidths = [100, 200, 300];
       const config = getResponsiveImage('sample.jpg', { widths: customWidths });
-      expect(config.srcSet.map(s => s.width)).toEqual(customWidths);
+      // srcSet is a string; check it contains each width followed by 'w'
+      customWidths.forEach((w) => {
+        expect(config.srcSet).toContain(`${w}w`);
+      });
     });
   });
 

@@ -180,6 +180,8 @@ export class OrdersService {
           name: true,
           price: true,
           brandId: true,
+          isActive: true,
+          status: true,
         },
       });
 
@@ -202,6 +204,11 @@ export class OrdersService {
 
         if (!product) {
           throw new NotFoundException(`Product ${item.product_id} not found`);
+        }
+
+        // FIX-6: Validate product is available for ordering
+        if (!product.isActive || (product.status && product.status !== 'ACTIVE')) {
+          throw new BadRequestException(`Product ${item.product_id} is currently unavailable`);
         }
 
         // Check permissions
@@ -262,6 +269,8 @@ export class OrdersService {
               id: true,
               name: true,
               price: true,
+              isActive: true,
+              status: true,
             },
           },
           brand: {
@@ -280,6 +289,12 @@ export class OrdersService {
       if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
           currentUser.brandId !== design.brandId) {
         throw new ForbiddenException('Access denied to this design');
+      }
+
+      // P10-5: Validate product availability in legacy order path
+      const productData = design.product as { isActive?: boolean; status?: string } | null;
+      if (productData && (!productData.isActive || (productData.status && productData.status !== 'ACTIVE'))) {
+        throw new BadRequestException('The product associated with this design is currently unavailable');
       }
 
       brandId = design.brandId;

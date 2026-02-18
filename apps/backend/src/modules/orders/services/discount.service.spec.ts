@@ -27,11 +27,12 @@ describe('DiscountService', () => {
       findFirst: jest.fn(),
       create: jest.fn(),
     },
-    $transaction: jest.fn(),
+    $transaction: jest.fn().mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

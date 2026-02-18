@@ -335,18 +335,25 @@ async function bootstrap() {
   });
     
     // Security middleware - production ready configuration
+    // SECURITY FIX: Hardened CSP - restricted wildcards, removed unsafe-inline where possible
     app.use(helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
+          // Styles: unsafe-inline needed for many UI frameworks; restrict to self + trusted CDNs
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
-          connectSrc: ["'self'", 'https:'],
-          fontSrc: ["'self'", 'data:', 'https:'],
+          // SECURITY FIX: Restrict imgSrc to known domains instead of wildcard https:
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', 'https://cdn.luneo.app', 'https://lh3.googleusercontent.com', 'https://avatars.githubusercontent.com'],
+          // SECURITY FIX: Restrict connectSrc to known API domains instead of wildcard https:
+          connectSrc: ["'self'", 'https://api.stripe.com', 'https://api.openai.com', 'https://api.cloudinary.com', 'https://api.luneo.app', 'https://app.luneo.app'],
+          fontSrc: ["'self'", 'data:'],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
           frameSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          frameAncestors: ["'none'"],
         },
       },
       crossOriginEmbedderPolicy: false,
@@ -356,7 +363,23 @@ async function bootstrap() {
         includeSubDomains: true,
         preload: true,
       },
+      // SECURITY FIX: Explicit security headers
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      xContentTypeOptions: true, // nosniff
+      xFrameOptions: { action: 'deny' },
+      permittedCrossDomainPolicies: { permittedPolicies: 'none' },
     }));
+
+    // SECURITY FIX: Permissions-Policy header - restrict browser features
+    app.use((_req: unknown, res: { setHeader: (name: string, value: string) => void }, next: () => void) => {
+      res.setHeader('Permissions-Policy',
+        'camera=(), microphone=(), geolocation=(), payment=(self), ' +
+        'usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ' +
+        'autoplay=(), encrypted-media=(self), fullscreen=(self), ' +
+        'picture-in-picture=(self), interest-cohort=()'
+      );
+      next();
+    });
     logger.log('Security middleware configured');
 
     // Compression for all environments (reduces response size)
@@ -368,6 +391,15 @@ async function bootstrap() {
     // Additional security middleware in production
     if (configService.get('app.nodeEnv') === 'production') {
       app.use(hpp());
+
+      // SECURITY FIX: Force HTTPS redirect in production
+      app.use((req: { headers: Record<string, string>; url: string }, res: { redirect: (status: number, url: string) => void }, next: () => void) => {
+        if (req.headers['x-forwarded-proto'] !== 'https' && !req.url.startsWith('/health')) {
+          res.redirect(301, `https://${req.headers.host}${req.url}`);
+          return;
+        }
+        next();
+      });
 
       // RATE LIMIT FIX P3-12: Express-level rateLimit and slowDown removed.
       // Rate limiting is now handled exclusively by NestJS ThrottlerModule + GlobalRateLimitGuard,

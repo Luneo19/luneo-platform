@@ -581,11 +581,25 @@ export class AuthController {
         return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed&provider=google`);
       }
 
+      // SECURITY FIX: Session fixation protection - regenerate session before issuing tokens
+      const reqAny = req as unknown as Record<string, unknown>;
+      if (reqAny.session && typeof (reqAny.session as Record<string, unknown>).regenerate === 'function') {
+        await new Promise<void>((resolve) =>
+          (reqAny.session as { regenerate: (cb: () => void) => void }).regenerate(() => resolve())
+        );
+      }
+
+      // SECURITY FIX: Capture request metadata for session tracking
+      const metadata = {
+        ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+      };
+
       // Generate tokens
       const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
       
-      // Save refresh token
-      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+      // Save refresh token with session metadata
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken, undefined, metadata);
 
       // Set httpOnly cookies
       AuthCookiesHelper.setAuthCookies(
@@ -626,11 +640,25 @@ export class AuthController {
         return res.redirect(`${this.getFrontendUrl()}/login?error=oauth_failed&provider=github`);
       }
 
+      // SECURITY FIX: Session fixation protection - regenerate session before issuing tokens
+      const reqAny = req as unknown as Record<string, unknown>;
+      if (reqAny.session && typeof (reqAny.session as Record<string, unknown>).regenerate === 'function') {
+        await new Promise<void>((resolve) =>
+          (reqAny.session as { regenerate: (cb: () => void) => void }).regenerate(() => resolve())
+        );
+      }
+
+      // SECURITY FIX: Capture request metadata for session tracking
+      const metadata = {
+        ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+      };
+
       // Generate tokens
       const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
       
-      // Save refresh token
-      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+      // Save refresh token with session metadata
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken, undefined, metadata);
 
       // Set httpOnly cookies
       AuthCookiesHelper.setAuthCookies(

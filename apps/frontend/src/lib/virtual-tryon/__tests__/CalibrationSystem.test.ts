@@ -1,49 +1,53 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CalibrationSystem } from '../CalibrationSystem';
 
-// Mock logger
-jest.mock('@/lib/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+vi.mock('@/lib/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-// Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
       store[key] = value;
     }),
-    removeItem: jest.fn((key: string) => {
+    removeItem: vi.fn((key: string) => {
       delete store[key];
     }),
-    clear: jest.fn(() => {
+    clear: vi.fn(() => {
       store = {};
     }),
   };
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-// Mock document.createElement for getDeviceFingerprint
 const mockGL = {
-  getParameter: jest.fn(() => 'TestRenderer'),
+  getParameter: vi.fn(() => 'TestRenderer'),
   RENDERER: 0x1f01,
 };
 
 const origCreateElement = document.createElement.bind(document);
-jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-  const el = origCreateElement(tag);
-  if (tag === 'canvas') {
-    (el as HTMLCanvasElement).getContext = jest.fn(() => mockGL) as unknown as typeof el.getContext;
-  }
-  return el;
-});
+let createElementSpy: ReturnType<typeof vi.spyOn>;
 
 describe('CalibrationSystem', () => {
   let calibration: CalibrationSystem;
 
   beforeEach(() => {
+    createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = origCreateElement(tag);
+      if (tag === 'canvas') {
+        const canvasEl = el as HTMLCanvasElement;
+    canvasEl.getContext = vi.fn(() => mockGL) as unknown as typeof canvasEl.getContext;
+      }
+      return el;
+    });
     localStorageMock.clear();
     calibration = new CalibrationSystem();
+  });
+
+  afterEach(() => {
+    createElementSpy?.mockRestore();
   });
 
   it('should start with zero samples', () => {

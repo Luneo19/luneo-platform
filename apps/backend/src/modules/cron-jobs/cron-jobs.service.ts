@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '@/modules/email/email.service';
+import { CreditsService } from '@/libs/credits/credits.service';
 
 @Injectable()
 export class CronJobsService {
@@ -12,6 +13,7 @@ export class CronJobsService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly creditsService: CreditsService,
   ) {}
 
   /**
@@ -327,6 +329,62 @@ export class CronJobsService {
     } catch (error) {
       this.logger.error('Cron job: cleanup failed', error);
       throw error;
+    }
+  }
+
+  /**
+   * P2-2: Expire add-on credits that have passed their expiresAt date.
+   * Runs daily at 2:00 AM (after cleanup at midnight).
+   */
+  @Cron('0 2 * * *', { name: 'credits-expiration', timeZone: 'Europe/Zurich' })
+  async expireCredits() {
+    try {
+      this.logger.log('Cron job: credits-expiration started');
+      const result = await this.creditsService.expireCredits();
+      this.logger.log('Cron job: credits-expiration completed', result);
+      return { success: true, ...result };
+    } catch (error) {
+      this.logger.error('Cron job: credits-expiration failed', error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
+   * P10-3: Clean up expired carts (older than 7 days past expiration).
+   * Runs daily at 3:00 AM.
+   */
+  @Cron('0 3 * * *', { name: 'expired-carts-cleanup', timeZone: 'Europe/Zurich' })
+  async cleanupExpiredCarts() {
+    try {
+      this.logger.log('Cron job: expired-carts-cleanup started');
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      // Delete cart items for expired carts first
+      const expiredCarts = await this.prisma.cart.findMany({
+        where: {
+          expiresAt: { not: null, lt: sevenDaysAgo },
+        },
+        select: { id: true },
+      });
+
+      if (expiredCarts.length > 0) {
+        const cartIds = expiredCarts.map(c => c.id);
+        const { count: itemsDeleted } = await this.prisma.cartItem.deleteMany({
+          where: { cartId: { in: cartIds } },
+        });
+        const { count: cartsDeleted } = await this.prisma.cart.deleteMany({
+          where: { id: { in: cartIds } },
+        });
+        this.logger.log(`Cleanup: ${cartsDeleted} expired carts and ${itemsDeleted} cart items deleted`);
+      } else {
+        this.logger.log('Cleanup: no expired carts to clean');
+      }
+
+      return { success: true, cleaned: expiredCarts.length };
+    } catch (error) {
+      this.logger.error('Cron job: expired-carts-cleanup failed', error);
+      return { success: false, error: String(error) };
     }
   }
 

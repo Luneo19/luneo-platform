@@ -14,6 +14,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { LimitsConfigService } from '../../usage-guardian/services/limits-config.service';
+import { AgentAlertsService } from './agent-alerts.service';
 import { EmailService } from '@/modules/email/email.service';
 
 // ============================================================================
@@ -44,6 +45,7 @@ export class AlertsService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly limitsConfig: LimitsConfigService,
+    private readonly agentAlerts: AgentAlertsService,
     @Optional() private readonly emailService: EmailService | null,
   ) {
     this.alertsEnabled = this.configService.get<boolean>('AI_ALERTS_ENABLED') ?? true;
@@ -311,6 +313,29 @@ export class AlertsService {
    */
   async sendAlert(alert: Alert): Promise<void> {
     this.logger.warn(`Alert: ${alert.type} - ${alert.message}`, alert.metadata);
+
+    // Persist alert in DB
+    const severityMap: Record<string, 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'> = {
+      low: 'INFO',
+      medium: 'WARNING',
+      high: 'ERROR',
+      critical: 'CRITICAL',
+    };
+    const typeMap: Record<string, 'BUDGET_EXCEEDED' | 'PROVIDER_DOWN' | 'HIGH_ERROR_RATE' | 'HIGH_LATENCY' | 'CIRCUIT_BREAKER_OPEN' | 'QUOTA_EXCEEDED' | 'SECURITY_THREAT'> = {
+      quota_exceeded: 'QUOTA_EXCEEDED',
+      quota_warning: 'QUOTA_EXCEEDED',
+      error_rate_high: 'HIGH_ERROR_RATE',
+      cost_anomaly: 'BUDGET_EXCEEDED',
+    };
+
+    this.agentAlerts.createAlert({
+      type: typeMap[alert.type] || 'QUOTA_EXCEEDED',
+      severity: severityMap[alert.severity] || 'WARNING',
+      title: `${alert.type}: ${alert.severity}`,
+      message: alert.message,
+      brandId: alert.brandId,
+      data: alert.metadata as Record<string, unknown>,
+    }).catch((err) => this.logger.warn('Failed to persist alert', err));
 
     if (this.alertEmail && this.emailService) {
       this.emailService

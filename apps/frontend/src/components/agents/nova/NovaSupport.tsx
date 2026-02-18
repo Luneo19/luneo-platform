@@ -12,7 +12,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, LifeBuoy, FileQuestion } from 'lucide-react';
+import { Send, Loader2, LifeBuoy, FileQuestion, X, MessageCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -289,6 +289,42 @@ function NovaTyping() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Floating widget wrapper for NovaSupport
+ */
+export function NovaFloatingWidget() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      {/* Floating bubble */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-sky-600 text-white shadow-lg transition-transform hover:scale-110 hover:bg-sky-700"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Chat panel */}
+      {isOpen && (
+        <div className="fixed bottom-6 right-6 z-50 w-[380px] animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="relative">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground shadow hover:bg-muted/80"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <NovaSupport className="shadow-2xl border" />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

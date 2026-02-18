@@ -100,14 +100,14 @@ const baseEnvSchema = z.object({
   SENDGRID_API_KEY: z.string().optional(),
   MAILGUN_API_KEY: z.string().optional(),
   MAILGUN_DOMAIN: z.string().optional(),
-  MAILGUN_URL: z.string().url().optional(),
-  FROM_EMAIL: z.string().email().optional(),
+  MAILGUN_URL: z.string().url().optional().or(z.literal('')),
+  FROM_EMAIL: z.string().email().optional().or(z.literal('')),
   
   // Email Domain Configuration
   SENDGRID_DOMAIN: z.string().optional(),
   SENDGRID_FROM_NAME: z.string().optional(),
-  SENDGRID_FROM_EMAIL: z.string().email().optional(),
-  SENDGRID_REPLY_TO: z.string().email().optional(),
+  SENDGRID_FROM_EMAIL: z.string().email().optional().or(z.literal('')),
+  SENDGRID_REPLY_TO: z.string().email().optional().or(z.literal('')),
   SMTP_HOST: z.string().default('smtp.sendgrid.net'),
   SMTP_PORT: z.string().transform(Number).default('587'),
   SMTP_SECURE: z.string().transform(val => val === 'true').default('false'),

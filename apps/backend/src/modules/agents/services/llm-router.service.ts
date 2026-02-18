@@ -20,6 +20,7 @@ import { RetryService } from './retry.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { AgentMetricsService } from './agent-metrics.service';
 import { PromptSecurityService } from './prompt-security.service';
+import { OutputSanitizerService } from '../security/output-sanitizer.service';
 import { LLMProvider, LLM_MODELS } from './llm-provider.enum';
 
 // Ré-exporter pour compatibilité
@@ -48,7 +49,7 @@ const LLMRequestSchema = z.object({
   maxTokens: z.number().min(1).max(128000).default(4096),
   stream: z.boolean().default(false),
   // Métadonnées pour tracking
-  brandId: z.string().uuid().optional(),
+  brandId: z.string().min(1).optional(),
   agentType: z.enum(['luna', 'aria', 'nova']).optional(),
   enableFallback: z.boolean().default(true), // Fallback automatique si erreur
 });
@@ -101,6 +102,7 @@ export class LLMRouterService {
     private readonly retryService: RetryService,
     private readonly metrics: AgentMetricsService,
     private readonly security: PromptSecurityService,
+    private readonly outputSanitizer: OutputSanitizerService,
   ) {
     this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
     this.anthropicApiKey = this.configService.get<string>('ANTHROPIC_API_KEY') || '';
@@ -156,13 +158,17 @@ export class LLMRouterService {
 
       response.latencyMs = Date.now() - startTime;
 
-      // ✅ PHASE 3: Valider sécurité de la réponse
+      // Valider et sanitiser la réponse LLM
       const outputSecurity = this.security.validateOutput(response.content);
       if (!outputSecurity.safe) {
         this.logger.warn(
           `Security threat detected in LLM output: ${outputSecurity.threats.join(', ')}`,
         );
-        // Optionnel: filtrer ou remplacer la réponse
+        const sanitized = this.outputSanitizer.sanitize(response.content);
+        response.content = sanitized.content;
+        if (sanitized.wasModified) {
+          this.logger.warn(`Output sanitized, removed: ${sanitized.removedPatterns.join(', ')}`);
+        }
       }
 
       // ✅ CRITIQUE: Enregistrer le coût LLM

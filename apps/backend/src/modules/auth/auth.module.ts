@@ -19,6 +19,7 @@ import { OAuthService } from './services/oauth.service';
 import { SSOEnterpriseService } from './services/sso-enterprise.service';
 import { TokenService } from './services/token.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
+import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { TokenCleanupScheduler } from './schedulers/token-cleanup.scheduler';
 import { RbacModule } from '@/modules/security/rbac.module';
 import { ReferralModule } from '@/modules/referral/referral.module';
@@ -132,8 +133,9 @@ try {
     SSOEnterpriseService,
     TokenService,
     RedisOptimizedService,
+    TokenBlacklistService, // SECURITY FIX: Access token blacklist for immediate revocation
     TokenCleanupScheduler, // SEC-08: Nettoyage automatique des tokens
   ],
-  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService, SSOEnterpriseService],
+  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService, SSOEnterpriseService, TokenBlacklistService],
 })
 export class AuthModule {}

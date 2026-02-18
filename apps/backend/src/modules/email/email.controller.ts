@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Query, InternalServerErrorException, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from './email.service';
 import { MailgunService } from './mailgun.service';
@@ -30,6 +31,7 @@ export class TestEmailDto {
 @ApiTags('Email')
 @Controller('email')
 @UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 20, ttl: 60000 } })
 export class EmailController {
   private readonly logger = new Logger(EmailController.name);
 

@@ -71,7 +71,7 @@ export class AssetHubController {
     return this.fileService.findAll(
       brandId,
       { projectId, folderId, type, search },
-      { page, limit },
+      { page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined },
     );
   }
 

@@ -294,6 +294,8 @@ describe('OrdersService', () => {
         name: 'Test Product',
         price: 29.99,
         brandId: 'brand-1',
+        isActive: true,
+        status: 'ACTIVE',
       };
 
       const mockOrder = {
@@ -366,6 +368,8 @@ describe('OrdersService', () => {
         name: 'Test Product',
         price: 29.99,
         brandId: 'brand-1',
+        isActive: true,
+        status: 'ACTIVE',
       };
 
       mockPrisma.product.findMany.mockResolvedValue([mockProduct]);
