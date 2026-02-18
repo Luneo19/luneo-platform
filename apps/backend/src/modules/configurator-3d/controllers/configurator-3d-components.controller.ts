@@ -70,7 +70,7 @@ export class Configurator3DComponentsController {
       isEnabled: dto.isEnabled,
       groupId: (dto as { groupId?: string }).groupId,
       settings: (dto as { settings?: Record<string, unknown> }).settings,
-      bounds: (dto as { bounds?: Record<string, unknown> }).bounds,
+      bounds: (dto as unknown as { bounds?: Record<string, unknown> }).bounds,
     };
     return this.componentsService.create(configurationId, brandId, componentDto);
   }
@@ -105,7 +105,7 @@ export class Configurator3DComponentsController {
       isEnabled: c.isEnabled,
       groupId: (c as { groupId?: string }).groupId,
       settings: (c as { settings?: Record<string, unknown> }).settings,
-      bounds: (c as { bounds?: Record<string, unknown> }).bounds,
+      bounds: (c as unknown as { bounds?: Record<string, unknown> }).bounds,
     }));
     return this.componentsService.bulkCreate(configurationId, brandId, dtos);
   }

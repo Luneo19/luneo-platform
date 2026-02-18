@@ -106,7 +106,7 @@ export class Configurator3DRulesController {
     @Body() dto: UpdateRuleDto,
   ) {
     const brandId = user.brandId ?? '';
-    const updateDto = dto as Partial<import('../services/configurator-3d-rules.service').CreateRuleDto>;
+    const updateDto = dto as unknown as Partial<import('../services/configurator-3d-rules.service').CreateRuleDto>;
     if (dto.conditions) {
       (updateDto as { conditions?: unknown }).conditions = dto.conditions.map((c) => ({ type: c.operator, componentId: c.componentId, optionId: c.optionId, value: c.value }));
     }
