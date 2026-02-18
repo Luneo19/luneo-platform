@@ -67,7 +67,7 @@ jobs:
           BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://api.luneo.app' || 'https://staging-api.luneo.app' }}
 
       - name: Upload Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: performance-test-results
