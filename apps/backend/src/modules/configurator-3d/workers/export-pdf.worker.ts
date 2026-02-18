@@ -5,7 +5,7 @@
 
 import { Processor, Process, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ExportStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';

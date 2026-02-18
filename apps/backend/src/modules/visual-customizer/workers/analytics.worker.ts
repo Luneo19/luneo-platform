@@ -1,6 +1,6 @@
 import { Processor, Process, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CUSTOMIZER_QUEUES } from '../visual-customizer.constants';
 import { CustomizerInteractionType } from '@prisma/client';

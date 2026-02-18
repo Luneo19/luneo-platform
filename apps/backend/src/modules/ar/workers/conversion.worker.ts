@@ -5,7 +5,7 @@
 
 import { Processor, Process, OnQueueFailed, OnQueueCompleted } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { FbxToGltfConverter } from '../conversion/converters/fbx-to-gltf.converter';
@@ -48,7 +48,7 @@ export class ConversionWorker {
         data: { status: ARConversionStatus.PROCESSING },
       });
 
-      await job.progress(10);
+      await job.updateProgress(10);
 
       let outputPath: string;
       let fileSize: number;
@@ -71,7 +71,7 @@ export class ConversionWorker {
           );
         }
 
-        await job.progress(50);
+        await job.updateProgress(50);
 
         const usdzResult = await this.gltfToUsdzConverter.convert(gltfUrl, {
           appleQuickLookCompatible: true,
@@ -93,7 +93,7 @@ export class ConversionWorker {
           );
         }
 
-        await job.progress(50);
+        await job.updateProgress(50);
 
         const dracoResult = await this.dracoEncoder.compress(gltfUrl, {
           compressionLevel: 7,
@@ -110,7 +110,7 @@ export class ConversionWorker {
         fileSize = result.fileSize;
       }
 
-      await job.progress(80);
+      await job.updateProgress(80);
 
       // Upload result to CDN
       const fileBuffer = await import('fs/promises').then((fs) => fs.readFile(outputPath));
@@ -159,7 +159,7 @@ export class ConversionWorker {
         .then((fs) => fs.rm(outputPath, { recursive: true, force: true }))
         .catch(() => {});
 
-      await job.progress(100);
+      await job.updateProgress(100);
 
       this.logger.log(
         `Conversion ${conversionId} completed: ${sourceFormat} -> ${targetFormat} ` +

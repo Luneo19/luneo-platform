@@ -5,7 +5,7 @@
 
 import { Processor, Process, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { ConfiguratorStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';

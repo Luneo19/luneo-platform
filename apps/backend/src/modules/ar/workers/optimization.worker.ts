@@ -5,7 +5,7 @@
 
 import { Processor, Process, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { LODGeneratorService } from '../conversion/optimization/lod-generator.service';

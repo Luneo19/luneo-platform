@@ -1,6 +1,6 @@
 import { Processor, Process, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job } from 'bullmq';
 import * as sharp from 'sharp';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
