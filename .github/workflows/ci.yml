@@ -141,7 +141,7 @@ jobs:
           COVERAGE_THRESHOLD: 70
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./apps/frontend/coverage/lcov.info
