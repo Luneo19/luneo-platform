@@ -34,10 +34,9 @@ export function useConversation(options: UseConversationOptions = {}): UseConver
     setError(null);
     try {
       const response = await endpoints.agents.conversation(id);
-      if (response.data?.success) {
-        const conv = response.data.data;
-        setConversation(conv);
-        setMessages(conv.messages || []);
+      if (response.success) {
+        setConversation(response.data);
+        setMessages(response.data.messages || []);
       }
     } catch (err) {
       logger.error('Failed to load conversation', { error: err });
@@ -50,8 +49,8 @@ export function useConversation(options: UseConversationOptions = {}): UseConver
   const loadConversations = useCallback(async (): Promise<AgentConversation[]> => {
     try {
       const response = await endpoints.agents.conversations(options.agentType);
-      if (response.data?.success) {
-        return response.data.data.conversations;
+      if (response.success) {
+        return response.data.conversations;
       }
       return [];
     } catch (err) {

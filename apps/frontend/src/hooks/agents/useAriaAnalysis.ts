@@ -35,8 +35,8 @@ export function useAriaAnalysis(): UseAriaAnalysisReturn {
           context: { action: 'analyze', designId, ...context },
         });
 
-        if (response.data?.success) {
-          const data = response.data.data;
+        if (response.success) {
+          const data = response.data;
           // Map the response to our analysis format
           const result: AriaAnalyzeResponse = {
             analysisId: designId,
