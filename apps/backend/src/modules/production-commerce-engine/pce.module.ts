@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
@@ -54,6 +54,15 @@ import { PCEQueuesModule } from './queues/queues.module';
     PrismaModule,
     ConfigModule,
     UsageBillingModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          url: configService.get('BULLMQ_REDIS_URL') || configService.get('REDIS_URL') || 'redis://localhost:6379',
+        },
+      }),
+      inject: [ConfigService],
+    }),
     BullModule.registerQueue(
       { name: PCE_QUEUES.PIPELINE, defaultJobOptions: PCE_QUEUE_DEFAULTS },
       { name: PCE_QUEUES.FULFILLMENT, defaultJobOptions: PCE_QUEUE_DEFAULTS },
