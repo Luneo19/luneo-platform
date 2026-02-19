@@ -344,7 +344,7 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     VisualCustomizerModule,
     AssetHubModule,
     PrintOnDemandModule,
-    ProductionCommerceEngineModule,
+    ...(process.env.ENABLE_PCE === 'true' ? [ProductionCommerceEngineModule] : []),
     EditorModule,
 
     // Integration modules (e-commerce)
