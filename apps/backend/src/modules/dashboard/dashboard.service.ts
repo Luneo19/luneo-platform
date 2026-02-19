@@ -156,6 +156,9 @@ export class DashboardService {
         data = { credits: brandOwner?.aiCredits ?? 0 };
         break;
       }
+      case 'pce-pipeline-status':
+        data = await this.getPCEPipelineWidget(brandId);
+        break;
       default:
         data = {};
     }
@@ -217,5 +220,14 @@ export class DashboardService {
       throw new BadRequestException('Organization not configured');
     }
     return brand.organizationId;
+  }
+
+  private async getPCEPipelineWidget(brandId: string) {
+    const [active, completed, failed] = await Promise.all([
+      this.prisma.pipeline.count({ where: { brandId, status: 'IN_PROGRESS' } }),
+      this.prisma.pipeline.count({ where: { brandId, status: 'COMPLETED' } }),
+      this.prisma.pipeline.count({ where: { brandId, status: 'FAILED' } }),
+    ]);
+    return { active, completed, failed, total: active + completed + failed };
   }
 }

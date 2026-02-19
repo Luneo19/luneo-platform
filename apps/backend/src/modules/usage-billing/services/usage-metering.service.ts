@@ -204,6 +204,10 @@ export class UsageMeteringService {
       ar_models: 'prod_ar_models',
       ar_conversions_3d: 'prod_ar_conversions',
       ar_qr_codes: 'prod_ar_qr_codes',
+      pce_orders_processed: 'prod_pce_orders',
+      pce_renders: 'prod_pce_renders',
+      pce_production_orders: 'prod_pce_production',
+      pce_fulfillments: 'prod_pce_fulfillments',
     };
 
     const targetProductId = metricToStripeProductMap[metric];
@@ -242,6 +246,10 @@ export class UsageMeteringService {
       ar_models: 'models',
       ar_conversions_3d: 'conversions',
       ar_qr_codes: 'codes',
+      pce_orders_processed: 'orders',
+      pce_renders: 'renders',
+      pce_production_orders: 'orders',
+      pce_fulfillments: 'fulfillments',
     };
 
     return units[metric] || 'units';

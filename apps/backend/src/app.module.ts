@@ -94,6 +94,7 @@ import { Configurator3DModule } from './modules/configurator-3d/configurator-3d.
 import { VisualCustomizerModule } from './modules/visual-customizer/visual-customizer.module';
 import { AssetHubModule } from './modules/asset-hub/asset-hub.module';
 import { PrintOnDemandModule } from './modules/print-on-demand/print-on-demand.module';
+import { ProductionCommerceEngineModule } from './modules/production-commerce-engine/pce.module';
 
 // Integration modules (e-commerce - also used by IntegrationsModule)
 import { PrestaShopModule } from './modules/integrations/prestashop/prestashop.module';
@@ -343,6 +344,7 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     VisualCustomizerModule,
     AssetHubModule,
     PrintOnDemandModule,
+    ProductionCommerceEngineModule,
     EditorModule,
 
     // Integration modules (e-commerce)

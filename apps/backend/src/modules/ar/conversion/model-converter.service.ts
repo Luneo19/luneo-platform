@@ -98,7 +98,7 @@ export class ModelConverterService {
         } as any,
       );
 
-      jobIds.push(job.id.toString());
+      jobIds.push(String(job.id ?? job.name));
     }
 
     // Optionally queue LOD generation
@@ -118,7 +118,7 @@ export class ModelConverterService {
           backoff: { type: 'exponential', delay: 10000 },
         } as any,
       );
-      jobIds.push(lodJob.id.toString());
+      jobIds.push(String(lodJob.id ?? lodJob.name));
     }
 
     // Update model status

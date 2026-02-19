@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole, Prisma, PaymentStatus, SubscriptionPlan, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus } from '@prisma/client';
+import { UserRole, Prisma, PaymentStatus, SubscriptionPlan, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus, PipelineStatus, ProductionOrderStatus, ReturnStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
 import { AuditLogService, AuditAction } from '@/modules/audit/services/audit-log.service';
@@ -2647,5 +2647,194 @@ export class AdminService {
         sessionCount: p._count,
       })),
     };
+  }
+
+  // ========================================
+  // PCE Analytics
+  // ========================================
+
+  /**
+   * Get PCE overview for admin dashboard (pipelines, fulfillments, returns, production orders).
+   */
+  async getPCEOverview(): Promise<{
+    totalPipelines: number;
+    activePipelines: number;
+    completedPipelines: number;
+    failedPipelines: number;
+    totalFulfillments: number;
+    totalReturns: number;
+    totalProductionOrders: number;
+    avgPipelineDurationMs: number;
+  }> {
+    const [
+      totalPipelines,
+      activePipelines,
+      completedPipelines,
+      failedPipelines,
+      totalFulfillments,
+      totalReturns,
+      totalProductionOrders,
+      completedWithDuration,
+    ] = await Promise.all([
+      this.prisma.pipeline.count(),
+      this.prisma.pipeline.count({ where: { status: 'IN_PROGRESS' } }),
+      this.prisma.pipeline.count({ where: { status: 'COMPLETED' } }),
+      this.prisma.pipeline.count({ where: { status: 'FAILED' } }),
+      this.prisma.fulfillment.count(),
+      this.prisma.return.count(),
+      this.prisma.productionOrder.count(),
+      this.prisma.pipeline.findMany({
+        where: {
+          status: 'COMPLETED',
+          startedAt: { not: null },
+          completedAt: { not: null },
+        },
+        select: {
+          startedAt: true,
+          completedAt: true,
+        },
+        take: 1000,
+      }),
+    ]);
+
+    let avgPipelineDurationMs = 0;
+    if (completedWithDuration.length > 0) {
+      const totalMs = completedWithDuration.reduce((sum, p) => {
+        const start = p.startedAt!.getTime();
+        const end = p.completedAt!.getTime();
+        return sum + (end - start);
+      }, 0);
+      avgPipelineDurationMs = Math.round(totalMs / completedWithDuration.length);
+    }
+
+    return {
+      totalPipelines,
+      activePipelines,
+      completedPipelines,
+      failedPipelines,
+      totalFulfillments,
+      totalReturns,
+      totalProductionOrders,
+      avgPipelineDurationMs,
+    };
+  }
+
+  /**
+   * List pipelines across all brands for admin view, with order and brand info.
+   */
+  async getPCEPipelines(params: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const limit = params.limit ?? 50;
+    const offset = params.offset ?? 0;
+    const where: Prisma.PipelineWhereInput = params.status ? { status: params.status as PipelineStatus } : {};
+
+    const [pipelines, total] = await Promise.all([
+      this.prisma.pipeline.findMany({
+        where,
+        skip: offset,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          order: {
+            select: {
+              id: true,
+              orderNumber: true,
+              status: true,
+              totalCents: true,
+              createdAt: true,
+            },
+          },
+          brand: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      }),
+      this.prisma.pipeline.count({ where }),
+    ]);
+
+    return {
+      pipelines,
+      total,
+      limit,
+      offset,
+    };
+  }
+
+  /**
+   * Basic queue health: counts by status for Pipeline, Fulfillment, RenderJob.
+   */
+  async getPCEQueueHealth() {
+    const [pipelineByStatus, fulfillmentByStatus, renderJobByStatus] = await Promise.all([
+      this.prisma.pipeline.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+      this.prisma.fulfillment.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+      this.prisma.renderJob.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+    ]);
+
+    return {
+      pipelines: Object.fromEntries(pipelineByStatus.map((p) => [p.status, p._count])),
+      fulfillments: Object.fromEntries(fulfillmentByStatus.map((f) => [f.status, f._count])),
+      renderJobs: Object.fromEntries(renderJobByStatus.map((r) => [r.status, r._count])),
+    };
+  }
+
+  /**
+   * List production orders for admin with optional status filter.
+   */
+  async getPCEProductionOrders(params: { status?: string; limit?: number }) {
+    const limit = params.limit ?? 50;
+    const where: Prisma.ProductionOrderWhereInput = params.status ? { status: params.status as ProductionOrderStatus } : {};
+
+    const [orders, total] = await Promise.all([
+      this.prisma.productionOrder.findMany({
+        where,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          brand: { select: { id: true, name: true } },
+          order: { select: { id: true, orderNumber: true } },
+        },
+      }),
+      this.prisma.productionOrder.count({ where }),
+    ]);
+
+    return { productionOrders: orders, total, limit };
+  }
+
+  /**
+   * List returns for admin with optional status filter.
+   */
+  async getPCEReturns(params: { status?: string; limit?: number }) {
+    const limit = params.limit ?? 50;
+    const where: Prisma.ReturnWhereInput = params.status ? { status: params.status as ReturnStatus } : {};
+
+    const [returns, total] = await Promise.all([
+      this.prisma.return.findMany({
+        where,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          brand: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.return.count({ where }),
+    ]);
+
+    return { returns, total, limit };
   }
 }

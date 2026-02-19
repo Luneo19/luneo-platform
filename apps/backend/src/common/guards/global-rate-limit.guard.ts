@@ -49,6 +49,7 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
       'billing/webhook',
       'ecommerce/woocommerce/webhook',
       'integrations/shopify/webhooks',
+      'pce/webhooks',
     ];
     if (webhookPathSuffixes.some((suffix) => request.path.includes(suffix))) {
       return true;

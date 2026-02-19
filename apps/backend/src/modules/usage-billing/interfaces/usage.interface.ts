@@ -26,7 +26,11 @@ export type UsageMetricType =
   | 'ar_sessions'
   | 'ar_models'
   | 'ar_conversions_3d'
-  | 'ar_qr_codes';
+  | 'ar_qr_codes'
+  | 'pce_orders_processed'
+  | 'pce_renders'
+  | 'pce_production_orders'
+  | 'pce_fulfillments';
 
 export interface UsageQuota {
   metric: UsageMetricType;

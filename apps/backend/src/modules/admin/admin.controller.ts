@@ -951,4 +951,75 @@ export class AdminController {
       sortOrder,
     });
   }
+
+  // ========================================
+  // PCE (Production Commerce Engine) - Admin
+  // ========================================
+
+  @Get('pce/overview')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get PCE overview for admin' })
+  @ApiResponse({ status: 200, description: 'PCE overview metrics' })
+  async getPCEOverview() {
+    return this.adminService.getPCEOverview();
+  }
+
+  @Get('pce/pipelines')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all pipelines across all brands' })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Pipelines list' })
+  async getPCEPipelines(
+    @Query('status') status?: string,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ) {
+    return this.adminService.getPCEPipelines({
+      status,
+      limit: limit ?? 50,
+      offset: offset ?? 0,
+    });
+  }
+
+  @Get('pce/production-orders')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all production orders for admin' })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Production orders list' })
+  async getPCEProductionOrders(
+    @Query('status') status?: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getPCEProductionOrders({
+      status,
+      limit: limit ?? 50,
+    });
+  }
+
+  @Get('pce/returns')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all returns for admin' })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Returns list' })
+  async getPCEReturns(
+    @Query('status') status?: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getPCEReturns({
+      status,
+      limit: limit ?? 50,
+    });
+  }
+
+  @Get('pce/queue-health')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get PCE queue health (counts by status)' })
+  @ApiResponse({ status: 200, description: 'Queue health' })
+  async getPCEQueueHealth() {
+    return this.adminService.getPCEQueueHealth();
+  }
 }

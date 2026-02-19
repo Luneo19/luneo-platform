@@ -794,6 +794,16 @@ model Brand {
   clipartCategories         ClipartCategory[]          @relation("BrandClipartCategories")
   customizerModerations     CustomizerModerationRecord[] @relation("BrandCustomizerModerations")
 
+  // PCE
+  pipelines        Pipeline[]
+  renderJobs       RenderJob[]
+  renderBatches    RenderBatch[]
+  renderUsage      RenderUsage[]
+  productionOrders ProductionOrder[]
+  podProviders     PODProvider[]
+  returns          Return[]
+  shippingRates    ShippingRate[]
+
   @@index([slug])
   @@index([status])
   @@index([stripeCustomerId])
@@ -2131,6 +2141,10 @@ model Order {
   // Production & Quality
   productionStatus ProductionStatus?
   qualityReport    QualityReport?
+
+  // PCE
+  pipeline         Pipeline?
+  productionOrders ProductionOrder[]
 
   @@index([userId])
   @@index([brandId])
@@ -8751,4 +8765,382 @@ model AICollaborationWorkspace {
   @@index([ownerId, isActive])
   @@index([brandId])
   @@map("ai_collaboration_workspaces")
+}
+
+// ========================================
+// PRODUCTION & COMMERCE ENGINE (PCE)
+// ========================================
+
+enum PipelineStatus {
+  CREATED
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FulfillmentStatus {
+  PENDING
+  PICKING
+  PACKING
+  READY_TO_SHIP
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  RETURNED
+  CANCELLED
+  FAILED
+}
+
+model Pipeline {
+  id        String         @id @default(cuid())
+  orderId   String         @unique
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  brandId   String
+  brand     Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  stages    Json
+  currentStage String
+  progress     Int            @default(0)
+  status       PipelineStatus @default(CREATED)
+  metadata     Json?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  failedAt     DateTime?
+  cancelledAt  DateTime?
+  estimatedCompletion DateTime?
+  version      Int            @default(0) // Optimistic locking
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  transitions PipelineTransition[]
+  errors      PipelineError[]
+  fulfillment Fulfillment?
+
+  @@index([brandId])
+  @@index([status])
+  @@index([currentStage])
+  @@index([brandId, status])
+  @@index([brandId, currentStage])
+  @@index([createdAt])
+  @@map("pce_pipelines")
+}
+
+model PipelineTransition {
+  id         String   @id @default(cuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  fromStage  String
+  toStage    String
+  duration   Int      @default(0) // milliseconds spent in fromStage
+  triggeredBy String? // 'system', 'manual', 'webhook'
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([pipelineId])
+  @@index([pipelineId, createdAt])
+  @@map("pce_pipeline_transitions")
+}
+
+model PipelineError {
+  id         String   @id @default(cuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage      String
+  error      String   @db.Text
+  details    Json?
+  retryable  Boolean  @default(true)
+  retryCount Int      @default(0)
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([pipelineId])
+  @@index([pipelineId, stage])
+  @@index([resolvedAt])
+  @@map("pce_pipeline_errors")
+}
+
+model Fulfillment {
+  id         String           @id @default(cuid())
+  pipelineId String           @unique
+  pipeline   Pipeline         @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  orderId    String
+  brandId    String
+  status     FulfillmentStatus @default(PENDING)
+  carrier    String?
+  trackingNumber String?
+  trackingUrl    String?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  estimatedDelivery DateTime?
+  weight     Float?
+  packages   Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([brandId])
+  @@index([status])
+  @@index([brandId, status])
+  @@map("pce_fulfillments")
+}
+
+// ---------------------------------------------------------------------------
+// PCE - Render Jobs
+// ---------------------------------------------------------------------------
+
+enum RenderJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum RenderSourceType {
+  DESIGN
+  CUSTOMIZATION
+  TEMPLATE
+  MOCKUP
+}
+
+model RenderJob {
+  id            String          @id @default(cuid())
+  brandId       String
+  brand         Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  orderId       String?
+  orderItemId   String?
+  batchId       String?
+  batch         RenderBatch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  sourceType    RenderSourceType
+  sourceId      String
+  outputs       Json
+  status        RenderJobStatus @default(QUEUED)
+  progress      Int             @default(0)
+  results       Json?
+  error         String?         @db.Text
+  priority      Int             @default(5)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  durationMs    Int?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([brandId])
+  @@index([orderId])
+  @@index([batchId])
+  @@index([status])
+  @@index([brandId, status])
+  @@index([createdAt])
+  @@map("pce_render_jobs")
+}
+
+enum BatchStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  PARTIALLY_COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model RenderBatch {
+  id          String      @id @default(cuid())
+  brandId     String
+  brand       Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name        String?
+  totalJobs   Int         @default(0)
+  completedJobs Int       @default(0)
+  failedJobs  Int         @default(0)
+  status      BatchStatus @default(PENDING)
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  jobs RenderJob[]
+
+  @@index([brandId])
+  @@index([status])
+  @@map("pce_render_batches")
+}
+
+model RenderUsage {
+  id           String   @id @default(cuid())
+  brandId      String
+  brand        Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  period       String
+  renderCount  Int      @default(0)
+  totalDurationMs BigInt @default(0)
+  quotaLimit   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([brandId, period])
+  @@index([brandId])
+  @@map("pce_render_usage")
+}
+
+// ---------------------------------------------------------------------------
+// PCE - Production Orders (POD)
+// ---------------------------------------------------------------------------
+
+enum ProductionOrderStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  IN_PRODUCTION
+  QUALITY_CHECK
+  READY_TO_SHIP
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum ProviderStatus {
+  ACTIVE
+  INACTIVE
+  TESTING
+  SUSPENDED
+}
+
+model ProductionOrder {
+  id              String                @id @default(cuid())
+  brandId         String
+  brand           Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  orderId         String
+  order           Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  providerId      String?
+  provider        PODProvider?          @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  externalOrderId String?
+  status          ProductionOrderStatus @default(DRAFT)
+  items           Json
+  shippingAddress Json?
+  costs           Json?
+  trackingNumber  String?
+  trackingUrl     String?
+  statusHistory   Json?
+  error           String?               @db.Text
+  submittedAt     DateTime?
+  completedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([brandId])
+  @@index([orderId])
+  @@index([providerId])
+  @@index([status])
+  @@index([brandId, status])
+  @@index([externalOrderId])
+  @@map("pce_production_orders")
+}
+
+model PODProvider {
+  id           String         @id @default(cuid())
+  brandId      String
+  brand        Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name         String
+  slug         String
+  providerType String
+  credentials  Json
+  settings     Json?
+  status       ProviderStatus @default(INACTIVE)
+  priority     Int            @default(0)
+  capabilities Json?
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  productionOrders ProductionOrder[]
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@index([status])
+  @@map("pce_pod_providers")
+}
+
+// ---------------------------------------------------------------------------
+// PCE - Returns & Shipping
+// ---------------------------------------------------------------------------
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  LABEL_CREATED
+  IN_TRANSIT
+  RECEIVED
+  INSPECTED
+  REFUND_PENDING
+  REFUNDED
+  CLOSED
+  CANCELLED
+}
+
+enum RefundStatus {
+  PENDING
+  PARTIAL
+  FULL
+  REJECTED
+}
+
+model Return {
+  id              String       @id @default(cuid())
+  brandId         String
+  brand           Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  orderId         String
+  fulfillmentId   String?
+  status          ReturnStatus @default(REQUESTED)
+  reason          String
+  reasonDetails   String?      @db.Text
+  items           Json
+  returnLabel     Json?
+  trackingNumber  String?
+  trackingUrl     String?
+  refundStatus    RefundStatus?
+  refundAmountCents Int?
+  refundedAt      DateTime?
+  receivedAt      DateTime?
+  inspectedAt     DateTime?
+  notes           String?      @db.Text
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([brandId])
+  @@index([orderId])
+  @@index([fulfillmentId])
+  @@index([status])
+  @@index([brandId, status])
+  @@map("pce_returns")
+}
+
+model ShippingRate {
+  id            String   @id @default(cuid())
+  brandId       String
+  brand         Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name          String
+  carrier       String
+  serviceLevel  String?
+  originCountry String?
+  destinationCountries Json?
+  minWeightKg   Float?
+  maxWeightKg   Float?
+  basePriceCents Int     @default(0)
+  perKgCents    Int      @default(0)
+  estimatedDaysMin Int?
+  estimatedDaysMax Int?
+  isActive      Boolean  @default(true)
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([carrier])
+  @@index([brandId, isActive])
+  @@map("pce_shipping_rates")
 }

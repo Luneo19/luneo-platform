@@ -346,6 +346,10 @@ export class UsageReportingService {
       ar_models: 'models',
       ar_conversions_3d: 'conversions',
       ar_qr_codes: 'codes',
+      pce_orders_processed: 'orders',
+      pce_renders: 'renders',
+      pce_production_orders: 'orders',
+      pce_fulfillments: 'fulfillments',
     };
 
     return units[metric] || 'units';
