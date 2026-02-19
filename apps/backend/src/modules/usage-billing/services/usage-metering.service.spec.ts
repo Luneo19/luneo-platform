@@ -284,7 +284,7 @@ describe('UsageMeteringService', () => {
         pce_orders_processed: 'orders',
         pce_renders: 'renders',
         pce_production_orders: 'orders',
-        pce_fulfillments: 'shipments',
+        pce_fulfillments: 'fulfillments',
       };
 
       for (const [metric, expectedUnit] of Object.entries(expectedUnits)) {
