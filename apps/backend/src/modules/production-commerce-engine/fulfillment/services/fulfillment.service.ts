@@ -186,7 +186,7 @@ export class FulfillmentService {
       trackingNumber: string;
       trackingUrl?: string;
       weight?: number;
-      packages?: unknown;
+      packages?: Record<string, unknown>;
       estimatedDelivery?: string;
     },
   ) {
@@ -205,7 +205,7 @@ export class FulfillmentService {
         trackingUrl: data.trackingUrl ?? undefined,
         shippedAt: new Date(),
         weight: data.weight,
-        packages: data.packages ?? undefined,
+        packages: data.packages ? JSON.parse(JSON.stringify(data.packages)) : undefined,
         estimatedDelivery,
       },
     });
