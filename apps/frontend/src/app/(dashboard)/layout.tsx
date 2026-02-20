@@ -6,9 +6,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import { Header } from '@/components/dashboard/Header';
 import { TerminologyProvider } from '@/providers/TerminologyProvider';
 import { DensityProvider, useDensity } from '@/providers/DensityProvider';
-import { logger } from '@/lib/logger';
-import { endpoints } from '@/lib/api/client';
-import { sidebarConfig } from '@/styles/dashboard-tokens';
+import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/i18n/useI18n';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -68,58 +66,52 @@ export default function DashboardLayoutGroup({
 }: {
   children: React.ReactNode;
 }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const { t } = useI18n();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    if (!isLoading && !user) {
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
+      router.push('/login?redirect=' + encodeURIComponent(currentPath));
+    }
+  }, [user, isLoading, router]);
+
+  useEffect(() => {
+    if (!user || onboardingChecked) return;
+
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    const isOnboardingPage = currentPath.startsWith('/onboarding');
+    const isAdmin = user.role === 'PLATFORM_ADMIN' || user.role === 'SUPER_ADMIN';
+
+    if (isOnboardingPage || isAdmin) {
+      setOnboardingChecked(true);
+      return;
+    }
+
+    (async () => {
       try {
-        const user = await endpoints.auth.me();
-        setIsAuthenticated(true);
-
-        // Check onboarding status for non-admin users
-        // Skip if user is already on the onboarding page
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-        const isOnboardingPage = currentPath.startsWith('/onboarding');
-        const userWithRole = user as { role?: string } | null;
-        const isAdmin = userWithRole?.role === 'PLATFORM_ADMIN' || userWithRole?.role === 'SUPER_ADMIN';
-
-        if (!isOnboardingPage && !isAdmin) {
-          try {
-            const progressRes = await fetch('/api/onboarding/progress');
-            if (progressRes.ok) {
-              const progress = await progressRes.json();
-              const completed = progress.organization?.onboardingCompletedAt;
-              if (!completed && (progress.currentStep ?? 0) < 6) {
-                document.cookie = 'onboarding_completed=false; path=/; max-age=31536000; SameSite=Lax';
-                router.push('/onboarding');
-                return;
-              } else {
-                // Onboarding is done — set cookie for middleware
-                document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
-              }
-            }
-          } catch {
-            // Onboarding check failed silently - don't block the user
+        const progressRes = await fetch('/api/onboarding/progress');
+        if (progressRes.ok) {
+          const progress = await progressRes.json();
+          const completed = progress.organization?.onboardingCompletedAt;
+          if (!completed && (progress.currentStep ?? 0) < 6) {
+            document.cookie = 'onboarding_completed=false; path=/; max-age=31536000; SameSite=Lax';
+            router.push('/onboarding');
+            return;
+          } else {
+            document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
           }
         }
-      } catch (error) {
-        logger.error('Auth check error', {
-          error,
-          pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        });
-        setIsAuthenticated(false);
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
-        router.push('/login?redirect=' + encodeURIComponent(currentPath));
+      } catch {
+        // Onboarding check failed silently
       }
-    };
-    checkAuth();
-  }, [router]);
+      setOnboardingChecked(true);
+    })();
+  }, [user, onboardingChecked, router]);
 
-  // Dark loading state
-  if (isAuthenticated === null) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center dash-bg">
         <div className="text-center">
@@ -132,10 +124,6 @@ export default function DashboardLayoutGroup({
         </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import {
   Sparkles,
   Activity,
@@ -26,13 +27,20 @@ import {
   Bot,
   Gauge,
   LineChart,
+  Lightbulb,
+  CheckCircle2,
+  Clock,
+  Eye,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useOrionDashboard } from '@/hooks/admin/use-orion-dashboard';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
+import { endpoints } from '@/lib/api/client';
 
 const QUICK_LINKS = [
   { title: 'Agents', href: '/admin/orion/agents', icon: Bot, description: 'Gestion des agents AI' },
@@ -55,7 +63,36 @@ function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
-export default function OrionCommandCenter() {
+type OrionInsight = {
+  id: string;
+  agentType: string;
+  title: string;
+  description?: string;
+  severity: string;
+  isRead: boolean;
+  createdAt: string;
+};
+
+type OrionAction = {
+  id: string;
+  agentType: string;
+  actionType: string;
+  title: string;
+  description?: string;
+  priority: string;
+  status: string;
+  createdAt: string;
+};
+
+type ActivityEntry = {
+  id: string;
+  agentType: string;
+  action: string;
+  description?: string;
+  createdAt: string;
+};
+
+function OrionCommandCenterContent() {
   const {
     overview,
     revenue,
@@ -63,10 +100,25 @@ export default function OrionCommandCenter() {
     kpis,
     isLoading,
     isOverviewError,
-    overviewError,
     refresh,
   } = useOrionDashboard();
+  const { toast } = useToast();
   const [seeding, setSeeding] = useState(false);
+
+  const { data: insightsData } = useSWR('orion-insights', async () => {
+    const res = await endpoints.orion.insights({ limit: 5, isRead: false });
+    return (res.data ?? []) as OrionInsight[];
+  }, { refreshInterval: 60000 });
+
+  const { data: actionsData, mutate: mutateActions } = useSWR('orion-actions', async () => {
+    const res = await endpoints.orion.actions({ limit: 5, status: 'pending' });
+    return (res.data ?? []) as OrionAction[];
+  }, { refreshInterval: 60000 });
+
+  const { data: activityData } = useSWR('orion-activity', async () => {
+    const res = await endpoints.orion.activityFeed(15);
+    return (res.data ?? []) as ActivityEntry[];
+  }, { refreshInterval: 30000 });
 
   const agents = overview?.agents ?? [];
   const metrics = overview?.metrics;
@@ -398,11 +450,11 @@ export default function OrionCommandCenter() {
         )}
       </section>
 
-      {/* 4. AI Insights & Recommendations */}
+      {/* 4. AI Insights */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-400" />
-          AI Insights & Recommendations
+          <Lightbulb className="w-5 h-5 text-amber-400" />
+          Insights IA
         </h2>
         <Card className="bg-zinc-800/50 border-zinc-700">
           <CardContent className="p-6">
@@ -411,12 +463,9 @@ export default function OrionCommandCenter() {
                 <li className="flex items-center gap-2 text-amber-400">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>
-                    {atRiskCustomers} customer{atRiskCustomers !== 1 ? 's' : ''} at risk of churn —{' '}
-                    <Link
-                      href="/admin/orion/retention"
-                      className="underline hover:text-amber-300"
-                    >
-                      Review in Retention Dashboard
+                    {atRiskCustomers} client{atRiskCustomers !== 1 ? 's' : ''} à risque de churn —{' '}
+                    <Link href="/admin/orion/retention" className="underline hover:text-amber-300">
+                      Voir le Dashboard Rétention
                     </Link>
                   </span>
                 </li>
@@ -424,24 +473,105 @@ export default function OrionCommandCenter() {
               {pausedCount > 0 && (
                 <li className="flex items-center gap-2 text-yellow-400">
                   <Pause className="w-4 h-4 shrink-0" />
-                  <span>
-                    {pausedCount} agent{pausedCount !== 1 ? 's' : ''} paused — Review agent
-                    configuration
-                  </span>
+                  <span>{pausedCount} agent{pausedCount !== 1 ? 's' : ''} en pause — Revoir la config agents</span>
                 </li>
               )}
-              {atRiskCustomers === 0 && pausedCount === 0 && (
+              {insightsData && insightsData.length > 0 ? (
+                insightsData.map((insight) => (
+                  <li key={insight.id} className="flex items-center gap-2 text-blue-400">
+                    <Eye className="w-4 h-4 shrink-0" />
+                    <span className="flex-1">
+                      <Badge variant="outline" className="mr-2 text-xs border-blue-500/30 text-blue-400">{insight.agentType}</Badge>
+                      {insight.title}
+                    </span>
+                    <span className="text-xs text-zinc-500">{new Date(insight.createdAt).toLocaleDateString('fr-FR')}</span>
+                  </li>
+                ))
+              ) : atRiskCustomers === 0 && pausedCount === 0 ? (
                 <li className="flex items-center gap-2 text-green-400">
                   <ThumbsUp className="w-4 h-4 shrink-0" />
-                  <span>All systems healthy</span>
+                  <span>Tous les systèmes opérationnels</span>
                 </li>
-              )}
+              ) : null}
             </ul>
           </CardContent>
         </Card>
       </section>
 
-      {/* 5. Quick Links Grid */}
+      {/* 5. Recommended Actions */}
+      {actionsData && actionsData.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            Actions recommandées
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {actionsData.map((action) => (
+              <Card key={action.id} className="bg-zinc-800/50 border-zinc-700">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <Badge variant="outline" className={
+                    action.priority === 'critical' ? 'border-red-500/30 text-red-400' :
+                    action.priority === 'high' ? 'border-amber-500/30 text-amber-400' :
+                    'border-zinc-500/30 text-zinc-400'
+                  }>{action.priority}</Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white">{action.title}</p>
+                    {action.description && <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{action.description}</p>}
+                    <p className="text-xs text-zinc-500 mt-1">
+                      <Badge variant="outline" className="mr-1 text-xs border-zinc-600 text-zinc-400">{action.agentType}</Badge>
+                      {new Date(action.createdAt).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-zinc-600 text-zinc-200 shrink-0"
+                    onClick={async () => {
+                      try {
+                        await endpoints.orion.actions({ status: 'executed' });
+                        await mutateActions();
+                        toast({ title: 'Action exécutée' });
+                      } catch {
+                        toast({ title: 'Erreur', variant: 'destructive' });
+                      }
+                    }}
+                    aria-label={`Exécuter l'action ${action.title}`}
+                  >
+                    Exécuter
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 6. Activity Feed */}
+      {activityData && activityData.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-cyan-400" />
+            Fil d&apos;activité
+          </h2>
+          <Card className="bg-zinc-800/50 border-zinc-700">
+            <CardContent className="p-4">
+              <ul className="space-y-2 max-h-[300px] overflow-y-auto" role="list" aria-label="Fil d'activité récente">
+                {activityData.map((entry) => (
+                  <li key={entry.id} className="flex items-center gap-3 text-sm border-b border-zinc-700/50 pb-2 last:border-0">
+                    <Badge variant="outline" className="text-xs border-zinc-600 text-zinc-400 shrink-0">{entry.agentType}</Badge>
+                    <span className="text-zinc-300 flex-1 truncate">{entry.description || entry.action}</span>
+                    <span className="text-xs text-zinc-500 shrink-0">
+                      {new Date(entry.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      {/* 7. Quick Links Grid */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4">Accès rapide</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -463,5 +593,13 @@ export default function OrionCommandCenter() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function OrionCommandCenter() {
+  return (
+    <ErrorBoundary level="page" componentName="OrionCommandCenter">
+      <OrionCommandCenterContent />
+    </ErrorBoundary>
   );
 }

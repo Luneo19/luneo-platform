@@ -1,10 +1,8 @@
-import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Logger, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
-import { PCE_QUEUES, PCE_QUEUE_DEFAULTS } from './pce.constants';
 
 // Core services
 import { PCEOrchestratorService } from './core/pce-orchestrator.service';
@@ -18,12 +16,11 @@ import { PCEMetricsService } from './observability/pce-metrics.service';
 import { PCEHealthService } from './observability/pce-health.service';
 import { PCEAlertsService } from './observability/pce-alerts.service';
 
-// Queues
+// Queue shim (in-process EventEmitter-based queues replacing BullMQ)
+import { createPCEQueueProviders } from './queues/pce-queue.provider';
 import { QueueManagerService } from './queues/queue-manager.service';
 import { QueueMonitorService } from './queues/queue-monitor.service';
 import { QueueHealthService } from './queues/queue-health.service';
-import { PipelineProcessor } from './queues/pipeline.processor';
-import { FulfillmentProcessor } from './queues/fulfillment.processor';
 
 // Event listeners
 import { OrderEventListener } from './listeners/order-event.listener';
@@ -47,33 +44,23 @@ import { PCEAdminController } from './pce-admin.controller';
 // Sub-modules
 import { ManufacturingModule } from './manufacturing/manufacturing.module';
 import { FulfillmentModule } from './fulfillment/fulfillment.module';
-import { PCEQueuesModule } from './queues/queues.module';
+
+const logger = new Logger('PCEModule');
+const queueProviders = createPCEQueueProviders();
 
 @Module({
   imports: [
     PrismaModule,
     ConfigModule,
     UsageBillingModule,
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          url: configService.get('BULLMQ_REDIS_URL') || configService.get('REDIS_URL') || 'redis://localhost:6379',
-        },
-      }),
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue(
-      { name: PCE_QUEUES.PIPELINE, defaultJobOptions: PCE_QUEUE_DEFAULTS },
-      { name: PCE_QUEUES.FULFILLMENT, defaultJobOptions: PCE_QUEUE_DEFAULTS },
-    ),
     ManufacturingModule,
     FulfillmentModule,
-    PCEQueuesModule,
   ],
   controllers: [PCEController, PCEWebhooksController, PCEAdminController],
   providers: [
     PCEQuotaGuard,
+    ...queueProviders,
+
     // Core
     PCEOrchestratorService,
     PipelineOrchestratorService,
@@ -86,12 +73,10 @@ import { PCEQueuesModule } from './queues/queues.module';
     PCEHealthService,
     PCEAlertsService,
 
-    // Queues (all 7 registered above)
+    // Queue management
     QueueManagerService,
     QueueMonitorService,
     QueueHealthService,
-    PipelineProcessor,
-    FulfillmentProcessor,
 
     // Event listeners
     OrderEventListener,
@@ -116,4 +101,8 @@ import { PCEQueuesModule } from './queues/queues.module';
     QueueHealthService,
   ],
 })
-export class ProductionCommerceEngineModule {}
+export class ProductionCommerceEngineModule {
+  constructor() {
+    logger.log('Production & Commerce Engine module initialized');
+  }
+}

@@ -64,7 +64,7 @@ export class NotificationsService {
       this.webPushEnabled = true;
       this.logger.log('Web Push configured (VAPID keys present)');
     } else {
-      this.logger.warn('VAPID keys not configured - push notifications disabled');
+      this.logger.debug('VAPID keys not configured - push notifications disabled');
     }
     
     // Check Redis availability
@@ -81,11 +81,11 @@ export class NotificationsService {
       if (isHealthy) {
         this.logger.log('✅ Push subscriptions: Redis storage enabled');
       } else {
-        this.logger.warn('⚠️ Push subscriptions: Redis unavailable, using in-memory fallback');
+        this.logger.debug('⚠️ Push subscriptions: Redis unavailable, using in-memory fallback');
       }
     } catch {
       this.redisAvailable = false;
-      this.logger.warn('⚠️ Push subscriptions: Redis check failed, using in-memory fallback');
+      this.logger.debug('Push subscriptions: Redis not yet available, using in-memory fallback');
     }
   }
 

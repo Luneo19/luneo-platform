@@ -74,7 +74,7 @@ export class BruteForceService {
 
       if (!redis) {
         // SECURITY FIX: Use in-memory fallback when Redis is unavailable (fail-close)
-        this.logger.warn('Redis unavailable, using in-memory brute force store');
+        this.logger.debug('Redis unavailable, using in-memory brute force store');
         const memAttempts = this.checkInMemory(identifier);
         return memAttempts < 5;
       }
@@ -271,7 +271,7 @@ export class BruteForceService {
       const canAttempt = await Promise.race([
         this.canAttempt(email, ip),
         new Promise<boolean>((resolve) => setTimeout(() => {
-          this.logger.warn('Brute force global check timeout, using in-memory fallback');
+          this.logger.debug('Brute force check: Redis not ready, using in-memory fallback');
           const identifier = this.getIdentifier(email, ip);
           const memAttempts = this.checkInMemory(identifier);
           resolve(memAttempts < 5);

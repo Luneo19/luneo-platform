@@ -13,11 +13,12 @@ import { BillingService } from './billing.service';
 import { CommissionService } from './services/commission.service';
 import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
+import { InvoiceTaxService } from './services/invoice-tax.service';
 
 @Module({
   imports: [ConfigModule, CreditsModule, PrismaModule, RedisOptimizedModule, PlansModule, EmailModule, SecurityModule, ZapierModule, ReferralModule],
   controllers: [BillingController],
-  providers: [BillingService, StripeClientService, StripeWebhookService, CommissionService],
-  exports: [BillingService, StripeClientService, CommissionService],
+  providers: [BillingService, StripeClientService, StripeWebhookService, CommissionService, InvoiceTaxService],
+  exports: [BillingService, StripeClientService, CommissionService, InvoiceTaxService],
 })
 export class BillingModule {}

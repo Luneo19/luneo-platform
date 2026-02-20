@@ -18,6 +18,14 @@ export class PgVectorStore implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     try {
+      const extensions = await this.prisma.$queryRawUnsafe<{ name: string }[]>(
+        `SELECT name FROM pg_available_extensions WHERE name = 'vector'`,
+      );
+      if (!extensions || extensions.length === 0) {
+        this.logger.debug('pgvector extension not available on this PostgreSQL installation. Using JSON-based similarity search.');
+        return;
+      }
+
       await this.prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS vector');
       this.pgvectorEnabled = true;
       this.logger.log('pgvector extension enabled');

@@ -28,6 +28,7 @@ import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 
 const defaultCalendar = [
   { id: 1, day: 'Lundi', time: '09:00', platform: 'Instagram', status: 'À préparer', format: 'Story' },
@@ -37,6 +38,7 @@ const defaultCalendar = [
 
 export default function SocialMediaPage() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const features = [
     {
       icon: <ImageIcon className="w-6 h-6" />,
@@ -265,10 +267,7 @@ ${platformGuidelines.hook}
         description="Créez, planifiez et publiez sur tous vos réseaux sociaux. Génération IA, analytics, multi-comptes - gérez votre présence sociale en un seul endroit."
         badge="Social Media Manager"
         gradient="from-violet-600 via-fuchsia-600 to-pink-600"
-        cta={{
-          label: 'Voir la Social Studio',
-          href: '#social-studio'
-        }}
+        cta={user ? { label: 'Accéder au dashboard', href: '/dashboard' } : { label: 'Commencer gratuitement', href: '/register?plan=starter' }}
       />
 
     <div className="min-h-screen dark-section relative noise-overlay">

@@ -10,7 +10,6 @@
 
 import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
-import { ScheduleModule } from '@nestjs/schedule';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 
@@ -55,7 +54,6 @@ import { PlansModule } from '@/modules/plans/plans.module';
     StorageModule,
     HttpModule,
     ConfigModule,
-    ScheduleModule.forRoot(),
     BullModule.registerQueue(
       {
         name: 'analytics-aggregation',

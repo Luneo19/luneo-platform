@@ -26,9 +26,11 @@ import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function MarketingPage() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [channel, setChannel] = useState<'Email' | 'Social Ads' | 'Display' | 'Print'>('Email');
   const [goal, setGoal] = useState('Conversions');
   const [budget, setBudget] = useState(2500);
@@ -241,10 +243,7 @@ export default function MarketingPage() {
         description="Créez des campagnes marketing ultra-personnalisées. Génération AI, A/B testing, analytics - tout pour maximiser votre ROI marketing."
         badge="Marketing Automation"
         gradient="from-rose-600 via-pink-600 to-purple-600"
-        cta={{
-          label: 'Voir l\'orchestrateur',
-          href: '#marketing-orchestrator'
-        }}
+        cta={user ? { label: 'Accéder au dashboard', href: '/dashboard' } : { label: 'Commencer gratuitement', href: '/register?plan=starter' }}
       />
 
     <div className="min-h-screen dark-section relative noise-overlay">

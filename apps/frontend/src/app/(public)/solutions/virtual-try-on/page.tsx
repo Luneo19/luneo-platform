@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Camera,
@@ -12,7 +10,6 @@ import {
   Gem,
   CheckCircle,
   ArrowRight,
-  Play,
   Download,
   Share2,
   Smartphone,
@@ -21,7 +18,6 @@ import {
   ChevronDown,
   Star,
   Quote,
-  Calculator,
   X,
   Pause,
   Circle,
@@ -34,11 +30,13 @@ import { Card } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
 import { useSolutionData } from '@/lib/hooks/useSolutionData';
 import { FAQStructuredData, ProductStructuredData } from '@/components/seo/StructuredData';
-import { PageHero, SectionHeader } from '@/components/marketing/shared';
+import { PageHero } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
+import TryOnDemo from '@/components/solutions/TryOnDemo';
 
 // Types
 interface Product {
@@ -47,6 +45,15 @@ interface Product {
   image: string;
   category: 'glasses' | 'watch' | 'jewelry' | 'accessory';
   overlayPosition: { x: number; y: number; scale: number };
+}
+
+type DemoCategoryId = 'lunettes' | 'boucles' | 'montres';
+
+interface DemoProduct {
+  id: string;
+  name: string;
+  color: string;
+  overlayStyle: 'glasses' | 'earrings' | 'watch';
 }
 
 interface Testimonial {
@@ -60,13 +67,41 @@ interface Testimonial {
   metric: string;
 }
 
-// Demo products
+// Demo products (legacy, for ROI/refs)
 const demoProducts: Product[] = [
   { id: '1', name: 'Aviator Classic', image: '/images/products/glasses-1.png', category: 'glasses', overlayPosition: { x: 50, y: 35, scale: 1 } },
   { id: '2', name: 'Wayfarer Sport', image: '/images/products/glasses-2.png', category: 'glasses', overlayPosition: { x: 50, y: 35, scale: 0.95 } },
   { id: '3', name: 'Cat Eye Luxe', image: '/images/products/glasses-3.png', category: 'glasses', overlayPosition: { x: 50, y: 35, scale: 1.05 } },
   { id: '4', name: 'Round Vintage', image: '/images/products/glasses-4.png', category: 'glasses', overlayPosition: { x: 50, y: 35, scale: 0.9 } },
 ];
+
+// Interactive demo: products by category (placeholder SVGs)
+const DEMO_CATEGORIES: { id: DemoCategoryId; label: string; icon: typeof Glasses }[] = [
+  { id: 'lunettes', label: 'Lunettes', icon: Glasses },
+  { id: 'boucles', label: "Boucles d'oreilles", icon: Gem },
+  { id: 'montres', label: 'Montres', icon: Watch },
+];
+
+const DEMO_PRODUCTS: Record<DemoCategoryId, DemoProduct[]> = {
+  lunettes: [
+    { id: 'g1', name: 'Aviator', color: '#d97706', overlayStyle: 'glasses' },
+    { id: 'g2', name: 'Wayfarer', color: '#1e293b', overlayStyle: 'glasses' },
+    { id: 'g3', name: 'Cat Eye', color: '#be185d', overlayStyle: 'glasses' },
+    { id: 'g4', name: 'Round', color: '#0369a1', overlayStyle: 'glasses' },
+  ],
+  boucles: [
+    { id: 'b1', name: 'Stud', color: '#ca8a04', overlayStyle: 'earrings' },
+    { id: 'b2', name: 'Creole', color: '#94a3b8', overlayStyle: 'earrings' },
+    { id: 'b3', name: 'Pendente', color: '#e11d48', overlayStyle: 'earrings' },
+    { id: 'b4', name: 'Drop', color: '#fef3c7', overlayStyle: 'earrings' },
+  ],
+  montres: [
+    { id: 'm1', name: 'Classic', color: '#64748b', overlayStyle: 'watch' },
+    { id: 'm2', name: 'Sport', color: '#0f172a', overlayStyle: 'watch' },
+    { id: 'm3', name: 'Minimal', color: '#b45309', overlayStyle: 'watch' },
+    { id: 'm4', name: 'Chrono', color: '#1e3a8a', overlayStyle: 'watch' },
+  ],
+};
 
 // Testimonials
 const testimonials: Testimonial[] = [
@@ -132,21 +167,13 @@ const faqItems = [
 
 function VirtualTryOnPageContent() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const { data: solutionData } = useSolutionData('virtual-try-on');
 
-  // Demo states
-  const [cameraActive, setCameraActive] = useState(false);
-  const [streamError, setStreamError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(demoProducts[0]);
-  const [recording, setRecording] = useState(false);
-  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
-  const [trackingActive, setTrackingActive] = useState(false);
-  const [faceDetected, setFaceDetected] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const animationRef = useRef<number | null>(null);
+  // Interactive demo state (no camera)
+  const [demoCategory, setDemoCategory] = useState<DemoCategoryId>('lunettes');
+  const [selectedDemoProduct, setSelectedDemoProduct] = useState<DemoProduct | null>(DEMO_PRODUCTS.lunettes[0]);
+  const [showCameraDemo, setShowCameraDemo] = useState(false);
 
   // ROI Calculator states
   const [monthlyOrders, setMonthlyOrders] = useState(1000);
@@ -198,202 +225,11 @@ function VirtualTryOnPageContent() {
     };
   }, [monthlyOrders, averageOrderValue, currentReturnRate]);
 
-  // Simulated face tracking
-  const simulateFaceTracking = useCallback(() => {
-    if (!canvasRef.current || !videoRef.current || !cameraActive) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const video = videoRef.current;
-
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    if (!faceDetected && cameraActive) {
-      // Demo simulation - replace with real API in production
-      setTimeout(() => setFaceDetected(true), 1000);
-      setTimeout(() => setTrackingActive(true), 1000);
-    }
-
-    if (trackingActive && selectedProduct) {
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
-      ctx.lineWidth = 1;
-      
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height * 0.4;
-      const faceWidth = canvas.width * 0.3;
-      const faceHeight = canvas.height * 0.4;
-
-      ctx.beginPath();
-      ctx.ellipse(centerX, centerY, faceWidth / 2, faceHeight / 2, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      const leftEyeX = centerX - faceWidth * 0.2;
-      const rightEyeX = centerX + faceWidth * 0.2;
-      const eyeY = centerY - faceHeight * 0.1;
-
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.8)';
-      [leftEyeX, rightEyeX].forEach(x => {
-        ctx.beginPath();
-        ctx.arc(x, eyeY, 3, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(
-        centerX - faceWidth * 0.5,
-        eyeY - 30,
-        faceWidth,
-        60
-      );
-      ctx.setLineDash([]);
-    }
-
-    animationRef.current = requestAnimationFrame(simulateFaceTracking);
-  }, [cameraActive, faceDetected, trackingActive, selectedProduct]);
-
-  // Start camera
-  const handleStartCamera = useCallback(async () => {
-    try {
-      setStreamError(null);
-      setFaceDetected(false);
-      setTrackingActive(false);
-
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setStreamError(t('common.cameraNotSupported'));
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
-
-      mediaStreamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
-
-      setCameraActive(true);
-    } catch (error) {
-      logger.error('Camera error', {
-        error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-      setStreamError(t('common.cameraAccessError'));
-      setCameraActive(false);
-    }
-  }, []);
-
-  // Stop camera
-  const handleStopCamera = useCallback(() => {
-    setCameraActive(false);
-    setFaceDetected(false);
-    setTrackingActive(false);
-    setStreamError(null);
-
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-
-    if (mediaRecorderRef.current && recording) {
-      mediaRecorderRef.current.stop();
-    }
-
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
-    setRecording(false);
-    setRecordedChunks([]);
-  }, [recording]);
-
+  // Sync selected demo product when category changes
   useEffect(() => {
-    if (cameraActive) {
-      animationRef.current = requestAnimationFrame(simulateFaceTracking);
-    }
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [cameraActive, simulateFaceTracking]);
-
-  useEffect(() => {
-    return () => {
-      if (mediaRecorderRef.current && recording) {
-        mediaRecorderRef.current.stop();
-      }
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [recording]);
-
-  const capturePhoto = useCallback(() => {
-    if (!canvasRef.current) return;
-    const link = document.createElement('a');
-    link.download = `luneo-try-on-${selectedProduct?.name || 'capture'}.png`;
-    link.href = canvasRef.current.toDataURL('image/png');
-    link.click();
-  }, [selectedProduct]);
-
-  const toggleVideoRecording = useCallback(() => {
-    if (!mediaStreamRef.current) return;
-
-    if (!recording) {
-      try {
-        const recorder = new MediaRecorder(mediaStreamRef.current, {
-          mimeType: 'video/webm;codecs=vp9',
-        });
-
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            setRecordedChunks((prev) => [...prev, event.data]);
-          }
-        };
-
-        recorder.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: 'video/webm' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `luneo-try-on-${selectedProduct?.name || 'demo'}.webm`;
-          link.click();
-          URL.revokeObjectURL(url);
-          setRecordedChunks([]);
-        };
-
-        recorder.start();
-        mediaRecorderRef.current = recorder;
-        setRecording(true);
-      } catch (error) {
-        logger.error('Recording error', { error });
-      }
-    } else {
-      mediaRecorderRef.current?.stop();
-      setRecording(false);
-    }
-  }, [recording, recordedChunks, selectedProduct]);
+    const products = DEMO_PRODUCTS[demoCategory];
+    setSelectedDemoProduct(products[0] ?? null);
+  }, [demoCategory]);
 
   return (
     <>
@@ -402,148 +238,187 @@ function VirtualTryOnPageContent() {
         description="Permettez à vos clients d'essayer vos produits en temps réel directement depuis leur navigateur. Augmentez vos conversions et réduisez les retours avec notre technologie AR de pointe."
         badge="Solution AR"
         gradient="from-cyan-600 via-blue-600 to-purple-600"
-        cta={{
-          label: 'Essayer maintenant',
-          href: '#demo'
-        }}
+        cta={user ? { label: 'Accéder au Try-On', href: '/dashboard' } : { label: 'Commencer gratuitement', href: '/register?plan=starter' }}
       />
 
     <div className="min-h-screen dark-section relative noise-overlay">
       <div className="absolute inset-0 gradient-mesh-purple" />
-      {/* Demo Section */}
+      {/* Demo Section: Interactive (no camera) + optional camera experience */}
       <section id="demo" className="dark-section relative noise-overlay py-20 md:py-32 px-4 sm:px-6 lg:px-8">
         <div className="absolute inset-0 gradient-mesh-purple" />
         <div className="relative max-w-7xl mx-auto z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Text Content */}
+          {showCameraDemo ? (
             <ScrollReveal animation="fade-up">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 text-white leading-tight italic">
-                  <span className="text-gradient-purple">Essayez en direct</span>
-                </h2>
-                <p className="text-lg text-slate-300 mb-8 leading-relaxed">
-                Activez votre caméra pour tester le Virtual Try-On en temps réel
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl md:text-3xl font-display font-bold text-white italic">
+                    <span className="text-gradient-purple">Expérience en direct</span>
+                  </h2>
                   <Button
-                    size="lg"
-                    onClick={handleStartCamera}
-                    disabled={cameraActive}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 px-8 py-6 text-lg"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCameraDemo(false)}
+                    className="border-white/[0.04] hover:bg-white/5 text-slate-300"
                   >
-                    {cameraActive ? 'Caméra Active' : 'Essayer Maintenant'}
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    <X className="w-4 h-4 mr-2" />
+                    Retour à la démo
                   </Button>
-                  <Link href="/register">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-white/[0.04] hover:bg-white/5 px-8 py-6 text-lg"
-                    >
-                      Essai Gratuit 14 Jours
-                    </Button>
-                  </Link>
                 </div>
+                <TryOnDemo category="all" showControls />
               </div>
             </ScrollReveal>
+          ) : (
+            <>
+              <ScrollReveal animation="fade-up">
+                <div className="text-center mb-12">
+                  <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white italic">
+                    <span className="text-gradient-purple">Démo interactive</span>
+                  </h2>
+                  <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+                    Choisissez une catégorie et un produit pour simuler l&apos;essayage sur un visage type. Aucune caméra requise.
+                  </p>
+                </div>
+              </ScrollReveal>
 
-            {/* Right: Demo Preview */}
-            <ScrollReveal animation="fade-up" staggerIndex={1} staggerDelay={80}>
-              <div className="relative">
-                <AnimatedBorder hoverOnly speed="slow">
-                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-2 border-white/[0.04] bg-dark-card/60 backdrop-blur-sm shadow-glow-sm">
-                {cameraActive ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      className="absolute inset-0 w-full h-full object-cover opacity-0"
-                      playsInline
-                      muted
-                    />
-                    <canvas
-                      ref={canvasRef}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    
-                    <div className="absolute top-4 left-4 flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${trackingActive ? 'bg-green-500' : faceDetected ? 'bg-yellow-500' : 'bg-blue-500'}`} />
-                        <span className="text-sm font-medium bg-dark-card/80 backdrop-blur-sm px-3 py-1 rounded-full text-white">
-                          {trackingActive ? 'Tracking actif' : faceDetected ? 'Visage détecté' : 'Recherche...'}
-                        </span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                {/* Left: Categories + products */}
+                <ScrollReveal animation="fade-up">
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap gap-2">
+                      {DEMO_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setDemoCategory(cat.id)}
+                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            demoCategory === cat.id
+                              ? 'bg-purple-600 border-purple-500 text-white'
+                              : 'border-white/[0.08] bg-dark-card/60 text-slate-300 hover:bg-white/5'
+                          }`}
+                        >
+                          <cat.icon className="w-4 h-4" />
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {(DEMO_PRODUCTS[demoCategory] ?? []).map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => setSelectedDemoProduct(product)}
+                          className={`relative aspect-square rounded-xl border-2 overflow-hidden transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[var(--dark-bg)] ${
+                            selectedDemoProduct?.id === product.id
+                              ? 'border-purple-500 ring-2 ring-purple-500/30'
+                              : 'border-white/[0.06] hover:border-white/20'
+                          }`}
+                          aria-pressed={selectedDemoProduct?.id === product.id}
+                        >
+                          <svg className="w-full h-full" viewBox="0 0 100 100" aria-hidden>
+                            <rect width="100" height="100" fill={product.color} />
+                            <rect x="10" y="10" width="80" height="80" rx="8" fill="rgba(255,255,255,0.1)" />
+                          </svg>
+                          <span className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 text-xs font-medium text-white text-center truncate px-1">
+                            {product.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </ScrollReveal>
+
+                {/* Right: Simulated try-on view (model face + overlay) */}
+                <ScrollReveal animation="fade-up" staggerIndex={1} staggerDelay={80}>
+                  <AnimatedBorder hoverOnly speed="slow">
+                    <div className="relative aspect-[3/4] max-h-[500px] rounded-2xl overflow-hidden border-2 border-white/[0.04] bg-dark-card/60 backdrop-blur-sm shadow-glow-sm">
+                      {/* Stock model face (SVG placeholder) */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-800/80">
+                        <svg
+                          viewBox="0 0 200 260"
+                          className="w-full max-w-[280px] h-auto text-slate-600"
+                          aria-hidden
+                        >
+                          <ellipse cx="100" cy="95" rx="70" ry="85" fill="currentColor" className="text-slate-500" />
+                          <ellipse cx="75" cy="88" rx="12" ry="14" fill="#334155" />
+                          <ellipse cx="125" cy="88" rx="12" ry="14" fill="#334155" />
+                          <path d="M 70 115 Q 100 130 130 115" stroke="#475569" strokeWidth="3" fill="none" strokeLinecap="round" />
+                          <ellipse cx="100" cy="195" rx="35" ry="50" fill="#475569" opacity="0.5" />
+                        </svg>
                       </div>
 
-                      {selectedProduct && (
-                        <div className="absolute top-4 right-4 bg-dark-card/80 backdrop-blur-sm px-3 py-2 rounded-lg flex items-center gap-2">
-                          <Glasses className="w-4 h-4 text-slate-300" />
-                          <span className="text-sm text-white">{selectedProduct.name}</span>
-                        </div>
+                      {/* Product overlay (CSS-positioned) */}
+                      {selectedDemoProduct && (
+                        <>
+                          {selectedDemoProduct.overlayStyle === 'glasses' && (
+                            <div
+                              className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 w-[55%] h-[11%] rounded-full border-4 border-slate-700 bg-slate-600/40 backdrop-blur-sm"
+                              style={{ borderColor: selectedDemoProduct.color, boxShadow: `0 0 0 2px ${selectedDemoProduct.color}40` }}
+                            />
+                          )}
+                          {selectedDemoProduct.overlayStyle === 'earrings' && (
+                            <>
+                              <div
+                                className="absolute w-[10%] aspect-square rounded-full border-2 border-slate-600 top-[40%] left-[22%] bg-slate-500/50"
+                                style={{ backgroundColor: `${selectedDemoProduct.color}60`, borderColor: selectedDemoProduct.color }}
+                              />
+                              <div
+                                className="absolute w-[10%] aspect-square rounded-full border-2 border-slate-600 top-[40%] right-[22%] bg-slate-500/50"
+                                style={{ backgroundColor: `${selectedDemoProduct.color}60`, borderColor: selectedDemoProduct.color }}
+                              />
+                            </>
+                          )}
+                          {selectedDemoProduct.overlayStyle === 'watch' && (
+                            <div
+                              className="absolute left-1/2 bottom-[18%] -translate-x-1/2 w-[32%] h-[14%] rounded-xl border-2 border-slate-600 bg-slate-700/80 backdrop-blur-sm flex items-center justify-center"
+                              style={{ borderColor: selectedDemoProduct.color }}
+                            >
+                              <span className="text-[0.5rem] font-mono text-slate-400">12</span>
+                            </div>
+                          )}
+                        </>
                       )}
 
-                    <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={capturePhoto}
-                          className="bg-white/90 hover:bg-white"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Photo
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={toggleVideoRecording}
-                          className={`${recording ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white/90 hover:bg-white'}`}
-                        >
-                          {recording ? <Pause className="w-4 h-4 mr-1" /> : <Circle className="w-4 h-4 mr-1" />}
-                          {recording ? 'Stop' : 'Rec'}
-                        </Button>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={handleStopCamera}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Fermer
-                      </Button>
+                      {selectedDemoProduct && (
+                        <div className="absolute top-3 left-3 bg-dark-card/80 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-2">
+                          {demoCategory === 'lunettes' && <Glasses className="w-4 h-4 text-slate-300" />}
+                          {demoCategory === 'boucles' && <Gem className="w-4 h-4 text-slate-300" />}
+                          {demoCategory === 'montres' && <Watch className="w-4 h-4 text-slate-300" />}
+                          <span className="text-sm text-white">{selectedDemoProduct.name}</span>
+                        </div>
+                      )}
                     </div>
-                  </>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-dark-card/40">
-                      <Camera className="w-16 h-16 text-slate-400 mb-4" />
-                      <h3 className="text-xl font-semibold mb-2 text-white">Démo Interactive</h3>
-                      <p className="text-slate-300 text-center mb-6 text-sm">
-                        Cliquez sur &quot;Essayer Maintenant&quot; pour activer votre caméra
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Shield className="w-4 h-4" />
-                        <span>Aucune donnée stockée • Traitement local</span>
-                      </div>
-                    </div>
-                  )}
+                  </AnimatedBorder>
+                </ScrollReveal>
+              </div>
 
-                  {streamError && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-red-500/10 backdrop-blur-sm">
-                      <div className="text-center p-6">
-                        <X className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                        <p className="text-red-300">{streamError}</p>
-                        <Button
-                          className="mt-4"
-                          variant="outline"
-                          onClick={() => setStreamError(null)}
-                        >
-                          Réessayer
-                        </Button>
-                      </div>
+              {/* Camera CTA */}
+              <ScrollReveal animation="fade-up">
+                <div className="mt-12 p-6 rounded-2xl border-2 border-purple-500/30 bg-purple-500/5 backdrop-blur-sm">
+                  <p className="text-lg font-medium text-white mb-3">
+                    Activez votre caméra pour une expérience en direct
+                  </p>
+                  <p className="text-slate-300 text-sm mb-4">
+                    Essayage en temps réel avec détection du visage et des mains (MediaPipe). Aucune donnée stockée, traitement local.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <Button
+                      size="lg"
+                      onClick={() => setShowCameraDemo(true)}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+                    >
+                      <Camera className="w-5 h-5 mr-2" />
+                      Activer la caméra
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Shield className="w-4 h-4 flex-shrink-0" />
+                      <span>Aucune donnée stockée • Traitement local</span>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </AnimatedBorder>
-            </div>
-          </ScrollReveal>
-          </div>
+              </ScrollReveal>
+            </>
+          )}
         </div>
       </section>
 

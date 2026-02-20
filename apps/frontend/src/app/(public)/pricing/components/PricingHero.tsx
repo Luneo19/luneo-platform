@@ -59,6 +59,12 @@ export function PricingHero({
           <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-white/50 leading-relaxed">
             {t('pricing.hero.subtitle')}
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-4 py-2">
+            <Shield className="h-4 w-4 text-emerald-400" />
+            <span className="text-sm font-semibold text-emerald-400">
+              14 jours d&apos;essai gratuit sur tous les plans &middot; Sans engagement &middot; Sans carte bancaire
+            </span>
+          </div>
         </div>
 
         {/* Toggle */}

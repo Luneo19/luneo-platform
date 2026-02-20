@@ -28,11 +28,13 @@ import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 export default function EcommercePage() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [selectedPlatform, setSelectedPlatform] = useState('Shopify');
   const [contact, setContact] = useState({ email: '', brand: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -206,10 +208,7 @@ export default function EcommercePage() {
         description="Connectez Luneo à votre boutique en ligne. Shopify, WooCommerce, Magento, PrestaShop - intégration native en 15 minutes. Augmentez vos conversions de 35%."
         badge="Intégration E-commerce"
         gradient="from-emerald-600 via-green-600 to-teal-600"
-        cta={{
-          label: 'Voir la démo',
-          href: '#ecommerce-demo-form'
-        }}
+        cta={user ? { label: 'Accéder aux produits', href: '/dashboard/products' } : { label: 'Commencer gratuitement', href: '/register?plan=starter' }}
       />
 
     <div className="min-h-screen dark-section relative noise-overlay">

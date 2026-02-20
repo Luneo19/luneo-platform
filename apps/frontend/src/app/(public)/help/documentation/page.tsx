@@ -214,8 +214,8 @@ function ProductPage() {
   }, [exampleCode]);
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-br from-gray-900 via-black to-blue-900 py-12 sm:py-16 md:py-20 lg:py-24 border-b border-gray-800">
+    <div className="min-h-screen bg-[#0a0a0f]">
+      <section className="bg-gradient-to-br from-[#0a0a0f] via-black to-blue-900/30 py-12 sm:py-16 md:py-20 lg:py-24 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <motion
@@ -239,7 +239,7 @@ function ProductPage() {
               <input
                 type="text"
                 placeholder="Rechercher dans la documentation..."
-                className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-full bg-gray-800/50 border-2 border-gray-600 focus:border-blue-400 focus:outline-none text-sm sm:text-base text-white placeholder-gray-400"
+                className="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-full bg-white/5 border border-white/10 focus:border-white/30 focus:outline-none text-sm sm:text-base text-white placeholder-white/40"
               />
               <Button className="absolute right-2 top-2 bg-gradient-to-r from-blue-600 to-purple-600 text-sm sm:text-base">
                 Rechercher
@@ -259,7 +259,7 @@ function ProductPage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-20 bg-gray-800/50">
+      <section className="py-12 sm:py-16 md:py-20 bg-white/[0.03]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {sections.map((section, index) => (
@@ -308,13 +308,13 @@ function ProductPage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+      <section className="py-12 sm:py-16 md:py-20 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-8 sm:mb-12">
             Exemple: Intégrer le Customizer en 5 minutes
           </h2>
           
-          <Card className="p-4 sm:p-6 md:p-8 bg-gray-900 text-white">
+          <Card className="p-4 sm:p-6 md:p-8 bg-[#0a0a0f] border border-white/10 text-white">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <FileCode className="w-5 h-5 text-blue-400" />
@@ -346,7 +346,7 @@ function ProductPage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-20 bg-gray-900 text-center">
+      <section className="py-12 sm:py-16 md:py-20 bg-[#0a0a0f] text-center">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
           <MessageSquare className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-6 text-blue-400" />
           

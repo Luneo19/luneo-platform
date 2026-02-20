@@ -34,6 +34,7 @@ import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { AnimatedBorder } from '@/components/ui/animated-border';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 
 // Types
 interface Testimonial {
@@ -126,6 +127,7 @@ const faqItems = [
 
 function AnalyticsPageContent() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const { data: solutionData } = useSolutionData('analytics');
 
   const [activeTab, setActiveTab] = useState<'overview' | 'funnel' | 'predictions'>('overview');
@@ -153,10 +155,7 @@ function AnalyticsPageContent() {
         description="Analytics avancés avec prédictions IA, funnels personnalisés, cohortes, et détection d'anomalies. Prenez des décisions data-driven pour maximiser votre croissance."
         badge="Analytics IA"
         gradient="from-emerald-600 via-teal-600 to-cyan-600"
-        cta={{
-          label: 'Voir la démo',
-          href: '#demo'
-        }}
+        cta={user ? { label: 'Accéder aux analytics', href: '/dashboard/analytics' } : { label: 'Commencer gratuitement', href: '/register?plan=starter' }}
       />
 
       <div className="min-h-screen dark-section relative noise-overlay">

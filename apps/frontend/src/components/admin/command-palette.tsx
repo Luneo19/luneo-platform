@@ -31,6 +31,7 @@ import {
   Zap,
   Home,
   ChevronRight,
+  Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -126,6 +127,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       category: 'Analytics',
       keywords: ['revenue', 'mrr', 'arr', 'money'],
       action: () => router.push('/admin/analytics?tab=revenue'),
+    },
+    {
+      id: 'tickets',
+      title: 'Support Tickets',
+      description: 'View and manage support tickets',
+      icon: <Ticket className="w-4 h-4" />,
+      category: 'Navigation',
+      keywords: ['tickets', 'support', 'help', 'issues'],
+      action: () => router.push('/admin/tickets'),
     },
     {
       id: 'settings',

@@ -81,7 +81,7 @@ export class DRService {
         this.logger.warn('AWS SDK not available, S3 backups disabled');
       }
     } else {
-      this.logger.warn('S3 not configured, backups will be stored locally');
+      this.logger.debug('S3 not configured, backups will be stored locally');
     }
   }
 

@@ -1022,4 +1022,27 @@ export class AdminController {
   async getPCEQueueHealth() {
     return this.adminService.getPCEQueueHealth();
   }
+
+  // ========================================
+  // ADMIN BILLING - Offer free subscriptions
+  // ========================================
+
+  @Post('billing/offer-subscription')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Offer a free subscription to a brand for a given duration' })
+  @ApiResponse({ status: 200, description: 'Subscription offered' })
+  async offerSubscription(
+    @Body() body: { brandId: string; plan: string; durationMonths: number; reason?: string },
+  ) {
+    if (!body.brandId || !body.plan || !body.durationMonths) {
+      throw new BadRequestException('brandId, plan, and durationMonths are required');
+    }
+    return this.adminService.offerFreeSubscription(
+      body.brandId,
+      body.plan,
+      body.durationMonths,
+      body.reason,
+    );
+  }
+
 }

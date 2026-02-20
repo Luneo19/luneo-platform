@@ -2,15 +2,32 @@
 
 import React, { useState, useCallback, memo, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Mail, Phone, MapPin, Send, CheckCircle, MessageSquare, Loader2, AlertCircle, Building2 } from 'lucide-react';
+import Link from 'next/link';
+import { Mail, MapPin, Send, CheckCircle, MessageSquare, Loader2, AlertCircle, Building2, TicketIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
+import { PageHero, FeatureCard } from '@/components/marketing/shared';
 import { useI18n } from '@/i18n/useI18n';
+
+/** Get CSRF token from cookie or fetch from API (cookie is httpOnly in prod). */
+async function getCSRFTokenForRequest(): Promise<string | null> {
+  if (typeof document === 'undefined') return null;
+  const fromCookie = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf_token='))
+    ?.split('=')[1];
+  if (fromCookie) return decodeURIComponent(fromCookie);
+  try {
+    const res = await fetch('/api/csrf/token', { credentials: 'include' });
+    const data = await res.json();
+    return data?.token ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function ContactPageContentInner() {
   const { t } = useI18n();
@@ -77,35 +94,53 @@ function ContactPageContentInner() {
     setError(null);
 
     try {
-      // ✅ CAPTCHA verification
+      // reCAPTCHA when site key is available
       let captchaToken = '';
-      try {
-        const { executeRecaptcha } = await import('@/lib/captcha/recaptcha');
-        captchaToken = await executeRecaptcha('contact');
-      } catch (captchaError) {
-        // In development, continue without CAPTCHA if not configured
-        if (process.env.NODE_ENV === 'production') {
-          setError(t('public.contact.captchaRequired'));
-          setIsSubmitting(false);
-          return;
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+      if (siteKey) {
+        try {
+          const { executeRecaptcha } = await import('@/lib/captcha/recaptcha');
+          captchaToken = await executeRecaptcha('contact');
+        } catch (captchaError) {
+          if (process.env.NODE_ENV === 'production') {
+            setError(t('public.contact.captchaRequired'));
+            setIsSubmitting(false);
+            return;
+          }
         }
       }
 
-      const data = await api.post<{ success?: boolean; error?: string; message?: string }>('/api/v1/contact', {
-        ...formData,
-        type: isEnterprisePricing ? 'enterprise_pricing' : 'general',
-        plan: planParam || undefined,
-        source: sourceParam || undefined,
-        captchaToken,
+      const csrfToken = await getCSRFTokenForRequest();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({
+          ...formData,
+          type: isEnterprisePricing ? 'enterprise_pricing' : 'general',
+          plan: planParam || undefined,
+          source: sourceParam || undefined,
+          captchaToken: captchaToken || undefined,
+        }),
       });
 
-      if (!data.success) {
-        throw new Error(data.error || data.message || t('public.contact.error'));
+      const data = await res.json().catch(() => ({}));
+      const success = res.ok && data?.success !== false;
+
+      if (!success) {
+        const msg = data?.error ?? data?.message ?? t('public.contact.error');
+        throw new Error(typeof msg === 'string' ? msg : t('public.contact.error'));
       }
 
       setIsSubmitted(true);
       setFormData({ name: '', email: '', company: '', subject: '', message: '' });
-      
       setTimeout(() => setIsSubmitted(false), 5000);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : t('common.somethingWentWrong');
@@ -114,7 +149,7 @@ function ContactPageContentInner() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, t]);
+  }, [formData, isEnterprisePricing, planParam, sourceParam, t]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -262,6 +297,20 @@ function ContactPageContentInner() {
                 staggerIndex={i}
               />
             ))}
+
+            {/* Gestion des tickets */}
+            <Card className="p-6 bg-dark-card/60 border-white/[0.04]">
+              <h3 className="font-bold mb-2 flex items-center text-white">
+                <TicketIcon className="w-5 h-5 mr-2" />
+                Gestion des tickets
+              </h3>
+              <p className="text-sm text-slate-400 mb-4">
+                Vous avez déjà une demande ? Consultez le suivi de vos tickets et la réponse de notre équipe.
+              </p>
+              <Button asChild variant="outline" className="w-full border-white/10 text-slate-300 hover:bg-white/5 hover:text-white">
+                <Link href="/support">Voir mes tickets</Link>
+              </Button>
+            </Card>
 
             {/* FAQ Card */}
             <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-white/[0.04]">

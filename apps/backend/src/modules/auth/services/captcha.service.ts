@@ -12,7 +12,7 @@ export class CaptchaService {
     this.secretKey = this.configService.get<string>('captcha.secretKey') || '';
     
     if (!this.secretKey) {
-      this.logger.warn('reCAPTCHA secret key not configured. CAPTCHA validation will be disabled.');
+      this.logger.debug('reCAPTCHA secret key not configured. CAPTCHA validation will be disabled.');
     }
   }
 

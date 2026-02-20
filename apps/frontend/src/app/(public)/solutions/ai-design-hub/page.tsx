@@ -26,12 +26,14 @@ import { PageHero, SectionHeader } from '@/components/marketing/shared';
 import { CTASectionNew } from '@/components/marketing/home';
 import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 
 // Canonical URL for SEO/JSON-LD. Next.js metadata must be statically analyzable, so we use a constant instead of process.env here.
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 function AIDesignHubPageContent() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('photoréaliste');
   const [variations, setVariations] = useState(4);
@@ -240,10 +242,7 @@ function AIDesignHubPageContent() {
         description="Générez des milliers de designs uniques avec DALL-E 3. Du concept à l'export en quelques secondes. Parfait pour e-commerce, marketing, et print on demand."
         badge="IA Générative"
         gradient="from-pink-600 via-purple-600 to-indigo-600"
-        cta={{
-          label: 'Tester maintenant',
-          href: '#demo'
-        }}
+        cta={user ? { label: 'Accéder aux designs', href: '/dashboard/designs' } : { label: 'Commencer gratuitement', href: '/register?plan=starter' }}
       />
 
       <div className="min-h-screen dark-section relative noise-overlay">

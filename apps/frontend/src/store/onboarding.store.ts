@@ -113,10 +113,14 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
   fetchProgress: async () => {
     set({ isLoading: true, error: null });
     try {
-      const data = await api.get<OnboardingProgressApiResponse>('/api/v1/onboarding/progress');
+      const raw = await api.get<OnboardingProgressApiResponse & { data?: OnboardingProgressApiResponse }>('/api/v1/onboarding/progress');
+      // Support both { currentStep, progress } and { data: { currentStep, progress } }
+      const data = raw?.data ?? raw;
+      const rawStep = data?.currentStep;
+      const stepNumber = typeof rawStep === 'number' && !Number.isNaN(rawStep) ? rawStep : 0;
       // Backend returns currentStep 0–5 (next step to show) or 6 (completed). UI is 1-based; normalize so 0 → 1.
-      const currentStep = data.currentStep >= 6 ? 6 : data.currentStep + 1;
-      const progressData = data.progress;
+      const currentStep = stepNumber >= 6 ? 6 : stepNumber + 1;
+      const progressData = data?.progress ?? null;
 
       // Restore form data from data.progress
       const formData = { ...initialFormData };
@@ -137,7 +141,7 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
       }
 
       set({
-        progress: data,
+        progress: { currentStep, progress: progressData },
         currentStep,
         selectedIndustry: progressData?.step2Industry ?? null,
         formData,

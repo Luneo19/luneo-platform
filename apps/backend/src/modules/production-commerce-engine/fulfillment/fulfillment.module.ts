@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { HttpModule } from '@nestjs/axios';
 
 import { PrismaModule } from '@/libs/prisma/prisma.module';
-import { PCE_QUEUES } from '../pce.constants';
 import { SHIPPING_PROVIDER_REGISTRY } from './services/shipping.types';
 
 import { FulfillmentService } from './services/fulfillment.service';
@@ -19,7 +17,6 @@ import { ShippingController } from './controllers/shipping.controller';
   imports: [
     PrismaModule,
     HttpModule.register({ timeout: 30000, maxRedirects: 3 }),
-    BullModule.registerQueue({ name: PCE_QUEUES.FULFILLMENT }),
   ],
   controllers: [
     FulfillmentController,

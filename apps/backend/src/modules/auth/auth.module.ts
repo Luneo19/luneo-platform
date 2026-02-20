@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
-
 import { AuthController } from './auth.controller';
 import { OAuthController } from './controllers/oauth.controller';
 import { SSOEnterpriseController } from './controllers/sso-enterprise.controller';
@@ -106,7 +104,6 @@ try {
     PassportModule,
     EmailModule,
     CryptoModule, // SEC-05: Pour chiffrement OAuth tokens
-    ScheduleModule.forRoot(),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

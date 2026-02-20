@@ -1,22 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PCE_QUEUES } from '../pce.constants';
+import { InjectPCEQueue, PCEQueue } from './pce-queue.provider';
 import type { QueueStatus } from '../interfaces/pce.interfaces';
 
 @Injectable()
 export class QueueManagerService {
   private readonly logger = new Logger(QueueManagerService.name);
-  private readonly queues: Map<string, Queue>;
+  private readonly queues: Map<string, PCEQueue>;
 
   constructor(
-    @InjectQueue(PCE_QUEUES.PIPELINE) pipelineQueue: Queue,
-    @InjectQueue(PCE_QUEUES.FULFILLMENT) fulfillmentQueue: Queue,
-    @InjectQueue(PCE_QUEUES.RENDER) renderQueue: Queue,
-    @InjectQueue(PCE_QUEUES.SYNC) syncQueue: Queue,
-    @InjectQueue(PCE_QUEUES.PRODUCTION) productionQueue: Queue,
-    @InjectQueue(PCE_QUEUES.WEBHOOKS) webhooksQueue: Queue,
-    @InjectQueue(PCE_QUEUES.NOTIFICATIONS) notificationsQueue: Queue,
+    @InjectPCEQueue(PCE_QUEUES.PIPELINE) pipelineQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.FULFILLMENT) fulfillmentQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.RENDER) renderQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.SYNC) syncQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.PRODUCTION) productionQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.WEBHOOKS) webhooksQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.NOTIFICATIONS) notificationsQueue: PCEQueue,
   ) {
     this.queues = new Map([
       [PCE_QUEUES.PIPELINE, pipelineQueue],
@@ -99,7 +98,7 @@ export class QueueManagerService {
     return result;
   }
 
-  private async getQueueStatus(queue: Queue, name: string): Promise<QueueStatus> {
+  private async getQueueStatus(queue: PCEQueue, name: string): Promise<QueueStatus> {
     const counts = await queue.getJobCounts(
       'waiting',
       'active',

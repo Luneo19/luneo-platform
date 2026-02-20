@@ -11,9 +11,31 @@ import {
 } from '@/components/ui/premium';
 import { useState, useEffect } from 'react';
 
-export function CTASectionNew() {
+interface CTASectionNewProps {
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+}
+
+export function CTASectionNew({ title, subtitle }: CTASectionNewProps = {}) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  const defaultTitle = (
+    <>
+      <span className="text-white">Pret a </span>
+      <GradientText variant="violet" className="font-editorial italic">
+        transformer
+      </GradientText>
+      <br />
+      <span className="text-white">votre business ?</span>
+    </>
+  );
+  const defaultSubtitle = (
+    <>
+      Rejoignez des milliers de marques qui utilisent Luneo pour creer des experiences produit{' '}
+      <span className="text-white/80 font-medium">exceptionnelles</span>.
+    </>
+  );
 
   return (
     <section className="relative py-28 sm:py-36 bg-dark-bg overflow-hidden">
@@ -32,19 +54,13 @@ export function CTASectionNew() {
         <div className="max-w-3xl mx-auto text-center">
           <ScrollReveal direction="up" duration={700}>
             <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-              <span className="text-white">Pret a </span>
-              <GradientText variant="violet" className="font-editorial italic">
-                transformer
-              </GradientText>
-              <br />
-              <span className="text-white">votre business ?</span>
+              {title ?? defaultTitle}
             </h2>
           </ScrollReveal>
 
           <ScrollReveal direction="up" delay={100}>
             <p className="text-lg sm:text-xl text-white/50 mb-10 max-w-xl mx-auto leading-relaxed">
-              Rejoignez des milliers de marques qui utilisent Luneo pour creer des experiences produit{' '}
-              <span className="text-white/80 font-medium">exceptionnelles</span>.
+              {subtitle !== undefined ? subtitle : defaultSubtitle}
             </p>
           </ScrollReveal>
 

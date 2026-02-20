@@ -62,7 +62,7 @@ export class TokenBlacklistService {
       return (tokenIssuedAt * 1000) <= revokedAt;
     } catch (error) {
       // Fail-open: if Redis check fails, allow the token
-      this.logger.warn(`Failed to check blacklist for user ${userId}: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.debug(`Blacklist check skipped for user ${userId} (Redis not ready)`);
       return false;
     }
   }

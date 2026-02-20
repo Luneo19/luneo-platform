@@ -27,6 +27,57 @@ interface GenerateDesignResponse {
   [key: string]: unknown;
 }
 
+/** Admin client (user + brand subscription); from GET /api/v1/admin/customers */
+export interface AdminClient {
+  id: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  name: string;
+  role?: string;
+  createdAt: string;
+  brand?: { id: string; name: string | null; subscriptionPlan: string | null; subscriptionStatus: string | null };
+  plan: string;
+  status: string;
+  planPrice?: number;
+  totalRevenue?: number;
+  ltv?: number;
+  lastSeenAt?: string | null;
+  [key: string]: unknown;
+}
+
+/** Admin ticket; from GET /api/v1/admin/support/tickets */
+export interface AdminTicket {
+  id: string;
+  ticketNumber?: string;
+  subject: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt?: string;
+  client?: { id: string; email?: string; name?: string; firstName?: string; lastName?: string };
+  [key: string]: unknown;
+}
+
+/** Admin discount/promo code; from GET /api/v1/admin/discounts */
+export interface AdminDiscount {
+  id: string;
+  code: string;
+  type: 'PERCENTAGE' | 'FIXED';
+  value: number;
+  validFrom: string;
+  validUntil: string;
+  usageLimit: number | null;
+  usageCount?: number;
+  isActive: boolean;
+  brandId: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  brand?: { id: string; name: string | null };
+  [key: string]: unknown;
+}
+
 /**
  * API Client Configuration
  * Professional enterprise-grade API client with interceptors, error handling, and retry logic
@@ -74,19 +125,26 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // ✅ Tokens are in httpOnly cookies — sent automatically via withCredentials: true
-    // No Authorization header needed — backend reads tokens from cookies
-
-    // Add request timestamp
     config.headers['X-Request-Time'] = new Date().toISOString();
 
-    // PRODUCTION FIX: Send locale to backend for i18n-aware responses
     if (typeof window !== 'undefined') {
       const locale = localStorage.getItem('luneo_locale') || document.cookie.match(/luneo_locale=([^;]+)/)?.[1] || 'fr';
       config.headers['Accept-Language'] = locale;
+
+      // CSRF double-submit: read the non-httpOnly csrf_token cookie and attach it as a header.
+      // The backend CsrfGuard compares X-CSRF-Token header with the csrf_token cookie.
+      const method = (config.method || '').toUpperCase();
+      if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+        const csrfToken = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('csrf_token='))
+          ?.split('=')[1];
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = decodeURIComponent(csrfToken);
+        }
+      }
     }
 
-    // Add brand context if available
     const brandId = typeof window !== 'undefined' ? localStorage.getItem('brandId') : null;
     if (brandId) {
       config.headers['X-Brand-Id'] = brandId;
@@ -281,9 +339,25 @@ export const api = {
  * This is CRITICAL because cookies are scoped to the frontend domain only.
  */
 async function authFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  // CSRF double-submit for mutative requests
+  if (typeof window !== 'undefined') {
+    const method = (init?.method || 'GET').toUpperCase();
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrf_token='))
+        ?.split('=')[1];
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = decodeURIComponent(csrfToken);
+      }
+    }
+  }
+
   const response = await fetch(path, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { ...headers, ...init?.headers },
     ...init,
   });
   
@@ -784,6 +858,61 @@ export const endpoints = {
         options?: Record<string, unknown>;
       }) => api.post('/api/v1/admin/customers/bulk-action', data),
     },
+    // Client management (uses admin/customers + brands endpoints; relative URLs for Vercel proxy)
+    clients: {
+      list: (params?: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        plan?: string;
+        status?: string;
+        country?: string;
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
+      }) => api.get<{ data: AdminClient[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/customers', { params }),
+      get: (id: string) => api.get<AdminClient>(`/api/v1/admin/customers/${id}`),
+      updatePlan: (brandId: string, plan: string) =>
+        api.patch(`/api/v1/admin/brands/${brandId}`, { subscriptionPlan: plan, plan }),
+      offerSubscription: (body: { brandId: string; plan: string; durationMonths: number; reason?: string }) =>
+        api.post('/api/v1/admin/billing/offer-subscription', body),
+      suspend: (brandId: string, reason?: string) =>
+        api.post(`/api/v1/admin/brands/${brandId}/suspend`, { reason }),
+      unsuspend: (brandId: string) =>
+        api.post(`/api/v1/admin/brands/${brandId}/unsuspend`),
+    },
+    // Promo / discount codes (admin/discounts)
+    promoCodes: {
+      list: (params?: { page?: number; limit?: number; status?: string }) =>
+        api.get<{ data: AdminDiscount[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/discounts', { params }),
+      get: (id: string) => api.get<AdminDiscount>(`/api/v1/admin/discounts/${id}`),
+      create: (body: {
+        code: string;
+        type: 'PERCENTAGE' | 'FIXED';
+        value: number;
+        validFrom?: string;
+        validTo?: string;
+        usageLimit?: number;
+        isActive?: boolean;
+        description?: string;
+        brandId?: string;
+        minPurchaseCents?: number;
+        maxDiscountCents?: number;
+      }) => api.post<AdminDiscount>('/api/v1/admin/discounts', body),
+      update: (id: string, body: Partial<{
+        code: string;
+        type: 'PERCENTAGE' | 'FIXED';
+        value: number;
+        validFrom: string;
+        validTo: string;
+        usageLimit: number;
+        isActive: boolean;
+        description: string;
+        brandId: string;
+      }>) => api.put<AdminDiscount>(`/api/v1/admin/discounts/${id}`, body),
+      delete: (id: string) => api.delete<{ success: boolean }>(`/api/v1/admin/discounts/${id}`),
+    },
+    tickets: (params?: { page?: number; limit?: number; status?: string; priority?: string }) =>
+      api.get<{ data: AdminTicket[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/support/tickets', { params }),
   },
 
   // ORION Super Admin - Retention (ARTEMIS) + Admin Tools
@@ -865,6 +994,73 @@ export const endpoints = {
           users: Array<{ id: string; email: string; firstName: string | null; trialEndsAt: Date | null; brandName: string }>;
           brands: number;
         }>('/api/v1/orion/quick-wins/trial-ending'),
+    },
+    prometheus: {
+      stats: () => api.get<any>('/api/v1/orion/prometheus/stats'),
+      analyzeTicket: (ticketId: string) => api.post<any>(`/api/v1/orion/prometheus/tickets/${ticketId}/analyze`),
+      generateResponse: (ticketId: string) => api.post<any>(`/api/v1/orion/prometheus/tickets/${ticketId}/generate`),
+      reviewQueue: (params?: any) => api.get<any>('/api/v1/orion/prometheus/review-queue', { params }),
+      reviewStats: () => api.get<any>('/api/v1/orion/prometheus/review-queue/stats'),
+      approveResponse: (responseId: string, body?: any) => api.post<any>(`/api/v1/orion/prometheus/review-queue/${responseId}/approve`, body),
+      rejectResponse: (responseId: string, body?: any) => api.post<any>(`/api/v1/orion/prometheus/review-queue/${responseId}/reject`, body),
+      bulkApprove: (responseIds: string[]) => api.post<any>('/api/v1/orion/prometheus/review-queue/bulk-approve', { responseIds }),
+      submitFeedback: (responseId: string, rating: number, comment?: string) => api.put<any>(`/api/v1/orion/prometheus/responses/${responseId}/feedback`, { rating, comment }),
+    },
+    zeus: {
+      dashboard: () => api.get<any>('/api/v1/orion/zeus/dashboard'),
+      alerts: () => api.get<any>('/api/v1/orion/zeus/alerts'),
+      decisions: () => api.get<any>('/api/v1/orion/zeus/decisions'),
+      override: (actionId: string, approved: boolean) => api.post<any>(`/api/v1/orion/zeus/override/${actionId}`, { approved }),
+    },
+    athena: {
+      dashboard: () => api.get<any>('/api/v1/orion/athena/dashboard'),
+      distribution: () => api.get<any>('/api/v1/orion/athena/distribution'),
+      customerHealth: (userId: string) => api.get<any>(`/api/v1/orion/athena/customer/${userId}`),
+      calculateHealth: (userId: string) => api.post<any>(`/api/v1/orion/athena/calculate/${userId}`),
+      generateInsights: () => api.post<any>('/api/v1/orion/athena/insights/generate'),
+    },
+    apollo: {
+      dashboard: () => api.get<any>('/api/v1/orion/apollo/dashboard'),
+      services: () => api.get<any>('/api/v1/orion/apollo/services'),
+      incidents: (status?: string) => api.get<any>('/api/v1/orion/apollo/incidents', { params: { status } }),
+      metrics: (hours?: number) => api.get<any>('/api/v1/orion/apollo/metrics', { params: { hours } }),
+    },
+    artemis: {
+      dashboard: () => api.get<any>('/api/v1/orion/artemis/dashboard'),
+      threats: () => api.get<any>('/api/v1/orion/artemis/threats'),
+      resolveThreat: (id: string) => api.post<any>(`/api/v1/orion/artemis/threats/${id}/resolve`),
+      blockedIPs: () => api.get<any>('/api/v1/orion/artemis/blocked-ips'),
+      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) => api.post<any>('/api/v1/orion/artemis/block-ip', data),
+      unblockIP: (ip: string) => api.delete<any>(`/api/v1/orion/artemis/blocked-ips/${ip}`),
+      fraudChecks: () => api.get<any>('/api/v1/orion/artemis/fraud-checks'),
+    },
+    hermes: {
+      dashboard: () => api.get<any>('/api/v1/orion/hermes/dashboard'),
+      pending: () => api.get<any>('/api/v1/orion/hermes/pending'),
+      campaigns: () => api.get<any>('/api/v1/orion/hermes/campaigns'),
+      stats: () => api.get<any>('/api/v1/orion/hermes/stats'),
+    },
+    hades: {
+      dashboard: () => api.get<any>('/api/v1/orion/hades/dashboard'),
+      atRisk: () => api.get<any>('/api/v1/orion/hades/at-risk'),
+      winBack: () => api.get<any>('/api/v1/orion/hades/win-back'),
+      mrrAtRisk: () => api.get<any>('/api/v1/orion/hades/mrr-at-risk'),
+      actions: () => api.get<any>('/api/v1/orion/hades/actions'),
+    },
+    insights: (params?: any) => api.get<any>('/api/v1/orion/insights', { params }),
+    actions: (params?: any) => api.get<any>('/api/v1/orion/actions', { params }),
+    activityFeed: (limit?: number) => api.get<any>('/api/v1/orion/activity-feed', { params: { limit } }),
+    automationsV2: {
+      list: (brandId?: string) => api.get<any>('/api/v1/orion/automations-v2', { params: { brandId } }),
+      get: (id: string) => api.get<any>(`/api/v1/orion/automations-v2/${id}`),
+      create: (data: any) => api.post<any>('/api/v1/orion/automations-v2', data),
+      update: (id: string, data: any) => api.put<any>(`/api/v1/orion/automations-v2/${id}`, data),
+      toggle: (id: string) => api.post<any>(`/api/v1/orion/automations-v2/${id}/toggle`),
+      delete: (id: string) => api.delete<any>(`/api/v1/orion/automations-v2/${id}`),
+      test: (id: string, testData: any) => api.post<any>(`/api/v1/orion/automations-v2/${id}/test`, { testData }),
+      runs: (id: string) => api.get<any>(`/api/v1/orion/automations-v2/${id}/runs`),
+      triggers: () => api.get<any>('/api/v1/orion/automations-v2/triggers'),
+      actions: () => api.get<any>('/api/v1/orion/automations-v2/actions'),
     },
   },
 

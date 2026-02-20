@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { HttpModule } from '@nestjs/axios';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ScheduleModule } from '@nestjs/schedule';
-
 // Core controllers
 import { AiController } from './ai.controller';
 import { AITemplatesController } from './controllers/ai-templates.controller';
@@ -99,7 +97,6 @@ import { PlansModule } from '../plans/plans.module';
     AIOrchestratorModule,
     SmartCacheModule,
     PlansModule,
-    ScheduleModule.forRoot(),
     CacheModule.register({ ttl: 3600000 }),
     HttpModule.register({
       timeout: 60000,

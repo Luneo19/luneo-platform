@@ -1,47 +1,167 @@
 'use client';
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useState, useRef } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { Briefcase, MapPin, Clock } from 'lucide-react';
+import { Briefcase, Send, FileUp, CheckCircle, AlertCircle } from 'lucide-react';
 
-const jobs = [
-  { title: 'Senior Frontend Engineer', location: 'Paris / Remote', type: 'Full-time' },
-  { title: '3D Graphics Engineer', location: 'Remote', type: 'Full-time' },
-  { title: 'Product Designer', location: 'Paris', type: 'Full-time' },
-  { title: 'Customer Success Manager', location: 'Remote Europe', type: 'Full-time' },
-];
+type SubmitStatus = 'idle' | 'loading' | 'success' | 'error';
 
 function CareersPageContent() {
-  const jobsMemo = useMemo(() => jobs, []);
+  const [status, setStatus] = useState<SubmitStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const formRef = useRef<HTMLFormElement>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    setStatus('loading');
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/careers', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success !== false) {
+        setStatus('success');
+        formRef.current?.reset();
+        return;
+      }
+      setStatus('error');
+      setErrorMessage(
+        typeof data.error === 'string' ? data.error : 'Une erreur est survenue. Veuillez réessayer.'
+      );
+    } catch {
+      setStatus('error');
+      setErrorMessage('Une erreur est survenue. Veuillez réessayer.');
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-24">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <section className="bg-gradient-to-r from-violet-600/90 to-fuchsia-600/90 text-white py-24">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <Briefcase className="w-16 h-16 mx-auto mb-6" />
-          <h1 className="text-5xl font-bold mb-6">Join Luneo</h1>
-          <p className="text-2xl text-purple-100 mb-8">Construisons ensemble le futur du commerce 3D/AR</p>
-          <Link href="#positions" className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block">Voir les postes</Link>
+          <h1 className="text-5xl font-bold mb-6">Rejoignez Luneo</h1>
+          <p className="text-2xl text-white/90 mb-8">
+            Construisons ensemble le futur du commerce 3D/AR
+          </p>
+          <Link
+            href="#positions"
+            className="bg-white/20 border-2 border-white/50 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/30 inline-block"
+          >
+            Voir les postes
+          </Link>
         </div>
       </section>
+
       <section id="positions" className="max-w-5xl mx-auto px-4 py-20">
-        <h2 className="text-4xl font-bold text-center mb-12 text-white">Postes Ouverts</h2>
-        <div className="space-y-4">
-          {jobsMemo.map((job, idx) => (
-            <div key={idx} className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-all">
-              <div className="flex items-start justify-between flex-wrap gap-4">
-                <div>
-                  <h3 className="font-bold text-xl mb-2 text-white">{job.title}</h3>
-                  <div className="flex items-center gap-4 text-gray-300">
-                    <span className="flex items-center gap-2"><MapPin className="w-4 h-4" />{job.location}</span>
-                    <span className="flex items-center gap-2"><Clock className="w-4 h-4" />{job.type}</span>
-                  </div>
-                </div>
-                <Link href={`/careers/${idx + 1}`} className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700">Apply</Link>
-              </div>
-            </div>
-          ))}
+        <h2 className="text-4xl font-bold text-center mb-12 text-white">Postes ouverts</h2>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center max-w-2xl mx-auto">
+          <p className="text-xl text-white/90">Tous nos postes sont actuellement pourvus</p>
+          <p className="text-white/60 mt-2">
+            Consultez cette page régulièrement ou envoyez-nous une candidature spontanée ci-dessous.
+          </p>
         </div>
+      </section>
+
+      <section className="max-w-2xl mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold text-center mb-8 text-white">
+          Candidature spontanée
+        </h2>
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="space-y-6 rounded-xl border border-white/10 bg-white/5 p-8"
+        >
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
+              Nom complet
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              placeholder="Jean Dupont"
+            />
+          </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              placeholder="jean@exemple.fr"
+            />
+          </div>
+          <div>
+            <label htmlFor="message" className="block text-sm font-medium text-white/80 mb-2">
+              Message / Motivation
+            </label>
+            <textarea
+              id="message"
+              name="message"
+              required
+              rows={5}
+              className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 resize-y min-h-[120px]"
+              placeholder="Présentez-vous et expliquez pourquoi vous souhaitez nous rejoindre..."
+            />
+          </div>
+          <div>
+            <label htmlFor="file" className="block text-sm font-medium text-white/80 mb-2">
+              CV (PDF, DOC ou DOCX)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                id="file"
+                name="file"
+                type="file"
+                required
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="block w-full text-sm text-white/80 file:mr-4 file:rounded-lg file:border-0 file:bg-violet-600 file:px-4 file:py-2 file:text-white file:hover:bg-violet-700"
+              />
+              <FileUp className="w-5 h-5 text-white/50 shrink-0" />
+            </div>
+          </div>
+
+          {status === 'success' && (
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-500/20 text-emerald-300 px-4 py-3">
+              <CheckCircle className="w-5 h-5 shrink-0" />
+              <span>Candidature envoyée avec succès. Nous vous recontacterons si votre profil correspond à nos besoins.</span>
+            </div>
+          )}
+          {status === 'error' && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-500/20 text-red-300 px-4 py-3">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={status === 'loading'}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {status === 'loading' ? (
+              'Envoi en cours...'
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Envoyer ma candidature
+              </>
+            )}
+          </button>
+        </form>
       </section>
     </div>
   );
@@ -56,6 +176,3 @@ export default function CareersPage() {
     </ErrorBoundary>
   );
 }
-
-
-

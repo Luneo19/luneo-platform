@@ -78,17 +78,18 @@ function NDSGPageContent() {
             <h2 className="text-2xl font-bold text-white mb-4">1. Introduction</h2>
             <p className="text-gray-300 leading-relaxed">
               Luneo Tech s&apos;engage à respecter la loi fédérale suisse sur la protection des données (nDSG/nLPD), 
-              entrée en vigueur le 1er septembre 2023. Cette page décrit comment nous traitons vos données 
-              personnelles conformément aux exigences du droit suisse.
+              entrée en vigueur le 1er septembre 2023. Cette page vous informe sur le traitement de vos données 
+              personnelles conformément au devoir d&apos;information (Art. 19 nDSG) et aux exigences du droit suisse.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">2. Responsable du Traitement</h2>
             <p className="text-gray-300 leading-relaxed">
-              <strong>Luneo Tech</strong><br />
-              Siège : Neuchâtel, Suisse<br />
-              Email contact protection des données : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
+              <strong>Luneo Tech Sarl</strong><br />
+              Rue du Seyon 10, 2000 Neuchâtel, Suisse<br />
+              IDE : CHE-000.000.000<br />
+              Contact DPO (délégué à la protection des données) : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
             </p>
           </section>
 
@@ -249,11 +250,10 @@ function NDSGPageContent() {
                 Pour toute question relative à la protection des données ou pour exercer vos droits :
               </p>
               <p className="text-white font-semibold">
-                📧 Email : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
+                📧 DPO (délégué à la protection des données) : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
               </p>
               <p className="text-gray-300 mt-4 text-sm">
-                Vous pouvez également contacter le Préposé fédéral à la protection des données et à la transparence (PFPDT) 
-                en cas de litige : <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">www.edoeb.admin.ch</a>
+                Le Préposé fédéral à la protection des données et à la transparence (PFPDT) peut être contacté en cas de litige ou de réclamation : <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">https://www.edoeb.admin.ch</a>
               </p>
             </div>
           </section>

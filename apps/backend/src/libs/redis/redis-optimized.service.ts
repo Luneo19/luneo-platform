@@ -78,9 +78,6 @@ export class RedisOptimizedService {
     } as import('ioredis').RedisOptions);
 
     this.setupEventListeners();
-    // Ne pas appeler initializeCacheConfigs() dans le constructeur pour éviter de bloquer
-    // Il sera appelé de manière asynchrone si nécessaire
-    setTimeout(() => this.initializeCacheConfigs(), 0);
   }
 
   private setupEventListeners(): void {
@@ -90,9 +87,12 @@ export class RedisOptimizedService {
     });
 
     this.redis.on('error', (error: Error) => {
-      // Gérer spécifiquement les erreurs de limite Upstash
       if (error.message?.includes('max requests limit exceeded')) {
         this.logger.warn('Redis request limit exceeded. Cache will work in degraded mode.');
+        return;
+      }
+      if (error.message?.includes("Stream isn't writable") || error.message?.includes('enableOfflineQueue')) {
+        this.logger.warn('Redis not yet connected (offline queue disabled). Will retry automatically.');
         return;
       }
       this.logger.error('Redis connection error:', error.message || error);
@@ -100,6 +100,7 @@ export class RedisOptimizedService {
 
     this.redis.on('ready', () => {
       this.logger.log('Redis is ready');
+      this.initializeCacheConfigs().catch(() => {});
     });
   }
 
@@ -109,7 +110,7 @@ export class RedisOptimizedService {
       // Ne pas bloquer le démarrage si Redis n'est pas disponible
       const isConnected = await this.redis.ping().catch(() => false);
       if (!isConnected) {
-        this.logger.warn('Redis not available, cache will work in degraded mode');
+        this.logger.debug('Redis not available for cache config initialization, using defaults');
         return;
       }
       
@@ -122,7 +123,7 @@ export class RedisOptimizedService {
         this.logger.log(`Cache config initialized for ${type}: TTL=${config.ttl}s, MaxMemory=${config.maxMemory}`);
       }
     } catch (error: unknown) {
-      this.logger.warn('Redis cache config initialization failed, continuing without cache:', error instanceof Error ? error.message : String(error));
+      this.logger.debug('Redis cache config initialization deferred:', error instanceof Error ? error.message : String(error));
       // Ne pas throw l'erreur pour ne pas bloquer le démarrage
     }
   }
@@ -376,7 +377,7 @@ export class RedisOptimizedService {
       const result = await this.redis.ping();
       return result === 'PONG';
     } catch (error) {
-      this.logger.error('Redis health check failed:', error);
+      this.logger.debug('Redis health check: not yet connected');
       return false;
     }
   }

@@ -1,6 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { PipelineStatus } from '@prisma/client';
 import {
@@ -12,6 +10,7 @@ import {
 } from '../pce.constants';
 import { PipelineOrchestratorService } from './pipeline-orchestrator.service';
 import { PCEConfigService } from './pce-config.service';
+import { InjectPCEQueue, PCEQueue } from '../queues/pce-queue.provider';
 import type {
   ProcessOrderParams,
   OrderProcessingResult,
@@ -27,8 +26,8 @@ export class PCEOrchestratorService {
     private readonly prisma: PrismaService,
     private readonly pipelineOrchestrator: PipelineOrchestratorService,
     private readonly pceConfig: PCEConfigService,
-    @InjectQueue(PCE_QUEUES.PIPELINE) private readonly pipelineQueue: Queue,
-    @InjectQueue(PCE_QUEUES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
+    @InjectPCEQueue(PCE_QUEUES.PIPELINE) private readonly pipelineQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.FULFILLMENT) private readonly fulfillmentQueue: PCEQueue,
   ) {}
 
   async processOrder(params: ProcessOrderParams): Promise<OrderProcessingResult> {

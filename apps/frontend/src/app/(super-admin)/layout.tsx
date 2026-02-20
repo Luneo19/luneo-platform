@@ -2,14 +2,19 @@
  * ★★★ SUPER ADMIN LAYOUT ★★★
  * Layout principal pour le Super Admin Dashboard
  * Protection automatique avec vérification du rôle PLATFORM_ADMIN
+ *
+ * IMPORTANT: requireAdminAccess() can return null when getServerUser()
+ * fails due to backend latency/cold-start. In that case, we render the
+ * shell anyway and let the client-side AuthProvider + AdminGuard handle
+ * the redirect. This avoids a streaming-SSR race condition where a
+ * server-side redirect() aborts in-flight client-side fetches.
  */
 
 import { requireAdminAccess } from '@/lib/admin/permissions';
-import { redirect } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/layout/admin-sidebar';
 import { AdminHeader } from '@/components/admin/layout/admin-header';
+import { AdminGuard } from '@/components/admin/layout/admin-guard';
 
-// Force dynamic rendering — this page reads cookies and must NOT be CDN-cached
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
@@ -22,26 +27,21 @@ export default async function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Vérifie que l'utilisateur est super admin
-  // Redirige automatiquement si non autorisé
   const adminUser = await requireAdminAccess();
 
   return (
-    <div className="flex h-screen bg-zinc-950 overflow-hidden">
-      {/* Sidebar */}
-      <AdminSidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader user={adminUser} />
-        
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-zinc-900">
-          <div className="p-6">
-            {children}
-          </div>
-        </main>
+    <AdminGuard serverUser={adminUser}>
+      <div className="flex h-screen bg-zinc-950 overflow-hidden">
+        <AdminSidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AdminHeader user={adminUser} />
+          <main className="flex-1 overflow-y-auto bg-zinc-900">
+            <div className="p-6">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </AdminGuard>
   );
 }

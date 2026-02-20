@@ -42,7 +42,7 @@ export class PikaLabsProvider implements EnhancedAIProvider {
       rateLimit: { maxPerMinute: 10, maxPerHour: 100 },
     };
     if (!isConfigured) {
-      this.logger.warn(
+      this.logger.debug(
         'Pika Labs provider not configured (PIKA_LABS_API_TOKEN missing). Provider will be unavailable.',
       );
     }

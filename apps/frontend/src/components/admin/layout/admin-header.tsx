@@ -18,7 +18,7 @@ import { CommandPalette } from '../command-palette';
 import { NotificationsPanel } from '../notifications-panel';
 
 interface AdminHeaderProps {
-  user: AdminUser;
+  user: AdminUser | null;
 }
 
 export function AdminHeader({ user }: AdminHeaderProps) {

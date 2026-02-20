@@ -132,7 +132,7 @@ export class ShopifyService {
     ];
     
     if (!this.clientId || !this.clientSecret) {
-      this.logger.warn(
+      this.logger.debug(
         'Shopify credentials not configured. Shopify integration will not be available.',
       );
     }

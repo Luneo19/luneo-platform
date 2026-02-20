@@ -4,17 +4,18 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  BookOpen, 
-  Code, 
-  Settings, 
-  Shield, 
-  Users, 
+import {
+  ChevronDown,
+  ChevronRight,
+  BookOpen,
+  Code,
+  Settings,
+  Shield,
+  Users,
   Zap,
   FileText,
-  Search
+  Search,
+  X,
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -86,7 +87,7 @@ const sidebarItems = [
   }
 ];
 
-function DocsSidebarContent() {
+function DocsSidebarContent({ open = false, onClose }: { open?: boolean; onClose?: () => void } = {}) {
   const [expandedItems, setExpandedItems] = useState<string[]>(['API Reference']);
   const [searchTerm, setSearchTerm] = useState('');
   const pathname = usePathname();
@@ -115,39 +116,23 @@ function DocsSidebarContent() {
   ), [searchTerm]);
 
   return (
-    <aside className="w-80 bg-gray-800 border-r border-gray-700 h-screen overflow-y-auto sticky top-0">
-      <div className="p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <Link href="/help/documentation" className="flex items-center space-x-2 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">Luneo Docs</span>
-          </Link>
-          
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
+    <>
+      <aside className="hidden md:flex md:flex-col w-72 lg:w-80 bg-[#0a0a0f] border-r border-white/[0.06] min-h-screen overflow-y-auto sticky top-0 shrink-0" aria-label="Documentation navigation">
+      <div className="p-6"><div className="pt-8 px-4 pb-4 md:px-6"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" /><input
               type="text"
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20" /></div></div>
 
         {/* Navigation */}
-        <nav className="space-y-2">
+        <nav className="px-4 pb-6 md:px-6 space-y-1">
           {filteredItems.map((item) => (
             <div key={item.title}>
               <div className="flex items-center">
                 {item.children.length > 0 ? (
-                  <button
-                    onClick={() => toggleExpanded(item.title)}
-                    className="flex items-center w-full px-3 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+                  <button type="button" onClick={() => toggleExpanded(item.title)}
+                    className="flex items-center w-full px-3 py-2.5 text-left text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                   >
                     {expandedItems.includes(item.title) ? (
                       <ChevronDown className="w-4 h-4 mr-2" />
@@ -162,8 +147,8 @@ function DocsSidebarContent() {
                     href={item.href}
                     className={`flex items-center w-full px-3 py-2 text-left rounded-md transition-colors ${
                       isActive(item.href)
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                        ? 'text-white bg-white/10'
+                        : 'text-white/60 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {item.icon}
@@ -186,8 +171,8 @@ function DocsSidebarContent() {
                       href={child.href}
                       className={`block px-3 py-2 text-sm rounded-md transition-colors ${
                         isActive(child.href)
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'text-white bg-white/10'
+                          : 'text-white/60 hover:text-white hover:bg-white/5'
                       }`}
                     >
                       {child.title}
@@ -200,28 +185,28 @@ function DocsSidebarContent() {
         </nav>
 
         {/* Quick Links */}
-        <div className="mt-8 pt-6 border-t border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+        <div className="mt-8 pt-6 border-t border-white/10">
+          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
             Liens rapides
           </h3>
           <div className="space-y-2">
             <Link
               href="/help/documentation/api-reference"
-              className="flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              className="flex items-center px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
             >
               <Zap className="w-4 h-4 mr-2" />
               API Reference
             </Link>
             <Link
               href="/help/quick-start"
-              className="flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              className="flex items-center px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
             >
               <FileText className="w-4 h-4 mr-2" />
               Guide de démarrage
             </Link>
             <Link
               href="/contact"
-              className="flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+              className="flex items-center px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
             >
               <Users className="w-4 h-4 mr-2" />
               Support
@@ -230,15 +215,84 @@ function DocsSidebarContent() {
         </div>
       </div>
     </aside>
+
+      {onClose && (
+        <>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Fermer le menu"
+            onClick={onClose}
+            onKeyDown={(e) => e.key === 'Escape' && onClose()}
+            className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          />
+          <aside
+            aria-label="Documentation navigation"
+            aria-hidden={!open}
+            className={`fixed top-0 left-0 z-50 flex flex-col w-[min(320px,85vw)] max-w-sm bg-[#0a0a0f] border-r border-white/[0.06] min-h-full overflow-y-auto md:hidden transform transition-transform duration-200 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+          >
+            <div className="flex items-center justify-between px-4 pt-6 pb-2 border-b border-white/10 shrink-0">
+              <span className="text-sm font-medium text-white/70">Menu</span>
+              <button type="button" onClick={onClose} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5" aria-label="Fermer le menu">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="pt-4 px-4 pb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={handleSearchChange} className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20" />
+              </div>
+            </div>
+            <nav className="px-4 pb-6 space-y-1">
+              {filteredItems.map((item) => (
+                <div key={item.title}>
+                  <div className="flex items-center">
+                    {item.children.length > 0 ? (
+                      <button type="button" onClick={() => toggleExpanded(item.title)} className="flex items-center w-full px-3 py-2.5 text-left text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                        {expandedItems.includes(item.title) ? <ChevronDown className="w-4 h-4 mr-2" /> : <ChevronRight className="w-4 h-4 mr-2" />}
+                        {item.icon}
+                        <span className="ml-2">{item.title}</span>
+                      </button>
+                    ) : (
+                      <Link href={item.href} onClick={onClose} className={`flex items-center w-full px-3 py-2.5 text-left rounded-lg transition-colors ${isActive(item.href) ? 'text-white bg-white/10' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                        {item.icon}
+                        <span className="ml-2">{item.title}</span>
+                      </Link>
+                    )}
+                  </div>
+                  {item.children.length > 0 && expandedItems.includes(item.title) && (
+                    <motion initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="ml-6 mt-1 space-y-0.5">
+                      {item.children.map((child) => (
+                        <Link key={child.href} href={child.href} onClick={onClose} className={`block px-3 py-2 text-sm rounded-lg transition-colors ${isActive(child.href) ? 'text-white bg-white/10' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                          {child.title}
+                        </Link>
+                      ))}
+                    </motion>
+                  )}
+                </div>
+              ))}
+            </nav>
+            <div className="mt-6 pt-6 px-4 border-t border-white/10">
+              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Liens rapides</h3>
+              <div className="space-y-0.5">
+                <Link href="/help/documentation/api-reference" onClick={onClose} className="flex items-center px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><Zap className="w-4 h-4 mr-2" />API Reference</Link>
+                <Link href="/help/quick-start" onClick={onClose} className="flex items-center px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><FileText className="w-4 h-4 mr-2" />Guide de démarrage</Link>
+                <Link href="/contact" onClick={onClose} className="flex items-center px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><Users className="w-4 h-4 mr-2" />Support</Link>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+    </>
   );
 }
 
 const DocsSidebarContentMemo = memo(DocsSidebarContent);
 
-export function DocsSidebar() {
+export function DocsSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void } = {}) {
   return (
     <ErrorBoundary componentName="DocsSidebar">
-      <DocsSidebarContentMemo />
+      <DocsSidebarContentMemo open={open} onClose={onClose} />
     </ErrorBoundary>
   );
 }

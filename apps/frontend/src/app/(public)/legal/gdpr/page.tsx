@@ -77,8 +77,9 @@ function GDPRPageContent() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">1. Responsable du Traitement</h2>
             <p className="text-gray-300 leading-relaxed">
-              <strong>Luneo Tech</strong><br />
-              Adresse : Neuchâtel, Suisse<br />
+              <strong>Luneo Tech Sarl</strong><br />
+              Rue du Seyon 10, 2000 Neuchâtel, Suisse<br />
+              CHE-000.000.000<br />
               Email DPO : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
             </p>
           </section>
@@ -146,6 +147,18 @@ function GDPRPageContent() {
                 <h3 className="font-semibold text-white mb-2">✓ Droit d'opposition</h3>
                 <p className="text-gray-300 text-sm">Refusez le marketing dans Settings → Communication</p>
               </div>
+
+              <div className="bg-gray-500/20 border-l-4 border-gray-400 p-4 border border-gray-500/30">
+                <h3 className="font-semibold text-white mb-2">✓ Droit d'introduire une réclamation (Art. 77 RGPD)</h3>
+                <p className="text-gray-300 text-sm mb-2">
+                  Vous avez le droit d'introduire une réclamation auprès d'une autorité de contrôle si vous estimez que le traitement de vos données viole le RGPD.
+                </p>
+                <p className="text-gray-300 text-sm">
+                  Suisse : <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Préposé fédéral à la protection des données (PFPDT)</a>
+                  {' · '}
+                  France : <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">CNIL</a>
+                </p>
+              </div>
             </div>
           </section>
 
@@ -208,7 +221,7 @@ function GDPRPageContent() {
                 📧 Email : <a href="mailto:dpo@luneo.app" className="text-blue-400 hover:text-blue-300 underline">dpo@luneo.app</a>
               </p>
               <p className="text-gray-300 mt-4 text-sm">
-                Vous pouvez également contacter le Préposé fédéral à la protection des données (PFPDT) en cas de litige : <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">www.edoeb.admin.ch</a>
+                Conformément à l'article 77 RGPD, vous avez le droit d'introduire une réclamation auprès d'une autorité de contrôle : <a href="https://www.edoeb.admin.ch" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">PFPDT (Suisse)</a>, <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">CNIL (France)</a>.
               </p>
             </div>
           </section>

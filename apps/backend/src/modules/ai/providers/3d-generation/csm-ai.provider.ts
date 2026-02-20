@@ -42,7 +42,7 @@ export class CSMAIProvider implements EnhancedAIProvider {
       rateLimit: { maxPerMinute: 5, maxPerHour: 50 },
     };
     if (!isConfigured) {
-      this.logger.warn(
+      this.logger.debug(
         'CSM AI provider not configured (CSM_AI_API_TOKEN missing). Provider will be unavailable.',
       );
     }

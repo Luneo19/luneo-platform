@@ -11,7 +11,7 @@ const ContactSchema = z.object({
   company: z.string().optional(),
   subject: z.string().min(3, 'Sujet trop court').max(200),
   message: z.string().min(10, 'Message trop court').max(5000),
-  type: z.enum(['general', 'support', 'enterprise', 'partnership']).optional().default('general'),
+  type: z.enum(['general', 'support', 'enterprise', 'enterprise_pricing', 'partnership']).optional().default('general'),
   captchaToken: z.string().optional(), // CAPTCHA token from reCAPTCHA v3
 });
 

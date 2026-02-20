@@ -6,8 +6,10 @@
  */
 
 import { useState, memo } from 'react';
+import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Code,
   Key,
@@ -27,98 +29,122 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const codeExamples = {
-  curl: `curl -X GET "https://api.luneo.app/v1/designs" \\
+  curl: `curl -X GET "https://api.luneo.app/api/v1/designs" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json"`,
-  javascript: `import { Luneo } from '@luneo/sdk';
+  javascript: `const response = await fetch('https://api.luneo.app/api/v1/designs', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json',
+  },
+});
+const designs = await response.json();
 
-const luneo = new Luneo({ apiKey: 'YOUR_API_KEY' });
-
-// List all designs
-const designs = await luneo.designs.list();
-
-// Create a new design
-const design = await luneo.designs.create({
-  name: 'My Design',
-  templateId: 'template_xxx',
-  canvasData: { objects: [] }
+// Créer un design
+const createRes = await fetch('https://api.luneo.app/api/v1/designs', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: 'Mon design',
+    templateId: 'template_xxx',
+    canvasData: { objects: [] },
+  }),
 });`,
-  python: `from luneo import Luneo
+  python: `import requests
 
-client = Luneo(api_key="YOUR_API_KEY")
+headers = {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json",
+}
 
-# List all designs
-designs = client.designs.list()
+# Liste des designs
+r = requests.get("https://api.luneo.app/api/v1/designs", headers=headers)
+designs = r.json()
 
-# Create a new design
-design = client.designs.create(
-    name="My Design",
-    template_id="template_xxx",
-    canvas_data={"objects": []}
+# Créer un design
+r = requests.post(
+    "https://api.luneo.app/api/v1/designs",
+    headers=headers,
+    json={"name": "Mon design", "templateId": "template_xxx", "canvasData": {"objects": []}},
 )`,
   php: `<?php
-use Luneo\\Client;
+$opts = [
+  'http' => [
+    'header' => "Authorization: Bearer YOUR_API_KEY\r\nContent-Type: application/json",
+  ],
+];
 
-$luneo = new Client('YOUR_API_KEY');
+// Liste des designs
+$ctx = stream_context_create($opts);
+$designs = json_decode(file_get_contents('https://api.luneo.app/api/v1/designs', false, $ctx), true);
 
-// List all designs
-$designs = $luneo->designs->list();
-
-// Create a new design
-$design = $luneo->designs->create([
-    'name' => 'My Design',
-    'templateId' => 'template_xxx',
-    'canvasData' => ['objects' => []]
-]);`,
+// Créer un design (avec cURL)
+$ch = curl_init('https://api.luneo.app/api/v1/designs');
+curl_setopt_array($ch, [
+  CURLOPT_POST => true,
+  CURLOPT_HTTPHEADER => ['Authorization: Bearer YOUR_API_KEY', 'Content-Type: application/json'],
+  CURLOPT_POSTFIELDS => json_encode(['name' => 'Mon design', 'templateId' => 'template_xxx', 'canvasData' => ['objects' => []]]),
+]);
+$response = curl_exec($ch);
+?>`,
 };
 
 const endpoints = [
   {
     method: 'GET',
-    path: '/v1/designs',
+    path: '/api/v1/designs',
     description: 'Liste tous les designs',
     auth: true,
   },
   {
     method: 'POST',
-    path: '/v1/designs',
+    path: '/api/v1/designs',
     description: 'Créer un nouveau design',
     auth: true,
   },
   {
     method: 'GET',
-    path: '/v1/designs/:id',
-    description: 'Récupérer un design',
-    auth: true,
-  },
-  {
-    method: 'PATCH',
-    path: '/v1/designs/:id',
-    description: 'Mettre à jour un design',
-    auth: true,
-  },
-  {
-    method: 'DELETE',
-    path: '/v1/designs/:id',
-    description: 'Supprimer un design',
-    auth: true,
-  },
-  {
-    method: 'GET',
-    path: '/v1/templates',
-    description: 'Liste les templates disponibles',
-    auth: true,
-  },
-  {
-    method: 'GET',
-    path: '/v1/products',
+    path: '/api/v1/products',
     description: 'Liste les produits',
     auth: true,
   },
   {
+    method: 'GET',
+    path: '/api/v1/products/:id',
+    description: 'Détail d\'un produit',
+    auth: true,
+  },
+  {
     method: 'POST',
-    path: '/v1/orders',
-    description: 'Créer une commande',
+    path: '/api/v1/pce/fulfillment',
+    description: 'Créer une commande (fulfillment)',
+    auth: true,
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/try-on/sessions',
+    description: 'Sessions Virtual Try-On',
+    auth: true,
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/try-on/sessions',
+    description: 'Démarrer une session try-on',
+    auth: true,
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/ai-studio/templates',
+    description: 'Templates IA (AI Studio)',
+    auth: true,
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/ai-studio/generations',
+    description: 'Génération IA',
     auth: true,
   },
 ];
@@ -151,8 +177,11 @@ const webhooks = [
 ];
 
 function DevelopersPageContent() {
+  const { user } = useAuth();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [activeLanguage, setActiveLanguage] = useState('javascript');
+
+  const apiKeyHref = user ? '/dashboard/api' : '/register?redirect=/dashboard/api';
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -182,13 +211,17 @@ function DevelopersPageContent() {
               avec notre API REST et nos SDKs.
             </p>
             <div className="flex gap-4 justify-center">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Key className="w-4 h-4 mr-2" />
-                Obtenir une clé API
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link href={apiKeyHref}>
+                  <Key className="w-4 h-4 mr-2" />
+                  Obtenir une clé API
+                </Link>
               </Button>
-              <Button variant="outline" className="border-slate-700">
-                <Book className="w-4 h-4 mr-2" />
-                Guide complet
+              <Button variant="outline" className="border-slate-700" asChild>
+                <Link href="#">
+                  <Book className="w-4 h-4 mr-2" />
+                  Guide complet
+                </Link>
               </Button>
             </div>
           </motion>
@@ -210,8 +243,8 @@ function DevelopersPageContent() {
               },
               {
                 step: '2',
-                title: 'Installez le SDK',
-                description: 'npm install @luneo/sdk ou utilisez directement l\'API REST.',
+                title: 'Appelez l\'API REST',
+                description: 'Utilisez fetch, axios ou cURL pour appeler directement nos endpoints.',
                 icon: Terminal,
               },
               {
@@ -240,7 +273,9 @@ function DevelopersPageContent() {
         {/* Code Examples */}
         <section className="mb-16">
           <h2 className="text-2xl font-bold text-white mb-6">Exemples de code</h2>
-          
+          <p className="text-slate-400 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-sm">
+            Le SDK @luneo/sdk est en cours de développement. En attendant, utilisez directement notre API REST.
+          </p>
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <Tabs value={activeLanguage} onValueChange={setActiveLanguage}>
@@ -279,9 +314,9 @@ function DevelopersPageContent() {
           </Card>
         </section>
 
-        {/* API Reference */}
+        {/* API Reference - Endpoints disponibles */}
         <section className="mb-16">
-          <h2 className="text-2xl font-bold text-white mb-6">Référence API</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Endpoints disponibles</h2>
           
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-0">

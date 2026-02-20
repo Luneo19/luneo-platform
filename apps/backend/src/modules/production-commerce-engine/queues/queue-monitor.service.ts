@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PCE_QUEUES } from '../pce.constants';
+import { InjectPCEQueue, PCEQueue } from './pce-queue.provider';
 
 const QUEUE_NAMES = [
   PCE_QUEUES.PIPELINE,
@@ -35,13 +34,13 @@ export class QueueMonitorService {
   private readonly logger = new Logger(QueueMonitorService.name);
 
   constructor(
-    @InjectQueue(PCE_QUEUES.PIPELINE) private pipelineQueue: Queue,
-    @InjectQueue(PCE_QUEUES.FULFILLMENT) private fulfillmentQueue: Queue,
-    @InjectQueue(PCE_QUEUES.RENDER) private renderQueue: Queue,
-    @InjectQueue(PCE_QUEUES.SYNC) private syncQueue: Queue,
-    @InjectQueue(PCE_QUEUES.PRODUCTION) private productionQueue: Queue,
-    @InjectQueue(PCE_QUEUES.WEBHOOKS) private webhooksQueue: Queue,
-    @InjectQueue(PCE_QUEUES.NOTIFICATIONS) private notificationsQueue: Queue,
+    @InjectPCEQueue(PCE_QUEUES.PIPELINE) private pipelineQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.FULFILLMENT) private fulfillmentQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.RENDER) private renderQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.SYNC) private syncQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.PRODUCTION) private productionQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.WEBHOOKS) private webhooksQueue: PCEQueue,
+    @InjectPCEQueue(PCE_QUEUES.NOTIFICATIONS) private notificationsQueue: PCEQueue,
   ) {}
 
   @Cron('*/5 * * * *')
@@ -101,8 +100,8 @@ export class QueueMonitorService {
     return data.alerts;
   }
 
-  private getQueueByName(name: string): Queue | null {
-    const map: Record<string, Queue> = {
+  private getQueueByName(name: string): PCEQueue | null {
+    const map: Record<string, PCEQueue> = {
       [PCE_QUEUES.PIPELINE]: this.pipelineQueue,
       [PCE_QUEUES.FULFILLMENT]: this.fulfillmentQueue,
       [PCE_QUEUES.RENDER]: this.renderQueue,

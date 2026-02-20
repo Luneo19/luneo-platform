@@ -2837,4 +2837,54 @@ export class AdminService {
 
     return { returns, total, limit };
   }
+
+  /**
+   * Offer a free subscription to a brand (admin-only).
+   * Updates the brand's subscription plan and sets a trial end date.
+   */
+  async offerFreeSubscription(
+    brandId: string,
+    plan: string,
+    durationMonths: number,
+    reason?: string,
+  ) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    if (!brand) {
+      throw new Error(`Brand ${brandId} not found`);
+    }
+
+    const planEnum = plan.toUpperCase() as SubscriptionPlan;
+    const validPlans: string[] = Object.values(SubscriptionPlan);
+    if (!validPlans.includes(planEnum)) {
+      throw new Error(`Invalid plan: ${plan}. Must be one of: ${validPlans.join(', ')}`);
+    }
+
+    const trialEnd = new Date();
+    trialEnd.setMonth(trialEnd.getMonth() + durationMonths);
+
+    const updated = await this.prisma.brand.update({
+      where: { id: brandId },
+      data: {
+        subscriptionPlan: planEnum,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        trialEndsAt: trialEnd,
+      },
+    });
+
+    this.logger.log(
+      `Offered free ${plan} subscription to brand ${brandId} for ${durationMonths} months. Reason: ${reason || 'N/A'}`,
+    );
+
+    return {
+      success: true,
+      brand: {
+        id: updated.id,
+        name: updated.name,
+        plan: updated.subscriptionPlan,
+        trialEndsAt: trialEnd,
+      },
+      durationMonths,
+      reason,
+    };
+  }
 }

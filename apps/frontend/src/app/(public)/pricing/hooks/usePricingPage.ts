@@ -49,30 +49,35 @@ export function usePricingPage() {
   const handleCheckout = useCallback(
     async (planId: string) => {
       const billingInterval = isYearly ? 'yearly' : 'monthly';
-      const email = user?.email ?? undefined;
 
-      // If user is logged in, check for active subscription and redirect to billing instead
-      if (user) {
-        try {
-          type SubscriptionPayload = { plan?: string; status?: string };
-          type SubscriptionResponse = { subscription?: SubscriptionPayload; data?: SubscriptionPayload } & Partial<SubscriptionPayload>;
-          const raw = await endpoints.billing.subscription() as SubscriptionResponse | undefined;
-          const sub: SubscriptionPayload | undefined = raw?.subscription ?? raw?.data ?? (raw ? { plan: raw.plan, status: raw.status } : undefined);
-          const plan = sub?.plan;
-          const status = sub?.status;
-          if (plan && status === 'active' && plan !== 'free') {
-            window.location.href = '/dashboard/billing';
-            return;
-          }
-        } catch {
-          // Not subscribed or API error: proceed to checkout
-        }
+      // Not logged in: redirect to register with plan pre-selected
+      if (!user) {
+        const params = new URLSearchParams({ plan: planId, interval: billingInterval });
+        window.location.href = `/register?${params.toString()}`;
+        return;
       }
 
+      // Logged in: check for active paid subscription
+      try {
+        type SubscriptionPayload = { plan?: string; status?: string };
+        type SubscriptionResponse = { subscription?: SubscriptionPayload; data?: SubscriptionPayload } & Partial<SubscriptionPayload>;
+        const raw = await endpoints.billing.subscription() as SubscriptionResponse | undefined;
+        const sub: SubscriptionPayload | undefined = raw?.subscription ?? raw?.data ?? (raw ? { plan: raw.plan, status: raw.status } : undefined);
+        const plan = sub?.plan;
+        const status = sub?.status;
+        if (plan && status === 'active' && plan !== 'free') {
+          window.location.href = '/dashboard/billing';
+          return;
+        }
+      } catch {
+        // Not subscribed or API error: proceed to checkout
+      }
+
+      // Logged in, no active subscription: create checkout session
       try {
         const result = await api.post<CheckoutResponse>('/api/v1/billing/create-checkout-session', {
           planId,
-          email,
+          email: user.email,
           billingInterval,
         });
         if (!result?.url) {
@@ -81,7 +86,6 @@ export function usePricingPage() {
         }
         window.location.href = result.url;
       } catch (err: unknown) {
-        // Extract the actual backend error message from Axios response if available
         const axiosData = (err as { response?: { data?: { message?: string } } })?.response?.data;
         const backendMessage = axiosData?.message;
         const message = backendMessage || (err instanceof Error ? err.message : String(err));

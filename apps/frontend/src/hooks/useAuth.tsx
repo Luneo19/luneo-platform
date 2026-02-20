@@ -147,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const loadUser = async () => {
-      // Skip auth check entirely on public pages — no cookies to send, avoids 401 console errors
       if (isPublicPage()) {
         if (isMounted) {
           setUser(null);
@@ -158,16 +157,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true);
       try {
-        // httpOnly cookies cannot be read via document.cookie
-        // Call /auth/me directly — cookies are sent automatically via credentials: 'include'
         let response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
           method: 'GET',
-          credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
+          credentials: 'include',
         });
 
         if (!isMounted) return;
 
-        // If 401, attempt token refresh before giving up
         if (response.status === 401) {
           try {
             const refreshResp = await fetch(`${AUTH_BASE}/api/v1/auth/refresh`, {
@@ -180,7 +176,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!isMounted) return;
 
             if (refreshResp.ok) {
-              // Retry /auth/me with new cookies (set automatically by browser)
               response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
                 method: 'GET',
                 credentials: 'include',
@@ -188,13 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (!isMounted) return;
             }
           } catch {
-            // Refresh failed silently, will handle below
+            // Refresh failed silently
           }
         }
 
         if (!response.ok) {
           if (response.status === 401) {
-            // Not authenticated - clear user state (cookies handled by backend)
             setUser(null);
             return;
           }
@@ -202,10 +196,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json();
-        // Backend may return:
-        //   { user: { id, email, ... } }         (login format)
-        //   { success: true, data: { id, ... } } (auth/me wrapped format)
-        //   { id, email, ... }                    (direct format)
         const userData = data.user || data.data?.user || data.data || data;
         if (userData && userData.id) {
           const mappedUser = mapBackendUser(userData);

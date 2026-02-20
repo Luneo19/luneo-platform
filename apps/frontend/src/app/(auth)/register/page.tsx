@@ -118,12 +118,13 @@ function RegisterPageContent() {
     confirmPassword: '',
   });
 
-  // Plan preselection from URL params (?plan=xxx)
-  // Referral code from URL params (?ref=xxx)
+  const [billingInterval, setBillingInterval] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState('');
   useEffect(() => {
     const plan = searchParams.get('plan');
     if (plan) setPlanFromUrl(plan);
+    const interval = searchParams.get('interval');
+    if (interval) setBillingInterval(interval);
     const ref = searchParams.get('ref') || searchParams.get('referralCode');
     if (ref) setReferralCode(ref);
   }, [searchParams]);
@@ -255,10 +256,11 @@ function RegisterPageContent() {
         // If a paid plan was selected, redirect to onboarding first, then billing
         // For free plan or no plan, just go to onboarding
         const isPaidPlan = planFromUrl && planFromUrl !== 'free';
-        const redirectTo = isPaidPlan
-          ? `/onboarding?plan=${encodeURIComponent(planFromUrl)}`
-          : '/onboarding';
-        window.location.href = redirectTo;
+        const onboardingParams = new URLSearchParams();
+        if (isPaidPlan) onboardingParams.set('plan', planFromUrl);
+        if (billingInterval) onboardingParams.set('interval', billingInterval);
+        const qs = onboardingParams.toString();
+        window.location.href = qs ? `/onboarding?${qs}` : '/onboarding';
       } else {
         setError(t('auth.register.errors.invalidResponse'));
       }

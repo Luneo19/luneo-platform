@@ -32,6 +32,14 @@ import {
   Receipt,
   History,
   Palette,
+  Ticket,
+  Brain,
+  Shield,
+  ShieldAlert,
+  MessageSquare,
+  Skull,
+  Eye,
+  CheckCircle2,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -57,9 +65,16 @@ export const adminNavigation: NavigationGroup[] = [
         icon: Sparkles,
         children: [
           { title: 'Overview', href: '/admin/orion', icon: LayoutDashboard },
+          { title: 'Review Queue IA', href: '/admin/orion/review-queue', icon: CheckCircle2 },
           { title: 'Agents', href: '/admin/orion/agents', icon: Bot },
-          { title: 'Automations', href: '/admin/orion/automations', icon: Zap },
-          { title: 'Communications', href: '/admin/orion/communications', icon: Mail },
+          { title: 'Prometheus (Support IA)', href: '/admin/orion/agents/prometheus', icon: Brain },
+          { title: 'Zeus (Stratégie)', href: '/admin/orion/agents/zeus', icon: Zap },
+          { title: 'Athena (Intelligence)', href: '/admin/orion/agents/athena', icon: Eye },
+          { title: 'Apollo (Monitoring)', href: '/admin/orion/agents/apollo', icon: Shield },
+          { title: 'Artemis (Sécurité)', href: '/admin/orion/agents/artemis', icon: ShieldAlert },
+          { title: 'Hermes (Communications)', href: '/admin/orion/agents/hermes', icon: MessageSquare },
+          { title: 'Hades (Rétention)', href: '/admin/orion/agents/hades', icon: Skull },
+          { title: 'Automations V2', href: '/admin/orion/automations', icon: Zap },
           { title: 'Health Dashboard', href: '/admin/orion/retention', icon: Activity },
           { title: 'Segments', href: '/admin/orion/segments', icon: Target },
           { title: 'Experiments', href: '/admin/orion/experiments', icon: Beaker },
@@ -134,6 +149,11 @@ export const adminNavigation: NavigationGroup[] = [
         title: 'Designs',
         href: '/admin/designs',
         icon: Palette,
+      },
+      {
+        title: 'Tickets Support',
+        href: '/admin/tickets',
+        icon: Ticket,
       },
       {
         title: 'Audit Log',

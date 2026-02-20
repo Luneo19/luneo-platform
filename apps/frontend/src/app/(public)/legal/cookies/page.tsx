@@ -19,8 +19,9 @@ export const metadata: Metadata = {
   },
 };
 
+const LAST_UPDATE = '1er février 2026';
+
 function CookiesPolicyPageContent() {
-  const lastUpdate = new Date().toLocaleDateString('fr-FR');
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900">
       <div className="dark-section relative noise-overlay py-12">
@@ -41,7 +42,7 @@ function CookiesPolicyPageContent() {
             Politique d'Utilisation des Cookies
           </h1>
           <p className="text-lg text-gray-400">
-            Dernière mise à jour : {lastUpdate}
+            Dernière mise à jour : {LAST_UPDATE}
           </p>
         </div>
 
@@ -90,7 +91,89 @@ function CookiesPolicyPageContent() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">3. Gestion des Cookies</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">3. Consentement</h2>
+            <p className="text-gray-300 leading-relaxed">
+              Les cookies essentiels sont nécessaires au fonctionnement du site et ne peuvent pas être désactivés. Les cookies de performance et d'analyse ne sont déposés qu'après votre consentement explicite via notre bannière de cookies.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-4">4. Liste des Cookies</h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-700">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700 bg-gray-800/50">
+                    <th className="px-4 py-3 font-semibold text-white">Nom</th>
+                    <th className="px-4 py-3 font-semibold text-white">Finalité</th>
+                    <th className="px-4 py-3 font-semibold text-white">Durée</th>
+                    <th className="px-4 py-3 font-semibold text-white">Fournisseur</th>
+                    <th className="px-4 py-3 font-semibold text-white">Catégorie</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-300">
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">csrf_token</td>
+                    <td className="px-4 py-3">Sécurité CSRF</td>
+                    <td className="px-4 py-3">Session</td>
+                    <td className="px-4 py-3">Luneo</td>
+                    <td className="px-4 py-3">Essentiel</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">luneo_locale</td>
+                    <td className="px-4 py-3">Préférence langue</td>
+                    <td className="px-4 py-3">1 an</td>
+                    <td className="px-4 py-3">Luneo</td>
+                    <td className="px-4 py-3">Fonctionnel</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">onboarding_completed</td>
+                    <td className="px-4 py-3">Statut onboarding</td>
+                    <td className="px-4 py-3">1 an</td>
+                    <td className="px-4 py-3">Luneo</td>
+                    <td className="px-4 py-3">Fonctionnel</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">access_token</td>
+                    <td className="px-4 py-3">Authentification</td>
+                    <td className="px-4 py-3">15 min</td>
+                    <td className="px-4 py-3">Luneo</td>
+                    <td className="px-4 py-3">Essentiel</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">refresh_token</td>
+                    <td className="px-4 py-3">Renouvellement session</td>
+                    <td className="px-4 py-3">7 jours</td>
+                    <td className="px-4 py-3">Luneo</td>
+                    <td className="px-4 py-3">Essentiel</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">_vercel_analytics</td>
+                    <td className="px-4 py-3">Mesure performance</td>
+                    <td className="px-4 py-3">Session</td>
+                    <td className="px-4 py-3">Vercel</td>
+                    <td className="px-4 py-3">Performance</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">_ga, _gid</td>
+                    <td className="px-4 py-3">Google Analytics</td>
+                    <td className="px-4 py-3">2 ans / 24h</td>
+                    <td className="px-4 py-3">Google</td>
+                    <td className="px-4 py-3">Analyse</td>
+                  </tr>
+                  <tr className="border-b border-gray-700/50">
+                    <td className="px-4 py-3">stripe_mid</td>
+                    <td className="px-4 py-3">Paiement sécurisé</td>
+                    <td className="px-4 py-3">1 an</td>
+                    <td className="px-4 py-3">Stripe</td>
+                    <td className="px-4 py-3">Essentiel</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-4">5. Gestion des Cookies</h2>
             <p className="text-gray-300 leading-relaxed mb-4">
               Vous pouvez contrôler et gérer les cookies de plusieurs façons :
             </p>
@@ -102,7 +185,7 @@ function CookiesPolicyPageContent() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">4. Cookies Tiers</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">6. Cookies Tiers</h2>
             <p className="text-gray-300 leading-relaxed">
               Nous utilisons des services tiers (analytics, publicité) qui peuvent déposer leurs propres cookies. 
               Ces cookies sont soumis aux politiques de confidentialité de ces tiers.
@@ -110,7 +193,10 @@ function CookiesPolicyPageContent() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">5. Contact</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">7. Contact et Responsable</h2>
+            <p className="text-gray-300 mb-4">
+              Responsable du traitement : Luneo Tech Sarl, Rue du Seyon 10, 2000 Neuchâtel, Suisse.
+            </p>
             <p className="text-gray-300">
               Pour toute question concernant notre utilisation des cookies :{' '}
               <a href="mailto:privacy@luneo.app" className="text-blue-400 hover:text-blue-300 underline">

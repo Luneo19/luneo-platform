@@ -109,6 +109,12 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
               {t('pricing.card.save20')}
             </p>
           )}
+        {price !== null && price !== undefined && price > 0 && plan.id !== 'enterprise' && (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] font-semibold text-emerald-400">14 jours d&apos;essai gratuit</span>
+          </div>
+        )}
       </div>
 
       <Button

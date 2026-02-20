@@ -67,10 +67,16 @@ export async function checkAdminAccess(): Promise<boolean> {
  * Vérifie l'accès admin et redirige si non autorisé
  * À utiliser dans les Server Components
  */
-export async function requireAdminAccess(): Promise<AdminUser> {
+export async function requireAdminAccess(): Promise<AdminUser | null> {
   serverLogger.debug('[Admin Permissions] Checking admin access...');
   
-  const user = await getServerUser();
+  let user: Awaited<ReturnType<typeof getServerUser>>;
+  try {
+    user = await getServerUser();
+  } catch (err) {
+    serverLogger.warn('[Admin Permissions] getServerUser threw', { error: String(err) });
+    return null;
+  }
   
   serverLogger.debug('[Admin Permissions] getServerUser result', { 
     found: !!user, 
@@ -78,14 +84,12 @@ export async function requireAdminAccess(): Promise<AdminUser> {
   });
   
   if (!user) {
-    serverLogger.debug('[Admin Permissions] No user, redirecting to login');
-    redirect('/login?redirect=/admin');
+    serverLogger.debug('[Admin Permissions] No user — deferring to client-side auth');
+    return null;
   }
 
   serverLogger.debug('[Admin Permissions] User role from JWT', { role: user.role });
 
-  // Vérifier le rôle directement depuis le JWT (déjà vérifié par backend)
-  // Si le rôle est PLATFORM_ADMIN dans le JWT, on peut faire confiance
   if (user.role === 'PLATFORM_ADMIN') {
     serverLogger.debug('[Admin Permissions] Access granted based on JWT role');
     return {

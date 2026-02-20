@@ -6,10 +6,10 @@ import { ArrowLeft, FileText } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Accord de traitement des données (DPA) - Luneo Tech',
   description:
-    'Data Processing Agreement Luneo Tech conforme au RGPD Article 28. Sous-traitance et sécurité des données.',
+    'Data Processing Agreement Luneo Tech conforme au RGPD Article 28 et au nDSG suisse. Sous-traitance et sécurité des données.',
   openGraph: {
     title: 'DPA - Accord de traitement des données - Luneo Tech',
-    description: 'Data Processing Agreement conforme RGPD Article 28.',
+    description: 'Data Processing Agreement conforme RGPD Article 28 et nDSG suisse.',
     type: 'website',
   },
   twitter: {
@@ -44,7 +44,7 @@ function DPAPageContent() {
               </h1>
             </div>
             <p className="text-lg text-slate-300">
-              Data Processing Agreement conforme au RGPD - Article 28
+              Data Processing Agreement conforme au RGPD - Article 28 et au nDSG suisse (nouvelle loi fédérale sur la protection des données)
             </p>
             <p className="text-sm text-slate-500 mt-2">
               Version 1.0 - Dernière mise à jour : {lastUpdate}
@@ -61,8 +61,10 @@ function DPAPageContent() {
                   <dd className="text-slate-300 ml-4">Vous, le client utilisant les services Luneo Tech</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold text-white">Sous-traitant :</dt>
-                  <dd className="text-slate-300 ml-4">Luneo Tech, fournisseur de la plateforme</dd>
+                  <dt className="font-semibold text-white">Sous-traitant (processeur) :</dt>
+                  <dd className="text-slate-300 ml-4">
+                    Luneo Tech Sarl, Rue du Seyon 10, 2000 Neuchâtel, Suisse, CHE-000.000.000 — fournisseur de la plateforme
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-white">Données personnelles :</dt>
@@ -148,6 +150,16 @@ function DPAPageContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
+                  <tr>
+                    <td className="px-4 py-3 text-sm text-slate-300">Neon (base de données PostgreSQL)</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">🇺🇸 USA / 🇪🇺 EU</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">SOC 2, RGPD</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 text-sm text-slate-300">Cloudinary (stockage images/médias)</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">🇮🇪 Irlande / 🇺🇸 USA</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">RGPD, SOC 2</td>
+                  </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm text-slate-300">AWS (hosting)</td>
                     <td className="px-4 py-3 text-sm text-slate-300">🇪🇺 EU / Suisse</td>

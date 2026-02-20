@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HealthCheckError, HealthIndicator, HealthIndicatorResult } from '@nestjs/terminus';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PCE_QUEUES } from '../pce.constants';
+import { InjectPCEQueue, PCEQueue } from './pce-queue.provider';
 import { QueueMonitorService } from './queue-monitor.service';
 
 @Injectable()
@@ -10,7 +9,7 @@ export class QueueHealthService extends HealthIndicator {
   private readonly logger = new Logger(QueueHealthService.name);
 
   constructor(
-    @InjectQueue(PCE_QUEUES.PIPELINE) private readonly pipelineQueue: Queue,
+    @InjectPCEQueue(PCE_QUEUES.PIPELINE) private readonly pipelineQueue: PCEQueue,
     private readonly queueMonitor: QueueMonitorService,
   ) {
     super();
@@ -22,7 +21,7 @@ export class QueueHealthService extends HealthIndicator {
       return this.getStatus(key, true, { redis: 'connected' });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Redis health check failed: ${message}`);
+      this.logger.debug(`Queue Redis health check: ${message}`);
       throw new HealthCheckError('Redis check failed', this.getStatus(key, false, { error: message }));
     }
   }

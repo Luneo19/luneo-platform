@@ -2,7 +2,6 @@
 
 import React, { memo } from 'react';
 import {
-  Target,
   Eye,
   Heart,
   Zap,
@@ -17,9 +16,16 @@ import { ScrollReveal } from '@/components/marketing/shared/scroll-reveal';
 import { useI18n } from '@/i18n/useI18n';
 
 const TEAM_ROLE_KEYS = ['ceo', 'cto', 'headOfDesign', 'leadEngineer', 'productManager', 'uxDesigner'] as const;
-const MILESTONE_KEYS = ['launch', 'ai', 'threeD', 'scale'] as const;
-const MILESTONE_YEARS = ['2024', '2024', '2024', '2025'] as const;
 const TEAM_COLORS = ['blue', 'purple', 'green', 'blue', 'purple', 'green'] as const;
+
+const TIMELINE = [
+  { period: '2024 Q1', title: "L'idée naît", desc: "Née d'une vraie frustration." },
+  { period: '2024 Q2', title: 'Premier prototype', desc: 'Des nuits blanches à construire le rêve.' },
+  { period: '2024 Q3', title: '100 premiers utilisateurs', desc: 'Le moment de la validation.' },
+  { period: '2024 Q4', title: 'IA & 3D', desc: 'Le tournant.' },
+  { period: '2025', title: 'Scale international', desc: "L'expansion internationale." },
+  { period: '2026', title: 'Plateforme complète', desc: 'La vision réalisée.' },
+] as const;
 
 function AboutPageContent() {
   const { t } = useI18n();
@@ -34,29 +40,45 @@ function AboutPageContent() {
   return (
     <>
       <PageHero
-        title={t('public.about.missionTitle')}
-        description={t('public.about.missionDescription')}
-        badge={t('public.about.badge')}
+        title="Chaque marque mérite les meilleurs outils"
+        description={'Quand nous avons lancé notre première entreprise, nous aurions tout donné pour avoir accès à des outils comme Luneo. Aujourd\'hui, nous offrons à des milliers de marques la possibilité d\'optimiser leur chiffre d\'affaires et de grandir sereinement.'}
         gradient="from-blue-600 via-purple-600 to-pink-600"
       />
 
-      {/* Mission & Vision */}
+      {/* Vision & Impact */}
       <section className="dark-section relative noise-overlay py-24 sm:py-32">
         <div className="absolute inset-0 gradient-mesh-purple" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <ScrollReveal>
-              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]" data-animate="fade-right">
-                <Target className="w-16 h-16 mb-6 text-purple-400" />
-                <h2 className="text-3xl font-bold mb-4 text-white">{t('public.about.missionCardTitle')}</h2>
-                <p className="text-slate-300 leading-relaxed">{t('public.about.missionCardDescription')}</p>
+          <ScrollReveal>
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <Eye className="w-16 h-16 mx-auto mb-6 text-purple-400" />
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">Des milliers de marques font confiance à Luneo</h2>
+              <p className="text-slate-300 leading-relaxed">Notre plateforme accompagne les marques au quotidien avec des résultats concrets.</p>
+            </div>
+          </ScrollReveal>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
+            <ScrollReveal delay={0}>
+              <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
+                <p className="text-2xl sm:text-3xl font-bold text-white">+50 000</p>
+                <p className="text-slate-400 text-sm mt-1">designs créés</p>
               </Card>
             </ScrollReveal>
-            <ScrollReveal>
-              <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]" data-animate="fade-left">
-                <Eye className="w-16 h-16 mb-6 text-purple-400" />
-                <h2 className="text-3xl font-bold mb-4 text-white">{t('public.about.visionCardTitle')}</h2>
-                <p className="text-slate-300 leading-relaxed">{t('public.about.visionCardDescription')}</p>
+            <ScrollReveal delay={100}>
+              <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
+                <p className="text-2xl sm:text-3xl font-bold text-white">98,5 %</p>
+                <p className="text-slate-400 text-sm mt-1">uptime</p>
+              </Card>
+            </ScrollReveal>
+            <ScrollReveal delay={200}>
+              <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
+                <p className="text-2xl sm:text-3xl font-bold text-white">12</p>
+                <p className="text-slate-400 text-sm mt-1">pays</p>
+              </Card>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+              <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
+                <p className="text-2xl sm:text-3xl font-bold text-white">+40 %</p>
+                <p className="text-slate-400 text-sm mt-1">conversions</p>
               </Card>
             </ScrollReveal>
           </div>
@@ -96,17 +118,17 @@ function AboutPageContent() {
           />
           <div className="max-w-4xl mx-auto">
             <div className="space-y-8">
-              {MILESTONE_KEYS.map((key, i) => (
-                <ScrollReveal key={key} delay={i * 100}>
+              {TIMELINE.map((milestone, i) => (
+                <ScrollReveal key={milestone.period + milestone.title} delay={i * 100}>
                   <div className="flex gap-6" data-animate="fade-right" data-delay={i * 100}>
                     <div className="flex-shrink-0">
-                      <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {MILESTONE_YEARS[i]}
+                      <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm text-center px-1">
+                        {milestone.period}
                       </div>
                     </div>
                     <div className="flex-1 pb-8 border-l-2 border-white/[0.04] pl-6">
-                      <h3 className="text-2xl font-bold mb-2 text-white">{t(`public.about.milestones.${key}`)}</h3>
-                      <p className="text-slate-300">{t(`public.about.milestones.${key}Desc`)}</p>
+                      <h3 className="text-2xl font-bold mb-2 text-white">{milestone.title}</h3>
+                      <p className="text-slate-300">{milestone.desc}</p>
                     </div>
                   </div>
                 </ScrollReveal>
@@ -122,7 +144,7 @@ function AboutPageContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title={t('public.about.teamTitle')}
-            description={t('public.about.teamSubtitle')}
+            description="Des passionnés qui croient que chaque marque mérite les mêmes armes que les plus grandes. Nous construisons Luneo au quotidien, avec la même exigence que nous aimerions la trouver ailleurs."
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {TEAM_ROLE_KEYS.map((roleKey, i) => (
@@ -135,8 +157,8 @@ function AboutPageContent() {
                   } flex items-center justify-center text-white font-bold text-2xl`}>
                     {roleKey.slice(0, 2).toUpperCase()}
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-white">{t('public.about.companyName')}</h3>
-                  <p className="text-slate-300">{t(`public.about.teamRoles.${roleKey}`)}</p>
+                  <h3 className="text-xl font-bold mb-1 text-white">{t(`public.about.teamRoles.${roleKey}`)}</h3>
+                  <p className="text-slate-400 text-sm">Au service de votre réussite, chaque jour.</p>
                 </Card>
               </ScrollReveal>
             ))}
@@ -144,7 +166,26 @@ function AboutPageContent() {
         </div>
       </section>
 
-      <CTASectionNew />
+      {/* Notre promesse */}
+      <section className="dark-section relative noise-overlay py-24 sm:py-32">
+        <div className="absolute inset-0 gradient-mesh-purple" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <ScrollReveal>
+              <Heart className="w-16 h-16 mx-auto mb-6 text-purple-400" />
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-white">Notre promesse</h2>
+              <p className="text-slate-300 text-lg leading-relaxed">
+                {'Nous ne vendons pas juste un outil. Nous construisons le pont entre votre vision et la réalité. Chaque fonctionnalité est pensée pour vous faire gagner du temps, de l\'argent, et de la tranquillité.'}
+              </p>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      <CTASectionNew
+        title={<span className="text-white">{'Rejoignez l\'aventure'}</span>}
+        subtitle={'Des milliers de marques nous font déjà confiance. La prochaine, c\'est peut-être vous.'}
+      />
     </>
   );
 }

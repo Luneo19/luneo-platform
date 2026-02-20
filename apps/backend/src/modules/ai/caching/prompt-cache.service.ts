@@ -55,7 +55,7 @@ export class PromptCacheService {
         return { ...JSON.parse(cached), source: 'redis' as const };
       }
     } catch (error) {
-      this.logger.warn('Redis cache read failed', {
+      this.logger.debug('Redis cache read unavailable', {
         error: error instanceof Error ? error.message : error,
       });
     }
@@ -182,7 +182,7 @@ export class PromptCacheService {
         this.REDIS_TTL_MS,
       );
     } catch (error) {
-      this.logger.warn('Redis cache write failed', {
+      this.logger.debug('Redis cache write unavailable', {
         error: error instanceof Error ? error.message : error,
       });
     }

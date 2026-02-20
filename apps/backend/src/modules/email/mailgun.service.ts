@@ -41,7 +41,7 @@ export class MailgunService {
     this.defaultFrom = this.configService.get<string>('email.fromEmail') || 'noreply@luneo.app';
 
     if (!apiKey || !domain) {
-      this.logger.warn('Mailgun configuration incomplete. Service will not be available.');
+      this.logger.debug('Mailgun configuration incomplete. Service will not be available.');
       return;
     }
 
