@@ -42,15 +42,7 @@ export function ShapePanel() {
   const [opacity, setOpacity] = useState(100);
 
   const handleAddShape = () => {
-    // This would add the shape to the canvas
-    console.log('Add shape', {
-      type: selectedShape,
-      fill: fillColor,
-      stroke: strokeColor,
-      strokeWidth,
-      borderRadius,
-      opacity: opacity / 100,
-    });
+    // TODO: Add the shape to the canvas via layer store
   };
 
   return (

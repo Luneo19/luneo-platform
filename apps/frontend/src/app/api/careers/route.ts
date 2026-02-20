@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app';
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
     `;
 
     if (!SENDGRID_API_KEY) {
-      console.log('[Careers] SendGrid not configured, logging submission:', { name, email });
+      logger.warn('[Careers] SendGrid not configured, submission not sent', { name, email });
       return NextResponse.json({ success: true });
     }
 
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     if (!sgResponse.ok) {
       const errorText = await sgResponse.text();
-      console.error('[Careers] SendGrid error:', sgResponse.status, errorText);
+      logger.error('[Careers] SendGrid error', { status: sgResponse.status, body: errorText });
       return NextResponse.json(
         { success: false, error: 'Erreur lors de l\'envoi. Veuillez réessayer.' },
         { status: 500 },
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Careers] Unexpected error:', error);
+    logger.error('[Careers] Unexpected error', error instanceof Error ? error : undefined);
     return NextResponse.json(
       { success: false, error: 'Erreur interne.' },
       { status: 500 },

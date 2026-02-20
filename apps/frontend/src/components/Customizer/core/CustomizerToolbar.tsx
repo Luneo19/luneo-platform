@@ -53,22 +53,16 @@ export function CustomizerToolbar() {
   const isMobile = useUIStore((state) => state.isMobile);
 
   const handleSave = async () => {
-    try {
-      const canvasData: Record<string, unknown> = {};
-      await saveDesign('Untitled Design', canvasData);
-    } catch (error) {
-      console.error('Failed to save design:', error);
-    }
+    const canvasData: Record<string, unknown> = {};
+    await saveDesign('Untitled Design', canvasData);
   };
 
   const handleExport = () => {
     // TODO: Open export dialog
-    console.log('Export clicked');
   };
 
   const handleShare = () => {
     // TODO: Open share dialog
-    console.log('Share clicked');
   };
 
   const ToolbarContent = () => (

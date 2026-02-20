@@ -47,13 +47,6 @@ export function ShapeTool() {
       metadata: { fillColor, strokeColor, strokeWidth, cornerRadius },
     });
     setActiveTool('select');
-    console.log('Add shape:', {
-      type: shapeType,
-      fill: fillColor,
-      stroke: strokeColor,
-      strokeWidth,
-      cornerRadius,
-    });
   };
 
   return (

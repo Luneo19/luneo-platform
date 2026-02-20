@@ -31,13 +31,6 @@ export function QRCodeTool() {
 
   const handleGenerate = () => {
     // TODO: Add QR code to canvas
-    console.log('Generate QR code:', {
-      text,
-      size,
-      foregroundColor,
-      backgroundColor: hasBackground ? backgroundColor : 'transparent',
-      errorCorrectionLevel,
-    });
   };
 
   return (

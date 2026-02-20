@@ -47,6 +47,7 @@
     "@nivo/line": "^0.87.0",
     "@nivo/pie": "^0.87.0",
     "@prisma/client": "5.22.0",
+    "prisma": "5.22.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -174,7 +175,6 @@
     "playwright": "^1.40.1",
     "prettier": "^3.1.1",
     "prettier-plugin-tailwindcss": "^0.5.9",
-    "prisma": "5.22.0",
     "vitest": "^1.6.1"
   },
   "lint-staged": {

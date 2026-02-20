@@ -285,6 +285,20 @@ const nextConfig = {
           },
         ],
       },
+      // Manifest - Cache to avoid constant re-fetches
+      {
+        source: '/manifest.webmanifest',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json',
+          },
+        ],
+      },
       // Auth API routes - MUST NEVER be cached (cookies, tokens, session state)
       {
         source: '/api/v1/auth/:path*',
@@ -303,13 +317,21 @@ const nextConfig = {
           },
         ],
       },
-      // Other API routes - Short cache with revalidation (excludes auth above)
+      // All API routes - Never cache at CDN (dynamic, user-specific data)
       {
         source: '/api/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, s-maxage=60, stale-while-revalidate=300',
+            value: 'private, no-cache, no-store, max-age=0, must-revalidate',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'private, no-store',
+          },
+          {
+            key: 'Vercel-CDN-Cache-Control',
+            value: 'private, no-store',
           },
         ],
       },

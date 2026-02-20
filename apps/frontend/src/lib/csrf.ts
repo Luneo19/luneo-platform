@@ -8,7 +8,13 @@ import { cookies } from 'next/headers';
 import { logger } from './logger';
 
 const CSRF_TOKEN_NAME = 'csrf_token';
-const CSRF_SECRET = process.env.CSRF_SECRET || process.env.SESSION_SECRET || 'default-csrf-secret-change-me';
+const CSRF_SECRET = (() => {
+  const secret = process.env.CSRF_SECRET || process.env.SESSION_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('CSRF_SECRET or SESSION_SECRET must be set in production');
+  }
+  return secret || 'dev-csrf-secret-not-for-production';
+})();
 
 /**
  * Générer un token CSRF

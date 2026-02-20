@@ -1,4 +1,4 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Logger, Module } from '@nestjs/common';
 import { BullModule, RegisterQueueOptions } from '@nestjs/bullmq';
 
 /**
@@ -10,9 +10,12 @@ import { BullModule, RegisterQueueOptions } from '@nestjs/bullmq';
  * This module sets `global: false` on the root config so it stays
  * scoped to the PCE module tree.
  */
+const logger = new Logger('PCEBullModule');
+
 function parsePCERedisOpts(): Record<string, unknown> {
   const raw = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
   if (!raw) {
+    logger.warn('No BULLMQ_REDIS_URL or REDIS_URL set — defaulting to localhost:6379');
     return { host: '127.0.0.1', port: 6379, maxRetriesPerRequest: null };
   }
 
@@ -20,10 +23,7 @@ function parsePCERedisOpts(): Record<string, unknown> {
     const url = new URL(raw);
     const useTls = url.protocol === 'rediss:';
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `[PCEBullModule] Redis → ${url.hostname}:${url.port || 6379}${useTls ? ' (TLS)' : ''}`,
-    );
+    logger.log(`Redis → ${url.hostname}:${url.port || 6379}${useTls ? ' (TLS)' : ''}`);
 
     return {
       host: url.hostname,
@@ -38,6 +38,7 @@ function parsePCERedisOpts(): Record<string, unknown> {
       connectTimeout: 10_000,
     };
   } catch {
+    logger.warn('Failed to parse Redis URL — defaulting to localhost:6379');
     return { host: '127.0.0.1', port: 6379, maxRetriesPerRequest: null };
   }
 }

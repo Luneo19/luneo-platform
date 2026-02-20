@@ -111,14 +111,10 @@ export async function checkRateLimit(
     };
   }
 
-  // If Redis is not configured in production, log warning but allow
+  // If Redis is not configured in production, use in-memory fallback
   if (!process.env.UPSTASH_REDIS_REST_URL) {
-    logger.warn('Rate limiting disabled: UPSTASH_REDIS_REST_URL not configured');
-    return {
-      success: true,
-      remaining: config.limit,
-      reset: new Date(Date.now() + 60000),
-    };
+    logger.warn('UPSTASH_REDIS_REST_URL not configured — using in-memory rate limiting (not suitable for multi-instance)');
+    return inMemoryRateLimit(identifier, config);
   }
 
   const limiter = createRateLimiter(config.limit, config.window);
@@ -150,6 +146,42 @@ export function getAuthRateLimit(): { limit: number; window: string } {
  */
 export function getUploadRateLimit(): { limit: number; window: string } {
   return rateLimitConfigs.upload;
+}
+
+const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
+
+function inMemoryRateLimit(
+  identifier: string,
+  config: { limit: number; window: string },
+): { success: boolean; remaining: number; reset: Date } {
+  const windowMs = parseWindow(config.window);
+  const now = Date.now();
+  const entry = inMemoryStore.get(identifier);
+
+  if (!entry || now > entry.resetTime) {
+    inMemoryStore.set(identifier, { count: 1, resetTime: now + windowMs });
+    return { success: true, remaining: config.limit - 1, reset: new Date(now + windowMs) };
+  }
+
+  entry.count++;
+  const remaining = Math.max(0, config.limit - entry.count);
+  return {
+    success: entry.count <= config.limit,
+    remaining,
+    reset: new Date(entry.resetTime),
+  };
+}
+
+function parseWindow(window: string): number {
+  const parts = window.trim().split(/\s+/);
+  const value = parseInt(parts[0], 10) || 1;
+  const unit = (parts[1] || 'm').charAt(0);
+  switch (unit) {
+    case 's': return value * 1000;
+    case 'h': return value * 3600000;
+    case 'd': return value * 86400000;
+    default: return value * 60000;
+  }
 }
 
 /**
