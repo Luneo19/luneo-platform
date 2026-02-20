@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
-const API_BASE = typeof window !== 'undefined'
+// Use relative URLs in production (HTTPS) to go through Vercel proxy and avoid CORS.
+// Only use absolute backend URL in local development.
+const API_BASE = typeof window !== 'undefined' && window.location.protocol === 'http:'
   ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
   : '';
 
@@ -27,7 +29,7 @@ export function BrandThemeProvider({ children }: { children: React.ReactNode }) 
   const [applied, setApplied] = useState(false);
 
   useEffect(() => {
-    if (!API_BASE || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       setApplied(true);
       return;
     }
