@@ -102,7 +102,7 @@
     "cloudinary": "^2.8.0",
     "cloudinary-react": "^1.8.0",
     "clsx": "^2.1.0",
-    "cmdk": "^0.2.0",
+    "cmdk": "^1.1.1",
     "critters": "^0.0.20",
     "date-fns": "^3.0.0",
     "dompurify": "^3.3.1",
