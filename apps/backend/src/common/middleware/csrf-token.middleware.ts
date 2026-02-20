@@ -6,35 +6,46 @@ import * as crypto from 'crypto';
  * Express middleware function for CSRF token generation
  * Can be used directly in Express apps (e.g., main.ts)
  */
+function extractCookieDomain(): string | undefined {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN;
+  if (!frontendUrl) return undefined;
+  try {
+    const hostname = new URL(frontendUrl).hostname;
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+      return '.' + parts.slice(-2).join('.');
+    }
+  } catch { /* ignore */ }
+  return undefined;
+}
+
 export function csrfTokenMiddleware(req: Request, res: Response, next: NextFunction) {
   const existingToken = req.cookies?.csrf_token;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // SECURITY FIX: Validate existing token format and enforce rotation
   const isValidFormat = existingToken && typeof existingToken === 'string' && /^[a-f0-9]{64}$/.test(existingToken);
 
-  // SECURITY FIX: Rotate CSRF token periodically (every 1 hour instead of 7 days)
-  // Check token age via a companion cookie
   const tokenCreatedAt = req.cookies?.csrf_token_created;
-  const maxAge = 1 * 60 * 60 * 1000; // 1 hour rotation
+  const maxAge = 1 * 60 * 60 * 1000;
   const needsRotation = !tokenCreatedAt || (Date.now() - parseInt(tokenCreatedAt, 10)) > maxAge;
 
   if (!isValidFormat || needsRotation) {
     const token = crypto.randomBytes(32).toString('hex');
+    const domain = isProduction ? extractCookieDomain() : undefined;
     
-    const cookieOpts = {
-      httpOnly: false, // Client JS must read it for double-submit pattern
-      sameSite: 'strict' as const,
+    const cookieOpts: Record<string, unknown> = {
+      httpOnly: false,
+      sameSite: isProduction ? 'lax' as const : 'strict' as const,
       secure: isProduction,
       path: '/',
-      maxAge: 2 * 60 * 60 * 1000, // 2 hours (token lives longer than rotation cycle)
+      maxAge: 2 * 60 * 60 * 1000,
+      ...(domain ? { domain } : {}),
     };
 
     res.cookie('csrf_token', token, cookieOpts);
-    // SECURITY FIX: Track token creation time for rotation
     res.cookie('csrf_token_created', String(Date.now()), {
       ...cookieOpts,
-      httpOnly: true, // Creation timestamp doesn't need JS access
+      httpOnly: true,
     });
 
     res.locals.csrfToken = token;
