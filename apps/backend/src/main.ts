@@ -17,14 +17,17 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
-import express from 'express';
-import * as Express from 'express';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const express = require('express');
 import type { Request, Response, NextFunction } from 'express';
-import compression from 'compression';
-import helmet from 'helmet';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const compression = require('compression');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const helmet = require('helmet');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const hpp = require('hpp');
-import cookieParser from 'cookie-parser';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cookieParser = require('cookie-parser');
 import { randomUUID } from 'crypto';
 import { csrfTokenMiddleware } from './common/middleware/csrf-token.middleware';
 import { winstonLogger } from './config/logger.config';
@@ -437,7 +440,7 @@ async function bootstrap() {
   // This is the EXACT pattern from serverless.ts which works correctly on Vercel
   // The order of middleware registration is critical: /health must be registered
   // BEFORE NestJS adds its routing middleware during app.init()
-  server.get('/health', (req: Express.Request, res: Express.Response) => {
+  server.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),

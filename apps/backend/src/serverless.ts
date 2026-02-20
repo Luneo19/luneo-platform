@@ -8,20 +8,25 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import compression from 'compression';
-import * as cookieParser from 'cookie-parser';
-import express from 'express';
-import helmet from 'helmet';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const compression = require('compression');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cookieParser = require('cookie-parser');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const express = require('express');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const helmet = require('helmet');
+import type { Application, Request, Response } from 'express';
 import { AppModule } from './app.module';
 
 const logger = new Logger('ServerlessHandler');
 
-let cachedApp: express.Application | null = null;
+let cachedApp: Application | null = null;
 
 /**
  * Crée l'application NestJS optimisée pour serverless
  */
-async function createApp(): Promise<express.Application> {
+async function createApp(): Promise<Application> {
   if (cachedApp) {
     return cachedApp;
   }
@@ -143,7 +148,7 @@ async function createApp(): Promise<express.Application> {
   logger.log(`CORS: Environnement ${nodeEnv}, ${allowedOrigins.length} origines autorisées (+ wildcards Vercel)`);
   
   // Middleware CORS manuel sur Express AVANT tous les autres middlewares NestJS
-  server.use((req, res, next): void => {
+  server.use((req: Request, res: Response, next: () => void): void => {
     const origin = req.headers.origin;
     
     // Vérifier si l'origine est autorisée (liste exacte + patterns wildcard)
@@ -197,7 +202,7 @@ async function createApp(): Promise<express.Application> {
   }
 
   // Health check endpoint optimisé
-  server.get('/health', (_req: express.Request, res: express.Response) => {
+  server.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -215,7 +220,7 @@ async function createApp(): Promise<express.Application> {
  * Handler principal pour Vercel
  * Optimisé pour réduire le cold start
  */
-export default async function handler(req: express.Request, res: express.Response) {
+export default async function handler(req: Request, res: Response) {
   try {
     const app = await createApp();
     return app(req, res);
