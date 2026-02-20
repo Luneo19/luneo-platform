@@ -88,7 +88,7 @@
     "passport-local": "^1.0.0",
     "passport-openidconnect": "^0.1.2",
     "pdfkit": "^0.14.0",
-    "prisma": "^5.22.0",
+    "prisma": "^7.4.1",
     "prom-client": "^15.1.0",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.1.13",
