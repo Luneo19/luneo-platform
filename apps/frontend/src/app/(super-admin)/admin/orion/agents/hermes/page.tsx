@@ -88,7 +88,7 @@ function HermesPageContent() {
   };
 
   return (
-    <div className="space-y-6 bg-zinc-900 min-h-screen p-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/admin/orion/agents">
           <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white" aria-label="Retour à la liste des agents">

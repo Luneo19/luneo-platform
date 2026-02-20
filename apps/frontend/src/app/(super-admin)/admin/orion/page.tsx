@@ -176,7 +176,7 @@ function OrionCommandCenterContent() {
   const arpu = revenue && activeCustomers > 0 ? revenue.mrr / activeCustomers : undefined;
 
   return (
-    <div className="space-y-8 p-6 bg-zinc-900 min-h-screen text-zinc-100">
+    <div className="space-y-6 md:space-y-8 text-zinc-100">
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

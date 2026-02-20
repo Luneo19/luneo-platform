@@ -6,16 +6,17 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { AdminBreadcrumbs } from './admin-breadcrumbs';
-import { Search, Bell, User, LogOut } from 'lucide-react';
+import { Search, Bell, User, LogOut, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { AdminUser } from '@/lib/admin/permissions';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { CommandPalette } from '../command-palette';
 import { NotificationsPanel } from '../notifications-panel';
+import { MobileSidebarContext } from './admin-layout-shell';
 
 interface AdminHeaderProps {
   user: AdminUser | null;
@@ -25,6 +26,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
   const { t } = useI18n();
   const router = useRouter();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { toggle: toggleSidebar } = useContext(MobileSidebarContext);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,17 +51,26 @@ export function AdminHeader({ user }: AdminHeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-6">
-      {/* Left: Breadcrumbs */}
-      <div className="flex-1">
-        <AdminBreadcrumbs />
+    <header className="h-16 shrink-0 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4 md:px-6">
+      {/* Left: Hamburger + Breadcrumbs */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <button
+          onClick={toggleSidebar}
+          className="lg:hidden p-2 -ml-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+          aria-label="Toggle sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="min-w-0">
+          <AdminBreadcrumbs />
+        </div>
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
         {/* Search */}
         <button
-          className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-2 md:px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
           onClick={() => setCommandPaletteOpen(true)}
           aria-label="Open search"
         >
@@ -74,14 +85,14 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         <NotificationsPanel userId={user?.id ?? ''} />
 
         {/* User Menu */}
-        <div className="flex items-center gap-3 pl-4 border-l border-zinc-800">
-          <div className="flex flex-col items-end">
+        <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-zinc-800">
+          <div className="hidden sm:flex flex-col items-end">
             <span className="text-sm font-medium text-white">
               {user?.email?.split('@')[0] ?? 'User'}
             </span>
             <span className="text-xs text-zinc-500">{t('admin.sidebar.superAdmin')}</span>
           </div>
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
             <User className="w-4 h-4 text-white" />
           </div>
           <button

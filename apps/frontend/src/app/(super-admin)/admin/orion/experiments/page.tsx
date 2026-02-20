@@ -108,7 +108,7 @@ export default function ExperimentsPage() {
   const draft = experiments.filter((e) => e.status === 'draft');
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-100 p-6 space-y-6">
+    <div className="space-y-6 text-zinc-100">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-zinc-800 border border-zinc-700">

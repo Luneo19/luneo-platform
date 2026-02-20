@@ -127,14 +127,14 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-zinc-900">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 min-h-screen bg-zinc-900 text-zinc-100 p-6">
+    <div className="space-y-6 text-zinc-100">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

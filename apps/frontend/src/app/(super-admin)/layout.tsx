@@ -14,6 +14,7 @@ import { requireAdminAccess } from '@/lib/admin/permissions';
 import { AdminSidebar } from '@/components/admin/layout/admin-sidebar';
 import { AdminHeader } from '@/components/admin/layout/admin-header';
 import { AdminGuard } from '@/components/admin/layout/admin-guard';
+import { AdminLayoutShell } from '@/components/admin/layout/admin-layout-shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,17 +32,12 @@ export default async function SuperAdminLayout({
 
   return (
     <AdminGuard serverUser={adminUser}>
-      <div className="flex h-screen bg-zinc-950 overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <AdminHeader user={adminUser} />
-          <main className="flex-1 overflow-y-auto bg-zinc-900">
-            <div className="p-6">
-              {children}
-            </div>
-          </main>
-        </div>
-      </div>
+      <AdminLayoutShell
+        sidebar={<AdminSidebar />}
+        header={<AdminHeader user={adminUser} />}
+      >
+        {children}
+      </AdminLayoutShell>
     </AdminGuard>
   );
 }

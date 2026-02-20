@@ -60,7 +60,7 @@ function ApolloPageContent() {
 
   if (error) {
     return (
-      <div className="p-6 bg-zinc-900 min-h-screen">
+      <div className="">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="p-6 text-center">
             <p className="text-red-400 mb-4">Impossible de charger le tableau de bord Apollo.</p>
@@ -79,7 +79,7 @@ function ApolloPageContent() {
   const metrics = Array.isArray(data?.metrics) ? data.metrics : [];
 
   return (
-    <div className="min-h-screen bg-zinc-900 p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/admin/orion/agents">
           <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-800" aria-label="Retour à la liste des agents">

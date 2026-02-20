@@ -126,7 +126,7 @@ export default function ExportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-100 p-6 space-y-8">
+    <div className="space-y-8 text-zinc-100">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-zinc-800 border border-zinc-700">
           <Download className="h-8 w-8 text-amber-400" />

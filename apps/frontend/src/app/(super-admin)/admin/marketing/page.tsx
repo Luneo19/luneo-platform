@@ -64,7 +64,7 @@ export default function AdminMarketingPage() {
     : [];
 
   return (
-    <div className="space-y-6 min-h-screen bg-zinc-900 text-zinc-100 p-6">
+    <div className="space-y-6 text-zinc-100">
       <div>
         <h1 className="text-3xl font-bold text-white">Marketing</h1>
         <p className="mt-2 text-zinc-400">

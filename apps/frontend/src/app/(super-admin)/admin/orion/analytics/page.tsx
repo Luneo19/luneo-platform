@@ -143,7 +143,7 @@ export default function OrionAnalyticsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="text-zinc-100">
       <div className="border-b border-zinc-800 bg-zinc-900/50 px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
