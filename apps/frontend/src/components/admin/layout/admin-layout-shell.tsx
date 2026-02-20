@@ -26,6 +26,10 @@ export function AdminLayoutShell({ sidebar, header, children }: AdminLayoutShell
     setSidebarOpen(false);
   }, [pathname]);
 
+  // #region agent log
+  useEffect(() => { fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'admin-layout-shell.tsx:30',message:'AdminLayoutShell mounted',data:{pathname,sidebarOpen},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{}); }, [pathname, sidebarOpen]);
+  // #endregion
+
   return (
     <MobileSidebarContext.Provider value={{ open: sidebarOpen, toggle, close }}>
       <div className="flex h-screen bg-zinc-950 overflow-hidden">

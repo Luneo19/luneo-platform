@@ -75,11 +75,17 @@ export function usePricingPage() {
 
       // Logged in, no active subscription: create checkout session
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'usePricingPage.ts:78',message:'Creating checkout session',data:{planId,email:user.email,billingInterval},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
         const result = await api.post<CheckoutResponse>('/api/v1/billing/create-checkout-session', {
           planId,
           email: user.email,
           billingInterval,
         });
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'usePricingPage.ts:88',message:'Checkout session result',data:{success:result?.success,hasUrl:!!result?.url,error:result?.error,message:result?.message},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
         if (!result?.url) {
           const msg = result?.error || result?.message || t('pricing.card.invalidResponse');
           throw new Error(typeof msg === 'string' ? msg : t('pricing.card.invalidResponse'));

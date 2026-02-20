@@ -29,7 +29,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 type ProviderItem = {
   name: string;
   model?: string;
-  circuit?: string;
+  circuit?: string | { state?: string };
 };
 
 type PrometheusStats = {
@@ -44,6 +44,10 @@ type PrometheusStats = {
 function PrometheusPageContent() {
   const { stats, isLoading, error, refresh } = usePrometheus();
   const data = stats as PrometheusStats | undefined;
+
+  // #region agent log
+  if (data?.providers) { fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'prometheus/page.tsx:47',message:'Prometheus providers data',data:{providers:data.providers.map(p=>({name:p.name,circuitType:typeof p.circuit,circuitValue:typeof p.circuit === 'object' ? JSON.stringify(p.circuit) : p.circuit}))},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{}); }
+  // #endregion
 
   if (isLoading && !data) {
     return (
@@ -197,13 +201,18 @@ function PrometheusPageContent() {
                       </div>
                       <Badge
                         variant="secondary"
-                        className={
-                          provider.circuit === 'OPEN' || provider.circuit === 'open'
+                        className={(() => {
+                          const circuitState = typeof provider.circuit === 'object' && provider.circuit !== null
+                            ? (provider.circuit as { state?: string }).state
+                            : provider.circuit;
+                          return circuitState === 'OPEN' || circuitState === 'open'
                             ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                        }
+                            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                        })()}
                       >
-                        {provider.circuit ?? 'OK'}
+                        {typeof provider.circuit === 'object' && provider.circuit !== null
+                          ? (provider.circuit as { state?: string }).state ?? 'OK'
+                          : provider.circuit ?? 'OK'}
                       </Badge>
                     </div>
                   ))}

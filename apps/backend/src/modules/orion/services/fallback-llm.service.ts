@@ -241,11 +241,11 @@ export class FallbackLLMService {
     };
   }
 
-  getProvidersStatus() {
+  getProvidersStatus(): Array<{ name: string; model: string; circuit: string }> {
     return this.providers.map((p) => ({
       name: p.name,
       model: p.defaultModel,
-      circuit: this.circuitBreaker.getStatus(p.circuitName),
+      circuit: String(this.circuitBreaker.getStatus(p.circuitName).state),
     }));
   }
 }
