@@ -281,7 +281,20 @@ export class OnboardingService {
 
   async skip(userId: string, brandId: string | null) {
     if (!brandId) {
-      throw new BadRequestException('Brand required');
+      const slug = `brand-${crypto.randomBytes(4).toString('hex')}`;
+      const newBrand = await this.prisma.brand.create({
+        data: {
+          name: 'My Brand',
+          slug,
+          users: { connect: { id: userId } },
+        },
+      });
+      brandId = newBrand.id;
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { brandId: newBrand.id },
+      });
+      this.logger.log(`Created default brand ${newBrand.id} for user ${userId} during skip`);
     }
     const brand = await this.prisma.brand.findUnique({
       where: { id: brandId },
