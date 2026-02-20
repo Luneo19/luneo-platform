@@ -50,11 +50,11 @@ export class PCEQueue {
     this.paused = false;
   }
 
-  async getFailed(_start?: number, _end?: number): Promise<any[]> {
+  async getFailed(_start?: number, _end?: number): Promise<unknown[]> {
     return [];
   }
 
-  async clean(_grace: number, _limit: number, _type: string): Promise<any[]> {
+  async clean(_grace: number, _limit: number, _type: string): Promise<unknown[]> {
     return [];
   }
 }

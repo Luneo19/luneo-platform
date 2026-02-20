@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @Injectable()
@@ -13,7 +14,7 @@ export class MacroService {
     if (category) where.category = category;
 
     return this.prisma.supportMacro.findMany({
-      where: where as any,
+      where: where as never,
       orderBy: [{ usageCount: 'desc' }, { title: 'asc' }],
     });
   }
@@ -39,7 +40,7 @@ export class MacroService {
         title: data.title,
         content: data.content,
         category: data.category,
-        variables: data.variables as any,
+        variables: data.variables as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -61,7 +62,7 @@ export class MacroService {
         ...(data.content !== undefined ? { content: data.content } : {}),
         ...(data.category !== undefined ? { category: data.category } : {}),
         ...(data.variables !== undefined
-          ? { variables: data.variables as any }
+          ? { variables: data.variables as unknown as Prisma.InputJsonValue }
           : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
       },
@@ -100,7 +101,7 @@ export class MacroService {
     return content;
   }
 
-  async suggestMacros(ticketCategory: string, ticketContent: string) {
+  async suggestMacros(ticketCategory: string, _ticketContent: string) {
     const macros = await this.prisma.supportMacro.findMany({
       where: {
         isActive: true,

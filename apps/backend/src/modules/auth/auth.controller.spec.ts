@@ -15,7 +15,7 @@ import { Response } from 'express';
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: jest.Mocked<AuthService>;
-  let configService: jest.Mocked<ConfigService>;
+  let _configService: jest.Mocked<ConfigService>;
 
   // Mock response object
   // json() returns the data passed to it (to match new controller behavior)
@@ -37,7 +37,7 @@ describe('AuthController', () => {
       ip: ip || '127.0.0.1',
       headers: { 'x-forwarded-for': ip || '127.0.0.1' },
       cookies: {},
-    }) as any;
+    }) as unknown;
 
   beforeEach(async () => {
     const mockAuthService = {
@@ -57,7 +57,7 @@ describe('AuthController', () => {
 
     const mockConfigService = {
       get: jest.fn((key: string) => {
-        const config: Record<string, any> = {
+        const config: Record<string, unknown> = {
           'app.nodeEnv': 'test',
           'app.isProduction': false,
           'jwt.expiresIn': '15m',
@@ -112,10 +112,10 @@ describe('AuthController', () => {
         refreshToken: 'mock-refresh-token',
       };
 
-      authService.signup.mockResolvedValue(mockResult as any);
+      authService.signup.mockResolvedValue(mockResult);
 
       const res = mockResponse();
-      const result = await controller.signup(signupDto, res) as any;
+      const result = await controller.signup(signupDto, res) as unknown;
 
       expect(authService.signup).toHaveBeenCalledWith(signupDto);
       expect(res.cookie).toHaveBeenCalled();
@@ -165,11 +165,11 @@ describe('AuthController', () => {
         refreshToken: 'mock-refresh-token',
       };
 
-      authService.login.mockResolvedValue(mockResult as any);
+      authService.login.mockResolvedValue(mockResult);
 
       const req = mockRequest();
       const res = mockResponse();
-      const result = await controller.login(loginDto, req, res) as any;
+      const result = await controller.login(loginDto, req, res) as unknown;
 
       expect(authService.login).toHaveBeenCalledWith(loginDto, '127.0.0.1');
       expect(res.cookie).toHaveBeenCalled();
@@ -186,11 +186,11 @@ describe('AuthController', () => {
         },
       };
 
-      authService.login.mockResolvedValue(mockResult as any);
+      authService.login.mockResolvedValue(mockResult);
 
       const req = mockRequest();
       const res = mockResponse();
-      const result = await controller.login(loginDto, req, res) as any;
+      const result = await controller.login(loginDto, req, res) as unknown;
 
       expect(result).toHaveProperty('requires2FA', true);
       expect(result).toHaveProperty('tempToken');
@@ -226,11 +226,11 @@ describe('AuthController', () => {
         refreshToken: 'mock-refresh-token',
       };
 
-      authService.loginWith2FA.mockResolvedValue(mockResult as any);
+      authService.loginWith2FA.mockResolvedValue(mockResult);
 
       const req = mockRequest();
       const res = mockResponse();
-      const result = await controller.loginWith2FA(login2FADto, req, res) as any;
+      const result = await controller.loginWith2FA(login2FADto, req, res) as unknown;
 
       expect(authService.loginWith2FA).toHaveBeenCalledWith(login2FADto, '127.0.0.1');
       expect(res.cookie).toHaveBeenCalled();
@@ -279,7 +279,7 @@ describe('AuthController', () => {
         backupCodes: ['CODE1', 'CODE2', 'CODE3'],
       };
 
-      authService.verifyAndEnable2FA.mockResolvedValue(mockResult as any);
+      authService.verifyAndEnable2FA.mockResolvedValue(mockResult);
 
       const req = mockRequest('user_123');
       const result = await controller.verify2FA(req, verify2FADto);
@@ -323,12 +323,12 @@ describe('AuthController', () => {
         refreshToken: 'new-refresh-token',
       };
 
-      authService.refreshToken.mockResolvedValue(mockResult as any);
+      authService.refreshToken.mockResolvedValue(mockResult);
 
       const req = mockRequest();
       req.cookies = { refreshToken: 'valid-refresh-token' };
       const res = mockResponse();
-      const result = await controller.refreshToken(refreshTokenDto, req, res);
+      const _result = await controller.refreshToken(refreshTokenDto, req, res);
 
       expect(authService.refreshToken).toHaveBeenCalled();
       expect(res.cookie).toHaveBeenCalled();
@@ -354,7 +354,7 @@ describe('AuthController', () => {
 
       const req = mockRequest('user_123');
       const res = mockResponse();
-      const result = await controller.logout(req, res);
+      const _result = await controller.logout(req, res);
 
       expect(authService.logout).toHaveBeenCalled();
       expect(res.clearCookie).toHaveBeenCalled();
@@ -446,8 +446,8 @@ describe('AuthController', () => {
         twoFactorEnabled: false,
       };
 
-      authService.getMe.mockResolvedValue(mockUser as any);
-      const req = { user: mockUser, ip: '127.0.0.1', headers: {}, cookies: {} } as any;
+      authService.getMe.mockResolvedValue(mockUser);
+      const req = { user: mockUser, ip: '127.0.0.1', headers: {}, cookies: {} } as unknown;
       const result = await controller.getProfile(req);
 
       expect(authService.getMe).toHaveBeenCalledWith('user_123');
@@ -456,7 +456,7 @@ describe('AuthController', () => {
 
     it('should throw when not authenticated (req.user missing)', async () => {
       // Controller accesses req.user.id, so missing user causes throw
-      const req = { user: undefined, ip: '127.0.0.1', headers: {}, cookies: {} } as any;
+      const req = { user: undefined, ip: '127.0.0.1', headers: {}, cookies: {} } as unknown;
       await expect(controller.getProfile(req)).rejects.toThrow();
     });
   });

@@ -376,6 +376,7 @@ export function useAIStudio3D() {
         description: t('aiStudio.templateLoaded', { name: template.name }),
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [toast]
   );
 
@@ -424,6 +425,7 @@ export function useAIStudio3D() {
         description: t('aiStudio.shareLinkCopied'),
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [toast]
   );
 

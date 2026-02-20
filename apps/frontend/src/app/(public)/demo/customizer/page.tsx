@@ -48,17 +48,19 @@ function CustomizerDemoPageContent() {
         </div>
 
         {/* Demo Component */}
-        <CustomizerDemo
-          width={800}
-          height={800}
-          backgroundColor="#FFFFFF"
-          onSave={(elements) => {
-            logger.info('Design saved', { elementsCount: elements?.length || 0 });
-          }}
-          onExport={(format) => {
-            logger.info('Export triggered', { format });
-          }}
-        />
+        <div className="w-full max-w-[800px] mx-auto overflow-hidden">
+          <CustomizerDemo
+            width={800}
+            height={800}
+            backgroundColor="#FFFFFF"
+            onSave={(elements) => {
+              logger.info('Design saved', { elementsCount: elements?.length || 0 });
+            }}
+            onExport={(format) => {
+              logger.info('Export triggered', { format });
+            }}
+          />
+        </div>
 
         {/* Info Cards */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -94,9 +96,12 @@ function CustomizerDemoPageContent() {
         </div>
 
         {/* CTA */}
-        <div className="mt-12 text-center">
-          <p className="text-gray-400 mb-4">
-            Ajoutez le customizer à votre boutique e-commerce
+        <div className="mt-12 text-center p-8 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl">
+          <p className="text-xl font-semibold text-white mb-2">
+            Vous aimez ? Ajoutez ca a votre boutique.
+          </p>
+          <p className="text-gray-400 mb-6">
+            Integrez ce customizer sur votre site en 5 minutes. Gratuit pour commencer.
           </p>
           <Link href="/register">
             <Button

@@ -22,6 +22,7 @@ let ConnectedSocket: ConnectedSocketFn | undefined;
 let MessageBody: MessageBodyFn | undefined;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const websockets = require('@nestjs/websockets');
   WebSocketGateway = websockets.WebSocketGateway;
   WebSocketServer = websockets.WebSocketServer;

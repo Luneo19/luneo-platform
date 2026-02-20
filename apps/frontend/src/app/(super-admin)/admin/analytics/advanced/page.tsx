@@ -127,6 +127,7 @@ export default function AdvancedAnalyticsPage() {
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod, overviewData]);
 
   useEffect(() => {

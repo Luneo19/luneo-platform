@@ -34,6 +34,7 @@ export function usePaymentMethods() {
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export function usePaymentMethods() {
         return { success: false };
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [toast, router, fetchPaymentMethods]
   );
 

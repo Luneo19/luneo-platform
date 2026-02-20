@@ -104,6 +104,7 @@ export function useSession(options: UseSessionOptions): UseSessionReturn {
         throw error;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [startSessionMutation, startSessionStore, isDirty, autoSaveInterval]
   );
 

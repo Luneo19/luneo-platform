@@ -6,7 +6,6 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
   UseInterceptors,
   HttpCode,
   HttpStatus,

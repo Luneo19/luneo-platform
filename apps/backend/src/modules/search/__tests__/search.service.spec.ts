@@ -8,7 +8,7 @@ import { UserRole } from '@prisma/client';
 
 describe('SearchService', () => {
   let service: SearchService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     product: { findMany: jest.fn() },
@@ -21,14 +21,14 @@ describe('SearchService', () => {
     email: 'admin@luneo.app',
     role: UserRole.PLATFORM_ADMIN,
     brandId: null,
-  } as any;
+  } as unknown;
 
   const brandUser = {
     id: 'u2',
     email: 'user@brand.com',
     role: UserRole.BRAND_ADMIN,
     brandId: 'brand-1',
-  } as any;
+  } as unknown;
 
   beforeEach(async () => {
     jest.clearAllMocks();

@@ -53,6 +53,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-states/EmptyState';
 import { useToast } from '@/hooks/use-toast';
 import type { Configurator3DConfig, ConfiguratorStatus } from '@/lib/configurator-3d/types/configurator.types';
+import Image from 'next/image';
 
 interface ConfigListItem extends Configurator3DConfig {
   _count?: { sessions?: number };
@@ -239,7 +240,7 @@ function ConfigurationListPage() {
                 <Link href={`/dashboard/configurator-3d/${item.id}`}>
                   <div className="aspect-video bg-muted relative">
                     {item.thumbnailUrl ? (
-                      <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                      <Image src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" width={200} height={200} unoptimized />
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <Box className="h-12 w-12 text-muted-foreground" />

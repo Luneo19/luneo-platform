@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export interface Configurator3DUIProps {
   configurationId: string | null;
@@ -107,11 +108,11 @@ export function Configurator3DUI({ configurationId, className, brandWebsite }: C
                           )}
                         >
                           {opt.swatchImageUrl ? (
-                            <img
+                            <Image width={200} height={200}
                               src={opt.swatchImageUrl}
                               alt={opt.name}
                               className="h-6 w-6 rounded-full object-cover"
-                            />
+                            unoptimized />
                           ) : (
                             <div
                               className="h-6 w-6 rounded-full border"

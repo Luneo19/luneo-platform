@@ -442,7 +442,7 @@ export class ArStudioService {
           }
         } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
           this.logger.warn(`Failed to optimize model, using original: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
           // Continue avec l'URL originale si optimisation échoue
@@ -460,7 +460,7 @@ export class ArStudioService {
         }
       } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
         this.logger.warn(`Failed to get file size from headers for ${finalUrl}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
         // Continue avec fileSize = 0 si échec
@@ -493,7 +493,7 @@ export class ArStudioService {
           }
         } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
           this.logger.warn(`Failed to generate signed URL, using original URL: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
           // Continue avec l'URL originale si la génération échoue
@@ -621,7 +621,7 @@ export class ArStudioService {
         }
       } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
         this.logger.warn(`Failed to get USDZ file size from headers: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
         // Continue avec usdzFileSize = 0 si échec
@@ -763,7 +763,7 @@ export class ArStudioService {
       return null;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.warn(`Model optimization failed: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return null;
@@ -788,7 +788,7 @@ export class ArStudioService {
       return count;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.warn(`Failed to get AR views count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur
@@ -813,7 +813,7 @@ export class ArStudioService {
       return count;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.warn(`Failed to get AR try-ons count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur
@@ -839,7 +839,7 @@ export class ArStudioService {
       return count;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.warn(`Failed to get AR conversions count for product ${productId}: ${error instanceof Error ? errorMessage : 'Unknown error'}`);
       return 0; // Fallback à 0 en cas d'erreur

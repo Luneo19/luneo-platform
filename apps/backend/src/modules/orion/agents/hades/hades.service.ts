@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ChurnRisk } from '@prisma/client';
-import { ORION_DEFAULTS, HADES_PLAN_PRICES, ATHENA_THRESHOLDS, OrionAgentActionData } from '../../orion.constants';
+import { ORION_DEFAULTS, HADES_PLAN_PRICES, ATHENA_THRESHOLDS } from '../../orion.constants';
 
 export interface ChurnPrediction {
   userId: string;

@@ -35,10 +35,10 @@ export class TicketReviewService {
 
     const where: Prisma.AITicketResponseWhereInput = { status };
     if (minConfidence !== undefined) {
-      where.confidenceScore = { ...((where.confidenceScore as any) || {}), gte: minConfidence };
+      where.confidenceScore = { ...((where.confidenceScore as Record<string, unknown>) || {}), gte: minConfidence };
     }
     if (maxConfidence !== undefined) {
-      where.confidenceScore = { ...((where.confidenceScore as any) || {}), lte: maxConfidence };
+      where.confidenceScore = { ...((where.confidenceScore as Record<string, unknown>) || {}), lte: maxConfidence };
     }
 
     const [items, total] = await Promise.all([

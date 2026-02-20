@@ -12,7 +12,7 @@ import { CONFIGURATOR_3D_LIMITS } from '../configurator-3d.constants';
 
 describe('Configurator3DComponentsService', () => {
   let service: Configurator3DComponentsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const configurationId = 'cfg-1';
   const brandId = 'brand-1';

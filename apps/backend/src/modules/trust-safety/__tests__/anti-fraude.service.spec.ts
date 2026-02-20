@@ -2,13 +2,13 @@
  * AntiFraudeService unit tests
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { AntiFraudeService, FraudCheckRequest, FraudResult } from '../services/anti-fraude.service';
+import { AntiFraudeService, FraudCheckRequest } from '../services/anti-fraude.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
 describe('AntiFraudeService', () => {
   let service: AntiFraudeService;
-  let cache: SmartCacheService;
+  let _cache: SmartCacheService;
 
   const mockPrisma = {};
   const mockCache = {

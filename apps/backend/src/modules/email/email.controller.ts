@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, InternalServerErrorException, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Get, InternalServerErrorException, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';

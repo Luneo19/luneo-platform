@@ -74,6 +74,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
   // Load design history on mount
   useEffect(() => {
     loadHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadHistory = useCallback(async () => {

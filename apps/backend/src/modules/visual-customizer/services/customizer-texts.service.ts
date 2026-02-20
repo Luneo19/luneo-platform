@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
 } from '@nestjs/common';
 import { VISUAL_CUSTOMIZER_LIMITS, SUPPORTED_SYSTEM_FONTS } from '../visual-customizer.constants';
 

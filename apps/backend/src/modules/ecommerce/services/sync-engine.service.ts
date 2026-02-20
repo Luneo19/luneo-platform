@@ -19,7 +19,7 @@
 
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue, Job } from 'bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ProductSyncService } from './product-sync.service';
 import { OrderSyncService } from './order-sync.service';

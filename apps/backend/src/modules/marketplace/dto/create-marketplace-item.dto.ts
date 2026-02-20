@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, IsEnum, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, IsEnum, Min } from 'class-validator';
 import { MarketplaceItemType } from '@prisma/client';
 
 export class CreateMarketplaceItemDto {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Image from 'next/image';
 
 interface TryOnScreenshotGalleryProps {
   screenshots: string[];
@@ -82,11 +83,11 @@ function ScreenshotModal({
       onClick={onClose}
     >
       <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={(e) => e.stopPropagation()}>
-        <img
+        <Image width={200} height={200}
           src={screenshots[previewIndex]}
           alt={`Capture ${previewIndex + 1}`}
           className="w-full h-full object-contain rounded-lg"
-        />
+        unoptimized />
 
         {/* Navigation */}
         {screenshots.length > 1 && (
@@ -227,11 +228,11 @@ export default function TryOnScreenshotGallery({
             className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
             onClick={() => setPreviewIndex(index)}
           >
-            <img
+            <Image width={200} height={200}
               src={dataUrl}
               alt={`Capture ${index + 1}`}
               className="w-full h-full object-cover"
-            />
+            unoptimized />
             {/* Overlay on hover */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
               <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium transition-opacity">

@@ -18,6 +18,7 @@ import { Configurator3DRulesService } from './services/configurator-3d-rules.ser
 import { Configurator3DPricingService } from './services/configurator-3d-pricing.service';
 import { Configurator3DValidationService } from './services/configurator-3d-validation.service';
 import { Configurator3DExportService } from './services/configurator-3d-export.service';
+import { ConfiguratorEnhancedService } from './services/configurator-enhanced.service';
 import { Configurator3DCacheService } from './services/configurator-3d-cache.service';
 import { Configurator3DAnalyticsService } from './services/configurator-3d-analytics.service';
 import { OptionalJwtAuthGuard } from '@/common/guards/optional-jwt-auth.guard';
@@ -47,6 +48,7 @@ import { StorageModule } from '@/libs/storage/storage.module';
     BullModule.registerQueue(
       { name: 'configurator-3d-export-pdf' },
       { name: 'configurator-3d-export-3d' },
+      { name: 'configurator-export' },
       { name: 'configurator-3d-analytics' },
       { name: 'configurator-3d-cache' },
     ),
@@ -70,6 +72,7 @@ import { StorageModule } from '@/libs/storage/storage.module';
     Configurator3DPricingService,
     Configurator3DValidationService,
     Configurator3DExportService,
+    ConfiguratorEnhancedService,
     Configurator3DCacheService,
     Configurator3DAnalyticsService,
     ExportPdfWorker,
@@ -93,6 +96,7 @@ import { StorageModule } from '@/libs/storage/storage.module';
     Configurator3DPricingService,
     Configurator3DValidationService,
     Configurator3DExportService,
+    ConfiguratorEnhancedService,
     Configurator3DCacheService,
     Configurator3DAnalyticsService,
   ],

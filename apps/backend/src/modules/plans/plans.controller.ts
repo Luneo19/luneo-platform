@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request, Post, Body, Param, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Post, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PlansService, type PlanLimits } from './plans.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';

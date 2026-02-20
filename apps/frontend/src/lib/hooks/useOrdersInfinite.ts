@@ -63,6 +63,7 @@ export function useOrdersInfinite(filters?: { status?: string; search?: string }
         throw err;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [filters?.status, filters?.search]
   );
 

@@ -138,7 +138,7 @@ export class StabilityProvider implements AIProvider {
     }
   }
 
-  estimateCost(options: AIGenerationOptions): number {
+  estimateCost(_options: AIGenerationOptions): number {
     // Stability AI pricing (approximatif)
     return 25; // cents
   }

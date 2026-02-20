@@ -6,6 +6,8 @@ import {
   DemoModulesSection,
   TestimonialsNew,
   PricingSectionNew,
+  Integrations,
+  FAQSection,
   CTASectionNew,
   FooterNew,
   CursorGlow,
@@ -81,6 +83,8 @@ export default function HomePage() {
         <HowItWorksNew />
         <TestimonialsNew />
         <PricingSectionNew />
+        <Integrations />
+        <FAQSection />
         <LogoWatermarkSection />
         <CTASectionNew />
       </main>

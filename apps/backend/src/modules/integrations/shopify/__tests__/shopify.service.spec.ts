@@ -72,8 +72,8 @@ describe('ShopifyService', () => {
   describe('handleCallback', () => {
     it('should exchange code for token', async () => {
       (httpService.post as jest.Mock).mockReturnValue(of({ data: { access_token: 'shpat_xxx', scope: 'read_products' } }));
-      (prisma.ecommerceIntegration as any).findFirst = jest.fn().mockResolvedValue(null);
-      (prisma.ecommerceIntegration as any).create = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify', status: 'active' });
+      (prisma.ecommerceIntegration).findFirst = jest.fn().mockResolvedValue(null);
+      (prisma.ecommerceIntegration).create = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify', status: 'active' });
       const result = await service.handleCallback('brand-1', 'mystore.myshopify.com', 'auth-code', 'state');
       expect(result).toBeDefined();
       expect(httpService.post).toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe('ShopifyService', () => {
 
   describe('syncProducts', () => {
     it('should fetch and map products', async () => {
-      (prisma.ecommerceIntegration as any).findFirst = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify', status: 'active', credentials: {}, accessToken: 'token', shopDomain: 'mystore.myshopify.com' });
+      (prisma.ecommerceIntegration).findFirst = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify', status: 'active', credentials: {}, accessToken: 'token', shopDomain: 'mystore.myshopify.com' });
       (mockEncryption.decrypt as jest.Mock).mockResolvedValue('decrypted-token');
       (httpService.get as jest.Mock).mockReturnValue(of({ data: { products: [{ id: 1, title: 'Test', body_html: null, vendor: 'V', product_type: 'T-Shirt', handle: 'test', status: 'active', variants: [{ id: 1, title: 'Default', price: '19.99', sku: null, inventory_quantity: 10 }], images: [] }] } }));
       const result = await service.syncProducts('brand-1');
@@ -94,12 +94,12 @@ describe('ShopifyService', () => {
 
   describe('getConnectionStatus', () => {
     it('should return correct status when connected', async () => {
-      (prisma.ecommerceIntegration as any).findFirst = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify', status: 'active', metadata: { shopDomain: 'mystore.myshopify.com' } });
+      (prisma.ecommerceIntegration).findFirst = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify', status: 'active', metadata: { shopDomain: 'mystore.myshopify.com' } });
       const result = await service.getConnectionStatus('brand-1');
       expect(result).toMatchObject({ connected: true, status: expect.any(String) });
     });
     it('should return disconnected when no integration', async () => {
-      (prisma.ecommerceIntegration as any).findFirst = jest.fn().mockResolvedValue(null);
+      (prisma.ecommerceIntegration).findFirst = jest.fn().mockResolvedValue(null);
       const result = await service.getConnectionStatus('brand-1');
       expect(result.connected).toBe(false);
     });
@@ -107,8 +107,8 @@ describe('ShopifyService', () => {
 
   describe('disconnect', () => {
     it('should mark integration as inactive', async () => {
-      (prisma.ecommerceIntegration as any).update = jest.fn().mockResolvedValue({});
-      (prisma.ecommerceIntegration as any).findFirst = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify' });
+      (prisma.ecommerceIntegration).update = jest.fn().mockResolvedValue({});
+      (prisma.ecommerceIntegration).findFirst = jest.fn().mockResolvedValue({ id: 'int-1', brandId: 'brand-1', platform: 'shopify' });
       await service.disconnect('brand-1');
       expect(prisma.ecommerceIntegration.update).toHaveBeenCalled();
     });

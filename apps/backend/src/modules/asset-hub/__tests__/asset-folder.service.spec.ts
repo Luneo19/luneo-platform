@@ -8,7 +8,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('AssetFolderService', () => {
   let service: AssetFolderService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     assetFolder: {
@@ -96,7 +96,7 @@ describe('AssetFolderService', () => {
       const created = { id: 'fd1', name: 'New Folder', path: 'New Folder', createdAt: new Date() };
       mockPrisma.assetFolder.create.mockResolvedValue(created);
 
-      const result = await service.create(orgId, { name: 'New Folder' } as any);
+      const result = await service.create(orgId, { name: 'New Folder' } as unknown);
 
       expect(result).toEqual(created);
       expect(mockPrisma.assetFolder.create).toHaveBeenCalledWith({
@@ -111,7 +111,7 @@ describe('AssetFolderService', () => {
       const created = { id: 'fd2', name: 'Child', path: 'Parent/Child', createdAt: new Date() };
       mockPrisma.assetFolder.create.mockResolvedValue(created);
 
-      const result = await service.create(orgId, { name: 'Child', parentId: 'parent1' } as any);
+      const result = await service.create(orgId, { name: 'Child', parentId: 'parent1' } as unknown);
 
       expect(result.path).toBe('Parent/Child');
       expect(mockPrisma.assetFolder.create).toHaveBeenCalledWith(
@@ -126,7 +126,7 @@ describe('AssetFolderService', () => {
     it('should delete empty folder', async () => {
       const folder = { id: 'fd1', name: 'Empty', _count: { files: 0, children: 0 } };
       mockPrisma.assetFolder.findFirst.mockResolvedValue(folder);
-      mockPrisma.assetFolder.delete.mockResolvedValue({ id: 'fd1', name: 'Empty', parentId: null } as any);
+      mockPrisma.assetFolder.delete.mockResolvedValue({ id: 'fd1', name: 'Empty', parentId: null });
 
       const result = await service.remove('fd1', orgId);
 

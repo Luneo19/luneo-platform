@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { PrometheusService } from './prometheus.service';
@@ -15,6 +15,7 @@ interface PromCounter {
 let Gauge: new (opts: { name: string; help: string; labelNames?: string[]; registers?: unknown[] }) => PromGauge | undefined;
 let Counter: new (opts: { name: string; help: string; labelNames?: string[]; registers?: unknown[] }) => PromCounter | undefined;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const promClient = require('prom-client');
   Gauge = promClient.Gauge;
   Counter = promClient.Counter;
@@ -160,7 +161,7 @@ export class BusinessMetricsService implements OnModuleInit {
       if (this.commissionByPlan) this.commissionByPlan.set({ plan: 'default' }, totalCommissionCents);
     } catch (err) {
       if (typeof err === 'object' && err !== null && 'message' in err) {
-        require('@nestjs/common').Logger.warn?.(
+        Logger.warn(
           `BusinessMetricsService collectMetrics failed: ${(err as Error).message}`,
         );
       }

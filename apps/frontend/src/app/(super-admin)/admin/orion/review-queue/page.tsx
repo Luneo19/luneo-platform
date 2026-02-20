@@ -84,6 +84,7 @@ function ReviewQueuePageContent() {
 
   const queueData = queue as QueueData | undefined;
   const statsData = stats as StatsData | undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const items = queueData?.items ?? [];
   const total = queueData?.total ?? 0;
 

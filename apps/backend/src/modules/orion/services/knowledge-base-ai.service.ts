@@ -30,7 +30,7 @@ export class KnowledgeBaseAIService {
     }
 
     const articles = await this.prisma.knowledgeBaseArticle.findMany({
-      where: where as any,
+      where: where as never,
       select: {
         id: true,
         title: true,

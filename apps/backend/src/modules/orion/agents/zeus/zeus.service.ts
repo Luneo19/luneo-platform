@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ORION_DEFAULTS, ZEUS_THRESHOLDS, OrionAgentActionData } from '../../orion.constants';
@@ -212,7 +213,7 @@ export class ZeusService {
         title: alert.title,
         description: alert.description,
         priority: alert.severity,
-        data: alert.data as any,
+        data: alert.data as unknown as Prisma.InputJsonValue,
       },
     });
   }

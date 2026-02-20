@@ -68,8 +68,8 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://api.luneo.app/api/:path*"
+      "source": "/api/v1/:path*",
+      "destination": "https://api.luneo.app/api/v1/:path*"
     }
   ]
 }

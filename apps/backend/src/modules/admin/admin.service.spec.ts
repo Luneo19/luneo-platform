@@ -12,7 +12,7 @@ import { UserRole } from '@prisma/client';
 
 describe('AdminService', () => {
   let service: AdminService;
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     user: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -41,7 +41,7 @@ describe('AdminService', () => {
   };
 
   const mockConfigService = {
-    get: jest.fn((key: string) => undefined),
+    get: jest.fn((_key: string) => undefined),
   };
 
   beforeEach(async () => {
@@ -236,10 +236,10 @@ describe('AdminService', () => {
 
     it('should throw BadRequestException for unknown export type', async () => {
       await expect(
-        service.exportData('csv', 'unknown' as any),
+        service.exportData('csv', 'unknown' as unknown),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.exportData('csv', 'unknown' as any),
+        service.exportData('csv', 'unknown' as unknown),
       ).rejects.toThrow('Unknown export type');
     });
   });
@@ -247,10 +247,10 @@ describe('AdminService', () => {
   describe('bulkActionCustomers', () => {
     it('should throw BadRequestException for unknown action', async () => {
       await expect(
-        service.bulkActionCustomers(['u1'], 'invalid' as any),
+        service.bulkActionCustomers(['u1'], 'invalid' as unknown),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.bulkActionCustomers(['u1'], 'invalid' as any),
+        service.bulkActionCustomers(['u1'], 'invalid' as unknown),
       ).rejects.toThrow('Unknown bulk action');
     });
   });

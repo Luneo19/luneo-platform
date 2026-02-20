@@ -7,7 +7,6 @@ import {
   Role,
   Permission,
   ROLE_PERMISSIONS,
-  RequestUser,
   AuthorizationContext,
   AccessRule,
 } from '../interfaces/rbac.interface';

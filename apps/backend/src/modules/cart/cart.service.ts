@@ -102,7 +102,7 @@ export class CartService {
 
     if (existing) {
       // Update quantity
-      const updated = await this.prisma.cartItem.update({
+      const _updated = await this.prisma.cartItem.update({
         where: { id: existing.id },
         data: {
           quantity: existing.quantity + data.quantity,
@@ -228,14 +228,14 @@ export class CartService {
   private formatCart(cart: Prisma.CartGetPayload<{ include: { items: true } }>) {
     const items = cart.items || [];
     const subtotalCents = items.reduce(
-      (sum: number, item: Prisma.CartItemGetPayload<{}>) => sum + item.priceCents * item.quantity,
+      (sum: number, item: Prisma.CartItemGetPayload<Record<string, unknown>>) => sum + item.priceCents * item.quantity,
       0,
     );
 
     return {
       id: cart.id,
       brandId: cart.brandId,
-      items: items.map((item: Prisma.CartItemGetPayload<{}>) => ({
+      items: items.map((item: Prisma.CartItemGetPayload<Record<string, unknown>>) => ({
         id: item.id,
         productId: item.productId,
         designId: item.designId,
@@ -246,7 +246,7 @@ export class CartService {
         metadata: item.metadata,
       })),
       subtotalCents,
-      itemCount: items.reduce((sum: number, item: Prisma.CartItemGetPayload<{}>) => sum + item.quantity, 0),
+      itemCount: items.reduce((sum: number, item: Prisma.CartItemGetPayload<Record<string, unknown>>) => sum + item.quantity, 0),
       updatedAt: cart.updatedAt,
     };
   }

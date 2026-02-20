@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { endpoints } from '@/lib/api/client';
+import Image from 'next/image';
 
 function SecuritySettingsPageContent() {
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
@@ -37,6 +38,7 @@ function SecuritySettingsPageContent() {
 
   useEffect(() => {
     check2FAStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const check2FAStatus = useCallback(async () => {
@@ -219,7 +221,7 @@ function SecuritySettingsPageContent() {
                 </p>
                 <div className="inline-block p-4 bg-white rounded-lg">
                   {/* next/image not needed for data URLs */}
-                  <img src={qrCodeUrl} alt="QR Code 2FA" className="w-64 h-64" />
+                  <Image src={qrCodeUrl} alt="QR Code 2FA" className="w-64 h-64" width={200} height={200} unoptimized />
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
                   Ou entrez manuellement ce code : <code className="bg-slate-700 px-2 py-1 rounded">{secret}</code>

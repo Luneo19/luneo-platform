@@ -6,8 +6,8 @@ import { UsageMeteringService } from './usage-metering.service';
 
 describe('UsageTrackingService', () => {
   let service: UsageTrackingService;
-  let prisma: jest.Mocked<PrismaService>;
-  let meteringService: jest.Mocked<UsageMeteringService>;
+  let _prisma: jest.Mocked<PrismaService>;
+  let _meteringService: jest.Mocked<UsageMeteringService>;
 
   const mockPrisma = {
     design: {
@@ -267,7 +267,7 @@ describe('UsageTrackingService', () => {
 
   describe('getUsageStats', () => {
     it('should return usage stats for day period', async () => {
-      (mockPrisma as any).usageMetric = {
+      (mockPrisma as unknown).usageMetric = {
         findMany: jest.fn().mockResolvedValue([
           { metric: 'designs_created', value: 5 },
           { metric: 'designs_created', value: 3 },
@@ -285,7 +285,7 @@ describe('UsageTrackingService', () => {
     });
 
     it('should return usage stats for month period', async () => {
-      (mockPrisma as any).usageMetric = {
+      (mockPrisma as unknown).usageMetric = {
         findMany: jest.fn().mockResolvedValue([]),
       };
 
@@ -295,7 +295,7 @@ describe('UsageTrackingService', () => {
     });
 
     it('should return usage stats for year period', async () => {
-      (mockPrisma as any).usageMetric = {
+      (mockPrisma as unknown).usageMetric = {
         findMany: jest.fn().mockResolvedValue([]),
       };
 

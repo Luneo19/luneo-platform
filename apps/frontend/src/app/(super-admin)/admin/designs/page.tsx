@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import Image from 'next/image';
 
 interface Design {
   id: string;
@@ -136,11 +137,11 @@ export default function AdminDesignsPage() {
                   <TableRow key={design.id} className="border-zinc-700">
                     <TableCell>
                       {design.thumbnailUrl ? (
-                        <img
+                        <Image width={200} height={200}
                           src={design.thumbnailUrl}
                           alt={design.name || 'Design'}
                           className="w-10 h-10 rounded object-cover border border-zinc-700"
-                        />
+                        unoptimized />
                       ) : (
                         <div className="w-10 h-10 rounded bg-zinc-700 flex items-center justify-center">
                           <ImageIcon className="w-4 h-4 text-zinc-500" />

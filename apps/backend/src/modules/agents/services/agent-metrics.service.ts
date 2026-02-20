@@ -74,7 +74,8 @@ export class AgentMetricsService implements OnModuleInit {
    * Initialise les métriques Prometheus pour les agents
    */
   private initializeMetrics(registry: unknown): void {
-    const { Registry, Histogram, Counter, Gauge } = require('prom-client');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Histogram, Counter, Gauge } = require('prom-client');
 
     // Durée des requêtes agents (Histogram)
     this.requestDuration = new Histogram({

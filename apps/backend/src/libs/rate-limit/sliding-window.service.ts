@@ -95,7 +95,7 @@ export class SlidingWindowRateLimitService {
       }
 
       // Timeout global de 2 secondes pour toutes les opérations Redis
-      const redisTimeout = 2000;
+      const _redisTimeout = 2000;
       
       // Helper pour ajouter timeout à une promesse Redis
       const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, defaultValue: T): Promise<T> => {

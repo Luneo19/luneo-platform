@@ -83,6 +83,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
       logger.error('Failed to join room', { error, roomId: targetRoomId });
       setSyncState((prev) => ({ ...prev, isConnected: false }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, userName, userAvatar, userColor]);
 
   /**
@@ -107,6 +108,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
     } catch (error) {
       logger.error('Failed to leave room', { error });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, userId, userName]);
 
   /**
@@ -195,6 +197,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
       logger.error('Failed to add comment', { error });
       return null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, userId, userName, userAvatar]);
 
   /**
@@ -228,6 +231,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
       );
       logger.error('Failed to resolve comment', { error });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, userId, userName]);
 
   /**
@@ -314,6 +318,7 @@ export function useCollaboration(options: UseCollaborationOptions) {
       logger.error('Failed to request approval', { error });
       return null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, userId, userName]);
 
   // Helper to add activity

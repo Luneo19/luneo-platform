@@ -17,7 +17,7 @@ export interface SendGridEmailOptions {
     contentType?: string;
   }>;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>;
   categories?: string[];
   headers?: Record<string, string>;
   sendAt?: Date;
@@ -402,7 +402,7 @@ export class SendGridService {
   /**
    * Obtenir les statistiques SendGrid (nécessite une clé API avec permissions)
    */
-  async getStats(startDate?: Date, endDate?: Date): Promise<unknown> {
+  async getStats(_startDate?: Date, _endDate?: Date): Promise<unknown> {
     if (!this.sendgridAvailable) {
       throw new InternalServerErrorException('SendGrid not initialized');
     }

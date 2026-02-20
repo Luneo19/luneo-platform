@@ -12,6 +12,7 @@ import { Eye, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
 import { ModerationReview } from './ModerationReview';
+import Image from 'next/image';
 
 interface ModerationItem {
   id: string;
@@ -42,12 +43,13 @@ export function ModerationQueue({ customizerId }: ModerationQueueProps) {
 
   useEffect(() => {
     loadItems();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const loadItems = async () => {
     try {
       const result = await api.get<ModerationItem[]>(
-        `/api/v1/customizer/configurations/${customizerId}/moderation`,
+        `/api/v1/visual-customizer/customizers/${customizerId}/moderation`,
         {
           params: { status: statusFilter },
         }
@@ -62,7 +64,7 @@ export function ModerationQueue({ customizerId }: ModerationQueueProps) {
     if (selectedIds.size === 0) return;
 
     try {
-      await api.post(`/api/v1/customizer/configurations/${customizerId}/moderation/batch`, {
+      await api.post(`/api/v1/visual-customizer/customizers/${customizerId}/moderation/batch`, {
         ids: Array.from(selectedIds),
         action,
       });
@@ -200,17 +202,17 @@ export function ModerationQueue({ customizerId }: ModerationQueueProps) {
                 </TableCell>
                 <TableCell>
                   <div className="w-16 h-16 bg-muted rounded overflow-hidden">
-                    <img
+                    <Image width={200} height={200}
                       src={item.previewUrl}
                       alt="Design preview"
                       className="w-full h-full object-cover"
-                    />
+                    unoptimized />
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
-                      {item.userAvatar && <img src={item.userAvatar} alt={item.userName} />}
+                      {item.userAvatar && <Image src={item.userAvatar} alt={item.userName} width={200} height={200} unoptimized />}
                       <AvatarFallback>
                         {item.userName.charAt(0).toUpperCase()}
                       </AvatarFallback>

@@ -284,6 +284,7 @@ function RegisterPageContent() {
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, passwordStrength.score, acceptedTerms, planFromUrl]);
 
   // OAuth register - ✅ Migré vers NestJS backend
@@ -307,6 +308,7 @@ function RegisterPageContent() {
       setError(t('auth.register.oauthError'));
       setOauthLoading(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -8,7 +8,7 @@ describe('MemorySummarizerService', () => {
     mockCache = {
       getOrSet: jest.fn(async (_key: string, factory: () => Promise<string>) => factory()),
     };
-    service = new MemorySummarizerService(mockCache as any);
+    service = new MemorySummarizerService(mockCache as unknown);
   });
 
   describe('summarize', () => {

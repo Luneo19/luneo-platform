@@ -49,7 +49,7 @@ export class EmbedGeneratorService {
     const width = options.width ?? 640;
     const height = options.height ?? 480;
     const allowFullscreen = options.allowFullscreen ?? true;
-    const showControls = options.showControls ?? true;
+    const _showControls = options.showControls ?? true;
 
     const w = typeof width === 'number' ? width : width;
     const h = typeof height === 'number' ? height : height;

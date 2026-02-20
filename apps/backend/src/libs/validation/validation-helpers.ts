@@ -18,21 +18,21 @@ import { z } from 'zod';
 
 @ValidatorConstraint({ name: 'isStrongPassword', async: false })
 export class IsStrongPasswordConstraint implements ValidatorConstraintInterface {
-  validate(password: string, args: ValidationArguments) {
+  validate(password: string, _args: ValidationArguments) {
     // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special char
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return strongPasswordRegex.test(password);
   }
 
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage(_args: ValidationArguments) {
     return 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character';
   }
 }
 
 export function IsStrongPassword(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
-      target: object.constructor,
+      target: (object as { constructor: new (...args: unknown[]) => unknown }).constructor,
       propertyName: propertyName,
       options: validationOptions,
       constraints: [],
@@ -43,7 +43,7 @@ export function IsStrongPassword(validationOptions?: ValidationOptions) {
 
 @ValidatorConstraint({ name: 'isUrlOrEmpty', async: false })
 export class IsUrlOrEmptyConstraint implements ValidatorConstraintInterface {
-  validate(url: string, args: ValidationArguments) {
+  validate(url: string, _args: ValidationArguments) {
     if (!url || url === '') return true;
     try {
       new URL(url);
@@ -53,15 +53,15 @@ export class IsUrlOrEmptyConstraint implements ValidatorConstraintInterface {
     }
   }
 
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage(_args: ValidationArguments) {
     return 'Must be a valid URL or empty';
   }
 }
 
 export function IsUrlOrEmpty(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
-      target: object.constructor,
+      target: (object as { constructor: new (...args: unknown[]) => unknown }).constructor,
       propertyName: propertyName,
       options: validationOptions,
       constraints: [],
@@ -72,7 +72,7 @@ export function IsUrlOrEmpty(validationOptions?: ValidationOptions) {
 
 @ValidatorConstraint({ name: 'isJsonString', async: false })
 export class IsJsonStringConstraint implements ValidatorConstraintInterface {
-  validate(value: string, args: ValidationArguments) {
+  validate(value: string, _args: ValidationArguments) {
     if (typeof value !== 'string') return false;
     try {
       JSON.parse(value);
@@ -82,15 +82,15 @@ export class IsJsonStringConstraint implements ValidatorConstraintInterface {
     }
   }
 
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage(_args: ValidationArguments) {
     return 'Must be a valid JSON string';
   }
 }
 
 export function IsJsonString(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
-      target: object.constructor,
+      target: (object as { constructor: new (...args: unknown[]) => unknown }).constructor,
       propertyName: propertyName,
       options: validationOptions,
       constraints: [],

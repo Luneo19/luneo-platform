@@ -46,6 +46,7 @@ function AddDesignsModalContent({
     if (open) {
       loadDesigns();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const loadDesigns = async () => {

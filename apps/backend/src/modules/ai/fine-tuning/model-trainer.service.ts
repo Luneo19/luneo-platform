@@ -121,7 +121,7 @@ export class ModelTrainerService {
     };
   }
 
-  private async initiateReplicateTraining(modelId: string, params: any): Promise<void> {
+  private async initiateReplicateTraining(modelId: string, params: Record<string, unknown>): Promise<void> {
     // TODO: Implement actual Replicate API call for training
     // This would create a training run on Replicate
     this.logger.log(`Would initiate Replicate ${params.technique} training for model ${modelId}`);

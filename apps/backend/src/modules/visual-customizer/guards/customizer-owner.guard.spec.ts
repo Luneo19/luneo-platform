@@ -13,7 +13,7 @@ import { UserRole } from '@prisma/client';
 
 describe('CustomizerOwnerGuard', () => {
   let guard: CustomizerOwnerGuard;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     visualCustomizer: {
@@ -189,7 +189,7 @@ describe('CustomizerOwnerGuard', () => {
 
     it('should throw ForbiddenException when user not authenticated', async () => {
       const customizerId = 'customizer-1';
-      const context = createMockContext(customizerId, null as any);
+      const context = createMockContext(customizerId, null as unknown);
 
       await expect(guard.canActivate(context)).rejects.toThrow(
         ForbiddenException,

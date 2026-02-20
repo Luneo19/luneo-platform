@@ -20,7 +20,7 @@ export class MaterialDto {
   @ApiPropertyOptional({ description: 'Material properties' })
   @IsObject()
   @IsOptional()
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export class GenerateVariantDto {

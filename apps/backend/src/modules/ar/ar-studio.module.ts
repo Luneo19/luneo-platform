@@ -59,6 +59,7 @@ import { SyncStateService } from './collaboration/sync-state.service';
 import { PresenceService } from './collaboration/presence.service';
 import { SocialShareService } from './export/social-share.service';
 import { EmbedGeneratorService } from './export/embed-generator.service';
+import { ArEnhancedService } from './services/ar-enhanced.service';
 import { FbxToGltfConverter } from './conversion/converters/fbx-to-gltf.converter';
 import { GltfToUsdzConverter } from './conversion/converters/gltf-to-usdz.converter';
 import { DracoEncoderService } from './conversion/optimization/draco-encoder.service';
@@ -83,6 +84,7 @@ import { AnalyticsAggregationWorker } from './workers/analytics-aggregation.work
     BullModule.registerQueue(
       { name: 'ar-conversion' },
       { name: 'ar-optimization' },
+      { name: 'ar-processing' },
       { name: 'ar-target-analysis' },
       { name: 'ar-qr-generation' },
       { name: 'ar-analytics' },
@@ -138,6 +140,7 @@ import { AnalyticsAggregationWorker } from './workers/analytics-aggregation.work
     PresenceService,
     SocialShareService,
     EmbedGeneratorService,
+    ArEnhancedService,
     // Conversion pipeline
     FbxToGltfConverter,
     GltfToUsdzConverter,

@@ -89,6 +89,7 @@ export default function AIStudio2DPage() {
     } finally {
       setIsGenerating(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, toast, t]);
 
   return (

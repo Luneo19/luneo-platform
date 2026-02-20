@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { MemorySummarizerService } from './memory-summarizer.service';
@@ -101,7 +102,7 @@ export class ConversationMemoryService {
         latencyMs: metadata?.latencyMs || 0,
         provider: metadata?.provider,
         model: metadata?.model,
-        toolCalls: metadata?.toolCalls as any,
+        toolCalls: metadata?.toolCalls as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -134,7 +135,7 @@ export class ConversationMemoryService {
     await this.prisma.agentConversation.update({
       where: { id: conversationId },
       data: {
-        context: { ...currentContext, ...updates } as any,
+        context: { ...currentContext, ...updates } as unknown as Prisma.InputJsonValue,
       },
     });
 

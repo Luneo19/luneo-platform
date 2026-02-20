@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * DTO for test webhook endpoint

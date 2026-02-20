@@ -208,7 +208,7 @@ export class AgentOrchestratorService {
     context: AgentRoutingContext,
     routingResult: AgentRoutingResult,
   ): ExecutionPlan {
-    const { message, currentPage } = this.normalizeContext(context);
+    const { message } = this.normalizeContext(context);
     const complexity = this.determineComplexity(message, routingResult);
 
     // ✅ Requête simple → direct

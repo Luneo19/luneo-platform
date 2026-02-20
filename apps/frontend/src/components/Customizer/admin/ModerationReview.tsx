@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { CheckCircle2, XCircle, AlertTriangle, Clock, User } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
+import Image from 'next/image';
 
 interface ModerationItem {
   id: string;
@@ -55,7 +56,7 @@ export function ModerationReview({ item, customizerId, onClose }: ModerationRevi
   const handleApprove = async () => {
     setIsLoading(true);
     try {
-      await api.post(`/api/v1/customizer/configurations/${customizerId}/moderation/${item.id}/approve`, {
+      await api.post(`/api/v1/visual-customizer/customizers/${customizerId}/moderation/${item.id}/approve`, {
         notes,
       });
       onClose();
@@ -73,7 +74,7 @@ export function ModerationReview({ item, customizerId, onClose }: ModerationRevi
     }
     setIsLoading(true);
     try {
-      await api.post(`/api/v1/customizer/configurations/${customizerId}/moderation/${item.id}/reject`, {
+      await api.post(`/api/v1/visual-customizer/customizers/${customizerId}/moderation/${item.id}/reject`, {
         reason: rejectionReason,
         notes,
       });
@@ -88,7 +89,7 @@ export function ModerationReview({ item, customizerId, onClose }: ModerationRevi
   const handleEscalate = async () => {
     setIsLoading(true);
     try {
-      await api.post(`/api/v1/customizer/configurations/${customizerId}/moderation/${item.id}/escalate`, {
+      await api.post(`/api/v1/visual-customizer/customizers/${customizerId}/moderation/${item.id}/escalate`, {
         notes,
       });
       onClose();
@@ -115,11 +116,11 @@ export function ModerationReview({ item, customizerId, onClose }: ModerationRevi
               </CardHeader>
               <CardContent>
                 <div className="bg-muted rounded-lg overflow-hidden">
-                  <img
+                  <Image width={200} height={200}
                     src={item.previewUrl}
                     alt="Design preview"
                     className="w-full h-auto"
-                  />
+                  unoptimized />
                 </div>
                 <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
                   <div className="flex items-start gap-2">
@@ -173,7 +174,7 @@ export function ModerationReview({ item, customizerId, onClose }: ModerationRevi
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    {item.userAvatar && <img src={item.userAvatar} alt={item.userName} />}
+                    {item.userAvatar && <Image src={item.userAvatar} alt={item.userName} width={200} height={200} unoptimized />}
                     <AvatarFallback>
                       {item.userName.charAt(0).toUpperCase()}
                     </AvatarFallback>

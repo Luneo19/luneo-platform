@@ -13,7 +13,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { PLAN_CONFIGS, normalizePlanTier, getPlanConfig } from '@/libs/plans/plan-config';
+import { normalizePlanTier, getPlanConfig } from '@/libs/plans/plan-config';
 import { PlanTier } from '@/libs/plans/plan-config.types';
 import Stripe from 'stripe';
 

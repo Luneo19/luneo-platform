@@ -147,7 +147,7 @@ export class ApiKeysService {
   async validateApiKey(key: string, secret?: string): Promise<ApiKey> {
     const cacheKey = `api-key:${key}`;
     
-    let apiKey = await this.cache.get(
+    const apiKey = await this.cache.get(
       cacheKey,
       'api',
       async () => {

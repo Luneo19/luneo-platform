@@ -25,6 +25,10 @@ import {
   Trash2,
   MoreVertical,
   Calendar,
+  Palette,
+  Box,
+  Globe,
+  ArrowRight,
 } from 'lucide-react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { formatPrice, formatDate } from '@/lib/utils/formatters';
@@ -225,8 +229,33 @@ export const ProductCard = memo(function ProductCard({
             )}
           </div>
 
+          {/* Capability Badges */}
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+            {(product as ProductDisplay & { zones?: unknown[] }).zones && ((product as ProductDisplay & { zones?: unknown[] }).zones?.length ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                <Palette className="w-2.5 h-2.5" />
+                Customizer
+              </span>
+            )}
+            {product.model3dUrl && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <Box className="w-2.5 h-2.5" />
+                3D
+              </span>
+            )}
+            {(product as ProductDisplay & { arEnabled?: boolean }).arEnabled && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+                <Globe className="w-2.5 h-2.5" />
+                AR
+              </span>
+            )}
+          </div>
+
+          {/* Next Step Indicator */}
+          <NextStepIndicator product={product} />
+
           {/* Stats */}
-          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <Eye className="w-3 h-3" />
               {product.views}
@@ -246,3 +275,29 @@ export const ProductCard = memo(function ProductCard({
   );
 });
 
+function NextStepIndicator({ product }: { product: ProductDisplay }) {
+  const hasCustomizer = ((product as ProductDisplay & { zones?: unknown[] }).zones?.length ?? 0) > 0;
+  const has3D = !!product.model3dUrl;
+
+  let step: { label: string; href: string } | null = null;
+
+  if (!hasCustomizer) {
+    step = { label: 'Ajouter la personnalisation', href: `/dashboard/products/${product.id}/customize` };
+  } else if (!has3D) {
+    step = { label: 'Ajouter un modèle 3D', href: `/dashboard/products/${product.id}/3d-ar` };
+  }
+
+  if (!step) return null;
+
+  return (
+    <div
+      className="flex items-center gap-1.5 mt-2 text-[10px] font-medium text-amber-400/80"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <ArrowRight className="w-2.5 h-2.5" />
+      <a href={step.href} className="hover:text-amber-300 transition-colors">
+        {step.label}
+      </a>
+    </div>
+  );
+}

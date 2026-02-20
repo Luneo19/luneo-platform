@@ -49,7 +49,7 @@ export class FeatureExtractorService {
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         const i = y * width + x;
-        const g = gray[i];
+        const _g = gray[i];
         const dx = Math.abs(gray[i + 1] - gray[i - 1]);
         const dy = Math.abs(gray[i + width] - gray[i - width]);
         if (dx > threshold && dy > threshold) count++;

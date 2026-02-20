@@ -158,7 +158,7 @@ export class ModelValidatorService {
 
     // Determine overall status
     const hasErrors = checks.some((c) => !c.passed && c.severity === 'error');
-    const hasWarnings = checks.some((c) => !c.passed && c.severity === 'warning');
+    const _hasWarnings = checks.some((c) => !c.passed && c.severity === 'warning');
 
     let status: ModelValidationStatus;
     if (hasErrors) {

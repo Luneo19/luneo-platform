@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WebhooksService } from './webhooks.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
-import { createHash } from 'crypto';
 
 /**
  * TEST-03: Tests unitaires pour WebhooksService

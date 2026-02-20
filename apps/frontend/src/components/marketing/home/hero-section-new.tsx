@@ -90,19 +90,19 @@ export function HeroSectionNew() {
             </h1>
 
             <p className="text-lg sm:text-xl md:text-2xl text-white/60 max-w-3xl mx-auto leading-relaxed mb-10">
-              Configurateur 3D, essayage virtuel AR, design generatif — tout en une seule plateforme.
-              <span className="text-white/80 font-medium"> Reduisez vos retours et boostez vos conversions.</span>
+              Ajoutez la personnalisation produit a votre boutique en 5 minutes.
+              <span className="text-white/80 font-medium"> Customizer 2D, IA generative, 3D, AR — du design client a la livraison.</span>
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
               <Link href="/register">
                 <MagneticButton variant="primary" size="xl" glow>
-                  Essai gratuit — 14 jours
+                  Essayer gratuitement
                   <ArrowRight className="w-5 h-5" />
                 </MagneticButton>
               </Link>
-              <Link href="/demo">
+              <Link href="/demo/customizer">
                 <MagneticButton variant="secondary" size="xl">
                   <Play className="w-5 h-5" />
                   Voir la demo

@@ -4,7 +4,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RefreshCw, Save } from 'lucide-react';
+import { RefreshCw, Save, Upload, X as XIcon } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { CATEGORIES, STATUS_OPTIONS } from '../../constants/products';
 import type { Product, ProductCategory, ProductStatus } from '@/lib/types/product';
@@ -50,8 +51,40 @@ export function CreateProductModal({
     currency: 'EUR',
     isActive: true,
     status: 'DRAFT' as ProductStatus,
+    images: [],
   });
   const [saving, setSaving] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        setImagePreviews((prev) => [...prev, dataUrl]);
+        setFormData((prev) => ({
+          ...prev,
+          images: [...(prev.images || []), dataUrl],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setFormData((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index),
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +100,9 @@ export function CreateProductModal({
           currency: 'EUR',
           isActive: true,
           status: 'DRAFT' as ProductStatus,
+          images: [],
         });
+        setImagePreviews([]);
         onOpenChange(false);
       }
     } finally {
@@ -109,6 +144,47 @@ export function CreateProductModal({
               className="bg-white border-gray-200 text-gray-900 mt-1 resize-none"
             />
           </div>
+          {/* Images */}
+          <div>
+            <Label className="text-gray-700">Images</Label>
+            <div className="mt-1 space-y-2">
+              {imagePreviews.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {imagePreviews.map((src, i) => (
+                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
+                      <Image src={src} alt={`Image ${i + 1}`} fill className="object-cover" sizes="80px" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="border-gray-200 text-gray-700"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Ajouter des images
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-gray-700">{t('products.category')} *</Label>

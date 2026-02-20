@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { DesignerApp } from './App';
+import { useDesignerStore } from './store/designerStore';
 import type { WidgetConfig } from './types/designer.types';
 
 interface LuneoWidget {
@@ -75,10 +76,14 @@ const LuneoWidget: LuneoWidget = {
   },
   
   getDesign() {
-    // Access store to get current design
-    // Note: This requires the store to be accessible globally
-    // In a real implementation, we'd need to expose the store
-    return null;
+    const state = useDesignerStore.getState();
+    if (!state.design) return null;
+    return {
+      design: state.design,
+      layers: state.canvas.layers,
+      product: state.product,
+      json: state.exportAsJSON(),
+    };
   },
   
   destroy() {

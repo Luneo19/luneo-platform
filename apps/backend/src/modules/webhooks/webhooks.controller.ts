@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger, BadRequestException, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
@@ -24,7 +24,7 @@ export interface SendGridWebhookEvent {
   ip?: string;
   url?: string;
   category?: string[];
-  unique_args?: Record<string, any>;
+  unique_args?: Record<string, unknown>;
   marketing_campaign_id?: string;
   marketing_campaign_name?: string;
 }

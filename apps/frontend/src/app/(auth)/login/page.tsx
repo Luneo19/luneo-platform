@@ -208,6 +208,7 @@ function LoginPageContent() {
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, rememberMe, router]);
 
   // OAuth login - ✅ Migré vers NestJS backend
@@ -231,6 +232,7 @@ function LoginPageContent() {
       setError(t('auth.login.oauthError'));
       setOauthLoading(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

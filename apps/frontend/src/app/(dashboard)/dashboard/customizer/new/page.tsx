@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -10,6 +10,8 @@ import { CustomizerForm } from '@/components/Customizer/admin/CustomizerForm';
 
 function NewCustomizerContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productId = searchParams.get('productId') || undefined;
 
   const handleSuccess = (config: { id?: string }) => {
     const id = config.id;
@@ -33,7 +35,11 @@ function NewCustomizerContent() {
         <p className="text-muted-foreground">Set up a new visual customizer for your products</p>
       </div>
 
-      <CustomizerForm onSuccess={handleSuccess} onCancel={() => router.push('/dashboard/customizer')} />
+      <CustomizerForm
+        initialProductId={productId}
+        onSuccess={handleSuccess}
+        onCancel={() => router.push('/dashboard/customizer')}
+      />
     </div>
   );
 }

@@ -2,15 +2,15 @@
  * AssetFileService unit tests
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { AssetFileService } from '../services/asset-file.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 
 describe('AssetFileService', () => {
   let service: AssetFileService;
-  let prisma: PrismaService;
-  let storageService: StorageService;
+  let _prisma: PrismaService;
+  let _storageService: StorageService;
 
   const mockPrisma = {
     assetFile: {
@@ -97,10 +97,10 @@ describe('AssetFileService', () => {
       const dto = { name: 'x', type: 'IMAGE', folderId: null, metadata: undefined, tags: [] };
 
       await expect(
-        service.upload(orgId, file, dto as any, 'user-1'),
+        service.upload(orgId, file, dto as unknown, 'user-1'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.upload(orgId, file, dto as any, 'user-1'),
+        service.upload(orgId, file, dto as unknown, 'user-1'),
       ).rejects.toThrow(/exceeds limit/);
       expect(mockPrisma.assetFile.create).not.toHaveBeenCalled();
     });
@@ -115,7 +115,7 @@ describe('AssetFileService', () => {
       const file = { buffer: Buffer.from('x'), mimetype: 'image/png', originalname: 'x.png', size: 1024 };
       const dto = { name: 'x', type: 'IMAGE', folderId: null, metadata: undefined, tags: [] };
 
-      const result = await service.upload(orgId, file, dto as any, 'user-1');
+      const result = await service.upload(orgId, file, dto as unknown, 'user-1');
 
       expect(result).toEqual(created);
       expect(mockStorageService.uploadFile).toHaveBeenCalled();
@@ -136,7 +136,7 @@ describe('AssetFileService', () => {
       const file = { id: 'f1', name: 'x', brandId: orgId, storageKey: 'assets/org/f1', url: 'https://x' };
       mockPrisma.assetFile.findFirst.mockResolvedValue(file);
       mockStorageService.deleteFile.mockResolvedValue(undefined);
-      mockPrisma.assetFile.delete.mockResolvedValue({} as any);
+      mockPrisma.assetFile.delete.mockResolvedValue({});
 
       const result = await service.remove('f1', orgId);
 

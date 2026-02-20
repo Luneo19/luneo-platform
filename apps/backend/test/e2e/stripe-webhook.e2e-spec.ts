@@ -29,7 +29,7 @@ function signPayload(payload: string, secret: string): string {
 
 describe('Stripe Webhook E2E', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test_secret';
 
   beforeAll(async () => {
@@ -52,7 +52,7 @@ describe('Stripe Webhook E2E', () => {
     // Enable rawBody for webhook signature verification
     await app.init();
 
-    prisma = app.get(PrismaService);
+    _prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {

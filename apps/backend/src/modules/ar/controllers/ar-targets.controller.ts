@@ -26,7 +26,7 @@ import { ARPlanGuard } from '@/common/guards/ar-plan.guard';
 import { User } from '@/common/decorators/user.decorator';
 import { CurrentUser } from '@/common/types/user.types';
 import { ImageTargetService } from '../tracking/image-target.service';
-import { CreateImageTargetDto, UpdateImageTargetDto } from '../dto/ar-targets.dto';
+import { UpdateImageTargetDto } from '../dto/ar-targets.dto';
 
 @ApiTags('AR Studio - Targets')
 @Controller('ar-studio/targets')

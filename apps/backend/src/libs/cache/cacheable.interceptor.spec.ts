@@ -9,7 +9,6 @@ import { of } from 'rxjs';
 import { CacheableInterceptor } from './cacheable.interceptor';
 import { SmartCacheService } from './smart-cache.service';
 import { Reflector } from '@nestjs/core';
-import { CACHEABLE_METADATA, CACHE_INVALIDATE_METADATA } from './cacheable.decorator';
 import { createMockCacheService } from '@/common/test/test-setup';
 
 describe('CacheableInterceptor', () => {
@@ -55,11 +54,11 @@ describe('CacheableInterceptor', () => {
         })),
       })),
       getArgs: jest.fn(() => []),
-    } as any;
+    } as unknown;
 
     callHandler = {
       handle: jest.fn(() => of({ data: 'test' })),
-    } as any;
+    } as unknown;
   });
 
   afterEach(() => {

@@ -100,6 +100,7 @@ function StatusPageContent() {
     checkServices();
     const interval = setInterval(checkServices, 60000); // Every minute
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getStatusIcon = (status: ServiceStatus) => {

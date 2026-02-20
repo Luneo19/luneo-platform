@@ -93,7 +93,7 @@ export class GltfToUsdzConverter {
 
       this.logger.log(`Running Blender USDZ conversion: ${this.blenderPath} ${args.join(' ')}`);
 
-      const { stdout, stderr } = await execFileAsync(this.blenderPath, args, {
+      const { stdout: _stdout, stderr } = await execFileAsync(this.blenderPath, args, {
         timeout: 5 * 60 * 1000, // 5 min timeout
         maxBuffer: 50 * 1024 * 1024, // 50MB stdout buffer
       });

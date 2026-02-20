@@ -130,7 +130,7 @@ export class AIGenerationsController {
     try {
       const generation = await this.generationService.findByPublicId(id);
       // SECURITY FIX: Verify generation belongs to user's brand (prevent IDOR)
-      if (req.user?.brandId && (generation as any).brandId && (generation as any).brandId !== req.user.brandId) {
+      if (req.user?.brandId && (generation as Record<string, unknown>).brandId && (generation as Record<string, unknown>).brandId !== req.user.brandId) {
         if (req.user.role !== 'PLATFORM_ADMIN') {
           throw new NotFoundException('Generation not found');
         }

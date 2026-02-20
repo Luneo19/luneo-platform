@@ -211,7 +211,7 @@ export class AnalyticsAggregationWorker {
 
     for (const session of sessions) {
       const selections = (session.selections as Record<string, string>) ?? {};
-      const uniqueSelectors = new Set(Object.values(selections));
+      const _uniqueSelectors = new Set(Object.values(selections));
 
       for (const [componentId, optionId] of Object.entries(selections)) {
         if (!optionId) continue;

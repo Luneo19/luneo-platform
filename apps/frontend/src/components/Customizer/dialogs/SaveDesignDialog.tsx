@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useDesign } from '@/hooks/customizer/useDesign';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface SaveDesignDialogProps {
   open: boolean;
@@ -125,11 +126,11 @@ export function SaveDesignDialog({ open, onOpenChange, sessionId, thumbnailDataU
             <div className="space-y-2">
               <Label>Preview</Label>
               <div className="relative aspect-video rounded border overflow-hidden bg-muted">
-                <img
+                <Image width={200} height={200}
                   src={thumbnailDataUrl}
                   alt="Design preview"
                   className="w-full h-full object-contain"
-                />
+                unoptimized />
               </div>
             </div>
           )}

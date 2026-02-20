@@ -7,7 +7,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('CostDashboardService', () => {
   let service: CostDashboardService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     aICost: {

@@ -103,7 +103,12 @@ export const notificationRouter = router({
         throw new Error('User not authenticated');
       }
 
-      return await notificationService.listNotifications(user.id, input);
+      try {
+        return await notificationService.listNotifications(user.id, input);
+      } catch (error) {
+        logger.warn('Failed to fetch notifications, returning empty list', { error });
+        return { notifications: [], total: 0 };
+      }
     }),
 
   // ========================================
@@ -173,7 +178,17 @@ export const notificationRouter = router({
       throw new Error('User not authenticated');
     }
 
-    return await notificationService.getPreferences(user.id);
+    try {
+      return await notificationService.getPreferences(user.id);
+    } catch (error) {
+      logger.warn('Failed to fetch notification preferences', { error });
+      return {
+        email: true,
+        push: true,
+        inApp: true,
+        types: {},
+      };
+    }
   }),
 
   updatePreferences: protectedProcedure

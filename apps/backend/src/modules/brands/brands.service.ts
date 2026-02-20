@@ -25,9 +25,21 @@ export class BrandsService {
       throw new ForbiddenException('Only brand admins can create brands');
     }
 
+    const name = (createBrandDto.name as string) || 'brand';
+    const baseSlug = name
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .slice(0, 60) || 'brand';
+    const slug = (createBrandDto.slug as string) || `${baseSlug}-${Date.now().toString(36)}`;
+
+    const { contactEmail: _contactEmail, ...rest } = createBrandDto;
+
     const brand = await this.prisma.brand.create({
       data: {
-        ...createBrandDto,
+        ...rest,
+        slug,
         users: {
           connect: { id: userId },
         },
@@ -37,7 +49,14 @@ export class BrandsService {
       },
     });
 
-    // Invalider le cache des brands après création
+    if (!user.brandId) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { brandId: brand.id },
+      });
+      await this.cache.invalidate(`user:${userId}`, 'user');
+    }
+
     await this.cache.invalidate('brands:list', 'brand');
 
     return brand;

@@ -337,7 +337,7 @@ export class SSOService {
   /**
    * Génère une requête SAML AuthnRequest
    */
-  private generateSAMLRequest(config: SSOConfiguration, relayState?: string): string {
+  private generateSAMLRequest(config: SSOConfiguration, _relayState?: string): string {
     const requestId = `_${crypto.randomBytes(16).toString('hex')}`;
     const issueInstant = new Date().toISOString();
     const acsUrl = config.samlCallbackUrl || '';

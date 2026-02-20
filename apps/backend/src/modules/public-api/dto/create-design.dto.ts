@@ -28,12 +28,12 @@ export class CreateDesignDto {
   @ApiPropertyOptional({ description: 'Customization data for the design' })
   @IsObject()
   @IsOptional()
-  customizationData?: Record<string, any>;
+  customizationData?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Additional metadata' })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 

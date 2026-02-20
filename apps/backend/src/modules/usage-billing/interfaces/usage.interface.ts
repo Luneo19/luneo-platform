@@ -5,7 +5,7 @@ export interface UsageMetric {
   value: number;
   unit: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type UsageMetricType = 

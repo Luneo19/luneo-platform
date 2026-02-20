@@ -45,6 +45,7 @@ import {
 } from 'recharts';
 import { endpoints } from '@/lib/api/client';
 import { useI18n } from '@/i18n/useI18n';
+import Image from 'next/image';
 
 // ========================================
 // Types
@@ -290,7 +291,7 @@ function MyArProductsTab({ onTryProduct }: { onTryProduct: (p: ArProduct) => voi
         <Card key={p?.id || 'unknown'} className="p-4 bg-gray-800/50 border-gray-700 overflow-hidden">
           <div className="aspect-square bg-gray-700 rounded-lg mb-3 relative overflow-hidden">
             {(p?.image_url || p?.imageUrl) ? (
-              <img src={p?.image_url || p?.imageUrl || ''} alt={p?.name || 'Product'} className="w-full h-full object-cover" />
+              <Image src={p?.image_url || p?.imageUrl || ''} alt={p?.name || 'Product'} className="w-full h-full object-cover" width={200} height={200} unoptimized />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <Package className="w-12 h-12 text-gray-500" />

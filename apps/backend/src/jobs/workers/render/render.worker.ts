@@ -4,7 +4,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ExportService } from '@/modules/render/services/export.service';
 import { Render2DService } from '@/modules/render/services/render-2d.service';
 import { Render3DService } from '@/modules/render/services/render-3d.service';
-import { RenderRequest, RenderOptions, ExportSettings } from '@/modules/render/interfaces/render.interface';
+import { RenderRequest, RenderOptions, ExportSettings, AssetInfo } from '@/modules/render/interfaces/render.interface';
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
@@ -310,7 +310,7 @@ export class RenderWorker {
 
   @Process('export-assets')
   async exportAssets(job: Job<RenderJobData>) {
-    const { renderId, productId, designId, options, priority } = job.data;
+    const { renderId, productId, designId, options, priority: _priority } = job.data;
     const startTime = Date.now();
 
     try {
@@ -343,7 +343,7 @@ export class RenderWorker {
         timestamp: new Date(),
       });
 
-      const exportResult = await this.exportService.exportAssets(assets, options as unknown as ExportSettings);
+      const exportResult = await this.exportService.exportAssets(assets as AssetInfo[], options as unknown as ExportSettings);
 
       // Finaliser l'export
       await this.updateRenderProgress(job, {
@@ -576,7 +576,7 @@ export class RenderWorker {
   /**
    * Récupère les assets à exporter
    */
-  private async getAssetsToExport(designId?: string, productId?: string): Promise<any[]> {
+  private async getAssetsToExport(designId?: string, productId?: string): Promise<unknown[]> {
     if (designId) {
       return this.prisma.asset.findMany({
         where: { designId },

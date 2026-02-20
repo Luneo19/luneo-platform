@@ -457,7 +457,7 @@ export class BillingController {
 
     try {
       // BILLING FIX: Handle both rawBody (NestFactory rawBody: true) and body (express.raw())
-      const payload = (req as any).rawBody ?? req.body;
+      const payload = (req as unknown as { rawBody?: Buffer }).rawBody ?? req.body;
       if (!payload || (!Buffer.isBuffer(payload) && typeof payload !== 'string')) {
         throw new BadRequestException('Missing raw body for webhook verification. Ensure rawBody is enabled.');
       }

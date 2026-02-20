@@ -13,6 +13,7 @@ import { CalibrationSystem } from '@/lib/virtual-tryon/CalibrationSystem';
 import { ARQuickLookFallback } from '@/lib/virtual-tryon/ARQuickLookFallback';
 import type { QualityLevel } from '@/lib/virtual-tryon/FPSOptimizer';
 import { logger } from '@/lib/logger';
+import Image from 'next/image';
 
 export interface TryOnViewProps {
   category: TryOnCategory;
@@ -239,6 +240,7 @@ export default function TryOnView({
     } finally {
       isInitializingRef.current = false;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, modelUrl, lodLevels, scaleFactor, defaultPosition, defaultRotation, enableOcclusion, enableShadows]);
 
   // Auto-start when ready (status change triggers, startEngine is stable)
@@ -307,7 +309,7 @@ export default function TryOnView({
           <div className="text-4xl mb-3">&#x26A0;</div>
           <p className="text-sm opacity-80 mb-4">{errorMessage || 'Erreur inconnue'}</p>
           {fallbackImage && (
-            <img src={fallbackImage} alt={productName} className="w-48 mx-auto rounded-lg" />
+            <Image src={fallbackImage || ''} alt={productName ?? ''} className="w-48 mx-auto rounded-lg" width={200} height={200} unoptimized />
           )}
         </div>
       </div>

@@ -84,7 +84,7 @@ export class StorageService {
   /**
    * Supprime un fichier du stockage (Cloudinary)
    */
-  async deleteFile(key: string, bucket?: string): Promise<void> {
+  async deleteFile(key: string, _bucket?: string): Promise<void> {
     try {
       this.logger.log(`Suppression via Cloudinary: ${key}`);
       

@@ -64,12 +64,12 @@ export class FeedbackLoopService {
 
     const [items, total] = await Promise.all([
       this.prisma.aITrainingExample.findMany({
-        where: where as any,
+        where: where as never,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.aITrainingExample.count({ where: where as any }),
+      this.prisma.aITrainingExample.count({ where: where as never }),
     ]);
 
     return { items, total, page, limit };

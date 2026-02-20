@@ -13,9 +13,9 @@ import { PlansService } from '@/modules/plans/plans.service';
 
 describe('AIStudioService', () => {
   let service: AIStudioService;
-  let prisma: jest.Mocked<PrismaService>;
-  let budgetService: jest.Mocked<BudgetService>;
-  let queueService: jest.Mocked<AIStudioQueueService>;
+  let _prisma: jest.Mocked<PrismaService>;
+  let _budgetService: jest.Mocked<BudgetService>;
+  let _queueService: jest.Mocked<AIStudioQueueService>;
 
   const mockPrisma = {
     aIGeneration: {
@@ -321,7 +321,7 @@ describe('AIStudioService', () => {
       mockConfigService.get.mockImplementation(((key: string) => {
         if (key === 'OPENAI_API_KEY') return '';
         return null;
-      }) as any);
+      }) as unknown);
 
       // Recreate service with new config
       const module: TestingModule = await Test.createTestingModule({

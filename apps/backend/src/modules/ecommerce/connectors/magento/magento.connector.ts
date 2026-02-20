@@ -272,7 +272,7 @@ export class MagentoConnector {
    * Synchronise les produits
    * PERF-02: Batch loading des mappings + traitement parallèle
    */
-  async syncProducts(integrationId: string, options?: SyncOptions): Promise<SyncResult> {
+  async syncProducts(integrationId: string, _options?: SyncOptions): Promise<SyncResult> {
     const startTime = Date.now();
     const errors: Array<{ itemId: string; code: string; message: string }> = [];
     let itemsProcessed = 0;

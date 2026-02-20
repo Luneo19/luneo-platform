@@ -138,8 +138,8 @@ export class PublicApiService {
         status: 'PENDING',
         productId: createDesignDto.productId,
         brandId,
-        options: createDesignDto.customizationData || {},
-        metadata: createDesignDto.metadata,
+        options: (createDesignDto.customizationData || {}) as Prisma.InputJsonValue,
+        metadata: (createDesignDto.metadata || undefined) as Prisma.InputJsonValue | undefined,
       },
       select: {
         id: true,

@@ -80,7 +80,7 @@ describe('ReportsController', () => {
       reportsService.generatePDFReport.mockResolvedValue({
         reportId: 'report-123',
         status: 'processing',
-      } as any);
+      } as unknown);
 
       const result = await controller.generateReport(validBody, mockBrand);
 
@@ -93,7 +93,7 @@ describe('ReportsController', () => {
       reportsService.generatePDFReport.mockResolvedValue({
         reportId: 'report-csv',
         status: 'processing',
-      } as any);
+      } as unknown);
 
       const result = await controller.generateReport(csvBody, mockBrand);
 

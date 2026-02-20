@@ -5,10 +5,9 @@ import type { Prisma } from '@prisma/client';
 import {
   PLAN_CONFIGS,
   ADDON_BONUSES,
-  normalizePlanTier,
   type FeatureLimits,
   type ActiveAddon,
-  type PlanInfo as PlanInfoBase,
+  type PlanInfo as _PlanInfoBase,
   PlanTier,
 } from '@/libs/plans';
 

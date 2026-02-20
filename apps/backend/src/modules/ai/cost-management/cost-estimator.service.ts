@@ -118,7 +118,7 @@ export class CostEstimatorService {
     return defaults[provider]?.[operation] ?? 0.02;
   }
 
-  private getDefaultModel(provider: string, operation: string): string {
+  private getDefaultModel(provider: string, _operation: string): string {
     const models: Record<string, string> = {
       openai: 'dall-e-3',
       stability: 'sdxl-1.0',

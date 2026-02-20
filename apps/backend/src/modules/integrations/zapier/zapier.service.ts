@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
-import { ZAPIER_TRIGGERS, ZapierTrigger } from './dto/zapier-subscribe.dto';
+import { ZapierTrigger } from './dto/zapier-subscribe.dto';
 import { ZapierCreateDesignDto, ZapierUpdateProductDto } from './dto/zapier-action.dto';
 
 export const ZAPIER_ACTIONS = ['create_design', 'update_product'] as const;
@@ -21,9 +21,9 @@ export class ZapierService {
   /**
    * Test Zapier webhook
    */
-  async testWebhook(config: Record<string, any>): Promise<{ success: boolean; message: string }> {
+  async testWebhook(config: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
     try {
-      if (!config.webhookUrl) {
+      if (!(config as Record<string, string>).webhookUrl) {
         return {
           success: false,
           message: 'Zapier webhook URL is required',
@@ -40,7 +40,7 @@ export class ZapierService {
       };
 
       const response = await firstValueFrom(
-        this.httpService.post(config.webhookUrl, testPayload, {
+        this.httpService.post((config as Record<string, string>).webhookUrl as string, testPayload, {
           headers: {
             'Content-Type': 'application/json',
             'User-Agent': 'Luneo-Zapier/1.0',
@@ -66,12 +66,12 @@ export class ZapierService {
    * Trigger Zapier Zap (legacy: single config)
    */
   async triggerZap(
-    config: Record<string, any>,
+    config: Record<string, unknown>,
     event: string,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     try {
-      if (!config.webhookUrl || !config.enabled) {
+      if (!(config as Record<string, string>).webhookUrl || !config.enabled) {
         return;
       }
 
@@ -86,15 +86,15 @@ export class ZapierService {
         'User-Agent': 'Luneo-Zapier/1.0',
       };
 
-      if (config.secret) {
+      if ((config as Record<string, string>).secret) {
         headers['X-Luneo-Signature'] = this.generateSignature(
           JSON.stringify(payload),
-          config.secret,
+          (config as Record<string, string>).secret as string,
         );
       }
 
       await firstValueFrom(
-        this.httpService.post(config.webhookUrl, payload, {
+        this.httpService.post((config as Record<string, string>).webhookUrl as string, payload, {
           headers,
           timeout: 10000,
         }),
@@ -128,7 +128,7 @@ export class ZapierService {
   }
 
   /** Send event to all registered webhooks for this brand and event (Zapier triggers) */
-  async triggerEvent(brandId: string, event: ZapierTrigger, data: Record<string, any>): Promise<void> {
+  async triggerEvent(brandId: string, event: ZapierTrigger, data: Record<string, unknown>): Promise<void> {
     const subs = await this.prisma.webhookSubscription.findMany({
       where: { brandId, event, isActive: true },
     });
@@ -220,8 +220,8 @@ export class ZapierService {
   }
 
   /** Return sample payload for a trigger (Zapier expects array for polling/trigger sample) */
-  getTriggerSample(event: ZapierTrigger): Record<string, any>[] {
-    const samples: Record<ZapierTrigger, Record<string, any>[]> = {
+  getTriggerSample(event: ZapierTrigger): Record<string, unknown>[] {
+    const samples: Record<ZapierTrigger, Record<string, unknown>[]> = {
       new_design: [{
         id: 'sample_design_id',
         name: 'Sample Design',

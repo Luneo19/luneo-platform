@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import * as crypto from 'crypto';
@@ -129,7 +129,7 @@ export class OAuthService {
   /**
    * Get OAuth client configuration
    */
-  async getClientConfig(brandId: string): Promise<{
+  async getClientConfig(_brandId: string): Promise<{
     clientId: string;
     redirectUris: string[];
     scopes: string[];

@@ -16,7 +16,7 @@ import { ZoneType2D, ZoneShape } from '@prisma/client';
 
 describe('CustomizerZonesService', () => {
   let service: CustomizerZonesService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     visualCustomizer: {

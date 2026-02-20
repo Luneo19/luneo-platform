@@ -6,9 +6,9 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import * as sharp from 'sharp';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
+import * as _fs from 'fs/promises';
+import * as _path from 'path';
+import * as _os from 'os';
 
 export interface TextureCompressionOptions {
   maxWidth?: number;

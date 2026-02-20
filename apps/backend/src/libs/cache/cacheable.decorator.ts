@@ -8,7 +8,6 @@
  */
 
 import { SetMetadata } from '@nestjs/common';
-import { SmartCacheService } from './smart-cache.service';
 
 export const CACHEABLE_METADATA = 'cacheable';
 export const CACHE_INVALIDATE_METADATA = 'cache_invalidate';

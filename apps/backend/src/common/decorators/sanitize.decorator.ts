@@ -1,9 +1,5 @@
 import { Transform } from 'class-transformer';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const sanitizeHtml = require('sanitize-html') as (
-  html: string,
-  options?: { allowedTags?: string[]; allowedAttributes?: Record<string, string[]> }
-) => string;
+import sanitizeHtml from 'sanitize-html';
 
 const DEFAULT_ALLOWED_TAGS = ['b', 'i', 'em', 'strong', 'a', 'p', 'br'];
 

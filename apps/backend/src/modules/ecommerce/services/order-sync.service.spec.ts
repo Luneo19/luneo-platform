@@ -15,9 +15,9 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('OrderSyncService', () => {
   let service: OrderSyncService;
-  let prismaService: any; // Use any to allow mock methods
-  let cacheService: any;
-  let shopifyConnector: any;
+  let prismaService: Record<string, unknown>;
+  let cacheService: Record<string, unknown>;
+  let shopifyConnector: Record<string, unknown>;
 
   const mockQueue = {
     add: jest.fn(),
@@ -101,12 +101,12 @@ describe('OrderSyncService', () => {
     });
 
     it('should sync orders from Shopify successfully', async () => {
-      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration as any);
+      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration);
       shopifyConnector.getOrders.mockResolvedValue([
         { id: 'order-1', total: 100 },
         { id: 'order-2', total: 200 },
-      ] as any);
-      prismaService.syncLog.create.mockResolvedValue({ id: 'log-1', status: 'SUCCESS' } as any);
+      ] as unknown);
+      prismaService.syncLog.create.mockResolvedValue({ id: 'log-1', status: 'SUCCESS' });
 
       const result = await service.syncOrders({ integrationId: 'int-123' });
 
@@ -117,13 +117,13 @@ describe('OrderSyncService', () => {
     });
 
     it('should handle partial failures in batch processing', async () => {
-      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration as any);
+      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration);
       shopifyConnector.getOrders.mockResolvedValue([
         { id: 'order-1' },
         { id: 'order-2' },
         { id: 'order-3' },
-      ] as any);
-      prismaService.syncLog.create.mockResolvedValue({ id: 'log-1', status: 'PARTIAL' } as any);
+      ] as unknown);
+      prismaService.syncLog.create.mockResolvedValue({ id: 'log-1', status: 'PARTIAL' });
 
       const result = await service.syncOrders({ integrationId: 'int-123' });
 
@@ -152,7 +152,7 @@ describe('OrderSyncService', () => {
       prismaService.order.findMany.mockResolvedValue([
         { status: 'PENDING', totalCents: 5000 },
         { status: 'COMPLETED', totalCents: 10000 },
-      ] as any);
+      ] as unknown);
 
       const result = await service.getOrderStats('int-123', 'week');
 
@@ -175,11 +175,11 @@ describe('OrderSyncService', () => {
       prismaService.order.findUnique.mockResolvedValue({
         metadata: { shopifyOrderId: 'shopify-123' },
         brandId: 'brand-123',
-      } as any);
+      } as unknown);
       prismaService.ecommerceIntegration.findFirst.mockResolvedValue({
         id: 'int-123',
         platform: 'shopify',
-      } as any);
+      } as unknown);
 
       await service.updateExternalOrderStatus('order-123', 'SHIPPED');
 

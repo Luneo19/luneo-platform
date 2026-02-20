@@ -169,7 +169,7 @@ export class AiGenerationWorker {
 
   @Process('generate-high-res')
   async handleGenerateHighRes(job: Job<GenerateHighResJob>) {
-    const { designId, prompt, options, userId } = job.data;
+    const { designId, prompt, options: _options, userId } = job.data;
     const startTime = Date.now();
 
     this.logger.log(`Processing high-res generation for design ${designId}`);

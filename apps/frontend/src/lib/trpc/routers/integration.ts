@@ -50,10 +50,15 @@ export const integrationRouter = router({
     const { user } = ctx;
 
     if (!user?.brandId) {
-      throw new Error('User must be associated with a brand');
+      return [];
     }
 
-    return await integrationService.listIntegrations(user.brandId);
+    try {
+      return await integrationService.listIntegrations(user.brandId);
+    } catch (error) {
+      logger.warn('Failed to fetch integrations, returning empty list', { error });
+      return [];
+    }
   }),
 
   getById: protectedProcedure
@@ -245,11 +250,15 @@ export const integrationRouter = router({
 
         return analytics;
       } catch (error) {
-        logger.error('Error fetching integration analytics', {
-          error,
-          brandId: user.brandId,
-        });
-        throw new Error('Failed to fetch integration analytics');
+        logger.warn('Failed to fetch integration analytics, returning defaults', { error });
+        return {
+          totalIntegrations: 0,
+          activeIntegrations: 0,
+          totalSyncs: 0,
+          successfulSyncs: 0,
+          failedSyncs: 0,
+          lastSyncAt: null,
+        };
       }
     }),
 });

@@ -12,7 +12,7 @@ export class MockRedisOptimizedService {
     return {
       ping: () => Promise.resolve('PONG'),
       get: (key: string) => this.get(key),
-      set: (key: string, value: string, ...args: any[]) => this.set(key, value),
+      set: (key: string, value: string, ..._args: unknown[]) => this.set(key, value),
       del: (key: string) => this.delete(key),
       keys: (pattern: string) => this.keys(pattern),
       quit: () => Promise.resolve(),

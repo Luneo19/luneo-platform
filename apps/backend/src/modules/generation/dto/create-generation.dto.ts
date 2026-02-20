@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsObject, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
 export class CreateGenerationDto {
   @ApiProperty({
@@ -20,7 +19,7 @@ export class CreateGenerationDto {
   })
   @IsObject()
   @IsNotEmpty()
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'Additional user prompt',

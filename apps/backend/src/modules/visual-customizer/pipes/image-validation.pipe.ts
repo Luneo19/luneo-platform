@@ -16,7 +16,7 @@ const ALLOWED_IMAGE_TYPES = VISUAL_CUSTOMIZER_LIMITS.ALLOWED_IMAGE_TYPES;
 export class ImageValidationPipe implements PipeTransform {
   async transform(
     value: { buffer: Buffer; mimetype: string; originalname: string; size: number },
-    metadata: ArgumentMetadata,
+    _metadata: ArgumentMetadata,
   ): Promise<{ buffer: Buffer; mimetype: string; originalname: string; size: number }> {
     if (!value) {
       throw new BadRequestException('File is required');

@@ -428,6 +428,7 @@ function IntegrationsPageContent() {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [toast, integrations]
   );
 
@@ -448,6 +449,7 @@ function IntegrationsPageContent() {
         variant: 'destructive',
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast, integrations, fetchIntegrationsFromStatus]);
 
   const handleConnect = useCallback(async () => {
@@ -480,6 +482,7 @@ function IntegrationsPageContent() {
         variant: 'destructive',
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlatform, formData, toast, fetchIntegrationsFromStatus]);
 
   return (

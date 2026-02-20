@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { createHash } from 'crypto';
 
 export interface DesignDNAData {
   designId: string;
@@ -105,7 +104,7 @@ export class DesignDNAService {
   /**
    * Analyse les paramètres qui convertissent le mieux à partir des conversions
    */
-  async analyzeConversionPatterns(brandId?: string): Promise<{
+  async analyzeConversionPatterns(_brandId?: string): Promise<{
     topParameters: Array<{ parameter: string; conversionRate: number }>;
     topTags: Array<{ tag: string; conversionRate: number }>;
   }> {

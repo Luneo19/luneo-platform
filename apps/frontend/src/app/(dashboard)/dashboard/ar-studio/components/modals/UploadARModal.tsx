@@ -60,6 +60,7 @@ export function UploadARModal({
     setSelectedFile(file);
     setModelName(file.name.replace(/\.[^/.]+$/, ''));
     setError(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDrop = useCallback(

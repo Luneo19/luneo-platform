@@ -168,7 +168,7 @@ export class I18nService {
    * and return translation?.value ?? null. Until then, returns null so that
    * in-memory/fallback translations are used.
    */
-  private async getTranslationFromDB(key: string, locale: string): Promise<string | null> {
+  private async getTranslationFromDB(_key: string, _locale: string): Promise<string | null> {
     if (!this.prisma) {
       return null;
     }

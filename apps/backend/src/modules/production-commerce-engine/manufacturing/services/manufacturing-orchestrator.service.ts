@@ -46,7 +46,7 @@ export class ManufacturingOrchestratorService {
     for (const p of providers) {
       const providerId = 'id' in p ? p.id : (p as { id: string }).id;
       try {
-        const instance = await this.providerManager.getProviderInstance(providerId);
+        const _instance = await this.providerManager.getProviderInstance(providerId);
         const [prodCost, shipCost] = await Promise.all([
           this.costCalculator.calculateProductionCost(params.items, providerId),
           this.costCalculator.calculateShippingCost(

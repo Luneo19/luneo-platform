@@ -2,7 +2,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { Prisma, CustomizerModerationStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -143,7 +142,7 @@ export class CustomizerModerationService {
    * Approve moderation record
    */
   async approve(id: string, notes: string, user: CurrentUser) {
-    const record = await this.getRecord(id, user);
+    const _record = await this.getRecord(id, user);
 
     const updated = await this.prisma.customizerModerationRecord.update({
       where: { id },
@@ -205,7 +204,7 @@ export class CustomizerModerationService {
    * Escalate moderation record
    */
   async escalate(id: string, reason: string, user: CurrentUser) {
-    const record = await this.getRecord(id, user);
+    const _record = await this.getRecord(id, user);
 
     const updated = await this.prisma.customizerModerationRecord.update({
       where: { id },
@@ -293,7 +292,7 @@ export class CustomizerModerationService {
   /**
    * Get blocked words list
    */
-  async getBlockedWords(user: CurrentUser): Promise<string[]> {
+  async getBlockedWords(_user: CurrentUser): Promise<string[]> {
     // TODO: Retrieve from database
     // For now, return empty array
     return [];
@@ -306,12 +305,12 @@ export class CustomizerModerationService {
     const texts: string[] = [];
 
     if (Array.isArray(canvasData.objects)) {
-      canvasData.objects.forEach((obj: any) => {
+      canvasData.objects.forEach((obj: Record<string, unknown>) => {
         if (obj.type === 'text' && obj.text) {
           texts.push(String(obj.text));
         }
         if (obj.children && Array.isArray(obj.children)) {
-          obj.children.forEach((child: any) => {
+          (obj.children as Record<string, unknown>[]).forEach((child: Record<string, unknown>) => {
             if (child.type === 'text' && child.text) {
               texts.push(String(child.text));
             }

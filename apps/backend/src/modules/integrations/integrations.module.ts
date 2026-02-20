@@ -22,6 +22,7 @@ import { ZapierModule } from './zapier/zapier.module';
 import { IntegrationOrchestratorService } from './services/integration-orchestrator.service';
 import { SyncEngineService } from './services/sync-engine.service';
 import { WebhookProcessorService } from './services/webhook-processor.service';
+import { EcommerceConnectorService } from './services/ecommerce-connector.service';
 
 // Infrastructure
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -57,11 +58,13 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
     IntegrationOrchestratorService,
     SyncEngineService,
     WebhookProcessorService,
+    EcommerceConnectorService,
   ],
   exports: [
     IntegrationOrchestratorService,
     SyncEngineService,
     WebhookProcessorService,
+    EcommerceConnectorService,
     ShopifyModule,
     WooCommerceModule,
     PrestaShopModule,

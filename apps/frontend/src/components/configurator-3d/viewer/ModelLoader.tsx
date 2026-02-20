@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConfigurator3DStore } from '@/stores/configurator-3d/configurator.store';
 
@@ -56,8 +56,7 @@ export function ModelLoader({ modelUrl }: ModelLoaderProps) {
   });
 
   const handlePointerOver = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (e: any) => {
+    (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation?.();
       const mesh = e.object as THREE.Mesh;
       const name = mesh.name;
@@ -74,8 +73,7 @@ export function ModelLoader({ modelUrl }: ModelLoaderProps) {
   }, [setHoveredOption]);
 
   const handleClick = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (e: any) => {
+    (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation?.();
       const mesh = e.object as THREE.Mesh;
       const name = mesh.name;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Image, Search, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Search, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,7 +49,7 @@ export function ClipartPanel() {
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Image className="h-5 w-5" />
+          <ImageIcon className="h-5 w-5" />
           <CardTitle>Clipart</CardTitle>
         </div>
         <CardDescription>Browse clipart library</CardDescription>
@@ -105,7 +105,7 @@ export function ClipartPanel() {
             </div>
           ) : filteredCliparts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Image className="h-12 w-12 text-muted-foreground mb-2" />
+              <ImageIcon className="h-12 w-12 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
                 {selectedCategoryId ? 'No clipart found in this category' : 'Select a category to browse clipart'}
               </p>
@@ -119,6 +119,7 @@ export function ClipartPanel() {
                   className="group relative aspect-square rounded border overflow-hidden hover:border-primary transition-colors"
                 >
                   {clipart.thumbnail ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={clipart.thumbnail}
                       alt={clipart.name}
@@ -126,7 +127,7 @@ export function ClipartPanel() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <Image className="h-8 w-8 text-muted-foreground" />
+                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />

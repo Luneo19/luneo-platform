@@ -67,12 +67,12 @@ export class QueueManagerService {
     const failed = await queue.getFailed(0, limit);
     let retried = 0;
 
-    for (const job of failed) {
+    for (const job of failed as Array<{ retry: () => Promise<void>; id?: string }>) {
       try {
-        await job.retry();
+        await (job as { retry: () => Promise<void> }).retry();
         retried++;
       } catch {
-        this.logger.warn(`Failed to retry job ${job.id} in ${queueName}`);
+        this.logger.warn(`Failed to retry job ${(job as { id?: string }).id} in ${queueName}`);
       }
     }
 

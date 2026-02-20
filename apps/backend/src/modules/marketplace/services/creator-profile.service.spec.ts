@@ -13,8 +13,8 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
 describe('CreatorProfileService', () => {
   let service: CreatorProfileService;
-  let prismaService: any; // Use any for mock methods
-  let cacheService: jest.Mocked<SmartCacheService>;
+  let prismaService: Record<string, unknown>;
+  let _cacheService: jest.Mocked<SmartCacheService>;
 
   const mockUser = {
     id: 'user-123',
@@ -98,10 +98,10 @@ describe('CreatorProfileService', () => {
     };
 
     it('should create profile with valid data', async () => {
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
       // No existing profile with this username
       prismaService.creatorProfile.findUnique.mockResolvedValue(null);
-      prismaService.creatorProfile.create.mockResolvedValue(mockProfile as any);
+      prismaService.creatorProfile.create.mockResolvedValue(mockProfile);
 
       const result = await service.createProfile(validData);
 
@@ -114,19 +114,19 @@ describe('CreatorProfileService', () => {
 
     it('should throw BadRequestException when userId is missing', async () => {
       await expect(
-        service.createProfile({ ...validData, userId: '' } as any),
+        service.createProfile({ ...validData, userId: '' } as unknown),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when username is invalid', async () => {
       await expect(
-        service.createProfile({ ...validData, username: 'ab' } as any), // Trop court
+        service.createProfile({ ...validData, username: 'ab' } as unknown), // Trop court
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when username contains invalid characters', async () => {
       await expect(
-        service.createProfile({ ...validData, username: 'john@doe' } as any),
+        service.createProfile({ ...validData, username: 'john@doe' } as unknown),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -137,7 +137,7 @@ describe('CreatorProfileService', () => {
     });
 
     it('should throw BadRequestException when username is already taken', async () => {
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
       prismaService.creatorProfile.findUnique.mockResolvedValue({ id: 'existing-profile', username: 'johndoe' });
 
       await expect(service.createProfile(validData)).rejects.toThrow(BadRequestException);

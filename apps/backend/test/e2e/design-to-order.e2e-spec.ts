@@ -7,7 +7,7 @@ describe('Design to Order Workflow (E2E)', () => {
   let app: INestApplication;
   let authToken: string;
   let brandId: string;
-  let userId: string;
+  let _userId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -36,7 +36,7 @@ describe('Design to Order Workflow (E2E)', () => {
     if (loginResponse.status === 200) {
       authToken = loginResponse.body.accessToken;
       brandId = loginResponse.body.user.brandId;
-      userId = loginResponse.body.user.id;
+      _userId = loginResponse.body.user.id;
     } else {
       // Skip tests if no test user available
       console.warn('Test user not available, skipping E2E tests');
@@ -164,7 +164,7 @@ describe('Design to Order Workflow (E2E)', () => {
       // Should only return user's own brand
       if (response.status === 200) {
         const brands = Array.isArray(response.body) ? response.body : [response.body];
-        brands.forEach((brand: any) => {
+        brands.forEach((brand: Record<string, unknown>) => {
           expect(brand.id).toBe(brandId);
         });
       }

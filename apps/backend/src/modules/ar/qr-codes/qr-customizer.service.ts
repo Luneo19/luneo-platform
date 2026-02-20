@@ -80,7 +80,7 @@ export class QrCustomizerService {
       .toBuffer();
   }
 
-  private async applyRoundedStyle(buffer: Buffer, size: number): Promise<Buffer> {
+  private async applyRoundedStyle(buffer: Buffer, _size: number): Promise<Buffer> {
     return sharp(buffer)
       .modulate({ saturation: 0 })
       .png()

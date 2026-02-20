@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { PipelineOrchestratorService } from '../core/pipeline-orchestrator.service';
 import { PCEOrchestratorService } from '../core/pce-orchestrator.service';
-import { PIPELINE_STAGES, PCE_EVENTS } from '../pce.constants';
+import { PIPELINE_STAGES } from '../pce.constants';
 
 @Injectable()
 export class RenderEventListener {

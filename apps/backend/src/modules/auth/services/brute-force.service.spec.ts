@@ -2,11 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { BruteForceService } from './brute-force.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 
 describe('BruteForceService', () => {
   let service: BruteForceService;
-  let redisService: RedisOptimizedService;
+  let _redisService: RedisOptimizedService;
 
   const mockRedis = {
     get: jest.fn(),

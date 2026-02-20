@@ -8,7 +8,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('WidgetService', () => {
   let service: WidgetService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     product: { findUnique: jest.fn() },

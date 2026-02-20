@@ -32,6 +32,7 @@ function CookieBannerContent() {
     } catch (e) {
       return getFallbackTranslation(key);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
   
   const getFallbackTranslation = useCallback((key: string): string => {

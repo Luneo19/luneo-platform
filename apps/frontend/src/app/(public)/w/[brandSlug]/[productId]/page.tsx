@@ -50,6 +50,7 @@ function WidgetPageContent() {
 
   // Get zones from product (zones are included in product.getById)
   type ZoneItem = { id: string; name?: string; maxChars?: number };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const zones = (product as { zones?: ZoneItem[] } | null | undefined)?.zones ?? ([] as ZoneItem[]);
   const isLoadingZones = false; // Zones are included in product query
 

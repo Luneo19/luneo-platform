@@ -169,6 +169,7 @@ export function KonvaCanvas() {
         );
       case 'image':
         return (
+          /* eslint-disable-next-line jsx-a11y/alt-text */
           <Image
             {...commonProps}
             image={metadata.image as HTMLImageElement | undefined}

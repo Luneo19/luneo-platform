@@ -104,8 +104,8 @@ export class CustomizerModerationController {
     return this.moderationService.listFlaggedDesigns(
       {
         ...query,
-        status: query.status as any,
-        contentType: query.contentType as any,
+        status: query.status as never,
+        contentType: query.contentType as never,
         dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
         dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
       },

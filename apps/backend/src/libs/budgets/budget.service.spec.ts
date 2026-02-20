@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BudgetService } from './budget.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
 
 describe('BudgetService', () => {
   let service: BudgetService;
@@ -37,7 +36,7 @@ describe('BudgetService', () => {
         id: 'brand-123',
         aiCostLimitCents: 100000,
         aiCostUsedCents: 50000,
-      } as any);
+      } as unknown);
 
       const result = await service.checkBudget('brand-123', 30000);
 
@@ -49,7 +48,7 @@ describe('BudgetService', () => {
         id: 'brand-123',
         aiCostLimitCents: 100000,
         aiCostUsedCents: 80000,
-      } as any);
+      } as unknown);
 
       const result = await service.checkBudget('brand-123', 30000);
 
@@ -59,7 +58,7 @@ describe('BudgetService', () => {
 
   describe('enforceBudget', () => {
     it('should increment budget usage', async () => {
-      jest.spyOn(prisma.brand, 'update').mockResolvedValue({} as any);
+      jest.spyOn(prisma.brand, 'update').mockResolvedValue({});
 
       await service.enforceBudget('brand-123', 30000);
 
@@ -75,7 +74,7 @@ describe('BudgetService', () => {
       jest.spyOn(prisma.brand, 'update').mockResolvedValue({
         id: 'brand-123',
         aiCostUsedCents: 110000,
-      } as any);
+      } as unknown);
 
       await service.enforceBudget('brand-123', 20000);
 
@@ -85,7 +84,7 @@ describe('BudgetService', () => {
 
   describe('resetBudget', () => {
     it('should reset budget to zero', async () => {
-      jest.spyOn(prisma.brand, 'update').mockResolvedValue({} as any);
+      jest.spyOn(prisma.brand, 'update').mockResolvedValue({});
 
       await service.resetBudget('brand-123');
 

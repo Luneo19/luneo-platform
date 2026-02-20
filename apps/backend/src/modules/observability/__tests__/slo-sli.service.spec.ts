@@ -7,7 +7,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('SLOService', () => {
   let service: SLOService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     monitoringMetric: {

@@ -6,7 +6,7 @@ export interface AuditLog {
   resourceId: string;
   action: string;
   success: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
   ipAddress?: string;
   userAgent?: string;

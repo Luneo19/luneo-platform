@@ -209,7 +209,7 @@ export class GenerationProcessor {
   }
 
   @OnQueueCompleted()
-  async onCompleted(job: Job, result: unknown) {
+  async onCompleted(job: Job, _result: unknown) {
     this.logger.log(`Job ${job.id} completed`);
   }
 }

@@ -137,6 +137,7 @@ export function useApi<T = unknown>(
         abortControllerRef.current.abort();
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [immediate]); // Ne pas inclure execute pour éviter les re-renders infinis
 
   return {
@@ -194,6 +195,7 @@ export function useQuery<T = unknown>(
     if (enabled && immediate) {
       apiResult.execute();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, immediate]); // Ne pas inclure execute pour éviter les re-renders infinis
 
   return {
@@ -281,6 +283,7 @@ export function usePaginatedQuery<T = unknown>(
     if (enabled) {
       apiResult.execute();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, enabled]); // Ne pas inclure execute pour éviter les re-renders infinis
 
   return {

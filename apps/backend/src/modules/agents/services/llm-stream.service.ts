@@ -12,7 +12,7 @@ import { Injectable, Logger, BadRequestException, InternalServerErrorException }
 import { Observable } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { LLMProvider, LLM_MODELS, Message } from './llm-router.service';
+import { LLMProvider, Message } from './llm-router.service';
 import { PromptSecurityService } from './prompt-security.service';
 import { OutputSanitizerService } from '../security/output-sanitizer.service';
 import { firstValueFrom } from 'rxjs';

@@ -90,6 +90,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml' ||
     pathname === '/manifest.json' ||
+    pathname === '/manifest.webmanifest' ||
     pathname === '/sw.js' ||
     pathname === '/service-worker.js'
   ) {

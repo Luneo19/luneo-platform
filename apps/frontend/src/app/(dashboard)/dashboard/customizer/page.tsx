@@ -41,6 +41,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/trpc/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 function CustomizerListContent() {
   const router = useRouter();
@@ -222,11 +223,11 @@ function CustomizerListContent() {
                     <Link href={`/dashboard/customizer/${id}`}>
                       <div className="relative aspect-video overflow-hidden rounded-t-lg bg-muted">
                         {thumbnail ? (
-                          <img
+                          <Image width={200} height={200}
                             src={thumbnail}
                             alt={name}
                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                          />
+                          unoptimized />
                         ) : (
                           <div className="flex h-full items-center justify-center">
                             <ImageIcon className="h-12 w-12 text-muted-foreground" />

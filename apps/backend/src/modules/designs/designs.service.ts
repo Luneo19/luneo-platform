@@ -10,7 +10,7 @@ import { DesignStatus, Prisma, UserRole } from '@prisma/client';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import * as sharp from 'sharp';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const PDFDocument = require('pdfkit');
 import { firstValueFrom } from 'rxjs';
 import { PlansService } from '@/modules/plans/plans.service';
@@ -885,7 +885,7 @@ export class DesignsService {
     design: { id: string; name: string | null; description?: string | null },
     imageBuffer: Buffer | null,
     dimensions: { width: number; height: number },
-    quality: string,
+    _quality: string,
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {

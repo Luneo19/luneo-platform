@@ -21,9 +21,7 @@ if (process.env.ANALYZE === 'true') {
 const nextConfig = {
   // TypeScript errors: 0 as of Feb 2026 - strict mode enabled
   eslint: {
-    // ESLint has some rule definition issues (@typescript-eslint/no-explicit-any not found)
-    // Keep disabled during builds until ESLint config is fixed
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
     ignoreBuildErrors: false,

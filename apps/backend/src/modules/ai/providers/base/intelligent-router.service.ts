@@ -39,7 +39,7 @@ export class IntelligentRouterService {
   ): Promise<AIGenerationResponse> {
     const { preferProvider, preferQuality = true, preferCost = false } = options;
 
-    let candidates = this.registry.getByCapability(request.type);
+    const candidates = this.registry.getByCapability(request.type);
     if (candidates.length === 0) {
       throw new Error(
         `No providers registered for capability ${request.type}`,

@@ -312,6 +312,7 @@ function Configurator3DDemo({
 
   const currentMaterial = useMemo(
     () => materials.find((m) => m.id === selectedMaterial) || materials[0],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedMaterial]
   );
 

@@ -73,7 +73,7 @@ export class SSOEnterpriseController {
   @Roles(UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN)
   @ApiOperation({ summary: 'Get SSO configuration by ID' })
   @ApiResponse({ status: 200, description: 'SSO configuration retrieved successfully' })
-  async getSSOConfiguration(@Param('id') id: string) {
+  async getSSOConfiguration(@Param('id') _id: string) {
     // Implementation would fetch from database
     return { success: true, data: null };
   }

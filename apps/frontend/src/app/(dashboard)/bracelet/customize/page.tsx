@@ -177,6 +177,7 @@ function BraceletCustomizePageContent() {
     } finally {
       setIsSaving(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customization, textureDataUrl, toast]);
 
   // Export PNG
@@ -216,6 +217,7 @@ function BraceletCustomizePageContent() {
     } finally {
       setIsExporting(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customization, toast]);
 
   // Reset to defaults

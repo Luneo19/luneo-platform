@@ -15,7 +15,7 @@ import { UserRole } from '@prisma/client';
 describe('OAuthService', () => {
   let service: OAuthService;
   let prisma: jest.Mocked<PrismaService>;
-  let jwtService: jest.Mocked<JwtService>;
+  let _jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
 
   const mockOAuthUser: OAuthUser = {

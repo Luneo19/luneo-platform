@@ -13,9 +13,9 @@ import { Configurator3DPricingService } from './configurator-3d-pricing.service'
 
 describe('Configurator3DSessionService', () => {
   let service: Configurator3DSessionService;
-  let prisma: PrismaService;
-  let eventEmitter: EventEmitter2;
-  let pricingService: Configurator3DPricingService;
+  let _prisma: PrismaService;
+  let _eventEmitter: EventEmitter2;
+  let _pricingService: Configurator3DPricingService;
 
   const sessionId = 'cfg3d_abc123';
   const configurationId = 'cfg-1';
@@ -134,7 +134,7 @@ describe('Configurator3DSessionService', () => {
       });
       mockPrisma.configurator3DConfiguration.update.mockResolvedValue({});
 
-      const result = await service.startSession(configurationId, 'visitor-1', { mobile: true });
+      const _result = await service.startSession(configurationId, 'visitor-1', { mobile: true });
 
       expect(mockPrisma.configurator3DSession.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -259,7 +259,7 @@ describe('Configurator3DSessionService', () => {
         previewImageUrl: 'https://img.png',
       });
 
-      const result = await service.updateSession(sessionId, { color: '#fff' }, 'https://img.png');
+      const _result = await service.updateSession(sessionId, { color: '#fff' }, 'https://img.png');
 
       expect(mockPrisma.configurator3DSession.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -548,7 +548,7 @@ describe('Configurator3DSessionService', () => {
     });
 
     it('should return empty analytics when brandId is null/undefined', async () => {
-      const result = await service.getAnalytics(undefined as any, 30);
+      const result = await service.getAnalytics(undefined as unknown, 30);
 
       expect(result.totalSessions).toBe(0);
       expect(result.savedConfigs).toBe(0);

@@ -206,7 +206,7 @@ describe('NovaService', () => {
         userId: undefined,
       };
 
-      const result = await service.chatWithContext(inputWithoutUser as any);
+      const result = await service.chatWithContext(inputWithoutUser as unknown);
 
       expect(mockPrismaService.ticket.create).not.toHaveBeenCalled();
       expect(result.ticketId).toBeUndefined();

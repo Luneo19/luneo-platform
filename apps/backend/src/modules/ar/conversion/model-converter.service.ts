@@ -6,7 +6,7 @@
 
 import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bullmq';
+import { Queue, type JobsOptions } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { ConfigService } from '@nestjs/config';
@@ -95,7 +95,7 @@ export class ModelConverterService {
           backoff: { type: 'exponential', delay: 5000 },
           removeOnComplete: 100,
           removeOnFail: 50,
-        } as any,
+        } as JobsOptions,
       );
 
       jobIds.push(String(job.id ?? job.name));
@@ -116,7 +116,7 @@ export class ModelConverterService {
         {
           attempts: 2,
           backoff: { type: 'exponential', delay: 10000 },
-        } as any,
+        } as JobsOptions,
       );
       jobIds.push(String(lodJob.id ?? lodJob.name));
     }

@@ -90,6 +90,7 @@ export function ContextFilesChat({
     };
 
     loadFiles();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextId, onContextFilesChange, toast]);
 
   // Scroll vers le bas quand de nouveaux messages arrivent

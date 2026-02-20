@@ -155,9 +155,9 @@ describe('PrintfulProvider', () => {
 
     it('should throw when API key is not configured', async () => {
       (configService.get as jest.Mock).mockReturnValue('');
-      const providerNoKey = new PrintfulProvider(httpService as any, configService as any);
+      const providerNoKey = new PrintfulProvider(httpService as unknown, configService as unknown);
 
-      await expect(providerNoKey.createOrder({ externalId: 'x', items: [], shippingAddress: {} as any })).rejects.toThrow(
+      await expect(providerNoKey.createOrder({ externalId: 'x', items: [], shippingAddress: {} as unknown })).rejects.toThrow(
         'PRINTFUL_API_KEY is not configured',
       );
     });

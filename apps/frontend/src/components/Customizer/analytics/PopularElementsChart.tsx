@@ -35,13 +35,14 @@ export function PopularElementsChart({
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customizerId, dateFrom, dateTo]);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       const result = await api.get<ElementUsage[]>(
-        `/api/v1/customizer/configurations/${customizerId}/analytics/elements`,
+        `/api/v1/visual-customizer/customizers/${customizerId}/analytics/elements`,
         {
           params: {
             from: dateFrom.toISOString(),

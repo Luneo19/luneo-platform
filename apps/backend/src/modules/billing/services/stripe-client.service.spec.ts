@@ -13,9 +13,9 @@ import type Stripe from 'stripe';
 
 describe('StripeClientService', () => {
   let service: StripeClientService;
-  let configService: jest.Mocked<ConfigService>;
-  let circuitBreakerService: jest.Mocked<CircuitBreakerService>;
-  let retryService: jest.Mocked<RetryService>;
+  let _configService: jest.Mocked<ConfigService>;
+  let _circuitBreakerService: jest.Mocked<CircuitBreakerService>;
+  let _retryService: jest.Mocked<RetryService>;
 
   const mockStripeInstance = {
     prices: {
@@ -23,8 +23,8 @@ describe('StripeClientService', () => {
     },
   } as unknown as Stripe;
 
-  const mockStripeModule = {
-    default: jest.fn().mockImplementation((secretKey: string) => {
+  const _mockStripeModule = {
+    default: jest.fn().mockImplementation((_secretKey: string) => {
       return mockStripeInstance;
     }),
   };
@@ -35,7 +35,7 @@ describe('StripeClientService', () => {
 
   const mockCircuitBreakerService = {
     configure: jest.fn(),
-    execute: jest.fn((serviceName: string, fn: () => Promise<any>) => fn()),
+    execute: jest.fn((serviceName: string, fn: () => Promise<unknown>) => fn()),
     getStatus: jest.fn(() => ({
       state: 'CLOSED',
       failures: 0,
@@ -47,7 +47,7 @@ describe('StripeClientService', () => {
   };
 
   const mockRetryService = {
-    execute: jest.fn((operation: () => Promise<any>) => operation()),
+    execute: jest.fn((operation: () => Promise<unknown>) => operation()),
     isRetryableStripeError: jest.fn(),
   };
 
@@ -56,7 +56,7 @@ describe('StripeClientService', () => {
 
     // Reset config service mock
     mockConfigService.get.mockImplementation((key: string) => {
-      const config: Record<string, any> = {
+      const config: Record<string, unknown> = {
         'app.nodeEnv': 'test',
         'stripe.secretKey': 'sk_test_xxx',
         'stripe.priceStarterMonthly': 'price_starter_monthly',
@@ -75,7 +75,7 @@ describe('StripeClientService', () => {
 
     // Reset circuit breaker mock
     mockCircuitBreakerService.execute.mockImplementation(
-      (serviceName: string, fn: () => Promise<any>) => fn(),
+      (serviceName: string, fn: () => Promise<unknown>) => fn(),
     );
     mockCircuitBreakerService.getStatus.mockReturnValue({
       state: 'CLOSED',
@@ -87,7 +87,7 @@ describe('StripeClientService', () => {
     });
 
     // Reset retry service mock
-    mockRetryService.execute.mockImplementation((operation: () => Promise<any>) => operation());
+    mockRetryService.execute.mockImplementation((operation: () => Promise<unknown>) => operation());
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -129,8 +129,8 @@ describe('StripeClientService', () => {
   describe('getStripe', () => {
     beforeEach(() => {
       // Reset internal state before each test
-      (service as any).stripeInstance = null;
-      (service as any).stripeModule = null;
+      (service as unknown).stripeInstance = null;
+      (service as unknown).stripeModule = null;
     });
 
     it('should throw InternalServerErrorException when secret key is not configured', async () => {
@@ -146,7 +146,7 @@ describe('StripeClientService', () => {
 
       // Mock the Stripe module and constructor
       const mockStripeConstructor = jest.fn().mockReturnValue(mockStripeInstance);
-      (service as any).stripeModule = {
+      (service as unknown).stripeModule = {
         default: mockStripeConstructor,
       };
 
@@ -164,7 +164,7 @@ describe('StripeClientService', () => {
       mockConfigService.get.mockReturnValue('sk_test_xxx');
 
       const mockStripe = mockStripeInstance;
-      (service as any).stripeInstance = mockStripe;
+      (service as unknown).stripeInstance = mockStripe;
 
       const instance1 = await service.getStripe();
       const instance2 = await service.getStripe();
@@ -182,11 +182,11 @@ describe('StripeClientService', () => {
       const mockModule = { default: mockStripeConstructor };
 
       // Simulate first call - module needs to be loaded
-      (service as any).stripeModule = null;
-      (service as any).stripeInstance = null;
+      (service as unknown).stripeModule = null;
+      (service as unknown).stripeInstance = null;
 
       // Set up module before first call
-      (service as any).stripeModule = mockModule;
+      (service as unknown).stripeModule = mockModule;
       const result1 = await service.getStripe();
 
       // Second call should use cached instance
@@ -208,7 +208,7 @@ describe('StripeClientService', () => {
         openedAt: null as Date | null,
       };
 
-      mockCircuitBreakerService.getStatus.mockReturnValue(mockStatus as any);
+      mockCircuitBreakerService.getStatus.mockReturnValue(mockStatus);
 
       const result = service.getCircuitStatus();
 
@@ -226,7 +226,7 @@ describe('StripeClientService', () => {
         openedAt: new Date() as Date | null,
       };
 
-      mockCircuitBreakerService.getStatus.mockReturnValue(openStatus as any);
+      mockCircuitBreakerService.getStatus.mockReturnValue(openStatus);
 
       const result = service.getCircuitStatus();
 
@@ -340,7 +340,7 @@ describe('StripeClientService', () => {
   describe('onModuleInit', () => {
     it('should validate Stripe configuration successfully in non-production mode', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
-        const config: Record<string, any> = {
+        const config: Record<string, unknown> = {
           'app.nodeEnv': 'development',
           'stripe.secretKey': 'sk_test_xxx',
           'stripe.priceStarterMonthly': 'price_starter_monthly',
@@ -414,7 +414,7 @@ describe('StripeClientService', () => {
 
     it('should validate price IDs in production mode', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
-        const config: Record<string, any> = {
+        const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
           'stripe.priceStarterMonthly': 'price_starter_monthly',
@@ -451,7 +451,7 @@ describe('StripeClientService', () => {
 
     it('should handle Stripe API errors during validation gracefully', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
-        const config: Record<string, any> = {
+        const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
           'stripe.priceStarterMonthly': 'price_starter_monthly',
@@ -483,7 +483,7 @@ describe('StripeClientService', () => {
 
     it('should handle invalid price IDs in production mode', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
-        const config: Record<string, any> = {
+        const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
           'stripe.priceStarterMonthly': 'price_starter_monthly',
@@ -523,7 +523,7 @@ describe('StripeClientService', () => {
 
     it('should handle inactive price IDs with warning', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
-        const config: Record<string, any> = {
+        const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
           'stripe.priceStarterMonthly': 'price_starter_monthly',
@@ -573,10 +573,10 @@ describe('StripeClientService', () => {
 
   describe('getters', () => {
     it('should return stripeConfigValid status', () => {
-      (service as any)._stripeConfigValid = true;
+      (service as unknown)._stripeConfigValid = true;
       expect(service.stripeConfigValid).toBe(true);
 
-      (service as any)._stripeConfigValid = false;
+      (service as unknown)._stripeConfigValid = false;
       expect(service.stripeConfigValid).toBe(false);
     });
 
@@ -588,10 +588,10 @@ describe('StripeClientService', () => {
         enterprise: { monthly: 'price_7', yearly: 'price_8' },
       };
 
-      (service as any)._validatedPriceIds = mockPriceIds;
+      (service as unknown)._validatedPriceIds = mockPriceIds;
       expect(service.validatedPriceIds).toEqual(mockPriceIds);
 
-      (service as any)._validatedPriceIds = null;
+      (service as unknown)._validatedPriceIds = null;
       expect(service.validatedPriceIds).toBeNull();
     });
   });

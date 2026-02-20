@@ -1,3 +1,5 @@
+import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -772,8 +774,8 @@ export class AdminService {
     const [
       totalCustomers,
       newCustomersLast30Days,
-      totalOrders,
-      ordersLast30Days,
+      _totalOrders,
+      _ordersLast30Days,
       revenueData,
       previousRevenueData,
       activeCustomers,
@@ -1202,7 +1204,7 @@ export class AdminService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const [revenueData, ordersByDay] = await Promise.all([
+    const [revenueData, _ordersByDay] = await Promise.all([
       this.prisma.order.aggregate({
         where: {
           status: 'PAID',
@@ -1458,16 +1460,13 @@ export class AdminService {
 
   async createAdminUser() {
     try {
-      const bcrypt = require('bcryptjs');
       const defaultAdminPw = this.configService.get<string>('ADMIN_DEFAULT_PASSWORD');
       const nodeEnv = this.configService.get<string>('NODE_ENV') ?? process.env.NODE_ENV;
       if (!defaultAdminPw && nodeEnv === 'production') {
         throw new Error('ADMIN_DEFAULT_PASSWORD must be set in production');
       }
-      // In production: use env var. In dev: use env var or generate random password
       let passwordToHash = defaultAdminPw;
       if (!passwordToHash) {
-        const crypto = require('crypto');
         passwordToHash = crypto.randomBytes(16).toString('hex');
         this.logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
       }

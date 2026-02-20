@@ -6,7 +6,6 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   UseInterceptors,
   HttpCode,
   HttpStatus,

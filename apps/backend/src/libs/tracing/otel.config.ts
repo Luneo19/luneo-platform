@@ -9,11 +9,13 @@ export function initTracing(): void {
   if (!otlpEndpoint?.trim()) return;
 
   try {
+    /* eslint-disable @typescript-eslint/no-var-requires */
     const { NodeSDK } = require('@opentelemetry/sdk-node');
     const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
     const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
     const { Resource } = require('@opentelemetry/resources');
     const { SEMRESATTRS_SERVICE_NAME } = require('@opentelemetry/semantic-conventions');
+    /* eslint-enable @typescript-eslint/no-var-requires */
 
     const traceUrl = otlpEndpoint.replace(/\/$/, '') + '/v1/traces';
     const sdk = new NodeSDK({

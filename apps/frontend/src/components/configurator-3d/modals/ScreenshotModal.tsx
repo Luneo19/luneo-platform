@@ -23,6 +23,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export interface ScreenshotModalProps {
   open: boolean;
@@ -126,11 +127,11 @@ export function ScreenshotModal({
         <div className="space-y-4 py-4">
           <div className="aspect-square overflow-hidden rounded-lg border bg-muted">
             {currentImage ? (
-              <img
+              <Image width={200} height={200}
                 src={currentImage}
                 alt="Screenshot"
                 className="h-full w-full object-contain"
-              />
+              unoptimized />
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">
                 <p className="text-sm">No screenshot yet</p>

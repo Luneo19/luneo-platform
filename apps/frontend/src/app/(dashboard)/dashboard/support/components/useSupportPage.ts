@@ -130,6 +130,7 @@ export function useSupportPage() {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [newTicket, createTicket, toast]
   );
 
@@ -164,6 +165,7 @@ export function useSupportPage() {
         setSendingMessage(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [newMessage, addMessage, toast]
   );
 

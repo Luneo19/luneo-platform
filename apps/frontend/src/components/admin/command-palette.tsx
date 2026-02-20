@@ -396,6 +396,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   // Combined list for arrow/enter: search results (when searching) or recent + commands
   const hasSearchQuery = search.trim().length >= 2;
   type ListItem = { type: 'search'; item: SearchResultItem } | { type: 'recent'; item: RecentItem } | { type: 'command'; command: Command };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const flatList: ListItem[] = hasSearchQuery
     ? [...searchResults.map((item) => ({ type: 'search' as const, item })), ...filteredCommands.map((command) => ({ type: 'command' as const, command }))]
     : [...recentItems.map((item) => ({ type: 'recent' as const, item })), ...filteredCommands.map((command) => ({ type: 'command' as const, command }))];

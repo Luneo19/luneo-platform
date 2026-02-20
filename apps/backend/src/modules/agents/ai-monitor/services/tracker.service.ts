@@ -159,7 +159,7 @@ export class TrackerService {
     brandId: string | null | undefined,
     costCents: number,
     tokens: number,
-    metadata?: Record<string, unknown>,
+    _metadata?: Record<string, unknown>,
   ): Promise<void> {
     // Mettre à jour le cache pour coûts en temps réel
     const cacheKey = `ai_cost:${brandId || 'global'}:${new Date().toISOString().split('T')[0]}`;

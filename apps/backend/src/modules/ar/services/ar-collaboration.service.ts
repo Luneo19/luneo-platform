@@ -298,7 +298,7 @@ export class ArCollaborationService {
   /**
    * Liste les membres d'un projet avec détails utilisateur
    */
-  async getProjectMembers(projectId: string, brandId: string, userId?: string): Promise<Array<ARProjectMember & { user?: { id: string; email?: string; firstName?: string; lastName?: string } }>> {
+  async getProjectMembers(projectId: string, brandId: string, _userId?: string): Promise<Array<ARProjectMember & { user?: { id: string; email?: string; firstName?: string; lastName?: string } }>> {
     try {
       this.logger.log(`Getting members for project: ${projectId}`);
 
@@ -364,7 +364,7 @@ export class ArCollaborationService {
   /**
    * Liste les activités d'un projet (commentaires + membres rejoints)
    */
-  async getProjectActivities(projectId: string, brandId: string, userId?: string): Promise<Array<{ id: string; type: string; userId: string; content?: string; createdAt: Date; metadata?: Record<string, unknown> }>> {
+  async getProjectActivities(projectId: string, brandId: string, _userId?: string): Promise<Array<{ id: string; type: string; userId: string; content?: string; createdAt: Date; metadata?: Record<string, unknown> }>> {
     try {
       this.logger.log(`Getting activities for project: ${projectId}`);
 

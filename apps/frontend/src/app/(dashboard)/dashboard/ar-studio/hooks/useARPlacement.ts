@@ -44,6 +44,7 @@ export function useARPlacement(options: UseARPlacementOptions = {}) {
       setIsPlaced(true);
       options.onPlace?.(next);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [transform, options.onPlace]
   );
 
@@ -55,6 +56,7 @@ export function useARPlacement(options: UseARPlacementOptions = {}) {
     setIsPlaced(false);
     setTransform({ ...defaultTransform });
     options.onRemove?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.onRemove]);
 
   const startDrag = useCallback(() => setIsDragging(true), []);

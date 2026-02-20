@@ -3,7 +3,7 @@
  * Provides API endpoints for audit log management
  */
 
-import { Controller, Get, Post, Query, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Param, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuditLogService, AuditAction } from '../services/audit-log.service';
@@ -11,7 +11,6 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
 @ApiTags('Audit Logs')
 @Controller('audit-logs')

@@ -418,6 +418,7 @@ const ImageNode = memo(function ImageNode({
   if (!img) return null;
 
   return (
+    /* eslint-disable-next-line jsx-a11y/alt-text */
     <Image
       ref={imageRef}
       image={img}

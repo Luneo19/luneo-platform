@@ -12,8 +12,8 @@ import { Configurator3DRulesService } from './configurator-3d-rules.service';
 
 describe('Configurator3DPricingService', () => {
   let service: Configurator3DPricingService;
-  let prisma: PrismaService;
-  let rulesService: Configurator3DRulesService;
+  let _prisma: PrismaService;
+  let _rulesService: Configurator3DRulesService;
 
   const configurationId = 'cfg-1';
   const brandId = 'brand-1';

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, AgentAlertType, AlertSeverity, AgentAlertStatus, AgentMetricType } from '@prisma/client';
 
 export interface CreateAgentAlertDto {
   type: 'BUDGET_EXCEEDED' | 'PROVIDER_DOWN' | 'HIGH_ERROR_RATE' | 'HIGH_LATENCY' | 'CIRCUIT_BREAKER_OPEN' | 'QUOTA_EXCEEDED' | 'SECURITY_THREAT';
@@ -21,9 +21,9 @@ export class AgentAlertsService {
     // Prevent duplicate alerts within 5 minutes
     const recentAlert = await this.prisma.agentAlert.findFirst({
       where: {
-        type: dto.type as any,
+        type: dto.type as AgentAlertType,
         brandId: dto.brandId,
-        status: 'ACTIVE' as any,
+        status: 'ACTIVE' as AgentAlertStatus,
         createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) },
       },
     });
@@ -34,9 +34,9 @@ export class AgentAlertsService {
 
     const alert = await this.prisma.agentAlert.create({
       data: {
-        type: dto.type as any,
-        severity: dto.severity as any,
-        status: 'ACTIVE' as any,
+        type: dto.type as AgentAlertType,
+        severity: dto.severity as AlertSeverity,
+        status: 'ACTIVE' as AgentAlertStatus,
         title: dto.title,
         message: dto.message,
         brandId: dto.brandId,
@@ -52,7 +52,7 @@ export class AgentAlertsService {
     await this.prisma.agentAlert.update({
       where: { id: alertId },
       data: {
-        status: 'ACKNOWLEDGED' as any,
+        status: 'ACKNOWLEDGED' as AgentAlertStatus,
         acknowledgedAt: new Date(),
         acknowledgedBy: userId,
       },
@@ -63,7 +63,7 @@ export class AgentAlertsService {
     await this.prisma.agentAlert.update({
       where: { id: alertId },
       data: {
-        status: 'RESOLVED' as any,
+        status: 'RESOLVED' as AgentAlertStatus,
         resolvedAt: new Date(),
         resolvedBy: userId,
       },
@@ -72,7 +72,7 @@ export class AgentAlertsService {
 
   async getActiveAlerts(brandId?: string): Promise<unknown[]> {
     const where: Prisma.AgentAlertWhereInput = {
-      status: { in: ['ACTIVE', 'ACKNOWLEDGED'] as any[] },
+      status: { in: ['ACTIVE', 'ACKNOWLEDGED'] as AgentAlertStatus[] },
     };
     if (brandId) where.brandId = brandId;
 
@@ -100,7 +100,7 @@ export class AgentAlertsService {
           agentType: data.agentType,
           provider: data.provider,
           model: data.model,
-          metricType: data.metricType as any,
+          metricType: data.metricType as AgentMetricType,
           value: data.value,
           unit: data.unit,
           tags: (data.tags || {}) as Prisma.InputJsonValue,

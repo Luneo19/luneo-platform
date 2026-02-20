@@ -15,6 +15,7 @@ import { TryOnRecommendationService } from './services/try-on-recommendation.ser
 import { WhiteLabelService } from './services/white-label.service';
 import { ModelOptimizationService } from './services/model-optimization.service';
 import { TryOnAnalyticsDashboardService } from './services/try-on-analytics-dashboard.service';
+import { TryOnEnhancedService } from './services/try-on-enhanced.service';
 import { TryOnBillingSyncService } from './services/try-on-billing-sync.service';
 import { TryOnProcessor } from './jobs/try-on.processor';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -49,6 +50,7 @@ import { NotificationsModule } from '@/modules/notifications/notifications.modul
     WhiteLabelService,
     ModelOptimizationService,
     TryOnAnalyticsDashboardService,
+    TryOnEnhancedService,
     TryOnBillingSyncService,
     TryOnProcessor,
   ],
@@ -66,6 +68,7 @@ import { NotificationsModule } from '@/modules/notifications/notifications.modul
     WhiteLabelService,
     ModelOptimizationService,
     TryOnAnalyticsDashboardService,
+    TryOnEnhancedService,
   ],
 })
 export class TryOnModule {}

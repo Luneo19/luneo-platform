@@ -83,6 +83,7 @@ function TryOnAnalyticsContent() {
       })
       .catch(() => setError(t('analytics.errorLoadTryOn')))
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   const handleExport = useCallback(() => {

@@ -11,7 +11,7 @@ import { createAuthTestApp, closeAuthTestApp } from '@/common/test/auth-test.mod
 
 describeIntegration('Health Check Integration', () => {
   let app: INestApplication;
-  let moduleFixture: TestingModule;
+  let _moduleFixture: TestingModule;
 
   beforeAll(async () => {
     console.log('[TEST] Starting app initialization...');

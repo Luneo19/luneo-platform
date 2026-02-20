@@ -10,14 +10,14 @@ export class MockEmailService {
     to: string;
     subject: string;
     template?: string;
-    data?: any;
+    data?: Record<string, unknown>;
     timestamp: Date;
   }> = [];
 
   /**
    * Send email - just records it for testing
    */
-  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  async sendEmail(to: string, subject: string, _html: string): Promise<void> {
     this.sentEmails.push({
       to,
       subject,
@@ -28,7 +28,7 @@ export class MockEmailService {
   /**
    * Send template email
    */
-  async sendTemplateEmail(to: string, template: string, data: any): Promise<void> {
+  async sendTemplateEmail(to: string, template: string, data: Record<string, unknown>): Promise<void> {
     this.sentEmails.push({
       to,
       subject: `Template: ${template}`,

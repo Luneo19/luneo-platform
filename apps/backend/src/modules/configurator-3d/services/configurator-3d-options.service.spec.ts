@@ -12,7 +12,7 @@ import type { BulkCreateOptionsDto } from '../dto/options/bulk-create-options.dt
 
 describe('Configurator3DOptionsService', () => {
   let service: Configurator3DOptionsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const configurationId = 'cfg-1';
   const componentId = 'comp-1';

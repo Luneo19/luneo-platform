@@ -103,7 +103,7 @@ export class TargetQualityAnalyzerService {
     let edges = 0;
     const len = width * height;
     for (let i = width + 1; i < len - width - 1; i++) {
-      const g = gray[i];
+      const _g = gray[i];
       const dx = Math.abs(gray[i + 1] - gray[i - 1]);
       const dy = Math.abs(gray[i + width] - gray[i - width]);
       if (dx > 15 || dy > 15) edges++;

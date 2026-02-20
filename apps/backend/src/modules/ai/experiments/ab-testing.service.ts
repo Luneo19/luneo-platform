@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import type { InputJsonValue } from '@prisma/client/runtime/library';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export type CreateExperimentParams = {
@@ -33,7 +34,7 @@ export class AbTestingService {
         variantB: params.variantB,
         provider: params.provider ?? 'stability',
         model: params.model ?? 'sdxl-1.0',
-        parameters: (params.parameters ?? {}) as any,
+        parameters: (params.parameters ?? {}) as InputJsonValue,
         sampleCount: params.sampleCount ?? 5,
         samplesA: [],
         samplesB: [],
@@ -56,7 +57,7 @@ export class AbTestingService {
       where: {
         userId,
         ...(brandId ? { brandId } : {}),
-        ...(status ? { status: status as any } : {}),
+        ...(status ? { status: status as never } : {}),
       },
       orderBy: { createdAt: 'desc' },
       take: 50,

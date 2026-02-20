@@ -17,7 +17,7 @@ describe('UsageBillingController', () => {
   let meteringService: jest.Mocked<UsageMeteringService>;
   let quotasService: jest.Mocked<QuotasService>;
   let calculationService: jest.Mocked<BillingCalculationService>;
-  let reportingService: jest.Mocked<UsageReportingService>;
+  let _reportingService: jest.Mocked<UsageReportingService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -79,12 +79,12 @@ describe('UsageBillingController', () => {
         value: 100,
         metadata: { endpoint: '/api/products' },
       };
-      meteringService.recordUsage.mockResolvedValue({ success: true, timestamp: new Date() } as any);
+      meteringService.recordUsage.mockResolvedValue({ success: true, timestamp: new Date() });
 
       const result = await controller.recordUsage(body);
 
       expect(result).toBeDefined();
-      expect((result as any).success).toBe(true);
+      expect((result as unknown).success).toBe(true);
       expect(meteringService.recordUsage).toHaveBeenCalledWith(
         'brand-123',
         'api_calls',
@@ -94,10 +94,10 @@ describe('UsageBillingController', () => {
     });
 
     it('should record usage with default value', async () => {
-      const body = { brandId: 'brand-123', metric: 'order_created' } as any;
-      meteringService.recordUsage.mockResolvedValue({ success: true, timestamp: new Date() } as any);
+      const body = { brandId: 'brand-123', metric: 'order_created' } as unknown;
+      meteringService.recordUsage.mockResolvedValue({ success: true, timestamp: new Date() });
 
-      await controller.recordUsage(body as any);
+      await controller.recordUsage(body as unknown);
 
       expect(meteringService.recordUsage).toHaveBeenCalledWith(
         'brand-123',
@@ -114,7 +114,7 @@ describe('UsageBillingController', () => {
         api_calls: 500,
         products: 25,
         orders: 100,
-      } as any);
+      } as unknown);
 
       const result = await controller.getCurrentUsage('brand-123');
 
@@ -130,15 +130,15 @@ describe('UsageBillingController', () => {
         brandId: 'brand-123',
         metric: 'products',
         requestedAmount: 5,
-      } as any;
+      } as unknown;
       quotasService.checkQuota.mockResolvedValue({
         allowed: true,
         currentUsage: 20,
         limit: 100,
         remaining: 80,
-      } as any);
+      } as unknown);
 
-      const result = await controller.checkQuota(body as any);
+      const result = await controller.checkQuota(body as unknown);
 
       expect(result.allowed).toBe(true);
       expect(result.remaining).toBe(80);
@@ -149,7 +149,7 @@ describe('UsageBillingController', () => {
         brandId: 'brand-123',
         metric: 'products',
         requestedAmount: 50,
-      } as any;
+      } as unknown;
       quotasService.checkQuota.mockResolvedValue({
         allowed: false,
         remaining: 5,
@@ -157,9 +157,9 @@ describe('UsageBillingController', () => {
         overage: 0,
         willCharge: false,
         estimatedCost: 0,
-      } as any);
+      } as unknown);
 
-      const result = await controller.checkQuota(body as any);
+      const result = await controller.checkQuota(body as unknown);
 
       expect(result.allowed).toBe(false);
       expect(result.remaining).toBe(5);
@@ -176,13 +176,13 @@ describe('UsageBillingController', () => {
           { type: 'products', current: 25, limit: 100, percentage: 25, overage: 0 },
         ],
         alerts: [],
-      } as any);
+      } as unknown);
 
       const result = await controller.getUsageSummary('brand-123');
 
       // Check result structure
       expect(result).toBeDefined();
-      expect((result as any).plan || result.metrics).toBeDefined();
+      expect((result as unknown).plan || result.metrics).toBeDefined();
     });
   });
 
@@ -200,7 +200,7 @@ describe('UsageBillingController', () => {
           { description: 'Professional Plan', amountCents: 4900 },
           { description: 'API calls overage', amountCents: 1500 },
         ],
-      } as any);
+      } as unknown);
 
       const result = await controller.getCurrentBill('brand-123');
 

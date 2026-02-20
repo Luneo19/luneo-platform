@@ -1,18 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { PlansService } from '@/modules/plans/plans.service';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
-import { AppErrorFactory } from '@/common/errors/app-error';
 
 describe('ProductsService', () => {
   let service: ProductsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     product: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -43,9 +41,9 @@ describe('ProductsService', () => {
     delete: jest.fn(),
   };
 
-  const mockConfigService = {
+  const _mockConfigService = {
     get: jest.fn((key: string) => {
-      const config: Record<string, any> = {
+      const config: Record<string, unknown> = {
         'app.frontendUrl': 'http://localhost:3000',
       };
       return config[key];

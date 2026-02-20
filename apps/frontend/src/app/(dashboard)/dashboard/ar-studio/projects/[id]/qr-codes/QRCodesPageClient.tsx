@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import Image from 'next/image';
 
 interface QRCodesPageClientProps {
   projectId: string;
@@ -132,7 +133,7 @@ export function QRCodesPageClient({ projectId }: QRCodesPageClientProps) {
               <CardContent className="pt-0">
                 <div className="flex justify-center mb-3">
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt="QR" className="h-32 w-32 object-contain bg-white rounded" />
+                    <Image src={item.imageUrl} alt="QR" className="h-32 w-32 object-contain bg-white rounded" width={200} height={200} unoptimized />
                   ) : (
                     <div className="h-32 w-32 bg-white/10 rounded flex items-center justify-center">
                       <QrCode className="h-12 w-12 text-white/40" />

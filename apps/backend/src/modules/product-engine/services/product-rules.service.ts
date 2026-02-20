@@ -1,7 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import type { Prisma } from '@prisma/client';
 import { 
   ProductRules, 
   ProductZone, 
@@ -112,7 +111,7 @@ export class ProductRulesService {
         }
 
         if (zoneOptions) {
-          const zoneValidation = this.validateZone(zone, zoneOptions);
+          const zoneValidation = this.validateZone(zone, zoneOptions as Record<string, unknown>);
           errors.push(...zoneValidation.errors);
           warnings.push(...zoneValidation.warnings);
         }
@@ -303,7 +302,7 @@ export class ProductRulesService {
     zone: ProductZone,
     options: Record<string, unknown>,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    _warnings: ValidationWarning[]
   ): void {
     if (!options.color) {
       errors.push({
@@ -335,7 +334,7 @@ export class ProductRulesService {
     zone: ProductZone,
     options: Record<string, unknown>,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    _warnings: ValidationWarning[]
   ): void {
     if (!options.value) {
       errors.push({
@@ -366,7 +365,7 @@ export class ProductRulesService {
     zone: ProductZone,
     options: Record<string, unknown>,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    _warnings: ValidationWarning[]
   ): void {
     if (!zone.constraints) return;
 

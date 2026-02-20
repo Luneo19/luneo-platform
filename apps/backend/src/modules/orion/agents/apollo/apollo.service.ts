@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ServiceHealthStatus, AlertSeverity, AlertStatus } from '@prisma/client';
+import { ServiceHealthStatus, AlertSeverity, AlertStatus, Prisma } from '@prisma/client';
 
 export interface ServiceStatus {
   name: string;
@@ -103,7 +103,7 @@ export class ApolloService {
         metric: 'ticket_count',
         value: ticketCount,
         unit: 'count',
-        labels: { period: '5min', type: 'tickets' } as any,
+        labels: { period: '5min', type: 'tickets' } as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -114,7 +114,7 @@ export class ApolloService {
           metric: 'error_rate',
           value: errorCount,
           unit: 'count',
-          labels: { period: '5min', type: 'errors' } as any,
+          labels: { period: '5min', type: 'errors' } as unknown as Prisma.InputJsonValue,
         },
       });
     }
@@ -201,7 +201,7 @@ export class ApolloService {
           status: AlertStatus.ACTIVE,
           message: description,
           service: serviceName,
-          metadata: { source: 'apollo' } as any,
+          metadata: { source: 'apollo' } as unknown as Prisma.InputJsonValue,
         },
       });
     }

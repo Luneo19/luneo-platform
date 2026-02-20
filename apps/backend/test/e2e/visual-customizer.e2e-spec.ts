@@ -9,8 +9,8 @@ import { AppModule } from '../../src/app.module';
 describe('Visual Customizer E2E', () => {
   let app: INestApplication;
   let authToken: string;
-  let brandId: string;
-  let customizerId: string;
+  let _brandId: string;
+  let customizerId: string | undefined;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -39,7 +39,7 @@ describe('Visual Customizer E2E', () => {
 
       if (loginResponse.status === 200) {
         authToken = loginResponse.body.accessToken;
-        brandId = loginResponse.body.user?.brandId;
+        _brandId = loginResponse.body.user?.brandId;
       }
     } catch (error) {
       // If auth fails, tests will skip
@@ -55,7 +55,7 @@ describe('Visual Customizer E2E', () => {
 
   beforeEach(() => {
     // Reset customizerId for each test
-    customizerId = undefined as any;
+    customizerId = undefined;
   });
 
   describe('POST /visual-customizer/customizers', () => {

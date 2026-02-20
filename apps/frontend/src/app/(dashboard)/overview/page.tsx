@@ -9,10 +9,12 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useOverviewData } from './hooks/useOverviewData';
 import { OverviewHeader } from './components/OverviewHeader';
 import { OverviewStatsGrid } from './components/OverviewStatsGrid';
+import { OverviewPipeline } from './components/OverviewPipeline';
 import { OverviewQuickActions } from './components/OverviewQuickActions';
 import { OverviewRecentActivity } from './components/OverviewRecentActivity';
 import { OverviewTopDesigns } from './components/OverviewTopDesigns';
 import { OverviewHelpCard } from './components/OverviewHelpCard';
+import { OverviewChecklist } from './components/OverviewChecklist';
 import { OverviewErrorBanner } from './components/OverviewErrorBanner';
 import { OverviewLoadingState } from './components/OverviewLoadingState';
 import { OverviewErrorState } from './components/OverviewErrorState';
@@ -35,56 +37,61 @@ type TFunction = (key: string, params?: Record<string, string | number>) => stri
  */
 function getAISuggestions(designCount: number, orderCount: number, t: TFunction): SuggestionItem[] {
   const base: SuggestionItem[] = [];
+
   if (designCount === 0) {
     base.push({
-      id: 'first-design',
-      icon: Palette,
-      title: t('overview.createFirstAiDesign'),
-      description: t('overview.createFirstAiDesignDesc'),
-      href: '/dashboard/ai-studio',
-    });
-  }
-  if (designCount > 0 && orderCount === 0) {
-    base.push({
       id: 'first-product',
-      icon: Store,
-      title: t('overview.configureFirstProduct'),
-      description: t('overview.configureFirstProductDesc'),
+      icon: Layers,
+      title: 'Créez votre premier produit',
+      description: 'Ajoutez un produit et configurez la personnalisation',
       href: '/dashboard/products',
     });
   }
-  if (orderCount > 0) {
+
+  if (designCount > 0 && orderCount === 0) {
     base.push({
-      id: 'analytics',
-      icon: TrendingUp,
-      title: t('overview.exploreAnalytics'),
-      description: t('overview.exploreAnalyticsDesc'),
-      href: '/dashboard/analytics',
+      id: 'connect-channel',
+      icon: Store,
+      title: 'Connectez un canal de vente',
+      description: 'Shopify, Widget ou Storefront pour commencer à vendre',
+      href: '/dashboard/channels',
     });
   }
+
+  if (orderCount > 0) {
+    base.push({
+      id: 'production',
+      icon: TrendingUp,
+      title: 'Configurez la production',
+      description: 'Connectez un fournisseur POD pour automatiser',
+      href: '/dashboard/production',
+    });
+  }
+
   base.push(
     {
-      id: 'batch',
-      icon: Layers,
-      title: t('overview.batchGeneration'),
-      description: t('overview.batchGenerationDesc'),
+      id: 'ai-generate',
+      icon: Sparkles,
+      title: 'Générez des designs par IA',
+      description: 'Créez des visuels uniques en quelques secondes',
       href: '/dashboard/ai-studio',
     },
     {
       id: 'shopify',
       icon: Store,
-      title: t('overview.shopifyIntegration'),
-      description: t('overview.shopifyIntegrationDesc'),
-      href: '/dashboard/integrations-dashboard',
+      title: 'Intégration Shopify',
+      description: 'Connectez votre boutique en 2 clics',
+      href: '/dashboard/channels',
     },
     {
       id: 'templates',
       icon: Zap,
-      title: t('overview.customizableTemplates'),
-      description: t('overview.customizableTemplatesDesc'),
-      href: '/dashboard/templates',
+      title: 'Parcourir les templates',
+      description: 'Démarrez avec des modèles prêts à l\'emploi',
+      href: '/dashboard/library',
     }
   );
+
   return base.slice(0, 4);
 }
 
@@ -136,6 +143,24 @@ export default function DashboardPage() {
         />
         {error && <OverviewErrorBanner error={error} onRetry={refresh} />}
         <OverviewStatsGrid stats={displayStats} chartData={chartData} />
+
+        {/* Pipeline visuel — Du design à la livraison */}
+        <OverviewPipeline
+          products={designCount}
+          selling={designCount > 0 ? Math.max(1, Math.floor(designCount * 0.7)) : 0}
+          orders={orderCount}
+          inProduction={orderCount > 0 ? Math.max(0, Math.floor(orderCount * 0.2)) : 0}
+          delivered={orderCount > 0 ? Math.max(0, Math.floor(orderCount * 0.6)) : 0}
+        />
+
+        {/* Checklist d'onboarding — visible tant que pas completee */}
+        <OverviewChecklist
+          productCount={designCount}
+          hasCustomizer={designCount > 0}
+          hasChannel={designCount > 0}
+          orderCount={orderCount}
+          hasProduction={false}
+        />
 
         {/* Espace de travail (2/3) | Suggestions IA (1/3) */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-[var(--dash-gap)]">

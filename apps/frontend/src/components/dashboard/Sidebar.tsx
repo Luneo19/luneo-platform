@@ -53,9 +53,11 @@ import {
   Sparkles,
   Gift,
   Trophy,
-  LayoutGrid
+  LayoutGrid,
+  Factory,
+  ShoppingBag,
+  Truck
 } from 'lucide-react';
-import { useFeatureFlag } from '@/contexts/FeatureFlagContext';
 import { useIndustryStore, type IndustryModuleConfig } from '@/store/industry.store';
 import { useDashboardStore } from '@/store/dashboard.store';
 import { useSubscription } from '@/lib/hooks/api/useSubscription';
@@ -70,14 +72,11 @@ const INDUSTRY_ICON_MAP: Record<string, React.ComponentType<{ className?: string
 
 // Map module slugs to their navigation config
 const MODULE_NAV_MAP: Record<string, { section: string; itemName: string }> = {
-  'ai-studio': { section: 'Création', itemName: 'AI Studio' },
-  'ar-studio': { section: 'Création', itemName: 'AR Studio' },
-  'editor-2d': { section: 'Création', itemName: 'Éditeur' },
-  'configurator-3d': { section: 'Création', itemName: 'Configurateur 3D' },
-  'products': { section: 'Gestion', itemName: 'Produits' },
-  'orders': { section: 'Gestion', itemName: 'Commandes' },
-  'analytics': { section: 'Gestion', itemName: 'Analytics' },
-  'marketplace': { section: 'Gestion', itemName: 'Seller' },
+  'ai-studio': { section: 'Créer', itemName: 'Studio IA' },
+  'products': { section: 'Créer', itemName: 'Mes Produits' },
+  'orders': { section: 'Vendre', itemName: 'Commandes' },
+  'analytics': { section: 'Piloter', itemName: 'Analytics' },
+  'marketplace': { section: 'Vendre', itemName: 'Marketplace' },
 };
 
 const PLAN_HIERARCHY: Record<PlanTier, number> = {
@@ -108,19 +107,26 @@ interface NavItem {
 
 const navigationSections: Array<{ title: string; items: NavItem[] }> = [
   {
-    title: 'Création',
+    title: 'Créer',
     items: [
       {
-        name: 'Dashboard',
+        name: 'Tableau de bord',
         href: '/dashboard',
         icon: LayoutDashboard,
-        description: 'Tableau de bord principal'
+        description: 'Vue d\'ensemble du pipeline'
       },
       {
-        name: 'AI Studio',
+        name: 'Mes Produits',
+        href: '/dashboard/products',
+        icon: Package,
+        description: 'Produits, personnalisation, 3D & AR',
+        moduleSlug: 'products',
+      },
+      {
+        name: 'Studio IA',
         href: '/dashboard/ai-studio',
         icon: Palette,
-        description: 'Création avec IA',
+        description: 'Génération de designs par IA',
         badge: 'Pro',
         moduleSlug: 'ai-studio',
         minimumPlan: 'professional',
@@ -132,42 +138,10 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
         ]
       },
       {
-        name: 'AR Studio',
-        href: '/dashboard/ar-studio',
-        icon: Globe,
-        description: 'Réalité augmentée',
-        badge: 'Pro',
-        moduleSlug: 'ar-studio',
-        minimumPlan: 'professional',
-        children: [
-          { name: 'Prévisualisation AR', href: '/dashboard/ar-studio/preview', icon: Eye, description: 'Voir en AR' },
-          { name: 'Collaboration AR', href: '/dashboard/ar-studio/collaboration', icon: Users, description: 'Travail d\'équipe' },
-          { name: 'Bibliothèque 3D', href: '/dashboard/ar-studio/library', icon: Database, description: 'Modèles 3D' },
-          { name: 'Intégrations AR', href: '/dashboard/ar-studio/integrations', icon: Plug, description: 'Connexions' }
-        ]
-      },
-      {
-        name: 'Éditeur',
-        href: '/dashboard/editor',
-        icon: Edit,
-        description: 'Éditeur de design',
-        badge: 'Pro',
-        moduleSlug: 'editor-2d',
-      },
-      {
-        name: 'Configurateur 3D',
-        href: '/dashboard/configurator-3d',
-        icon: Box,
-        description: 'Personnalisation 3D',
-        badge: 'Pro',
-        moduleSlug: 'configurator-3d',
-        minimumPlan: 'professional',
-      },
-      {
         name: 'Bibliothèque',
         href: '/dashboard/library',
         icon: Library,
-        description: 'Assets et templates',
+        description: 'Assets, templates et ressources',
         children: [
           { name: 'Bibliothèque', href: '/dashboard/library', icon: Library, description: 'Tous les assets' },
           { name: 'Import', href: '/dashboard/library/import', icon: Upload, description: 'Importer des fichiers' },
@@ -177,137 +151,94 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
     ]
   },
   {
-    title: 'Gestion',
+    title: 'Vendre',
     items: [
       {
-        name: 'Produits',
-        href: '/dashboard/products',
-        icon: Package,
-        description: 'Catalogue produits',
-        moduleSlug: 'products',
+        name: 'Canaux de vente',
+        href: '/dashboard/channels',
+        icon: ShoppingBag,
+        description: 'Shopify, Widget, Storefront, API',
       },
       {
         name: 'Commandes',
         href: '/dashboard/orders',
         icon: FileText,
-        description: 'Gestion des commandes',
+        description: 'Suivi et gestion des commandes',
         moduleSlug: 'orders',
-      },
-      {
-        name: 'Analytics',
-        href: '/dashboard/analytics',
-        icon: BarChart3,
-        description: 'Métriques et statistiques',
-        moduleSlug: 'analytics',
-        minimumPlan: 'business',
-        children: [
-          { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
-          { name: 'Designs', href: '/dashboard/analytics/designs', icon: Palette, description: 'Designs, taux de complétion' },
-          { name: 'AI Studio', href: '/dashboard/analytics/ai', icon: Sparkles, description: 'Générations, crédits' },
-          { name: 'Configurateur 3D', href: '/dashboard/analytics/configurator', icon: Box, description: 'Sessions, configs sauvegardées' },
-          { name: 'Virtual Try-On', href: '/dashboard/analytics/try-on', icon: Camera, description: 'Sessions AR, conversions' },
-          { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
-          { name: 'A/B Testing', href: '/dashboard/ab-testing', icon: FlaskConical, description: 'Tests d\'optimisation' }
-        ]
-      },
-      {
-        name: 'Webhooks',
-        href: '/dashboard/webhooks',
-        icon: Webhook,
-        description: 'Gestion des webhooks',
       },
       {
         name: 'Marketplace',
         href: '/dashboard/marketplace',
         icon: Store,
-        description: 'Templates et assets entre marques',
+        description: 'Acheter et vendre des designs',
+        moduleSlug: 'marketplace',
         children: [
-          { name: 'Browse', href: '/dashboard/marketplace', icon: Store, description: 'Parcourir le marketplace' },
-          { name: 'Seller dashboard', href: '/dashboard/marketplace/seller', icon: Store, description: 'Gérer vos annonces' },
+          { name: 'Explorer', href: '/dashboard/marketplace', icon: Store, description: 'Parcourir le marketplace' },
+          { name: 'Mes ventes', href: '/dashboard/marketplace/seller', icon: Store, description: 'Gérer vos annonces' },
         ],
       },
-      {
-        name: 'Monitoring temps réel',
-        href: '/dashboard/monitoring',
-        icon: Activity,
-        description: 'Observabilité et files BullMQ',
-        badge: 'Live'
-      }
     ]
   },
   {
-    title: 'Entreprise',
+    title: 'Produire',
     items: [
       {
-        name: 'Équipe',
-        href: '/dashboard/team',
-        icon: Users,
-        description: 'Collaboration'
+        name: 'Production',
+        href: '/dashboard/production',
+        icon: Factory,
+        description: 'POD, fabrication et expéditions',
+      },
+    ]
+  },
+  {
+    title: 'Piloter',
+    items: [
+      {
+        name: 'Analytics',
+        href: '/dashboard/analytics',
+        icon: BarChart3,
+        description: 'Performance et conversions',
+        moduleSlug: 'analytics',
+        children: [
+          { name: 'Vue d\'ensemble', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
+          { name: 'Designs', href: '/dashboard/analytics/designs', icon: Palette, description: 'Designs, taux de complétion' },
+          { name: 'Studio IA', href: '/dashboard/analytics/ai', icon: Sparkles, description: 'Générations, crédits' },
+          { name: 'Configurateur 3D', href: '/dashboard/analytics/configurator', icon: Box, description: 'Sessions, configs sauvegardées' },
+          { name: 'Virtual Try-On', href: '/dashboard/analytics/try-on', icon: Camera, description: 'Sessions AR, conversions' },
+          { name: 'Temps réel', href: '/dashboard/monitoring', icon: Activity, description: 'Monitoring live' },
+          { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
+          { name: 'A/B Testing', href: '/dashboard/ab-testing', icon: FlaskConical, description: 'Tests d\'optimisation' }
+        ]
       },
       {
         name: 'Facturation',
         href: '/dashboard/billing',
         icon: CreditCard,
-        description: 'Abonnements',
+        description: 'Plans, crédits et parrainage',
         children: [
-          { name: 'Facturation', href: '/dashboard/billing', icon: CreditCard, description: 'Plans et abonnements' },
-          { name: 'Portail Stripe', href: '/dashboard/billing/portal', icon: CreditCard, description: 'Gestion Stripe' }
+          { name: 'Abonnement', href: '/dashboard/billing', icon: CreditCard, description: 'Plans et abonnements' },
+          { name: 'Crédits IA', href: '/dashboard/credits', icon: Coins, description: 'Acheter des crédits' },
+          { name: 'Portail Stripe', href: '/dashboard/billing/portal', icon: CreditCard, description: 'Gestion Stripe' },
+          { name: 'Parrainage', href: '/dashboard/affiliate', icon: Gift, description: 'Programme d\'affiliation' }
         ]
       },
       {
-        name: 'Crédits',
-        href: '/dashboard/credits',
-        icon: Coins,
-        description: 'Gestion des crédits'
-      },
-      {
-        name: 'Intégrations',
-        href: '/dashboard/integrations-dashboard',
-        icon: Plug,
-        description: 'API et connecteurs',
-        minimumPlan: 'business',
-      },
-      {
-        name: 'Sécurité',
-        href: '/dashboard/security',
-        icon: Shield,
-        description: 'Paramètres de sécurité'
+        name: 'Équipe',
+        href: '/dashboard/team',
+        icon: Users,
+        description: 'Membres et collaboration'
       },
       {
         name: 'Paramètres',
         href: '/dashboard/settings',
         icon: Settings,
-        description: 'Configuration'
-      }
-    ]
-  },
-  {
-    title: 'Plus',
-    items: [
-      {
-        name: 'Notifications',
-        href: '/dashboard/notifications',
-        icon: Bell,
-        description: 'Alertes et messages'
-      },
-      {
-        name: 'Parrainage',
-        href: '/dashboard/affiliate',
-        icon: Users,
-        description: 'Programme d\'affiliation',
-        badge: 'Nouveau'
-      },
-      {
-        name: 'Support',
-        href: '/dashboard/support',
-        icon: MessageSquare,
-        description: 'Tickets et assistance'
-      },
-      {
-        name: 'Documentation',
-        href: '/help/documentation',
-        icon: BookOpen,
-        description: 'Guides et tutoriels'
+        description: 'Configuration et sécurité',
+        children: [
+          { name: 'Général', href: '/dashboard/settings', icon: Settings, description: 'Profil et marque' },
+          { name: 'Sécurité', href: '/dashboard/security', icon: Shield, description: 'Mot de passe et 2FA' },
+          { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, description: 'Préférences de notification' },
+          { name: 'Développeurs', href: '/dashboard/webhooks', icon: Webhook, description: 'Webhooks et API' },
+        ]
       }
     ]
   }
@@ -406,48 +337,40 @@ function SidebarIndustryBadge({ isCollapsed }: { isCollapsed: boolean }) {
 }
 
 const SIDEBAR_SECTION_KEYS: Record<string, string> = {
-  'Création': 'dashboard.sidebar.sections.creation',
-  'Gestion': 'dashboard.sidebar.sections.management',
-  'Entreprise': 'dashboard.sidebar.sections.enterprise',
-  'Plus': 'dashboard.sidebar.sections.more',
+  'Créer': 'dashboard.sidebar.sections.create',
+  'Vendre': 'dashboard.sidebar.sections.sell',
+  'Produire': 'dashboard.sidebar.sections.produce',
+  'Piloter': 'dashboard.sidebar.sections.manage',
 };
 
 const SIDEBAR_ITEM_KEYS: Record<string, string> = {
   '/dashboard': 'dashboard.sidebar.dashboard',
-  '/dashboard/ai-studio': 'dashboard.sidebar.aiStudio',
-  '/dashboard/ar-studio': 'dashboard.sidebar.arStudio',
-  '/dashboard/editor': 'dashboard.sidebar.editor',
-  '/dashboard/configurator-3d': 'dashboard.sidebar.configurator3d',
-  '/dashboard/library': 'dashboard.sidebar.library',
   '/dashboard/products': 'dashboard.sidebar.products',
+  '/dashboard/ai-studio': 'dashboard.sidebar.aiStudio',
+  '/dashboard/library': 'dashboard.sidebar.library',
+  '/dashboard/channels': 'dashboard.sidebar.channels',
   '/dashboard/orders': 'dashboard.sidebar.orders',
-  '/dashboard/analytics': 'dashboard.sidebar.analytics',
-  '/dashboard/webhooks': 'dashboard.sidebar.webhooks',
   '/dashboard/marketplace': 'dashboard.sidebar.marketplace',
-  '/dashboard/team': 'dashboard.sidebar.team',
+  '/dashboard/production': 'dashboard.sidebar.production',
+  '/dashboard/analytics': 'dashboard.sidebar.analytics',
   '/dashboard/billing': 'dashboard.sidebar.billing',
-  '/dashboard/credits': 'dashboard.sidebar.credits',
+  '/dashboard/team': 'dashboard.sidebar.team',
   '/dashboard/settings': 'dashboard.sidebar.settings',
-  '/dashboard/integrations-dashboard': 'dashboard.sidebar.integrations',
-  '/dashboard/security': 'dashboard.sidebar.security',
-  '/dashboard/notifications': 'dashboard.sidebar.notifications',
-  '/dashboard/affiliate': 'dashboard.sidebar.affiliate',
-  '/dashboard/support': 'dashboard.sidebar.support',
-  '/help/documentation': 'dashboard.sidebar.documentation',
-  '/dashboard/monitoring': 'dashboard.sidebar.monitoring',
 };
 
 const SIDEBAR_CHILD_KEYS: Record<string, { nameKey: string; descKey: string }> = {
+  // Studio IA
   '/dashboard/ai-studio/2d': { nameKey: 'dashboard.sidebar.aiStudio2d', descKey: 'dashboard.sidebar.aiStudio2dDesc' },
   '/dashboard/ai-studio/3d': { nameKey: 'dashboard.sidebar.aiStudio3d', descKey: 'dashboard.sidebar.aiStudio3dDesc' },
   '/dashboard/ai-studio/animations': { nameKey: 'dashboard.sidebar.aiStudioAnimations', descKey: 'dashboard.sidebar.aiStudioAnimationsDesc' },
   '/dashboard/ai-studio/templates': { nameKey: 'dashboard.sidebar.aiStudioTemplates', descKey: 'dashboard.sidebar.aiStudioTemplatesDesc' },
-  '/dashboard/ar-studio/preview': { nameKey: 'dashboard.sidebar.arPreview', descKey: 'dashboard.sidebar.arPreviewDesc' },
-  '/dashboard/ar-studio/collaboration': { nameKey: 'dashboard.sidebar.arCollaboration', descKey: 'dashboard.sidebar.arCollaborationDesc' },
-  '/dashboard/ar-studio/library': { nameKey: 'dashboard.sidebar.arLibrary', descKey: 'dashboard.sidebar.arLibraryDesc' },
-  '/dashboard/ar-studio/integrations': { nameKey: 'dashboard.sidebar.arIntegrations', descKey: 'dashboard.sidebar.arIntegrationsDesc' },
+  // Bibliothèque
   '/dashboard/library': { nameKey: 'dashboard.sidebar.libraryAll', descKey: 'dashboard.sidebar.libraryAllDesc' },
   '/dashboard/library/import': { nameKey: 'dashboard.sidebar.libraryImport', descKey: 'common.importFiles' },
+  // Marketplace
+  '/dashboard/marketplace': { nameKey: 'dashboard.sidebar.marketplaceBrowse', descKey: 'dashboard.sidebar.marketplaceBrowseDesc' },
+  '/dashboard/marketplace/seller': { nameKey: 'dashboard.sidebar.marketplaceSeller', descKey: 'dashboard.sidebar.marketplaceSellerDesc' },
+  // Analytics
   '/dashboard/analytics': { nameKey: 'dashboard.sidebar.analyticsMain', descKey: 'dashboard.sidebar.analyticsMainDesc' },
   '/dashboard/analytics/designs': { nameKey: 'dashboard.sidebar.analyticsDesigns', descKey: 'dashboard.sidebar.analyticsDesignsDesc' },
   '/dashboard/analytics/ai': { nameKey: 'dashboard.sidebar.analyticsAI', descKey: 'dashboard.sidebar.analyticsAIDesc' },
@@ -455,10 +378,11 @@ const SIDEBAR_CHILD_KEYS: Record<string, { nameKey: string; descKey: string }> =
   '/dashboard/analytics/try-on': { nameKey: 'dashboard.sidebar.analyticsTryOn', descKey: 'dashboard.sidebar.analyticsTryOnDesc' },
   '/dashboard/analytics-advanced': { nameKey: 'dashboard.sidebar.analyticsAdvanced', descKey: 'dashboard.sidebar.analyticsAdvancedDesc' },
   '/dashboard/ab-testing': { nameKey: 'dashboard.sidebar.analyticsABTesting', descKey: 'dashboard.sidebar.analyticsABTestingDesc' },
+  // Facturation
   '/dashboard/billing': { nameKey: 'dashboard.sidebar.billingMain', descKey: 'dashboard.sidebar.billingMainDesc' },
   '/dashboard/billing/portal': { nameKey: 'dashboard.sidebar.billingPortal', descKey: 'dashboard.sidebar.billingPortalDesc' },
-  '/dashboard/marketplace': { nameKey: 'dashboard.sidebar.marketplaceBrowse', descKey: 'dashboard.sidebar.marketplaceBrowseDesc' },
-  '/dashboard/marketplace/seller': { nameKey: 'dashboard.sidebar.marketplaceSeller', descKey: 'dashboard.sidebar.marketplaceSellerDesc' },
+  // Paramètres
+  '/dashboard/settings': { nameKey: 'dashboard.sidebar.settingsGeneral', descKey: 'dashboard.sidebar.settingsGeneralDesc' },
 };
 
 interface SidebarProps {
@@ -476,7 +400,6 @@ function Sidebar({ onClose }: SidebarProps = {}) {
   const isMobileOverlay = Boolean(onClose);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
-  const monitoringEnabled = useFeatureFlag('realtime_monitoring', true);
   const adaptiveSections = useAdaptiveSections();
   const { data: subscription } = useSubscription();
 
@@ -586,10 +509,6 @@ function Sidebar({ onClose }: SidebarProps = {}) {
 
             <div className="space-y-1">
               {section.items.map((item) => {
-                if (item.href === '/dashboard/monitoring' && !monitoringEnabled) {
-                  return null;
-                }
-
                 const isActive = isItemActive(item);
                 const isExpanded = expandedItems.includes(item.name);
                 const Icon = item.icon;
@@ -710,6 +629,28 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Quick Links — Support & Documentation */}
+      <div className="border-t border-white/[0.06] px-2 py-2">
+        <div className={`flex ${effectiveCollapsed ? 'flex-col items-center gap-1' : 'items-center gap-1'}`}>
+          <Link
+            href="/dashboard/support"
+            onClick={handleNavClick}
+            className="flex items-center px-3 py-2 text-xs text-white/40 hover:text-white/70 rounded-lg hover:bg-white/[0.04] transition-colors"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            {!effectiveCollapsed && <span className="ml-2">Support</span>}
+          </Link>
+          <Link
+            href="/help/documentation"
+            onClick={handleNavClick}
+            className="flex items-center px-3 py-2 text-xs text-white/40 hover:text-white/70 rounded-lg hover:bg-white/[0.04] transition-colors"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            {!effectiveCollapsed && <span className="ml-2">Documentation</span>}
+          </Link>
+        </div>
       </div>
 
       {/* Admin Panel Link — visible only for PLATFORM_ADMIN */}

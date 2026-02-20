@@ -42,6 +42,22 @@ enum DesignStatus {
   CANCELLED
 }
 
+enum DesignExportType {
+  IMAGE
+  SVG
+  PDF
+  BATCH
+  PRINT
+}
+
+enum DesignExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
 enum PaymentStatus {
   PENDING
   SUCCEEDED
@@ -2020,6 +2036,9 @@ model Design {
   // DNA
   designDNA DesignDNA?
 
+  // Exports (design editor multi-format export)
+  exports DesignExport[]
+
   @@index([userId])
   @@index([brandId])
   @@index([productId])
@@ -2035,6 +2054,41 @@ model Design {
   // DB-01: Composite index for status-based queries with date sorting
   @@index([status, createdAt])
   @@index([deletedAt]) // Soft delete index for efficient queries on active designs
+}
+
+// ========================================
+// DESIGN EXPORT (Multi-format export for design editor)
+// ========================================
+
+model DesignExport {
+  id        String              @id @default(cuid())
+  designId  String
+  design    Design              @relation(fields: [designId], references: [id], onDelete: Cascade)
+  userId    String?             // Optional; can be derived from design.userId
+  type      DesignExportType
+  format    String              // png, jpg, webp, svg, pdf, zip
+  status    DesignExportStatus  @default(PENDING)
+  options   Json?
+  width     Int?
+  height    Int?
+  dpi       Int?
+  quality   Int?
+  fileUrl   String?
+  fileName  String?
+  fileSize  Int?
+  progress  Int                 @default(0)
+  errorMessage String?          @db.Text
+  jobId     String?             // Bull job id for status lookup
+  createdAt DateTime           @default(now())
+  startedAt DateTime?
+  completedAt DateTime?
+  expiresAt DateTime?
+
+  @@index([designId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([jobId])
+  @@map("design_exports")
 }
 
 // ========================================

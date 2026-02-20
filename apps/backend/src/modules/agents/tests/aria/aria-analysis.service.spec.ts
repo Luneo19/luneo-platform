@@ -44,7 +44,7 @@ describe('AriaAnalysisService', () => {
       const tools = service.getAnalysisTools();
       const tool = tools.find((t) => t.function.name === 'check_accessibility');
       expect(tool).toBeDefined();
-      const props = tool!.function.parameters.properties as Record<string, any>;
+      const props = tool!.function.parameters.properties as Record<string, unknown>;
       const levelEnum = props.level.enum;
       expect(levelEnum).toEqual(['A', 'AA', 'AAA']);
     });
@@ -63,7 +63,7 @@ describe('AriaAnalysisService', () => {
     const context = { brandId: 'brand-1', userId: 'user-1', conversationId: 'conv-1' };
 
     beforeEach(() => {
-      mockPrisma.ariaAnalysis.create.mockResolvedValue(mockAnalysis as any);
+      mockPrisma.ariaAnalysis.create.mockResolvedValue(mockAnalysis);
     });
 
     it('should return analysis with all score dimensions', async () => {
@@ -149,8 +149,8 @@ describe('AriaAnalysisService', () => {
           { type: 'layout', description: 'Fix layout', impact: 8 },
         ],
       };
-      mockPrisma.ariaAnalysis.findUnique.mockResolvedValue(mockAnalysis as any);
-      mockPrisma.ariaAppliedImprovement.create.mockResolvedValue({} as any);
+      mockPrisma.ariaAnalysis.findUnique.mockResolvedValue(mockAnalysis);
+      mockPrisma.ariaAppliedImprovement.create.mockResolvedValue({});
 
       const result = await service.applyImprovement('analysis-1', 0);
       expect(result.success).toBe(true);
@@ -164,7 +164,7 @@ describe('AriaAnalysisService', () => {
 
     it('should throw if improvement index out of bounds', async () => {
       const mockAnalysis = { id: 'a-1', suggestions: [{ type: 'x', description: 'y' }] };
-      mockPrisma.ariaAnalysis.findUnique.mockResolvedValue(mockAnalysis as any);
+      mockPrisma.ariaAnalysis.findUnique.mockResolvedValue(mockAnalysis);
       await expect(service.applyImprovement('a-1', 99)).rejects.toThrow('Improvement not found');
     });
 
@@ -173,8 +173,8 @@ describe('AriaAnalysisService', () => {
         id: 'analysis-1',
         suggestions: [{ type: 'contrast', description: 'Fix contrast', impact: 15 }],
       };
-      mockPrisma.ariaAnalysis.findUnique.mockResolvedValue(mockAnalysis as any);
-      mockPrisma.ariaAppliedImprovement.create.mockResolvedValue({} as any);
+      mockPrisma.ariaAnalysis.findUnique.mockResolvedValue(mockAnalysis);
+      mockPrisma.ariaAppliedImprovement.create.mockResolvedValue({});
 
       await service.applyImprovement('analysis-1', 0);
       expect(mockPrisma.ariaAppliedImprovement.create).toHaveBeenCalledWith({

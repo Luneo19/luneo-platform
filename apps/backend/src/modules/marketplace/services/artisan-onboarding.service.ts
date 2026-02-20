@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { AppErrorFactory, ErrorCode } from '@/common/errors/app-error';
+import { AppErrorFactory } from '@/common/errors/app-error';
 import type Stripe from 'stripe';
 
 export interface ArtisanOnboardingRequest {

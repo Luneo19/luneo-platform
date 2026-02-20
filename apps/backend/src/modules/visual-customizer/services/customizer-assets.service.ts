@@ -49,7 +49,7 @@ export class CustomizerAssetsService {
     // Validate file type
     if (
       dto.type === 'IMAGE' &&
-      !VISUAL_CUSTOMIZER_LIMITS.ALLOWED_IMAGE_TYPES.includes(file.mimetype as any)
+      !(VISUAL_CUSTOMIZER_LIMITS.ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.mimetype)
     ) {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed for images`,
@@ -58,7 +58,7 @@ export class CustomizerAssetsService {
 
     if (
       dto.type === 'FONT' &&
-      !VISUAL_CUSTOMIZER_LIMITS.ALLOWED_FONT_TYPES.includes(file.mimetype as any)
+      !(VISUAL_CUSTOMIZER_LIMITS.ALLOWED_FONT_TYPES as readonly string[]).includes(file.mimetype)
     ) {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed for fonts`,
@@ -299,7 +299,7 @@ export class CustomizerAssetsService {
     }
 
     // Validate file type
-    if (!VISUAL_CUSTOMIZER_LIMITS.ALLOWED_FONT_TYPES.includes(file.mimetype as any)) {
+    if (!(VISUAL_CUSTOMIZER_LIMITS.ALLOWED_FONT_TYPES as readonly string[]).includes(file.mimetype)) {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed for fonts`,
       );

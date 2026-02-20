@@ -109,6 +109,7 @@ function SelectionToolContent({
     });
 
     setSelectedMeshes(meshStates);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gltfScene]);
 
   // Handle mouse/touch events for raycasting

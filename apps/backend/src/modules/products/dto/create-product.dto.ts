@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, Min, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, IsIn, Min, MaxLength } from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
@@ -27,6 +27,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'ACTIVE', 'ARCHIVED'])
+  status?: string;
 }
 
 

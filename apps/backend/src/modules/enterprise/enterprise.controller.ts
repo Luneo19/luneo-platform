@@ -7,14 +7,11 @@ import {
   Param,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { EnterprisePlanGuard } from '@/common/guards/enterprise-plan.guard';
-import { Roles } from '@/common/guards/roles.guard';
 import { WhiteLabelService } from './services/white-label.service';
 import { SSOService } from './services/sso.service';
 import { SLASupportService } from './services/sla-support.service';

@@ -12,8 +12,8 @@ import { RequestWithUser } from '@/common/types/user.types';
 
 describe('PersonalizationController', () => {
   let controller: PersonalizationController;
-  let personalizationService: any; // Use any for mock methods
-  let prismaService: any; // Use any for mock methods
+  let personalizationService: Record<string, unknown>;
+  let prismaService: Record<string, unknown>;
 
   const mockRequest = { brandId: 'brand-123' } as unknown as RequestWithUser;
 
@@ -55,30 +55,30 @@ describe('PersonalizationController', () => {
       prismaService.product.findUnique.mockResolvedValue(null);
 
       await expect(
-        controller.validate(validDto as any, mockRequest)
+        controller.validate(validDto as unknown, mockRequest)
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw ForbiddenException when product belongs to different brand', async () => {
       prismaService.product.findUnique.mockResolvedValue({
         brandId: 'different-brand',
-      } as any);
+      } as unknown);
 
       await expect(
-        controller.validate(validDto as any, mockRequest)
+        controller.validate(validDto as unknown, mockRequest)
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('should validate zone inputs when product belongs to user brand', async () => {
       prismaService.product.findUnique.mockResolvedValue({
         brandId: 'brand-123',
-      } as any);
+      } as unknown);
       personalizationService.validateZoneInputs.mockResolvedValue({
         valid: true,
         errors: [],
-      } as any);
+      } as unknown);
 
-      const result = await controller.validate(validDto as any, mockRequest);
+      const result = await controller.validate(validDto as unknown, mockRequest);
 
       expect(result.valid).toBe(true);
       expect(personalizationService.validateZoneInputs).toHaveBeenCalledWith(validDto);
@@ -91,9 +91,9 @@ describe('PersonalizationController', () => {
       personalizationService.normalizeText.mockResolvedValue({
         original: 'Héllo Wörld',
         normalized: 'Hello World',
-      } as any);
+      } as unknown);
 
-      const result = await controller.normalize(dto as any);
+      const result = await controller.normalize(dto as unknown);
 
       expect(result.normalized).toBe('Hello World');
       expect(personalizationService.normalizeText).toHaveBeenCalledWith(dto);
@@ -114,9 +114,9 @@ describe('PersonalizationController', () => {
         fontSize: 24,
         lineHeight: 1.2,
         scale: 1.0,
-      } as any);
+      } as unknown);
 
-      const result = await controller.autoFit(dto as any);
+      const result = await controller.autoFit(dto as unknown);
 
       expect(result.fontSize).toBe(24);
       expect(result.scale).toBe(1.0);

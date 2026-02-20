@@ -9,7 +9,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('CommissionService', () => {
   let service: CommissionService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     brand: {

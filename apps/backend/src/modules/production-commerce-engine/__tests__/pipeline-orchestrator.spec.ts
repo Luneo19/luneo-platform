@@ -73,7 +73,7 @@ describe('PipelineOrchestratorService', () => {
       const result = await service.createPipeline({
         orderId: 'order-1',
         brandId: 'brand-1',
-        stages: mockPipeline.stages as any,
+        stages: mockPipeline.stages as unknown,
       });
 
       expect(result).toEqual(mockPipeline);

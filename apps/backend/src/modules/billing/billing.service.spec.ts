@@ -5,7 +5,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StripeClientService } from './services/stripe-client.service';
@@ -15,8 +15,8 @@ import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
 describe('BillingService', () => {
   let service: BillingService;
-  let prisma: jest.Mocked<PrismaService>;
-  let configService: jest.Mocked<ConfigService>;
+  let _prisma: jest.Mocked<PrismaService>;
+  let _configService: jest.Mocked<ConfigService>;
   let stripeClient: jest.Mocked<StripeClientService>;
   let webhookService: jest.Mocked<StripeWebhookService>;
 
@@ -58,7 +58,7 @@ describe('BillingService', () => {
     'stripe.priceEnterpriseYearly': 'price_enterprise_yearly',
   };
 
-  const mockPrisma: any = {
+  const mockPrisma: Record<string, unknown> = {
     user: { findUnique: jest.fn(), count: jest.fn() },
     brand: { findUnique: jest.fn(), update: jest.fn() },
     design: { count: jest.fn() },
@@ -66,7 +66,7 @@ describe('BillingService', () => {
     assetFile: { aggregate: jest.fn() },
     aIQuota: { findFirst: jest.fn() },
   };
-  mockPrisma.$transaction = jest.fn((fn: (tx: any) => Promise<any>) => fn(mockPrisma));
+  mockPrisma.$transaction = jest.fn((fn: (tx: unknown) => Promise<unknown>) => fn(mockPrisma));
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -187,7 +187,7 @@ describe('BillingService', () => {
         id: 'user-123',
         brandId: null,
         brand: null,
-      } as any);
+      } as unknown);
 
       const result = await service.getSubscription('user-123');
 
@@ -212,7 +212,7 @@ describe('BillingService', () => {
         id: 'user-123',
         brandId: 'brand-123',
         brand,
-      } as any);
+      } as unknown);
       mockPrisma.design.count.mockResolvedValue(5);
       mockPrisma.user.count.mockResolvedValue(2);
       mockPrisma.usageRecord.aggregate
@@ -239,7 +239,7 @@ describe('BillingService', () => {
           stripeSubscriptionId: 'sub_123',
           stripeCustomerId: 'cus_123',
         },
-      } as any);
+      } as unknown);
 
       const result = await service.cancelSubscription('user-123');
 
@@ -257,8 +257,8 @@ describe('BillingService', () => {
           id: 'brand-123',
           stripeSubscriptionId: 'sub_123',
         },
-      } as any);
-      mockPrisma.brand.update.mockResolvedValue({} as any);
+      } as unknown);
+      mockPrisma.brand.update.mockResolvedValue({});
 
       const result = await service.cancelSubscription('user-123', true);
 
@@ -279,7 +279,7 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { id: 'brand-123', stripeSubscriptionId: null },
-      } as any);
+      } as unknown);
 
       await expect(service.cancelSubscription('user-123')).rejects.toThrow(BadRequestException);
     });
@@ -291,7 +291,7 @@ describe('BillingService', () => {
         id: 'evt_123',
         type: 'checkout.session.completed',
         data: { object: { id: 'cs_123' } },
-      } as any;
+      } as unknown;
       webhookService.handleStripeWebhook.mockResolvedValue({
         processed: true,
         result: { sessionId: 'cs_123' },
@@ -310,7 +310,7 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: null,
-      } as any);
+      } as unknown);
 
       const result = await service.getInvoices('user-123');
 
@@ -338,9 +338,9 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { stripeCustomerId: 'cus_123' },
-      } as any);
+      } as unknown);
       mockStripe.invoices.list.mockResolvedValue({
-        data: invoicesData as any,
+        data: invoicesData as unknown,
         has_more: false,
       });
 
@@ -357,7 +357,7 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { stripeCustomerId: 'cus_123' },
-      } as any);
+      } as unknown);
 
       const result = await service.createCustomerPortalSession('user-123');
 
@@ -375,7 +375,7 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { stripeCustomerId: null },
-      } as any);
+      } as unknown);
 
       await expect(service.createCustomerPortalSession('user-123')).rejects.toThrow(
         InternalServerErrorException,
@@ -386,7 +386,7 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { stripeCustomerId: 'cus_123' },
-      } as any);
+      } as unknown);
       stripeClient.getStripe.mockRejectedValue(new Error('Stripe error'));
 
       await expect(service.createCustomerPortalSession('user-123')).rejects.toThrow(
@@ -397,7 +397,7 @@ describe('BillingService', () => {
 
   describe('getPaymentMethods', () => {
     it('should return empty array if user has no brand', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-123', brand: null } as any);
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-123', brand: null });
 
       const result = await service.getPaymentMethods('user-123');
       expect(result).toEqual({ paymentMethods: [] });
@@ -407,7 +407,7 @@ describe('BillingService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-123',
         brand: { stripeCustomerId: null },
-      } as any);
+      } as unknown);
 
       const result = await service.getPaymentMethods('user-123');
       expect(result).toEqual({ paymentMethods: [] });

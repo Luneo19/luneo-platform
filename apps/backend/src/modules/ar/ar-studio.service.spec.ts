@@ -142,7 +142,7 @@ describe('ArStudioService', () => {
 
   describe('generateQRCode', () => {
     it('should return QR code data for existing model', async () => {
-      const model = {
+      const _model = {
         id: 'model-1',
         name: 'Model',
         type: 'other',

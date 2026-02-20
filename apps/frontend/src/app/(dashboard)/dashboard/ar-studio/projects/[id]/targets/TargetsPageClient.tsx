@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import Image from 'next/image';
 
 interface ImageTarget {
   id: string;
@@ -162,7 +163,7 @@ export function TargetsPageClient({ projectId }: TargetsPageClientProps) {
               <div className="flex items-center gap-4 p-4">
                 <div className="h-16 w-24 rounded-lg bg-white/10 overflow-hidden shrink">
                   {t.imageUrl ? (
-                    <img src={t.imageUrl} alt={t.name ?? t.id} className="w-full h-full object-cover" />
+                    <Image src={t.imageUrl} alt={t.name ?? t.id} className="w-full h-full object-cover" width={200} height={200} unoptimized />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ImagePlus className="h-6 w-6 text-white/30" />

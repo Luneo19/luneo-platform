@@ -9,7 +9,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('DRService', () => {
   let service: DRService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     backupRecord: {

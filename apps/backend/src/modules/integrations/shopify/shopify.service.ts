@@ -901,7 +901,7 @@ export class ShopifyService {
     brandId: string,
     shopifyProduct: ShopifyProduct,
   ): Promise<void> {
-    const externalId = `shopify_${shopifyProduct.id}`;
+    const _externalId = `shopify_${shopifyProduct.id}`;
 
     // Trouver l'intégration Shopify
     const integration = await this.prisma.ecommerceIntegration.findFirst({

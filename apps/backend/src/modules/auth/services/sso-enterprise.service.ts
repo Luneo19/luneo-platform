@@ -3,7 +3,7 @@
  * Manages SAML and OIDC SSO configurations for enterprise customers
  */
 
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
@@ -222,7 +222,7 @@ export class SSOEnterpriseService {
   /**
    * Test SSO configuration
    */
-  async testSSOConfiguration(id: string): Promise<{ success: boolean; message: string }> {
+  async testSSOConfiguration(_id: string): Promise<{ success: boolean; message: string }> {
     // Test connectivity to IdP
     // For SAML: Fetch metadata
     // For OIDC: Discover endpoints

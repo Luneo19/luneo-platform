@@ -4,7 +4,6 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StorageService } from '@/libs/storage/storage.service';
 import { Render3DService } from '@/modules/render/services/render-3d.service';
-import type { RenderRequest } from '@/modules/render/interfaces/render.interface';
 import * as Sentry from '@sentry/nestjs';
 import sharp from 'sharp';
 
@@ -37,7 +36,7 @@ export class RenderFinalProcessor {
 
   @Process('render')
   async process(job: Job<RenderFinalJob>): Promise<RenderFinalResult> {
-    const { renderId, snapshotId, designId, customizationId, type, options } = job.data;
+    const { renderId, snapshotId, designId, customizationId: _customizationId, type, options } = job.data;
     const startTime = Date.now();
 
     try {

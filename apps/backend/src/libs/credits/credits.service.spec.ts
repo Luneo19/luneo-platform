@@ -18,7 +18,7 @@ describe('CreditsService', () => {
   let prisma: jest.Mocked<PrismaService>;
   let cache: jest.Mocked<SmartCacheService>;
 
-  const mockUser = {
+  const _mockUser = {
     id: 'user-1',
     email: 'test@luneo.app',
     aiCredits: 100,

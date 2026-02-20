@@ -14,7 +14,7 @@ import { PlansService } from '@/modules/plans/plans.service';
 
 describe('TeamService', () => {
   let service: TeamService;
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     teamMember: {
       findMany: jest.fn(),
       findUnique: jest.fn(),

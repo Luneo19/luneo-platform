@@ -12,7 +12,7 @@ export class FileSizePipe implements PipeTransform {
 
   transform(
     value: { buffer: Buffer; mimetype: string; originalname: string; size: number },
-    metadata: ArgumentMetadata,
+    _metadata: ArgumentMetadata,
   ): { buffer: Buffer; mimetype: string; originalname: string; size: number } {
     if (!value) {
       throw new BadRequestException('File is required');

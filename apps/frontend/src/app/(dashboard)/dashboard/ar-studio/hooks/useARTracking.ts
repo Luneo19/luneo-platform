@@ -36,6 +36,7 @@ export function useARTracking(options: UseARTrackingOptions = {}) {
         return next;
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [options.onTrackingChange]
   );
 

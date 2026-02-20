@@ -3,7 +3,7 @@
  * Add to cart from AR session and track AR attribution on orders
  */
 
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @Injectable()

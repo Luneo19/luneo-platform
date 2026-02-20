@@ -17,7 +17,7 @@ interface LODJobData {
   levels: Array<{ name: string; polyReduction: number }>;
 }
 
-interface TextureOptJobData {
+interface _TextureOptJobData {
   modelId: string;
   maxWidth?: number;
   maxHeight?: number;

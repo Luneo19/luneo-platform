@@ -28,12 +28,12 @@ import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tra
 // MOCKS
 // ============================================================================
 
-const mockPrismaService: Record<string, any> = {
+const mockPrismaService: Record<string, unknown> = {
   product: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
   design: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
   brand: { update: jest.fn(), findUnique: jest.fn() },
   apiKey: { findFirst: jest.fn() },
-  $transaction: jest.fn((fn: any): Promise<any> => {
+  $transaction: jest.fn((fn: unknown): Promise<unknown> => {
     if (Array.isArray(fn)) return Promise.all(fn);
     return fn(mockPrismaService);
   }),
@@ -46,7 +46,7 @@ const mockStorageService = {
   getSignedUrl: jest.fn(),
 };
 
-const mockConfigService: Record<string, any> = {
+const mockConfigService: Record<string, unknown> = {
   get: jest.fn((key: string) => {
     const config: Record<string, string | number> = {
       'OPENAI_API_KEY': 'test-openai-key',

@@ -87,7 +87,6 @@ export class AIStudioWorker {
       let resultUrl: string;
       let thumbnailUrl: string;
       let quality: number | null = null;
-      let duration: number;
       let tokensFromProvider: number | null = null;
 
       switch (type) {
@@ -112,7 +111,7 @@ export class AIStudioWorker {
           throw new Error(`Unsupported generation type: ${type}`);
       }
 
-      duration = Math.floor((Date.now() - startTime) / 1000);
+      const duration = Math.floor((Date.now() - startTime) / 1000);
 
       // Tokens: from provider response when available, else estimate from input/output length (~4 chars per token)
       const tokensUsed =
@@ -217,7 +216,7 @@ export class AIStudioWorker {
    */
   private async generateModel3D(
     generationId: string,
-    prompt: string,
+    _prompt: string,
     _negativePrompt: string | undefined,
     _model: string,
     _parameters: AIStudioJobParameters,

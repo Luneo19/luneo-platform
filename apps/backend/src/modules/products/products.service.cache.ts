@@ -3,7 +3,6 @@
  * This file demonstrates how to add caching to ProductsService methods
  */
 
-import { Cache, InvalidateCache } from '@/libs/cache/cache.decorator';
 
 /**
  * Example cache decorators for ProductsService methods

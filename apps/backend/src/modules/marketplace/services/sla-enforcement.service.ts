@@ -153,7 +153,7 @@ export class SLAEnforcementService {
   /**
    * Met à jour les statistiques de l'artisan
    */
-  private async updateArtisanStats(artisanId: string, onTime: boolean, delayHours: number) {
+  private async updateArtisanStats(artisanId: string, onTime: boolean, _delayHours: number) {
     const artisan = await this.prisma.artisan.findUnique({
       where: { id: artisanId },
     });

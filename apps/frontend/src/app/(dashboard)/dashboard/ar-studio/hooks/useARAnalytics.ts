@@ -55,6 +55,7 @@ export function useARAnalytics(params?: { startDate?: string; endDate?: string }
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.startDate, params?.endDate]);
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export function useARProjectAnalytics(projectId: string | null, params?: { start
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, params?.startDate, params?.endDate]);
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export function useARSessionsList(params?: {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params?.startDate,
     params?.endDate,

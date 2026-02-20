@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const OidcPassportStrategy = require('passport-openidconnect');
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
@@ -52,7 +52,7 @@ export class OidcStrategy extends PassportStrategy(OidcPassportStrategy, 'oidc')
     profile: Record<string, unknown>,
     accessToken: string,
     refreshToken: string,
-    params: Record<string, unknown>,
+    _params: Record<string, unknown>,
   ): Promise<{ id: string; email: string; role: string; brandId: string | null }> {
     try {
       if (!profile) {

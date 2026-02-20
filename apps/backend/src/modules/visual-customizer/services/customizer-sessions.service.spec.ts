@@ -17,7 +17,7 @@ import { CurrentUser } from '@/common/types/user.types';
 
 describe('CustomizerSessionsService', () => {
   let service: CustomizerSessionsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     visualCustomizer: {

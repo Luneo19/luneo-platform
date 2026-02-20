@@ -27,8 +27,8 @@ export class WebVitalsService {
           metric: dto.name,
           value: dto.value,
           rating: dto.rating || this.calculateRating(dto.name, dto.value),
-          device: dto.device ?? undefined,
-          connection: dto.connection ?? undefined,
+          device: (dto.device ?? undefined) as Prisma.InputJsonValue | undefined,
+          connection: (dto.connection ?? undefined) as Prisma.InputJsonValue | undefined,
         },
       });
 

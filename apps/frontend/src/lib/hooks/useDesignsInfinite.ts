@@ -59,6 +59,7 @@ export function useDesignsInfinite(filters?: { status?: string; style?: string; 
         throw err;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [filters?.status, filters?.style, filters?.search]
   );
 

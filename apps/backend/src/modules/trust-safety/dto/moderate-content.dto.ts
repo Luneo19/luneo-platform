@@ -5,7 +5,6 @@ import {
   IsUrl,
   IsObject,
   IsNumber,
-  IsArray,
   ValidateNested,
   Min,
   Max,

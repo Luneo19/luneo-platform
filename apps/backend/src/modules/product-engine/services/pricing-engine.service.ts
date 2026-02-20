@@ -3,7 +3,6 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { 
   PricingContext, 
-  PricingRules, 
   DesignOptions,
   ProductRules,
   QuantityDiscount,
@@ -111,6 +110,7 @@ export class PricingEngine {
       const zone = rules.zones.find(z => z.id === zoneId);
       if (!zone) continue;
 
+      const zoneOpts = zoneOptions as Record<string, unknown>;
       // Prix de base de la zone
       const zoneBasePrice = zone.priceDeltaCents || 0;
       
@@ -119,16 +119,16 @@ export class PricingEngine {
       
       switch (zone.type) {
         case 'image':
-          zoneTypePrice = this.calculateImageZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateImageZonePrice(zoneOpts);
           break;
         case 'text':
-          zoneTypePrice = this.calculateTextZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateTextZonePrice(zoneOpts);
           break;
         case 'color':
-          zoneTypePrice = this.calculateColorZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateColorZonePrice(zoneOpts);
           break;
         case 'select':
-          zoneTypePrice = this.calculateSelectZonePrice(zoneOptions);
+          zoneTypePrice = this.calculateSelectZonePrice(zoneOpts);
           break;
       }
 
@@ -521,11 +521,12 @@ export class PricingEngine {
 
     // Coût basé sur la complexité des zones
     if (options.zones) {
-      for (const [zoneId, zoneOptions] of Object.entries(options.zones)) {
+      for (const [_zoneId, zoneOptions] of Object.entries(options.zones)) {
+        const opts = zoneOptions as Record<string, unknown>;
         // Coût pour zones complexes
-        if (zoneOptions.complexity === 'complex') {
+        if (opts.complexity === 'complex') {
           cost += 150; // 1.50€
-        } else if (zoneOptions.complexity === 'medium') {
+        } else if (opts.complexity === 'medium') {
           cost += 75; // 0.75€
         }
       }
@@ -543,7 +544,7 @@ export class PricingEngine {
     // Ajuster la marge selon la complexité
     if (options.zones) {
       const complexZones = Object.values(options.zones).filter(
-        (zone: Record<string, unknown>) => zone.complexity === 'complex'
+        (zone: unknown) => (zone as Record<string, unknown>).complexity === 'complex'
       ).length;
       
       if (complexZones > 2) {

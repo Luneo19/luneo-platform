@@ -14,7 +14,7 @@ import type { TopDesignItem } from '../components/OverviewTopDesigns';
 import type { QuickActionItem } from '../components/OverviewQuickActions';
 import type { GoalItem } from '../components/OverviewGoals';
 import type { NotificationItem } from '../components/OverviewNotifications';
-import { Sparkles, Palette, Box, Layers } from 'lucide-react';
+import { Sparkles, Palette, Box, Layers, Package, ShoppingBag, FileText } from 'lucide-react';
 
 export type Period = '24h' | '7d' | '30d' | '90d';
 
@@ -33,29 +33,29 @@ export function useOverviewData() {
 
   const stats = useMemo(() => {
     if (!dashboardStats?.overview) return [];
-    const views = usageData?.views ?? 0;
-    const downloads = usageData?.downloads ?? 0;
+    const productsCount = dashboardStats.overview.products ?? dashboardStats.overview.designs ?? 0;
+    const ordersCount = dashboardStats.period?.orders ?? 0;
     return [
       {
+        title: 'Produits actifs',
+        value: productsCount.toLocaleString('fr-FR'),
+        change: `+${dashboardStats.period?.designs ?? 0}`,
+        changeType: 'positive' as const,
+        icon: 'Package',
+      },
+      {
+        title: 'Commandes',
+        value: ordersCount.toLocaleString('fr-FR'),
+        change: `${ordersCount > 0 ? '+' : ''}${ordersCount}`,
+        changeType: (ordersCount > 0 ? 'positive' : 'negative') as 'positive' | 'negative',
+        icon: 'FileText',
+      },
+      {
         title: t('overview.designsCreated'),
-        value: dashboardStats.overview.designs.toLocaleString('fr-FR'),
+        value: (dashboardStats.overview.designs ?? 0).toLocaleString('fr-FR'),
         change: `+${dashboardStats.period?.designs ?? 0}`,
         changeType: 'positive' as const,
         icon: 'Palette',
-      },
-      {
-        title: t('overview.totalViews'),
-        value: views.toLocaleString('fr-FR'),
-        change: usageData?.viewsChange ?? '+0%',
-        changeType: 'positive' as const,
-        icon: 'Eye',
-      },
-      {
-        title: t('overview.downloads'),
-        value: downloads.toLocaleString('fr-FR'),
-        change: usageData?.downloadsChange ?? '+0%',
-        changeType: 'positive' as const,
-        icon: 'Download',
       },
       {
         title: t('dashboard.revenue'),
@@ -65,15 +65,15 @@ export function useOverviewData() {
         icon: 'DollarSign',
       },
     ];
-  }, [dashboardStats, usageData, t]);
+  }, [dashboardStats, t]);
 
   const displayStats: StatItem[] =
     stats.length > 0
       ? stats
       : [
+          { title: 'Produits actifs', value: '0', change: '+0', changeType: 'positive', icon: 'Package' },
+          { title: 'Commandes', value: '0', change: '+0', changeType: 'positive', icon: 'FileText' },
           { title: t('overview.designsCreated'), value: '0', change: '+0', changeType: 'positive', icon: 'Palette' },
-          { title: t('overview.totalViews'), value: '0', change: '+0%', changeType: 'positive', icon: 'Eye' },
-          { title: t('overview.downloads'), value: '0', change: '+0%', changeType: 'positive', icon: 'Download' },
           { title: t('dashboard.revenue'), value: '€0.00', change: `+0 ${t('overview.ordersCount')}`, changeType: 'positive', icon: 'DollarSign' },
         ];
 
@@ -119,40 +119,40 @@ export function useOverviewData() {
   const quickActions: QuickActionItem[] = useMemo(
     () => [
       {
-        id: 'ai-studio',
-        title: t('overview.aiStudio'),
-        description: t('overview.aiStudioDesc'),
-        icon: <Sparkles className="w-6 h-6" />,
-        href: '/dashboard/ai-studio',
+        id: 'create-product',
+        title: 'Créer un produit',
+        description: 'Ajouter un nouveau produit à personnaliser',
+        icon: <Package className="w-6 h-6" />,
+        href: '/dashboard/products',
         color: 'from-purple-500 to-pink-500',
-        badge: t('overview.popular'),
       },
       {
-        id: 'customizer',
-        title: t('overview.customizer'),
-        description: t('overview.customizerDesc'),
-        icon: <Palette className="w-6 h-6" />,
-        href: '/dashboard/customizer',
+        id: 'channels',
+        title: 'Connecter un canal',
+        description: 'Shopify, Widget, Storefront',
+        icon: <ShoppingBag className="w-6 h-6" />,
+        href: '/dashboard/channels',
         color: 'from-cyan-500 to-blue-500',
       },
       {
-        id: '3d-config',
-        title: t('overview.configurator3d'),
-        description: t('overview.configurator3dDesc'),
-        icon: <Box className="w-6 h-6" />,
-        href: '/dashboard/configurator-3d',
+        id: 'orders',
+        title: 'Voir les commandes',
+        description: 'Suivi et gestion',
+        icon: <FileText className="w-6 h-6" />,
+        href: '/dashboard/orders',
         color: 'from-orange-500 to-red-500',
       },
       {
-        id: 'library',
-        title: t('overview.myLibrary'),
-        description: t('overview.myLibraryDesc'),
-        icon: <Layers className="w-6 h-6" />,
-        href: '/dashboard/library',
+        id: 'ai-studio',
+        title: 'Générer avec l\'IA',
+        description: 'Studio de création IA',
+        icon: <Sparkles className="w-6 h-6" />,
+        href: '/dashboard/ai-studio',
         color: 'from-green-500 to-emerald-500',
+        badge: 'IA',
       },
     ],
-    [t]
+    []
   );
 
   const goals: GoalItem[] = useMemo(() => {

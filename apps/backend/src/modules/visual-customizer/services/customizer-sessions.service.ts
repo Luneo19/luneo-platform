@@ -3,7 +3,6 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { Prisma, CustomizerInteractionType } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -434,7 +433,7 @@ export class CustomizerSessionsService {
     dto: Partial<SaveDesignDto>,
     user: CurrentUser,
   ) {
-    const design = await this.getSavedDesign(id, user);
+    const _design = await this.getSavedDesign(id, user);
 
     const updateData: Prisma.CustomizerSavedDesignUpdateInput = {};
 
@@ -476,7 +475,7 @@ export class CustomizerSessionsService {
    * Delete saved design
    */
   async deleteSavedDesign(id: string, user: CurrentUser) {
-    const design = await this.getSavedDesign(id, user);
+    const _design = await this.getSavedDesign(id, user);
 
     await this.prisma.customizerSavedDesign.update({
       where: { id },
@@ -500,7 +499,7 @@ export class CustomizerSessionsService {
     expiresInDays: number = 30,
     user: CurrentUser,
   ) {
-    const design = await this.getSavedDesign(id, user);
+    const _design = await this.getSavedDesign(id, user);
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);

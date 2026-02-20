@@ -11,7 +11,7 @@ import { DiscountType } from '@prisma/client';
 
 describe('DiscountService', () => {
   let service: DiscountService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const now = new Date();
   const validFrom = new Date(now.getTime() - 86400000);
@@ -403,7 +403,7 @@ describe('DiscountService', () => {
           create: jest.fn().mockResolvedValue({}),
         },
       };
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<void>) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
         return fn(txMock);
       });
 
@@ -428,7 +428,7 @@ describe('DiscountService', () => {
     });
 
     it('should rethrow BadRequestException when usage limit reached in transaction', async () => {
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<void>) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
         const txMock = {
           discount: {
             findUnique: jest.fn().mockResolvedValue({

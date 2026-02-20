@@ -80,7 +80,7 @@ export class IntentClassifierService {
   async findSimilarTickets(
     ticketSubject: string,
     ticketDescription: string,
-    limit = 5,
+    _limit = 5,
   ) {
     const keywords = this.extractKeywords(
       `${ticketSubject} ${ticketDescription}`,

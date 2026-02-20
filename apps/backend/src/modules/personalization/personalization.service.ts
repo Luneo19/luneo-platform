@@ -21,7 +21,7 @@ export class PersonalizationService {
    */
   async validateZoneInputs(dto: ValidateZoneInputDto) {
     // 1. Normaliser tous les textes
-    const normalizedInputs: Record<string, any> = {};
+    const normalizedInputs: Record<string, unknown> = {};
     for (const [zoneId, input] of Object.entries(dto.zoneInputs)) {
       if (input.text) {
         normalizedInputs[zoneId] = {

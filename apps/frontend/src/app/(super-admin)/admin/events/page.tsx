@@ -44,6 +44,7 @@ export default function EventsPage() {
 
   React.useEffect(() => {
     loadEvents();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFilter]);
 
   const loadEvents = async () => {

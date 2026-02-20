@@ -63,11 +63,11 @@ describe('OrderRoutingService', () => {
         },
       ];
 
-      jest.spyOn(prisma.artisan, 'findMany').mockResolvedValue(mockArtisans as any);
+      jest.spyOn(prisma.artisan, 'findMany').mockResolvedValue(mockArtisans);
       jest.spyOn(prisma.product, 'findUnique').mockResolvedValue({
         baseCostCents: 5000,
         laborCostCents: 3000,
-      } as any);
+      } as unknown);
 
       const matches = await service.findBestArtisans(
         {
@@ -97,7 +97,7 @@ describe('OrderRoutingService', () => {
         },
       ];
 
-      jest.spyOn(prisma.artisan, 'findMany').mockResolvedValue(mockArtisans as any);
+      jest.spyOn(prisma.artisan, 'findMany').mockResolvedValue(mockArtisans);
 
       const matches = await service.findBestArtisans(
         {
@@ -119,22 +119,22 @@ describe('OrderRoutingService', () => {
       jest.spyOn(prisma.order, 'findUnique').mockResolvedValue({
         id: 'order-123',
         productId: 'product-456',
-      } as any);
+      } as unknown);
 
       jest.spyOn(prisma.artisan, 'findUnique').mockResolvedValue({
         id: 'artisan-1',
         currentLoad: 5,
-      } as any);
+      } as unknown);
 
       jest.spyOn(prisma.quote, 'create').mockResolvedValue({
         id: 'quote-1',
-      } as any);
+      } as unknown);
 
       jest.spyOn(prisma.workOrder, 'create').mockResolvedValue({
         id: 'work-order-1',
-      } as any);
+      } as unknown);
 
-      jest.spyOn(prisma.artisan, 'update').mockResolvedValue({} as any);
+      jest.spyOn(prisma.artisan, 'update').mockResolvedValue({});
 
       const result = await service.routeOrder('order-123', 'artisan-1', {
         priceCents: 10000,

@@ -56,7 +56,7 @@ export interface BillingLineItem {
   unitPrice: number;
   total: number;
   type: 'subscription' | 'usage' | 'overage' | 'discount';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface BillingUsage {

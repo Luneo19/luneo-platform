@@ -7,7 +7,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('FeatureFlagsService', () => {
   let service: FeatureFlagsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     featureFlag: {

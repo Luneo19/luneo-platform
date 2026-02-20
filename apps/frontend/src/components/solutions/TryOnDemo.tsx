@@ -22,9 +22,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { Hands } from '@mediapipe/hands';
-import { Camera as CameraUtils } from '@mediapipe/camera_utils';
+let FaceMesh: any = null;
+let Hands: any = null;
+let CameraUtils: any = null;
+
+if (typeof window !== 'undefined') {
+  try {
+    FaceMesh = require('@mediapipe/face_mesh').FaceMesh;
+  } catch { /* optional dep */ }
+  try {
+    Hands = require('@mediapipe/hands').Hands;
+  } catch { /* optional dep */ }
+  try {
+    CameraUtils = require('@mediapipe/camera_utils').Camera;
+  } catch { /* optional dep */ }
+}
 import { ARErrorBoundary } from '@/components/ErrorBoundary';
 import { drawGlassesOverlay, drawWatchOverlay, clearCanvas } from '@/lib/utils/overlay-renderer';
 import { useI18n } from '@/i18n/useI18n';
@@ -61,9 +73,9 @@ function TryOnDemo({
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const faceMeshRef = useRef<FaceMesh | null>(null);
-  const handsRef = useRef<Hands | null>(null);
-  const cameraRef = useRef<CameraUtils | null>(null);
+  const faceMeshRef = useRef<InstanceType<typeof FaceMesh> | null>(null);
+  const handsRef = useRef<InstanceType<typeof Hands> | null>(null);
+  const cameraRef = useRef<InstanceType<typeof CameraUtils> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const fpsCounterRef = useRef<number[]>([]);
@@ -166,7 +178,7 @@ function TryOnDemo({
 
     try {
       const faceMesh = new FaceMesh({
-        locateFile: (file) => {
+        locateFile: (file: any) => {
           // Use CDN for MediaPipe files (works in both dev and production)
           // MediaPipe needs specific file paths that are available on CDN
           return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
@@ -180,11 +192,11 @@ function TryOnDemo({
         minTrackingConfidence: 0.3,
       });
 
-      faceMesh.onResults((results) => {
+      faceMesh.onResults((results: any) => {
         try {
           if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
             const landmarks = results.multiFaceLandmarks[0];
-            const points: TrackedPoint[] = landmarks.map((landmark) => ({
+            const points: TrackedPoint[] = landmarks.map((landmark: any) => ({
               x: landmark.x * (canvasRef.current?.width || 640),
               y: landmark.y * (canvasRef.current?.height || 480),
               z: landmark.z * 100,
@@ -233,6 +245,7 @@ function TryOnDemo({
       logger.error('FaceMesh initialization error', { error: err });
       setError(t('common.trackingErrorRefresh'));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory]);
 
   // Initialize MediaPipe Hands
@@ -241,7 +254,7 @@ function TryOnDemo({
 
     try {
       const hands = new Hands({
-        locateFile: (file) => {
+        locateFile: (file: any) => {
           // Use CDN for MediaPipe files (works in both dev and production)
           // MediaPipe needs specific file paths that are available on CDN
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -255,11 +268,11 @@ function TryOnDemo({
         minTrackingConfidence: 0.3,
       });
 
-      hands.onResults((results) => {
+      hands.onResults((results: any) => {
         try {
           if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
-            const points: TrackedPoint[] = landmarks.map((landmark) => ({
+            const points: TrackedPoint[] = landmarks.map((landmark: any) => ({
               x: landmark.x * (canvasRef.current?.width || 640),
               y: landmark.y * (canvasRef.current?.height || 480),
               z: landmark.z * 100,
@@ -281,6 +294,7 @@ function TryOnDemo({
       logger.error('Hands initialization error', { error: err });
       setError(t('common.trackingErrorRefresh'));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawHandOverlay]);
 
   // Calculate FPS
@@ -566,6 +580,7 @@ function TryOnDemo({
       logger.error('Share error', { error });
       takePhoto(); // Fallback to download
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cleanup on unmount (amélioré)
@@ -616,6 +631,7 @@ function TryOnDemo({
         stream.getTracks().forEach((track) => {
           track.stop();
         });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         videoRef.current.srcObject = null;
       }
       

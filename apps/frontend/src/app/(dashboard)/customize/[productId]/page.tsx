@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { endpoints } from '@/lib/api/client';
+import Image from 'next/image';
 
 // Lazy load components
 const ProductCustomizer = dynamic(
@@ -152,11 +153,11 @@ function CustomizePageContent() {
           {activeTab === 'ai' && aiPreviewUrl ? (
             <div className="h-full flex items-center justify-center bg-gray-950 p-8">
               <div className="relative max-w-full max-h-full">
-                <img
+                <Image width={200} height={200}
                   src={aiPreviewUrl}
                   alt="Aperçu IA"
                   className="max-w-full max-h-[calc(100vh-120px)] object-contain rounded-lg shadow-2xl"
-                />
+                unoptimized />
               </div>
             </div>
           ) : activeTab === 'ai' ? (

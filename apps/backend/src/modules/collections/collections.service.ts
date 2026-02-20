@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { CurrentUser } from '@/common/types/user.types';
 
 @Injectable()
 export class CollectionsService {
@@ -162,7 +161,7 @@ export class CollectionsService {
   }
 
   async update(id: string, data: { name?: string; description?: string; isPublic?: boolean; coverImage?: string }, userId: string, brandId: string) {
-    const collection = await this.findOne(id, userId, brandId);
+    const _collection = await this.findOne(id, userId, brandId);
 
     return this.prisma.designCollection.update({
       where: { id },
@@ -190,7 +189,7 @@ export class CollectionsService {
   }
 
   async delete(id: string, userId: string, brandId: string) {
-    const collection = await this.findOne(id, userId, brandId);
+    const _collection = await this.findOne(id, userId, brandId);
 
     await this.prisma.designCollection.delete({
       where: { id },
@@ -200,7 +199,7 @@ export class CollectionsService {
   }
 
   async addItem(collectionId: string, designId: string, notes: string | undefined, userId: string, brandId: string) {
-    const collection = await this.findOne(collectionId, userId, brandId);
+    const _collection = await this.findOne(collectionId, userId, brandId);
 
     // Check if design exists and belongs to brand
     const design = await this.prisma.design.findUnique({
@@ -271,7 +270,7 @@ export class CollectionsService {
   }
 
   async removeItem(collectionId: string, designId: string, userId: string, brandId: string) {
-    const collection = await this.findOne(collectionId, userId, brandId);
+    const _collection = await this.findOne(collectionId, userId, brandId);
 
     const item = await this.prisma.designCollectionItem.findUnique({
       where: {

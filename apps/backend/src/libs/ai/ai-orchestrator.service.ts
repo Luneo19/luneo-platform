@@ -148,7 +148,7 @@ export class AIOrchestratorService {
   /**
    * Sélectionne le provider de meilleure qualité
    */
-  private async selectBestQualityProvider(options: AIGenerationOptions): Promise<AIProvider | null> {
+  private async selectBestQualityProvider(_options: AIGenerationOptions): Promise<AIProvider | null> {
     const availableProviders = await this.getAvailableProviders();
     
     if (availableProviders.length === 0) {

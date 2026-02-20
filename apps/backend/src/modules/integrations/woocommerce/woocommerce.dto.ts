@@ -2,7 +2,7 @@
  * DTOs for WooCommerce integration endpoints
  */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsUrl, IsOptional, IsArray, MinLength } from 'class-validator';
+import { IsString, IsUrl, IsArray, MinLength } from 'class-validator';
 
 export class WooCommerceConnectDto {
   @ApiProperty({ description: 'WooCommerce site URL (e.g. https://myshop.com)' })

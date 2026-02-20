@@ -28,6 +28,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import Image from 'next/image';
 
 function formatBytes(n?: number) {
   if (n == null) return '—';
@@ -139,7 +140,7 @@ export function ModelsPageClient({ projectId }: ModelsPageClientProps) {
             <Card key={m.id} className="border-white/10 bg-white/5 overflow-hidden hover:border-white/20 transition-colors">
               <div className="relative aspect-video bg-white/5">
                 {m.thumbnailUrl ? (
-                  <img src={m.thumbnailUrl} alt={m.name} className="w-full h-full object-cover" />
+                  <Image src={m.thumbnailUrl} alt={m.name} className="w-full h-full object-cover" width={200} height={200} unoptimized />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <FileBox className="h-12 w-12 text-white/30" />

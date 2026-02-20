@@ -116,7 +116,7 @@ export class RedisOptimizedService {
       
       // Configurer les politiques de mémoire pour chaque type de cache
       for (const [type, config] of Object.entries(this.cacheConfigs)) {
-        const key = `cache:${type}:*`;
+        const _key = `cache:${type}:*`;
         await this.redis.config('SET', 'maxmemory-policy', 'allkeys-lru').catch(() => {
           // Ignorer les erreurs de configuration Redis
         });

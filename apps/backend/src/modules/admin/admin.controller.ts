@@ -31,7 +31,6 @@ import { Roles } from '@/common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { SetupKeyGuard } from '@/common/guards/setup-key.guard';
 import { AddBlacklistedPromptDto, BulkActionCustomersDto } from './dto/admin.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
@@ -833,7 +832,7 @@ export class AdminController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Test a marketing automation' })
   @ApiResponse({ status: 200, description: 'Automation test result' })
-  async testMarketingAutomation(@Body() body: Record<string, unknown>) {
+  async testMarketingAutomation(@Body() _body: Record<string, unknown>) {
     return {
       success: true,
       message: 'Automation test executed successfully',

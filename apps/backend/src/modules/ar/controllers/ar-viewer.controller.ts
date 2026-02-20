@@ -168,7 +168,7 @@ export class ArViewerController {
       arMode: 'webxr',
     });
 
-    const baseUrl = (this.configService.get<string>('app.url') ?? '').replace(/\/$/, '');
+    const _baseUrl = (this.configService.get<string>('app.url') ?? '').replace(/\/$/, '');
     const viewerPath = `/ar/viewer/${modelId}`;
     const desktopConfig = this.qrRedirect.getRedirectConfig({
       targetPath: viewerPath,

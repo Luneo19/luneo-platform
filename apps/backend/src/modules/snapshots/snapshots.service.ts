@@ -121,7 +121,7 @@ export class SnapshotsService {
    * Verrouiller un snapshot
    */
   @CacheInvalidate({ type: 'snapshot', pattern: (args) => `snapshot:${args[0]}` })
-  async lock(id: string, brandId: string, userId: string): Promise<import('@prisma/client').Snapshot> {
+  async lock(id: string, brandId: string, _userId: string): Promise<import('@prisma/client').Snapshot> {
     const snapshot = await this.findOne(id, brandId);
 
     if (snapshot.isLocked) {

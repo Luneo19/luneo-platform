@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { CurrentUser } from '@/common/types/user.types';
 
 @Injectable()
 export class ClipartsService {

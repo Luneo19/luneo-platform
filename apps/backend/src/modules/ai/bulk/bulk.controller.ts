@@ -37,7 +37,7 @@ export class BulkController {
       variables: Record<string, string>[];
       provider?: string;
       model?: string;
-      parameters?: Record<string, any>;
+      parameters?: Record<string, unknown>;
       batchSize?: number;
     },
   ) {

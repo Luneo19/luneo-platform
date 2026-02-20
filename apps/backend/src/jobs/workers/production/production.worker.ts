@@ -148,7 +148,7 @@ export class ProductionWorker {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       clearTimeout(timeout);
       this.logger.error(`Production bundle creation failed for order ${orderId}:`, error);
@@ -171,7 +171,7 @@ export class ProductionWorker {
 
   @Process('quality-control')
   async qualityControl(job: Job<ProductionJobData>) {
-    const { orderId, designId, productId } = job.data;
+    const { orderId, designId, productId: _productId } = job.data;
 
     try {
       this.logger.log(`Starting quality control for order ${orderId}`);
@@ -230,7 +230,7 @@ export class ProductionWorker {
 
   @Process('track-production')
   async trackProduction(job: Job<{ orderId: string; factoryId: string }>) {
-    const { orderId, factoryId } = job.data;
+    const { orderId, factoryId: _factoryId } = job.data;
 
     try {
       this.logger.log(`Tracking production for order ${orderId}`);
@@ -436,7 +436,7 @@ export class ProductionWorker {
   private async generateProductionFiles(
     design: Record<string, unknown> & { assets: Array<{ id: string; url: string; type: string; metaJson?: unknown }> },
     product: import('@prisma/client').Product,
-    options: Record<string, unknown>,
+    _options: Record<string, unknown>,
   ): Promise<Array<{ filename: string; url: string; type: 'design' | 'instructions' | 'metadata'; format: string; size: number }>> {
     const files: Array<{ filename: string; url: string; type: 'design' | 'instructions' | 'metadata'; format: string; size: number }> = [];
 
@@ -763,7 +763,7 @@ export class ProductionWorker {
   /**
    * Génère les points de contrôle qualité
    */
-  private generateQualityCheckpoints(design: Record<string, unknown>, product: import('@prisma/client').Product): string[] {
+  private generateQualityCheckpoints(_design: Record<string, unknown>, _product: import('@prisma/client').Product): string[] {
     return [
       'Material verification',
       'Dimensional accuracy',
@@ -798,7 +798,7 @@ export class ProductionWorker {
   /**
    * Génère les exigences d'étiquetage
    */
-  private generateLabelingRequirements(orderId: string, product: import('@prisma/client').Product, design: Record<string, unknown>): string[] {
+  private generateLabelingRequirements(_orderId: string, _product: import('@prisma/client').Product, _design: Record<string, unknown>): string[] {
     return [
       'Order ID',
       'Product SKU',

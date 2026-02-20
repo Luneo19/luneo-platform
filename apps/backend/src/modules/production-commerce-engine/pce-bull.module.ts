@@ -46,7 +46,7 @@ function parsePCERedisOpts(): Record<string, unknown> {
 @Module({})
 export class PCEBullModule {
   static forRoot(): DynamicModule {
-    const root = BullModule.forRoot({ connection: parsePCERedisOpts() as any });
+    const root = BullModule.forRoot({ connection: parsePCERedisOpts() as never });
     return { ...root, global: false };
   }
 

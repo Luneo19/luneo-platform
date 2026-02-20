@@ -68,6 +68,7 @@ export class LoggerService {
 
       if (this.configService.get<boolean>('SENTRY_ENABLED') && error) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
           const Sentry = require('@sentry/nestjs');
           Sentry.captureException(error, { extra: errorContext });
         } catch {

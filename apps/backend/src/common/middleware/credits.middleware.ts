@@ -1,7 +1,6 @@
 import { Injectable, NestMiddleware, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { CreditsService } from '@/libs/credits/credits.service';
-import { ENDPOINT_COSTS } from '@/libs/credits/costs';
 
 /**
  * Middleware pour vérifier et déduire automatiquement les crédits

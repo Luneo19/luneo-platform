@@ -3,15 +3,14 @@
  * Tests pour l'intégration Shopify
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { createTestingModule } from '@/common/test/test-setup';
-import { firstValueFrom, of } from 'rxjs';
+import { of } from 'rxjs';
 
 describe('ShopifyService', () => {
   let service: ShopifyService;
@@ -55,7 +54,7 @@ describe('ShopifyService', () => {
             access_token: 'access-token-123',
             scope: 'read_products,write_products',
           },
-        }) as any,
+        }) as unknown,
       );
 
       // Act
@@ -75,7 +74,7 @@ describe('ShopifyService', () => {
       httpService.post.mockReturnValue(
         of({
           data: null,
-        }) as any,
+        }) as unknown,
       );
 
       // Act & Assert
@@ -93,6 +92,7 @@ describe('ShopifyService', () => {
       const hmac = 'valid-hmac';
 
       // Mock crypto.createHmac
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       const originalCreateHmac = crypto.createHmac;
       crypto.createHmac = jest.fn(() => ({
@@ -118,7 +118,7 @@ describe('ShopifyService', () => {
       const shopDomain = 'test-shop.myshopify.com';
       const accessToken = 'token-123';
 
-      (httpService as any).request.mockReturnValue(
+      (httpService).request.mockReturnValue(
         of({
           data: {
             products: [
@@ -131,7 +131,7 @@ describe('ShopifyService', () => {
               },
             ],
           },
-        }) as any,
+        }) as unknown,
       );
 
       // Act
@@ -179,18 +179,18 @@ describe('ShopifyService', () => {
         brandId,
         platform: 'shopify',
         shopDomain,
-      } as any);
+      } as unknown);
 
       (prismaService.productMapping.findFirst as jest.Mock).mockResolvedValue(null);
       (prismaService.product.create as jest.Mock).mockResolvedValue({
         id: 'product-123',
         brandId,
         name: 'Test Product',
-      } as any);
+      } as unknown);
 
       (prismaService.productMapping.create as jest.Mock).mockResolvedValue({
         id: 'mapping-123',
-      } as any);
+      } as unknown);
 
       // Act
       const result = await service.syncProductsToLuneo(

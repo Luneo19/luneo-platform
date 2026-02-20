@@ -20,6 +20,7 @@ import type {
   ComponentType,
 } from '@/lib/configurator-3d/types/configurator.types';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 const COMPONENT_ICONS: Record<ComponentType, React.ComponentType<{ className?: string }>> = {
   MESH: Layers,
@@ -172,11 +173,11 @@ export function ComponentSelector({
                         )}
                       >
                         {comp.iconUrl ? (
-                          <img
+                          <Image width={200} height={200}
                             src={comp.iconUrl}
                             alt=""
                             className="h-4 w-4 object-contain"
-                          />
+                          unoptimized />
                         ) : (
                           <IconComp className="h-4 w-4" />
                         )}

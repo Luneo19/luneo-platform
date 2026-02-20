@@ -159,6 +159,7 @@ export default function HealthScoreDashboardPage() {
         setDashboardError('No data available');
       })
       .finally(() => setDashboardLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

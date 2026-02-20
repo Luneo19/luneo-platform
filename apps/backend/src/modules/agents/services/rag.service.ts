@@ -12,7 +12,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { LLMRouterService, LLMProvider, LLM_MODELS, Message } from './llm-router.service';
+import { LLMRouterService } from './llm-router.service';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -95,7 +95,7 @@ export class RAGService {
     } = {},
   ): Promise<Document[]> {
     const limit = options.limit || 5;
-    const threshold = options.threshold || 0.7;
+    const _threshold = options.threshold || 0.7;
 
     // ✅ Validation des entrées
     if (!query || typeof query !== 'string' || query.trim().length === 0) {

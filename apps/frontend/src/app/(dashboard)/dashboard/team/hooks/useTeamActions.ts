@@ -74,6 +74,7 @@ export function useTeamActions() {
         return { success: false };
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [inviteMutation, toast]
   );
 

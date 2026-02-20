@@ -7,12 +7,11 @@ import { Module, Global } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule, JwtService } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { PrismaModule } from '@/libs/prisma/prisma.module';
-import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CryptoModule } from '@/libs/crypto/crypto.module';
 
 // Auth module components (we'll import individually)

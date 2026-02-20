@@ -7,7 +7,6 @@ import {
   RenderRequest, 
   RenderOptions, 
   RenderResult,
-  AssetInfo,
   RenderValidationResult
 } from '../interfaces/render.interface';
 import { JsonValue } from '@/common/types/utility-types';
@@ -343,7 +342,7 @@ export class Render2DService {
     canvas: Sharp,
     zoneId: string,
     zoneData: Record<string, JsonValue>,
-    options: RenderOptions
+    _options: RenderOptions
   ): Promise<Sharp> {
     if (zoneData.type === 'image' && zoneData.imageUrl) {
       return this.applyImageZone(canvas, zoneData);

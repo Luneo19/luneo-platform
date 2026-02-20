@@ -78,6 +78,7 @@ export function ExportButton({
             onClick={() => handleExport('image', exportImage)}
             disabled={isExporting}
           >
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image className="mr-2 h-4 w-4" />
             Export Image
           </DropdownMenuItem>

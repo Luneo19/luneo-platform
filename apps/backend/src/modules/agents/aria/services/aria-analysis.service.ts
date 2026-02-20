@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { LLMToolDefinition } from '../../llm/providers/base-llm.provider';
 
@@ -163,8 +164,8 @@ export class AriaAnalysisService {
         contrastScore: scores.contrast,
         accessibilityScore: scores.accessibility,
         consistencyScore: scores.consistency,
-        feedback: feedback as any,
-        suggestions: suggestions as any,
+        feedback: feedback as unknown as Prisma.InputJsonValue,
+        suggestions: suggestions as unknown as Prisma.InputJsonValue,
         status: 'COMPLETED',
       },
     });
@@ -186,7 +187,7 @@ export class AriaAnalysisService {
     });
     if (!analysis) throw new Error('Analysis not found');
 
-    const suggestions = analysis.suggestions as any[];
+    const suggestions = analysis.suggestions as Array<{ type: string; description: string; impact?: number }>;
     const suggestion = suggestions[improvementIndex];
     if (!suggestion) throw new Error('Improvement not found');
 
@@ -195,7 +196,7 @@ export class AriaAnalysisService {
         analysisId,
         type: suggestion.type,
         description: suggestion.description,
-        impact: suggestion.impact || 0,
+        impact: suggestion.impact ?? 0,
       },
     });
 
@@ -260,7 +261,7 @@ export class AriaAnalysisService {
 
   private generateSuggestions(
     scores: DesignScore,
-    feedback: DesignFeedback[],
+    _feedback: DesignFeedback[],
   ): Array<{ type: string; description: string; autoApplicable: boolean; impact: number }> {
     const suggestions: Array<{ type: string; description: string; autoApplicable: boolean; impact: number }> = [];
 

@@ -17,7 +17,7 @@ import type Stripe from 'stripe';
 describe('StripeWebhookService', () => {
   let service: StripeWebhookService;
 
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     processedWebhookEvent: {
       findUnique: jest.fn(),
       upsert: jest.fn(),
@@ -55,7 +55,7 @@ describe('StripeWebhookService', () => {
     },
     $transaction: jest.fn((args: unknown): Promise<unknown> => {
       if (Array.isArray(args)) return Promise.all(args);
-      return (args as (prisma: Record<string, any>) => Promise<unknown>)(mockPrisma);
+      return (args as (prisma: Record<string, unknown>) => Promise<unknown>)(mockPrisma);
     }),
   };
 
@@ -93,7 +93,7 @@ describe('StripeWebhookService', () => {
     // Restore $transaction mock (reset by resetMocks: true in jest config)
     mockPrisma.$transaction.mockImplementation((args: unknown): Promise<unknown> => {
       if (Array.isArray(args)) return Promise.all(args);
-      return (args as (prisma: Record<string, any>) => Promise<unknown>)(mockPrisma);
+      return (args as (prisma: Record<string, unknown>) => Promise<unknown>)(mockPrisma);
     });
     // Restore email service mock
     mockEmailService.sendEmail.mockResolvedValue(undefined);
@@ -125,7 +125,7 @@ describe('StripeWebhookService', () => {
   // Helpers
   // ──────────────────────────────────────────────────────────────
 
-  function makeEvent(type: string, data: Record<string, any> = {}): Stripe.Event {
+  function makeEvent(type: string, data: Record<string, unknown> = {}): Stripe.Event {
     return {
       id: `evt_test_${Date.now()}`,
       type,
@@ -229,10 +229,10 @@ describe('StripeWebhookService', () => {
       mockPrisma.order.update.mockResolvedValue({});
       mockPrisma.order.findFirst.mockResolvedValue(null);
       // Ensure $transaction calls the callback with mockPrisma
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(mockPrisma));
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn(mockPrisma));
       // Prevent sendOrderConfirmationSafe from throwing (fire-and-forget email)
-      jest.spyOn(service as any, 'sendOrderConfirmationSafe').mockImplementation(() => {});
-      jest.spyOn(service as any, 'createReferralCommissionSafe').mockImplementation(() => {});
+      jest.spyOn(service as unknown, 'sendOrderConfirmationSafe').mockImplementation(() => {});
+      jest.spyOn(service as unknown, 'createReferralCommissionSafe').mockImplementation(() => {});
 
       const result = await service.handleStripeWebhook(event);
       expect(result.processed).toBe(true);
@@ -389,7 +389,7 @@ describe('StripeWebhookService', () => {
     });
 
     it('should default to ACTIVE for unknown statuses', () => {
-      expect(service.mapStripeStatusToAppStatus('unknown_status' as any)).toBe('ACTIVE');
+      expect(service.mapStripeStatusToAppStatus('unknown_status' as unknown)).toBe('ACTIVE');
     });
   });
 

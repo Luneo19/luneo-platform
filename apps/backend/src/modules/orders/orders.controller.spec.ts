@@ -21,7 +21,7 @@ describe('OrdersController', () => {
   };
 
   // Mock request object (cast to any for Express Request type)
-  const mockRequest = (user = mockUser) => ({ user }) as any;
+  const mockRequest = (user = mockUser) => ({ user }) as unknown;
 
   beforeEach(async () => {
     const mockOrdersService = {
@@ -57,7 +57,7 @@ describe('OrdersController', () => {
         pagination: { page: 1, limit: 20, total: 2 },
       };
 
-      ordersService.findAll.mockResolvedValue(mockOrders as any);
+      ordersService.findAll.mockResolvedValue(mockOrders);
 
       const req = mockRequest();
       const result = await controller.findAll(req, '1', '20', undefined, undefined);
@@ -77,7 +77,7 @@ describe('OrdersController', () => {
         pagination: { page: 1, limit: 20, total: 1 },
       };
 
-      ordersService.findAll.mockResolvedValue(mockOrders as any);
+      ordersService.findAll.mockResolvedValue(mockOrders);
 
       const req = mockRequest();
       const result = await controller.findAll(req, undefined, undefined, 'PAID', undefined);
@@ -88,7 +88,7 @@ describe('OrdersController', () => {
         status: 'PAID',
         search: undefined,
       });
-      expect((result as any).orders[0].status).toBe('PAID');
+      expect((result as unknown).orders[0].status).toBe('PAID');
     });
 
     it('should search orders by query', async () => {
@@ -97,10 +97,10 @@ describe('OrdersController', () => {
         pagination: { page: 1, limit: 20, total: 1 },
       };
 
-      ordersService.findAll.mockResolvedValue(mockOrders as any);
+      ordersService.findAll.mockResolvedValue(mockOrders);
 
       const req = mockRequest();
-      const result = await controller.findAll(req, undefined, undefined, undefined, 'ORD-123');
+      const _result = await controller.findAll(req, undefined, undefined, undefined, 'ORD-123');
 
       expect(ordersService.findAll).toHaveBeenCalledWith(mockUser, {
         page: undefined,
@@ -114,12 +114,12 @@ describe('OrdersController', () => {
       ordersService.findAll.mockResolvedValue({
         orders: [],
         pagination: { page: 1, limit: 20, total: 0 },
-      } as any);
+      } as unknown);
 
       const req = mockRequest();
       const result = await controller.findAll(req);
 
-      expect((result as any).orders).toEqual([]);
+      expect((result as unknown).orders).toEqual([]);
       expect(result.pagination.total).toBe(0);
     });
   });
@@ -147,14 +147,14 @@ describe('OrdersController', () => {
         items: createOrderDto.items,
       };
 
-      ordersService.create.mockResolvedValue(mockOrder as any);
+      ordersService.create.mockResolvedValue(mockOrder);
 
       const req = mockRequest();
       const result = await controller.create(createOrderDto, req);
 
       expect(ordersService.create).toHaveBeenCalledWith(createOrderDto, mockUser);
       expect(result).toEqual(mockOrder);
-      expect((result as any).paymentUrl).toBeDefined();
+      expect((result as unknown).paymentUrl).toBeDefined();
     });
 
     it('should throw BadRequestException for invalid items', async () => {
@@ -163,7 +163,7 @@ describe('OrdersController', () => {
       );
 
       const req = mockRequest();
-      await expect(controller.create({ items: [] } as any, req)).rejects.toThrow(
+      await expect(controller.create({ items: [] } as unknown, req)).rejects.toThrow(
         BadRequestException
       );
     });
@@ -192,7 +192,7 @@ describe('OrdersController', () => {
         createdAt: new Date(),
       };
 
-      ordersService.findOne.mockResolvedValue(mockOrder as any);
+      ordersService.findOne.mockResolvedValue(mockOrder);
 
       const req = mockRequest();
       const result = await controller.findOne('order_123', req);
@@ -242,13 +242,13 @@ describe('OrdersController', () => {
         shippingAddress: updateDto.shippingAddress,
       };
 
-      ordersService.update.mockResolvedValue(mockUpdatedOrder as any);
+      ordersService.update.mockResolvedValue(mockUpdatedOrder);
 
       const req = mockRequest();
       const result = await controller.update('order_123', updateDto, req);
 
       expect(ordersService.update).toHaveBeenCalledWith('order_123', updateDto, mockUser);
-      expect((result as any).shippingAddress.city).toBe('Lyon');
+      expect((result as unknown).shippingAddress.city).toBe('Lyon');
     });
 
     it('should throw NotFoundException when order not found', async () => {
@@ -283,7 +283,7 @@ describe('OrdersController', () => {
         cancelledAt: new Date(),
       };
 
-      ordersService.cancel.mockResolvedValue(mockCancelledOrder as any);
+      ordersService.cancel.mockResolvedValue(mockCancelledOrder);
 
       const req = mockRequest();
       const result = await controller.cancel('order_123', {}, req);

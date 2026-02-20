@@ -7,6 +7,8 @@ import { ShareController } from '@/modules/designs/share.controller';
 import { DesignCollectionsController } from '@/modules/designs/design-collections.controller';
 import { DesignsService } from '@/modules/designs/designs.service';
 import { DesignCollectionsService } from '@/modules/designs/services/design-collections.service';
+import { DesignExportService } from '@/modules/design/services/design-export.service';
+import { DESIGN_EXPORT_QUEUE } from '@/modules/design/services/design-export.service';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { PlansModule } from '@/modules/plans/plans.module';
@@ -27,12 +29,13 @@ import { CreditsModule } from '@/libs/credits/credits.module';
       timeout: 60000,
       maxRedirects: 3,
     }),
-    BullModule.registerQueue({
-      name: 'ai-generation',
-    }),
+    BullModule.registerQueue(
+      { name: 'ai-generation' },
+      { name: DESIGN_EXPORT_QUEUE },
+    ),
   ],
   controllers: [DesignsController, ShareController, DesignCollectionsController],
-  providers: [DesignsService, DesignCollectionsService],
-  exports: [DesignsService, DesignCollectionsService],
+  providers: [DesignsService, DesignCollectionsService, DesignExportService],
+  exports: [DesignsService, DesignCollectionsService, DesignExportService],
 })
 export class DesignsModule {}

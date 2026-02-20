@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, Link2, AlertCircle } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import Image from 'next/image';
 
 export interface ImageTargetCreatorProps {
   projectId: string | null;
@@ -104,7 +105,7 @@ export function ImageTargetCreator({
           />
           {previewUrl ? (
             <div className="space-y-2">
-              <img src={previewUrl} alt="Target preview" className="max-h-48 mx-auto rounded object-contain" />
+              <Image src={previewUrl} alt="Target preview" className="max-h-48 mx-auto rounded object-contain" width={200} height={200} unoptimized />
               {loading && <p className="text-sm text-muted-foreground">Analyzing…</p>}
             </div>
           ) : (

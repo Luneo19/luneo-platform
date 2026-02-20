@@ -576,7 +576,7 @@ export class LunaService {
   private computeConfidence(
     responseMessage: string,
     responseTokenCount: number,
-    usedExternalApi: boolean,
+    _usedExternalApi: boolean,
   ): number {
     let confidence = 0.9;
     if (responseTokenCount > 0 && responseTokenCount < 200) {
@@ -757,7 +757,7 @@ export class LunaService {
    */
   private buildKpis(
     dashboard: { metrics?: AnalyticsMetrics; charts?: { conversionChange?: number } },
-    realTimeMetrics: unknown,
+    _realTimeMetrics: unknown,
   ): AnalyticsData['kpis'] {
     const metrics = dashboard?.metrics;
     
@@ -954,7 +954,7 @@ export class LunaService {
 
     try {
       // ✅ Récupérer topProducts + conversion + revenue en parallèle
-      const [topProducts, dashboard] = await Promise.all([
+      const [topProducts, _dashboard] = await Promise.all([
         this.analyticsService.getTopProductsByDesigns(
           brandId.trim(),
           startDate,
@@ -1324,7 +1324,7 @@ export class LunaService {
   private structureBIPack(
     data: LunaIntentData,
     intent: LunaIntentType,
-    brandId: string,
+    _brandId: string,
   ): {
     intent: LunaIntentType;
     timestamp: string;
@@ -1383,7 +1383,7 @@ export class LunaService {
   /**
    * Extrait les métriques clés selon le type de données
    */
-  private extractKeyMetrics(data: LunaIntentData, intent: LunaIntentType): Record<string, unknown> {
+  private extractKeyMetrics(data: LunaIntentData, _intent: LunaIntentType): Record<string, unknown> {
     if (this.isAnalyticsData(data)) {
       return {
         totalDesigns: data.kpis.totalDesigns,
@@ -1450,7 +1450,7 @@ export class LunaService {
 
           const product = await this.productsService.create(
             brandId,
-            productData as Record<string, any>,
+            productData as Record<string, import('@/common/types/utility-types').JsonValue>,
             currentUser,
           );
 
@@ -1468,7 +1468,7 @@ export class LunaService {
           const product = await this.productsService.update(
             brandId,
             productId,
-            updateData as Record<string, any>,
+            updateData as Record<string, import('@/common/types/utility-types').JsonValue>,
             currentUser,
           );
 

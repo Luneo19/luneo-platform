@@ -48,7 +48,7 @@ export class CustomizerRenderService {
 
     try {
       // Create base image with background
-      let image = sharp({
+      const image = sharp({
         create: {
           width,
           height,

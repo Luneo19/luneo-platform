@@ -11,7 +11,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('SLASupportService', () => {
   let service: SLASupportService;
-  let prismaService: any; // Use any for mock methods
+  let prismaService: Record<string, unknown>;
 
   const mockBrand = {
     id: 'brand-123',
@@ -101,12 +101,12 @@ describe('SLASupportService', () => {
     });
 
     it('should create SLA ticket with correct deadlines', async () => {
-      prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
+      prismaService.brand.findUnique.mockResolvedValue(mockBrand);
       prismaService.sLATicket.create.mockResolvedValue({
         id: 'sla-1',
         ticketId: 'ticket-1',
         slaStatus: 'on_time',
-      } as any);
+      } as unknown);
 
       const result = await service.createSLATicket('ticket-1', 'brand-123', 'high');
 
@@ -137,7 +137,7 @@ describe('SLASupportService', () => {
 
     it('should return ticket when found', async () => {
       const mockTicket = { id: 'sla-1', ticketId: 'ticket-1' };
-      prismaService.sLATicket.findFirst.mockResolvedValue(mockTicket as any);
+      prismaService.sLATicket.findFirst.mockResolvedValue(mockTicket);
 
       const result = await service.getSLATicket('ticket-1');
 
@@ -173,7 +173,7 @@ describe('SLASupportService', () => {
         { slaStatus: 'on_time', _count: 7 },
         { slaStatus: 'at_risk', _count: 2 },
         { slaStatus: 'breached', _count: 1 },
-      ] as any);
+      ] as unknown);
       prismaService.sLATicket.findMany.mockResolvedValue([]);
 
       const result = await service.calculateSLAMetrics(

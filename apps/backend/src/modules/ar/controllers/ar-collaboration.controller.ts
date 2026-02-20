@@ -12,7 +12,6 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
   HttpStatus,
   HttpCode,

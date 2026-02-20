@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PipelineStatus } from '@prisma/client';
-import { PIPELINE_STAGES, type PipelineStageId } from '../pce.constants';
+import { PIPELINE_STAGES } from '../pce.constants';
 
 interface TransitionRule {
   from: string;

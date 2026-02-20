@@ -50,6 +50,87 @@ function getColorHex(option: Configurator3DOption): string {
   return '#888888';
 }
 
+function NumberOptionInput({
+  options,
+  component,
+  selectOption,
+}: {
+  options: Configurator3DOption[];
+  component: Configurator3DComponent;
+  selectOption: (compId: string, optId: string) => void;
+}) {
+  const numOpt = options[0];
+  const val = numOpt?.value as { value?: number; min?: number; max?: number; step?: number } | undefined;
+  const [localVal, setLocalVal] = React.useState(val?.value ?? 0);
+  const min = val?.min ?? 0;
+  const max = val?.max ?? 100;
+  const step = val?.step ?? 1;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => setLocalVal((v) => Math.max(min, v - step))}
+        >
+          −
+        </Button>
+        <Input
+          type="number"
+          value={localVal}
+          min={min}
+          max={max}
+          step={step}
+          onChange={(e) => setLocalVal(Number(e.target.value))}
+          className="w-20 text-center"
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => setLocalVal((v) => Math.min(max, v + step))}
+        >
+          +
+        </Button>
+      </div>
+      <Slider
+        value={[localVal]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={([v]) => setLocalVal(v)}
+      />
+    </div>
+  );
+}
+
+function BooleanOptionInput({
+  options,
+  component,
+  selectOption,
+}: {
+  options: Configurator3DOption[];
+  component: Configurator3DComponent;
+  selectOption: (compId: string, optId: string) => void;
+}) {
+  const boolOpt = options[0];
+  const val = boolOpt?.value as { value?: boolean } | undefined;
+  const [checked, setChecked] = React.useState(val?.value ?? false);
+  return (
+    <div className="flex items-center gap-3">
+      <Switch
+        checked={checked}
+        onCheckedChange={(c) => {
+          setChecked(c);
+          if (boolOpt) selectOption(component.id, boolOpt.id);
+        }}
+      />
+      <Label>{boolOpt?.name}</Label>
+    </div>
+  );
+}
+
 export function OptionSelector({ component, className }: OptionSelectorProps) {
   const {
     isOptionSelected,
@@ -180,70 +261,23 @@ export function OptionSelector({ component, className }: OptionSelectorProps) {
         );
       }
 
-      case 'NUMBER': {
-        const numOpt = options[0];
-        const val = numOpt?.value as { value?: number; min?: number; max?: number; step?: number } | undefined;
-        const [localVal, setLocalVal] = React.useState(val?.value ?? 0);
-        const min = val?.min ?? 0;
-        const max = val?.max ?? 100;
-        const step = val?.step ?? 1;
+      case 'NUMBER':
         return (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => setLocalVal((v) => Math.max(min, v - step))}
-              >
-                −
-              </Button>
-              <Input
-                type="number"
-                value={localVal}
-                min={min}
-                max={max}
-                step={step}
-                onChange={(e) => setLocalVal(Number(e.target.value))}
-                className="w-20 text-center"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => setLocalVal((v) => Math.min(max, v + step))}
-              >
-                +
-              </Button>
-            </div>
-            <Slider
-              value={[localVal]}
-              min={min}
-              max={max}
-              step={step}
-              onValueChange={([v]) => setLocalVal(v)}
-            />
-          </div>
+          <NumberOptionInput
+            options={options}
+            component={component}
+            selectOption={selectOption}
+          />
         );
-      }
 
-      case 'BOOLEAN': {
-        const boolOpt = options[0];
-        const val = boolOpt?.value as { value?: boolean } | undefined;
-        const [checked, setChecked] = React.useState(val?.value ?? false);
+      case 'BOOLEAN':
         return (
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={checked}
-              onCheckedChange={(c) => {
-                setChecked(c);
-                if (boolOpt) selectOption(component.id, boolOpt.id);
-              }}
-            />
-            <Label>{boolOpt?.name}</Label>
-          </div>
+          <BooleanOptionInput
+            options={options}
+            component={component}
+            selectOption={selectOption}
+          />
         );
-      }
 
       default:
         return (

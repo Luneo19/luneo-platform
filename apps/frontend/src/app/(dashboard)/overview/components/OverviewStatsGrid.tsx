@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, Download, Eye, Palette, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Download, Eye, Palette, Zap, Package, FileText } from 'lucide-react';
 import { MiniBarChart } from './MiniBarChart';
 
 export type StatItem = {
@@ -14,13 +14,17 @@ export type StatItem = {
 };
 
 const colorMap: Record<string, { gradient: string; bg: string; chart: string }> = {
-  'Designs créés': { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
+  'Produits actifs': { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
+  'Commandes': { gradient: 'from-cyan-500 to-blue-500', bg: 'bg-cyan-500/10', chart: 'bg-cyan-500' },
+  'Designs créés': { gradient: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-500/10', chart: 'bg-emerald-500' },
+  'Revenus': { gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-500/10', chart: 'bg-amber-500' },
   'Vues totales': { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
   'Téléchargements': { gradient: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-500/10', chart: 'bg-emerald-500' },
-  'Revenus': { gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-500/10', chart: 'bg-amber-500' },
 };
 
 const iconMap: Record<string, React.ReactNode> = {
+  Package: <Package className="w-5 h-5" />,
+  FileText: <FileText className="w-5 h-5" />,
   Palette: <Palette className="w-5 h-5" />,
   Eye: <Eye className="w-5 h-5" />,
   Download: <Download className="w-5 h-5" />,
@@ -43,9 +47,9 @@ export function OverviewStatsGrid({
           chart: 'bg-purple-500',
         };
         const chartValues =
-          stat.title === 'Designs créés'
+          stat.title === 'Designs créés' || stat.title === 'Produits actifs'
             ? chartData?.designs || []
-            : stat.title === 'Vues totales'
+            : stat.title === 'Vues totales' || stat.title === 'Commandes'
               ? chartData?.views || []
               : stat.title === 'Revenus'
                 ? chartData?.revenue || []

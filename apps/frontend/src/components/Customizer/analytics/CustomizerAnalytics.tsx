@@ -41,13 +41,14 @@ export function CustomizerAnalytics({ customizerId }: CustomizerAnalyticsProps) 
 
   useEffect(() => {
     loadAnalytics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFrom, dateTo]);
 
   const loadAnalytics = async () => {
     setIsLoading(true);
     try {
       const result = await api.get<AnalyticsMetrics>(
-        `/api/v1/customizer/configurations/${customizerId}/analytics`,
+        `/api/v1/visual-customizer/customizers/${customizerId}/analytics`,
         {
           params: {
             from: dateFrom.toISOString(),

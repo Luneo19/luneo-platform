@@ -96,7 +96,7 @@ export class CreditsService {
         }
 
         const userCredits = user.ai_credits;
-        const userCreditsUsed = user.ai_credits_used;
+        const _userCreditsUsed = user.ai_credits_used;
 
         if (userCredits < cost) {
           throw new BadRequestException(

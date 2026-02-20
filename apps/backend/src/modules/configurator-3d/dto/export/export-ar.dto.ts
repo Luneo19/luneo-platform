@@ -1,5 +1,5 @@
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export const AR_FORMAT = ['usdz', 'gltf'] as const;
 export type ARFormat = (typeof AR_FORMAT)[number];

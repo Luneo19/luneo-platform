@@ -86,6 +86,7 @@ function ConfiguratorAnalyticsContent() {
         setProductsConfigured(0);
       })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   const handleExport = useCallback(() => {

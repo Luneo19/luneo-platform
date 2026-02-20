@@ -92,8 +92,8 @@ export class PlatformDetectorService {
    * iOS: Safari and Chrome both use AR Quick Look (USDZ).
    */
   private detectIos(ua: string): PlatformDetectionResult {
-    const isSafari = ua.includes('safari') && !ua.includes('chrome');
-    const isChrome = ua.includes('crios') || ua.includes('chrome');
+    const _isSafari = ua.includes('safari') && !ua.includes('chrome');
+    const _isChrome = ua.includes('crios') || ua.includes('chrome');
     const method: ARMethod = 'ar-quick-look';
     return {
       platform: 'ios',
@@ -158,7 +158,7 @@ export class PlatformDetectorService {
    */
   private detectDesktop(ua: string): PlatformDetectionResult {
     const isChrome = ua.includes('chrome') && !ua.includes('edg');
-    const isSafari = ua.includes('safari') && !ua.includes('chrome');
+    const _isSafari = ua.includes('safari') && !ua.includes('chrome');
     return {
       platform: 'desktop',
       method: 'qr-redirect',

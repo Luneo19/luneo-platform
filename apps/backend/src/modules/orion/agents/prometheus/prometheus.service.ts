@@ -8,7 +8,7 @@ import { KnowledgeBaseAIService } from '../../services/knowledge-base-ai.service
 import { TicketRoutingService } from '../../services/ticket-routing.service';
 import { SLAEngineService } from '../../services/sla-engine.service';
 import { AuditTrailService } from '../../services/audit-trail.service';
-import { AIResponseStatus } from '@prisma/client';
+import { AIResponseStatus, Prisma, TicketSentiment, TicketCategory } from '@prisma/client';
 import { PROMETHEUS_THRESHOLDS } from '../../orion.constants';
 
 export interface AnalysisResult {
@@ -120,11 +120,11 @@ Analyse le ticket et retourne un JSON avec exactement ces champs:
       await this.prisma.ticket.update({
         where: { id: ticketId },
         data: {
-          sentiment: analysis.sentiment as any,
+          sentiment: analysis.sentiment as unknown as TicketSentiment,
           language: analysis.language,
-          aiAnalysis: analysis as any,
+          aiAnalysis: analysis as unknown as Prisma.InputJsonValue,
           confidenceScore: analysis.confidenceScore,
-          category: analysis.category as any,
+          category: analysis.category as unknown as TicketCategory,
         },
       });
 
@@ -206,7 +206,7 @@ La réponse doit être:
         modelUsed: result.model,
         generatedContent: finalContent,
         confidenceScore,
-        confidenceFactors: confidenceFactors as any,
+        confidenceFactors: confidenceFactors as unknown as Prisma.InputJsonValue,
         status: confidenceScore >= PROMETHEUS_THRESHOLDS.AUTO_APPROVE_CONFIDENCE ? AIResponseStatus.APPROVED : AIResponseStatus.PENDING,
         tokensUsed: result.tokensUsed,
         latencyMs: result.latencyMs,

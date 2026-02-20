@@ -56,6 +56,7 @@ export function useARSession(options: UseARSessionOptions = {}) {
       options.onError?.(e);
       return null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.onSessionStart, options.onSessionEnd, options.onError]);
 
   const endSession = useCallback(async () => {
@@ -66,6 +67,7 @@ export function useARSession(options: UseARSessionOptions = {}) {
       setState('ended');
       options.onSessionEnd?.();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.onSessionEnd]);
 
   useEffect(() => {

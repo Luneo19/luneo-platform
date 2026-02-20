@@ -19,7 +19,7 @@ export class GenerateMarketingRenderDto {
   @ApiPropertyOptional({ description: 'Additional options' })
   @IsObject()
   @IsOptional()
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { useI18n } from '@/i18n/useI18n';
+import Image from 'next/image';
 
 interface SearchResultItem {
   id: string;
@@ -128,11 +129,11 @@ export function GlobalSearch() {
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:bg-white/[0.06] transition-colors"
                 >
                   {item.imageUrl ? (
-                    <img
+                    <Image width={200} height={200}
                       src={item.imageUrl}
                       alt=""
                       className="h-9 w-9 rounded object-cover bg-white/5"
-                    />
+                    unoptimized />
                   ) : (
                     <div className="h-9 w-9 rounded bg-white/10 flex items-center justify-center text-white/40 text-xs font-medium">
                       {item.type === 'product' ? 'P' : item.type === 'design' ? 'D' : 'O'}

@@ -11,7 +11,7 @@ import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test
 
 describeIntegration('OpenAPI Contract Validation', () => {
   let app: INestApplication;
-  let moduleFixture: TestingModule;
+  let _moduleFixture: TestingModule;
 
   beforeAll(async () => {
     const testApp = await createIntegrationTestApp();

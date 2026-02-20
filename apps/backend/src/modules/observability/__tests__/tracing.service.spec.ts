@@ -2,12 +2,12 @@
  * TracingService unit tests
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { TracingService, Trace } from '../services/tracing.service';
+import { TracingService } from '../services/tracing.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('TracingService', () => {
   let service: TracingService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     trace: {

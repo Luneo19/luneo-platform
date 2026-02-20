@@ -43,7 +43,7 @@ export class MaterialBakerService {
   /**
    * Analyze materials in a 3D model and optimize them
    */
-  async analyzeMaterials(modelUrl: string): Promise<{
+  async analyzeMaterials(_modelUrl: string): Promise<{
     materialCount: number;
     textureCount: number;
     totalTextureSize: number;

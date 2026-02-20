@@ -45,7 +45,7 @@ describe('DashboardService', () => {
   };
 
   beforeEach(async () => {
-    const mockPrisma: Record<string, any> = {
+    const mockPrisma: Record<string, unknown> = {
       brand: {
         findUnique: jest.fn(),
       },

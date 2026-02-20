@@ -73,6 +73,7 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
 
   useEffect(() => {
     loadCliparts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, sortBy, selectedCategory]);
 
   // Filtrage optimisé avec useMemo (voir plus bas)

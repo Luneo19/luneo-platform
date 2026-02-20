@@ -17,6 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { useImage } from '@/hooks/customizer/useImage';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface ImageUploadDialogProps {
   open: boolean;
@@ -98,6 +99,7 @@ export function ImageUploadDialog({ open, onOpenChange }: ImageUploadDialogProps
         });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, imageUrl, uploadImage, addImage, toast]);
 
   const handleClose = () => {
@@ -142,11 +144,11 @@ export function ImageUploadDialog({ open, onOpenChange }: ImageUploadDialogProps
           >
             {previewUrl ? (
               <div className="relative">
-                <img
+                <Image width={200} height={200}
                   src={previewUrl}
                   alt="Preview"
                   className="max-h-64 mx-auto rounded"
-                />
+                unoptimized />
                 <Button
                   variant="destructive"
                   size="icon"

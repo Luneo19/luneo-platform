@@ -71,6 +71,7 @@ function DesignDetailPageContent() {
   useEffect(() => {
     loadDesign();
     loadVersions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [designId]);
 
   const loadDesign = async () => {

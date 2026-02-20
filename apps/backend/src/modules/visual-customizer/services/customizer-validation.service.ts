@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
 } from '@nestjs/common';
 import { VISUAL_CUSTOMIZER_LIMITS, CUSTOMIZER_CANVAS_ALLOWED_OBJECT_TYPES } from '../visual-customizer.constants';
 
@@ -52,14 +51,15 @@ export class CustomizerValidationService {
       }
 
       // Validate each object
-      canvasData.objects.forEach((obj: any, index: number) => {
+      canvasData.objects.forEach((value: unknown, index: number) => {
+        const obj = value as Record<string, unknown>;
         if (!obj || typeof obj !== 'object') {
           errors.push(`Object at index ${index} is invalid`);
           return;
         }
 
         // Check object type
-        if (obj.type && !CUSTOMIZER_CANVAS_ALLOWED_OBJECT_TYPES.includes(obj.type)) {
+        if (obj.type && !CUSTOMIZER_CANVAS_ALLOWED_OBJECT_TYPES.includes(obj.type as (typeof CUSTOMIZER_CANVAS_ALLOWED_OBJECT_TYPES)[number])) {
           errors.push(
             `Object at index ${index} has invalid type: ${obj.type}`,
           );
@@ -101,7 +101,8 @@ export class CustomizerValidationService {
 
     // Validate URLs in objects
     if (Array.isArray(canvasData.objects)) {
-      canvasData.objects.forEach((obj: any, index: number) => {
+      canvasData.objects.forEach((value: unknown, index: number) => {
+        const obj = value as Record<string, unknown>;
         if (obj.src && typeof obj.src === 'string') {
           const urlValidation = this.validateUrl(obj.src);
           if (!urlValidation.isValid) {

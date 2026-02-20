@@ -5,7 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { TIMEOUTS, RENDER_DEFAULTS } from '@/common/constants/app.constants';
+import { TIMEOUTS } from '@/common/constants/app.constants';
 import { RenderRequest, RenderResult } from '../interfaces/render.interface';
 import { QuotasService } from '@/modules/usage-billing/services/quotas.service';
 import { UsageTrackingService } from '@/modules/usage-billing/services/usage-tracking.service';
@@ -312,7 +312,7 @@ export class Render3DService {
       }
 
       // Dernier fallback: utiliser modelUrl directement ou générer un rendu simple côté serveur
-      const renderId = `highres-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`;
+      const _renderId = `highres-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`;
       
       // Si on a un modelUrl, l'utiliser directement
       if (configuration.modelUrl) {
@@ -454,7 +454,7 @@ export class Render3DService {
     includeTextures?: boolean;
     maxTextureSize?: number;
     compression?: boolean;
-  }, userId: string): Promise<{
+  }, _userId: string): Promise<{
     exportUrl: string;
     platform: string;
     format: string;

@@ -16,9 +16,9 @@ export class WebhookIntegrationService {
   /**
    * Test webhook endpoint
    */
-  async testEndpoint(config: Record<string, any>): Promise<{ success: boolean; message: string }> {
+  async testEndpoint(config: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
     try {
-      if (!config.url) {
+      if (!(config as Record<string, string>).url) {
         return {
           success: false,
           message: 'Webhook URL is required',
@@ -40,15 +40,15 @@ export class WebhookIntegrationService {
         'X-Luneo-Event': 'webhook.test',
       };
 
-      if (config.secret) {
+      if ((config as Record<string, string>).secret) {
         headers['X-Luneo-Signature'] = this.generateSignature(
           JSON.stringify(testPayload),
-          config.secret,
+          (config as Record<string, string>).secret as string,
         );
       }
 
       const response = await firstValueFrom(
-        this.httpService.post(config.url, testPayload, {
+        this.httpService.post((config as Record<string, string>).url as string, testPayload, {
           headers,
           timeout: 5000,
         }),
@@ -75,12 +75,12 @@ export class WebhookIntegrationService {
    * Send webhook
    */
   async sendWebhook(
-    config: Record<string, any>,
+    config: Record<string, unknown>,
     event: string,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     try {
-      if (!config.url || !config.enabled) {
+      if (!(config as Record<string, string>).url || !config.enabled) {
         return;
       }
 
@@ -96,15 +96,15 @@ export class WebhookIntegrationService {
         'X-Luneo-Event': event,
       };
 
-      if (config.secret) {
+      if ((config as Record<string, string>).secret) {
         headers['X-Luneo-Signature'] = this.generateSignature(
           JSON.stringify(payload),
-          config.secret,
+          (config as Record<string, string>).secret as string,
         );
       }
 
       await firstValueFrom(
-        this.httpService.post(config.url, payload, {
+        this.httpService.post((config as Record<string, string>).url as string, payload, {
           headers,
           timeout: 10000,
         }),

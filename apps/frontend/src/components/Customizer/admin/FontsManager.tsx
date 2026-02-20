@@ -50,12 +50,13 @@ export function FontsManager({ customizerId }: FontsManagerProps) {
 
     // Load custom fonts
     loadCustomFonts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadCustomFonts = async () => {
     try {
       const fonts = await api.get<Font[]>(
-        `/api/v1/customizer/configurations/${customizerId}/fonts`
+        `/api/v1/visual-customizer/customizers/${customizerId}/fonts`
       );
       setCustomFonts(fonts);
     } catch (err) {
@@ -73,7 +74,7 @@ export function FontsManager({ customizerId }: FontsManagerProps) {
 
     try {
       const result = await api.post<Font[]>(
-        `/api/v1/customizer/configurations/${customizerId}/fonts`,
+        `/api/v1/visual-customizer/customizers/${customizerId}/fonts`,
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -93,7 +94,7 @@ export function FontsManager({ customizerId }: FontsManagerProps) {
           prev.map((f) => (f.id === fontId ? { ...f, enabled: !currentEnabled } : f))
         );
       } else {
-        await api.patch(`/api/v1/customizer/configurations/${customizerId}/fonts/${fontId}`, {
+        await api.patch(`/api/v1/visual-customizer/customizers/${customizerId}/fonts/${fontId}`, {
           enabled: !currentEnabled,
         });
         setCustomFonts((prev) =>
@@ -109,7 +110,7 @@ export function FontsManager({ customizerId }: FontsManagerProps) {
     if (!confirm('Are you sure you want to delete this font?')) return;
 
     try {
-      await api.delete(`/api/v1/customizer/configurations/${customizerId}/fonts/${fontId}`);
+      await api.delete(`/api/v1/visual-customizer/customizers/${customizerId}/fonts/${fontId}`);
       setCustomFonts((prev) => prev.filter((f) => f.id !== fontId));
     } catch (err) {
       logger.error('Failed to delete font', { error: err });

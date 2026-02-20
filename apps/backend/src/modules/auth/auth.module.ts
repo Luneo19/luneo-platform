@@ -52,7 +52,7 @@ let OidcStrategy: Type | null = null;
 // Check if Google OAuth is configured
 if (isOAuthConfigured('google')) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     GoogleStrategy = require('./strategies/google.strategy').GoogleStrategy;
   } catch {
     // Google Strategy not available
@@ -62,7 +62,7 @@ if (isOAuthConfigured('google')) {
 // Check if GitHub OAuth is configured
 if (isOAuthConfigured('github')) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     GitHubStrategy = require('./strategies/github.strategy').GitHubStrategy;
   } catch {
     // GitHub Strategy not available
@@ -71,12 +71,11 @@ if (isOAuthConfigured('github')) {
 
 // SAML and OIDC strategies are optional - only load if packages are installed AND configured
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('@node-saml/passport-saml');
-  // Only load SAML strategy if callbackUrl is configured (required by SAML library)
   const samlCallbackUrl = process.env.SAML_CALLBACK_URL;
   if (samlCallbackUrl) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     SamlStrategy = require('./strategies/saml.strategy').SamlStrategy;
   }
 } catch {
@@ -84,12 +83,11 @@ try {
 }
 
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('passport-openidconnect');
-  // Only load OIDC strategy if issuer is configured (required by OIDC library)
   const oidcIssuer = process.env.OIDC_ISSUER;
   if (oidcIssuer) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     OidcStrategy = require('./strategies/oidc.strategy').OidcStrategy;
   }
 } catch {

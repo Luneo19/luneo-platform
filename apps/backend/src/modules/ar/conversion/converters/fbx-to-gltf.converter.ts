@@ -83,7 +83,7 @@ export class FbxToGltfConverter {
 
       this.logger.log(`Running Blender conversion: ${sourceFormat} -> ${outputFormat}`);
 
-      const { stdout, stderr } = await execFileAsync(this.blenderPath, args, {
+      const { stdout: _stdout, stderr } = await execFileAsync(this.blenderPath, args, {
         timeout: 10 * 60 * 1000, // 10 min for large CAD files
         maxBuffer: 50 * 1024 * 1024,
       });

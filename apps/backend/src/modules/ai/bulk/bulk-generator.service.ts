@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import type { InputJsonValue } from '@prisma/client/runtime/library';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @Injectable()
@@ -16,7 +17,7 @@ export class BulkGeneratorService {
     variables: Record<string, string>[];
     provider?: string;
     model?: string;
-    parameters?: Record<string, any>;
+    parameters?: Record<string, unknown>;
     batchSize?: number;
   }) {
     if (!params.variables.length) throw new BadRequestException('Variables array cannot be empty');
@@ -40,7 +41,7 @@ export class BulkGeneratorService {
         estimatedDuration,
         provider: params.provider,
         model: params.model,
-        parameters: params.parameters || {},
+        parameters: (params.parameters || {}) as InputJsonValue,
         batchSize: params.batchSize || 10,
       },
     });
@@ -72,7 +73,7 @@ export class BulkGeneratorService {
       where: {
         userId,
         ...(brandId ? { brandId } : {}),
-        ...(status ? { status: status as any } : {}),
+        ...(status ? { status: status as never } : {}),
       },
       orderBy: { createdAt: 'desc' },
       take: 50,

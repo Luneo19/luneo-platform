@@ -23,7 +23,7 @@ export class OrderItemDto {
   @ApiPropertyOptional({ description: 'Customization options' })
   @IsObject()
   @IsOptional()
-  customization?: Record<string, any>;
+  customization?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Production notes' })
   @IsString()
@@ -106,7 +106,7 @@ export class CreateOrderDto {
   @ApiPropertyOptional({ description: 'Additional metadata' })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class UpdateOrderDto extends PartialType(CreateOrderDto) {

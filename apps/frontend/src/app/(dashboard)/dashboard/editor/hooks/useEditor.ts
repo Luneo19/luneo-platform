@@ -112,6 +112,7 @@ export function useEditor() {
     });
     setSelectedId(obj.id);
     toast({ title: t('editor.added'), description: t('editor.addedToCanvas', { type: obj.type }) });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects.length, pushHistory, toast]);
 
   const addText = useCallback(() => {
@@ -164,6 +165,7 @@ export function useEditor() {
     });
     if (selectedId === id) setSelectedId(null);
     toast({ title: t('editor.deleted'), description: t('editor.objectRemoved') });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pushHistory, selectedId, toast]);
 
   const reorderObject = useCallback((id: string, direction: 'up' | 'down') => {
@@ -204,6 +206,7 @@ export function useEditor() {
       return next;
     });
     toast({ title: t('editor.templateApplied'), description: template.name });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects.length, pushHistory, toast]);
 
   const handleUndo = useCallback(() => {
@@ -323,6 +326,7 @@ export function useEditor() {
       toast({ title: t('common.error'), description: message, variant: 'destructive' });
       return { success: false };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileName, toast]);
 
   const toggleVisibility = useCallback((id: string) => {

@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface VectorSearchResult {
@@ -70,7 +71,7 @@ export class PgVectorStore implements OnModuleInit {
     // Always store as JSON for compatibility
     await this.prisma.rAGDocument.update({
       where: { id: documentId },
-      data: { embedding: embedding as any },
+      data: { embedding: embedding as unknown as Prisma.InputJsonValue },
     });
   }
 
@@ -104,7 +105,7 @@ export class PgVectorStore implements OnModuleInit {
       : '';
 
     const results = await this.prisma.$queryRawUnsafe<
-      Array<{ id: string; content: string; title: string; score: number; metadata: any }>
+      Array<{ id: string; content: string; title: string; score: number; metadata: Record<string, unknown> }>
     >(
       `SELECT id, content, title, metadata,
               1 - (embedding_vector <=> $1::vector) as score
@@ -135,7 +136,7 @@ export class PgVectorStore implements OnModuleInit {
     limit: number,
     minScore: number,
   ): Promise<VectorSearchResult[]> {
-    const where: any = { isActive: true, embedding: { not: null } };
+    const where: Record<string, unknown> = { isActive: true, embedding: { not: null } };
     if (brandId) {
       where.OR = [{ brandId }, { brandId: null }];
     }

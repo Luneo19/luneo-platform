@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ChurnRisk, GrowthPotential } from '@prisma/client';
+import { ChurnRisk } from '@prisma/client';
 
 export interface HealthScoreBreakdown {
   engagement: number;
@@ -30,7 +30,7 @@ export class AthenaService {
     this.logger.debug('Athena: Updating customer health scores');
 
     const users = await this.prisma.user.findMany({
-      where: { isActive: true, role: { not: 'PLATFORM_ADMIN' as any } },
+      where: { isActive: true, role: { not: 'PLATFORM_ADMIN' as never } },
       select: { id: true },
     });
 

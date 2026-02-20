@@ -79,7 +79,7 @@ export class MeshOptimizerService {
 
       this.logger.log(`Running gltfpack optimization`);
 
-      const { stdout } = await execFileAsync(this.gltfpackPath, args, {
+      const { stdout: _stdout } = await execFileAsync(this.gltfpackPath, args, {
         timeout: 5 * 60 * 1000,
         maxBuffer: 10 * 1024 * 1024,
       });

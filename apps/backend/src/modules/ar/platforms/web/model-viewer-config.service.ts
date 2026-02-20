@@ -64,7 +64,7 @@ export class ModelViewerConfigService {
   getConfig(input: ModelViewerConfigInput): ModelViewerConfig {
     const {
       modelUrl,
-      usdzUrl,
+      usdzUrl: _usdzUrl,
       posterUrl,
       alt,
       ar = true,

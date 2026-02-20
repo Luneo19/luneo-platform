@@ -31,6 +31,7 @@ import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 import { useFeatureGate } from '@/lib/hooks/api/useFeatureGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import Image from 'next/image';
 
 interface WhiteLabelSettings {
   logoUrl: string;
@@ -328,14 +329,14 @@ function WhiteLabelPageContent() {
                   style={{ borderColor: settings.primaryColor + '40' }}
                 >
                   {settings.logoUrl ? (
-                    <img
+                    <Image width={200} height={200}
                       src={settings.logoUrl}
                       alt="Logo"
                       className="max-w-full max-h-full object-contain p-2"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
-                    />
+                    unoptimized />
                   ) : (
                     <Upload className="w-10 h-10 text-gray-500" />
                   )}
@@ -507,14 +508,14 @@ function WhiteLabelPageContent() {
                     style={{ backgroundColor: settings.primaryColor }}
                   >
                     {settings.logoUrl ? (
-                      <img
+                      <Image width={200} height={200}
                         src={settings.logoUrl}
                         alt="Logo"
                         className="w-8 h-8 object-contain"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
-                      />
+                      unoptimized />
                     ) : null}
                     {!settings.logoUrl && (
                       <span className="text-white font-bold text-lg">

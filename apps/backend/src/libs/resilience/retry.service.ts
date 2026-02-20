@@ -83,7 +83,7 @@ export class RetryService {
   async executeWithDetails<T>(
     operation: () => Promise<T>,
     config?: Partial<RetryConfig>,
-    operationName?: string,
+    _operationName?: string,
   ): Promise<RetryResult<T>> {
     const cfg = { ...this.defaultConfig, ...config };
     let lastError: Error | undefined;

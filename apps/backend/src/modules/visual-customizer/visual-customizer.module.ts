@@ -25,11 +25,17 @@ import { CustomizerAssetsService } from './services/customizer-assets.service';
 import { CustomizerTextsService } from './services/customizer-texts.service';
 import { CustomizerSessionsService } from './services/customizer-sessions.service';
 import { CustomizerValidationService } from './services/customizer-validation.service';
+import { ConstraintEngineService } from './services/constraint-engine.service';
 import { CustomizerRenderService } from './services/customizer-render.service';
 import { CustomizerExportService } from './services/customizer-export.service';
 import { CustomizerCacheService } from './services/customizer-cache.service';
+import { CustomizationSyncService } from './services/customization-sync.service';
+import { CustomizationOrderService } from './services/customization-order.service';
 import { CustomizerModerationService } from './services/customizer-moderation.service';
 import { CustomizerAnalyticsService } from './services/customizer-analytics.service';
+import { ZoneEngineService } from './services/zone-engine.service';
+import { ZonePricingService } from './services/zone-pricing.service';
+import { CustomizerWebhookEmitter } from './events/webhook-emitter.service';
 
 // Guards
 import { CustomizerOwnerGuard } from './guards/customizer-owner.guard';
@@ -41,7 +47,6 @@ import { AssetAccessGuard } from './guards/asset-access.guard';
 import { CanvasDataValidationPipe } from './pipes/canvas-data-validation.pipe';
 import { TextSanitizationPipe } from './pipes/text-sanitization.pipe';
 import { ImageValidationPipe } from './pipes/image-validation.pipe';
-import { FileSizePipe } from './pipes/file-size.pipe';
 
 // Workers (@nestjs/bull)
 import { RenderWorker } from './workers/render.worker';
@@ -92,11 +97,17 @@ import { AnalyticsWorker } from './workers/analytics.worker';
     CustomizerTextsService,
     CustomizerSessionsService,
     CustomizerValidationService,
+    ConstraintEngineService,
     CustomizerRenderService,
     CustomizerExportService,
     CustomizerCacheService,
+    CustomizationSyncService,
+    CustomizationOrderService,
     CustomizerModerationService,
     CustomizerAnalyticsService,
+    ZonePricingService,
+    ZoneEngineService,
+    CustomizerWebhookEmitter,
     // Guards
     CustomizerOwnerGuard,
     CustomizerAccessGuard,

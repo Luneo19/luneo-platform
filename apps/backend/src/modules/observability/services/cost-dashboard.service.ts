@@ -306,7 +306,7 @@ export class CostDashboardService {
 
     const totalCostCents = costs.reduce((sum, cost) => sum + cost.costCents, 0);
 
-    const breakdown: CostBreakdown[] = [];
+    const _breakdown: CostBreakdown[] = [];
     const byKey: Record<string, CostBreakdown> = {};
 
     for (const cost of costs) {

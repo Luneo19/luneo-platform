@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsObject, IsUUID, IsNotEmpty, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsNotEmpty, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateDesignDto {
@@ -6,7 +6,7 @@ export class CreateDesignDto {
     description: 'Product ID to create design for',
     example: 'prod_123',
   })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 

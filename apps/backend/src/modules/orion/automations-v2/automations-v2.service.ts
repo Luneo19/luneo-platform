@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -68,9 +69,9 @@ export class AutomationsV2Service {
         brandId: data.brandId,
         name: data.name,
         description: data.description,
-        trigger: data.trigger as any,
-        conditions: data.conditions as any,
-        actions: data.actions as any,
+        trigger: data.trigger as unknown as Prisma.InputJsonValue,
+        conditions: data.conditions as unknown as Prisma.InputJsonValue,
+        actions: data.actions as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -86,16 +87,16 @@ export class AutomationsV2Service {
       isActive: boolean;
     }>,
   ) {
-    const current = await this.getAutomation(id);
+    const _current = await this.getAutomation(id);
 
     return this.prisma.orionAutomationV2.update({
       where: { id },
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.description !== undefined ? { description: data.description } : {}),
-        ...(data.trigger !== undefined ? { trigger: data.trigger as any } : {}),
-        ...(data.conditions !== undefined ? { conditions: data.conditions as any } : {}),
-        ...(data.actions !== undefined ? { actions: data.actions as any } : {}),
+        ...(data.trigger !== undefined ? { trigger: data.trigger as unknown as Prisma.InputJsonValue } : {}),
+        ...(data.conditions !== undefined ? { conditions: data.conditions as unknown as Prisma.InputJsonValue } : {}),
+        ...(data.actions !== undefined ? { actions: data.actions as unknown as Prisma.InputJsonValue } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         version: { increment: 1 },
       },
@@ -124,7 +125,7 @@ export class AutomationsV2Service {
       data: {
         automationId: id,
         status: 'running',
-        triggerData: testData as any,
+        triggerData: testData as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -139,7 +140,7 @@ export class AutomationsV2Service {
         where: { id: run.id },
         data: {
           status: 'completed',
-          result: result as any,
+          result: result as unknown as Prisma.InputJsonValue,
           completedAt: new Date(),
         },
       });
@@ -224,7 +225,7 @@ export class AutomationsV2Service {
     const run = await this.prisma.orionAutomationRunV2.create({
       data: {
         automationId,
-        triggerData: triggerData as any,
+        triggerData: triggerData as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -239,7 +240,7 @@ export class AutomationsV2Service {
         where: { id: run.id },
         data: {
           status: 'completed',
-          result: result as any,
+          result: result as unknown as Prisma.InputJsonValue,
           completedAt: new Date(),
         },
       });

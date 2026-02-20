@@ -169,7 +169,7 @@ export const useCustomizerStore = create<CustomizerStore>()(
             // TODO: Replace with actual API endpoint when available
             // For now, using a placeholder endpoint structure
             const config = await api.get<CustomizerConfig>(
-              `/api/v1/customizer/configurations/${customizerId}`
+              `/api/v1/visual-customizer/customizers/${customizerId}`
             );
 
             const sessionId = crypto.randomUUID();

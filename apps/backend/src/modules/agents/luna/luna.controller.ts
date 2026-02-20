@@ -27,7 +27,6 @@ import {
   Sse,
   MessageEvent,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
@@ -80,7 +79,7 @@ export class LunaController {
       throw new NotFoundException('Brand not found');
     }
 
-    const { message, conversationId } = query;
+    const { message } = query;
 
     // Construire les messages pour streaming
     // Note: Simplifié pour l'exemple, devrait utiliser le même flow que chat()

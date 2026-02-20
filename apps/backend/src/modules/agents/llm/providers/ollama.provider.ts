@@ -52,7 +52,7 @@ export class OllamaProvider extends BaseLLMProvider {
     );
 
     const data = response.data;
-    const latencyMs = Date.now() - start;
+    const _latencyMs = Date.now() - start;
     const promptTokens = data.prompt_eval_count || 0;
     const completionTokens = data.eval_count || 0;
 

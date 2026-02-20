@@ -4,11 +4,7 @@ import {
   ArgumentMetadata,
   BadRequestException,
 } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const sanitizeHtml = require('sanitize-html') as (
-  html: string,
-  options?: { allowedTags?: string[]; allowedAttributes?: Record<string, unknown> },
-) => string;
+import sanitizeHtml from 'sanitize-html';
 import {
   VISUAL_CUSTOMIZER_LIMITS,
   MODERATION_SETTINGS,
@@ -16,7 +12,7 @@ import {
 
 @Injectable()
 export class TextSanitizationPipe implements PipeTransform {
-  transform(value: unknown, metadata: ArgumentMetadata): string {
+  transform(value: unknown, _metadata: ArgumentMetadata): string {
     if (typeof value !== 'string') {
       throw new BadRequestException('Text must be a string');
     }

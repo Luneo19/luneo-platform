@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const PassportGoogle = require('passport-google-oauth20');
 const Strategy = PassportGoogle.Strategy;
 type VerifyCallback = (error: Error | null, user?: unknown) => void;

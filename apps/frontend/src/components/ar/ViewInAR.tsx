@@ -77,6 +77,7 @@ function ViewInARContent({
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceInfo, usdzModelUrl, glbModelUrl, productId, productName]);
 
   const activateWebXR = useCallback(async () => {

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import type { Configuration3D } from '../types';
+import Image from 'next/image';
 
 interface DesignToolsProps {
   configuration: Configuration3D | null;
@@ -75,11 +76,11 @@ export function DesignTools({ configuration, onUpdate }: DesignToolsProps) {
             <div className="grid grid-cols-2 gap-2 mt-2">
               {configuration.customImages.map((img) => (
                 <div key={img.id} className="relative">
-                  <img
+                  <Image width={200} height={200}
                     src={img.url}
                     alt="Custom"
                     className="w-full h-20 object-cover rounded"
-                  />
+                  unoptimized />
                   <Button
                     variant="destructive"
                     size="sm"

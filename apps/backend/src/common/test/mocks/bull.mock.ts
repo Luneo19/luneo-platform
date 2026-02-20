@@ -4,13 +4,13 @@
 
 import { Injectable } from '@nestjs/common';
 
-export interface MockJob<T = any> {
+export interface MockJob<T = unknown> {
   id: string;
   name: string;
   data: T;
-  opts: any;
+  opts: Record<string, unknown>;
   progress: number;
-  returnvalue: any;
+  returnvalue: unknown;
   stacktrace: string[];
   attemptsMade: number;
   timestamp: number;
@@ -20,13 +20,13 @@ export interface MockJob<T = any> {
 }
 
 @Injectable()
-export class MockBullQueue<T = any> {
+export class MockBullQueue<T = unknown> {
   private jobs: MockJob<T>[] = [];
   private jobIdCounter = 0;
-  private processors: Map<string, (job: MockJob<T>) => Promise<any>> = new Map();
+  private processors: Map<string, (job: MockJob<T>) => Promise<unknown>> = new Map();
   private eventHandlers: Map<string, ((job: MockJob<T>) => void)[]> = new Map();
 
-  async add(name: string, data: T, opts?: any): Promise<MockJob<T>> {
+  async add(name: string, data: T, opts?: Record<string, unknown>): Promise<MockJob<T>> {
     const job: MockJob<T> = {
       id: String(++this.jobIdCounter),
       name,
@@ -48,10 +48,10 @@ export class MockBullQueue<T = any> {
         job.returnvalue = await processor(job);
         job.finishedOn = Date.now();
         this.emit('completed', job);
-      } catch (error: any) {
+      } catch (error: unknown) {
         job.attemptsMade++;
-        job.failedReason = error.message;
-        job.stacktrace.push(error.stack);
+        job.failedReason = error instanceof Error ? error.message : String(error);
+        job.stacktrace.push(error instanceof Error ? (error.stack ?? '') : '');
         this.emit('failed', job);
       }
     }
@@ -59,11 +59,11 @@ export class MockBullQueue<T = any> {
     return job;
   }
 
-  async addBulk(jobs: Array<{ name: string; data: T; opts?: any }>): Promise<MockJob<T>[]> {
+  async addBulk(jobs: Array<{ name: string; data: T; opts?: Record<string, unknown> }>): Promise<MockJob<T>[]> {
     return Promise.all(jobs.map(j => this.add(j.name, j.data, j.opts)));
   }
 
-  process(nameOrProcessor: string | ((job: MockJob<T>) => Promise<any>), processor?: (job: MockJob<T>) => Promise<any>): void {
+  process(nameOrProcessor: string | ((job: MockJob<T>) => Promise<unknown>), processor?: (job: MockJob<T>) => Promise<unknown>): void {
     if (typeof nameOrProcessor === 'function') {
       this.processors.set('*', nameOrProcessor);
     } else {
@@ -86,7 +86,7 @@ export class MockBullQueue<T = any> {
     return this.jobs.find(j => j.id === jobId) || null;
   }
 
-  async getJobs(types?: string[]): Promise<MockJob<T>[]> {
+  async getJobs(_types?: string[]): Promise<MockJob<T>[]> {
     return this.jobs;
   }
 
@@ -104,7 +104,7 @@ export class MockBullQueue<T = any> {
   async pause(): Promise<void> {}
   async resume(): Promise<void> {}
   async close(): Promise<void> {}
-  async clean(grace: number, status?: string): Promise<string[]> {
+  async clean(_grace: number, _status?: string): Promise<string[]> {
     return [];
   }
 
@@ -130,7 +130,7 @@ export class MockBullQueue<T = any> {
 /**
  * Factory pour créer des mock queues
  */
-export function createMockBullQueue<T = any>(): MockBullQueue<T> {
+export function createMockBullQueue<T = unknown>(): MockBullQueue<T> {
   return new MockBullQueue<T>();
 }
 

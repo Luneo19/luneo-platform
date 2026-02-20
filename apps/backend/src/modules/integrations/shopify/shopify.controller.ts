@@ -32,7 +32,7 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
@@ -41,7 +41,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentBrand } from '@/common/decorators/current-brand.decorator';
-import { CurrentUser } from '@/common/types/user.types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';

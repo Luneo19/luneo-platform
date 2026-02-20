@@ -12,7 +12,15 @@ export interface ZoneRule {
   allowNonAscii?: boolean;
 }
 
-export interface ValidationResult {
+export interface ZoneInputValue {
+  text?: string;
+  font?: string;
+  color?: string;
+  pattern?: string;
+  size?: number;
+}
+
+interface ValidationResult {
   valid: boolean;
   errors: Array<{ zoneId: string; error: string }>;
   warnings: Array<{ zoneId: string; warning: string }>;
@@ -57,7 +65,7 @@ export class RulesEngineService {
    */
   async validateZoneInputs(
     productId: string,
-    zoneInputs: Record<string, any>,
+    zoneInputs: Record<string, unknown>,
   ): Promise<ValidationResult> {
     const rules = await this.getProductRules(productId);
     const errors: Array<{ zoneId: string; error: string }> = [];
@@ -65,7 +73,7 @@ export class RulesEngineService {
 
     // Vérifier chaque zone
     for (const rule of rules) {
-      const input = zoneInputs[rule.zoneId];
+      const input = zoneInputs[rule.zoneId] as ZoneInputValue | undefined;
 
       // Si zone requise et input manquant
       if (rule.required && (!input || !input.text)) {
@@ -126,26 +134,27 @@ export class RulesEngineService {
    */
   async applyDefaults(
     productId: string,
-    zoneInputs: Record<string, any>,
-  ): Promise<Record<string, any>> {
+    zoneInputs: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const rules = await this.getProductRules(productId);
-    const normalized: Record<string, any> = { ...zoneInputs };
+    const normalized: Record<string, unknown> = { ...zoneInputs };
 
     for (const rule of rules) {
       if (!normalized[rule.zoneId]) {
         normalized[rule.zoneId] = {};
       }
 
-      const input = normalized[rule.zoneId];
+      const input = normalized[rule.zoneId] as Record<string, unknown>;
       const zone = await this.prisma.zone.findUnique({
         where: { id: rule.zoneId },
         select: { defaultFont: true, defaultColor: true, defaultSize: true },
       });
 
       if (zone) {
-        if (!input.font && zone.defaultFont) normalized[rule.zoneId].font = zone.defaultFont;
-        if (!input.color && zone.defaultColor) normalized[rule.zoneId].color = zone.defaultColor;
-        if (input.size == null && zone.defaultSize != null) normalized[rule.zoneId].size = zone.defaultSize;
+        const out = normalized[rule.zoneId] as Record<string, unknown>;
+        if (!input.font && zone.defaultFont) out.font = zone.defaultFont;
+        if (!input.color && zone.defaultColor) out.color = zone.defaultColor;
+        if (input.size == null && zone.defaultSize != null) out.size = zone.defaultSize;
       }
     }
 

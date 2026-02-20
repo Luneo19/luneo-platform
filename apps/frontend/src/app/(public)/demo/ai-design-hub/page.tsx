@@ -50,6 +50,7 @@ function AIDesignHubDemoPageContent() {
     } finally {
       setIsGenerating(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, variations]);
 
   const handleExport = useCallback((imageUrl: string) => {

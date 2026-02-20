@@ -18,7 +18,7 @@ export class CopyrightCheckerService {
    * TODO: Integrate TinEye or Google Vision reverse image search for production.
    * This check is async and does not block generation.
    */
-  async checkCopyright(imageUrl: string): Promise<CopyrightCheckResult> {
+  async checkCopyright(_imageUrl: string): Promise<CopyrightCheckResult> {
     this.logger.log(
       'Copyright check requested (async, does not block generation). ' +
         'TinEye/Google Vision integration TODO for production.',

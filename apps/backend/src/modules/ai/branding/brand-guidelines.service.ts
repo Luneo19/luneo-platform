@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { InputJsonValue } from '@prisma/client/runtime/library';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export type BrandGuidelinesCreateInput = {
@@ -34,7 +35,7 @@ export class BrandGuidelinesService {
       data: {
         brandId: data.brandId,
         organizationId: data.organizationId,
-        colorPalette: (data.colorPalette ?? []) as any,
+        colorPalette: (data.colorPalette ?? []) as unknown as InputJsonValue,
         primaryColor: data.primaryColor,
         secondaryColor: data.secondaryColor,
         fontFamily: data.fontFamily,
@@ -62,7 +63,7 @@ export class BrandGuidelinesService {
       where: { brandId },
       data: {
         ...(data.organizationId !== undefined && { organizationId: data.organizationId }),
-        ...(data.colorPalette !== undefined && { colorPalette: data.colorPalette as any }),
+        ...(data.colorPalette !== undefined && { colorPalette: data.colorPalette as unknown as InputJsonValue }),
         ...(data.primaryColor !== undefined && { primaryColor: data.primaryColor }),
         ...(data.secondaryColor !== undefined && { secondaryColor: data.secondaryColor }),
         ...(data.fontFamily !== undefined && { fontFamily: data.fontFamily }),

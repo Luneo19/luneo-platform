@@ -15,9 +15,9 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('ProductSyncService', () => {
   let service: ProductSyncService;
-  let prismaService: any; // Use any to allow mock methods
-  let shopifyConnector: any;
-  let woocommerceConnector: any;
+  let prismaService: Record<string, unknown>;
+  let shopifyConnector: Record<string, unknown>;
+  let woocommerceConnector: Record<string, unknown>;
   let magentoConnector: jest.Mocked<MagentoConnector>;
 
   const mockQueue = { add: jest.fn() };
@@ -70,7 +70,7 @@ describe('ProductSyncService', () => {
     });
 
     it('should sync Shopify products', async () => {
-      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration as any);
+      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration);
       shopifyConnector.syncProducts.mockResolvedValue({
         integrationId: 'int-123',
         platform: 'shopify',
@@ -79,7 +79,7 @@ describe('ProductSyncService', () => {
         status: 'SUCCESS',
         itemsProcessed: 5,
         itemsFailed: 0,
-      } as any);
+      } as unknown);
 
       const result = await service.syncProducts({ integrationId: 'int-123' });
 
@@ -92,11 +92,11 @@ describe('ProductSyncService', () => {
       prismaService.ecommerceIntegration.findUnique.mockResolvedValue({
         ...mockIntegration,
         platform: 'woocommerce',
-      } as any);
+      } as unknown);
       woocommerceConnector.syncProducts.mockResolvedValue({
         platform: 'woocommerce',
         itemsProcessed: 3,
-      } as any);
+      } as unknown);
 
       const result = await service.syncProducts({ integrationId: 'int-123' });
 
@@ -108,11 +108,11 @@ describe('ProductSyncService', () => {
       prismaService.ecommerceIntegration.findUnique.mockResolvedValue({
         ...mockIntegration,
         platform: 'magento',
-      } as any);
+      } as unknown);
       magentoConnector.syncProducts.mockResolvedValue({
         platform: 'magento',
         itemsProcessed: 10,
-      } as any);
+      } as unknown);
 
       const result = await service.syncProducts({ integrationId: 'int-123' });
 
@@ -124,7 +124,7 @@ describe('ProductSyncService', () => {
       prismaService.ecommerceIntegration.findUnique.mockResolvedValue({
         ...mockIntegration,
         platform: 'unknown',
-      } as any);
+      } as unknown);
 
       await expect(
         service.syncProducts({ integrationId: 'int-123' })
@@ -132,8 +132,8 @@ describe('ProductSyncService', () => {
     });
 
     it('should update lastSyncAt after successful sync', async () => {
-      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration as any);
-      shopifyConnector.syncProducts.mockResolvedValue({ itemsProcessed: 1 } as any);
+      prismaService.ecommerceIntegration.findUnique.mockResolvedValue(mockIntegration);
+      shopifyConnector.syncProducts.mockResolvedValue({ itemsProcessed: 1 });
 
       await service.syncProducts({ integrationId: 'int-123' });
 

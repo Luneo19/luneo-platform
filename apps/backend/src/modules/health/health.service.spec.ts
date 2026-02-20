@@ -9,9 +9,9 @@ import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 
 describe('HealthService', () => {
   let service: HealthService;
-  let prisma: PrismaService;
-  let redis: RedisOptimizedService;
-  let configService: ConfigService;
+  let _prisma: PrismaService;
+  let _redis: RedisOptimizedService;
+  let _configService: ConfigService;
 
   const mockPrisma = {
     $queryRaw: jest.fn(),

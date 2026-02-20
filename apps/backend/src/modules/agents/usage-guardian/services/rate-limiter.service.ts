@@ -10,7 +10,7 @@
  * - ✅ Logger au lieu de console.log
  */
 
-import { Injectable, Logger, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { LimitsConfigService } from './limits-config.service';
@@ -68,7 +68,7 @@ export class RateLimiterService {
     const cacheKey = `rate_limit:${entityType}:${entityId}:${windowStart.getTime()}`;
 
     // Récupérer le compteur depuis Redis
-    let count = await this.cache.getOrSet<number>(
+    const count = await this.cache.getOrSet<number>(
       cacheKey,
       async () => 0,
       Math.ceil(windowMs / 1000),

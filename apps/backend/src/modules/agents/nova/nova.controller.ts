@@ -104,7 +104,7 @@ export class NovaController {
     @CurrentBrand() brand: { id: string } | null,
     @CurrentUser() user: CurrentUserType,
     @Query('message') message: string,
-    @Query('conversationId') conversationId?: string,
+    @Query('conversationId') _conversationId?: string,
   ): Observable<MessageEvent> {
     const brandId = brand?.id;
     const novaConfig = { provider: LLMProvider.OPENAI, model: LLM_MODELS.openai.GPT4O_MINI };

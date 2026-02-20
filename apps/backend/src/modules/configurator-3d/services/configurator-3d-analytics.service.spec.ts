@@ -9,7 +9,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('Configurator3DAnalyticsService', () => {
   let service: Configurator3DAnalyticsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const brandId = 'brand-1';
   const configurationId = 'cfg-1';

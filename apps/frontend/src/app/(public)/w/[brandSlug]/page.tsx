@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { CartButton } from '@/components/cart/CartDrawer';
 import { logger } from '@/lib/logger';
+import Image from 'next/image';
 
 // ========================================
 // TYPES
@@ -142,11 +143,11 @@ export default function BrandStorefrontPage() {
         <div className="container max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-4 mb-4">
             {brand.logo && (
-              <img
+              <Image width={200} height={200}
                 src={brand.logo}
                 alt={brand.name}
                 className="w-16 h-16 rounded-xl object-cover border-2 border-white/20"
-              />
+              unoptimized />
             )}
             <div>
               <h1 className="text-3xl md:text-4xl font-bold">{brand.name}</h1>
@@ -270,11 +271,11 @@ function ProductCard({ product, brand }: { product: Product; brand: Brand }) {
         {/* Image */}
         <div className="relative aspect-square bg-gray-100 overflow-hidden">
           {imageUrl ? (
-            <img
+            <Image width={200} height={200}
               src={imageUrl}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
+            unoptimized />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300">
               <Box className="w-16 h-16" />
@@ -336,7 +337,7 @@ function ProductListItem({ product, brand }: { product: Product; brand: Brand })
         <CardContent className="flex items-center gap-4 p-4">
           <div className="w-20 h-20 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
             {imageUrl ? (
-              <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
+              <Image src={imageUrl} alt={product.name} className="w-full h-full object-cover" width={200} height={200} unoptimized />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300">
                 <Box className="w-8 h-8" />

@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
 import { CreditsController } from '../credits.controller';
 import { CreditsService } from '@/libs/credits/credits.service';
 import { BillingService } from '@/modules/billing/billing.service';
@@ -45,7 +44,7 @@ describe('CreditsController', () => {
   };
 
   const mockRequest = (user: CurrentUser = currentUser) =>
-    ({ user } as any);
+    ({ user } as unknown);
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -91,7 +90,7 @@ describe('CreditsController', () => {
       mockCreditsService.getTransactionHistory.mockResolvedValue(tx);
       const result = await controller.getTransactions(
         mockRequest(),
-        { limit: 50, offset: 0 } as any,
+        { limit: 50, offset: 0 } as unknown,
       );
       expect(result).toEqual(tx);
       expect(mockCreditsService.getTransactionHistory).toHaveBeenCalledWith(
@@ -112,7 +111,7 @@ describe('CreditsController', () => {
       const result = await controller.checkCredits(mockRequest(), {
         endpoint: 'design.generate',
         amount: 1,
-      } as any);
+      } as unknown);
       expect(result.sufficient).toBe(true);
       expect(mockCreditsService.checkCredits).toHaveBeenCalledWith(
         'user-1',

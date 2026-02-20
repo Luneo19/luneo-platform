@@ -258,8 +258,8 @@ export class CustomizerSessionsController {
     description: 'Session deleted successfully',
   })
   async deleteSession(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserType,
+    @Param('id') _id: string,
+    @CurrentUser() _user: CurrentUserType,
   ) {
     // Sessions are not deleted, they expire naturally
     return;

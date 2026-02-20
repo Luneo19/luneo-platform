@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePresets } from '@/hooks/customizer/usePresets';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface PresetsPanelProps {
   customizerId: string;
@@ -91,11 +92,11 @@ export function PresetsPanel({ customizerId }: PresetsPanelProps) {
                 >
                   {preset.thumbnail ? (
                     <div className="aspect-video relative">
-                      <img
+                      <Image width={200} height={200}
                         src={preset.thumbnail}
                         alt={preset.name}
                         className="w-full h-full object-cover"
-                      />
+                      unoptimized />
                       <div className="absolute top-2 right-2">
                         {preset.id.startsWith('featured') && (
                           <Badge variant="secondary" className="bg-yellow-500">

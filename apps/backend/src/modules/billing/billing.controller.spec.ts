@@ -19,7 +19,7 @@ describe('BillingController', () => {
     ({
       user: userId ? { id: userId, email: 'test@example.com' } : undefined,
       rawBody: Buffer.from('{}'),
-    }) as any;
+    }) as unknown;
 
   beforeEach(async () => {
     const mockBillingService = {
@@ -101,7 +101,7 @@ describe('BillingController', () => {
 
     it('should use default email when not provided', async () => {
       const mockResult = { success: true, sessionId: 'sess_123', url: 'https://checkout.stripe.com/...' };
-      billingService.createCheckoutSession.mockResolvedValue(mockResult as any);
+      billingService.createCheckoutSession.mockResolvedValue(mockResult);
 
       const req = mockRequest('user-456');
       await controller.createCheckoutSession({ planId: 'pro', email: 'user@example.com' }, req);
@@ -126,9 +126,9 @@ describe('BillingController', () => {
         stripeSubscriptionId: 'sub_123',
       };
 
-      billingService.getSubscription.mockResolvedValue(mockSubscription as any);
+      billingService.getSubscription.mockResolvedValue(mockSubscription);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.getSubscription(req);
 
       expect(billingService.getSubscription).toHaveBeenCalledWith('user_123');
@@ -136,9 +136,9 @@ describe('BillingController', () => {
     });
 
     it('should return null when no subscription exists', async () => {
-      billingService.getSubscription.mockResolvedValue(null as any);
+      billingService.getSubscription.mockResolvedValue(null);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.getSubscription(req);
 
       expect(result).toBeNull();
@@ -155,9 +155,9 @@ describe('BillingController', () => {
         pagination: { total: 10, page: 1, limit: 20 },
       };
 
-      billingService.getInvoices.mockResolvedValue(mockInvoices as any);
+      billingService.getInvoices.mockResolvedValue(mockInvoices);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.getInvoices(req, '1', '20');
 
       expect(billingService.getInvoices).toHaveBeenCalledWith('user_123', 1, 20);
@@ -165,9 +165,9 @@ describe('BillingController', () => {
     });
 
     it('should use default pagination values', async () => {
-      billingService.getInvoices.mockResolvedValue({ invoices: [], total: 0 } as any);
+      billingService.getInvoices.mockResolvedValue({ invoices: [], total: 0 });
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       await controller.getInvoices(req, undefined, undefined);
 
       expect(billingService.getInvoices).toHaveBeenCalledWith('user_123', 1, 20);
@@ -183,9 +183,9 @@ describe('BillingController', () => {
         ],
       };
 
-      billingService.getPaymentMethods.mockResolvedValue(mockPaymentMethods as any);
+      billingService.getPaymentMethods.mockResolvedValue(mockPaymentMethods);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.getPaymentMethods(req);
 
       expect(billingService.getPaymentMethods).toHaveBeenCalledWith('user_123');
@@ -201,7 +201,7 @@ describe('BillingController', () => {
       };
       billingService.addPaymentMethod.mockResolvedValue(mockResult);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.addPaymentMethod(req, {
         paymentMethodId: 'pm_123',
         setAsDefault: true,
@@ -222,7 +222,7 @@ describe('BillingController', () => {
       };
       billingService.addPaymentMethod.mockResolvedValue(mockResult);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       await controller.addPaymentMethod(req, { paymentMethodId: 'pm_123' });
 
       expect(billingService.addPaymentMethod).toHaveBeenCalledWith(
@@ -238,7 +238,7 @@ describe('BillingController', () => {
       const mockResult = { message: 'Payment method removed' };
       billingService.removePaymentMethod.mockResolvedValue(mockResult);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.removePaymentMethod(req, 'pm_123');
 
       expect(billingService.removePaymentMethod).toHaveBeenCalledWith(
@@ -249,10 +249,10 @@ describe('BillingController', () => {
     });
 
     it('should throw BadRequestException when ID is missing', async () => {
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       
       await expect(
-        controller.removePaymentMethod(req, undefined as any)
+        controller.removePaymentMethod(req, undefined as unknown)
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -266,7 +266,7 @@ describe('BillingController', () => {
 
       billingService.createCustomerPortalSession.mockResolvedValue(mockResult);
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.createCustomerPortalSession(req);
 
       expect(billingService.createCustomerPortalSession).toHaveBeenCalledWith('user_123');
@@ -278,7 +278,7 @@ describe('BillingController', () => {
         new Error('No Stripe customer found')
       );
 
-      const req = mockRequest('user_123') as any;
+      const req = mockRequest('user_123') as unknown;
       const result = await controller.createCustomerPortalSession(req);
       expect(result).toEqual(expect.objectContaining({ success: false }));
     });
@@ -298,7 +298,7 @@ describe('BillingController', () => {
         webhooks: {
           constructEvent: jest.fn().mockReturnValue(mockStripeEvent),
         },
-      } as any);
+      } as unknown);
     });
 
     afterEach(() => {
@@ -308,24 +308,24 @@ describe('BillingController', () => {
     it('should process webhook successfully', async () => {
       billingService.handleStripeWebhook.mockResolvedValue({ processed: true });
 
-      const req = { rawBody: Buffer.from('{}') } as any;
+      const req = { rawBody: Buffer.from('{}') } as unknown;
       const result = await controller.handleWebhook(req, 'sig_test_123');
 
       expect(result).toEqual({ received: true, processed: true });
     });
 
     it('should throw BadRequestException when signature is missing', async () => {
-      const req = { rawBody: Buffer.from('{}') } as any;
+      const req = { rawBody: Buffer.from('{}') } as unknown;
 
       await expect(
-        controller.handleWebhook(req, undefined as any)
+        controller.handleWebhook(req, undefined as unknown)
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw when webhook secret is not configured', async () => {
       delete process.env.STRIPE_WEBHOOK_SECRET;
 
-      const req = { rawBody: Buffer.from('{}') } as any;
+      const req = { rawBody: Buffer.from('{}') } as unknown;
 
       await expect(
         controller.handleWebhook(req, 'sig_test_123')
@@ -340,9 +340,9 @@ describe('BillingController', () => {
             throw new Error('Invalid signature');
           }),
         },
-      } as any);
+      } as unknown);
 
-      const req = { rawBody: Buffer.from('{}') } as any;
+      const req = { rawBody: Buffer.from('{}') } as unknown;
 
       await expect(
         controller.handleWebhook(req, 'invalid_sig')

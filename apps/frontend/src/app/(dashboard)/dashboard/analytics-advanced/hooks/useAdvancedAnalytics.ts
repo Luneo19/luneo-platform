@@ -23,6 +23,7 @@ export function useAdvancedAnalytics(timeRange: TimeRange) {
 
   useEffect(() => {
     fetchAdvancedData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
   const fetchAdvancedData = async () => {

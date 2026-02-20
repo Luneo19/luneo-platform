@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import * as ExcelJS from 'exceljs';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const PDFDocument = require('pdfkit');
 import { Response } from 'express';
 
@@ -23,9 +23,8 @@ export class AnalyticsExportService {
    * Export analytics data to PDF
    */
   async exportToPDF(options: ExportOptions, res: Response): Promise<void> {
-    const { startDate, endDate, brandId, includeCharts } = options;
+    const { startDate, endDate, brandId, includeCharts: _includeCharts } = options;
 
-    // Create PDF document
     const PDFDoc = PDFDocument as new (opts?: Record<string, unknown>) => {
       pipe: (res: Response) => void;
       fontSize: (n: number) => { text: (s: string, opts?: Record<string, unknown>) => void };

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Image as ImageIcon, Upload, Link, X } from 'lucide-react';
 import { useImage } from '@/hooks/customizer';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Image from 'next/image';
 
 /**
  * ImageTool - Image tool panel with upload, URL input, and recent images
@@ -116,11 +117,11 @@ export function ImageTool() {
                       className="group relative aspect-square cursor-pointer overflow-hidden rounded border"
                       onClick={() => handleRecentImageClick(url)}
                     >
-                      <img
+                      <Image width={200} height={200}
                         src={url}
                         alt={`Recent ${index + 1}`}
                         className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
-                      />
+                      unoptimized />
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 interface AuditEntry {
@@ -42,7 +43,7 @@ export class AuditTrailService {
             agentType: entry.agentType,
             ticketId: entry.ticketId,
             ...entry.metadata,
-          } as any,
+          } as unknown as Prisma.InputJsonValue,
           success: entry.success ?? true,
           timestamp: new Date(),
         },
@@ -112,21 +113,21 @@ export class AuditTrailService {
     if (filters.startDate || filters.endDate) {
       where.timestamp = {};
       if (filters.startDate) {
-        (where.timestamp as any).gte = filters.startDate;
+        (where.timestamp as Record<string, unknown>).gte = filters.startDate;
       }
       if (filters.endDate) {
-        (where.timestamp as any).lte = filters.endDate;
+        (where.timestamp as Record<string, unknown>).lte = filters.endDate;
       }
     }
 
     const [items, total] = await Promise.all([
       this.prisma.auditLog.findMany({
-        where: where as any,
+        where: where as never,
         orderBy: { timestamp: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.auditLog.count({ where: where as any }),
+      this.prisma.auditLog.count({ where: where as never }),
     ]);
 
     return {
@@ -159,7 +160,7 @@ export class AuditTrailService {
       'timestamp',
     ];
     const rows = result.items.map((item) =>
-      headers.map((h) => String((item as any)[h] ?? '')).join(','),
+      headers.map((h) => String((item as Record<string, unknown>)[h] ?? '')).join(','),
     );
 
     return [headers.join(','), ...rows].join('\n');

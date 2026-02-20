@@ -41,10 +41,9 @@ export class TiktokenService {
     completionTokens: number,
     model: string,
   ): number {
-    // Use dynamic import to avoid circular deps
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     let costs: { input: number; output: number } | undefined;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { LLM_COSTS_PER_1K_TOKENS } = require('../../services/llm-provider.enum');
       costs = LLM_COSTS_PER_1K_TOKENS[model];
     } catch {

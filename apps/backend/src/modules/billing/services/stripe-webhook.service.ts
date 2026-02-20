@@ -293,7 +293,7 @@ export class StripeWebhookService {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId || undefined,
             plan: planId,
-            subscriptionPlan: subscriptionPlanEnum as any,
+            subscriptionPlan: subscriptionPlanEnum as SubscriptionPlan,
             subscriptionStatus: subscriptionStatus as SubscriptionStatus,
             trialEndsAt,
             planExpiresAt: currentPeriodEnd,
@@ -548,7 +548,7 @@ export class StripeWebhookService {
       where: { id: brand.id },
       data: {
         plan: 'free',
-        subscriptionPlan: 'FREE' as any,
+        subscriptionPlan: 'FREE' as SubscriptionPlan,
         subscriptionStatus: SubscriptionStatus.CANCELED,
         stripeSubscriptionId: null,
         planExpiresAt: null,
@@ -612,7 +612,7 @@ export class StripeWebhookService {
     const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
     if (owner?.email) {
       const daysLeft = trialEndDate ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
-      const formattedDate = trialEndDate?.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const _formattedDate = trialEndDate?.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
       // Fire-and-forget: don't block webhook processing for email delivery
       this.emailService.sendTrialEndingEmail(owner.email, {
@@ -667,7 +667,7 @@ export class StripeWebhookService {
           const subscriptionId = brand.stripeSubscriptionId
             || (typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id);
 
-          const updateData: Record<string, any> = {
+          const updateData: Record<string, unknown> = {
             subscriptionStatus: 'ACTIVE',
             gracePeriodEndsAt: null,
             readOnlyMode: false,
@@ -689,7 +689,7 @@ export class StripeWebhookService {
                     business: 'BUSINESS', enterprise: 'ENTERPRISE',
                   };
                   updateData.plan = planName;
-                  updateData.subscriptionPlan = (planToEnum[planName] || brand.subscriptionPlan) as any;
+                  updateData.subscriptionPlan = (planToEnum[planName] || brand.subscriptionPlan) as SubscriptionPlan;
                   this.logger.log(`Restoring brand ${brand.id} plan to ${planName} from Stripe subscription after successful payment`);
                 }
               }
@@ -764,7 +764,7 @@ export class StripeWebhookService {
         const owner = brand.users?.find(u => u.role === 'BRAND_ADMIN') || brand.users?.[0];
         if (owner?.email) {
           const amountDue = CurrencyUtils.formatCents(invoice.amount_due || 0, invoice.currency || CurrencyUtils.getDefaultCurrency());
-          const attemptCount = invoice.attempt_count || 1;
+          const _attemptCount = invoice.attempt_count || 1;
           const nextAttempt = invoice.next_payment_attempt ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : null;
 
           // Fire-and-forget: don't block webhook processing for email delivery
@@ -1085,7 +1085,7 @@ export class StripeWebhookService {
           stripeCustomerId: null,
           stripeSubscriptionId: null,
           plan: 'free',
-          subscriptionPlan: 'FREE' as any,
+          subscriptionPlan: 'FREE' as SubscriptionPlan,
           subscriptionStatus: 'CANCELED',
           planExpiresAt: null,
           gracePeriodEndsAt: null,

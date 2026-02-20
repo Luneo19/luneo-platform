@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { QrCode, Copy, Share2 } from 'lucide-react';
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface QRCodeModalProps {
   open: boolean;
@@ -64,7 +65,7 @@ export function QRCodeModal({ open, onClose, qrCodeUrl, shareUrl, modelName }: Q
             <div className="flex justify-center">
               <div className="bg-white p-4 rounded-lg">
                 {/* next/image not needed for data URLs */}
-                <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                <Image src={qrCodeUrl} alt="QR Code" className="w-48 h-48" width={200} height={200} unoptimized />
               </div>
             </div>
           )}

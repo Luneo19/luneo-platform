@@ -107,21 +107,27 @@ export default function CheckoutPage() {
         // Create order via backend API -> get Stripe checkout URL
         const order = await endpoints.orders.create({
           items: items.map((item) => ({
-            productId: item.productId,
-            productName: item.productName,
-            designId: item.designId,
-            customizationId: item.customizationId,
+            product_id: item.productId,
+            design_id: item.designId || undefined,
             quantity: item.quantity,
-            price: item.priceCents,
-            totalPrice: item.totalCents,
+            customization: item.customizationId || undefined,
+            production_notes: '',
             metadata: {
               ...item.metadata,
+              productName: item.productName,
               productImage: item.productImage,
             },
           })),
-          shippingAddress: address,
+          shippingAddress: {
+            name: address.name,
+            street: address.street,
+            city: address.city,
+            postalCode: address.postalCode,
+            country: address.country,
+            phone: address.phone,
+          },
           shippingMethod,
-          customerEmail: address.name, // Will be filled from user session on backend
+          customerEmail: address.name,
           customerName: address.name,
           customerNotes: '',
         }) as { id?: string; checkoutUrl?: string; paymentUrl?: string; error?: string; message?: string };
@@ -155,6 +161,7 @@ export default function CheckoutPage() {
         setIsSubmitting(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [items, address, shippingMethod, clearCart, router, brandId]
   );
 

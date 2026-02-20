@@ -99,6 +99,7 @@ function ArtemisPageContent() {
         toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Impossible de résoudre la menace.', variant: 'destructive' });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [mutate]
   );
 

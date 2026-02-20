@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import Image from 'next/image';
 
 export interface PresenceUser {
   id: string;
@@ -57,11 +58,11 @@ export function PresenceIndicator({
           }}
         >
           {u.avatarUrl ? (
-            <img
+            <Image width={200} height={200}
               src={u.avatarUrl}
               alt={u.name ?? ''}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            unoptimized />
           ) : (
             <span
               style={{

@@ -5,8 +5,6 @@ import {
   PIPELINE_STAGES,
   STAGE_ESTIMATED_HOURS,
   PCE_QUEUES,
-  PCE_EVENTS,
-  type PipelineStageId,
 } from '../pce.constants';
 import { PipelineOrchestratorService } from './pipeline-orchestrator.service';
 import { PCEConfigService } from './pce-config.service';

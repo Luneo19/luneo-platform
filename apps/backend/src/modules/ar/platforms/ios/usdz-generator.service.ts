@@ -6,7 +6,7 @@
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bullmq';
+import { Queue, type JobsOptions } from 'bullmq';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ARConversionStatus } from '@prisma/client';
 
@@ -92,7 +92,7 @@ export class UsdzGeneratorService {
         backoff: { type: 'exponential', delay: 5000 },
         removeOnComplete: 100,
         removeOnFail: 50,
-      } as any,
+      } as JobsOptions,
     );
 
     const fallbackUrl =

@@ -18,7 +18,6 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { StreamableFile } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CurrentUser as CurrentUserType } from '@/common/types/user.types';

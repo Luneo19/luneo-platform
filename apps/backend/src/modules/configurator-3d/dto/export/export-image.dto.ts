@@ -7,7 +7,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export const EXPORT_IMAGE_FORMAT = ['png', 'jpg', 'webp'] as const;
 export type ExportImageFormat = (typeof EXPORT_IMAGE_FORMAT)[number];

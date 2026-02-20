@@ -70,11 +70,11 @@ export interface BulkPricing {
 }
 
 export interface DesignOptions {
-  zones: Record<string, any>;
-  materials?: Record<string, any>;
-  finishes?: Record<string, any>;
+  zones: Record<string, unknown>;
+  materials?: Record<string, unknown>;
+  finishes?: Record<string, unknown>;
   quantity?: number;
-  customizations?: Record<string, any>;
+  customizations?: Record<string, unknown>;
 }
 
 export interface ValidationResult {

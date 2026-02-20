@@ -5,7 +5,7 @@
  */
 
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, Min, Max, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, Min, IsUrl } from 'class-validator';
 
 export class CreateTemplateDto {
   @ApiProperty({ description: 'Template name', example: 'Logo Minimaliste' })

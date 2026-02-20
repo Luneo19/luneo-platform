@@ -195,7 +195,7 @@ describe('AuthService', () => {
     // Re-apply token service defaults (cleared by clearAllMocks in afterEach)
     tokenService.generateTokens.mockResolvedValue({ accessToken: 'access_token', refreshToken: 'refresh_token' });
     tokenService.saveRefreshToken.mockResolvedValue(undefined);
-    tokenService.logout.mockResolvedValue(undefined as any);
+    tokenService.logout.mockResolvedValue(undefined);
     oauthService.revokeProviderTokens.mockResolvedValue(undefined);
 
     // Setup default mocks
@@ -224,17 +224,17 @@ describe('AuthService', () => {
 
     it('should create a new user successfully', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
-      (prismaService.user.create as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.create as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         email: signupDto.email,
         firstName: signupDto.firstName,
         lastName: signupDto.lastName,
         password: 'hashed_password',
         brand: testFixtures.brand,
-      } as any);
-      (prismaService.userQuota.create as any).mockResolvedValue({} as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.userQuota.create as jest.Mock).mockResolvedValue({});
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
 
       // Act
       const result = await service.signup(signupDto);
@@ -250,7 +250,7 @@ describe('AuthService', () => {
 
     it('should throw ConflictException if user already exists', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(testFixtures.user as any);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(testFixtures.user);
 
       // Act & Assert
       await expect(service.signup(signupDto)).rejects.toThrow(ConflictException);
@@ -260,14 +260,14 @@ describe('AuthService', () => {
     it('should verify CAPTCHA token if provided', async () => {
       // Arrange
       const signupWithCaptcha = { ...signupDto, captchaToken: 'valid-captcha-token' };
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
-      (prismaService.user.create as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.create as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
-      } as any);
-      (prismaService.userQuota.create as any).mockResolvedValue({} as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.userQuota.create as jest.Mock).mockResolvedValue({});
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
       captchaService.verifyToken.mockResolvedValue(true);
 
       // Act
@@ -290,7 +290,7 @@ describe('AuthService', () => {
     it('should throw BadRequestException for weak password', async () => {
       // Arrange
       const weakPasswordDto = { ...signupDto, password: 'weak' };
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.signup(weakPasswordDto)).rejects.toThrow(BadRequestException);
@@ -300,7 +300,7 @@ describe('AuthService', () => {
     it('should throw BadRequestException for password without uppercase', async () => {
       // Arrange
       const weakPasswordDto = { ...signupDto, password: 'password123!' };
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.signup(weakPasswordDto)).rejects.toThrow(BadRequestException);
@@ -309,7 +309,7 @@ describe('AuthService', () => {
     it('should throw BadRequestException for password without special character', async () => {
       // Arrange
       const weakPasswordDto = { ...signupDto, password: 'Password123' };
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.signup(weakPasswordDto)).rejects.toThrow(BadRequestException);
@@ -317,14 +317,14 @@ describe('AuthService', () => {
 
     it('should hash password before saving', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
-      (prismaService.user.create as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.create as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
-      } as any);
-      (prismaService.userQuota.create as any).mockResolvedValue({} as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.userQuota.create as jest.Mock).mockResolvedValue({});
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
 
       // Act
       await service.signup(signupDto);
@@ -342,13 +342,13 @@ describe('AuthService', () => {
 
     it('should generate tokens after signup (via TokenService)', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
-      (prismaService.user.create as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.create as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
-      } as any);
-      (prismaService.userQuota.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.userQuota.create as jest.Mock).mockResolvedValue({});
       tokenService.generateTokens.mockResolvedValue({
         accessToken: 'signed_access_token',
         refreshToken: 'signed_refresh_token',
@@ -376,13 +376,13 @@ describe('AuthService', () => {
       delete process.env.SKIP_EMAIL_VERIFICATION;
 
       try {
-        (prismaService.user.findUnique as any).mockResolvedValue(null);
-        (prismaService.user.create as any).mockResolvedValue({
+        (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+        (prismaService.user.create as jest.Mock).mockResolvedValue({
           ...testFixtures.user,
           password: 'hashed_password',
           brand: testFixtures.brand,
-        } as any);
-        (prismaService.userQuota.create as any).mockResolvedValue({} as any);
+        } as unknown);
+        (prismaService.userQuota.create as jest.Mock).mockResolvedValue({});
         (jwtService.signAsync as jest.Mock).mockResolvedValue('verification-token');
 
         await service.signup(signupDto);
@@ -405,14 +405,14 @@ describe('AuthService', () => {
 
     it('should login user with valid credentials', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
         is2FAEnabled: false,
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue(testFixtures.user);
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
       mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
@@ -435,14 +435,14 @@ describe('AuthService', () => {
 
     it('should check brute force protection before login', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
         is2FAEnabled: false,
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue(testFixtures.user);
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
       mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockRejectedValue(new UnauthorizedException('Too many attempts'));
 
@@ -453,7 +453,7 @@ describe('AuthService', () => {
 
     it('should record failed attempt on invalid credentials', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
       // Act & Assert
@@ -463,7 +463,7 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException if user not found', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
       // Act & Assert
@@ -474,10 +474,10 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException if password is invalid', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
-      } as any);
+      } as unknown);
       mockedVerifyPassword.mockResolvedValue({ isValid: false, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
@@ -489,12 +489,12 @@ describe('AuthService', () => {
 
     it('should return temp token if 2FA is enabled', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
         is2FAEnabled: true,
-      } as any);
+      } as unknown);
       mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
       (jwtService.signAsync as jest.Mock).mockResolvedValue('temp-2fa-token');
@@ -510,14 +510,14 @@ describe('AuthService', () => {
 
     it('should update lastLoginAt on successful login', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
         is2FAEnabled: false,
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue(testFixtures.user);
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
       mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
 
@@ -535,14 +535,14 @@ describe('AuthService', () => {
 
     it('should block login when email not verified after 24h grace period', async () => {
       const oldCreatedAt = new Date(Date.now() - (25 * 60 * 60 * 1000)); // 25 hours ago
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'hashed_password',
         brand: testFixtures.brand,
         is2FAEnabled: false,
         emailVerified: false,
         createdAt: oldCreatedAt,
-      } as any);
+      } as unknown);
       mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false });
       bruteForceService.checkAndThrow.mockResolvedValue(undefined);
       (configService.get as jest.Mock).mockImplementation((key: string) =>
@@ -557,10 +557,10 @@ describe('AuthService', () => {
 
   describe('forgotPassword', () => {
     it('should generate reset token and queue email when user exists', async () => {
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         email: 'user@example.com',
-      } as any);
+      } as unknown);
       (jwtService.signAsync as jest.Mock).mockResolvedValue('reset-token-123');
 
       const result = await service.forgotPassword({ email: 'user@example.com' });
@@ -579,7 +579,7 @@ describe('AuthService', () => {
     });
 
     it('should return same message when user does not exist (no email enumeration)', async () => {
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await service.forgotPassword({ email: 'nonexistent@example.com' });
 
@@ -600,7 +600,7 @@ describe('AuthService', () => {
         refreshToken: 'new_refresh_token',
         user: { ...testFixtures.user, role: testFixtures.user.role as UserRole, brand: testFixtures.brand },
       };
-      tokenService.refreshToken.mockResolvedValue(expectedResult as any);
+      tokenService.refreshToken.mockResolvedValue(expectedResult);
 
       const result = await service.refreshToken(refreshTokenDto);
 
@@ -642,7 +642,7 @@ describe('AuthService', () => {
   describe('logout', () => {
     it('should invalidate refresh token and revoke OAuth provider tokens', async () => {
       const userId = testFixtures.user.id;
-      tokenService.logout.mockResolvedValue(undefined as any);
+      tokenService.logout.mockResolvedValue(undefined);
       oauthService.revokeProviderTokens.mockResolvedValue(undefined);
 
       await service.logout(userId);
@@ -664,14 +664,14 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'email-verification', // Tiret au lieu d'underscore
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         emailVerified: false,
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue({
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         emailVerified: true,
-      } as any);
+      } as unknown);
 
       // Act
       const result = await service.verifyEmail(verifyEmailDto);
@@ -702,7 +702,7 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'email-verification', // Tiret au lieu d'underscore
       });
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(NotFoundException);
@@ -722,17 +722,17 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'password-reset',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'old_hashed_password',
-      } as any);
+      } as unknown);
       mockedVerifyPassword.mockResolvedValue({ isValid: false, needsRehash: false }); // New password different
       mockedHashPassword.mockResolvedValue('new_hashed_password');
-      (prismaService.user.update as any).mockResolvedValue({
+      (prismaService.user.update as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'new_hashed_password',
-      } as any);
-      (prismaService.refreshToken.deleteMany as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({});
 
       // Act
       const result = await service.resetPassword(resetPasswordDto);
@@ -752,10 +752,10 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'password-reset',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'old_hashed_password',
-      } as any);
+      } as unknown);
       mockedVerifyPassword.mockResolvedValue({ isValid: true, needsRehash: false }); // Same password
 
       // Act & Assert
@@ -771,10 +771,10 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'password-reset',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'old_hashed_password',
-      } as any);
+      } as unknown);
 
       // Act & Assert
       await expect(service.resetPassword(weakPasswordDto)).rejects.toThrow(BadRequestException);
@@ -786,14 +786,14 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'password-reset',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         password: 'old_hashed_password',
-      } as any);
+      } as unknown);
       mockedVerifyPassword.mockResolvedValue({ isValid: false, needsRehash: false });
       mockedHashPassword.mockResolvedValue('new_hashed_password');
-      (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
-      (prismaService.refreshToken.deleteMany as any).mockResolvedValue({} as any);
+      (prismaService.user.update as jest.Mock).mockResolvedValue(testFixtures.user);
+      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({});
 
       await service.resetPassword(resetPasswordDto);
 
@@ -826,15 +826,15 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'temp-2fa',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         is2FAEnabled: true,
         twoFASecret: 'test-secret',
         backupCodes: [],
         brand: testFixtures.brand,
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue(testFixtures.user);
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
       twoFactorService.verifyToken.mockReturnValue(true);
 
       // Act
@@ -854,12 +854,12 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'temp-2fa',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         is2FAEnabled: true,
         twoFASecret: 'test-secret',
         backupCodes: [],
-      } as any);
+      } as unknown);
       twoFactorService.verifyToken.mockReturnValue(false);
       twoFactorService.validateBackupCode.mockResolvedValue({ isValid: false, matchedIndex: -1 });
 
@@ -874,15 +874,15 @@ describe('AuthService', () => {
         email: testFixtures.user.email,
         type: 'temp-2fa',
       });
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         is2FAEnabled: true,
         twoFASecret: 'test-secret',
         backupCodes: ['BACKUP123'],
         brand: testFixtures.brand,
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue(testFixtures.user as any);
-      (prismaService.refreshToken.create as any).mockResolvedValue({} as any);
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue(testFixtures.user);
+      (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
       twoFactorService.verifyToken.mockReturnValue(false);
       twoFactorService.validateBackupCode.mockResolvedValue({ isValid: true, matchedIndex: 0 });
 
@@ -900,15 +900,15 @@ describe('AuthService', () => {
   describe('setup2FA', () => {
     it('should generate 2FA secret and QR code', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         email: 'test@example.com',
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue({
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         temp2FASecret: 'test-secret',
         backupCodes: ['CODE1', 'CODE2'],
-      } as any);
+      } as unknown);
       twoFactorService.generateSecret.mockReturnValue({
         secret: 'test-secret',
         otpauthUrl: 'otpauth://totp/test',
@@ -929,7 +929,7 @@ describe('AuthService', () => {
 
     it('should throw NotFoundException if user not found', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue(null);
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       // Act & Assert
       await expect(service.setup2FA('invalid-id')).rejects.toThrow(NotFoundException);
@@ -943,16 +943,16 @@ describe('AuthService', () => {
 
     it('should enable 2FA with valid token', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         temp2FASecret: 'test-secret',
         backupCodes: ['CODE1', 'CODE2'],
-      } as any);
-      (prismaService.user.update as any).mockResolvedValue({
+      } as unknown);
+      (prismaService.user.update as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         is2FAEnabled: true,
         twoFASecret: 'test-secret',
-      } as any);
+      } as unknown);
       twoFactorService.verifyToken.mockReturnValue(true);
 
       // Act
@@ -966,10 +966,10 @@ describe('AuthService', () => {
 
     it('should throw BadRequestException if 2FA setup not initiated', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         temp2FASecret: null,
-      } as any);
+      } as unknown);
 
       // Act & Assert
       await expect(service.verifyAndEnable2FA(testFixtures.user.id, verify2FADto)).rejects.toThrow(BadRequestException);
@@ -977,10 +977,10 @@ describe('AuthService', () => {
 
     it('should throw BadRequestException for invalid 2FA code', async () => {
       // Arrange
-      (prismaService.user.findUnique as any).mockResolvedValue({
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({
         ...testFixtures.user,
         temp2FASecret: 'test-secret',
-      } as any);
+      } as unknown);
       twoFactorService.verifyToken.mockReturnValue(false);
 
       // Act & Assert

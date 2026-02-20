@@ -129,7 +129,7 @@ describe('RBACService', () => {
         resource: null,
       };
 
-      const result = await service.authorize(context as any);
+      const result = await service.authorize(context as unknown);
 
       expect(result).toBe(false);
     });
@@ -146,7 +146,7 @@ describe('RBACService', () => {
         resource: null,
       };
 
-      const result = await service.authorize(context as any);
+      const result = await service.authorize(context as unknown);
 
       expect(result).toBe(true);
     });
@@ -163,7 +163,7 @@ describe('RBACService', () => {
         resource: { brandId: 'brand-2' },
       };
 
-      const result = await service.authorize(context as any);
+      const result = await service.authorize(context as unknown);
 
       expect(result).toBe(false);
     });
@@ -182,10 +182,10 @@ describe('RBACService', () => {
         resource: null,
       };
 
-      await expect(service.enforce(context as any)).rejects.toThrow(
+      await expect(service.enforce(context as unknown)).rejects.toThrow(
         ForbiddenException,
       );
-      await expect(service.enforce(context as any)).rejects.toThrow(
+      await expect(service.enforce(context as unknown)).rejects.toThrow(
         "You don't have permission to perform this action",
       );
     });
@@ -202,7 +202,7 @@ describe('RBACService', () => {
         resource: null,
       };
 
-      await expect(service.enforce(context as any)).resolves.not.toThrow();
+      await expect(service.enforce(context as unknown)).resolves.not.toThrow();
     });
   });
 
@@ -296,7 +296,7 @@ describe('RBACService', () => {
         condition: () => true,
       };
 
-      expect(() => service.addAccessRule(rule as any)).not.toThrow();
+      expect(() => service.addAccessRule(rule as unknown)).not.toThrow();
     });
   });
 });

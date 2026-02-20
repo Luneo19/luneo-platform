@@ -57,8 +57,12 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
       this.reflector.get<string[]>(CACHE_TAGS_KEY, controller) ||
       [];
 
-    // Generate cache key
-    const cacheKey = this.generateCacheKey(request, handler, controller);
+    // Generate cache key (handler/controller from Nest are typed as Function/Type)
+    const cacheKey = this.generateCacheKey(
+      request,
+      handler as (...args: unknown[]) => unknown,
+      controller as unknown as (...args: unknown[]) => unknown,
+    );
 
     // Try to get from cache
     try {
@@ -90,8 +94,8 @@ export class EnhancedCacheableInterceptor implements NestInterceptor {
 
   private generateCacheKey(
     request: { method?: string; path?: string; query?: Record<string, unknown>; params?: Record<string, unknown>; user?: { id?: string; brandId?: string } },
-    handler: Function,
-    controller: Function,
+    handler: (...args: unknown[]) => unknown,
+    _controller: (...args: unknown[]) => unknown,
   ): string {
     const method = request.method;
     const path = request.path;

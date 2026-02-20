@@ -13,7 +13,7 @@ import { CONFIGURATOR_3D_LIMITS } from '../configurator-3d.constants';
 
 describe('Configurator3DRulesService', () => {
   let service: Configurator3DRulesService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const configurationId = 'cfg-1';
   const brandId = 'brand-1';
@@ -359,7 +359,7 @@ describe('Configurator3DRulesService', () => {
 
     it('unknown type should return false', () => {
       expect(
-        service.evaluateCondition({ type: 'UNKNOWN' as any, componentId: 'c1' }, { c1: 'opt1' }),
+        service.evaluateCondition({ type: 'UNKNOWN' as unknown, componentId: 'c1' }, { c1: 'opt1' }),
       ).toBe(false);
     });
   });
@@ -383,7 +383,7 @@ describe('Configurator3DRulesService', () => {
     });
 
     it('unknown action type should return applied false', () => {
-      const result = service.executeAction({ type: 'UNKNOWN' as any }, {});
+      const result = service.executeAction({ type: 'UNKNOWN' as unknown }, {});
       expect(result.applied).toBe(false);
     });
   });
@@ -406,7 +406,7 @@ describe('Configurator3DRulesService', () => {
 
       const result = await service.validate(configurationId, {
         selections: { c1: 'opt1', c2: 123 },
-      } as any);
+      } as unknown);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);

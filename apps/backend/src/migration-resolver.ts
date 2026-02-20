@@ -1,8 +1,7 @@
 import { Logger } from '@nestjs/common';
-
-const execSync = require('child_process').execSync;
-const path = require('path');
-const fs = require('fs');
+import { execSync } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * Runs database migrations (prisma migrate deploy) and resolves common issues

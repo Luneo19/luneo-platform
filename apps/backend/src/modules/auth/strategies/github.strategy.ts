@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const Strategy = require('passport-github2');
 import { ConfigService } from '@nestjs/config';
 import { OAuthService, OAuthUser } from '../services/oauth.service';

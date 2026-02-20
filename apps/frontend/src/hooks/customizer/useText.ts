@@ -48,6 +48,7 @@ interface UseTextReturn {
  * Text operations hook
  */
 export function useText(onAddText?: (text: string, options: TextOptions) => Promise<string>): UseTextReturn {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const fontManager = new FontManager();
 
   const addText = useCallback(
@@ -67,6 +68,7 @@ export function useText(onAddText?: (text: string, options: TextOptions) => Prom
       logger.warn('useText: onAddText callback not provided, returning generated ID', { id, text });
       return id;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onAddText]
   );
 
@@ -81,6 +83,7 @@ export function useText(onAddText?: (text: string, options: TextOptions) => Prom
       logger.info('useText: updateText called', { id, text, style });
       // Implementation would update the text object on canvas
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 

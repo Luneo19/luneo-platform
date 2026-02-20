@@ -61,7 +61,7 @@ export class OpenAIProvider extends BaseLLMProvider {
       }
 
       const params = this.buildParams(request);
-      let totalContent = '';
+      let _totalContent = '';
 
       (async () => {
         try {
@@ -76,7 +76,7 @@ export class OpenAIProvider extends BaseLLMProvider {
             const finishReason = chunk.choices?.[0]?.finish_reason;
 
             if (delta?.content) {
-              totalContent += delta.content;
+              _totalContent += delta.content;
               subscriber.next({ type: 'content', content: delta.content });
             }
 

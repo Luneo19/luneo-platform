@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { UserRole } from '@prisma/client';
@@ -40,7 +41,7 @@ export class TokenService {
    * Generate access and refresh tokens
    */
   async generateTokens(userId: string, email: string, role: UserRole) {
-    const payload = { sub: userId, email, role };
+    const payload = { sub: userId, email, role, jti: randomUUID() };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
@@ -157,7 +158,7 @@ export class TokenService {
       if (!secret) {
         throw new UnauthorizedException('Refresh token configuration missing');
       }
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
+      const _payload = await this.jwtService.verifyAsync(refreshToken, {
         secret,
       });
 

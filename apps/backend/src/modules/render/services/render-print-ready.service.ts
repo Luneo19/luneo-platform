@@ -9,6 +9,7 @@ type CanvasRenderingContext2D = import('canvas').CanvasRenderingContext2D;
 type CanvasTextAlign = import('canvas').CanvasTextAlign;
 type Image = import('canvas').Image;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const canvasModule = require('canvas');
   createCanvas = canvasModule.createCanvas;
   loadImage = canvasModule.loadImage;

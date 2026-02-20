@@ -91,6 +91,7 @@ function EditorToolbar({
           <Type className="h-4 w-4" aria-hidden />
         </Button>
         <Button variant="ghost" size="sm" onClick={onAddImage} aria-label="Ajouter une image">
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image className="h-4 w-4" aria-hidden />
         </Button>
         <Button variant="ghost" size="sm" onClick={() => onAddShape('rect')} aria-label="Ajouter un rectangle">

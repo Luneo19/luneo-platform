@@ -24,11 +24,11 @@ describeIntegration('Raw HTTP Test', () => {
     });
 
     await new Promise<void>(resolve => server.listen(0, resolve));
-    const port = (server.address() as any).port;
+    const port = (server.address() as unknown).port;
     console.log('[TEST] Server listening on port:', port);
 
     // Make request
-    const response = await new Promise<{ status: number; body: any }>((resolve, reject) => {
+    const response = await new Promise<{ status: number; body: unknown }>((resolve, reject) => {
       const req = http.request({
         hostname: 'localhost',
         port,

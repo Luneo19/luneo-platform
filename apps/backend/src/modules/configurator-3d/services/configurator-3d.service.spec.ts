@@ -9,16 +9,16 @@ import {
 } from '@nestjs/common';
 import { ConfiguratorStatus, ConfiguratorType } from '@prisma/client';
 import { Configurator3DService } from './configurator-3d.service';
-import type { FindAllConfigParams, CreateConfigDto, UpdateConfigDto } from './configurator-3d.service';
+import type { CreateConfigDto, UpdateConfigDto } from './configurator-3d.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Configurator3DValidationService } from './configurator-3d-validation.service';
 import { Configurator3DCacheService } from './configurator-3d-cache.service';
 
 describe('Configurator3DService', () => {
   let service: Configurator3DService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
   let validationService: Configurator3DValidationService;
-  let cacheService: Configurator3DCacheService;
+  let _cacheService: Configurator3DCacheService;
 
   const brandId = 'brand-1';
   const configId = 'cfg-1';
@@ -281,7 +281,7 @@ describe('Configurator3DService', () => {
       const created = { id: configId, brandId, name: dto.name, slug: 'config-xyz', createdById: 'user-1' };
       mockPrisma.configurator3DConfiguration.create.mockResolvedValue(created);
 
-      await service.create(brandId, dto, { id: 'user-1' } as any);
+      await service.create(brandId, dto, { id: 'user-1' } as unknown);
 
       expect(mockPrisma.configurator3DConfiguration.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ createdById: 'user-1' }),
@@ -363,7 +363,7 @@ describe('Configurator3DService', () => {
       mockPrisma.configurator3DConfiguration.findFirst.mockResolvedValue(source);
       const newConfig = { id: 'cfg-2', brandId, name: 'Cloned', slug: 'cloned-xyz' };
       const newComp = { id: 'comp-2' };
-      mockPrisma.$transaction.mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+      mockPrisma.$transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           configurator3DConfiguration: { create: jest.fn().mockResolvedValue(newConfig) },
           configurator3DComponent: { create: jest.fn().mockResolvedValue(newComp) },

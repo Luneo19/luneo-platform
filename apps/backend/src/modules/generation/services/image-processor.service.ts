@@ -172,7 +172,7 @@ export class ImageProcessorService {
           .toBuffer();
       }
 
-      const composites: Array<{ input: Buffer; left: number; top: number }> = [];
+      const _composites: Array<{ input: Buffer; left: number; top: number }> = [];
       let currentBase = baseImage;
 
       for (const zone of customizationZones) {

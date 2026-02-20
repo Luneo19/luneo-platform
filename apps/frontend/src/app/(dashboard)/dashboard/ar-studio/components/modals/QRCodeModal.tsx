@@ -17,6 +17,7 @@ import { Download, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import type { ARModel } from '../../types';
+import Image from 'next/image';
 
 interface QRCodeModalProps {
   open: boolean;
@@ -71,7 +72,7 @@ export function QRCodeModal({ open, onOpenChange, model }: QRCodeModalProps) {
             <div className="flex justify-center">
               <div className="p-4 bg-white rounded-lg">
                 {/* next/image not needed for data URLs */}
-                <img src={qrCodeUrl} alt="QR Code AR" className="w-64 h-64" />
+                <Image src={qrCodeUrl} alt="QR Code AR" className="w-64 h-64" width={200} height={200} unoptimized />
               </div>
             </div>
           )}

@@ -307,6 +307,7 @@ function ZakekeStyleNavContent() {
         </motion.div>
       )}
     </AnimatePresence>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [activeMenu, handleMenuLinkClick]);
 
   return (

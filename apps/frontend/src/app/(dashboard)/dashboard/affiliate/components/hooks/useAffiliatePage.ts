@@ -2,7 +2,7 @@
 
 import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
@@ -28,6 +28,10 @@ const initialStats: AffiliateStats = {
 export function useAffiliatePage() {
   const { t } = useI18n();
   const { toast } = useToast();
+  const tRef = useRef(t);
+  tRef.current = t;
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [showCreateLinkModal, setShowCreateLinkModal] = useState(false);
@@ -122,15 +126,15 @@ export function useAffiliatePage() {
       setCommissions(mappedCommissions);
     } catch (error: unknown) {
       logger.error('Error fetching affiliate data', { error });
-      toast({
-        title: t('common.error'),
+      toastRef.current({
+        title: tRef.current('common.error'),
         description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [toast, t]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -139,17 +143,16 @@ export function useAffiliatePage() {
   const handleCopyLink = useCallback(
     (link: AffiliateLink) => {
       navigator.clipboard.writeText(link.url);
-      toast({
-        title: t('affiliate.linkCopied'),
-        description: t('common.copied'),
+      toastRef.current({
+        title: tRef.current('affiliate.linkCopied'),
+        description: tRef.current('common.copied'),
       });
     },
-    [t, toast]
+    []
   );
 
   const handleCreateLink = useCallback(async () => {
     try {
-      // Refresh stats which auto-creates the referral code if needed
       const data = await endpoints.referral.stats();
       const raw = data as Record<string, unknown>;
       const referralCode = (raw.referralCode as string) || '';
@@ -159,43 +162,41 @@ export function useAffiliatePage() {
         await navigator.clipboard.writeText(referralLink);
       }
 
-      toast({
-        title: t('affiliate.linkCopied'),
-        description: referralLink || t('affiliate.createLink'),
+      toastRef.current({
+        title: tRef.current('affiliate.linkCopied'),
+        description: referralLink || tRef.current('affiliate.createLink'),
       });
 
-      // Refresh all data to update the UI
       await fetchData();
       setShowCreateLinkModal(false);
     } catch (error: unknown) {
       logger.error('Error creating affiliate link', { error });
-      toast({
-        title: t('common.error'),
+      toastRef.current({
+        title: tRef.current('common.error'),
         description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
-  }, [toast, t, fetchData]);
+  }, [fetchData]);
 
   const handleRequestPayout = useCallback(async () => {
     try {
       await endpoints.referral.withdraw();
-      toast({
-        title: t('common.success'),
-        description: t('affiliate.payoutRequested'),
+      toastRef.current({
+        title: tRef.current('common.success'),
+        description: tRef.current('affiliate.payoutRequested'),
       });
       setShowPayoutModal(false);
-      // Refresh data
       fetchData();
     } catch (error: unknown) {
       logger.error('Error requesting payout', { error });
-      toast({
-        title: t('common.error'),
+      toastRef.current({
+        title: tRef.current('common.error'),
         description: getErrorDisplayMessage(error),
         variant: 'destructive',
       });
     }
-  }, [toast, t, fetchData]);
+  }, [fetchData]);
 
   return {
     loading,

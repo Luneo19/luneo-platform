@@ -16,6 +16,10 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ModelTrainerService } from './model-trainer.service';
 import { DatasetManagerService } from './dataset-manager.service';
 
+interface AuthenticatedRequest extends Request {
+  user: { id: string; brandId?: string; organizationId?: string };
+}
+
 @ApiTags('AI Studio - Fine-Tuning')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -42,7 +46,7 @@ export class FineTuningController {
       trainingSteps?: number;
       learningRate?: number;
     },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.trainerService.startTraining({
       organizationId: req.user.organizationId || req.user.id,
@@ -52,13 +56,13 @@ export class FineTuningController {
 
   @Get('models')
   @ApiOperation({ summary: 'List fine-tuned models' })
-  async listModels(@Req() req: any, @Query('brandId') brandId?: string) {
+  async listModels(@Req() req: AuthenticatedRequest, @Query('brandId') brandId?: string) {
     return this.trainerService.listModels(req.user.organizationId || req.user.id, brandId);
   }
 
   @Get('models/:id')
   @ApiOperation({ summary: 'Get fine-tuned model details' })
-  async getModel(@Param('id') id: string, @Req() req: any) {
+  async getModel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.trainerService.getModel(id, req.user.organizationId || req.user.id);
   }
 
@@ -71,7 +75,7 @@ export class FineTuningController {
   @Delete('models/:id')
   @ApiOperation({ summary: 'Archive a fine-tuned model' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteModel(@Param('id') id: string, @Req() req: any) {
+  async deleteModel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.trainerService.deleteModel(id, req.user.organizationId || req.user.id);
   }
 

@@ -3,7 +3,7 @@
  * Tests pour le rate limiting avec sliding window
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 import { SlidingWindowRateLimitService } from './sliding-window.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { createTestingModule } from '@/common/test/test-setup';
@@ -38,7 +38,7 @@ describe('SlidingWindowRateLimitService', () => {
     redisService = module.get(RedisOptimizedService);
     // Mock getRedis to return the client, and client property to return redisClient
     (redisService.getRedis as jest.Mock).mockReturnValue(redisClient);
-    (redisService as any).client = redisClient;
+    (redisService as unknown).client = redisClient;
   });
 
   afterEach(() => {

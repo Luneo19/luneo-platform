@@ -36,7 +36,7 @@ export class EnqueueRenderDto {
   @ApiProperty({ description: 'Render options', required: false })
   @IsObject()
   @IsOptional()
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 

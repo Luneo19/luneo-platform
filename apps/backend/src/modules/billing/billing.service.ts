@@ -1487,7 +1487,7 @@ export class BillingService {
 
       // Vérifier s'il y a cancel_at_period_end configuré (ancienne méthode)
       if (subscription.cancel_at_period_end) {
-        const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+        const _updatedSubscription = await stripe.subscriptions.update(subscription.id, {
           cancel_at_period_end: false,
         });
 
@@ -1565,7 +1565,7 @@ export class BillingService {
           data: {
             subscriptionStatus: 'CANCELED',
             plan: 'free',
-            subscriptionPlan: 'FREE' as any,
+            subscriptionPlan: 'FREE' as SubscriptionPlan,
             stripeSubscriptionId: null,
             planExpiresAt: null,
             whiteLabel: false,
@@ -1916,7 +1916,7 @@ export class BillingService {
         data: {
           subscriptionStatus: newStatus as SubscriptionStatus,
           plan: planName.toLowerCase(),
-          subscriptionPlan: (planToEnum[planName.toLowerCase()] || 'FREE') as any,
+          subscriptionPlan: (planToEnum[planName.toLowerCase()] || 'FREE') as SubscriptionPlan,
           planExpiresAt,
         },
       });

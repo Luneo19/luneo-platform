@@ -124,8 +124,8 @@ export class ZoneConstraints {
     const zoneBounds = this.getZoneBounds(zone);
     const nodeBox = node.getClientRect();
 
-    let x = Math.max(zoneBounds.x, nodeBox.x);
-    let y = Math.max(zoneBounds.y, nodeBox.y);
+    const x = Math.max(zoneBounds.x, nodeBox.x);
+    const y = Math.max(zoneBounds.y, nodeBox.y);
     let width = Math.min(zoneBounds.width, nodeBox.width);
     let height = Math.min(zoneBounds.height, nodeBox.height);
 

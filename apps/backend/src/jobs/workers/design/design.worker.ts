@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { AIOrchestratorService, RoutingStrategy } from '@/libs/ai/ai-orchestrator.service';
 import { PromptTemplatesService } from '@/libs/ai/prompt-templates.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
@@ -90,7 +91,7 @@ export class DesignWorker {
 
   @Process('generate-design')
   async generateDesign(job: Job<DesignJobData>) {
-    const { designId, productId, brandId, userId, prompt, options, rules, priority } = job.data;
+    const { designId, productId, brandId, userId, prompt, options, rules, priority: _priority } = job.data;
     const startTime = Date.now();
 
     // Timeout: 30 secondes pour génération design
@@ -170,7 +171,7 @@ export class DesignWorker {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       clearTimeout(timeout);
       this.logger.error(`Design generation failed for ${designId}:`, error);
@@ -233,7 +234,7 @@ export class DesignWorker {
 
   @Process('optimize-design')
   async optimizeDesign(job: Job<DesignJobData>) {
-    const { designId, productId, options } = job.data;
+    const { designId, productId: _productId, options } = job.data;
 
     try {
       this.logger.log(`Optimizing design ${designId}`);
@@ -310,7 +311,7 @@ export class DesignWorker {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.warn(`Moderation API failed, allowing prompt: ${errorMessage}`);
       return {
@@ -586,7 +587,6 @@ export class DesignWorker {
 
     // Fallback response when APIs are not configured
     this.logger.warn('No AI API configured or available, returning placeholder');
-    const crypto = require('crypto');
     return {
       images: [{
         url: '/images/placeholder-generated.png',

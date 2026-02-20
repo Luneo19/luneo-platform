@@ -8,7 +8,6 @@ import {
   IsNumber,
   IsArray,
   IsEnum,
-  IsUrl,
   IsBoolean,
   Min,
   Max,

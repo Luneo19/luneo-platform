@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
+import Image from 'next/image';
 
 // ========================================
 // TYPES
@@ -89,6 +90,7 @@ export function AIGenerationPanel({
   useEffect(() => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       if (abortRef.current) abortRef.current.abort();
     };
   }, []);
@@ -146,6 +148,7 @@ export function AIGenerationPanel({
       onError?.(msg);
       logger.error('AI generation failed', { error, productId });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, effect, style, productId, onError]);
 
   const startPolling = useCallback(
@@ -327,11 +330,11 @@ export function AIGenerationPanel({
         {/* Preview */}
         {previewUrl && (
           <div className="relative rounded-lg overflow-hidden border bg-gray-50">
-            <img
+            <Image width={200} height={200}
               src={previewUrl}
               alt="Aperçu IA"
               className="w-full h-auto max-h-[300px] object-contain"
-            />
+            unoptimized />
             <div className="absolute top-2 right-2 flex gap-1">
               <Button
                 size="sm"

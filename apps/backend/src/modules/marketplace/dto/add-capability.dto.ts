@@ -15,7 +15,7 @@ export class AddCapabilityDto {
   @ApiPropertyOptional({ description: 'Additional options' })
   @IsObject()
   @IsOptional()
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 

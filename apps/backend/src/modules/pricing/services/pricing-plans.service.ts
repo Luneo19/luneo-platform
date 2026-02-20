@@ -374,7 +374,7 @@ export class PricingPlansService {
         }
 
         // ✅ Calculer le prix avec remises volume
-        let unitPriceCents = addOn.basePriceCents;
+        const unitPriceCents = addOn.basePriceCents;
         let discountPercent = 0;
 
         if (options.applyDiscounts !== false && addOn.bulkDiscounts) {

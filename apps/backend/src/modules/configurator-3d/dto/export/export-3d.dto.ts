@@ -1,5 +1,5 @@
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export const EXPORT_3D_FORMAT = ['gltf', 'glb', 'obj', 'fbx', 'stl'] as const;
 export type Export3DFormat = (typeof EXPORT_3D_FORMAT)[number];

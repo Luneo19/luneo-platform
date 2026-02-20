@@ -99,8 +99,8 @@ describe('WooCommerceService', () => {
   describe('handleWebhook', () => {
     it('should process events', async () => {
       (prisma.ecommerceIntegration.findMany as jest.Mock).mockResolvedValue([{ id: 'int-1', platform: 'woocommerce', status: 'active' }]);
-      const mockWebhook = (await import('../woocommerce.service')).WooCommerceService;
-      const webhookSvc = (await import('@/modules/ecommerce/services/woocommerce-webhook.service')).WooCommerceWebhookService;
+      const _mockWebhook = (await import('../woocommerce.service')).WooCommerceService;
+      const _webhookSvc = (await import('@/modules/ecommerce/services/woocommerce-webhook.service')).WooCommerceWebhookService;
       await service.handleWebhook('order.created', { id: 123, status: 'pending' });
       expect(prisma.ecommerceIntegration.findMany).toHaveBeenCalled();
     });

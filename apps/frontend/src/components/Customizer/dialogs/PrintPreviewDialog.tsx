@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface PrintPreviewDialogProps {
   open: boolean;
@@ -107,11 +108,11 @@ export function PrintPreviewDialog({
 
               {/* Preview Content */}
               {previewUrl ? (
-                <img
+                <Image width={200} height={200}
                   src={previewUrl}
                   alt="Print preview"
                   className="w-full h-auto"
-                />
+                unoptimized />
               ) : (
                 <div className="w-full h-[600px] flex items-center justify-center bg-white text-muted-foreground">
                   Preview not available

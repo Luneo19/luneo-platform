@@ -12,6 +12,7 @@ import { MoreVertical, Plus, Edit2, Trash2, Eye, EyeOff, Star, StarOff } from 'l
 import type { CustomizerPreset } from '@/stores/customizer';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
+import Image from 'next/image';
 
 interface PresetsManagerProps {
   customizerId: string;
@@ -35,7 +36,7 @@ export function PresetsManager({ customizerId, presets, onPresetUpdate }: Preset
     if (!confirm('Are you sure you want to delete this preset?')) return;
 
     try {
-      await api.delete(`/api/v1/customizer/configurations/${customizerId}/presets/${presetId}`);
+      await api.delete(`/api/v1/visual-customizer/customizers/${customizerId}/presets/${presetId}`);
       onPresetUpdate?.();
     } catch (err) {
       logger.error('Failed to delete preset', { error: err });
@@ -44,7 +45,7 @@ export function PresetsManager({ customizerId, presets, onPresetUpdate }: Preset
 
   const handleTogglePublic = async (presetId: string, isPublic: boolean) => {
     try {
-      await api.patch(`/api/v1/customizer/configurations/${customizerId}/presets/${presetId}`, {
+      await api.patch(`/api/v1/visual-customizer/customizers/${customizerId}/presets/${presetId}`, {
         isPublic: !isPublic,
       });
       onPresetUpdate?.();
@@ -55,7 +56,7 @@ export function PresetsManager({ customizerId, presets, onPresetUpdate }: Preset
 
   const handleToggleFeatured = async (presetId: string, isFeatured: boolean) => {
     try {
-      await api.patch(`/api/v1/customizer/configurations/${customizerId}/presets/${presetId}`, {
+      await api.patch(`/api/v1/visual-customizer/customizers/${customizerId}/presets/${presetId}`, {
         isFeatured: !isFeatured,
       });
       onPresetUpdate?.();
@@ -140,11 +141,11 @@ export function PresetsManager({ customizerId, presets, onPresetUpdate }: Preset
             <CardContent>
               <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
                 {preset.thumbnail ? (
-                  <img
+                  <Image width={200} height={200}
                     src={preset.thumbnail}
                     alt={preset.name}
                     className="w-full h-full object-cover"
-                  />
+                  unoptimized />
                 ) : (
                   <div className="text-muted-foreground text-sm">No thumbnail</div>
                 )}

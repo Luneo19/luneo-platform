@@ -66,6 +66,7 @@ export function useOrders(params?: {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.page, params?.limit, params?.status, params?.search]);
 
   useEffect(() => {

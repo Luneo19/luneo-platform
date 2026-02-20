@@ -112,7 +112,7 @@ describe('OrionService', () => {
 
   describe('seedAgents', () => {
     it('should upsert default ORION agents', async () => {
-      mockPrisma.$transaction.mockImplementation((arg: any) =>
+      mockPrisma.$transaction.mockImplementation((arg: unknown) =>
         Array.isArray(arg) ? Promise.all(arg) : arg,
       );
       mockPrisma.orionAgent.upsert.mockResolvedValue({});

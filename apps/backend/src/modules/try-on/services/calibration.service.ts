@@ -67,7 +67,7 @@ export class CalibrationService {
    */
   async getRecommendation(
     deviceType: string,
-    cameraResolution?: string,
+    _cameraResolution?: string,
   ): Promise<CalibrationRecommendation> {
     // Query recent sessions with calibration data from similar devices
     const recentSessions = await this.prisma.tryOnSession.findMany({

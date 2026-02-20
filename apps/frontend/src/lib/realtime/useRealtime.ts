@@ -141,6 +141,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
         error: 'Failed to connect',
       }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.enabled, channels]);
 
   // Disconnect

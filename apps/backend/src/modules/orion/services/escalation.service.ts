@@ -1,6 +1,6 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { EscalationLevel } from '@prisma/client';
+import { EscalationLevel, Prisma } from '@prisma/client';
 
 @Injectable()
 export class EscalationService {
@@ -79,7 +79,7 @@ export class EscalationService {
         name: data.name,
         fromLevel: data.fromLevel,
         toLevel: data.toLevel,
-        conditions: data.conditions as any,
+        conditions: data.conditions as unknown as Prisma.InputJsonValue,
         timeoutMin: data.timeoutMin || 60,
       },
     });
@@ -99,7 +99,7 @@ export class EscalationService {
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.conditions !== undefined
-          ? { conditions: data.conditions as any }
+          ? { conditions: data.conditions as unknown as Prisma.InputJsonValue }
           : {}),
         ...(data.timeoutMin !== undefined
           ? { timeoutMin: data.timeoutMin }
@@ -115,7 +115,7 @@ export class EscalationService {
     });
 
     for (const rule of rules) {
-      const conditions = rule.conditions as any;
+      const conditions = rule.conditions as Record<string, unknown>;
 
       if (conditions.timeoutBased) {
         const staleTickets = await this.prisma.ticket.findMany({

@@ -128,7 +128,7 @@ describe('ArCollaborationService', () => {
         description: 'Desc',
         modelIds: ['m1'],
         permissions: { canEdit: true, canDelete: true, canInvite: true, canComment: true },
-      } as any);
+      } as unknown);
 
       expect(result.name).toBe('New Project');
       expect(result.members).toHaveLength(1);
@@ -155,7 +155,7 @@ describe('ArCollaborationService', () => {
           description: undefined,
           modelIds: [],
           permissions: { canEdit: false, canDelete: false, canInvite: false, canComment: true },
-        } as any),
+        } as unknown),
       ).rejects.toThrow(NotFoundException);
     });
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { endpoints } from '@/lib/api/client';
@@ -61,6 +61,8 @@ function normalizeTransaction(raw: Record<string, unknown>): CreditTransaction {
 export function useCreditsPage() {
   const { toast } = useToast();
   const { t } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creditPacks, setCreditPacks] = useState<CreditPack[]>([]);
@@ -89,28 +91,28 @@ export function useCreditsPage() {
     } catch (err) {
       logger.error('Failed to fetch credit packs', err);
       setCreditPacks([]);
-      setError(err instanceof Error ? err.message : t('credits.errorLoadPacks'));
+      setError(err instanceof Error ? err.message : tRef.current('credits.errorLoadPacks'));
       return [];
     }
-  }, [t]);
+  }, []);
 
   const fetchTransactions = useCallback(async () => {
     try {
       const response = await endpoints.credits.transactions({ limit: 100, offset: 0 });
       const data = response as { transactions?: unknown[] };
       const list = data?.transactions ?? [];
-      const normalized = (Array.isArray(list) ? list : []).map((t) =>
-        normalizeTransaction(t as Record<string, unknown>)
+      const normalized = (Array.isArray(list) ? list : []).map((tx) =>
+        normalizeTransaction(tx as Record<string, unknown>)
       );
       setTransactions(normalized);
       return normalized;
     } catch (err) {
       logger.error('Failed to fetch transactions', err);
       setTransactions([]);
-      setError(err instanceof Error ? err.message : t('credits.errorLoadHistory'));
+      setError(err instanceof Error ? err.message : tRef.current('credits.errorLoadHistory'));
       return [];
     }
-  }, [t]);
+  }, []);
 
   const fetchBalance = useCallback(async () => {
     try {
@@ -225,6 +227,7 @@ export function useCreditsPage() {
     setAutoRefillEnabled(true);
     setShowAutoRefillModal(false);
     toast({ title: t('common.success'), description: t('credits.autoRefillEnabledSuccess') });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefillPack, toast]);
 
   return {

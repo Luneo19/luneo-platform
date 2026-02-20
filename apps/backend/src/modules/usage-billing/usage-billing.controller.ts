@@ -44,7 +44,7 @@ export class UsageBillingController {
       brandId: string;
       metric: UsageMetricType;
       value?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     },
   ) {
     return this.meteringService.recordUsage(

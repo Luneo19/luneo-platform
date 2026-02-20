@@ -120,6 +120,7 @@ function SettingsPageContent() {
         variant: 'destructive',
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileQuery.data, profileQuery.isLoading, profileQuery.isError, profileQuery.error, toast]);
 
   const [security, setSecurity] = useState<SecuritySettings>({
@@ -201,6 +202,7 @@ function SettingsPageContent() {
       }
     );
     setPasswords({ current: '', new: '', confirm: '' });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passwords, changePasswordMutation, toast]);
 
   const handleToggle2FA = async () => {

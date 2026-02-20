@@ -22,7 +22,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { BRAND_SCOPED_KEY } from '../decorators/brand-scoped.decorator';
 import { CurrentUser } from '../types/user.types';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 

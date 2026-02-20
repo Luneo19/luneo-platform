@@ -28,7 +28,7 @@ export class ManufacturingController {
   @ApiResponse({ status: 201, description: 'Export pack generated' })
   async generateExportPack(
     @Body() dto: GenerateExportPackDto,
-    @Request() req: RequestWithUser,
+    @Request() _req: RequestWithUser,
   ) {
     // Brand access is enforced by BrandScopedGuard
     return this.manufacturingService.generateExportPack(dto);
@@ -39,7 +39,7 @@ export class ManufacturingController {
   @ApiResponse({ status: 200, description: 'Production bundles' })
   async getProductionBundle(
     @Param('orderId') orderId: string,
-    @Request() req: RequestWithUser,
+    @Request() _req: RequestWithUser,
   ) {
     // Brand access is enforced by BrandScopedGuard
     return this.manufacturingService.getProductionBundle(orderId);

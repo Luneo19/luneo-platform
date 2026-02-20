@@ -54,7 +54,7 @@ describe('AuditLogService', () => {
       await service.log({
         action: AuditAction.USER_LOGIN,
         success: true,
-      } as any);
+      } as unknown);
       expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
     });
 

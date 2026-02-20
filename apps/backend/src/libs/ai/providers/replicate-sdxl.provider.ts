@@ -125,7 +125,7 @@ export class OpenAIProvider implements AIProvider {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(`OpenAI generation failed:`, error);
       throw new InternalServerErrorException(`OpenAI generation failed: ${errorMessage}`);
@@ -180,7 +180,7 @@ export class OpenAIProvider implements AIProvider {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const _errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.warn(`OpenAI moderation failed: ${errorMessage}`);
       // En cas d'erreur, on approuve par défaut (fail-open)

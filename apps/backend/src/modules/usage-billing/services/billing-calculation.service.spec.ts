@@ -12,9 +12,9 @@ import { UsageMetricType } from '../interfaces/usage.interface';
  */
 describe('BillingCalculationService', () => {
   let service: BillingCalculationService;
-  let prisma: jest.Mocked<PrismaService>;
-  let meteringService: jest.Mocked<UsageMeteringService>;
-  let quotasService: jest.Mocked<QuotasService>;
+  let _prisma: jest.Mocked<PrismaService>;
+  let _meteringService: jest.Mocked<UsageMeteringService>;
+  let _quotasService: jest.Mocked<QuotasService>;
 
   const mockPrisma = {
     brand: {

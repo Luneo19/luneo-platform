@@ -46,10 +46,10 @@ describeIntegration('Complete Auth Workflow Integration', () => {
   describe('Complete User Journey', () => {
     let userId: string;
     let accessToken: string;
-    let refreshToken: string;
-    let brandId: string;
-    let productId: string;
-    let designId: string;
+    let _refreshToken: string;
+    let _brandId: string;
+    let _productId: string;
+    let _designId: string;
 
     it('should complete full workflow: Signup → Email Verification → Login → Create Design → Order', async () => {
       // Step 1: Signup

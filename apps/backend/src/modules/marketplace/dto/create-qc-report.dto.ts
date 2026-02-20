@@ -21,7 +21,7 @@ export class CreateQCReportDto {
   @ApiPropertyOptional({ description: 'Issues found' })
   @IsObject()
   @IsOptional()
-  issues?: Record<string, any>;
+  issues?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Notes' })
   @IsString()

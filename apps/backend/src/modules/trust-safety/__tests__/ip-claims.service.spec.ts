@@ -2,13 +2,12 @@
  * IPClaimsService unit tests
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { IPClaimsService, IPClaim } from '../services/ip-claims.service';
+import { IPClaimsService } from '../services/ip-claims.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { AppErrorFactory } from '@/common/errors/app-error';
 
 describe('IPClaimsService', () => {
   let service: IPClaimsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     design: { findUnique: jest.fn(), update: jest.fn() },

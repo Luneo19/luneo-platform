@@ -103,10 +103,12 @@ const API_BASE_URL = (() => {
       return '';
     }
     // Browser on development (HTTP/localhost): direct to backend
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const browserUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    return browserUrl === 'http://localhost:3000' ? 'http://localhost:3001' : browserUrl;
   }
   // Server-side (SSR, API routes): absolute backend URL
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return serverUrl === 'http://localhost:3000' ? 'http://localhost:3001' : serverUrl;
 })();
 
 // Create axios instance
@@ -157,6 +159,8 @@ apiClient.interceptors.request.use(
   }
 );
 
+let refreshPromise: Promise<Response> | null = null;
+
 /**
  * Response Interceptor
  * Handle errors, token refresh, and logging
@@ -168,9 +172,6 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-    // Handle 401 Unauthorized - Try to refresh token
-    // IMPORTANT: Do NOT intercept auth endpoints — login/signup/refresh 401 means
-    // "wrong credentials" or "invalid token", NOT "expired session"
     const requestUrl = originalRequest.url || '';
     const isAuthEndpoint = requestUrl.includes('/auth/login') ||
       requestUrl.includes('/auth/signup') ||
@@ -183,40 +184,35 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // ✅ Use relative URL for refresh so it goes through Vercel proxy (same-origin)
-        // This ensures cookies are properly sent and received without cross-origin issues
-        const refreshResp = await fetch('/api/v1/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        });
+        if (!refreshPromise) {
+          refreshPromise = fetch('/api/v1/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+          });
+        }
+
+        const refreshResp = await refreshPromise;
+        refreshPromise = null;
 
         if (!refreshResp.ok) {
           throw new Error('Token refresh failed');
         }
 
-        // ✅ New tokens are in httpOnly cookies (set by backend automatically)
-        // Cookies are automatically sent with retry request via withCredentials: true
-        
-        // Cleanup any old localStorage tokens (migration from old system)
         if (typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
         }
         
-        // Retry original request - cookies will be sent automatically via withCredentials: true
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - redirect to login
-        // Cookies will be cleared by backend on logout
+        refreshPromise = null;
         if (typeof window !== 'undefined') {
-          // Cleanup localStorage (migration from old system)
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
           
-          // Only redirect if not already on the login page
           if (!window.location.pathname.startsWith('/login')) {
             window.location.href = '/login?session=expired';
           }
@@ -577,6 +573,14 @@ export const endpoints = {
     markAsRead: (id: string) => api.post(`/api/v1/notifications/${id}/read`, {}),
     markAllAsRead: () => api.post('/api/v1/notifications/read-all', {}),
     delete: (id: string) => api.delete(`/api/v1/notifications/${id}`),
+  },
+
+  // Visual Customizer (sessions, designs)
+  visualCustomizer: {
+    sessions: {
+      update: (sessionId: string, payload: { canvasData: unknown }) =>
+        api.put(`/api/v1/visual-customizer/sessions/${sessionId}`, payload),
+    },
   },
 
   // Security & GDPR

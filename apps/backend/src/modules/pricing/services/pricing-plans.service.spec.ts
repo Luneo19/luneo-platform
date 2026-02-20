@@ -12,8 +12,8 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
 describe('PricingPlansService', () => {
   let service: PricingPlansService;
-  let prismaService: any; // Use any for mock methods
-  let cacheService: jest.Mocked<SmartCacheService>;
+  let _prismaService: Record<string, unknown>;
+  let _cacheService: jest.Mocked<SmartCacheService>;
 
   beforeEach(async () => {
     const mockPrisma = {
@@ -90,7 +90,7 @@ describe('PricingPlansService', () => {
     });
 
     it('should throw error when invalid id is provided', () => {
-      expect(() => service.getPlan('invalid-plan' as any)).toThrow();
+      expect(() => service.getPlan('invalid-plan' as unknown)).toThrow();
     });
   });
 
@@ -206,7 +206,7 @@ describe('PricingPlansService', () => {
     });
 
     it('should throw error for invalid add-on type', () => {
-      expect(() => service.getAddOn('invalid' as any)).toThrow();
+      expect(() => service.getAddOn('invalid' as unknown)).toThrow();
     });
   });
 });

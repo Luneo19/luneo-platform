@@ -15,7 +15,7 @@ export class CustomizerCacheInterceptor implements NestInterceptor {
   constructor(private readonly reflector: Reflector) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest();
+    const _request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse<Response>();
 
     // Check if route is marked as customizer public

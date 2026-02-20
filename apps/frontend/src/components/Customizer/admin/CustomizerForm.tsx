@@ -56,11 +56,12 @@ type CustomizerFormValues = z.infer<typeof customizerFormSchema>;
 
 interface CustomizerFormProps {
   customizerId?: string;
+  initialProductId?: string;
   onSuccess?: (config: CustomizerConfig) => void;
   onCancel?: () => void;
 }
 
-export function CustomizerForm({ customizerId, onSuccess, onCancel }: CustomizerFormProps) {
+export function CustomizerForm({ customizerId, initialProductId, onSuccess, onCancel }: CustomizerFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,12 +105,20 @@ export function CustomizerForm({ customizerId, onSuccess, onCancel }: Customizer
   const watchedType = watch('type');
   const watchedEnableModeration = watch('enableModeration');
 
+  // Pre-fill productId from prop (e.g. when coming from product detail page)
+  useEffect(() => {
+    if (initialProductId && !customizerId) {
+      setValue('productId', initialProductId);
+      setValue('type', 'product');
+    }
+  }, [initialProductId, customizerId, setValue]);
+
   // Load existing customizer if editing
   useEffect(() => {
     if (customizerId) {
       setIsLoading(true);
       api
-        .get<CustomizerConfig>(`/api/v1/customizer/configurations/${customizerId}`)
+        .get<CustomizerConfig>(`/api/v1/visual-customizer/customizers/${customizerId}`)
         .then((config) => {
           setValue('name', config.name);
           setValue('description', config.name);
@@ -175,8 +184,8 @@ export function CustomizerForm({ customizerId, onSuccess, onCancel }: Customizer
       };
 
       const result = customizerId
-        ? await api.put<CustomizerConfig>(`/api/v1/customizer/configurations/${customizerId}`, payload)
-        : await api.post<CustomizerConfig>('/api/v1/customizer/configurations', payload);
+        ? await api.put<CustomizerConfig>(`/api/v1/visual-customizer/customizers/${customizerId}`, payload)
+        : await api.post<CustomizerConfig>('/api/v1/visual-customizer/customizers', payload);
 
       onSuccess?.(result);
     } catch (err) {

@@ -1,12 +1,12 @@
 // IMPORTANT: Make sure to import `instrument.ts` at the top of your file.
-// If you're using CommonJS (CJS) syntax, use `require("./instrument.ts");`
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require("./instrument");
-} catch (error) {
+} catch {
   // Continue anyway if instrument fails
 }
 
-import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 
 // Log très tôt pour confirmer que le fichier est chargé
 const earlyLogger = new Logger('MainBootstrap');
@@ -17,15 +17,17 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { setupSwagger } from './swagger';
-const express = require('express');
+import express from 'express';
 import * as Express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-const compression = require('compression');
-// RATE LIMIT FIX: Express rateLimit/slowDown disabled - using NestJS ThrottlerModule only (P3-12)
-// const rateLimit = require('express-rate-limit');
-// const slowDown = require('express-slow-down');
-const helmet = require('helmet');
+import compression from 'compression';
+import helmet from 'helmet';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const hpp = require('hpp');
+import cookieParser from 'cookie-parser';
+import { randomUUID } from 'crypto';
+import { csrfTokenMiddleware } from './common/middleware/csrf-token.middleware';
+import { winstonLogger } from './config/logger.config';
 
 import { AppModule } from './app.module';
 import { validateEnv } from './config/configuration';
@@ -63,6 +65,7 @@ async function bootstrap() {
 
   // OpenTelemetry tracing (before Nest bootstrap, when MONITORING_OPENTELEMETRY_ENDPOINT is set)
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { initTracing } = require('./libs/tracing/otel.config');
     initTracing();
   } catch {
@@ -103,7 +106,9 @@ async function bootstrap() {
   if (shouldSeed) {
   try {
     logger.log('Running database seed...');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { execSync } = require('child_process');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const path = require('path');
     const backendDir = path.join(__dirname, '../..');
     
@@ -128,7 +133,9 @@ async function bootstrap() {
     logger.warn('⚠️ Attempting to create admin user directly...');
     
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { PrismaClient } = require('@prisma/client');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const bcrypt = require('bcryptjs');
       const tempPrisma = new PrismaClient();
       
@@ -146,6 +153,7 @@ async function bootstrap() {
       // In production: use ADMIN_DEFAULT_PASSWORD. In dev: use env var or a secure random password
       let passwordToHash = defaultAdminPw;
       if (!passwordToHash) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const crypto = require('crypto');
         passwordToHash = crypto.randomBytes(16).toString('hex');
         // SECURITY FIX: Removed admin password from logs (MED-004)
@@ -199,17 +207,9 @@ async function bootstrap() {
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
     
-    // Parse cookies (required for httpOnly cookies)
-    const cookieParser = require('cookie-parser');
     server.use(cookieParser());
-    
-    // CSRF token middleware - generates and sets csrf_token cookie on every request
-    // This must run after cookieParser so we can read existing cookies
-    const { csrfTokenMiddleware } = require('./common/middleware/csrf-token.middleware');
     server.use(csrfTokenMiddleware);
     
-    // Correlation ID middleware — attaches X-Request-Id to every request
-    const { randomUUID } = require('crypto');
     server.use((req: Request, res: Response, next: NextFunction) => {
       const correlationId = req.headers['x-request-id'] || randomUUID();
       req.headers['x-request-id'] = correlationId;
@@ -219,8 +219,6 @@ async function bootstrap() {
     
     logger.log('Creating NestJS application with ExpressAdapter...');
     
-    // Use Winston for structured logging in production, NestJS default in dev
-    const { winstonLogger } = require('./config/logger.config');
     const WinstonLogger = {
       log: (message: string) => winstonLogger.info(message),
       error: (message: string, trace?: string) => winstonLogger.error(message, { trace }),

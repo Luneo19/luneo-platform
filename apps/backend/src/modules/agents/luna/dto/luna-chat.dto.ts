@@ -2,8 +2,6 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsUUID,
-  IsObject,
   MinLength,
   MaxLength,
   ValidateNested,

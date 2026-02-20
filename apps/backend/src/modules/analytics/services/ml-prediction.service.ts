@@ -13,11 +13,25 @@ import { ConfigService } from '@nestjs/config';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+function num(features: Record<string, unknown>, key: string, def = 0): number {
+  const v = features[key];
+  return typeof v === 'number' ? v : def;
+}
+
+function bool(features: Record<string, unknown>, key: string): boolean {
+  return !!features[key];
+}
+
+function str(features: Record<string, unknown>, key: string): string {
+  const v = features[key];
+  return typeof v === 'string' ? v : '';
+}
+
 export interface MLPredictionRequest {
   type: 'churn' | 'ltv' | 'conversion' | 'engagement' | 'revenue' | 'demand';
   brandId?: string;
   userId?: string;
-  features?: Record<string, any>;
+  features?: Record<string, unknown>;
 }
 
 export interface MLPredictionResult {
@@ -26,7 +40,7 @@ export interface MLPredictionResult {
   confidence: number;
   period: string;
   factors: Array<{ name: string; impact: number }>;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -309,7 +323,7 @@ export class MLPredictionService {
    */
   private async callMLModel(
     modelType: string,
-    features: Record<string, any>,
+    features: Record<string, unknown>,
   ): Promise<unknown> {
     if (!this.mlApiUrl) {
       return null;
@@ -337,7 +351,7 @@ export class MLPredictionService {
   // FEATURE EXTRACTION (pour modèles ML)
   // ========================================
 
-  private async getChurnFeatures(userId: string): Promise<Record<string, any>> {
+  private async getChurnFeatures(userId: string): Promise<Record<string, unknown>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -391,7 +405,7 @@ export class MLPredictionService {
     };
   }
 
-  private async getLTVFeatures(userId: string): Promise<Record<string, any>> {
+  private async getLTVFeatures(userId: string): Promise<Record<string, unknown>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -419,7 +433,7 @@ export class MLPredictionService {
     };
   }
 
-  private async getConversionFeatures(userId: string): Promise<Record<string, any>> {
+  private async getConversionFeatures(userId: string): Promise<Record<string, unknown>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -473,7 +487,7 @@ export class MLPredictionService {
     };
   }
 
-  private async getRevenueFeatures(brandId: string): Promise<Record<string, any>> {
+  private async getRevenueFeatures(brandId: string): Promise<Record<string, unknown>> {
     const orders = await this.prisma.order.findMany({
       where: { brandId },
       orderBy: { createdAt: 'desc' },
@@ -550,18 +564,18 @@ export class MLPredictionService {
   // HEURISTIC CALCULATIONS (fallback)
   // ========================================
 
-  private calculateChurnRiskHeuristic(features: Record<string, any>): {
+  private calculateChurnRiskHeuristic(features: Record<string, unknown>): {
     risk: number;
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
   } {
-    const days = features.daysSinceLastLogin ?? 0;
+    const days = num(features, 'daysSinceLastLogin');
     const lastLoginDecay = Math.exp(-days / 30);
     const lastLoginRisk = (1 - lastLoginDecay) * 100;
-    const orderTrend = Math.min(1, features.orderTrendDeclining ?? 0) * 100;
-    const ticketCount = features.supportTicketCount ?? 0;
+    const orderTrend = Math.min(1, num(features, 'orderTrendDeclining')) * 100;
+    const ticketCount = num(features, 'supportTicketCount');
     const ticketRisk = Math.min(100, ticketCount * 25);
-    const paymentFailure = features.hasPaymentFailure ? 100 : 0;
+    const paymentFailure = bool(features, 'hasPaymentFailure') ? 100 : 0;
 
     const risk =
       lastLoginRisk * 0.4 + orderTrend * 0.3 + ticketRisk * 0.15 + paymentFailure * 0.15;
@@ -571,7 +585,7 @@ export class MLPredictionService {
     if (ticketRisk > 0) factors.push({ name: 'Support tickets', impact: ticketRisk * 0.15 });
     if (paymentFailure > 0) factors.push({ name: 'Payment failure(s)', impact: 15 });
 
-    const dataPoints = (features.totalOrders ?? 0) + ticketCount + (features.accountAge > 30 ? 1 : 0);
+    const dataPoints = num(features, 'totalOrders') + ticketCount + (num(features, 'accountAge') > 30 ? 1 : 0);
     const confidence = dataPoints >= 3 ? 0.65 : 0.55;
 
     return {
@@ -581,14 +595,14 @@ export class MLPredictionService {
     };
   }
 
-  private calculateLTVHeuristic(features: Record<string, any>): {
+  private calculateLTVHeuristic(features: Record<string, unknown>): {
     value: number;
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
   } {
-    const avgOrderValue = features.avgOrderValue ?? 0;
-    const totalOrders = features.totalOrders ?? 0;
-    const accountAgeDays = features.accountAge ?? 0;
+    const avgOrderValue = num(features, 'avgOrderValue');
+    const totalOrders = num(features, 'totalOrders');
+    const accountAgeDays = num(features, 'accountAge');
     const accountAgeYears = accountAgeDays / 365;
 
     const ordersPerMonth = accountAgeDays > 0 && totalOrders > 0
@@ -596,7 +610,7 @@ export class MLPredictionService {
       : 1 / 12;
     const predictedOrders12m = ordersPerMonth * 12;
     const accountAgeMultiplier = Math.min(1, Math.max(0.2, accountAgeYears));
-    const planMultiplier = features.currentPlan === 'PROFESSIONAL' || features.currentPlan === 'ENTERPRISE' ? 1.5 : 1.0;
+    const planMultiplier = str(features, 'currentPlan') === 'PROFESSIONAL' || str(features, 'currentPlan') === 'ENTERPRISE' ? 1.5 : 1.0;
 
     const value = avgOrderValue * predictedOrders12m * planMultiplier * accountAgeMultiplier;
     const historyLength = totalOrders + (accountAgeDays > 90 ? 1 : 0);
@@ -614,7 +628,7 @@ export class MLPredictionService {
     };
   }
 
-  private calculateConversionHeuristic(features: Record<string, any>): {
+  private calculateConversionHeuristic(features: Record<string, unknown>): {
     probability: number;
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
@@ -622,21 +636,24 @@ export class MLPredictionService {
     let probability = 0;
     const factors: Array<{ name: string; impact: number }> = [];
 
-    if (features.hasSubscription) {
+    const totalOrders = num(features, 'totalOrders');
+    const accountAge = num(features, 'accountAge');
+
+    if (bool(features, 'hasSubscription')) {
       probability = 100;
       factors.push({ name: 'Has subscription', impact: 50 });
-    } else if (features.totalOrders > 0) {
-      probability = 65 + Math.min(20, features.totalOrders * 2);
-      factors.push({ name: 'Total orders', impact: features.totalOrders * 10 });
-    } else if (features.accountAge > 7) {
+    } else if (totalOrders > 0) {
+      probability = 65 + Math.min(20, totalOrders * 2);
+      factors.push({ name: 'Total orders', impact: totalOrders * 10 });
+    } else if (accountAge > 7) {
       probability = 35;
       factors.push({ name: 'Account age', impact: 15 });
     } else {
       probability = 20;
     }
 
-    const ratio = features.pageViewsToCartRatio ?? 0;
-    const abandonment = features.cartAbandonmentRate ?? 0;
+    const ratio = num(features, 'pageViewsToCartRatio');
+    const abandonment = num(features, 'cartAbandonmentRate');
     if (ratio > 0) {
       probability = Math.min(100, probability + ratio * 15);
       factors.push({ name: 'Page-to-cart ratio', impact: ratio * 15 });
@@ -647,7 +664,7 @@ export class MLPredictionService {
     }
     if (factors.length === 0) factors.push({ name: 'Base score', impact: probability });
 
-    const dataPoints = (features.pageViews ?? 0) + (features.totalOrders ?? 0) + (features.accountAge > 0 ? 1 : 0);
+    const dataPoints = num(features, 'pageViews') + totalOrders + (accountAge > 0 ? 1 : 0);
     const confidence = Math.min(0.7, 0.6 + dataPoints * 0.02);
 
     return {
@@ -657,16 +674,16 @@ export class MLPredictionService {
     };
   }
 
-  private calculateRevenueHeuristic(features: Record<string, any>): {
+  private calculateRevenueHeuristic(features: Record<string, unknown>): {
     value: number;
     confidence: number;
     factors: Array<{ name: string; impact: number }>;
   } {
-    const avgDaily3m = features.avgDailyLast3Months ?? features.avgDailyRevenue ?? 0;
-    const trend = features.trend ?? 0;
-    const seasonal = features.seasonalFactor ?? 1.0;
+    const avgDaily3m = num(features, 'avgDailyLast3Months', num(features, 'avgDailyRevenue'));
+    const trend = num(features, 'trend');
+    const seasonal = num(features, 'seasonalFactor', 1.0);
     const predictedRevenue = avgDaily3m * 30 * (1 + trend / 100) * seasonal;
-    const dataPoints = features.dataPointsCount ?? 0;
+    const dataPoints = num(features, 'dataPointsCount');
     const confidence = Math.min(0.65, 0.55 + dataPoints * 0.002);
 
     return {

@@ -59,7 +59,7 @@ export class CreateWebVitalDto {
   })
   @IsOptional()
   @IsObject()
-  device?: Record<string, any>;
+  device?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'Connection information',
@@ -67,7 +67,7 @@ export class CreateWebVitalDto {
   })
   @IsOptional()
   @IsObject()
-  connection?: Record<string, any>;
+  connection?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'User ID',

@@ -25,7 +25,7 @@ export class OutboxPublisherWorker {
   ) {}
 
   @Process('publish-events')
-  async publishEvents(job: Job) {
+  async publishEvents(_job: Job) {
     this.logger.debug('Processing outbox events...');
 
     const events = await this.outboxService.getPendingEvents(100);

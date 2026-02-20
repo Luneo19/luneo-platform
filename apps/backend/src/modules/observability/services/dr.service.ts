@@ -3,7 +3,7 @@ import { Injectable, InternalServerErrorException, Logger, NotFoundException } f
 import { ConfigService } from '@nestjs/config';
 import { execFile } from 'child_process';
 import { createReadStream, createWriteStream } from 'fs';
-import { mkdir, stat, readdir, rm } from 'fs/promises';
+import { mkdir, stat, rm } from 'fs/promises';
 import { join, basename } from 'path';
 import { promisify } from 'util';
 import { createGzip, createGunzip } from 'zlib';

@@ -70,7 +70,7 @@ export interface AIModel {
   avgTime: number; // secondes
   quality: number; // 0-100
   isActive: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ModelComparison {

@@ -8,9 +8,9 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('CollectionsService', () => {
   let service: CollectionsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     designCollection: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -126,7 +126,7 @@ describe('CollectionsService', () => {
       const updated = { ...existing, name: 'Updated Name' };
       mockPrisma.designCollection.update.mockResolvedValue(updated);
 
-      const result = await service.update('col1', { name: 'Updated Name' }, userId, brandId);
+      const _result = await service.update('col1', { name: 'Updated Name' }, userId, brandId);
 
       expect(mockPrisma.designCollection.update).toHaveBeenCalledWith({
         where: { id: 'col1' },

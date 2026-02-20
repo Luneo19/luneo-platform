@@ -45,7 +45,7 @@ export class BrandSafetyService {
       }
 
       const colorPalette = guidelines.colorPalette as string[] | null;
-      const styleKeywords = guidelines.styleKeywords ?? [];
+      const _styleKeywords = guidelines.styleKeywords ?? [];
       const negativeKeywords = guidelines.negativeKeywords ?? [];
       const promptPrefix = guidelines.promptPrefix ?? '';
       const promptSuffix = guidelines.promptSuffix ?? '';

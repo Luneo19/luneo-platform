@@ -2,7 +2,7 @@ import { JsonValue } from '@/common/types/utility-types';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 // ENUM-01: Import des enums Prisma pour intégrité des données
 import { EcommerceIntegration, OrderStatus, SyncLogStatus, SyncLogType, SyncDirection } from '@prisma/client';
 import { Queue } from 'bullmq';
@@ -42,7 +42,7 @@ export class OrderSyncService {
    * Synchronise les commandes d'une intégration
    */
   async syncOrders(request: OrderSyncRequest): Promise<SyncResult> {
-    const { integrationId, orderIds, options } = request;
+    const { integrationId, orderIds: _orderIds, options: _options } = request;
     const startTime = Date.now();
     const errors: Array<{ message: string; orderId?: string; error?: unknown }> = [];
     let itemsProcessed = 0;

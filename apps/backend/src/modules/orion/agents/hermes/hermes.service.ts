@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -19,7 +20,7 @@ export class HermesService {
       where: {
         isActive: true,
         lastLoginAt: { lte: fourteenDaysAgo },
-        role: { not: 'PLATFORM_ADMIN' as any },
+        role: { not: 'PLATFORM_ADMIN' as never },
       },
       select: {
         id: true,
@@ -187,7 +188,7 @@ export class HermesService {
         actionType: type,
         title: `${type}: ${userId}`,
         description,
-        data: { userId, ...data } as any,
+        data: { userId, ...data } as unknown as Prisma.InputJsonValue,
       },
     });
   }

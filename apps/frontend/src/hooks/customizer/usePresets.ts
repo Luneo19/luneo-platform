@@ -58,6 +58,7 @@ export function usePresets(options: UsePresetsOptions): UsePresetsReturn {
     }
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const presets = presetsData || [];
 
   // Note: These mutations would need to be added to the customizer router

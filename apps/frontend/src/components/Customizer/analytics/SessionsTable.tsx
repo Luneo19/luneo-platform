@@ -38,13 +38,14 @@ export function SessionsTable({ customizerId, dateFrom, dateTo }: SessionsTableP
 
   useEffect(() => {
     loadSessions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFrom, dateTo, sortField, sortDirection, page]);
 
   const loadSessions = async () => {
     setIsLoading(true);
     try {
       const result = await api.get<{ sessions: Session[]; total: number }>(
-        `/api/v1/customizer/configurations/${customizerId}/analytics/sessions`,
+        `/api/v1/visual-customizer/customizers/${customizerId}/analytics/sessions`,
         {
           params: {
             from: dateFrom.toISOString(),

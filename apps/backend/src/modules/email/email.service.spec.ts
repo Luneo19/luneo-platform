@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
 import { getQueueToken } from '@nestjs/bull';
-import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { ServiceUnavailableException } from '@nestjs/common';
 
 /**
  * TEST-02: Tests unitaires pour EmailService
@@ -27,7 +27,7 @@ describe('EmailService', () => {
     sendSimpleMessage: jest.fn(),
   };
 
-  let mockQueue: any;
+  let mockQueue: Record<string, unknown>;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -167,7 +167,7 @@ describe('EmailService', () => {
       mockSendGridService.sendSimpleMessage.mockResolvedValue({ id: 'fallback-123' });
 
       // The service will attempt fallback to auto provider
-      const result = await service.sendEmail({ ...baseOptions, provider: 'unknown' as any });
+      const result = await service.sendEmail({ ...baseOptions, provider: 'unknown' as unknown });
 
       // Should have fallen back to SendGrid (default provider)
       expect(mockSendGridService.sendSimpleMessage).toHaveBeenCalled();

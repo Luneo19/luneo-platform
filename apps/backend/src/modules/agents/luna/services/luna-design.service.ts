@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { LLMToolDefinition } from '../../llm/providers/base-llm.provider';
 
@@ -88,9 +89,9 @@ export class LunaDesignService {
         brandId: context.brandId,
         userId: context.userId,
         conversationId: context.conversationId,
-        parameters: args as any,
+        parameters: args as unknown as Prisma.InputJsonValue,
         style: args.style as string,
-        dimensions: args.dimensions as any,
+        dimensions: args.dimensions as unknown as Prisma.InputJsonValue,
         status: 'PROCESSING',
       },
     });
@@ -114,7 +115,7 @@ export class LunaDesignService {
 
       await this.prisma.lunaGeneration.update({
         where: { id: generation.id },
-        data: { status: 'COMPLETED', result: result as any },
+        data: { status: 'COMPLETED', result: result as unknown as Prisma.InputJsonValue },
       });
 
       return {

@@ -11,7 +11,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('RevenueSharingService', () => {
   let service: RevenueSharingService;
-  let prismaService: any; // Use any for mock methods
+  let prismaService: Record<string, unknown>;
 
   const mockTemplate = {
     id: 'template-123',
@@ -89,8 +89,8 @@ describe('RevenueSharingService', () => {
         ...mockTemplate,
         isFree: true,
         priceCents: 0,
-      } as any);
-      prismaService.templatePurchase.create.mockResolvedValue({ id: 'purchase-1' } as any);
+      } as unknown);
+      prismaService.templatePurchase.create.mockResolvedValue({ id: 'purchase-1' });
 
       const result = await service.purchaseTemplate({
         templateId: 'template-123',
@@ -104,8 +104,8 @@ describe('RevenueSharingService', () => {
     });
 
     it('should calculate revenue sharing correctly (30% platform, 70% creator)', async () => {
-      prismaService.marketplaceTemplate.findUnique.mockResolvedValue(mockTemplate as any);
-      prismaService.templatePurchase.create.mockResolvedValue({ id: 'purchase-1' } as any);
+      prismaService.marketplaceTemplate.findUnique.mockResolvedValue(mockTemplate);
+      prismaService.templatePurchase.create.mockResolvedValue({ id: 'purchase-1' });
 
       const result = await service.purchaseTemplate({
         templateId: 'template-123',
@@ -165,7 +165,7 @@ describe('RevenueSharingService', () => {
     it('should throw BadRequestException when no revenue for period', async () => {
       prismaService.templatePurchase.aggregate.mockResolvedValue({
         _sum: { priceCents: 0, platformFeeCents: 0, creatorRevenueCents: 0 },
-      } as any);
+      } as unknown);
 
       await expect(service.createPayout(validPayoutData)).rejects.toThrow(BadRequestException);
     });
@@ -173,11 +173,11 @@ describe('RevenueSharingService', () => {
     it('should create payout with calculated amounts', async () => {
       prismaService.templatePurchase.aggregate.mockResolvedValue({
         _sum: { priceCents: 10000, platformFeeCents: 3000, creatorRevenueCents: 7000 },
-      } as any);
+      } as unknown);
       prismaService.creatorPayout.create.mockResolvedValue({
         id: 'payout-1',
         netAmountCents: 7000,
-      } as any);
+      } as unknown);
 
       const result = await service.createPayout(validPayoutData);
 

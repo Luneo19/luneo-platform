@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsEnum,
-  IsUUID,
   MinLength,
   MaxLength,
 } from 'class-validator';

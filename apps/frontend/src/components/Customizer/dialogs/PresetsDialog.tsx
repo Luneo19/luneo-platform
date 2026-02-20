@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { usePresets } from '@/hooks/customizer/usePresets';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface PresetsDialogProps {
   open: boolean;
@@ -172,11 +173,11 @@ export function PresetsDialog({
             <div className="space-y-2">
               <Label>Preview</Label>
               <div className="relative aspect-video rounded border overflow-hidden bg-muted">
-                <img
+                <Image width={200} height={200}
                   src={thumbnailDataUrl}
                   alt="Preset preview"
                   className="w-full h-full object-contain"
-                />
+                unoptimized />
               </div>
             </div>
           )}

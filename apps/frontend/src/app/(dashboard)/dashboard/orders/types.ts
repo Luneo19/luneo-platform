@@ -14,7 +14,9 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface OrderItem {
   id: string;
+  product_id?: string;
   product_name: string;
+  design_id?: string;
   design_name?: string;
   design_preview_url?: string;
   quantity: number;

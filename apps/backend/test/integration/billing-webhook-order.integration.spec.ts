@@ -17,7 +17,7 @@ describeIntegration('Billing Integration', () => {
   let moduleFixture: TestingModule;
   let prisma: PrismaService;
   let authToken: string;
-  let userId: string;
+  let _userId: string;
 
   beforeAll(async () => {
     const testApp = await createIntegrationTestApp();

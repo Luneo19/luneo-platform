@@ -127,7 +127,7 @@ describe('ProjectsService', () => {
       mockPrisma.project.create.mockResolvedValue(created);
       const result = await service.create(
         orgId,
-        { name: 'New Project', slug: 'new-project', type: 'WEB' as any },
+        { name: 'New Project', slug: 'new-project', type: 'WEB' as unknown },
         currentUser,
       );
       expect(result.name).toBe('New Project');
@@ -149,7 +149,7 @@ describe('ProjectsService', () => {
         slug: 'taken',
       });
       await expect(
-        service.create(orgId, { name: 'X', slug: 'taken', type: 'WEB' as any }, currentUser),
+        service.create(orgId, { name: 'X', slug: 'taken', type: 'WEB' as unknown }, currentUser),
       ).rejects.toThrow(BadRequestException);
       expect(mockPrisma.project.create).not.toHaveBeenCalled();
     });

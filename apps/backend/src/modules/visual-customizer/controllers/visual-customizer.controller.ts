@@ -22,7 +22,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { OptionalJwtAuthGuard } from '@/common/guards/optional-jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CurrentUser as CurrentUserType } from '@/common/types/user.types';

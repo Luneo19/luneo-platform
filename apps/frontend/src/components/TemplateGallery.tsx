@@ -72,6 +72,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
 
   useEffect(() => {
     loadTemplates();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, sortBy, selectedCategory]);
 
   // Optimisé: useMemo pour filtrage au lieu de useEffect
@@ -129,6 +130,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, sortBy, selectedCategory, toast]);
 
   const handleUseTemplate = (template: Template) => {

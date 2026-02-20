@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDesign } from '@/hooks/customizer/useDesign';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface ShareDesignDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ export function ShareDesignDialog({ open, onOpenChange, designId }: ShareDesignD
     if (open && designId) {
       generateShareLink();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, designId]);
 
   const generateShareLink = async () => {
@@ -148,7 +150,7 @@ export function ShareDesignDialog({ open, onOpenChange, designId }: ShareDesignD
             <div className="space-y-2">
               <Label>QR Code</Label>
               <div className="flex items-center justify-center p-4 border rounded-lg bg-muted/50">
-                <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                <Image src={qrCodeUrl} alt="QR Code" className="w-48 h-48" width={200} height={200} unoptimized />
               </div>
             </div>
           )}

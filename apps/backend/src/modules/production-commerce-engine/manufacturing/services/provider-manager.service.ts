@@ -201,7 +201,7 @@ export class ProviderManagerService {
    */
   async selectOptimalProvider(
     brandId: string,
-    requirements?: PODProviderRequirements,
+    _requirements?: PODProviderRequirements,
   ): Promise<{ id: string; name: string; slug: string } | null> {
     const available = await this.getAvailableProviders(brandId);
     if (available.length === 0) return null;

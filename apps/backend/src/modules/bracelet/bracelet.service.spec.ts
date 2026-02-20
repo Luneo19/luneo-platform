@@ -15,7 +15,7 @@ jest.mock('sharp', () => ({ default: mockSharp }));
 
 describe('BraceletService', () => {
   let service: BraceletService;
-  let storageService: StorageService;
+  let _storageService: StorageService;
   const uploadBufferResolvedUrl = 'https://storage.example.com/renders/bracelet/test.png';
 
   const mockStorageService = {

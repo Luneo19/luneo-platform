@@ -49,6 +49,7 @@ export function useFonts(): UseFontsReturn {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const fonts = (fontsData as Font[]) || [];
 
   // Separate system and custom fonts

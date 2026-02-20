@@ -337,7 +337,7 @@ export class ABTestingService {
       const controlParticipants = controlVariant
         ? assignments.filter((a) => a.variantId === controlVariant.id).length
         : 0;
-      const controlConversionRate = controlParticipants > 0 
+      const _controlConversionRate = controlParticipants > 0 
         ? controlConversions.length / controlParticipants 
         : 0;
 

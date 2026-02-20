@@ -255,7 +255,7 @@ export class LogSanitizerService {
     let sanitized = input;
 
     // Apply all patterns
-    for (const { pattern, name, options } of this.sensitivePatterns) {
+    for (const { pattern, name: _name, options } of this.sensitivePatterns) {
       sanitized = sanitized.replace(pattern, (match, value) => {
         const masked = this.maskValue(value, options || {});
         return match.replace(value, masked);

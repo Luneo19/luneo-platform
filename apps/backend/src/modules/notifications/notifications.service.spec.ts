@@ -10,9 +10,9 @@ import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     notification: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -165,7 +165,7 @@ describe('NotificationsService', () => {
       const updated = { ...notification, read: true, readAt: new Date() };
       mockPrisma.notification.update.mockResolvedValue(updated);
 
-      const result = await service.markAsRead('n1', userId);
+      const _result = await service.markAsRead('n1', userId);
 
       expect(mockPrisma.notification.update).toHaveBeenCalledWith({
         where: { id: 'n1' },

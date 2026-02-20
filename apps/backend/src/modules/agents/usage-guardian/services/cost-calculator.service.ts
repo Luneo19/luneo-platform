@@ -10,7 +10,6 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { LLMProvider } from '../../services/llm-provider.enum';
 
 // ============================================================================
 // TYPES

@@ -129,6 +129,7 @@ function LibraryPageContent() {
         variant: 'destructive',
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templatesQuery.data, templatesQuery.isLoading, templatesQuery.isError, templatesQuery.error, page, toast]);
 
   const loadMoreTemplates = useCallback(() => {

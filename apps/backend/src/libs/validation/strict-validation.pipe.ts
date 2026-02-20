@@ -101,12 +101,12 @@ export class StrictValidationPipe implements PipeTransform<unknown, unknown> {
     }
   }
 
-  private toValidate(metatype: Function): boolean {
-    const types: Function[] = [String, Boolean, Number, Array, Object, Date];
-    return !types.includes(metatype);
+  private toValidate(metatype: new (...args: unknown[]) => unknown): boolean {
+    const types: (new (...args: unknown[]) => unknown)[] = [String, Boolean, Number, Array, Object, Date];
+    return !types.includes(metatype as (new (...args: unknown[]) => unknown));
   }
 
-  private isDto(metatype: Function): boolean {
+  private isDto(metatype: new (...args: unknown[]) => unknown): boolean {
     // Check if class has validation decorators (simple heuristic)
     return metatype.prototype && typeof metatype === 'function';
   }

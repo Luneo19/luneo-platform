@@ -7,6 +7,7 @@ let Histogram: unknown;
 let Gauge: unknown;
 let collectDefaultMetrics: ((opts: { register: unknown }) => void) | undefined;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const promClient = require('prom-client') as Record<string, unknown>;
   Registry = promClient.Registry;
   Counter = promClient.Counter;

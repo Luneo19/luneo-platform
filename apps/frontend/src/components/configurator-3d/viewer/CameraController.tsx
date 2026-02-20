@@ -20,7 +20,6 @@ function vec3(v?: { x: number; y: number; z: number } | null): [number, number, 
  * Supports animateTo, focusOnComponent, auto-rotate from cameraSettings
  */
 export function CameraController({ onCreated }: CameraControllerProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
 
@@ -40,6 +39,7 @@ export function CameraController({ onCreated }: CameraControllerProps) {
       controlsRef.current.target.set(...initialTarget);
       camera.position.set(...initialPosition);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame(() => {

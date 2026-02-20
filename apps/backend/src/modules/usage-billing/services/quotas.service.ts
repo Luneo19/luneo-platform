@@ -196,7 +196,7 @@ export class QuotasService {
       });
 
       // Calculer les coûts estimés
-      let usageCost = 0;
+      const usageCost = 0;
       let overageCost = 0;
 
       for (const metric of metrics) {

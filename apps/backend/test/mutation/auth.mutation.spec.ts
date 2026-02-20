@@ -44,7 +44,7 @@ describeIntegration('Mutation Testing - Auth Module', () => {
     ];
 
     it('should reject weak passwords', async () => {
-      for (const { password, reason } of weakPasswords.slice(0, 4)) {
+      for (const { password } of weakPasswords.slice(0, 4)) {
         const timestamp = Date.now();
         const response = await request(app.getHttpServer())
           .post('/api/v1/auth/signup')

@@ -118,6 +118,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
 
       {/* Loading placeholder */}
       {!isLoaded && !shouldShowBlur && placeholder && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={placeholder}
           alt={`${alt} placeholder`}
@@ -136,6 +137,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
 
       {/* Main image */}
       {isInView && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={optimizedSrc}
           alt={alt}

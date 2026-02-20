@@ -12,6 +12,7 @@ let Resource: new (config: Record<string, unknown>) => unknown;
 let SemanticResourceAttributes: Record<string, string>;
 
 try {
+  /* eslint-disable @typescript-eslint/no-var-requires */
   const sdkNode = require('@opentelemetry/sdk-node') as { NodeSDK: typeof NodeSDK };
   NodeSDK = sdkNode.NodeSDK;
   const jaegerExporter = require('@opentelemetry/exporter-jaeger') as { JaegerExporter: typeof JaegerExporter };
@@ -27,6 +28,7 @@ try {
   const resources = require('@opentelemetry/resources') as { Resource: typeof Resource; SemanticResourceAttributes: typeof SemanticResourceAttributes };
   Resource = resources.Resource;
   SemanticResourceAttributes = resources.SemanticResourceAttributes;
+  /* eslint-enable @typescript-eslint/no-var-requires */
 } catch {
   // OpenTelemetry packages not installed
   NodeSDK = null as unknown as typeof NodeSDK;

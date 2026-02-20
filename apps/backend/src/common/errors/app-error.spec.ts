@@ -12,7 +12,6 @@ import {
   ValidationError,
   NotFoundError,
   BusinessError,
-  ExternalServiceError,
   DatabaseError,
   RateLimitError,
   ErrorCode,

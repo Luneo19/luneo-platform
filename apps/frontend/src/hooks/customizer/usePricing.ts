@@ -92,6 +92,7 @@ export function usePricing(): UsePricingReturn {
     } finally {
       setIsCalculating(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculator, pricingSettings, layers, currency, updatePrice]);
 
   // Recalculate when layers change

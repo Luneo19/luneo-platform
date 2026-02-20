@@ -216,7 +216,7 @@ export class MarketplaceController {
   @Get('collections')
   @ApiOperation({ summary: 'Get marketplace collections' })
   @ApiResponse({ status: 200, description: 'Collections' })
-  async getCollections(@Query('featured') featured?: string) {
+  async getCollections(@Query('featured') _featured?: string) {
     return { items: [] };
   }
 
@@ -297,7 +297,7 @@ export class MarketplaceController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string; size: number } | undefined,
-    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Request() _req: ExpressRequest & { user: CurrentUser },
   ) {
     if (!file) throw new BadRequestException('File is required');
     if (file.size > 100 * 1024 * 1024) throw new BadRequestException('File too large (max 100MB)');

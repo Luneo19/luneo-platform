@@ -151,7 +151,7 @@ export class OAuthService {
   async findOrCreateOAuthUser(oauthUser: OAuthUser) {
     try {
       // First, try to find existing user by email
-      let user = await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { email: oauthUser.email },
         include: { brand: true },
       });

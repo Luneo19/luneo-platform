@@ -11,7 +11,7 @@ const mockFetch = jest.fn();
 
 describe('CustomizationService', () => {
   let service: CustomizationService;
-  let configService: ConfigService;
+  let _configService: ConfigService;
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
@@ -22,7 +22,7 @@ describe('CustomizationService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    (global as any).fetch = mockFetch;
+    (global as unknown).fetch = mockFetch;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

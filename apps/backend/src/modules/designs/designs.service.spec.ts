@@ -22,7 +22,7 @@ import { CreditsService } from '@/libs/credits/credits.service';
 
 describe('DesignsService', () => {
   let service: DesignsService;
-  const mockPrisma: Record<string, any> = {
+  const mockPrisma: Record<string, unknown> = {
     product: { findUnique: jest.fn() },
     design: {
       create: jest.fn(),
@@ -80,7 +80,7 @@ describe('DesignsService', () => {
     brandId: 'brand-1',
   };
 
-  const platformAdmin = {
+  const _platformAdmin = {
     id: 'admin-1',
     role: UserRole.PLATFORM_ADMIN as UserRole,
     brandId: null,
@@ -138,7 +138,7 @@ describe('DesignsService', () => {
 
       const result = await service.create(
         { productId: 'prod-1', prompt: 'A red logo' },
-        brandUser as any,
+        brandUser as unknown,
       );
 
       expect(result.id).toBe('design-1');
@@ -157,10 +157,10 @@ describe('DesignsService', () => {
       mockPrisma.product.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.create({ productId: 'nonexistent', prompt: 'x' }, brandUser as any),
+        service.create({ productId: 'nonexistent', prompt: 'x' }, brandUser as unknown),
       ).rejects.toThrow(NotFoundException);
       await expect(
-        service.create({ productId: 'nonexistent', prompt: 'x' }, brandUser as any),
+        service.create({ productId: 'nonexistent', prompt: 'x' }, brandUser as unknown),
       ).rejects.toThrow('Product not found');
       expect(mockPrisma.design.create).not.toHaveBeenCalled();
     });
@@ -173,10 +173,10 @@ describe('DesignsService', () => {
       });
 
       await expect(
-        service.create({ productId: 'prod-1', prompt: 'x' }, brandUser as any),
+        service.create({ productId: 'prod-1', prompt: 'x' }, brandUser as unknown),
       ).rejects.toThrow(ForbiddenException);
       await expect(
-        service.create({ productId: 'prod-1', prompt: 'x' }, brandUser as any),
+        service.create({ productId: 'prod-1', prompt: 'x' }, brandUser as unknown),
       ).rejects.toThrow('Access denied to this product');
     });
   });
@@ -231,7 +231,7 @@ describe('DesignsService', () => {
       mockPrisma.design.findMany.mockResolvedValue(designs);
       mockPrisma.design.count.mockResolvedValue(1);
 
-      const result = await service.findAll(brandUser as any, { page: 1, limit: 50 });
+      const result = await service.findAll(brandUser as unknown, { page: 1, limit: 50 });
 
       expect(result.designs).toHaveLength(1);
       expect(result.pagination.total).toBe(1);
@@ -277,7 +277,7 @@ describe('DesignsService', () => {
       };
       mockPrisma.design.findUnique.mockResolvedValue(design);
 
-      const result = await service.findOne('design-1', brandUser as any);
+      const result = await service.findOne('design-1', brandUser as unknown);
 
       expect(result).toEqual(design);
       expect(result.id).toBe('design-1');
@@ -287,10 +287,10 @@ describe('DesignsService', () => {
       mockPrisma.design.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.findOne('nonexistent', brandUser as any),
+        service.findOne('nonexistent', brandUser as unknown),
       ).rejects.toThrow(NotFoundException);
       await expect(
-        service.findOne('nonexistent', brandUser as any),
+        service.findOne('nonexistent', brandUser as unknown),
       ).rejects.toThrow('Design not found');
     });
 
@@ -302,13 +302,13 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any);
+      } as unknown);
 
       await expect(
-        service.findOne('design-1', brandUser as any),
+        service.findOne('design-1', brandUser as unknown),
       ).rejects.toThrow(ForbiddenException);
       await expect(
-        service.findOne('design-1', brandUser as any),
+        service.findOne('design-1', brandUser as unknown),
       ).rejects.toThrow('Access denied to this design');
     });
   });
@@ -322,7 +322,7 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any;
+      } as unknown;
       mockPrisma.design.findUnique.mockResolvedValue(existingDesign);
       const updated = {
         id: 'design-1',
@@ -342,7 +342,7 @@ describe('DesignsService', () => {
       const result = await service.update(
         'design-1',
         { name: 'Updated' },
-        brandUser as any,
+        brandUser as unknown,
       );
 
       expect(result.name).toBe('Updated');
@@ -363,11 +363,11 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any;
+      } as unknown;
       mockPrisma.design.findUnique.mockResolvedValue(design);
       mockPrisma.design.update.mockResolvedValue(design);
 
-      const result = await service.delete('design-1', brandUser as any);
+      const result = await service.delete('design-1', brandUser as unknown);
 
       expect(result.success).toBe(true);
       expect(mockPrisma.design.update).toHaveBeenCalledWith({
@@ -384,13 +384,13 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any);
+      } as unknown);
 
       await expect(
-        service.delete('design-1', brandUser as any),
+        service.delete('design-1', brandUser as unknown),
       ).rejects.toThrow(ForbiddenException);
       await expect(
-        service.delete('design-1', brandUser as any),
+        service.delete('design-1', brandUser as unknown),
       ).rejects.toThrow(/blocked due to an IP claim/);
       expect(mockPrisma.design.update).not.toHaveBeenCalled();
     });
@@ -405,7 +405,7 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any;
+      } as unknown;
       mockPrisma.design.findUnique
         .mockResolvedValueOnce(designForFindOne)
         .mockResolvedValueOnce({
@@ -441,7 +441,7 @@ describe('DesignsService', () => {
       const result = await service.createVersion(
         'design-1',
         { name: 'v2' },
-        brandUser as any,
+        brandUser as unknown,
       );
 
       expect(result.id).toBe('ver-1');
@@ -464,7 +464,7 @@ describe('DesignsService', () => {
       mockPrisma.design.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.createVersion('nonexistent', {}, brandUser as any),
+        service.createVersion('nonexistent', {}, brandUser as unknown),
       ).rejects.toThrow(NotFoundException);
       expect(mockPrisma.designVersion.create).not.toHaveBeenCalled();
     });
@@ -481,7 +481,7 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any;
+      } as unknown;
       mockPrisma.design.findUnique.mockResolvedValue(design);
       mockPrisma.design.update.mockResolvedValue({
         id: 'design-1',
@@ -493,7 +493,7 @@ describe('DesignsService', () => {
         },
       });
 
-      const result = await service.share('design-1', { expiresInDays: 7 }, brandUser as any);
+      const result = await service.share('design-1', { expiresInDays: 7 }, brandUser as unknown);
 
       expect(result.shareToken).toBeDefined();
       expect(result.shareUrl).toContain('/designs/shared/');
@@ -521,10 +521,10 @@ describe('DesignsService', () => {
         product: {},
         brand: {},
         user: {},
-      } as any);
+      } as unknown);
 
       await expect(
-        service.share('design-1', {}, brandUser as any),
+        service.share('design-1', {}, brandUser as unknown),
       ).rejects.toThrow(ForbiddenException);
       expect(mockPrisma.design.update).not.toHaveBeenCalled();
     });

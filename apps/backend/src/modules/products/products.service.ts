@@ -6,8 +6,8 @@ import { PlansService } from '@/modules/plans/plans.service';
 import { Prisma, UserRole } from '@prisma/client';
 import { normalizePagination, createPaginationResult, PaginationParams, PaginationResult } from '@/libs/prisma/pagination.helper';
 import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
-import { AppErrorFactory, AuthorizationError, ErrorCode, ValidationError } from '@/common/errors/app-error';
-import { CurrentUser, MinimalUser, toMinimalUser } from '@/common/types/user.types';
+import { AppErrorFactory } from '@/common/errors/app-error';
+import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 
 @Injectable()
@@ -744,7 +744,7 @@ export class ProductsService {
       },
     };
 
-    const updatedProduct = await this.prisma.product.update({
+    const _updatedProduct = await this.prisma.product.update({
       where: { id: productId },
       data: {
         model3dUrl: finalModelUrl,
@@ -777,7 +777,7 @@ export class ProductsService {
   /**
    * Auto-convert GLB to USDZ for iOS AR compatibility (async, non-blocking)
    */
-  private async triggerUsdzConversion(productId: string, glbUrl: string, currentUser: CurrentUser) {
+  private async triggerUsdzConversion(productId: string, _glbUrl: string, _currentUser: CurrentUser) {
     try {
       // Fire-and-forget best-effort USDZ conversion (AR studio may be used elsewhere)
       this.logger.log(`Starting auto USDZ conversion for product ${productId}`);

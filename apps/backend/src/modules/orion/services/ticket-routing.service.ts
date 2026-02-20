@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { TicketPriority } from '@prisma/client';
+import { TicketPriority, UserRole } from '@prisma/client';
 
 interface RoutingDecision {
   assignedTo: string | null;
@@ -106,10 +106,10 @@ export class TicketRoutingService {
     return 'L1_AI';
   }
 
-  private async findBestAgent(category: string): Promise<string | null> {
+  private async findBestAgent(_category: string): Promise<string | null> {
     const agents = await this.prisma.user.findMany({
       where: {
-        role: { in: ['SUPPORT_AGENT', 'PLATFORM_ADMIN'] as any },
+        role: { in: ['SUPPORT_AGENT', 'PLATFORM_ADMIN'] as UserRole[] },
         isActive: true,
       },
       select: {

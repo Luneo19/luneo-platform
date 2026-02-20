@@ -248,7 +248,7 @@ export class AuditLogsService {
   async getResourceHistory(
     resourceType: string,
     resourceId: string,
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     try {
       return await this.prisma.auditLog.findMany({
         where: {
@@ -272,7 +272,7 @@ export class AuditLogsService {
   async getUserActivity(
     userId: string,
     limit: number = 100,
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     try {
       return await this.prisma.auditLog.findMany({
         where: { userId },

@@ -184,7 +184,7 @@ export class StripeConnectService {
   /**
    * Détermine si un payout doit être effectué selon le schedule
    */
-  private shouldPayout(schedule: string, artisanId: string): boolean {
+  private shouldPayout(schedule: string, _artisanId: string): boolean {
     // Implémenter logique de schedule (daily, weekly, monthly, etc.)
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.

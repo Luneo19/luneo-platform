@@ -5,12 +5,13 @@
  * Client Component minimal
  */
 
+import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { XCircle } from 'lucide-react';
+import { XCircle, Package, Factory, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import type { Order } from '../types';
 
@@ -150,7 +151,13 @@ export function OrderDetailDialog({
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between">
                       <div>
-                        <p className="text-gray-900 font-medium">{item.product_name}</p>
+                        {item.product_id ? (
+                          <Link href={`/dashboard/products/${item.product_id}`} className="text-gray-900 font-medium hover:text-cyan-600 transition-colors">
+                            {item.product_name}
+                          </Link>
+                        ) : (
+                          <p className="text-gray-900 font-medium">{item.product_name}</p>
+                        )}
                         {item.design_name && (
                           <p className="text-sm text-gray-600">{item.design_name}</p>
                         )}
@@ -184,6 +191,26 @@ export function OrderDetailDialog({
               </CardContent>
             </Card>
           )}
+
+          {/* Cross-links */}
+          <div className="flex flex-wrap gap-2">
+            {order.items?.[0]?.product_id && (
+              <Button asChild variant="outline" size="sm" className="border-gray-200 text-gray-700">
+                <Link href={`/dashboard/products/${order.items[0].product_id}`}>
+                  <Package className="w-3.5 h-3.5 mr-1.5" />
+                  Voir le produit
+                  <ArrowRight className="w-3 h-3 ml-1.5" />
+                </Link>
+              </Button>
+            )}
+            <Button asChild variant="outline" size="sm" className="border-gray-200 text-gray-700">
+              <Link href="/dashboard/production">
+                <Factory className="w-3.5 h-3.5 mr-1.5" />
+                Production
+                <ArrowRight className="w-3 h-3 ml-1.5" />
+              </Link>
+            </Button>
+          </div>
 
           <Separator className="bg-gray-200" />
 

@@ -137,7 +137,7 @@ export class AppError extends HttpException {
   /**
    * Convertit l'erreur en objet JSON pour logging
    */
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       code: this.code,

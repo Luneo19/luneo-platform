@@ -10,7 +10,7 @@ export interface EnqueueRenderOptions {
   customizationId?: string;
   type: 'preview' | 'final' | 'ar' | 'manufacturing';
   priority?: number;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -37,7 +37,7 @@ export class RenderQueueService {
     const renderId = `render_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Créer RenderResult en DB (pending)
-    const renderResult = await this.prisma.renderResult.create({
+    const _renderResult = await this.prisma.renderResult.create({
       data: {
         renderId,
         type: type === 'preview' ? '2d' : type === 'ar' ? 'ar' : type === 'manufacturing' ? 'manufacturing' : '3d',
@@ -89,7 +89,7 @@ export class RenderQueueService {
    */
   async enqueuePreview(
     snapshotId: string,
-    options?: Record<string, any>,
+    options?: Record<string, unknown>,
   ): Promise<{ renderId: string; jobId: string }> {
     return this.enqueue({
       snapshotId,
@@ -104,7 +104,7 @@ export class RenderQueueService {
    */
   async enqueueFinal(
     snapshotId: string,
-    options?: Record<string, any>,
+    options?: Record<string, unknown>,
   ): Promise<{ renderId: string; jobId: string }> {
     return this.enqueue({
       snapshotId,
@@ -119,7 +119,7 @@ export class RenderQueueService {
    */
   async enqueueAR(
     snapshotId: string,
-    options?: Record<string, any>,
+    options?: Record<string, unknown>,
   ): Promise<{ renderId: string; jobId: string }> {
     return this.enqueue({
       snapshotId,

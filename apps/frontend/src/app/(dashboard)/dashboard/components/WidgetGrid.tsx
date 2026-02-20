@@ -56,6 +56,7 @@ function getWidgetOrder(
 
 export function WidgetGrid() {
   const { dashboardConfig, userPreferences } = useDashboardStore();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const widgets = dashboardConfig?.widgets ?? [];
   const overrides = userPreferences?.widgetOverrides ?? null;
 

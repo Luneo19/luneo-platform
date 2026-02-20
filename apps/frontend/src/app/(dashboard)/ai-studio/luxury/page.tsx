@@ -13,6 +13,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import Image from 'next/image';
 
 const LUXURY_STYLES = [
   { value: 'haute-couture', label: 'Haute Couture', desc: 'Élégance parisienne intemporelle' },
@@ -177,7 +178,7 @@ function LuxuryAIPageContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {results.map((r) => (
                       <div key={r.id} className="relative aspect-square rounded-lg overflow-hidden bg-white/[0.04]">
-                        <img src={r.url} alt={r.prompt} className="w-full h-full object-cover" />
+                        <Image src={r.url} alt={r.prompt} className="w-full h-full object-cover" width={200} height={200} unoptimized />
                       </div>
                     ))}
                   </div>

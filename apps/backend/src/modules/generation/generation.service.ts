@@ -110,7 +110,7 @@ export class GenerationService {
     });
 
     // 7. Ajouter à la queue
-    const job = await this.generationQueue.add(
+    const _job = await this.generationQueue.add(
       'generate',
       {
         generationId: generation.id,
@@ -364,7 +364,7 @@ export class GenerationService {
   }
 
   private getArSessionConfig(trackingType: string) {
-    const configs: Record<string, any> = {
+    const configs: Record<string, unknown> = {
       face: {
         requiredFeatures: ['face-detection'],
         optionalFeatures: ['dom-overlay'],

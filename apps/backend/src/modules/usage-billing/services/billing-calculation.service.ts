@@ -141,7 +141,7 @@ export class BillingCalculationService {
       const overageCosts: MetricCosts = {};
       const breakdown: BreakdownItem[] = [];
 
-      let totalUsageCost = 0;
+      const totalUsageCost = 0;
       let totalOverageCost = 0;
 
       // ✅ Calculer les coûts avec gardes

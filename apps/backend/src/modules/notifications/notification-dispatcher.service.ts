@@ -3,7 +3,7 @@
  * Receives business events, creates persistent notifications in DB, and broadcasts via WebSocket.
  */
 
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
@@ -85,6 +85,26 @@ export class NotificationDispatcherService {
         actionUrl: `/dashboard/orders`,
         actionLabel: 'Voir la commande',
       });
+
+      // Notify the merchant (brand owner) as well
+      if (payload.brandId) {
+        const brandOwner = await this.prisma.user.findFirst({
+          where: { brandId: payload.brandId },
+          select: { id: true },
+        });
+        if (brandOwner && brandOwner.id !== payload.userId) {
+          await this.notificationsService.create({
+            userId: brandOwner.id,
+            type: 'order',
+            title: 'Nouvelle commande reçue',
+            message: `Commande #${payload.orderNumber} — ${(payload.totalCents / 100).toFixed(2)}€`,
+            data: { orderId: payload.orderId, orderNumber: payload.orderNumber },
+            actionUrl: `/dashboard/orders`,
+            actionLabel: 'Voir la commande',
+          });
+        }
+      }
+
       this.realtimeGateway?.emitToUser(payload.userId, 'order.created', payload);
       this.realtimeGateway?.emitToBrand(payload.brandId, 'order.created', payload);
     } catch (err) {

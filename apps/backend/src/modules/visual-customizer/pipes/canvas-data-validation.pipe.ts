@@ -25,7 +25,7 @@ type CanvasData = {
 
 @Injectable()
 export class CanvasDataValidationPipe implements PipeTransform {
-  transform(value: unknown, metadata: ArgumentMetadata): CanvasData {
+  transform(value: unknown, _metadata: ArgumentMetadata): CanvasData {
     if (!value || typeof value !== 'object') {
       throw new BadRequestException('Canvas data must be an object');
     }

@@ -9,7 +9,7 @@ import {
 import { VisualCustomizer } from '@prisma/client';
 import { Request } from 'express';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import * as crypto from 'crypto';
+import * as _crypto from 'crypto';
 
 export const CUSTOMIZER_KEY = 'customizer';
 

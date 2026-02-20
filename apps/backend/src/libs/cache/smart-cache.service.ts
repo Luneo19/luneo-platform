@@ -186,7 +186,7 @@ export class SmartCacheService {
     fetchFn: (key: string) => Promise<T>,
     options: { ttl?: number; tags?: string[] } = {}
   ): Promise<void> {
-    const strategy = this.strategies[type] || this.defaultStrategy;
+    const _strategy = this.strategies[type] || this.defaultStrategy;
     
     try {
       const promises = keys.map(async (key) => {
@@ -344,7 +344,7 @@ export class SmartCacheService {
     type: string,
     fetchFn: () => Promise<T>,
     options: { ttl?: number; tags?: string[] },
-    strategy: CacheStrategy
+    _strategy: CacheStrategy
   ): Promise<void> {
     try {
       const data = await fetchFn();

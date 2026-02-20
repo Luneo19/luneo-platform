@@ -10,7 +10,7 @@ import { CADIntegrationService } from './services/cad-integration.service';
 import { RenderQueueService } from './services/render-queue.service';
 import { RenderStatusService } from './services/render-status.service';
 import { RenderPrintReadyService } from './services/render-print-ready.service';
-import { RenderRequest, RenderOptions } from './interfaces/render.interface';
+import { RenderRequest } from './interfaces/render.interface';
 import { ValidateCADDto } from './dto/validate-cad.dto';
 import { GenerateLODDto } from './dto/generate-lod.dto';
 import { GenerateMarketingRenderDto } from './dto/generate-marketing-render.dto';
@@ -141,7 +141,7 @@ export class RenderController {
   @ApiOperation({ summary: 'Enqueue un preview render (rapide, 2D)' })
   @ApiResponse({ status: 201, description: 'Render job enqueued' })
   async enqueuePreview(
-    @Body() dto: { snapshotId: string; options?: Record<string, any> },
+    @Body() dto: { snapshotId: string; options?: Record<string, unknown> },
   ) {
     return this.renderQueue.enqueuePreview(dto.snapshotId, dto.options);
   }
@@ -151,7 +151,7 @@ export class RenderController {
   @ApiOperation({ summary: 'Enqueue un final render (haute qualité, 3D)' })
   @ApiResponse({ status: 201, description: 'Render job enqueued' })
   async enqueueFinal(
-    @Body() dto: { snapshotId: string; options?: Record<string, any> },
+    @Body() dto: { snapshotId: string; options?: Record<string, unknown> },
   ) {
     return this.renderQueue.enqueueFinal(dto.snapshotId, dto.options);
   }

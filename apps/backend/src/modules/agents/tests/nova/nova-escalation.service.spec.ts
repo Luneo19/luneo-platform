@@ -45,7 +45,7 @@ describe('NovaEscalationService', () => {
     it('should have valid priority enum for create_ticket', () => {
       const tools = service.getSupportTools();
       const createTicket = tools.find((t) => t.function.name === 'create_ticket');
-      const props = createTicket!.function.parameters.properties as Record<string, any>;
+      const props = createTicket!.function.parameters.properties as Record<string, unknown>;
       const priorities = props.priority.enum;
       expect(priorities).toEqual(['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL']);
     });

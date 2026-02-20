@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
@@ -30,7 +31,6 @@ export class ReferralService {
       return existingReferral.referralCode;
     }
 
-    const crypto = require('crypto');
     let attempts = 0;
     while (attempts < 20) {
       const chars = Array.from({ length: 6 }, () =>

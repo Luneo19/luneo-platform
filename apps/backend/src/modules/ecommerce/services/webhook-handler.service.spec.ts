@@ -14,7 +14,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('WebhookHandlerService', () => {
   let service: WebhookHandlerService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let _prismaService: jest.Mocked<PrismaService>;
 
   const mockPrismaService = {
     ecommerceIntegration: {

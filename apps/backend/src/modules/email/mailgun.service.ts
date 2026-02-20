@@ -37,7 +37,7 @@ export class MailgunService {
   private initializeMailgun() {
     const apiKey = this.configService.get<string>('email.mailgunApiKey');
     const domain = this.configService.get<string>('email.mailgunDomain');
-    const _url = this.configService.get<string>('email.mailgunUrl');
+    const __url = this.configService.get<string>('email.mailgunUrl');
     this.defaultFrom = this.configService.get<string>('email.fromEmail') || 'noreply@luneo.app';
 
     if (!apiKey || !domain) {

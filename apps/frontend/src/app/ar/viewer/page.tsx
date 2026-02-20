@@ -64,6 +64,7 @@ function ARViewerContent() {
     }
 
     initializeAR();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelUrl]);
 
   // ========================================
@@ -104,6 +105,7 @@ function ARViewerContent() {
       setError(getErrorDisplayMessage(error));
       setIsInitializing(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelUrl, productId, customizationId, productType, createSession, trackInteraction]);
 
   const startWebXRSession = useCallback(async () => {
@@ -279,6 +281,7 @@ function ARViewerContent() {
     } catch (error) {
       logger.error('Error taking screenshot', { error });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, trackInteraction]);
 
   const downloadScreenshot = useCallback((dataUrl: string) => {

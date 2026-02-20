@@ -160,7 +160,7 @@ describe('ExperimentsService', () => {
       const result = await service.getResults('test-exp');
       expect(result.experiment.name).toBe('test-exp');
       expect(result.results).toHaveLength(2);
-      const v1Result = result.results.find((r: any) => r.variantId === 'v1');
+      const v1Result = result.results.find((r: { variantId: string }) => r.variantId === 'v1');
       expect(v1Result?.assignments).toBe(2);
     });
 

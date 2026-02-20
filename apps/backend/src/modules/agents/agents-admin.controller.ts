@@ -22,7 +22,6 @@ import type { CurrentUser as CurrentUserType } from '@/common/types/user.types';
 import { AgentAlertsService } from './ai-monitor/services/agent-alerts.service';
 import { AnalyticsService } from './ai-monitor/services/analytics.service';
 import { MetricsService } from './ai-monitor/services/metrics.service';
-import { TrackerService } from './ai-monitor/services/tracker.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 @ApiTags('Agents Admin')

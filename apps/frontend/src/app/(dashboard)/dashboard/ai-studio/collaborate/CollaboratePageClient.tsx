@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Users, Plus, LogOut, ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 
 interface Workspace {
   id: string;
@@ -107,7 +108,7 @@ export function CollaboratePageClient() {
                             key={i}
                             className="w-8 h-8 rounded-full bg-indigo-500/30 border-2 border-white/[0.06] flex items-center justify-center text-xs font-medium text-white"
                           >
-                            {avatar ? <img src={avatar} alt="" className="w-full h-full rounded-full object-cover" /> : '?'}
+                            {avatar ? <Image src={avatar} alt="" className="w-full h-full rounded-full object-cover" width={200} height={200} unoptimized /> : '?'}
                           </div>
                         ))}
                       </div>
@@ -148,7 +149,7 @@ export function CollaboratePageClient() {
                     key={i}
                     className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/[0.1] flex items-center justify-center text-xs text-white/70"
                   >
-                    {avatar ? <img src={avatar} alt="" className="w-full h-full rounded-full object-cover" /> : '?'}
+                    {avatar ? <Image src={avatar} alt="" className="w-full h-full rounded-full object-cover" width={200} height={200} unoptimized /> : '?'}
                   </div>
                 ))}
                 <span className="text-sm text-white/50">{activeWorkspace.memberCount} collaborateur(s)</span>
@@ -164,7 +165,7 @@ export function CollaboratePageClient() {
                       <div key={gen.id} className="bg-white/[0.03] rounded-xl overflow-hidden border border-white/[0.06]">
                         <div className="aspect-square bg-white/[0.05] flex items-center justify-center">
                           {gen.thumbnailUrl ? (
-                            <img src={gen.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                            <Image src={gen.thumbnailUrl} alt="" className="w-full h-full object-cover" width={200} height={200} unoptimized />
                           ) : (
                             <ImageIcon className="w-12 h-12 text-white/20" />
                           )}

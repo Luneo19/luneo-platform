@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 
 function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', {
@@ -71,11 +72,11 @@ export function CartDrawer() {
                   {/* Product image */}
                   <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
                     {item.productImage ? (
-                      <img
+                      <Image width={200} height={200}
                         src={item.productImage}
                         alt={item.productName}
                         className="w-full h-full object-cover"
-                      />
+                      unoptimized />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
                         <ShoppingBag className="w-6 h-6" />

@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
+import { Cacheable } from '@/libs/cache/cacheable.decorator';
 import { TrackEventDto, EventType } from '../dto/track-event.dto';
 import { AnalyticsQueryDto, TimeRange } from '../dto/analytics-query.dto';
-import { Prisma } from '@prisma/client';
 
 /**
  * Clean Analytics Service - Minimaliste et performant
@@ -42,7 +41,7 @@ export class AnalyticsCleanService {
           eventType: dto.eventType as string,
           userId: userId || null,
           sessionId: dto.sessionId || null,
-          properties: dto.properties || {},
+          properties: (dto.properties || {}) as import('@prisma/client/runtime/library').InputJsonValue,
           brandId,
         },
       });

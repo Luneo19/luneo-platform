@@ -20,7 +20,7 @@ describeIntegration('Marketplace Workflow (Integration)', () => {
   let prisma: PrismaService;
   let authToken: string;
   let userId: string;
-  let brandId: string;
+  let _brandId: string;
 
   beforeAll(async () => {
     const testApp = await createIntegrationTestApp();

@@ -43,7 +43,7 @@ export class ArAnalyticsService {
    */
   async getDashboard(brandId: string, period: Period = '30d', projectId?: string): Promise<DashboardKPIs> {
     const { from, to } = this.parsePeriod(period);
-    const projectWhere = projectId ? { projectId } : { project: { brandId } };
+    const _projectWhere = projectId ? { projectId } : { project: { brandId } };
     const brandWhere = projectId ? { project: { brandId, id: projectId } } : { project: { brandId } };
 
     const [sessions, qrScans, topModelsRaw, platformsRaw] = await Promise.all([

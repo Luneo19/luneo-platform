@@ -109,6 +109,7 @@ function ARScreenshotContent({ productName, onShare }: ARScreenshotProps) {
     }
 
     onShare?.(screenshot);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenshot, productName, onShare]);
 
   const clearScreenshot = useCallback(() => {

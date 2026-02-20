@@ -12,7 +12,6 @@ import {
   HttpStatus,
   UseGuards,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,7 +19,6 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { ProjectsService } from '../services/projects.service';
 import { WorkspacesService } from '../services/workspaces.service';

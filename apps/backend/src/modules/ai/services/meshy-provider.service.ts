@@ -66,7 +66,7 @@ export class MeshyProviderService {
     return { taskId: data.result };
   }
 
-  async generateFromImage(imageUrl: string, options?: {
+  async generateFromImage(imageUrl: string, _options?: {
     resolution?: '1024' | '2048';
   }): Promise<{ taskId: string }> {
     const res = await fetch(`${this.baseUrl}/image-to-3d`, {

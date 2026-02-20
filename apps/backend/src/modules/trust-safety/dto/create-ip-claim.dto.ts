@@ -30,7 +30,7 @@ export class CreateIPClaimDto {
   @ApiPropertyOptional({ description: 'Additional metadata' })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 

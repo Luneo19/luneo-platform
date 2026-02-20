@@ -53,6 +53,7 @@ function VerifyEmailPageContent() {
       setError(err instanceof Error ? err.message : t('auth.verifyEmail.error'));
       setStatus('error');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, router]);
 
   useEffect(() => {
@@ -166,6 +167,7 @@ function VerifyEmailPageContent() {
       default:
         return null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, error, resending, handleResend, t]);
 
   return (

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpStatus, HttpCode, BadRequestException } from '@nestjs/common';
+import type { JsonValue } from '@/common/types/utility-types';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { IntegrationsService, IntegrationType } from './integrations.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -28,10 +29,10 @@ export class IntegrationsController {
   async enableIntegration(
     @CurrentUser() user: CurrentUserType,
     @Param('type') type: IntegrationType,
-    @Body() config: Record<string, any>,
+    @Body() config: Record<string, string | number | boolean>,
   ) {
     const brandId = this.extractBrandId(user);
-    return this.integrationsService.enableIntegration(brandId, type, config);
+    return this.integrationsService.enableIntegration(brandId, type, config as Record<string, JsonValue>);
   }
 
   @Delete(':type')
@@ -53,10 +54,10 @@ export class IntegrationsController {
   async testIntegration(
     @CurrentUser() user: CurrentUserType,
     @Param('type') type: IntegrationType,
-    @Body() config: Record<string, any>,
+    @Body() config: Record<string, string | number | boolean>,
   ) {
     const brandId = this.extractBrandId(user);
-    return this.integrationsService.testIntegration(brandId, type, config);
+    return this.integrationsService.testIntegration(brandId, type, config as Record<string, JsonValue>);
   }
 
   @Get('stats')

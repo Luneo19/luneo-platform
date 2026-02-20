@@ -11,7 +11,7 @@ import { CurrentUser } from '@/common/types/user.types';
 
 describe('CustomizerModerationService', () => {
   let service: CustomizerModerationService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     customizerModerationRecord: {

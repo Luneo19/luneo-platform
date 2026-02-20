@@ -11,7 +11,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { Public } from '@/common/decorators/public.decorator';
-import { PCE_EVENTS } from '../pce.constants';
 
 /**
  * Handles incoming webhooks from external fulfillment/shipping providers.

@@ -19,38 +19,23 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getQueueToken } from '@nestjs/bull';
 
 /**
- * Type helper pour créer des mocks Jest typés avec toutes les méthodes Jest
- */
-type JestMockFunction<T extends (...args: any[]) => any> = jest.Mock<
-  ReturnType<T>,
-  Parameters<T>
-> & {
-  mockResolvedValue: (value: Awaited<ReturnType<T>>) => JestMockFunction<T>;
-  mockRejectedValue: (error: any) => JestMockFunction<T>;
-  mockImplementation: (fn: T) => JestMockFunction<T>;
-  mockReturnValue: (value: ReturnType<T>) => JestMockFunction<T>;
-  mock: jest.MockContext<ReturnType<T>, Parameters<T>>;
-};
-
-/**
  * Crée un mock de méthode Prisma qui retourne une Promise
  * Compatible avec les méthodes Jest mockResolvedValue et mockRejectedValue
  */
-const createPrismaMock = <T = any>(): jest.MockedFunction<(...args: any[]) => Promise<T>> & {
-  mockResolvedValue: (value: T) => jest.MockedFunction<(...args: any[]) => Promise<T>>;
-  mockRejectedValue: (error: any) => jest.MockedFunction<(...args: any[]) => Promise<T>>;
+const createPrismaMock = <T = unknown>(): jest.MockedFunction<(...args: unknown[]) => Promise<T>> & {
+  mockResolvedValue: (value: T) => jest.MockedFunction<(...args: unknown[]) => Promise<T>>;
+  mockRejectedValue: (error: unknown) => jest.MockedFunction<(...args: unknown[]) => Promise<T>>;
 } => {
-  type PrismaMockFn = jest.Mock<Promise<T>, any[]> & {
+  type PrismaMockFn = jest.Mock<Promise<T>, unknown[]> & {
     mockResolvedValue: (value: T) => PrismaMockFn;
     mockRejectedValue: (error: unknown) => PrismaMockFn;
   };
-  const mockFn = jest.fn<Promise<T>, any[]>() as unknown as PrismaMockFn;
-  // S'assurer que mockResolvedValue et mockRejectedValue sont disponibles
+  const mockFn = jest.fn<Promise<T>, unknown[]>() as unknown as PrismaMockFn;
   mockFn.mockResolvedValue = (value: T) => {
     mockFn.mockReturnValue(Promise.resolve(value));
     return mockFn;
   };
-  mockFn.mockRejectedValue = (error: any) => {
+  mockFn.mockRejectedValue = (error: unknown) => {
     mockFn.mockReturnValue(Promise.reject(error));
     return mockFn;
   };
@@ -141,7 +126,7 @@ export const createMockRedisService = () => ({
  */
 export const createMockCacheService = () => ({
   // get(key, namespace, factory) - execute factory to get data
-  get: jest.fn().mockImplementation(async (key: string, namespace: string, factory: () => Promise<any>) => {
+  get: jest.fn().mockImplementation(async (key: string, namespace: string, factory: () => Promise<unknown>) => {
     if (typeof factory === 'function') {
       return factory();
     }
@@ -151,7 +136,7 @@ export const createMockCacheService = () => ({
   invalidate: jest.fn(),
   invalidateByTags: jest.fn(),
   invalidateByPattern: jest.fn(),
-  getOrSet: jest.fn().mockImplementation(async (key: string, factory: () => Promise<any>) => {
+  getOrSet: jest.fn().mockImplementation(async (key: string, factory: () => Promise<unknown>) => {
     if (typeof factory === 'function') {
       return factory();
     }
@@ -297,6 +282,7 @@ export const createMockReferralService = () => ({
 /**
  * Crée un module de test avec les mocks de base
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- NestJS Test.createTestingModule expects flexible types
 export async function createTestingModule(providers: any[] = [], imports: any[] = []) {
   const module: TestingModule = await Test.createTestingModule({
     imports,

@@ -66,6 +66,7 @@ export function PostMessageHandler({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowedOrigins]);
 
   // Send message to parent
@@ -148,6 +149,7 @@ export function PostMessageHandler({
         handleError,
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customizerId, productId]);
 
   // This component doesn't render anything

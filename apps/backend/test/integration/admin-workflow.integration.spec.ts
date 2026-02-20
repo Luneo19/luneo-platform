@@ -17,7 +17,7 @@ describeIntegration('Admin Workflow Integration', () => {
   let moduleFixture: TestingModule;
   let prisma: PrismaService;
   let adminAccessToken: string;
-  let adminUserId: string;
+  let _adminUserId: string;
 
   beforeAll(async () => {
     const testApp = await createIntegrationTestApp();

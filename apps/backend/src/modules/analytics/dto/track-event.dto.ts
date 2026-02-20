@@ -78,7 +78,7 @@ export class TrackEventDto {
   })
   @IsOptional()
   @IsObject()
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Event metadata (frontend format, maps to properties)',
@@ -86,7 +86,7 @@ export class TrackEventDto {
   })
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   @IsOptional()
   @IsNumber()
@@ -114,15 +114,15 @@ export class TrackEventDto {
 
   @IsOptional()
   @IsObject()
-  deviceInfo?: Record<string, any>;
+  deviceInfo?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()
-  pageInfo?: Record<string, any>;
+  pageInfo?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()
-  utm?: Record<string, any>;
+  utm?: Record<string, unknown>;
 }
 
 /**

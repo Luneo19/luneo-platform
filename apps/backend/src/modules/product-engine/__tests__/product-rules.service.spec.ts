@@ -122,7 +122,7 @@ describe('ProductRulesService', () => {
           {
             id: 'z1',
             label: 'Z',
-            type: 'invalid_type' as any,
+            type: 'invalid_type' as unknown,
             x: 0,
             y: 0,
             width: 10,

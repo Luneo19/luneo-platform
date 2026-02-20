@@ -39,7 +39,7 @@ export class ProductSyncService {
    * Synchronise les produits d'une intégration
    */
   async syncProducts(request: ProductSyncRequest & { brandId?: string }): Promise<SyncResult> {
-    const { integrationId, productIds, options, brandId } = request;
+    const { integrationId, productIds: _productIds, options, brandId } = request;
 
     try {
       // Récupérer l'intégration
@@ -285,7 +285,7 @@ export class ProductSyncService {
    */
   async scheduleSyncJob(integrationId: string, interval: 'hourly' | 'daily' | 'weekly'): Promise<void> {
     const cronExpression = this.getCronExpression(interval);
-    const job = await this.syncQueue.add(
+    const _job = await this.syncQueue.add(
       'sync-products',
       { integrationId },
       {

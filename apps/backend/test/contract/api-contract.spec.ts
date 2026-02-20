@@ -39,7 +39,7 @@ describeIntegration('API Contract Tests', () => {
 
   describe('Auth API Contract', () => {
     // Schema for wrapped response
-    const signupResponseSchema = {
+    const _signupResponseSchema = {
       type: 'object',
       properties: {
         success: { type: 'boolean' },

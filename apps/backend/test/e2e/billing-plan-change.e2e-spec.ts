@@ -11,9 +11,9 @@ import { PrismaService } from '../../src/libs/prisma/prisma.service';
 
 describe('Billing Plan Change E2E', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
   let authToken: string;
-  let testUserId: string;
+  let _testUserId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -30,7 +30,7 @@ describe('Billing Plan Change E2E', () => {
     );
     await app.init();
     
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
+    _prisma = moduleFixture.get<PrismaService>(PrismaService);
   });
 
   afterAll(async () => {
@@ -49,7 +49,7 @@ describe('Billing Plan Change E2E', () => {
       .send({ email, password });
 
     if (response.status === 200 && response.body.accessToken) {
-      testUserId = response.body.user?.id;
+      _testUserId = response.body.user?.id;
       return response.body.accessToken;
     }
     

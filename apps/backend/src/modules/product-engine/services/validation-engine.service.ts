@@ -6,7 +6,6 @@ import {
   ValidationError, 
   ValidationWarning,
   DesignOptions,
-  ProductRules,
   ProductZone,
   ZoneValidationContext
 } from '../interfaces/product-rules.interface';
@@ -104,24 +103,25 @@ export class ValidationEngine {
       }
 
       if (zoneOptions) {
+        const opts = zoneOptions as Record<string, unknown>;
         // Validation spécifique au type de zone
         switch (zone.type) {
           case 'image':
-            this.validateImageZone(zone, zoneOptions, errors, warnings);
+            this.validateImageZone(zone, opts, errors, warnings);
             break;
           case 'text':
-            this.validateTextZone(zone, zoneOptions, errors, warnings);
+            this.validateTextZone(zone, opts, errors, warnings);
             break;
           case 'color':
-            this.validateColorZone(zone, zoneOptions, errors, warnings);
+            this.validateColorZone(zone, opts, errors, warnings);
             break;
           case 'select':
-            this.validateSelectZone(zone, zoneOptions, errors, warnings);
+            this.validateSelectZone(zone, opts, errors, warnings);
             break;
         }
 
         // Validation des contraintes communes
-        this.validateZoneConstraints(zone, zoneOptions, errors, warnings);
+        this.validateZoneConstraints(zone, opts, errors, warnings);
       }
     }
 
@@ -261,7 +261,7 @@ export class ValidationEngine {
     zone: ProductZone,
     options: Record<string, unknown>,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    _warnings: ValidationWarning[]
   ): void {
     if (!options.color) {
       errors.push({
@@ -303,7 +303,7 @@ export class ValidationEngine {
     zone: ProductZone,
     options: Record<string, unknown>,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    _warnings: ValidationWarning[]
   ): void {
     if (!options.value) {
       errors.push({
@@ -334,7 +334,7 @@ export class ValidationEngine {
     zone: ProductZone,
     options: Record<string, unknown>,
     errors: ValidationError[],
-    warnings: ValidationWarning[]
+    _warnings: ValidationWarning[]
   ): void {
     if (!zone.constraints) return;
 
@@ -563,9 +563,10 @@ export class ValidationEngine {
         const zone = context.rules.zones.find(z => z.id === zoneId);
         if (!zone || zone.type !== 'image') continue;
 
+        const opts = zoneOptions as Record<string, unknown>;
         // Vérifier la qualité de l'image
-        if (zoneOptions.imageUrl) {
-          const qualityCheck = await this.checkImageQuality(zoneOptions.imageUrl);
+        if (opts.imageUrl) {
+          const qualityCheck = await this.checkImageQuality(opts.imageUrl as string);
           
           if (qualityCheck.isLowQuality) {
             warnings.push({
@@ -584,7 +585,7 @@ export class ValidationEngine {
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error validating asset quality:', error);
     }
 
@@ -634,9 +635,10 @@ export class ValidationEngine {
     // Complexité basée sur les zones
     if (options.zones) {
       for (const zoneOptions of Object.values(options.zones)) {
-        if (zoneOptions.complexity === 'complex') {
+        const opts = zoneOptions as Record<string, unknown>;
+        if (opts.complexity === 'complex') {
           complexity += 3;
-        } else if (zoneOptions.complexity === 'medium') {
+        } else if (opts.complexity === 'medium') {
           complexity += 2;
         } else {
           complexity += 1;
@@ -646,7 +648,8 @@ export class ValidationEngine {
 
     // Complexité basée sur les effets
     if (options.customizations?.effects) {
-      complexity += options.customizations.effects.length;
+      const effects = options.customizations.effects as unknown[];
+      complexity += effects.length;
     }
 
     return complexity;
@@ -655,7 +658,7 @@ export class ValidationEngine {
   /**
    * Vérifie la qualité d'une image
    */
-  private async checkImageQuality(imageUrl: string): Promise<{
+  private async checkImageQuality(_imageUrl: string): Promise<{
     isLowQuality: boolean;
     hasArtifacts: boolean;
     resolution: { width: number; height: number };

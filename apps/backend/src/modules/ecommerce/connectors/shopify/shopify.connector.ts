@@ -50,7 +50,7 @@ export class ShopifyConnector {
   /**
    * Génère l'URL d'installation Shopify OAuth
    */
-  generateInstallUrl(shop: string, brandId: string): string {
+  generateInstallUrl(shop: string, _brandId: string): string {
     const apiKey = this.configService.get('shopify.apiKey');
     const scopes = [
       'read_products',
@@ -663,7 +663,7 @@ export class ShopifyConnector {
    */
   async syncProducts(
     integrationId: string,
-    options?: SyncOptions,
+    _options?: SyncOptions,
   ): Promise<SyncResult> {
     const startTime = Date.now();
     const errors: Array<{ itemId: string; code: string; message: string }> = [];

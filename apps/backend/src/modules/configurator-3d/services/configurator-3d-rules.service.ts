@@ -258,7 +258,7 @@ export class Configurator3DRulesService {
 
   executeAction(
     action: RuleAction,
-    selections: Record<string, string>,
+    _selections: Record<string, string>,
   ): { applied: boolean; error?: string; warning?: string } {
     switch (action.type) {
       case 'REQUIRE':

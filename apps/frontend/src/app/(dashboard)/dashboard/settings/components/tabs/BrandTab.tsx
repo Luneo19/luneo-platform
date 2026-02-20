@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
+import Image from 'next/image';
 
 export function BrandTab() {
   const { t } = useI18n();
@@ -135,14 +136,14 @@ export function BrandTab() {
         {logoUrl && (
           <div className="space-y-2">
             <Label>Aperçu</Label>
-            <img
+            <Image width={200} height={200}
               src={logoUrl}
               alt="Logo"
               className="h-16 w-auto rounded border object-contain p-2"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
-            />
+            unoptimized />
           </div>
         )}
         <Button onClick={handleSave} disabled={saving}>

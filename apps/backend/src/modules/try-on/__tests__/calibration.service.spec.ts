@@ -4,7 +4,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('CalibrationService', () => {
   let service: CalibrationService;
-  let prisma: Record<string, unknown>;
+  let _prisma: Record<string, unknown>;
 
   const mockPrisma = {
     tryOnSession: {

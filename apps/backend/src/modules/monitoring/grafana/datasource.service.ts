@@ -334,7 +334,7 @@ export class GrafanaDatasourceService {
   /**
    * Get cache hit rate metrics
    */
-  private async getCacheHitRate(startTime: Date, endTime: Date) {
+  private async getCacheHitRate(_startTime: Date, _endTime: Date) {
     try {
       const stats = await this.redis.getStats();
       

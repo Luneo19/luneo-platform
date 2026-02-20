@@ -430,7 +430,7 @@ export class Configurator3DSessionService {
   }
 
   async delete(sessionId: string, brandId: string) {
-    const session = await this.findOne(sessionId, { brandId });
+    const _session = await this.findOne(sessionId, { brandId });
 
     await this.prisma.configurator3DSession.delete({
       where: { sessionId },

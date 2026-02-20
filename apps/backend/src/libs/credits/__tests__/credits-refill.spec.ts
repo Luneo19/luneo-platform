@@ -4,7 +4,6 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
 import { CreditsService } from '../credits.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
@@ -12,7 +11,7 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 describe('CreditsService (refill & expiration)', () => {
   let service: CreditsService;
   let prisma: jest.Mocked<PrismaService>;
-  let cache: jest.Mocked<SmartCacheService>;
+  let _cache: jest.Mocked<SmartCacheService>;
 
   const mockBrandWithUsers = {
     id: 'brand-1',
@@ -57,7 +56,7 @@ describe('CreditsService (refill & expiration)', () => {
   describe('refillMonthlyCredits', () => {
     it('should add correct amount of credits to primary user', async () => {
       (prisma.brand.findUnique as jest.Mock).mockResolvedValue(mockBrandWithUsers);
-      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           user: {
             findUnique: jest.fn().mockResolvedValue({ aiCredits: 50, email: 'admin@test.com' }),
@@ -84,15 +83,15 @@ describe('CreditsService (refill & expiration)', () => {
 
     it('should create a transaction with type monthly_refill and no expiresAt', async () => {
       (prisma.brand.findUnique as jest.Mock).mockResolvedValue(mockBrandWithUsers);
-      let createData: any;
-      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+      let createData: Record<string, unknown>;
+      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           user: {
             findUnique: jest.fn().mockResolvedValue({ aiCredits: 10, email: 'a@b.com' }),
             update: jest.fn().mockResolvedValue({ aiCredits: 110 }),
           },
           creditTransaction: {
-            create: jest.fn().mockImplementation((args: { data: any }) => {
+            create: jest.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
               createData = args.data;
               return Promise.resolve({ id: 'tx-1', ...args.data });
             }),
@@ -128,8 +127,8 @@ describe('CreditsService (refill & expiration)', () => {
     it('should create transaction with expiresAt = +12 months for add-on purchase', async () => {
       const twelveMonthsFromNow = new Date();
       twelveMonthsFromNow.setFullYear(twelveMonthsFromNow.getFullYear() + 1);
-      let createData: any;
-      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+      let createData: Record<string, unknown>;
+      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           user: {
             findUnique: jest.fn().mockResolvedValue({ aiCredits: 20, aiCreditsPurchased: 0, email: 'u@t.com' }),
@@ -137,7 +136,7 @@ describe('CreditsService (refill & expiration)', () => {
           },
           creditTransaction: {
             findFirst: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockImplementation((args: { data: any }) => {
+            create: jest.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
               createData = args.data;
               return Promise.resolve({ id: 'tx-1', ...args.data });
             }),
@@ -153,8 +152,8 @@ describe('CreditsService (refill & expiration)', () => {
     });
 
     it('should create transaction without expiresAt when not provided', async () => {
-      let createData: any;
-      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+      let createData: Record<string, unknown>;
+      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           user: {
             findUnique: jest.fn().mockResolvedValue({ aiCredits: 0, aiCreditsPurchased: 0, email: 'u@t.com' }),
@@ -162,7 +161,7 @@ describe('CreditsService (refill & expiration)', () => {
           },
           creditTransaction: {
             findFirst: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockImplementation((args: { data: any }) => {
+            create: jest.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
               createData = args.data;
               return Promise.resolve({ id: 'tx-1', ...args.data });
             }),
@@ -180,12 +179,12 @@ describe('CreditsService (refill & expiration)', () => {
 
   describe('expireCredits', () => {
     it('should mark expired transactions and adjust balance', async () => {
-      const now = new Date();
+      const _now = new Date();
       (prisma.creditTransaction.findMany as jest.Mock).mockResolvedValue([
         { id: 'tx-1', userId: 'user-1', amount: 30 },
         { id: 'tx-2', userId: 'user-1', amount: 20 },
       ]);
-      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: any) => Promise<void>) => {
+      (prisma.$transaction as jest.Mock).mockImplementation(async (cb: (tx: unknown) => Promise<void>) => {
         const tx = {
           $queryRaw: jest.fn().mockResolvedValue([{ ai_credits: 100 }]),
           user: { update: jest.fn().mockResolvedValue({}) },

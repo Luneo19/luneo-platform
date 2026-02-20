@@ -346,8 +346,8 @@ export class CADValidationService {
         
         // Position de la griffe sur le bord de la pierre (avec clearance)
         const clawDistance = stoneRadius + minClearance;
-        const clawX = stone.position.x + clawDistance * Math.cos(angle);
-        const clawY = stone.position.y + clawDistance * Math.sin(angle);
+        const _clawX = stone.position.x + clawDistance * Math.cos(angle);
+        const _clawY = stone.position.y + clawDistance * Math.sin(angle);
         
         // Vérifier si la griffe pénètre dans la zone de la pierre (collision)
         // La griffe doit être inclinée vers la pierre mais ne pas la traverser

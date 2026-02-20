@@ -13,8 +13,8 @@ import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 
 describe('WhiteLabelService', () => {
   let service: WhiteLabelService;
-  let prismaService: any; // Use any for mock methods
-  let cacheService: jest.Mocked<SmartCacheService>;
+  let prismaService: Record<string, unknown>;
+  let _cacheService: jest.Mocked<SmartCacheService>;
 
   const mockBrand = {
     id: 'brand-123',
@@ -107,9 +107,9 @@ describe('WhiteLabelService', () => {
     };
 
     it('should create theme with valid data', async () => {
-      prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
+      prismaService.brand.findUnique.mockResolvedValue(mockBrand);
       prismaService.customTheme.updateMany.mockResolvedValue({ count: 0 });
-      prismaService.customTheme.create.mockResolvedValue(mockTheme as any);
+      prismaService.customTheme.create.mockResolvedValue(mockTheme);
 
       const result = await service.createTheme(validThemeData);
 
@@ -121,14 +121,14 @@ describe('WhiteLabelService', () => {
     });
 
     it('should throw BadRequestException when brandId is missing', async () => {
-      await expect(service.createTheme({ ...validThemeData, brandId: '' } as any)).rejects.toThrow(
+      await expect(service.createTheme({ ...validThemeData, brandId: '' } as unknown)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('should throw BadRequestException when color format is invalid', async () => {
       await expect(
-        service.createTheme({ ...validThemeData, primaryColor: 'invalid-color' } as any),
+        service.createTheme({ ...validThemeData, primaryColor: 'invalid-color' } as unknown),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -139,7 +139,7 @@ describe('WhiteLabelService', () => {
     });
 
     it('should throw BadRequestException when white-label is not enabled', async () => {
-      prismaService.brand.findUnique.mockResolvedValue({ ...mockBrand, whiteLabel: false } as any);
+      prismaService.brand.findUnique.mockResolvedValue({ ...mockBrand, whiteLabel: false });
 
       await expect(service.createTheme(validThemeData)).rejects.toThrow(BadRequestException);
     });
@@ -147,7 +147,7 @@ describe('WhiteLabelService', () => {
 
   describe('getActiveTheme', () => {
     it('should return active theme when exists', async () => {
-      prismaService.customTheme.findFirst.mockResolvedValue(mockTheme as any);
+      prismaService.customTheme.findFirst.mockResolvedValue(mockTheme);
 
       const result = await service.getActiveTheme('brand-123');
 
@@ -183,7 +183,7 @@ describe('WhiteLabelService', () => {
         sslExpiresAt: null,
       };
       
-      prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
+      prismaService.brand.findUnique.mockResolvedValue(mockBrand);
       prismaService.customDomain.findUnique.mockResolvedValue(null); // No existing domain
       prismaService.customDomain.create.mockResolvedValue(createdDomain);
 
@@ -195,12 +195,12 @@ describe('WhiteLabelService', () => {
 
     it('should throw BadRequestException when domain format is invalid', async () => {
       await expect(
-        service.createCustomDomain({ ...validDomainData, domain: 'invalid domain' } as any),
+        service.createCustomDomain({ ...validDomainData, domain: 'invalid domain' } as unknown),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when domain is already taken', async () => {
-      prismaService.brand.findUnique.mockResolvedValue(mockBrand as any);
+      prismaService.brand.findUnique.mockResolvedValue(mockBrand);
       // Mock that the domain already exists
       prismaService.customDomain.findUnique.mockResolvedValue({ id: 'existing-domain', domain: 'custom.example.com' });
 

@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { CurrentUser } from '@/common/types/user.types';
 import { Cacheable } from '@/libs/cache/cacheable.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -153,7 +154,7 @@ export class OrdersService {
     const shippingMethod = createOrderDto.shippingMethod;
     const discountCode = createOrderDto.discountCode;
 
-    let orderItems: Array<{
+    const orderItems: Array<{
       productId: string;
       designId?: string;
       quantity: number;
@@ -554,6 +555,11 @@ export class OrdersService {
         
         if (!isRetryable || retryCount >= maxRetries) {
           this.logger.error(`Stripe checkout session creation failed after ${retryCount} attempts`, stripeError instanceof Error ? stripeError.stack : String(stripeError));
+          const isDev = this.configService.get('app.nodeEnv') !== 'production';
+          if (isDev) {
+            this.logger.warn('Stripe unavailable in dev mode — order created without checkout session');
+            return { ...order, checkoutUrl: undefined };
+          }
           throw new BadRequestException('Payment initialization failed');
         }
         
@@ -1060,7 +1066,6 @@ export class OrdersService {
   }
 
   private generateOrderNumber(): string {
-    const crypto = require('crypto');
     const randomPart = crypto.randomBytes(5).toString('hex').toUpperCase();
     return `ORD-${Date.now()}-${randomPart}`;
   }

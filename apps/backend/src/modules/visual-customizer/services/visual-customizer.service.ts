@@ -3,7 +3,6 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
@@ -17,7 +16,6 @@ import { Cacheable, CacheInvalidate } from '@/libs/cache/cacheable.decorator';
 import { CreateCustomizerDto } from '../dto/configuration/create-customizer.dto';
 import { UpdateCustomizerDto } from '../dto/configuration/update-customizer.dto';
 import { CustomizerQueryDto } from '../dto/configuration/customizer-query.dto';
-import { VISUAL_CUSTOMIZER_LIMITS } from '../visual-customizer.constants';
 import { CurrentUser } from '@/common/types/user.types';
 
 interface EmbedCodeOptions {
@@ -76,6 +74,7 @@ export class VisualCustomizerService {
           canvasWidth: true,
           canvasHeight: true,
           isPublic: true,
+          productId: true,
           createdAt: true,
           updatedAt: true,
           publishedAt: true,

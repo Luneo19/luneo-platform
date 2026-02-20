@@ -10,7 +10,7 @@ export class CreateSpecDto {
   @ApiProperty({ description: 'Zone inputs (zoneId -> input)' })
   @IsObject()
   @IsNotEmpty()
-  zoneInputs: Record<string, any>;
+  zoneInputs: Record<string, unknown>;
 
   @ApiProperty({ description: 'Spec version', required: false, default: '1.0.0' })
   @IsString()
@@ -20,7 +20,7 @@ export class CreateSpecDto {
   @ApiProperty({ description: 'Metadata', required: false })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 

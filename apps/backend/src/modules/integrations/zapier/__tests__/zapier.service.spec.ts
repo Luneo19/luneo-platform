@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { BadRequestException } from '@nestjs/common';
-import { ZapierService, ZAPIER_ACTIONS } from '../zapier.service';
+import { ZapierService } from '../zapier.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { ZAPIER_TRIGGERS } from '../dto/zapier-subscribe.dto';
 
 describe('ZapierService', () => {
   let service: ZapierService;

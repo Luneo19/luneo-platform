@@ -35,7 +35,7 @@ export interface FunnelData {
     users: number;
     conversion: number; // Pourcentage
     dropoff: number; // Pourcentage
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
   }>;
   totalConversion: number;
   dropoffPoint?: string;
@@ -98,7 +98,7 @@ export interface Segment {
   id: string;
   name: string;
   description?: string;
-  criteria: Record<string, any>; // Flexible pour différents critères
+  criteria: Record<string, unknown>; // Flexible pour différents critères
   userCount: number;
   isActive: boolean;
   brandId: string;
@@ -116,7 +116,7 @@ export interface Prediction {
   value: number;
   confidence: number; // 0-1
   period: '7d' | '30d' | '90d' | '1y';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   brandId: string;
   createdAt: Date;
 }

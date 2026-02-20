@@ -66,13 +66,13 @@ describe('CircuitBreakerService', () => {
       }
 
       // Manually set openedAt to past (simulate timeout)
-      const circuit = (service as any).circuits.get('test-key');
+      const circuit = (service as unknown).circuits.get('test-key');
       if (circuit) {
         circuit.openedAt = Date.now() - 70000; // 70 seconds ago
       }
 
       // Update state (should transition to HALF_OPEN)
-      (service as any).updateCircuitState(circuit);
+      (service as unknown).updateCircuitState(circuit);
 
       const state = service.getState('test-key');
       expect(state).toBe(CircuitState.HALF_OPEN);
@@ -98,7 +98,7 @@ describe('CircuitBreakerService', () => {
       }
 
       // Simulate timeout and HALF_OPEN
-      const circuit = (service as any).circuits.get('test-key');
+      const circuit = (service as unknown).circuits.get('test-key');
       if (circuit) {
         circuit.openedAt = Date.now() - 70000;
         circuit.state = CircuitState.HALF_OPEN;

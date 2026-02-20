@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Upload, Video, Play } from 'lucide-react';
+import Image from 'next/image';
 
 const MOTION_PRESETS = [
   { id: '360-rotation', label: '360° Rotation', description: 'Rotation complète du sujet' },
@@ -89,7 +90,7 @@ export function VideoPageClient() {
           <h2 className="text-lg font-semibold text-white mb-4">Image source</h2>
           <label className="flex flex-col items-center justify-center min-h-[200px] border-2 border-dashed border-white/[0.1] rounded-xl cursor-pointer hover:border-indigo-500/30 transition-colors overflow-hidden">
             {sourcePreview ? (
-              <img src={sourcePreview} alt="Preview" className="w-full h-full object-cover max-h-64" />
+              <Image src={sourcePreview} alt="Preview" className="w-full h-full object-cover max-h-64" width={200} height={200} unoptimized />
             ) : (
               <>
                 <Upload className="w-10 h-10 text-white/30 mb-2" />

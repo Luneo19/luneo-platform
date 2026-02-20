@@ -21,7 +21,7 @@ export class SpecsService {
   @CacheInvalidate({ type: 'spec', tags: () => ['specs:list'] })
   async createOrGet(dto: CreateSpecDto, brandId: string): Promise<import('@prisma/client').DesignSpec> {
     // 1. Builder le spec depuis zone inputs
-    const spec = await this.specBuilder.build(dto.productId, dto.zoneInputs);
+    const spec = await this.specBuilder.build(dto.productId, dto.zoneInputs as Record<string, import('./services/spec-builder.service').ZoneInput>);
 
     // 2. Canonicalizer (normaliser JSON)
     const canonicalSpec = this.canonicalizer.canonicalize(spec);
@@ -66,10 +66,10 @@ export class SpecsService {
       data: {
         specVersion: dto.specVersion || '1.0.0',
         specHash,
-        spec: canonicalSpec as import('@prisma/client').Prisma.InputJsonValue,
+        spec: canonicalSpec as import('@prisma/client/runtime/library').InputJsonValue,
         productId: dto.productId,
-        zoneInputs: dto.zoneInputs,
-        metadata: dto.metadata || {},
+        zoneInputs: dto.zoneInputs as import('@prisma/client/runtime/library').InputJsonValue,
+        metadata: (dto.metadata || {}) as import('@prisma/client/runtime/library').InputJsonValue,
       },
       include: {
         product: {

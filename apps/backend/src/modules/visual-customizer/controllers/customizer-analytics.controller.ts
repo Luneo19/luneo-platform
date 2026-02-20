@@ -1,12 +1,10 @@
 import {
   Controller,
   Get,
-  Param,
   Query,
   HttpCode,
   HttpStatus,
   UseGuards,
-  ValidationPipe,
   Res,
 } from '@nestjs/common';
 import {
@@ -14,18 +12,14 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { CurrentUser as CurrentUserType } from '@/common/types/user.types';
 import { CustomizerAnalyticsService } from '../services/customizer-analytics.service';
-import { Type } from 'class-transformer';
-import { IsOptional, IsDateString, IsUUID } from 'class-validator';
+import { IsDateString } from 'class-validator';
 
-class DateRangeDto {
+class _DateRangeDto {
   @IsDateString()
   from: string;
 

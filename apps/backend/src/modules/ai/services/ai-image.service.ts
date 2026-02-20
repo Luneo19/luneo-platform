@@ -155,7 +155,7 @@ export class AIImageService {
       let resultUrl: string;
 
       if (this.replicateApiKey) {
-        const modelMap = {
+        const _modelMap = {
           auto: 'cjwbw/rembg',
           person: 'cjwbw/rembg',
           product: 'cjwbw/rembg',
@@ -525,7 +525,7 @@ export class AIImageService {
    */
   private async detectFocusPoint(
     imageUrl: string,
-    aspectRatio: number,
+    _aspectRatio: number,
   ): Promise<number> {
     try {
       // Utiliser Replicate pour détection visage/produit si disponible
@@ -619,7 +619,7 @@ export class AIImageService {
       try {
         const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
         const imageBuffer = Buffer.from(imageResponse.data);
-        const metadata = await sharp(imageBuffer).metadata();
+        const _metadata = await sharp(imageBuffer).metadata();
 
         // Simple heuristic: centre de l'image si pas de détection
         // Pour améliorer, on pourrait utiliser sharp pour analyser la composition

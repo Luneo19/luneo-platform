@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface CreateTicketDto {
@@ -38,7 +39,7 @@ export class NovaTicketsService {
         brandId: dto.brandId,
         userId: dto.userId,
         conversationId: dto.conversationId,
-        metadata: (dto.metadata || {}) as any,
+        metadata: (dto.metadata || {}) as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -56,7 +57,7 @@ export class NovaTicketsService {
       data: {
         ticketId: ticket.id,
         type: 'created',
-        data: { source: 'nova_agent', conversationId: dto.conversationId } as any,
+        data: { source: 'nova_agent', conversationId: dto.conversationId } as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -102,7 +103,7 @@ export class NovaTicketsService {
       data: {
         ticketId,
         type: 'status_change',
-        data: { from: ticket.status, to: status } as any,
+        data: { from: ticket.status, to: status } as unknown as Prisma.InputJsonValue,
         actorId,
       },
     });

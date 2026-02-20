@@ -15,7 +15,7 @@ import { Logger } from '@nestjs/common';
 describe('AnalyticsService', () => {
   let service: AnalyticsService;
   let prisma: jest.Mocked<PrismaService>;
-  let cache: jest.Mocked<SmartCacheService>;
+  let _cache: jest.Mocked<SmartCacheService>;
 
   const mockPrismaService = {
     design: {
@@ -52,11 +52,11 @@ describe('AnalyticsService', () => {
       groupBy: jest.fn(),
     },
     $queryRaw: jest.fn(),
-  } as any;
+  } as unknown;
 
   const mockCacheService = {
     get: jest.fn((key, type, fetchFn) => fetchFn()),
-  } as any;
+  } as unknown;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

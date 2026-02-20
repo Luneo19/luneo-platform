@@ -13,7 +13,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('CustomizerAccessGuard', () => {
   let guard: CustomizerAccessGuard;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     visualCustomizer: {

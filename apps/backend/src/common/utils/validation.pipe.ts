@@ -1,8 +1,7 @@
 import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';
 import { validate, ValidationError } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const sanitizeHtml = require('sanitize-html') as (html: string, options?: { allowedTags?: string[] }) => string;
+import sanitizeHtml from 'sanitize-html';
 import xss from 'xss';
 import { JsonValue } from '../types/utility-types';
 
@@ -29,9 +28,9 @@ export class ValidationPipe implements PipeTransform<unknown> {
     return object;
   }
 
-  private toValidate(metatype: Function): boolean {
-    const types: Function[] = [String, Boolean, Number, Array, Object];
-    return !types.includes(metatype);
+  private toValidate(metatype: new (...args: unknown[]) => unknown): boolean {
+    const types: (new (...args: unknown[]) => unknown)[] = [String, Boolean, Number, Array, Object];
+    return !types.includes(metatype as (new (...args: unknown[]) => unknown));
   }
 
   private sanitizeInput(value: unknown): JsonValue {

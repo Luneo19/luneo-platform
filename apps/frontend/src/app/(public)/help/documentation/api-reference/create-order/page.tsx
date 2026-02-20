@@ -15,6 +15,7 @@ function CreateOrderPageContent() {
     navigator.clipboard.writeText(exampleCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const exampleCode = useMemo(() => `const response = await fetch('https://api.luneo.app/v1/orders', {

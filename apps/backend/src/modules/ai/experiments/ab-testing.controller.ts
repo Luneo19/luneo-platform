@@ -14,6 +14,10 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AbTestingService } from './ab-testing.service';
 
+interface AuthenticatedRequest extends Request {
+  user: { id: string; brandId?: string };
+}
+
 @ApiTags('AI Studio - A/B Testing')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -37,7 +41,7 @@ export class AbTestingController {
       model?: string;
       sampleCount?: number;
     },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.abTestingService.createExperiment({
       userId: req.user.id,
@@ -48,7 +52,7 @@ export class AbTestingController {
   @Get()
   @ApiOperation({ summary: 'List experiments' })
   async listExperiments(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('brandId') brandId?: string,
     @Query('status') status?: string,
   ) {
@@ -57,13 +61,13 @@ export class AbTestingController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get experiment details' })
-  async getExperiment(@Param('id') id: string, @Req() req: any) {
+  async getExperiment(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.abTestingService.getExperiment(id, req.user.id);
   }
 
   @Post(':id/complete')
   @ApiOperation({ summary: 'Complete experiment and determine winner' })
-  async completeExperiment(@Param('id') id: string, @Req() req: any) {
+  async completeExperiment(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.abTestingService.completeExperiment(id, req.user.id);
   }
 

@@ -49,7 +49,7 @@ async function setupTestUser(moduleFixture: TestingModule): Promise<{ authToken:
 describe('Streaming SSE E2E', () => {
   let app: INestApplication;
   let authToken: string;
-  let brandId: string;
+  let _brandId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -60,7 +60,7 @@ describe('Streaming SSE E2E', () => {
     await app.init();
 
     const { brandId: bid } = await setupTestUser(moduleFixture);
-    brandId = bid;
+    _brandId = bid;
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: E2E_TEST_EMAIL, password: E2E_TEST_PASSWORD });
@@ -73,7 +73,7 @@ describe('Streaming SSE E2E', () => {
 
   describe('Luna Streaming', () => {
     it('should stream response chunks', (done) => {
-      const url = `http://localhost:${app.getHttpServer().address().port}/api/agents/luna/chat/stream?message=Hello`;
+      const _url = `http://localhost:${app.getHttpServer().address().port}/api/agents/luna/chat/stream?message=Hello`;
       
       request(app.getHttpServer())
         .get('/api/agents/luna/chat/stream')

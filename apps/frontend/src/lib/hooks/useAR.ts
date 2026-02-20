@@ -78,6 +78,7 @@ export function useAR(options: UseAROptions = {}) {
     if (autoCheckSupport) {
       checkSupport();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCheckSupport]);
 
   // ========================================

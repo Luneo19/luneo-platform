@@ -161,7 +161,7 @@ export class AssetFileService {
     organizationId: string,
     file: { buffer: Buffer; mimetype: string; originalname: string; size: number },
     dto: UploadFileDto,
-    uploadedById: string,
+    _uploadedById: string,
   ) {
     // Validate file size against type-specific limits
     const maxSize = AssetFileService.MAX_FILE_SIZES[dto.type] || AssetFileService.MAX_FILE_SIZES.OTHER;

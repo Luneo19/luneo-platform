@@ -9,7 +9,7 @@ import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 
 describe('SnapshotsService', () => {
   let service: SnapshotsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     designSpec: {

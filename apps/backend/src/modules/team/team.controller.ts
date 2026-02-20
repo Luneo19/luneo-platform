@@ -6,7 +6,6 @@ import {
   Delete,
   Param,
   Body,
-  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -16,14 +15,12 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
 import { TeamService } from './team.service';
 import { UpdateTeamMemberDto } from './dto/team.dto';
 import { InviteTeamMemberDto } from './dto/invite-team-member.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
 interface AuthUser {
   id: string;

@@ -3,7 +3,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { PipelineStatus } from '@prisma/client';
 import {
-  PIPELINE_STAGES,
   PCE_EVENTS,
   TERMINAL_STAGES,
 } from '../pce.constants';

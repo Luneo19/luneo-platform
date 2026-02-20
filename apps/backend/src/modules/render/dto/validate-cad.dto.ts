@@ -26,7 +26,7 @@ export class SettingDto {
   @ApiPropertyOptional({ description: 'Setting parameters' })
   @IsObject()
   @IsOptional()
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
 export class ParametersDto {

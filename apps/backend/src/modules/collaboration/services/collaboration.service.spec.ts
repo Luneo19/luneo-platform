@@ -11,7 +11,7 @@ import { ResourceType } from '../interfaces/collaboration.interface';
 
 describe('CollaborationService', () => {
   let service: CollaborationService;
-  let prisma: jest.Mocked<PrismaService>;
+  let _prisma: jest.Mocked<PrismaService>;
 
   const mockSharedResourceCreate = jest.fn();
   const mockSharedResourceFindMany = jest.fn();

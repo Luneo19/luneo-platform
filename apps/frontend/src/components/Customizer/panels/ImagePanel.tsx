@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Image, Upload, Link as LinkIcon, Sparkles, Crop, X } from 'lucide-react';
+import { Image as ImageIcon, Upload, Link as LinkIcon, Sparkles, Crop, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,7 +91,7 @@ export function ImagePanel() {
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Image className="h-5 w-5" />
+          <ImageIcon className="h-5 w-5" />
           <CardTitle>Images</CardTitle>
         </div>
         <CardDescription>Upload and manage images</CardDescription>
@@ -169,6 +169,7 @@ export function ImagePanel() {
                   className="relative aspect-square rounded border overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => addImage(url)}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt={`Recent ${index + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}

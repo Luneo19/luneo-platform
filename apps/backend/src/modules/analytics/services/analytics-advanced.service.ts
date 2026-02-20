@@ -13,10 +13,8 @@ import {
   FunnelData,
   FunnelWithConversionData,
   FunnelStepConversion,
-  Cohort,
   CohortAnalysis,
   Segment,
-  Prediction,
   RevenuePrediction,
   Correlation,
   Anomaly,
@@ -1279,7 +1277,7 @@ export class AnalyticsAdvancedService {
       const entries = Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       const volumes = entries.map(([, v]) => v.count);
       const revenues = entries.map(([, v]) => v.revenueCents / 100);
-      const avgVolume = volumes.reduce((a, b) => a + b, 0) / (volumes.length || 1);
+      const _avgVolume = volumes.reduce((a, b) => a + b, 0) / (volumes.length || 1);
       const avgRevenue = revenues.reduce((a, b) => a + b, 0) / (revenues.length || 1);
 
       const patterns: SeasonalityPattern[] = [];

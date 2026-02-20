@@ -31,7 +31,6 @@ import { QrCustomizerService } from '../qr-codes/qr-customizer.service';
 import { QrAnalyticsService } from '../qr-codes/qr-analytics.service';
 import { DynamicLinkService } from '../qr-codes/dynamic-link.service';
 import { CreateQRCodeDto, UpdateQRCodeDto } from '../dto/ar-qr-codes.dto';
-import { QRCodeType } from '@prisma/client';
 
 @ApiTags('AR Studio - QR Codes')
 @Controller('ar-studio/qr-codes')

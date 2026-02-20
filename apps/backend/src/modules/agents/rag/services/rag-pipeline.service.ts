@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmbeddingsService } from './embeddings.service';
 import { TextSplitterService } from './text-splitter.service';
@@ -60,7 +61,7 @@ export class RAGPipelineService {
         mimeType: options.mimeType || 'text/plain',
         chunkIndex: 0,
         chunkTotal: chunks.length,
-        metadata: { ...doc.metadata, ...options.metadata } as any,
+        metadata: { ...doc.metadata, ...options.metadata } as unknown as Prisma.InputJsonValue,
         tokenCount: Math.ceil(doc.content.length / 4),
       },
     });
@@ -81,7 +82,7 @@ export class RAGPipelineService {
           chunkTotal: chunks.length,
           embeddingModel: 'text-embedding-3-small',
           tokenCount: Math.ceil(chunks[i].content.length / 4),
-          metadata: { parentDocumentId: parentDoc.id, chunkIndex: i } as any,
+          metadata: { parentDocumentId: parentDoc.id, chunkIndex: i } as unknown as Prisma.InputJsonValue,
         },
       });
 

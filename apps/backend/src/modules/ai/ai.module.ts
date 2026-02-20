@@ -11,6 +11,7 @@ import { AIGenerationsController } from './controllers/ai-generations.controller
 import { AiService } from './ai.service';
 import { AIStudioService } from './services/ai-studio.service';
 import { AIStudioQueueService } from './services/ai-studio-queue.service';
+import { AIEnhancedService } from './services/ai-enhanced.service';
 import { AIImageService } from './services/ai-image.service';
 import { MeshyProviderService } from './services/meshy-provider.service';
 import { RunwayProviderService } from './services/runway-provider.service';
@@ -130,6 +131,7 @@ import { PlansModule } from '../plans/plans.module';
     AiService,
     AIStudioService,
     AIStudioQueueService,
+    AIEnhancedService,
     AIImageService,
     MeshyProviderService,
     RunwayProviderService,
@@ -177,6 +179,7 @@ import { PlansModule } from '../plans/plans.module';
     AiService,
     AIStudioService,
     AIStudioQueueService,
+    AIEnhancedService,
     AIImageService,
     MeshyProviderService,
     RunwayProviderService,

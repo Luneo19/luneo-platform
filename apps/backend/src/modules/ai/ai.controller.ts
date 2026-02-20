@@ -15,6 +15,7 @@ import {
 import { AiService } from './ai.service';
 import { AIImageService } from './services/ai-image.service';
 import { AIStudioService } from './services/ai-studio.service';
+import { AIGenerationType, AIGenerationParams } from './interfaces/ai-studio.interface';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/types/user.types';
 import { GenerateImageDto } from './dto/generate-image.dto';
@@ -156,10 +157,10 @@ export class AiController {
     return this.aiStudioService.generate(
       req.user.id,
       req.user.brandId || '',
-      'IMAGE_2D' as any,
+      AIGenerationType.IMAGE_2D,
       body.prompt,
       body.style || 'default',
-      (body.parameters || {}) as any,
+      (body.parameters || {}) as AIGenerationParams,
     );
   }
 }

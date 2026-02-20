@@ -1,11 +1,9 @@
 import {
   IsString,
   IsOptional,
-  IsObject,
   IsBoolean,
   IsEnum,
   IsArray,
-  IsUUID,
   IsNumber,
   Min,
   Max,
@@ -13,7 +11,6 @@ import {
   MaxLength,
   Matches,
   ValidateNested,
-  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';

@@ -90,6 +90,7 @@ export function useTour(options: UseTourOptions = {}) {
         startTour(eligibleTour.id);
       }, eligibleTour.delay || 1000);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, autoStart, state.activeTour, state.completedTours, state.dismissedTours]);
 
   // Start a tour

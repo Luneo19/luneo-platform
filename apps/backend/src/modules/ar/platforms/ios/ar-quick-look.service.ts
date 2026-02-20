@@ -44,7 +44,7 @@ export class ARQuickLookService {
    * @returns usdzUrl and ready flag
    */
   async getARQuickLookLink(options: ARQuickLookLinkOptions): Promise<ARQuickLookLinkResult> {
-    const { modelId, title, applePay = false, callbackUrl } = options;
+    const { modelId, applePay = false } = options;
 
     const { url: usdzUrl, ready } = await this.usdzGenerator.ensureUsdzUrl(modelId);
 

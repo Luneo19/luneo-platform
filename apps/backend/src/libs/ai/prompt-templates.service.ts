@@ -64,7 +64,7 @@ export class PromptTemplatesService {
     let rendered = template.prompt;
 
     // Remplacer les variables {{variable}}
-    const variables = template.variables || {};
+    const _variables = template.variables || {};
     
     for (const [key, value] of Object.entries(context)) {
       const placeholder = `{{${key}}}`;

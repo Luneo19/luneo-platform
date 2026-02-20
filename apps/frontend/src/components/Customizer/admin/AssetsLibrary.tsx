@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Upload, Grid3x3, List, Trash2, Search, Image as ImageIcon, FileText, Shapes } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
+import Image from 'next/image';
 
 interface Asset {
   id: string;
@@ -55,7 +56,7 @@ export function AssetsLibrary({ customizerId, onAssetSelect }: AssetsLibraryProp
 
     try {
       const result = await api.post<Asset[]>(
-        `/api/v1/customizer/configurations/${customizerId}/assets`,
+        `/api/v1/visual-customizer/customizers/${customizerId}/assets`,
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -72,7 +73,7 @@ export function AssetsLibrary({ customizerId, onAssetSelect }: AssetsLibraryProp
     if (!confirm(`Delete ${selectedIds.size} asset(s)?`)) return;
 
     try {
-      await api.delete(`/api/v1/customizer/configurations/${customizerId}/assets`, {
+      await api.delete(`/api/v1/visual-customizer/customizers/${customizerId}/assets`, {
         data: { ids: Array.from(selectedIds) },
       });
       setAssets((prev) => prev.filter((a) => !selectedIds.has(a.id)));
@@ -188,11 +189,11 @@ export function AssetsLibrary({ customizerId, onAssetSelect }: AssetsLibraryProp
                   <CardContent className="p-3">
                     <div className="aspect-square bg-muted rounded-md mb-2 flex items-center justify-center overflow-hidden relative">
                       {asset.type === 'image' && asset.thumbnail && (
-                        <img
+                        <Image width={200} height={200}
                           src={asset.thumbnail}
                           alt={asset.name}
                           className="w-full h-full object-cover"
-                        />
+                        unoptimized />
                       )}
                       {asset.type === 'font' && (
                         <FileText className="h-8 w-8 text-muted-foreground" />
@@ -235,11 +236,11 @@ export function AssetsLibrary({ customizerId, onAssetSelect }: AssetsLibraryProp
                       <Checkbox checked={selectedIds.has(asset.id)} />
                       <div className="w-16 h-16 bg-muted rounded flex items-center justify-center flex-shrink-0">
                         {asset.type === 'image' && asset.thumbnail ? (
-                          <img
+                          <Image width={200} height={200}
                             src={asset.thumbnail}
                             alt={asset.name}
                             className="w-full h-full object-cover rounded"
-                          />
+                          unoptimized />
                         ) : (
                           <ImageIcon className="h-6 w-6 text-muted-foreground" />
                         )}
@@ -293,11 +294,11 @@ export function AssetsLibrary({ customizerId, onAssetSelect }: AssetsLibraryProp
             </div>
             {selectedAsset.type === 'image' && (
               <div className="aspect-video bg-muted rounded overflow-hidden">
-                <img
+                <Image width={200} height={200}
                   src={selectedAsset.url}
                   alt={selectedAsset.name}
                   className="w-full h-full object-contain"
-                />
+                unoptimized />
               </div>
             )}
             <Button

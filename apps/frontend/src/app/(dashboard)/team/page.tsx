@@ -137,6 +137,7 @@ function TeamPageContent() {
       email: inviteEmail,
       role: inviteRole === 'ADMIN' ? 'ADMIN' : inviteRole === 'VIEWER' ? 'VIEWER' : inviteRole === 'OWNER' ? 'OWNER' : 'MEMBER'
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteEmail, inviteRole, inviteMutation, toast]);
 
   const handleChangeRole = useCallback((memberId: string, newRole: 'admin' | 'member' | 'viewer') => {

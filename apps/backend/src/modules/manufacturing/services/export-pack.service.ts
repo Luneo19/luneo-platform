@@ -5,7 +5,6 @@ import { SvgGeneratorService, SpecData } from './svg-generator.service';
 import { DxfGeneratorService } from './dxf-generator.service';
 import { PdfGeneratorService } from './pdf-generator.service';
 import * as archiver from 'archiver'; // ✅ archiver package installed
-import { Readable } from 'stream';
 
 export interface ExportPackOptions {
   formats?: ('svg' | 'dxf' | 'pdf')[];

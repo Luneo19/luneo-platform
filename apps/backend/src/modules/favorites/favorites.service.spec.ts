@@ -8,7 +8,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('FavoritesService', () => {
   let service: FavoritesService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     libraryFavorite: {

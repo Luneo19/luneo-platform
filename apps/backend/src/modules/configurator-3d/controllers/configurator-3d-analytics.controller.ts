@@ -3,7 +3,6 @@ import {
   Get,
   Query,
   Param,
-  UseGuards,
   UseInterceptors,
   Req,
   Res,

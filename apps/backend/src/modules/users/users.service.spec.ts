@@ -15,14 +15,14 @@ describe('UsersService', () => {
   let service: UsersService;
   const mockUserUpdate = jest.fn();
   const mockUserProfileUpsert = jest.fn();
-  const mockTransaction = jest.fn().mockImplementation(async (cb: (tx: any) => Promise<any>) => {
+  const mockTransaction = jest.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
     const tx = {
       user: { update: mockUserUpdate },
       userProfile: { upsert: mockUserProfileUpsert },
     };
     return cb(tx);
   });
-  const mockPrisma: any = {
+  const mockPrisma: Record<string, unknown> = {
     user: { findUnique: jest.fn(), update: mockUserUpdate },
     userQuota: { findUnique: jest.fn(), update: jest.fn() },
     userProfile: { upsert: mockUserProfileUpsert },
@@ -128,6 +128,7 @@ describe('UsersService', () => {
 
     it('should throw BadRequestException when current password is incorrect', async () => {
       // Use a real argon2id hash for 'correctPassword' so verifyPassword returns false for 'wrongPassword'
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const passwordHasher = require('@/libs/crypto/password-hasher');
       const realHash = await passwordHasher.hashPassword('correctPassword');
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', password: realHash });
@@ -135,6 +136,7 @@ describe('UsersService', () => {
     });
 
     it('should update password when current password is valid', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const passwordHasher = require('@/libs/crypto/password-hasher');
       const realHash = await passwordHasher.hashPassword('currentPass');
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', password: realHash });
@@ -200,8 +202,8 @@ describe('UsersService', () => {
 
   describe('uploadAvatar', () => {
     it('should throw BadRequestException when no file provided', async () => {
-      await expect(service.uploadAvatar('user-1', null as any)).rejects.toThrow(BadRequestException);
-      await expect(service.uploadAvatar('user-1', null as any)).rejects.toThrow('No file provided');
+      await expect(service.uploadAvatar('user-1', null as unknown)).rejects.toThrow(BadRequestException);
+      await expect(service.uploadAvatar('user-1', null as unknown)).rejects.toThrow('No file provided');
     });
 
     it('should throw BadRequestException when file is not an image', async () => {

@@ -90,7 +90,7 @@ describe('SettingsService', () => {
     it('should throw NotFoundException when user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       await expect(
-        service.updateNotificationPreferences('invalid', { email: {}, push: {}, inApp: {} } as any),
+        service.updateNotificationPreferences('invalid', { email: {}, push: {}, inApp: {} } as unknown),
       ).rejects.toThrow(NotFoundException);
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });

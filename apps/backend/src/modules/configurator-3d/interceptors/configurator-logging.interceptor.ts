@@ -29,11 +29,12 @@ export class ConfiguratorLoggingInterceptor implements NestInterceptor {
     const userAgent = request.headers?.['user-agent'] ?? undefined;
 
     const action = this.buildAction(method, url);
-    let { entityType, entityId, configurationId } = this.extractEntityInfo(
+    const { entityType, entityId, ...rest } = this.extractEntityInfo(
       url,
       params,
       body,
     );
+    let configurationId = rest.configurationId;
 
     if (!configurationId && entityType === 'session' && params['sessionId']) {
       configurationId = await this.resolveConfigurationIdFromSession(
@@ -117,7 +118,7 @@ export class ConfiguratorLoggingInterceptor implements NestInterceptor {
     userAgent: string | undefined,
     action: string,
     params: Record<string, string>,
-    body: Record<string, unknown>,
+    _body: Record<string, unknown>,
   ): Observable<unknown> {
     const fetchPrevious = this.fetchPreviousValue(
       method,

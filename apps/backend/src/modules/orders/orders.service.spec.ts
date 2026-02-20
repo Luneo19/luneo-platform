@@ -12,7 +12,7 @@ import { CurrentUser } from '@/common/types/user.types';
 
 describe('OrdersService', () => {
   let service: OrdersService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockOrderDelegate = {
     findMany: jest.fn(),
@@ -54,7 +54,7 @@ describe('OrdersService', () => {
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      const config: Record<string, any> = {
+      const config: Record<string, unknown> = {
         'stripe.secretKey': 'sk_test_mock',
         'app.frontendUrl': 'http://localhost:3000',
         'referral.commissionPercent': 10,
@@ -101,7 +101,7 @@ describe('OrdersService', () => {
   };
 
   beforeEach(async () => {
-    mockPrisma.$transaction.mockImplementation((fn: (tx: any) => Promise<any>) => {
+    mockPrisma.$transaction.mockImplementation((fn: (tx: unknown) => Promise<unknown>) => {
       const tx = {
         order: mockOrderDelegate,
         discountUsage: mockDiscountUsage,
@@ -341,7 +341,7 @@ describe('OrdersService', () => {
         },
       };
 
-      jest.spyOn(service as any, 'getStripe').mockResolvedValue(mockStripe);
+      jest.spyOn(service, 'getStripe').mockResolvedValue(mockStripe);
 
       const createDto = {
         items: [
@@ -356,7 +356,7 @@ describe('OrdersService', () => {
         shippingMethod: 'standard',
       };
 
-      const result = await service.create(createDto as any, brandUser);
+      const result = await service.create(createDto as unknown, brandUser);
 
       expect(result).toBeDefined();
       expect(mockPrisma.order.create).toHaveBeenCalled();
@@ -404,7 +404,7 @@ describe('OrdersService', () => {
         },
       };
 
-      jest.spyOn(service as any, 'getStripe').mockResolvedValue(mockStripe);
+      jest.spyOn(service, 'getStripe').mockResolvedValue(mockStripe);
 
       const createDto = {
         items: [{ product_id: 'prod-1', quantity: 1 }],
@@ -413,7 +413,7 @@ describe('OrdersService', () => {
         shippingMethod: 'standard',
       };
 
-      await service.create(createDto as any, brandUser);
+      await service.create(createDto as unknown, brandUser);
 
       expect(mockDiscountService.validateAndApplyDiscount).toHaveBeenCalledWith(
         'SAVE10',
@@ -432,7 +432,7 @@ describe('OrdersService', () => {
         shippingMethod: 'standard',
       };
 
-      await expect(service.create(createDto as any, brandUser)).rejects.toThrow(
+      await expect(service.create(createDto as unknown, brandUser)).rejects.toThrow(
         NotFoundException,
       );
     });

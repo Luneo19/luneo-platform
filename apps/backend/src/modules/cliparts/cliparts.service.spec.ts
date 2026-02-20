@@ -8,7 +8,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('ClipartsService', () => {
   let service: ClipartsService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrisma = {
     clipart: {

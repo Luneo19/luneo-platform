@@ -163,7 +163,7 @@ export class CustomizerPresetsService {
     id: string,
     customizerId: string,
     dto: UpdatePresetDto,
-    user: CurrentUser,
+    _user: CurrentUser,
   ) {
     // Verify preset exists
     await this.findOne(id, customizerId);
@@ -223,7 +223,7 @@ export class CustomizerPresetsService {
   /**
    * Delete a preset
    */
-  async delete(id: string, customizerId: string, user: CurrentUser) {
+  async delete(id: string, customizerId: string, _user: CurrentUser) {
     // Verify preset exists
     await this.findOne(id, customizerId);
 

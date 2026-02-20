@@ -22,7 +22,7 @@ export class WebhookPayloadDto {
 
   @ApiProperty({ description: 'Event data payload' })
   @IsObject()
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Timestamp of the event' })
   @IsString()

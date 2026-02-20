@@ -6,7 +6,6 @@ import {
   ValidateNested,
   IsInt,
   Min,
-  IsObject,
   IsPhoneNumber,
   IsUrl,
   IsNotEmpty,

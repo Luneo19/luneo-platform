@@ -151,7 +151,7 @@ export class LLMRouterService {
 
     try {
       // Essayer avec le provider demandé
-      let response = await this.callWithResilience(
+      const response = await this.callWithResilience(
         validatedRequest.provider,
         validatedRequest,
       );
@@ -596,7 +596,7 @@ export class LLMRouterService {
    */
   selectOptimalModel(
     taskType: 'analysis' | 'creative' | 'simple' | 'coding',
-    maxCostPerRequest: number = 0.1,
+    _maxCostPerRequest: number = 0.1,
   ): { provider: LLMProvider; model: string } {
     // Logique de sélection basée sur le type de tâche
     switch (taskType) {

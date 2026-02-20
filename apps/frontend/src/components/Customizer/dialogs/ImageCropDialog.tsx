@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface ImageCropDialogProps {
   open: boolean;
@@ -118,12 +119,12 @@ export function ImageCropDialog({ open, onOpenChange, imageUrl, onCrop }: ImageC
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
-            <img
+            <Image width={200} height={200}
               ref={imageRef}
               src={imageUrl}
               alt="Crop preview"
               className="w-full h-auto max-h-[400px] object-contain"
-            />
+            unoptimized />
             {cropRect.width > 0 && cropRect.height > 0 && (
               <div
                 className="absolute border-2 border-primary bg-primary/10"

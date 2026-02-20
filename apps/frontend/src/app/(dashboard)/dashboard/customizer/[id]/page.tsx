@@ -44,6 +44,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/trpc/client';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const TAB_NAVIGATION = [
   { id: 'overview', label: 'Overview', icon: Eye },
@@ -361,11 +362,11 @@ function CustomizerDetailContent({ params }: { params: Promise<{ id: string }> }
                 <CardContent>
                   {thumbnail ? (
                     <div className="aspect-video overflow-hidden rounded-lg">
-                      <img
+                      <Image width={200} height={200}
                         src={thumbnail}
                         alt={name}
                         className="h-full w-full object-cover"
-                      />
+                      unoptimized />
                     </div>
                   ) : (
                     <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-lg bg-muted">

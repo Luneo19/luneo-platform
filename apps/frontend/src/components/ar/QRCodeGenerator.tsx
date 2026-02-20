@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { Copy, Download } from 'lucide-react';
+import Image from 'next/image';
 
 export type QRCodeStyle = 'squares' | 'dots' | 'rounded';
 
@@ -101,7 +102,7 @@ export function QRCodeGenerator({
           {loading ? (
             <div className="flex h-12 w-12 animate-pulse items-center justify-center rounded bg-gray-200" aria-busy="true" />
           ) : dataUrl ? (
-            <img src={dataUrl} alt="QR Code" width={size} height={size} className="rounded" />
+            <Image src={dataUrl} alt="QR Code" width={size} height={size} className="rounded" unoptimized />
           ) : (
             <span className="text-sm text-gray-500">Unable to generate QR code</span>
           )}

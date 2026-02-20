@@ -59,5 +59,5 @@ export class BulkActionCustomersDto {
   @ApiPropertyOptional({ description: 'Additional options' })
   @IsOptional()
   @IsObject()
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }

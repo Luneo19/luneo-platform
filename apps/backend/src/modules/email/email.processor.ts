@@ -14,7 +14,7 @@ export interface EmailJobData {
   cc?: string | string[];
   bcc?: string | string[];
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>;
   tags?: string[];
   headers?: Record<string, string>;
   provider?: 'sendgrid' | 'mailgun' | 'auto';
@@ -44,7 +44,7 @@ export class EmailProcessor {
 
   @Process('send')
   async handleSendEmail(job: Job<EmailJobData>) {
-    const { type, to, subject, data, provider } = job.data;
+    const { type, to, subject: _subject, data, provider } = job.data;
     const startTime = Date.now();
 
     this.logger.log(`Processing email job ${job.id}: ${type} to ${Array.isArray(to) ? to.join(', ') : to}`);

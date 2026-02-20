@@ -53,9 +53,9 @@ export function CreditsDisplay({
     
     fetchCredits();
     
-    // Refresh every 30s
-    const interval = setInterval(fetchCredits, 30000);
+    const interval = setInterval(fetchCredits, 120000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   if (loading || credits === null) {

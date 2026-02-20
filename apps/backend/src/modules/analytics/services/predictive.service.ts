@@ -139,7 +139,7 @@ export class PredictiveService {
 
         if (ordersData.length > 0) {
           const revenueTrend = this.calculateTrend(
-            ordersData.map((o, i) => ({
+            ordersData.map((o, _i) => ({
               date: o.createdAt,
               value: Number(o.totalCents) / 100, // Convert cents to currency
             })),
@@ -284,7 +284,7 @@ Génère un JSON array avec le format:
   /**
    * Récupère les événements saisonniers à venir
    */
-  async getUpcomingSeasonalEvents(brandId: string): Promise<SeasonalEvent[]> {
+  async getUpcomingSeasonalEvents(_brandId: string): Promise<SeasonalEvent[]> {
     const events: SeasonalEvent[] = [];
     const today = new Date();
 

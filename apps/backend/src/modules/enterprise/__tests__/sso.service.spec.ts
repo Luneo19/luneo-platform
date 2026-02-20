@@ -9,8 +9,8 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 
 describe('SSOService', () => {
   let service: SSOService;
-  let prisma: PrismaService;
-  let configService: ConfigService;
+  let _prisma: PrismaService;
+  let _configService: ConfigService;
 
   const mockPrisma = {
     brand: { findUnique: jest.fn() },
