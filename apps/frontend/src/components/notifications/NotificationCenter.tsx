@@ -28,11 +28,12 @@ function NotificationCenterContent() {
   const [isOpen, setIsOpen] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
 
-  // Queries
   const notificationsQuery = trpc.notification.list.useQuery(
     { limit: 50 },
     {
-      refetchInterval: 30000, // Refetch every 30 seconds
+      refetchInterval: 60000,
+      retry: 1,
+      refetchOnWindowFocus: false,
     }
   );
 
@@ -60,7 +61,8 @@ function NotificationCenterContent() {
   // ========================================
 
   const unreadCount = useMemo(() => {
-    return notificationsQuery.data?.unreadCount || 0;
+    const data = notificationsQuery.data;
+    return data && 'unreadCount' in data ? (data.unreadCount as number) : 0;
   }, [notificationsQuery.data]);
 
   // ========================================
