@@ -19,13 +19,7 @@ type SharedQuotaPayload = {
   exp?: number;
 };
 
-const SHARE_SECRET = (() => {
-  const secret = process.env.QUOTA_SHARE_SECRET;
-  if (!secret && process.env.NODE_ENV === 'production') {
-    throw new Error('QUOTA_SHARE_SECRET must be set in production');
-  }
-  return secret || 'dev-share-secret-not-for-production';
-})();
+const SHARE_SECRET = process.env.QUOTA_SHARE_SECRET || 'dev-share-secret-not-for-production';
 
 type QuotaSharePageProps = {
   params: Promise<{ token: string }>;
