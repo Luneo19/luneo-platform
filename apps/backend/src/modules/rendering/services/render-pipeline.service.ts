@@ -131,7 +131,7 @@ export class RenderPipelineService {
 
     const errors: string[] = [];
     const meta = (design.metadata ?? {}) as Record<string, unknown>;
-    const dpi = (meta.dpi as number) ?? (design.designData as Record<string, unknown>)?.dpi ?? DEFAULT_DPI;
+    const dpi: number = (meta.dpi as number) ?? ((design.designData as Record<string, unknown>)?.dpi as number) ?? DEFAULT_DPI;
     const colorSpace = (meta.colorSpace as string) ?? 'RGB';
     const bleed = (meta.bleed as number) ?? 0;
 
