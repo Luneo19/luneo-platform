@@ -196,10 +196,9 @@ function RegisterPageContent() {
     }
 
     try {
-      // Split fullName into firstName and lastName
       const nameParts = formData.fullName.trim().split(/\s+/);
       const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
 
         // Get CAPTCHA token (optional - continue without it if not configured)
         let captchaToken = '';
@@ -212,8 +211,9 @@ function RegisterPageContent() {
           captchaToken = '';
         }
 
-        // Use relative URL so the request goes through the Vercel proxy (same-origin).
-        // This ensures httpOnly cookies from Set-Cookie are properly stored by the browser.
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'register/page.tsx:217',message:'Signup payload',data:{firstName,lastName,email:formData.email,hasCompany:!!formData.company,hasCaptcha:!!captchaToken,hasReferral:!!referralCode},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
         const signupResp = await fetch('/api/v1/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -225,13 +225,15 @@ function RegisterPageContent() {
             lastName,
             captchaToken,
             ...(formData.company && { company: formData.company }),
-            ...(planFromUrl && { plan: planFromUrl }),
             ...(referralCode && { referralCode }),
           }),
         });
 
         if (!signupResp.ok) {
           const errData = await signupResp.json().catch(() => ({}));
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'register/page.tsx:233',message:'Signup failed',data:{status:signupResp.status,errData},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+          // #endregion
           throw new Error(errData.message || 'Registration failed');
         }
 

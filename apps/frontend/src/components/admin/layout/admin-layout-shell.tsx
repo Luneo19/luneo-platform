@@ -27,7 +27,20 @@ export function AdminLayoutShell({ sidebar, header, children }: AdminLayoutShell
   }, [pathname]);
 
   // #region agent log
-  useEffect(() => { fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'admin-layout-shell.tsx:30',message:'AdminLayoutShell mounted',data:{pathname,sidebarOpen},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{}); }, [pathname, sidebarOpen]);
+  useEffect(() => {
+    const main = document.querySelector('main');
+    const outerDiv = main?.parentElement;
+    const rootDiv = outerDiv?.parentElement;
+    const dims = {
+      pathname,
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      rootDiv: rootDiv ? { h: rootDiv.clientHeight, scrollH: rootDiv.scrollHeight, overflow: getComputedStyle(rootDiv).overflow, className: rootDiv.className } : null,
+      outerDiv: outerDiv ? { h: outerDiv.clientHeight, scrollH: outerDiv.scrollHeight, overflow: getComputedStyle(outerDiv).overflow, className: outerDiv.className } : null,
+      main: main ? { h: main.clientHeight, scrollH: main.scrollHeight, overflow: getComputedStyle(main).overflowY, className: main.className } : null,
+      canScroll: main ? main.scrollHeight > main.clientHeight : false,
+    };
+    fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'admin-layout-shell.tsx:30',message:'AdminLayoutShell DOM diagnostics',data:dims,timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+  }, [pathname, sidebarOpen]);
   // #endregion
 
   return (
