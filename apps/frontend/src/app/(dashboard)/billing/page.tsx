@@ -162,8 +162,10 @@ function BillingPageContent() {
   const subscription = subscriptionQuery.data;
   const usage = usageQuery.data;
   const limits = limitsQuery.data;
-  const invoices = invoicesQuery.data?.invoices || [];
-  const paymentMethods = paymentMethodsQuery.data || [];
+  const rawInvoices = invoicesQuery.data?.invoices ?? invoicesQuery.data;
+  const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
+  const rawPaymentMethods = (paymentMethodsQuery.data as { paymentMethods?: unknown[] } | undefined)?.paymentMethods ?? paymentMethodsQuery.data;
+  const paymentMethods = Array.isArray(rawPaymentMethods) ? rawPaymentMethods : [];
 
   return (
     <div className="container mx-auto py-8 px-4 dash-bg min-h-screen">

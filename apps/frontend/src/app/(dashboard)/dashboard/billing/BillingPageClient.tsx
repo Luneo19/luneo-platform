@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BillingHeader } from './components/BillingHeader';
 import { CurrentPlanCard } from './components/CurrentPlanCard';
 import { PlansComparison } from './components/PlansComparison';
@@ -15,8 +15,11 @@ import { useBilling } from './hooks/useBilling';
 
 export function BillingPageClient() {
   const { fetchSubscription } = useBilling();
+  const initialFetchDone = useRef(false);
 
   useEffect(() => {
+    if (initialFetchDone.current) return;
+    initialFetchDone.current = true;
     fetchSubscription();
   }, [fetchSubscription]);
 

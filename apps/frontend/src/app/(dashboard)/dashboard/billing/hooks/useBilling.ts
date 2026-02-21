@@ -3,14 +3,19 @@
  */
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { api, endpoints } from '@/lib/api/client';
+import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import type { Subscription, SubscriptionTier } from '../types';
+
+function is429(error: unknown): boolean {
+  const err = error as { response?: { status?: number } };
+  return err?.response?.status === 429;
+}
 
 export function useBilling() {
   const { t } = useI18n();
@@ -18,10 +23,14 @@ export function useBilling() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  /** Prevents infinite retry: once we hit 429 or give up, we don't auto-retry from this hook */
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const fetchCountRef = useRef(0);
 
   const fetchSubscription = useCallback(async () => {
     try {
       setIsLoading(true);
+      setRateLimitMessage(null);
       const data = await endpoints.billing.subscription();
       const raw = data as { subscription?: Subscription };
       const sub = raw.subscription ?? (data as { data?: { subscription?: Subscription } }).data?.subscription;
@@ -29,11 +38,18 @@ export function useBilling() {
       return sub ?? null;
     } catch (error: unknown) {
       logger.error('Error fetching subscription', { error });
-      toast({
-        title: t('common.error'),
-        description: getErrorDisplayMessage(error),
-        variant: 'destructive',
-      });
+      if (is429(error)) {
+        setRateLimitMessage(t('billing.tooManyRequests') || 'Trop de requêtes, veuillez patienter.');
+        return null;
+      }
+      fetchCountRef.current += 1;
+      if (fetchCountRef.current <= 1) {
+        toast({
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
+          variant: 'destructive',
+        });
+      }
       return null;
     } finally {
       setIsLoading(false);
@@ -125,6 +141,7 @@ export function useBilling() {
   return {
     subscription,
     isLoading,
+    rateLimitMessage,
     fetchSubscription,
     updateSubscription,
     cancelSubscription,

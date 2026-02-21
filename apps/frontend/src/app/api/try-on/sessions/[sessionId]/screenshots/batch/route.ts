@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const BACKEND_URL = getBackendUrl();
 
 /**
  * Proxy endpoint for batch screenshot upload.

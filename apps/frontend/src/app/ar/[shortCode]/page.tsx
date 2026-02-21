@@ -2,7 +2,9 @@ import { Suspense } from 'react';
 import { ShortCodeViewerClient, type ResolvedView } from './ShortCodeViewerClient';
 import { Loader2 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { getBackendUrl } from '@/lib/api/server-url';
+
+const BACKEND_URL = getBackendUrl();
 
 async function resolveShortCode(shortCode: string): Promise<{ resolved: ResolvedView | null; error: string | null }> {
   try {

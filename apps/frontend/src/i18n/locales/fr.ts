@@ -250,6 +250,7 @@ export const fr = {
         passwordsMismatch: 'Les mots de passe ne correspondent pas',
         acceptTerms: "Veuillez accepter les conditions d'utilisation",
         emailExists: 'Cette adresse email est déjà utilisée. Connectez-vous ou utilisez une autre adresse.',
+        tooManyAttempts: 'Trop de tentatives. Veuillez réessayer dans quelques minutes.',
         generic: "Une erreur est survenue lors de l'inscription. Veuillez réessayer.",
         invalidResponse: 'Réponse invalide du serveur',
       },
@@ -1101,6 +1102,7 @@ export const fr = {
   billing: {
     title: 'Facturation',
     currentPlan: 'Plan actuel',
+    tooManyRequests: 'Trop de requêtes, veuillez patienter.',
     upgrade: 'Mettre à niveau',
     downgrade: 'Rétrograder',
     invoices: 'Factures',

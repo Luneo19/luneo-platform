@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
@@ -11,22 +11,32 @@ import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { endpoints } from '@/lib/api/client';
 import type { Invoice } from '../types';
 
+function is429(error: unknown): boolean {
+  const err = error as { response?: { status?: number } };
+  return err?.response?.status === 429;
+}
+
 export function useInvoices() {
   const { t } = useI18n();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const initialFetchDone = useRef(false);
+  const errorToastShown = useRef(false);
 
   const fetchInvoices = useCallback(async () => {
     try {
       setIsLoading(true);
+      setRateLimitMessage(null);
       const data = await endpoints.billing.invoices();
       const raw = data as { invoices?: Array<Record<string, unknown>> };
+      const list = Array.isArray(raw?.invoices) ? raw.invoices : [];
       const statusMap = ['open', 'paid', 'void', 'uncollectible'] as const;
       const mapStatus = (s: string): Invoice['status'] =>
         statusMap.includes(s as Invoice['status']) ? (s as Invoice['status']) : 'open';
       setInvoices(
-        (raw.invoices || []).map((inv: Record<string, unknown>) => ({
+        list.map((inv: Record<string, unknown>) => ({
           id: String(inv.id ?? ''),
           number: String(inv.number ?? inv.id ?? ''),
           amount: Number(inv.amount ?? 0) / 100, // Stripe amount is in cents
@@ -39,19 +49,27 @@ export function useInvoices() {
         }))
       );
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
       logger.error('Error fetching invoices', { error });
-      toast({
-        title: t('common.error'),
-        description: getErrorDisplayMessage(error),
-        variant: 'destructive',
-      });
+      if (is429(error)) {
+        setRateLimitMessage(t('billing.tooManyRequests') || 'Trop de requêtes, veuillez patienter.');
+        return;
+      }
+      if (!errorToastShown.current) {
+        errorToastShown.current = true;
+        toast({
+          title: t('common.error'),
+          description: getErrorDisplayMessage(error),
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   }, [toast, t]);
 
   useEffect(() => {
+    if (initialFetchDone.current) return;
+    initialFetchDone.current = true;
     fetchInvoices();
   }, [fetchInvoices]);
 
@@ -68,7 +86,6 @@ export function useInvoices() {
         });
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
       logger.error('Error downloading invoice', { error });
       toast({
         title: t('common.error'),
@@ -81,6 +98,7 @@ export function useInvoices() {
   return {
     invoices,
     isLoading,
+    rateLimitMessage,
     fetchInvoices,
     downloadInvoice,
   };

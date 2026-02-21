@@ -14,9 +14,9 @@ import { useI18n } from '@/i18n/useI18n';
 
 export function InvoicesSection() {
   const { t } = useI18n();
-  const { invoices, isLoading, downloadInvoice } = useInvoices();
+  const { invoices, isLoading, rateLimitMessage, downloadInvoice } = useInvoices();
 
-  if (isLoading) {
+  if (isLoading && !rateLimitMessage) {
     return (
       <Card className="bg-white border-gray-200">
         <CardHeader>
@@ -24,6 +24,19 @@ export function InvoicesSection() {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600">{t('dashboard.common.loading')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (rateLimitMessage) {
+    return (
+      <Card className="bg-white border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-900">{t('dashboard.billing.invoices')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-amber-600">{rateLimitMessage}</p>
         </CardContent>
       </Card>
     );

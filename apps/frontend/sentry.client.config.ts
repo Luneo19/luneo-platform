@@ -33,28 +33,47 @@ Sentry.init({
   beforeSend(event, hint) {
     const error = hint.originalException;
     
-    // Filter out common non-issues
     if (error instanceof Error) {
-      // Network errors
-      if (error.message.includes('Failed to fetch')) {
+      if (error.message.includes('Failed to fetch')) return null;
+      if (error.name === 'AbortError') return null;
+      if (error.message.includes('ResizeObserver')) return null;
+
+      const extensionPatterns = [
+        'chrome-extension://',
+        'moz-extension://',
+        'safari-extension://',
+        'frame_start.js',
+        'frame_ant.js',
+      ];
+      const msg = error.message || '';
+      const stack = error.stack || '';
+      if (extensionPatterns.some((p) => msg.includes(p) || stack.includes(p))) {
         return null;
       }
-      // Cancelled requests
-      if (error.name === 'AbortError') {
-        return null;
-      }
-      // Extension errors
-      if (error.stack?.includes('chrome-extension://')) {
-        return null;
-      }
-      // ResizeObserver errors (browser quirk)
-      if (error.message.includes('ResizeObserver')) {
-        return null;
-      }
+    }
+
+    const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
+    if (frames.some((f: { filename?: string }) =>
+      f.filename?.includes('chrome-extension://') ||
+      f.filename?.includes('moz-extension://') ||
+      f.filename?.includes('frame_start.js') ||
+      f.filename?.includes('frame_ant.js')
+    )) {
+      return null;
     }
     
     return event;
   },
+
+  ignoreErrors: [
+    /removeChild/,
+    /insertBefore/,
+    /frame_start/,
+    /frame_ant/,
+    /Loading chunk \d+ failed/,
+    /ResizeObserver loop/,
+    'Non-Error promise rejection captured',
+  ],
 
   // Breadcrumbs
   beforeBreadcrumb(breadcrumb) {

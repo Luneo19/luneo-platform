@@ -227,12 +227,23 @@ function RegisterPageContent() {
         });
 
         if (!signupResp.ok) {
+          const errData = await signupResp.json().catch(() => ({}));
+          
           if (signupResp.status === 409) {
             setError(t('auth.register.errors.emailExists'));
             setIsLoading(false);
             return;
           }
-          const errData = await signupResp.json().catch(() => ({}));
+          if (signupResp.status === 429) {
+            setError(t('auth.register.errors.tooManyAttempts'));
+            setIsLoading(false);
+            return;
+          }
+          if (signupResp.status === 400) {
+            setError(errData.message || t('auth.register.errors.generic'));
+            setIsLoading(false);
+            return;
+          }
           throw new Error(errData.message || 'Registration failed');
         }
 
@@ -343,7 +354,20 @@ function RegisterPageContent() {
         <FadeIn>
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-600">{error}</p>
+            <div className="text-sm text-red-600 space-y-2">
+              <p>{error}</p>
+              {error === t('auth.register.errors.emailExists') && (
+                <div className="flex gap-3 text-xs">
+                  <Link href="/login" className="text-purple-400 hover:text-purple-300 underline font-medium">
+                    {t('auth.login.submit')}
+                  </Link>
+                  <span className="text-slate-600">•</span>
+                  <Link href="/forgot-password" className="text-purple-400 hover:text-purple-300 underline font-medium">
+                    {t('auth.forgotPassword.title')}
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </FadeIn>
           )}

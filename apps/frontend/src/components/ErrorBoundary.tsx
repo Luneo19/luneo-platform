@@ -123,10 +123,32 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
   }
 
+  private isExtensionError(error: Error, errorInfo: ErrorInfo): boolean {
+    const patterns = [
+      'frame_start.js',
+      'frame_ant.js',
+      'chrome-extension://',
+      'moz-extension://',
+      'safari-extension://',
+    ];
+    const msg = error.message || '';
+    const stack = error.stack || '';
+    const componentStack = errorInfo.componentStack || '';
+
+    return patterns.some(
+      (p) => msg.includes(p) || stack.includes(p) || componentStack.includes(p)
+    );
+  }
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const { level = 'component', onError, componentName, maxRetries = 2 } = this.props;
+
+    if (this.isExtensionError(error, errorInfo)) {
+      logger.warn('[Luneo] Browser extension error ignored:', { message: error.message });
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      return;
+    }
     
-    // Log l'erreur
     logger.error(`ErrorBoundary caught an error (${level}${componentName ? `: ${componentName}` : ''})`, error, {
       level,
       componentName,
@@ -139,7 +161,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       isOnline: this.state.isOnline,
     });
     
-    // Callback personnalisé
     if (onError) {
       try {
         onError(error, errorInfo);
@@ -148,13 +169,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
     }
 
-    // Envoyer à Sentry
     this.sendToSentry(error, errorInfo);
 
-    // Mettre à jour l'état
     this.setState({ error, errorInfo });
 
-    // Auto-retry si applicable
     if (this.state.retryCount < maxRetries && this.shouldAutoRetry(error)) {
       this.autoRetry();
     }

@@ -14,7 +14,11 @@ import type { ProductionJob } from '@/lib/types/order';
 import { endpoints } from '@/lib/api/client';
 
 // AI Engine URL
-const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.NEXT_PUBLIC_AI_ENGINE_URL || 'http://localhost:8000';
+const AI_ENGINE_URL = process.env.AI_ENGINE_URL || process.env.NEXT_PUBLIC_AI_ENGINE_URL || (
+  typeof window !== 'undefined' && window.location.protocol === 'https:'
+    ? 'https://ai.luneo.app'
+    : 'http://localhost:8000'
+);
 
 // ========================================
 // TYPES

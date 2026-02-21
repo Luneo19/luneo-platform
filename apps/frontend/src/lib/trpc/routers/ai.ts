@@ -33,7 +33,9 @@ export const aiRouter = router({
         });
 
         // Appel à l'AI Engine (FastAPI)
-        const aiEngineUrl = process.env.NEXT_PUBLIC_AI_ENGINE_URL || process.env.AI_ENGINE_URL || 'http://localhost:8000';
+        const aiEngineUrl = process.env.NEXT_PUBLIC_AI_ENGINE_URL || process.env.AI_ENGINE_URL || (
+          process.env.NODE_ENV === 'production' ? 'https://ai.luneo.app' : 'http://localhost:8000'
+        );
         const response = await fetch(`${aiEngineUrl}/api/generate`, {
           method: 'POST',
           headers: {

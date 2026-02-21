@@ -16,10 +16,10 @@ import { useI18n } from '@/i18n/useI18n';
 
 export function CurrentPlanCard() {
   const { t } = useI18n();
-  const { subscription, isLoading } = useBilling();
+  const { subscription, isLoading, rateLimitMessage } = useBilling();
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  if (isLoading) {
+  if (isLoading && !rateLimitMessage) {
     return (
       <Card className="bg-white border-gray-200">
         <CardHeader>
@@ -27,6 +27,19 @@ export function CurrentPlanCard() {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600">{t('dashboard.common.loading')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (rateLimitMessage) {
+    return (
+      <Card className="bg-white border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-900">{t('dashboard.billing.currentPlan')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-amber-600">{rateLimitMessage}</p>
         </CardContent>
       </Card>
     );
