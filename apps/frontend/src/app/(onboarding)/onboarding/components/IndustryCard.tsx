@@ -53,7 +53,7 @@ export function IndustryCard({
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => onClick()}
       className={`p-5 rounded-2xl border text-center transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
         isSelected
           ? 'bg-white/[0.06] border-[#8b5cf6]'

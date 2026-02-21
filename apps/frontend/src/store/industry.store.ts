@@ -142,8 +142,9 @@ export const useIndustryStore = create<IndustryState>()((set, get) => ({
   fetchAllIndustries: async () => {
     set({ isLoading: true, error: null });
     try {
-      const data = await api.get<Industry[]>('/api/v1/industries');
-      set({ allIndustries: Array.isArray(data) ? data : [], isLoading: false });
+      const data = await api.get<Industry[] | { data?: Industry[] }>('/api/v1/industries');
+      const list = Array.isArray(data) ? data : ((data as { data?: Industry[] })?.data ?? []);
+      set({ allIndustries: list, isLoading: false });
     } catch (error) {
       logger.error('Failed to fetch industries', error instanceof Error ? error : new Error(String(error)));
       set({ error: 'Failed to fetch industries', isLoading: false });

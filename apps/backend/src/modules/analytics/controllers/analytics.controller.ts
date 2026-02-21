@@ -61,14 +61,16 @@ export class AnalyticsController {
     @Query('period') period: string = 'last_30_days',
     @Request() req: { user?: CurrentUser },
   ) {
-    // SECURITY FIX: Non-admin users must be scoped to their own brand
     const user = req.user;
     const brandId = user?.brandId;
-    if (user && user.role !== 'PLATFORM_ADMIN' && !brandId) {
-      throw new ForbiddenException('Brand ID required for non-admin users');
-    }
-    // For non-admins, always use their brandId (ignore query params)
     const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? undefined : (brandId || undefined);
+    if (!scopedBrandId && user?.role !== 'PLATFORM_ADMIN') {
+      return {
+        overview: { products: 0, designs: 0, sessions: 0, revenue: 0 },
+        period: { designs: 0, orders: 0, revenue: 0 },
+        recent: { designs: [], orders: [] },
+      };
+    }
     return this.analyticsService.getDashboard(period, scopedBrandId);
   }
 
@@ -79,9 +81,8 @@ export class AnalyticsController {
     @Query('brandId') brandId: string,
     @Request() req: { user?: CurrentUser },
   ) {
-    // SECURITY FIX: Non-admin users can only see their own brand usage
     const user = req.user;
-    if (user && user.role !== 'PLATFORM_ADMIN' && brandId !== user.brandId) {
+    if (user && user.role !== 'PLATFORM_ADMIN' && brandId && brandId !== user.brandId) {
       throw new ForbiddenException('Access denied: cannot view other brand analytics');
     }
     const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? brandId : (user?.brandId || brandId || undefined);

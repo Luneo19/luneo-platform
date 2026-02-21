@@ -13,12 +13,18 @@ const RoleSchema = z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']);
 export const teamRouter = router({
   listMembers: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user?.brandId) {
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'User must be associated with a brand' });
+      return { members: [], pendingInvites: [] };
     }
 
     const [membersRes, invitesRes] = await Promise.all([
-      endpoints.team.members(),
-      endpoints.team.invites(),
+      endpoints.team.members().catch((err: unknown) => {
+        logger.error('Failed to fetch team members', { error: err });
+        return [];
+      }),
+      endpoints.team.invites().catch((err: unknown) => {
+        logger.error('Failed to fetch team invites', { error: err });
+        return [];
+      }),
     ]);
 
     const membersRaw = membersRes as { members?: unknown[]; data?: unknown[] } | unknown[];

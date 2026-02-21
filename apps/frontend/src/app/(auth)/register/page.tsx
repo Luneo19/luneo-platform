@@ -211,9 +211,6 @@ function RegisterPageContent() {
           captchaToken = '';
         }
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'register/page.tsx:217',message:'Signup payload',data:{firstName,lastName,email:formData.email,hasCompany:!!formData.company,hasCaptcha:!!captchaToken,hasReferral:!!referralCode},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
         const signupResp = await fetch('/api/v1/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -231,9 +228,6 @@ function RegisterPageContent() {
 
         if (!signupResp.ok) {
           const errData = await signupResp.json().catch(() => ({}));
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'register/page.tsx:233',message:'Signup failed',data:{status:signupResp.status,errData},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-          // #endregion
           throw new Error(errData.message || 'Registration failed');
         }
 

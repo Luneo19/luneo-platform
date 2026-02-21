@@ -45,10 +45,6 @@ function PrometheusPageContent() {
   const { stats, isLoading, error, refresh } = usePrometheus();
   const data = stats as PrometheusStats | undefined;
 
-  // #region agent log
-  if (data?.providers) { fetch('http://127.0.0.1:7242/ingest/74bd0f02-b590-4981-b131-04808be8021c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'249815'},body:JSON.stringify({sessionId:'249815',location:'prometheus/page.tsx:47',message:'Prometheus providers data',data:{providers:data.providers.map(p=>({name:p.name,circuitType:typeof p.circuit,circuitValue:typeof p.circuit === 'object' ? JSON.stringify(p.circuit) : p.circuit}))},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{}); }
-  // #endregion
-
   if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px] bg-zinc-900">

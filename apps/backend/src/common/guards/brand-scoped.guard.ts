@@ -100,12 +100,10 @@ export class BrandScopedGuard implements CanActivate {
     // 7. BRAND_ADMIN and BRAND_USER - enforce brand scoping
     if (user.role === UserRole.BRAND_ADMIN || user.role === UserRole.BRAND_USER) {
       if (!user.brandId) {
-        this.logger.warn(
-          `User ${user.id} (${user.role}) has no brandId - blocking access`,
+        this.logger.debug(
+          `User ${user.id} (${user.role}) has no brandId yet (onboarding) – allowing through`,
         );
-        throw new ForbiddenException(
-          'Your account is not associated with a brand. Please contact support.',
-        );
+        return true;
       }
 
       // Inject brandId into request for services

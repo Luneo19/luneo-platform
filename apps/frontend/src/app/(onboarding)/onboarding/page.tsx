@@ -360,10 +360,18 @@ function OnboardingPageContent() {
 
             {/* Step 2: Industry */}
             {currentStep === 2 && (
-              <Step2Industry
-                selectedIndustry={selectedIndustry}
-                onSelectIndustry={setSelectedIndustry}
-              />
+              <motion
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <Step2Industry
+                  selectedIndustry={selectedIndustry}
+                  onSelectIndustry={setSelectedIndustry}
+                />
+              </motion>
             )}
 
             {/* Step 3: Use Cases */}

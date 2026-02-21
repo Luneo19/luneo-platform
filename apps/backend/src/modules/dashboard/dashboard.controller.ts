@@ -14,7 +14,7 @@ import { DashboardService } from './dashboard.service';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { OnboardingGuard } from '@/common/guards/onboarding.guard';
-import { IndustryConfigGuard } from '@/common/guards/industry-config.guard';
+import { IndustryConfigGuard, type IndustryConfigRequest } from '@/common/guards/industry-config.guard';
 
 @ApiTags('dashboard')
 @Controller('dashboard')
@@ -26,15 +26,18 @@ export class DashboardController {
   @Get('config')
   @UseGuards(OnboardingGuard, IndustryConfigGuard)
   @ApiOperation({ summary: 'Get merged dashboard config (industry + user preferences)' })
-  async getConfig(@Req() req: { user: { id: string; brandId?: string | null } }) {
-    return this.dashboardService.getConfig(req.user.id, req.user.brandId ?? null);
+  async getConfig(@Req() req: IndustryConfigRequest & { user: { id: string; brandId?: string | null } }) {
+    if (!req.industryConfigured || !req.user.brandId) {
+      return { widgets: [], sidebarOrder: [], pinnedModules: [], dashboardTheme: 'default' };
+    }
+    return this.dashboardService.getConfig(req.user.id, req.user.brandId);
   }
 
   @Get('kpis')
   @UseGuards(OnboardingGuard, IndustryConfigGuard)
   @ApiOperation({ summary: 'Get KPI values for current org' })
-  async getKpis(@Req() req: { user: { id: string; brandId?: string | null } }) {
-    if (!req.user.brandId) {
+  async getKpis(@Req() req: IndustryConfigRequest & { user: { id: string; brandId?: string | null } }) {
+    if (!req.industryConfigured || !req.user.brandId) {
       return [];
     }
     return this.dashboardService.getKpiValues(req.user.brandId);

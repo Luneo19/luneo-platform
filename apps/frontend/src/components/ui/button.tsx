@@ -61,8 +61,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : 'button';
-    
     // Auto-generate aria-label for icon-only buttons
     const autoAriaLabel = 
       !ariaLabel && 
@@ -71,8 +69,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ? 'Button' 
         : undefined;
     
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          disabled={disabled || loading}
+          aria-label={ariaLabel || autoAriaLabel}
+          aria-disabled={disabled || loading}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
@@ -86,7 +99,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
         {children}
         {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
-      </Comp>
+      </button>
     );
   }
 );

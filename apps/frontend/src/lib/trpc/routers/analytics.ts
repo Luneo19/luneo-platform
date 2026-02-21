@@ -71,9 +71,19 @@ export const analyticsRouter = router({
             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
 
-        const user = await endpoints.auth.me() as { brandId?: string };
+        const user = ctx.user as { brandId?: string } | undefined;
         if (!user?.brandId) {
-          throw new Error('User must have a brandId');
+          return {
+            revenue: 0, revenueChange: 0,
+            orders: 0, ordersChange: 0,
+            users: 0, usersChange: 0,
+            conversions: 0, conversionsChange: 0,
+            avgOrderValue: 0, avgOrderValueChange: 0,
+            conversionRate: 0, conversionRateChange: 0,
+            chartData: { labels: [], datasets: [] },
+            period: { start: startDate.toISOString(), end: endDate.toISOString() },
+            compare: undefined,
+          };
         }
 
         const startStr = startDate.toISOString().split('T')[0];
