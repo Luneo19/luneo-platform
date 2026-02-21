@@ -1,230 +1,194 @@
-# Luneo Platform – Security Audit Report
+# Rapport d'audit de sécurité – Luneo (Backend + Frontend)
 
-**Date:** 2025-02-13  
-**Scope:** Backend (`apps/backend`) – CSRF, rate limiting, XSS, CORS, brand scoping, secrets, passwords, SQL injection, admin/DLQ
-
----
-
-## Executive summary
-
-- **CRITICAL:** Double (and in production triple) rate limiting can cause premature 429s.
-- **HIGH:** DLQ controller uses string `'PLATFORM_ADMIN'` instead of `UserRole.PLATFORM_ADMIN`.
-- **MEDIUM:** Signup password validation does not enforce complexity; admin/dev password in logs; XSS only on body; webhooks not excluded from Express rate limit.
-- **LOW:** Seed default password; CONSUMER/FABRICATOR brandId path not validated (design choice).
+**Date:** 21 février 2025  
+**Périmètre:** `apps/backend`, `apps/frontend`  
+**Objectif:** Vérifier la cohérence de la sécurité et du RBAC sur l’ensemble du projet.
 
 ---
 
-## 1. CSRF protection
+## 1. Synthèse
 
-### 1.1 CsrfGuard – `apps/backend/src/common/guards/csrf.guard.ts`
-
-- **Behavior:** Skips GET/HEAD/OPTIONS; skips routes with `@Public()`. For other methods, requires `x-csrf-token` header to match `csrf_token` cookie; otherwise throws `ForbiddenException`.
-- **Webhooks:** Billing webhook (`POST .../billing/webhook`), WooCommerce (`POST .../ecommerce/woocommerce/webhook`), Shopify (`POST .../integrations/shopify/webhooks`) and ecommerce Shopify (`POST .../ecommerce/shopify/webhook`) are correctly marked `@Public()` in their controllers, so CSRF is not applied to them.
-- **Finding:** No issue. Webhooks are excluded via `@Public()`.
-
-### 1.2 CSRF token middleware – `apps/backend/src/common/middleware/csrf-token.middleware.ts`
-
-- **Behavior:** Runs on all requests; sets or reuses `csrf_token` cookie (32-byte hex); `httpOnly: false` so the client can send it in `x-csrf-token`; `sameSite: 'strict'`, `secure` in production.
-- **Finding:** No issue. No need to skip webhooks in middleware; they are excluded at guard level.
-
----
-
-## 2. Rate limiting (CRITICAL – multiple layers)
-
-### 2.1 Three rate-limit layers
-
-| Layer | Location | Mechanism |
-|-------|----------|-----------|
-| 1 | `main.ts` (production only) | `express-rate-limit` + `express-slow-down` by IP |
-| 2 | `AppModule` | `ThrottlerModule` (Redis) + `GlobalRateLimitGuard` (extends `ThrottlerGuard`) |
-| 3 | `CommonModule` | `RateLimitGuard` + `SlidingWindowRateLimitService` (Redis) |
-
-Every non–health, non-OPTIONS request in production is counted by (1) Express, (2) Throttler, and (3) SlidingWindow. Limits are not coordinated, so users can hit 429 earlier than intended (e.g. 100/min from Express while Nest uses 60/min or path-specific limits).
-
-**Severity:** CRITICAL  
-**Files:**  
-- `apps/backend/src/app.module.ts` (lines 191–202, 412–415)  
-- `apps/backend/src/common/common.module.ts` (lines 41–43)  
-- `apps/backend/src/main.ts` (lines 371–399)
-
-**Recommended fix:** Use a single rate-limit strategy.
-
-- **Option A (recommended):** Remove `RateLimitGuard` from `CommonModule` and keep only `ThrottlerModule` + `GlobalRateLimitGuard`. Remove the Express `rateLimit()` and `speedLimiter` in `main.ts` so Nest handles all rate limiting.
-- **Option B:** Remove `ThrottlerModule` and `GlobalRateLimitGuard` from `AppModule`, keep `RateLimitGuard` in `CommonModule`, and remove Express rate limiting in `main.ts`.
-
-### 2.2 Express rate limit – webhooks not skipped
-
-**File:** `apps/backend/src/main.ts` (lines 379–383, 391–394)
-
-`skip` only excludes OPTIONS and `/health`, `/api/v1/health`. Webhook paths are not skipped. High-volume webhook traffic (e.g. Stripe) could hit 429 by IP.
-
-**Severity:** MEDIUM  
-**Fix:** Add webhook paths to `skip`:
-
-```ts
-skip: (req: import('express').Request) => {
-  if (req.method === 'OPTIONS') return true;
-  if (req.path === '/health' || req.path === '/api/v1/health') return true;
-  if (req.path === '/api/v1/billing/webhook') return true;
-  if (req.path === '/api/v1/ecommerce/woocommerce/webhook') return true;
-  if (req.path.startsWith('/api/v1/integrations/shopify/webhooks')) return true;
-  return false;
-},
-```
-
-(Apply the same pattern to the speed limiter if you keep it.)
+| Catégorie | Statut | Commentaire |
+|-----------|--------|-------------|
+| Guards backend (JWT, Roles, Brand) | ✅ | Cohérent ; CommonModule applique JwtAuthGuard, RolesGuard, BrandScopedGuard globalement |
+| Routes publiques @Public() | ✅ | Utilisées pour auth, health, webhooks, widgets, configurator public |
+| RBAC (PLATFORM_ADMIN, BRAND_*, CONSUMER) | ✅ | Cohérent ; admin protégé par @Roles(PLATFORM_ADMIN) |
+| Tokens (rotation, blacklist, expiration) | ✅ | TokenBlacklistService, rotation refresh, nettoyage |
+| Rate limiting | ✅ | ThrottlerModule + GlobalRateLimitGuard (Redis), webhooks exclus |
+| CSRF | ✅ | CsrfGuard global (CommonModule), skip GET/HEAD/OPTIONS et @Public() |
+| Headers de sécurité | ✅ | Helmet (CSP, HSTS, X-Frame-Options, etc.) dans main.ts |
+| Validation des entrées (DTOs) | ✅ | ValidationPipe global (whitelist, forbidNonWhitelisted), DTOs class-validator/Zod |
+| Prisma scoped par brandId | ✅ | BrandOwnershipGuard injecte request.brandId ; corrections sur security/audit |
+| Secrets | ✅ | Pas de secrets en dur ; config via ConfigService / env |
+| Middleware frontend | ✅ | Routes protégées, admin par rôle, CSP, rate limit, CSRF |
+| Stockage des tokens (frontend) | ⚠️ | Cookies httpOnly utilisés ; nettoyage localStorage conservé (legacy) |
+| XSS | ⚠️ | dangerouslySetInnerHTML limité (JSON-LD, blog CMS, custom CSS) – voir section 6 |
+| Fuite d’infos dans erreurs | ✅ | ErrorBoundary n’affiche stack qu’en développement |
 
 ---
 
-## 3. XSS protection
+## 2. Backend – Détail
 
-### 3.1 XSS middleware – `apps/backend/src/common/middleware/xss-sanitize.middleware.ts`
+### 2.1 Guards et endpoints
 
-- **Behavior:** Recursively sanitizes string values in `req.body` (arrays and nested objects). Strips `<script>`, event handlers, `javascript:`, `data:text/html`, `vbscript:`, `expression()`, `<iframe>`, `<object>`, `<embed>`.
-- **Applied to:** All routes via `CommonModule` (`.forRoutes('*')`).
+- **CommonModule** enregistre en **APP_GUARD** (ordre d’exécution) :  
+  `CsrfGuard`, `JwtAuthGuard`, `RolesGuard`, `RateLimitGuard`, `BrandScopedGuard`.  
+  **AppModule** enregistre en plus : `GlobalRateLimitGuard` (Throttler + Redis).
 
-**Findings:**
+- Tous les controllers protégés ont soit :
+  - un `@UseGuards(JwtAuthGuard, …)` au niveau classe (redondant avec le guard global mais explicite), soit
+  - uniquement les guards globaux (JWT requis sauf `@Public()`).
 
-- **LOW:** Only `req.body` is sanitized. Query string and headers are not. If any handler uses `req.query` or headers in HTML/JS context without encoding, XSS is still possible. Prefer output encoding and CSP; treat this as defense in depth.
-- **Recommendation:** Document that query/header values must be validated/encoded where used in responses; optionally extend sanitization to `req.query` for known string params.
+- **Routes publiques** correctement marquées avec `@Public()` :
+  - Auth : login, signup, refresh, forgot-password, reset-password, 2FA, OAuth callbacks, etc.
+  - Health : `/health`, `/api/v1/health`
+  - Webhooks : Stripe, WooCommerce, Shopify, PCE (HMAC/signature)
+  - Widgets : try-on widget, widget controller
+  - Configurator 3D : endpoints « public » (après correction ConfiguratorPublicAccess)
+  - Partagé : designs/share, products (lecture publique), plans (lecture), referral (code), discount (code), billing (Stripe portal), AR viewer, generation (public), industry, monitoring Grafana
+  - Admin : `POST /admin/create-admin` (protégé par `X-Setup-Key` + `SETUP_SECRET_KEY`)
 
----
+- **Admin** : `@Controller('admin')` + `@UseGuards(JwtAuthGuard)` + `@Roles(UserRole.PLATFORM_ADMIN)` → seul PLATFORM_ADMIN peut accéder.
 
-## 4. CORS configuration
+- **Brand / RBAC** :  
+  - `BrandOwnershipGuard` (global) : pour BRAND_ADMIN/BRAND_USER, injecte `request.brandId = user.brandId` et bloque l’accès si `params.brandId !== user.brandId`.  
+  - PLATFORM_ADMIN et CONSUMER/FABRICATOR ont des règles dédiées (bypass ou scope souple).
 
-**File:** `apps/backend/src/main.ts` (lines 239–334)
+### 2.2 Tokens
 
-- Production requires explicit origins; `*` or missing `CORS_ORIGINS` causes startup failure.
-- Allowed origins: `CORS_ORIGINS` env, config, or fallback list; Vercel pattern `https://frontend-*.vercel.app`; credentials supported.
-- No wildcard `*` with credentials in production.
+- **Access** : JWT, expiration via config (`jwt.expiresIn`).
+- **Refresh** : stocké en base, familles pour rotation, limite de sessions actives (MAX_SESSIONS_PER_USER), nettoyage par `TokenCleanupScheduler`.
+- **Révocation** : `TokenBlacklistService` (Redis) ; `JwtStrategy` vérifie la blacklist via `iat` avant de valider le token.
+- **Extraction** : cookie `access_token` / `accessToken` ou header `Authorization: Bearer`.
 
-**Finding:** No issue.
+### 2.3 Rate limiting
 
----
+- **GlobalRateLimitGuard** : Throttler + Redis (`ThrottlerRedisStorageService`), config `app.rateLimitTtl` / `app.rateLimitLimit`.
+- Exclusions : OPTIONS, `/health`, webhooks (billing, woocommerce, shopify, pce/webhooks).
+- Tracker : `user:id` si authentifié, sinon `ip:…`.
 
-## 5. Brand scoping / IDOR
+### 2.4 CSRF
 
-**File:** `apps/backend/src/common/guards/brand-scoped.guard.ts`
+- **CsrfGuard** (global) : pour POST/PUT/PATCH/DELETE, exige header `x-csrf-token` égal au cookie `csrf_token` ; skip pour `@Public()` et méthodes safe.
+- Middleware `csrfTokenMiddleware` (main.ts) : pose le cookie `csrf_token` si absent.
 
-- **BRAND_ADMIN / BRAND_USER:** `brandId` from path is validated against `user.brandId`; mismatch → `ForbiddenException`. Read-only mode blocks mutations except billing/credits/auth/health.
-- **PLATFORM_ADMIN:** Bypasses scoping; path `brandId` injected when present.
-- **CONSUMER / FABRICATOR:** Path `brandId` is injected without validation (documented as multi-brand access).
+### 2.5 Headers de sécurité (main.ts)
 
-**Finding:** No issue for BRAND_* and PLATFORM_ADMIN. CONSUMER/FABRICATOR behavior is a design choice; ensure downstream services do not trust `request.brandId` for authorization of sensitive actions without additional checks.
+- Helmet : CSP, HSTS (maxAge 31536000, includeSubDomains, preload), X-Content-Type-Options, X-Frame-Options (deny), Referrer-Policy, Permissions-Policy.
+- En production : HPP, redirection HTTPS si `x-forwarded-proto !== 'https'`.
 
----
+### 2.6 Validation des entrées
 
-## 6. Secrets in code
+- **ValidationPipe** global : `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`.
+- DTOs avec class-validator et/ou Zod selon les modules.
 
-- Grep did not find hardcoded API keys or passwords in `src/`.
-- **Sensitive data in logs:**
-  - **File:** `apps/backend/src/main.ts` line 150  
-    `logger.warn(\`DEV ONLY: Generated random admin password: ${passwordToHash}\`)`  
-  - **File:** `apps/backend/src/modules/admin/admin.service.ts` line 1313  
-    Same pattern in admin creation fallback.
+### 2.7 Prisma et brandId
 
-**Severity:** MEDIUM (dev-only but still a secret in logs)  
-**Fix:** In dev, log only that a password was generated (e.g. `Generated random admin password (check server output only once)`), or avoid logging the value at all.
+- Les services utilisent `request.brandId` ou `user.brandId` pour filtrer (brand scoping).
+- **Correction appliquée** : dans `SecurityController`, pour `getRoleStats`, `searchAuditLogs`, `getAuditStats`, `exportAuditLogsCSV`, le `brandId` effectif est désormais :
+  - `queryBrandId` / `dto.brandId` **uniquement** si `user.role === UserRole.PLATFORM_ADMIN`,
+  - sinon `user.brandId` (BRAND_ADMIN / BRAND_USER ne peuvent plus voir d’autres marques).
 
----
+### 2.8 Secrets
 
-## 7. Password security
-
-### 7.1 Bcrypt rounds
-
-- **auth (Argon2id migration), users, api-keys, main.ts/admin fallback:** use bcrypt with **12** or **13** rounds.
-- **Seed:** `prisma/seed.ts` line 59 uses **12** rounds.
-
-**Finding:** No issue (≥10 as required).
-
-### 7.2 Password validation
-
-- **SignupDto** – `apps/backend/src/modules/auth/dto/signup.dto.ts`: only `@MinLength(8)` and `@MaxLength(128)`. No complexity (uppercase, lowercase, number, special char).
-- **IsStrongPassword** exists in `apps/backend/src/libs/validation/validation-helpers.ts` (8+ chars, 1 upper, 1 lower, 1 digit, 1 special) but is **not** used on `SignupDto.password`.
-
-**Severity:** MEDIUM  
-**File:** `apps/backend/src/modules/auth/dto/signup.dto.ts`  
-**Fix:** Add strong password validation, e.g.:
-
-```ts
-import { IsStrongPassword } from '@/libs/validation/validation-helpers';
-
-// On password property:
-@IsStrongPassword({ message: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character' })
-password!: string;
-```
-
-Also ensure `reset-password` and `change-password` DTOs use the same or equivalent rules (e.g. `change-password.dto.ts` already has `minLength: 8`; consider adding `IsStrongPassword` there too).
+- Aucun secret en dur dans le code ; utilisation de `ConfigService` et variables d’environnement.
+- `validateRequiredEnvVars()` et `validateEnv()` en bootstrap (production stricte).
 
 ---
 
-## 8. SQL injection
+## 3. Correction : Configurator 3D – accès public
 
-- **Application code:** Prisma is used with parameterized `$queryRaw`/`$executeRaw` template literals (e.g. `credits.service.ts`, `analytics.service.ts`, `health.service.ts`). No unsafe concatenation of user input into raw SQL found in normal request handling.
-- **migration-resolver.ts:** Uses `$executeRawUnsafe` with **static** DDL strings (no user input). Acceptable for migrations.
-- **prisma/seed.ts:** Uses `$executeRawUnsafe` with static column/enum DDL. Acceptable for seed.
+**Problème :** Les endpoints « public » du configurator 3D (ex. calcul de prix public, configuration publique) utilisaient `ConfiguratorPublicAccess()` qui n’appliquait que `ConfiguratorAccessGuard`. Le **JwtAuthGuard global** exigeait quand même un JWT, ce qui bloquait l’accès non authentifié (widgets, embed).
 
-**Finding:** No issue in application request path. Raw SQL is either parameterized or static.
+**Correction :** Dans `configurator-permissions.decorator.ts`, `ConfiguratorPublicAccess()` a été modifié pour inclure `Public()`, afin que le guard global saute la route. `ConfiguratorAccessGuard` continue d’appliquer les règles métier (configuration publiée, domaine autorisé, mot de passe si nécessaire).
 
----
-
-## 9. Admin routes and DLQ
-
-### 9.1 Admin controller – `apps/backend/src/modules/admin/admin.controller.ts`
-
-- **Class-level:** `@Controller('admin')`, `@UseGuards(JwtAuthGuard)`, `@Roles(UserRole.PLATFORM_ADMIN)`.
-- All endpoints inherit JWT + PLATFORM_ADMIN except:
-  - `POST create-admin`: `@Public()`, protected by `X-Setup-Key` and `SETUP_SECRET_KEY`.
-- Redundant `@Roles(UserRole.PLATFORM_ADMIN)` on some methods is harmless.
-
-**Finding:** No issue; all admin endpoints require PLATFORM_ADMIN or the setup-key flow.
-
-### 9.2 DLQ controller – `apps/backend/src/jobs/dlq/dlq.controller.ts`
-
-- **Line 11:** `@Roles('PLATFORM_ADMIN')` uses a **string** instead of the enum.
-- **RolesGuard** compares `user.role === role`; at runtime `UserRole.PLATFORM_ADMIN` is `'PLATFORM_ADMIN'`, so behavior is correct today, but the code is inconsistent with `admin.controller.ts` and less type-safe.
-
-**Severity:** HIGH (consistency and type safety)  
-**File:** `apps/backend/src/jobs/dlq/dlq.controller.ts` line 11  
-**Fix:**
-
-```ts
-import { UserRole } from '@prisma/client';
-
-// Replace:
-@Roles('PLATFORM_ADMIN')
-// With:
-@Roles(UserRole.PLATFORM_ADMIN)
-```
-
-Remove the `@ts-expect-error` if it was only there for the decorator; with the enum, types should be fine.
+**Fichier modifié :** `apps/backend/src/modules/configurator-3d/decorators/configurator-permissions.decorator.ts`
 
 ---
 
-## 10. Summary table
+## 4. Correction : SecurityController – scope brandId (RBAC)
 
-| # | Severity   | Area           | File(s) / location                    | Fix |
-|---|------------|----------------|----------------------------------------|-----|
-| 1 | CRITICAL   | Rate limiting  | AppModule, CommonModule, main.ts       | Use a single rate-limit layer (remove duplicate guards/Express limiter). |
-| 2 | HIGH       | Admin/DLQ      | dlq.controller.ts:11                  | Use `UserRole.PLATFORM_ADMIN` instead of `'PLATFORM_ADMIN'`. |
-| 3 | MEDIUM     | Rate limiting  | main.ts skip                           | Skip webhook paths in Express rate/speed limiter (or remove Express limiter). |
-| 4 | MEDIUM     | Passwords      | auth/dto/signup.dto.ts                 | Add `@IsStrongPassword()` (and align reset/change password DTOs). |
-| 5 | MEDIUM     | Logging        | main.ts:150, admin.service.ts:1313     | Do not log generated admin password; log only that one was generated. |
-| 6 | LOW        | XSS            | xss-sanitize.middleware.ts             | Document or extend to query/headers if used in HTML. |
-| 7 | LOW        | Seed           | prisma/seed.ts                         | Avoid default `'admin123'` when `SEED_ADMIN_PASSWORD` is unset in production. |
+**Problème :** Les endpoints `GET security/roles/stats`, `GET security/audit/search`, `GET security/audit/stats` et `GET security/audit/export/csv` acceptaient un `brandId` en query/body. Un utilisateur **BRAND_ADMIN** pouvait passer un `brandId` d’une autre marque et obtenir des stats/audit d’autres tenants.
+
+**Correction :** Pour ces quatre endpoints, le `brandId` effectif est maintenant :
+- si `req.user.role === UserRole.PLATFORM_ADMIN` : utilisation du `brandId` fourni en query/dto ;
+- sinon : utilisation de `req.user.brandId` (ignorer le query/dto pour les non–platform-admins).
+
+**Fichier modifié :** `apps/backend/src/modules/security/security.controller.ts`
 
 ---
 
-## 11. Positive findings
+## 5. Frontend – Résumé
 
-- CSRF: Mutations protected; webhooks correctly excluded via `@Public()`.
-- CORS: No wildcard in production; explicit origin list and validation.
-- Brand scoping: IDOR prevented for BRAND_ADMIN/BRAND_USER; path `brandId` validated.
-- Bcrypt: Rounds 12–13 used throughout.
-- SQL: Prisma used with parameterized raw queries; no user input in raw SQL.
-- Admin: All admin routes behind JWT + PLATFORM_ADMIN or setup key.
-- Stripe/WooCommerce/Shopify webhooks: Marked `@Public()` and verified by signature in handlers.
+### 5.1 Middleware (middleware.ts)
+
+- Routes protégées : `/admin`, `/dashboard`, `/overview`, `/settings`, `/billing`, `/team`, `/ai-studio`, `/onboarding`, et préfixes `/api/designs`, `/api/billing`, etc.
+- Vérification cookie `accessToken` / `refreshToken` ; si absents → redirection vers `/login?redirect=…`.
+- Vérification d’expiration légère (payload JWT) pour éviter le flash de contenu non authentifié.
+- **Admin :** si `pathname.startsWith('/admin')`, lecture du rôle dans le JWT ; si `role !== 'PLATFORM_ADMIN'` → redirection vers `/dashboard`.
+- Headers : CSP (avec nonce si `DISABLE_CSP_NONCES !== 'true'`), HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy.
+- Rate limiting (Upstash si dispo), CSRF pour mutations sur `/api/`, bot protection, cache-control pour `/admin`.
+
+### 5.2 Tokens et API
+
+- **Client API** : `withCredentials: true` pour envoyer les cookies (httpOnly). Pas d’envoi explicite de Bearer si tout passe en cookie.
+- Le code fait encore `localStorage.removeItem('accessToken'/'refreshToken')` dans l’intercepteur (après 401/refresh) : **nettoyage legacy** ; en production les tokens devraient être uniquement en cookies httpOnly. À terme, supprimer toute écriture de tokens dans localStorage si ce n’est plus utilisé.
+
+### 5.3 Routes admin côté client
+
+- Middleware vérifie le rôle dans le JWT pour `/admin` et redirige les non–PLATFORM_ADMIN. La vérification définitive reste côté backend (JwtAuthGuard + RolesGuard).
+
+### 5.4 XSS et erreurs
+
+- **XSS :** Voir section 6.
+- **Erreurs :** ErrorBoundary n’affiche le stack qu’en `NODE_ENV === 'development'`. En production, pas d’affichage du stack à l’utilisateur.
 
 ---
 
-*End of report.*
+## 6. Points d’attention (non corrigés dans cet audit)
+
+### 6.1 XSS – dangerouslySetInnerHTML
+
+- **JSON-LD / schémas structurés** : plusieurs layouts/pages injectent du JSON stringifié dans un `<script type="application/ld+json">` via `dangerouslySetInnerHTML`. Le contenu est contrôlé (données métier, pas HTML arbitraire) ; risque faible si les données ne viennent pas d’un CMS utilisateur.
+- **Blog `article.content`** : `apps/frontend/src/app/(public)/blog/[id]/page.tsx` fait `dangerouslySetInnerHTML={{ __html: article.content.trim() }}`. Si `article.content` provient d’un CMS ou d’un formulaire, il faut **sanitizer le HTML** (ex. DOMPurify) avant injection.
+- **Embed configurator custom CSS** : `decodeURIComponent(customCss)` injecté en `<style>` ; à réserver à des sources de confiance (brand/configurator admin).
+- **Recommandation :** Pour tout contenu HTML issu de l’utilisateur ou d’un CMS, utiliser une librairie de sanitization (DOMPurify) avant `dangerouslySetInnerHTML`.
+
+### 6.2 localStorage et tokens
+
+- Les appels à `localStorage.removeItem('accessToken'/'refreshToken')` sont cohérents avec une migration vers cookies uniquement (nettoyage des anciennes clés). S’assurer qu’aucun code ne lit plus les tokens depuis localStorage pour les requêtes API.
+
+---
+
+## 7. Checklist finale
+
+- [x] Tous les endpoints protégés ont les bons guards (JWT global + Roles/BrandOwnership quand nécessaire).
+- [x] Routes publiques utilisent `@Public()`.
+- [x] RBAC cohérent (PLATFORM_ADMIN, BRAND_ADMIN, BRAND_USER, CONSUMER, FABRICATOR).
+- [x] Tokens : rotation, blacklist, expiration, nettoyage.
+- [x] Rate limits en place (global + exclusions webhooks).
+- [x] CSRF actif sur mutations (guard global + middleware cookie).
+- [x] Headers de sécurité (CSP, HSTS, etc.) configurés (backend + frontend).
+- [x] Inputs validés (DTOs + ValidationPipe).
+- [x] Requêtes sensibles scoped par brandId ; SecurityController corrigé pour audit/roles.
+- [x] Pas de secrets en dur.
+- [x] Middleware frontend protège dashboard et admin.
+- [x] Appels API avec credentials (cookies).
+- [x] Routes admin protégées côté client (rôle dans JWT).
+- [x] Erreurs : pas de fuite de stack en production dans ErrorBoundary.
+- [ ] XSS : sanitization du contenu blog/CMS recommandée (voir 6.1).
+
+---
+
+## 8. Fichiers modifiés (corrections appliquées)
+
+1. **apps/backend/src/modules/configurator-3d/decorators/configurator-permissions.decorator.ts**  
+   - Ajout de `Public()` dans `ConfiguratorPublicAccess()` pour permettre l’accès public aux endpoints widget/configurator sans JWT.
+
+2. **apps/backend/src/modules/security/security.controller.ts**  
+   - Import de `UserRole` et `Request`.  
+   - `getRoleStats`, `searchAuditLogs`, `getAuditStats`, `exportAuditLogsCSV` : utilisation d’un `brandId` effectif scoped par rôle (PLATFORM_ADMIN seul peut choisir une autre marque).
+
+---
+
+*Rapport généré dans le cadre de l’audit de sécurité et RBAC du projet Luneo.*

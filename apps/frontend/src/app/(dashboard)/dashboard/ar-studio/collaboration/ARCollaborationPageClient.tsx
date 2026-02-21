@@ -189,7 +189,7 @@ export function ARCollaborationPageClient() {
                         <div className="flex items-center gap-2 pt-2 border-t border-gray-700">
                           {project.members.slice(0, 3).map((member) => (
                             <Avatar key={member.id} className="w-6 h-6">
-                              <AvatarImage src={member.avatar} />
+                              <AvatarImage src={member.avatar} alt={member.name} />
                               <AvatarFallback className="text-xs">
                                 {member.name.charAt(0)}
                               </AvatarFallback>
@@ -245,7 +245,7 @@ export function ARCollaborationPageClient() {
                       >
                         <div className="flex items-center gap-3">
                           <Avatar>
-                            <AvatarImage src={member.avatar} />
+                            <AvatarImage src={member.avatar} alt={member.name} />
                             <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div>
@@ -286,7 +286,7 @@ export function ARCollaborationPageClient() {
                     <div key={comment.id} className="p-4 bg-gray-900/50 rounded-lg">
                       <div className="flex items-start gap-3">
                         <Avatar>
-                          <AvatarImage src={comment.userAvatar} />
+                          <AvatarImage src={comment.userAvatar} alt={comment.userName} />
                           <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
@@ -324,7 +324,7 @@ export function ARCollaborationPageClient() {
                       className="flex items-center gap-3 p-3 bg-gray-900/50 rounded-lg"
                     >
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={activity.userAvatar} />
+                        <AvatarImage src={activity.userAvatar} alt={activity.userName} />
                         <AvatarFallback>{activity.userName.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">

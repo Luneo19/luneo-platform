@@ -107,17 +107,17 @@ function OrionCommandCenterContent() {
 
   const { data: insightsData } = useSWR('orion-insights', async () => {
     const res = await endpoints.orion.insights({ limit: 5, isRead: false });
-    return (res.data ?? []) as OrionInsight[];
+    return ((res as { data?: unknown[] })?.data ?? []) as OrionInsight[];
   }, { refreshInterval: 60000 });
 
   const { data: actionsData, mutate: mutateActions } = useSWR('orion-actions', async () => {
     const res = await endpoints.orion.actions({ limit: 5, status: 'pending' });
-    return (res.data ?? []) as OrionAction[];
+    return ((res as { data?: unknown[] })?.data ?? []) as OrionAction[];
   }, { refreshInterval: 60000 });
 
   const { data: activityData } = useSWR('orion-activity', async () => {
     const res = await endpoints.orion.activityFeed(15);
-    return (res.data ?? []) as ActivityEntry[];
+    return ((res as { data?: unknown[] })?.data ?? []) as ActivityEntry[];
   }, { refreshInterval: 30000 });
 
   const agents = overview?.agents ?? [];

@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Package, ShoppingBag, FileText, Factory, Truck, AlertCircle, ArrowRight } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 interface PipelineStage {
   label: string;
@@ -18,26 +19,31 @@ interface PipelineAlert {
   cta: string;
 }
 
-function getAlerts(products: number, selling: number, orders: number): PipelineAlert[] {
+function getAlerts(
+  products: number,
+  selling: number,
+  orders: number,
+  t: (key: string, params?: Record<string, string | number>) => string
+): PipelineAlert[] {
   const alerts: PipelineAlert[] = [];
   if (products === 0) {
     alerts.push({
-      message: 'Créez votre premier produit pour démarrer.',
+      message: t('overview.pipeline.createFirst'),
       href: '/dashboard/products',
-      cta: 'Créer un produit',
+      cta: t('overview.pipeline.ctaCreateProduct'),
     });
   } else if (selling === 0) {
     alerts.push({
-      message: `${products} produit${products > 1 ? 's' : ''} sans canal de vente. Connectez un canal pour commencer à vendre.`,
+      message: t('overview.pipeline.noChannel', { count: products }),
       href: '/dashboard/channels',
-      cta: 'Connecter un canal',
+      cta: t('overview.pipeline.ctaConnectChannel'),
     });
   }
   if (orders > 0 && selling === 0) {
     alerts.push({
-      message: 'Des commandes sont en attente. Vérifiez vos canaux de distribution.',
+      message: t('overview.pipeline.ordersPending'),
       href: '/dashboard/orders',
-      cta: 'Voir les commandes',
+      cta: t('overview.pipeline.ctaViewOrders'),
     });
   }
   return alerts;
@@ -56,20 +62,21 @@ export function OverviewPipeline({
   inProduction?: number;
   delivered?: number;
 }) {
+  const { t } = useI18n();
   const stages: PipelineStage[] = [
-    { label: 'Produits', value: products, icon: Package, href: '/dashboard/products', color: 'from-purple-500 to-pink-500' },
-    { label: 'En vente', value: selling, icon: ShoppingBag, href: '/dashboard/channels', color: 'from-cyan-500 to-blue-500' },
-    { label: 'Commandes', value: orders, icon: FileText, href: '/dashboard/orders', color: 'from-amber-500 to-orange-500' },
-    { label: 'Production', value: inProduction, icon: Factory, href: '/dashboard/production', color: 'from-emerald-500 to-cyan-500' },
-    { label: 'Livrées', value: delivered, icon: Truck, href: '/dashboard/orders', color: 'from-green-500 to-emerald-500' },
+    { label: t('overview.pipeline.products'), value: products, icon: Package, href: '/dashboard/products', color: 'from-purple-500 to-pink-500' },
+    { label: t('overview.pipeline.selling'), value: selling, icon: ShoppingBag, href: '/dashboard/channels', color: 'from-cyan-500 to-blue-500' },
+    { label: t('overview.pipeline.orders'), value: orders, icon: FileText, href: '/dashboard/orders', color: 'from-amber-500 to-orange-500' },
+    { label: t('overview.pipeline.production'), value: inProduction, icon: Factory, href: '/dashboard/production', color: 'from-emerald-500 to-cyan-500' },
+    { label: t('overview.pipeline.delivered'), value: delivered, icon: Truck, href: '/dashboard/orders', color: 'from-green-500 to-emerald-500' },
   ];
 
-  const alerts = getAlerts(products, selling, orders);
+  const alerts = getAlerts(products, selling, orders, t);
 
   return (
     <div className="dash-card rounded-2xl p-5 border border-white/[0.06]">
       <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">
-        Pipeline — Du design à la livraison
+        {t('overview.pipeline.title')}
       </h2>
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
         {stages.map((stage, i) => {

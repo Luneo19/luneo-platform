@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useI18n } from '@/i18n';
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -11,7 +12,9 @@ export default function Error({
   reset: () => void;
 }) {
   const { t } = useI18n();
-  useEffect(() => {}, [error]);
+  useEffect(() => {
+    logger.error('Onboarding route error', error, { digest: error.digest });
+  }, [error]);
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">

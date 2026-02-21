@@ -74,7 +74,7 @@ export const customizerRouter = router({
           customizers?: unknown[];
           pagination?: { total: number; page: number; limit: number };
           total?: number;
-        }>('/api/v1/visual-customizer', { params });
+        }>('/api/v1/visual-customizer/customizers', { params });
 
         const res = result as {
           data?: unknown[];
@@ -108,7 +108,7 @@ export const customizerRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -162,7 +162,7 @@ export const customizerRouter = router({
       try {
         const { id, ...data } = input;
 
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${id}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${id}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -171,7 +171,7 @@ export const customizerRouter = router({
           });
         }
 
-        const updated = await api.put<Record<string, unknown>>(`/api/v1/visual-customizer/${id}`, data);
+        const updated = await api.put<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${id}`, data);
 
         logger.info('Customizer updated', { customizerId: id });
 
@@ -195,7 +195,7 @@ export const customizerRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -204,7 +204,7 @@ export const customizerRouter = router({
           });
         }
 
-        await api.delete(`/api/v1/visual-customizer/${input.id}`);
+        await api.delete(`/api/v1/visual-customizer/customizers/${input.id}`);
 
         logger.info('Customizer deleted', { customizerId: input.id });
 
@@ -228,7 +228,7 @@ export const customizerRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -237,7 +237,7 @@ export const customizerRouter = router({
           });
         }
 
-        const updated = await api.post<Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}/publish`, {});
+        const updated = await api.post<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}/publish`, {});
 
         logger.info('Customizer published', { customizerId: input.id });
 
@@ -266,7 +266,7 @@ export const customizerRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -275,7 +275,7 @@ export const customizerRouter = router({
           });
         }
 
-        const cloned = await api.post<{ id: string } & Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}/clone`, {
+        const cloned = await api.post<{ id: string } & Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}/clone`, {
           name: input.name,
         });
 
@@ -307,7 +307,7 @@ export const customizerRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.id}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.id}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -320,7 +320,7 @@ export const customizerRouter = router({
         if (input.width) params.width = input.width;
         if (input.height) params.height = input.height;
 
-        const embedCode = await api.get<{ embedCode: string; scriptUrl: string }>(`/api/v1/visual-customizer/${input.id}/embed-code`, {
+        const embedCode = await api.get<{ embedCode: string; scriptUrl: string }>(`/api/v1/visual-customizer/customizers/${input.id}/embed`, {
           params,
         });
 

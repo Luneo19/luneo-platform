@@ -50,7 +50,7 @@ type AthenaDashboard = {
 
 const fetcher = async (): Promise<AthenaDashboard> => {
   const res = await endpoints.orion.athena.dashboard();
-  return res.data;
+  return (res as { data: AthenaDashboard }).data;
 };
 
 function AthenaPageContent() {

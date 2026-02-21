@@ -70,7 +70,7 @@ export default function EcommercePage() {
       name: 'Shopify',
       description: 'Integration native complete',
       icon: '🛍️',
-      features: ['Sync temps reel', 'Webhooks', 'API v2023'],
+      features: ['Sync temps réel', 'Webhooks', 'API v2023'],
     },
     {
       name: 'WooCommerce',
@@ -121,7 +121,7 @@ export default function EcommercePage() {
     {
       icon: <Zap className="w-6 h-6" />,
       title: 'Webhooks',
-      description: 'Notifications temps reel sur commandes, paiements.',
+      description: 'Notifications temps réel sur commandes, paiements.',
     },
   ];
 
@@ -309,7 +309,7 @@ export default function EcommercePage() {
               {submitted && (
                 <div className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-2">
                   {/* eslint-disable-next-line no-irregular-whitespace */}
-                  Merci ! Notre equipe vous contacte tres vite pour le deploiement.
+                  Merci ! Notre équipe vous contacte très vite pour le déploiement.
                 </div>
               )}
               <Button
@@ -317,7 +317,7 @@ export default function EcommercePage() {
                 disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 h-12 text-lg"
               >
-                {isSubmitting ? 'Envoi en cours...' : 'Recevoir la demo configuree'}
+                {isSubmitting ? 'Envoi en cours...' : 'Recevoir la démo configurée'}
               </Button>
             </form>
           </Card>
@@ -326,7 +326,7 @@ export default function EcommercePage() {
           <ScrollReveal animation="fade-up" delay={100}>
             <AnimatedBorder hoverOnly speed="slow">
               <Card className="p-8 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04]">
-                <h3 className="text-xl font-display font-bold text-white mb-4">Ce que comprend la demo</h3>
+                <h3 className="text-xl font-display font-bold text-white mb-4">Ce que comprend la démo</h3>
                 <ul className="space-y-4 text-slate-300">
               <li className="flex gap-3">
                 <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />

@@ -84,7 +84,7 @@ function ArtemisPageContent() {
     'orion-artemis-dashboard',
     async () => {
       const res = await endpoints.orion.artemis.dashboard();
-      return res.data as ArtemisDashboard;
+      return (res as { data: ArtemisDashboard }).data;
     },
     { refreshInterval: 30000 }
   );

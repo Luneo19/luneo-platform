@@ -40,13 +40,13 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getStatusConfig(status: string): { color: string; bgColor: string } {
-  const configs: Record<string, { color: string; bgColor: string }> = {
-    pending: { color: 'yellow', bgColor: 'yellow-500/20' },
-    processing: { color: 'blue', bgColor: 'blue-500/20' },
-    shipped: { color: 'cyan', bgColor: 'cyan-500/20' },
-    delivered: { color: 'green', bgColor: 'green-500/20' },
-    cancelled: { color: 'red', bgColor: 'red-500/20' },
+function getStatusClasses(status: string): string {
+  const configs: Record<string, string> = {
+    pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    processing: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    shipped: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    delivered: 'bg-green-500/20 text-green-400 border-green-500/30',
+    cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
   return configs[status] || configs.pending;
 }
@@ -59,7 +59,7 @@ export function OrderDetailDialog({
   onCancel,
 }: OrderDetailDialogProps) {
   const { t } = useI18n();
-  const statusConfig = getStatusConfig(order.status);
+  const statusClasses = getStatusClasses(order.status);
   const statusLabel = t(`orders.statuses.${order.status}` as string) || order.status;
 
   return (
@@ -80,7 +80,7 @@ export function OrderDetailDialog({
                 <div>
                   <p className="text-sm text-gray-600">{t('orders.status')}</p>
                   <Badge
-                    className={`bg-${statusConfig.bgColor} text-${statusConfig.color}-400 border-${statusConfig.color}-500/30 mt-1`}
+                    className={`${statusClasses} mt-1`}
                   >
                     {statusLabel}
                   </Badge>
@@ -198,7 +198,7 @@ export function OrderDetailDialog({
               <Button asChild variant="outline" size="sm" className="border-gray-200 text-gray-700">
                 <Link href={`/dashboard/products/${order.items[0].product_id}`}>
                   <Package className="w-3.5 h-3.5 mr-1.5" />
-                  Voir le produit
+                  {t('orders.viewProduct')}
                   <ArrowRight className="w-3 h-3 ml-1.5" />
                 </Link>
               </Button>
@@ -206,7 +206,7 @@ export function OrderDetailDialog({
             <Button asChild variant="outline" size="sm" className="border-gray-200 text-gray-700">
               <Link href="/dashboard/production">
                 <Factory className="w-3.5 h-3.5 mr-1.5" />
-                Production
+                {t('orders.production')}
                 <ArrowRight className="w-3 h-3 ml-1.5" />
               </Link>
             </Button>

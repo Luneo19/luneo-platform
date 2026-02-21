@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -50,7 +60,7 @@ export class ManufacturingController {
     @Body() dto: RegisterProviderDto,
   ) {
     if (!brand?.id) {
-      throw new Error('Brand context required');
+      throw new BadRequestException('Brand context required');
     }
     return this.providerManager.registerProvider({
       brandId: brand.id,
@@ -93,7 +103,7 @@ export class ManufacturingController {
     @Param('id') id: string,
   ) {
     if (!brand?.id) {
-      throw new Error('Brand context required');
+      throw new BadRequestException('Brand context required');
     }
     return this.orchestrator.getProductionOrderStatus(id);
   }
@@ -106,7 +116,7 @@ export class ManufacturingController {
     @Body() dto: CreateProductionOrderDto,
   ) {
     if (!brand?.id) {
-      throw new Error('Brand context required');
+      throw new BadRequestException('Brand context required');
     }
     return this.orchestrator.createProductionOrder({
       brandId: brand.id,
@@ -126,7 +136,7 @@ export class ManufacturingController {
     @Param('id') id: string,
   ) {
     if (!brand?.id) {
-      throw new Error('Brand context required');
+      throw new BadRequestException('Brand context required');
     }
     return this.orchestrator.cancelProductionOrder(id);
   }
@@ -139,7 +149,7 @@ export class ManufacturingController {
     @Body() dto: GetQuotesDto,
   ) {
     if (!brand?.id) {
-      throw new Error('Brand context required');
+      throw new BadRequestException('Brand context required');
     }
     return this.orchestrator.getQuotes({
       brandId: brand.id,

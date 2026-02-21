@@ -42,12 +42,12 @@ export interface TryOnViewProps {
 }
 
 const CATEGORY_LABELS: Record<TryOnCategory, { tracking: string; waiting: string }> = {
-  watch: { tracking: 'Poignet detecte', waiting: 'Montrez votre poignet' },
-  ring: { tracking: 'Main detectee', waiting: 'Montrez votre main' },
-  bracelet: { tracking: 'Poignet detecte', waiting: 'Montrez votre poignet' },
-  earring: { tracking: 'Visage detecte', waiting: 'Regardez la camera' },
-  necklace: { tracking: 'Visage detecte', waiting: 'Regardez la camera' },
-  eyewear: { tracking: 'Visage detecte', waiting: 'Regardez la camera' },
+  watch: { tracking: 'Poignet détecté', waiting: 'Montrez votre poignet' },
+  ring: { tracking: 'Main détectée', waiting: 'Montrez votre main' },
+  bracelet: { tracking: 'Poignet détecté', waiting: 'Montrez votre poignet' },
+  earring: { tracking: 'Visage détecté', waiting: 'Regardez la caméra' },
+  necklace: { tracking: 'Visage détecté', waiting: 'Regardez la caméra' },
+  eyewear: { tracking: 'Visage détecté', waiting: 'Regardez la caméra' },
 };
 
 function createRendererForCategory(

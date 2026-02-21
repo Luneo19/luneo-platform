@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Konva from 'konva';
 import { Download, FileImage, FileText, Printer, Code } from 'lucide-react';
 import {
   Dialog,
@@ -24,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  stageRef?: any; // Konva Stage ref
+  stageRef?: Konva.Stage | null;
   sessionId?: string;
 }
 

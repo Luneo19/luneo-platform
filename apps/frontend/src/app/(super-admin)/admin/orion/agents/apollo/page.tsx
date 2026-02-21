@@ -44,7 +44,7 @@ type ApolloDashboard = {
 
 const fetcher = async (): Promise<ApolloDashboard> => {
   const res = await endpoints.orion.apollo.dashboard();
-  return res.data;
+  return (res as { data: ApolloDashboard }).data;
 };
 
 function ApolloPageContent() {

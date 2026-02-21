@@ -10,6 +10,7 @@ import { Image as ImageIcon, Upload, Link, X } from 'lucide-react';
 import { useImage } from '@/hooks/customizer';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 /**
  * ImageTool - Image tool panel with upload, URL input, and recent images
@@ -28,7 +29,7 @@ export function ImageTool() {
       const url = await uploadImage(file);
       setRecentImages((prev) => [url, ...prev.slice(0, 9)]);
     } catch (error) {
-      console.error('Failed to upload image:', error);
+      logger.error('Failed to upload image', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -40,7 +41,7 @@ export function ImageTool() {
       setRecentImages((prev) => [imageUrl, ...prev.slice(0, 9)]);
       setImageUrl('');
     } catch (error) {
-      console.error('Failed to add image from URL:', error);
+      logger.error('Failed to add image from URL', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -48,7 +49,7 @@ export function ImageTool() {
     try {
       await addImage(url);
     } catch (error) {
-      console.error('Failed to add image:', error);
+      logger.error('Failed to add image', error instanceof Error ? error : new Error(String(error)));
     }
   };
 

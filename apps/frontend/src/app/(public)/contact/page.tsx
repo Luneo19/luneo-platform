@@ -176,7 +176,7 @@ function ContactPageContentInner() {
                   <div>
                     <h3 className="text-sm font-semibold text-indigo-300">Plan Enterprise — Demande de devis</h3>
                     <p className="text-xs text-white/50 mt-1">
-                      Notre equipe commerciale vous contactera sous 24h pour discuter de vos besoins specifiques, des prestations sur-mesure et des conditions tarifaires adaptees a votre organisation.
+                      Notre équipe commerciale vous contactera sous 24h pour discuter de vos besoins spécifiques, des prestations sur-mesure et des conditions tarifaires adaptées à votre organisation.
                     </p>
                   </div>
                 </div>

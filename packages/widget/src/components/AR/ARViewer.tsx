@@ -224,8 +224,8 @@ export function ARViewer({ apiService, generationId, onClose }: ARViewerProps) {
   const setupHitTesting = (
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
-    camera: THREE.PerspectiveCamera,
-    data: any
+    _camera: THREE.PerspectiveCamera,
+    _data: unknown
   ) => {
     let hitTestSource: XRHitTestSource | null = null;
     let referenceSpace: XRReferenceSpace | null = null;
@@ -275,7 +275,7 @@ export function ARViewer({ apiService, generationId, onClose }: ARViewerProps) {
     });
   };
 
-  const setupFaceTracking = (scene: THREE.Scene, data: any) => {
+  const setupFaceTracking = (_scene: THREE.Scene, _data: unknown) => {
     // Face tracking nécessite MediaPipe ou une API similaire
     // Pour l'instant, on place le modèle devant la caméra
     if (modelRef.current) {

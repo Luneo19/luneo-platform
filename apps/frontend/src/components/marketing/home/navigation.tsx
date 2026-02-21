@@ -37,21 +37,21 @@ const MENU_DATA = {
       {
         title: 'Personnalisation',
         items: [
-          { href: '/solutions/visual-customizer', label: 'Customizer 2D', description: 'Editeur visuel drag-and-drop', icon: Palette },
-          { href: '/solutions/configurator-3d', label: 'Configurateur 3D', description: 'Visualisation temps reel Three.js', icon: Box },
-          { href: '/solutions/virtual-try-on', label: 'Virtual Try-On AR', description: 'Essayage augmente en direct', icon: Glasses },
+          { href: '/solutions/visual-customizer', label: 'Customizer 2D', description: 'Éditeur visuel drag-and-drop', icon: Palette },
+          { href: '/solutions/configurator-3d', label: 'Configurateur 3D', description: 'Visualisation temps réel Three.js', icon: Box },
+          { href: '/solutions/virtual-try-on', label: 'Virtual Try-On AR', description: 'Essayage augmenté en direct', icon: Glasses },
         ],
       },
       {
         title: 'Production',
         items: [
-          { href: '/solutions/3d-asset-hub', label: 'Export Print-Ready', description: 'CMYK, PDF/X-4, haute resolution', icon: Printer },
-          { href: '/solutions/ai-design-hub', label: 'AI Studio', description: 'Generation par intelligence artificielle', icon: Sparkles },
+          { href: '/solutions/3d-asset-hub', label: 'Export Print-Ready', description: 'CMYK, PDF/X-4, haute résolution', icon: Printer },
+          { href: '/solutions/ai-design-hub', label: 'AI Studio', description: 'Génération par intelligence artificielle', icon: Sparkles },
           { href: '/solutions/ecommerce', label: 'Gestion Produits', description: 'Catalogue et variantes', icon: Package },
         ],
       },
     ],
-    cta: { href: '/demo', label: 'Voir la demo', description: 'Testez toutes les fonctionnalites' },
+    cta: { href: '/demo', label: 'Voir la démo', description: 'Testez toutes les fonctionnalités' },
   },
   solutions: {
     label: 'Solutions',
@@ -59,14 +59,14 @@ const MENU_DATA = {
       {
         title: 'Par secteur',
         items: [
-          { href: '/solutions/ecommerce', label: 'E-commerce', description: 'Personnalisation a grande echelle', icon: ShoppingCart },
+          { href: '/solutions/ecommerce', label: 'E-commerce', description: 'Personnalisation à grande échelle', icon: ShoppingCart },
           { href: '/solutions/marketing', label: 'Marketing', description: 'Campagnes visuelles uniques', icon: Megaphone },
-          { href: '/solutions/branding', label: 'Branding', description: 'Identite de marque coherente', icon: Fingerprint },
-          { href: '/solutions/social', label: 'Social Media', description: 'Contenu optimise reseaux', icon: Share2 },
+          { href: '/solutions/branding', label: 'Branding', description: 'Identité de marque cohérente', icon: Fingerprint },
+          { href: '/solutions/social', label: 'Social Media', description: 'Contenu optimisé réseaux', icon: Share2 },
         ],
       },
     ],
-    cta: { href: '/integrations-overview', label: 'Integrations', description: 'Shopify, WooCommerce, API...' },
+    cta: { href: '/integrations-overview', label: 'Intégrations', description: 'Shopify, WooCommerce, API...' },
   },
   resources: {
     label: 'Ressources',
@@ -74,10 +74,10 @@ const MENU_DATA = {
       {
         title: 'Apprendre',
         items: [
-          { href: '/help/documentation', label: 'Documentation', description: 'Guides et references API', icon: BookOpen },
+          { href: '/help/documentation', label: 'Documentation', description: 'Guides et références API', icon: BookOpen },
           { href: '/help', label: "Centre d'aide", description: 'FAQ et support technique', icon: HelpCircle },
-          { href: '/community', label: 'Communaute', description: 'Echangez avec les utilisateurs', icon: Users },
-          { href: '/contact', label: 'Contact', description: 'Equipe commerciale et support', icon: Mail },
+          { href: '/community', label: 'Communauté', description: 'Échangez avec les utilisateurs', icon: Users },
+          { href: '/contact', label: 'Contact', description: 'Équipe commerciale et support', icon: Mail },
         ],
       },
     ],

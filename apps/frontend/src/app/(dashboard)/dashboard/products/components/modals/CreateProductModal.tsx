@@ -146,7 +146,7 @@ export function CreateProductModal({
           </div>
           {/* Images */}
           <div>
-            <Label className="text-gray-700">Images</Label>
+            <Label className="text-gray-700">{t('products.images')}</Label>
             <div className="mt-1 space-y-2">
               {imagePreviews.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -180,7 +180,7 @@ export function CreateProductModal({
                 className="border-gray-200 text-gray-700"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Ajouter des images
+                {t('products.addImages')}
               </Button>
             </div>
           </div>

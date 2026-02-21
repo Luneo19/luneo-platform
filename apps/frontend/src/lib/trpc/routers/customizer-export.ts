@@ -79,14 +79,15 @@ export const customizerExportRouter = router({
         }
 
         const body: Record<string, unknown> = {
-          format: input.format,
+          sessionId: input.sessionId,
+          format: input.format === 'JPG' ? 'JPEG' : input.format,
         };
         if (input.quality !== undefined) body.quality = input.quality;
         if (input.width !== undefined) body.width = input.width;
         if (input.height !== undefined) body.height = input.height;
 
         const exportJob = await api.post<{ jobId: string; status: string; downloadUrl?: string }>(
-          `/api/v1/visual-customizer/sessions/${input.sessionId}/export/image`,
+          '/api/v1/visual-customizer/export/image',
           body
         );
 
@@ -122,8 +123,8 @@ export const customizerExportRouter = router({
         }
 
         const exportJob = await api.post<{ jobId: string; status: string; downloadUrl?: string }>(
-          `/api/v1/visual-customizer/sessions/${input.sessionId}/export/pdf`,
-          input.options || {}
+          '/api/v1/visual-customizer/export/pdf',
+          { sessionId: input.sessionId, ...(input.options || {}) }
         );
 
         logger.info('PDF export started', { sessionId: input.sessionId, jobId: exportJob.jobId });
@@ -158,8 +159,8 @@ export const customizerExportRouter = router({
         }
 
         const exportJob = await api.post<{ jobId: string; status: string; downloadUrl?: string }>(
-          `/api/v1/visual-customizer/sessions/${input.sessionId}/export/print`,
-          input.options || {}
+          '/api/v1/visual-customizer/export/print',
+          { sessionId: input.sessionId, ...(input.options || {}) }
         );
 
         logger.info('Print export started', { sessionId: input.sessionId, jobId: exportJob.jobId });

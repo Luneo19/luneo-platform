@@ -22,7 +22,7 @@ interface AuthState {
     firstName: string;
     lastName: string;
   }) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
   setUser: (user: AuthUser | null) => void;
 }

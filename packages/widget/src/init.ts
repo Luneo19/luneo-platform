@@ -80,7 +80,7 @@ const LuneoWidget: LuneoWidget = {
     if (!state.design) return null;
     return {
       design: state.design,
-      layers: state.canvas.layers,
+      layers: state.design?.layers ?? [],
       product: state.product,
       json: state.exportAsJSON(),
     };

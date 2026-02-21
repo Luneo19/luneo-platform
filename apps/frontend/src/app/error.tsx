@@ -35,9 +35,8 @@ export default function Error({
           {t('common.somethingWentWrongWithRetry')}
         </p>
 
-        {/* Error message display */}
         <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-6 text-left">
-          <p className="text-sm font-medium text-white/80 mb-1">Error</p>
+          <p className="text-sm font-medium text-white/80 mb-1">{t('common.error')}</p>
           <p className="text-sm text-white/60 break-words font-mono">
             {error.message}
           </p>
@@ -62,18 +61,18 @@ export default function Error({
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 text-white border border-white/10 hover:bg-white/15 transition-colors font-medium"
           >
             <Home className="w-4 h-4" aria-hidden />
-            Go home
+            {t('common.goHome')}
           </Link>
         </div>
 
         <p className="text-sm text-white/50">
-          If this keeps happening,{' '}
+          {t('errors.persistentError')}{' '}
           <Link
             href="/help/support"
             className="inline-flex items-center gap-1.5 font-medium text-violet-400 hover:text-violet-300 transition-colors"
           >
             <MessageCircle className="w-4 h-4" aria-hidden />
-            report the error
+            {t('errors.reportError')}
           </Link>
         </p>
       </div>

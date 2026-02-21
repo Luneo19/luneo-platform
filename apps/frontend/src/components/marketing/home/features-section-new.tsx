@@ -16,7 +16,7 @@ const FEATURES = [
     label: 'Design Studio',
     title: 'Editeur 2D puissant et intuitif',
     description:
-      'Creez des designs professionnels avec notre editeur visuel drag-and-drop. Outils avances, calques, effets et export haute resolution.',
+      'Créez des designs professionnels avec notre éditeur visuel drag-and-drop. Outils avancés, calques, effets et export haute résolution.',
     icon: Palette,
     gradient: 'from-indigo-500 to-violet-500',
     iconBg: 'rgba(99,102,241,0.12)',
@@ -25,7 +25,7 @@ const FEATURES = [
     label: 'Configurateur 3D',
     title: 'Visualisation interactive en temps reel',
     description:
-      'Offrez a vos clients une experience 3D immersive avec rotation, zoom et personnalisation en direct sur vos produits.',
+      'Offrez à vos clients une expérience 3D immersive avec rotation, zoom et personnalisation en direct sur vos produits.',
     icon: Box,
     gradient: 'from-violet-500 to-purple-500',
     iconBg: 'rgba(124,58,237,0.12)',
@@ -34,7 +34,7 @@ const FEATURES = [
     label: 'Virtual Try-On',
     title: 'Essayage augmente avec camera',
     description:
-      'Technologie AR avancee avec 468 points de suivi facial. Vos clients essaient les produits en direct depuis leur appareil.',
+      'Technologie AR avancée avec 468 points de suivi facial. Vos clients essaient les produits en direct depuis leur appareil.',
     icon: Glasses,
     gradient: 'from-purple-500 to-pink-500',
     iconBg: 'rgba(168,85,247,0.12)',
@@ -43,16 +43,16 @@ const FEATURES = [
     label: 'IA Generative',
     title: 'Intelligence artificielle creative',
     description:
-      "Generez des designs uniques, des variantes et des suggestions automatiques grace a notre moteur d'IA integre.",
+      "Générez des designs uniques, des variantes et des suggestions automatiques grâce à notre moteur d'IA intégré.",
     icon: Sparkles,
     gradient: 'from-cyan-500 to-indigo-500',
     iconBg: 'rgba(6,182,212,0.12)',
   },
   {
     label: 'Analytics',
-    title: 'Insights de performance avances',
+    title: 'Insights de performance avancés',
     description:
-      'Suivez les conversions, le comportement utilisateur et le ROI de vos produits personnalises en temps reel.',
+      'Suivez les conversions, le comportement utilisateur et le ROI de vos produits personnalisés en temps réel.',
     icon: BarChart3,
     gradient: 'from-emerald-500 to-teal-500',
     iconBg: 'rgba(16,185,129,0.12)',
@@ -61,7 +61,7 @@ const FEATURES = [
     label: 'Integrations',
     title: 'Connectez vos outils favoris',
     description:
-      'Shopify, WooCommerce, Stripe, Printful, Zapier et 100+ integrations pour automatiser votre workflow.',
+      'Shopify, WooCommerce, Stripe, Printful, Zapier et 100+ intégrations pour automatiser votre workflow.',
     icon: Puzzle,
     gradient: 'from-indigo-500 to-cyan-500',
     iconBg: 'rgba(99,102,241,0.12)',
@@ -110,16 +110,16 @@ export function FeaturesSectionNew() {
         {/* Section Header */}
         <ScrollReveal direction="up">
           <PremiumSectionHeader
-            badge="Fonctionnalites"
+            badge="Fonctionnalités"
             title={
               <>
-                Tout pour creer des{' '}
+                Tout pour créer des{' '}
                 <GradientText variant="violet" className="font-editorial italic">
                   produits exceptionnels
                 </GradientText>
               </>
             }
-            subtitle="6 modules puissants couvrant l'integralite du cycle de personnalisation produit."
+            subtitle="6 modules puissants couvrant l'intégralité du cycle de personnalisation produit."
             className="mb-16 sm:mb-20"
           />
         </ScrollReveal>

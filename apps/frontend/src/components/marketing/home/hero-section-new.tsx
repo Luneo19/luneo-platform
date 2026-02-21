@@ -28,7 +28,7 @@ const HERO_WORDS = [
 const STATS = [
   { value: 35, suffix: '%', label: 'Conversions en plus' },
   { value: 40, suffix: '%', label: 'Retours en moins' },
-  { value: 5, prefix: '<', suffix: 's', label: 'Par generation' },
+  { value: 5, prefix: '<', suffix: 's', label: 'Par génération' },
   { value: 99.9, suffix: '%', decimals: 1, label: 'Uptime garanti' },
 ];
 
@@ -71,7 +71,7 @@ export function HeroSectionNew() {
           <div className="flex justify-center mb-8">
             <SectionBadge>
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Decouvrez Luneo 2.0 — La plateforme nouvelle generation</span>
+              <span>Découvrez Luneo 2.0 — La plateforme nouvelle génération</span>
             </SectionBadge>
           </div>
         </ScrollReveal>
@@ -85,13 +85,13 @@ export function HeroSectionNew() {
                 <Typewriter texts={HERO_WORDS} speed={70} deleteSpeed={40} pauseTime={2500} />
               </GradientText>
               <br />
-              <span className="text-white">propulsee par l&apos;</span>
+              <span className="text-white">propulsée par l&apos;</span>
               <GradientText variant="violet">IA</GradientText>
             </h1>
 
             <p className="text-lg sm:text-xl md:text-2xl text-white/60 max-w-3xl mx-auto leading-relaxed mb-10">
-              Ajoutez la personnalisation produit a votre boutique en 5 minutes.
-              <span className="text-white/80 font-medium"> Customizer 2D, IA generative, 3D, AR — du design client a la livraison.</span>
+              Ajoutez la personnalisation produit à votre boutique en 5 minutes.
+              <span className="text-white/80 font-medium"> Customizer 2D, IA générative, 3D, AR — du design client à la livraison.</span>
             </p>
 
             {/* CTA Buttons */}
@@ -105,7 +105,7 @@ export function HeroSectionNew() {
               <Link href="/demo/customizer">
                 <MagneticButton variant="secondary" size="xl">
                   <Play className="w-5 h-5" />
-                  Voir la demo
+                  Voir la démo
                 </MagneticButton>
               </Link>
             </div>
@@ -204,7 +204,7 @@ export function HeroSectionNew() {
         <ScrollReveal direction="up" delay={200}>
           <div className="text-center">
             <p className="text-sm text-white/30 uppercase tracking-widest font-medium mb-6">
-              Adopte par des centaines de marques innovantes
+              Adopté par des centaines de marques innovantes
             </p>
             <div className="flex items-center justify-center gap-10 flex-wrap opacity-30">
               {['Nike', 'Adidas', 'Zara', 'H&M', 'Uniqlo', 'Gucci'].map((name) => (

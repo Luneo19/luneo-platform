@@ -60,7 +60,7 @@ export const customizerZonesRouter = router({
     .input(z.object({ customizerId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
       try {
-        const zones = await api.get<unknown[]>(`/api/v1/visual-customizer/${input.customizerId}/zones`).catch(() => []);
+        const zones = await api.get<unknown[]>(`/api/v1/visual-customizer/customizers/${input.customizerId}/zones`).catch(() => []);
 
         return Array.isArray(zones) ? zones : [];
       } catch (error) {
@@ -84,7 +84,7 @@ export const customizerZonesRouter = router({
     )
     .query(async ({ input, ctx }) => {
       try {
-        const zone = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.customizerId}/zones/${input.id}`).catch(() => null);
+        const zone = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.customizerId}/zones/${input.id}`).catch(() => null);
 
         if (!zone) {
           throw new TRPCError({
@@ -117,7 +117,7 @@ export const customizerZonesRouter = router({
 
         logger.info('Creating zone', { customizerId, name: input.name });
 
-        const zone = await api.post<{ id: string } & Record<string, unknown>>(`/api/v1/visual-customizer/${customizerId}/zones`, data);
+        const zone = await api.post<{ id: string } & Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${customizerId}/zones`, data);
 
         logger.info('Zone created', { zoneId: zone.id });
 
@@ -140,7 +140,7 @@ export const customizerZonesRouter = router({
       try {
         const { customizerId, id, ...data } = input;
 
-        const zone = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${customizerId}/zones/${id}`).catch(() => null);
+        const zone = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${customizerId}/zones/${id}`).catch(() => null);
 
         if (!zone) {
           throw new TRPCError({
@@ -149,7 +149,7 @@ export const customizerZonesRouter = router({
           });
         }
 
-        const updated = await api.put<Record<string, unknown>>(`/api/v1/visual-customizer/${customizerId}/zones/${id}`, data);
+        const updated = await api.put<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${customizerId}/zones/${id}`, data);
 
         logger.info('Zone updated', { zoneId: id });
 
@@ -178,7 +178,7 @@ export const customizerZonesRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const zone = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.customizerId}/zones/${input.id}`).catch(() => null);
+        const zone = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.customizerId}/zones/${input.id}`).catch(() => null);
 
         if (!zone) {
           throw new TRPCError({
@@ -187,7 +187,7 @@ export const customizerZonesRouter = router({
           });
         }
 
-        await api.delete(`/api/v1/visual-customizer/${input.customizerId}/zones/${input.id}`);
+        await api.delete(`/api/v1/visual-customizer/customizers/${input.customizerId}/zones/${input.id}`);
 
         logger.info('Zone deleted', { zoneId: input.id });
 
@@ -216,7 +216,7 @@ export const customizerZonesRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/${input.customizerId}`).catch(() => null);
+        const customizer = await api.get<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.customizerId}`).catch(() => null);
 
         if (!customizer) {
           throw new TRPCError({
@@ -225,7 +225,7 @@ export const customizerZonesRouter = router({
           });
         }
 
-        const updated = await api.post<Record<string, unknown>>(`/api/v1/visual-customizer/${input.customizerId}/zones/reorder`, {
+        const updated = await api.post<Record<string, unknown>>(`/api/v1/visual-customizer/customizers/${input.customizerId}/zones/reorder`, {
           zoneIds: input.zoneIds,
         });
 

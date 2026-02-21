@@ -119,7 +119,7 @@ export default function GlobalError({
   };
 
   return (
-    <html lang="en">
+    <html lang="fr">
       <body style={{ margin: 0, padding: 0, background: '#0a0a0f', color: '#fff' }}>
         <div style={containerStyle}>
           <div style={cardStyle}>
@@ -138,15 +138,15 @@ export default function GlobalError({
             </div>
 
             <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '12px', color: '#fff' }}>
-              Critical error
+              Erreur critique
             </h1>
             <p style={{ marginBottom: '24px', color: 'rgba(255, 255, 255, 0.6)', fontSize: '1rem', lineHeight: 1.5 }}>
-              Something went wrong at the application level. Try again or return home.
+              Une erreur est survenue au niveau de l&apos;application. Réessayez ou retournez à l&apos;accueil.
             </p>
 
             {error.digest && (
               <div style={digestStyle}>
-                <strong>Error code:</strong>{' '}
+                <strong>Code erreur :</strong>{' '}
                 <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
                   {error.digest}
                 </code>
@@ -156,18 +156,18 @@ export default function GlobalError({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               <button type="button" onClick={handleReset} style={buttonPrimaryStyle}>
                 <RefreshCw style={{ width: 20, height: 20 }} aria-hidden />
-                Try again
+                Réessayer
               </button>
               <button type="button" onClick={handleGoHome} style={buttonSecondaryStyle}>
                 <Home style={{ width: 20, height: 20 }} aria-hidden />
-                Go home
+                Retour à l&apos;accueil
               </button>
             </div>
 
             <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '24px' }}>
-              If this continues,{' '}
+              Si le problème persiste,{' '}
               <a href="/help/support" style={linkStyle}>
-                contact support
+                contactez le support
               </a>
             </p>
 
@@ -182,7 +182,7 @@ export default function GlobalError({
                 fontSize: '0.875rem',
               }}>
                 <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#fca5a5' }}>
-                  Error details (dev only)
+                  Détails de l&apos;erreur (dev uniquement)
                 </summary>
                 <pre style={{
                   margin: '12px 0 0',

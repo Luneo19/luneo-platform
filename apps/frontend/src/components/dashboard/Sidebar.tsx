@@ -358,6 +358,21 @@ const SIDEBAR_ITEM_KEYS: Record<string, string> = {
   '/dashboard/settings': 'dashboard.sidebar.settings',
 };
 
+const SIDEBAR_ITEM_DESC_KEYS: Record<string, string> = {
+  '/dashboard': 'dashboard.sidebar.dashboardPipelineDesc',
+  '/dashboard/products': 'dashboard.sidebar.productsDesc',
+  '/dashboard/ai-studio': 'dashboard.sidebar.aiStudioDesc',
+  '/dashboard/library': 'dashboard.sidebar.libraryDesc',
+  '/dashboard/channels': 'dashboard.sidebar.channelsDesc',
+  '/dashboard/orders': 'dashboard.sidebar.ordersDesc',
+  '/dashboard/marketplace': 'dashboard.sidebar.marketplaceDesc',
+  '/dashboard/production': 'dashboard.sidebar.productionDesc',
+  '/dashboard/analytics': 'dashboard.sidebar.analyticsDesc',
+  '/dashboard/billing': 'dashboard.sidebar.billingDesc',
+  '/dashboard/team': 'dashboard.sidebar.teamDesc',
+  '/dashboard/settings': 'dashboard.sidebar.settingsDesc',
+};
+
 const SIDEBAR_CHILD_KEYS: Record<string, { nameKey: string; descKey: string }> = {
   // Studio IA
   '/dashboard/ai-studio/2d': { nameKey: 'dashboard.sidebar.aiStudio2d', descKey: 'dashboard.sidebar.aiStudio2dDesc' },
@@ -472,7 +487,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
           <button
             onClick={handleToggleCollapse}
             className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
-            aria-label={isMobileOverlay ? 'Fermer le menu' : (effectiveCollapsed ? 'Ouvrir la barre latérale' : 'Réduire la barre latérale')}
+            aria-label={isMobileOverlay ? t('dashboard.sidebar.closeMenu') : (effectiveCollapsed ? t('dashboard.sidebar.openSidebar') : t('dashboard.sidebar.collapseSidebar'))}
           >
             {isMobileOverlay || !effectiveCollapsed ? <X className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
@@ -564,7 +579,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                                     </span>
                                   ) : null}
                                 </div>
-                                <p className="text-xs text-white/50 mt-0.5">{item.description}</p>
+                                <p className="text-xs text-white/50 mt-0.5">{SIDEBAR_ITEM_DESC_KEYS[item.href] ? t(SIDEBAR_ITEM_DESC_KEYS[item.href]) : item.description}</p>
                               </div>
                             </>
                           )}
@@ -574,7 +589,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                           <button
                             onClick={() => toggleExpanded(item.name)}
                             className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
-                            aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
+                            aria-label={isExpanded ? t('dashboard.sidebar.collapseSection') : t('dashboard.sidebar.expandSection')}
                           >
                             {isExpanded ? (
                               <ChevronDown className="w-4 h-4" />
@@ -640,7 +655,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             className="flex items-center px-3 py-2 text-xs text-white/40 hover:text-white/70 rounded-lg hover:bg-white/[0.04] transition-colors"
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            {!effectiveCollapsed && <span className="ml-2">Support</span>}
+            {!effectiveCollapsed && <span className="ml-2">{t('dashboard.sidebar.support')}</span>}
           </Link>
           <Link
             href="/help/documentation"
@@ -648,7 +663,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             className="flex items-center px-3 py-2 text-xs text-white/40 hover:text-white/70 rounded-lg hover:bg-white/[0.04] transition-colors"
           >
             <BookOpen className="w-3.5 h-3.5" />
-            {!effectiveCollapsed && <span className="ml-2">Documentation</span>}
+            {!effectiveCollapsed && <span className="ml-2">{t('dashboard.sidebar.documentation')}</span>}
           </Link>
         </div>
       </div>
@@ -677,12 +692,12 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             {!effectiveCollapsed && (
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-red-400">Admin Panel</span>
+                  <span className="text-sm font-semibold text-red-400">{t('dashboard.sidebar.adminPanel')}</span>
                   <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 shrink-0">
                     Admin
                   </span>
                 </div>
-                <p className="text-xs text-white/40">Gestion globale de la plateforme</p>
+                <p className="text-xs text-white/40">{t('dashboard.sidebar.adminPanelDescription')}</p>
               </div>
             )}
           </Link>

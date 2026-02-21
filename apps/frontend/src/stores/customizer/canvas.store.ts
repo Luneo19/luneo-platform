@@ -81,7 +81,8 @@ export const useCanvasStore = create<CanvasStore>()(
 
         setStageRef: (stage: Konva.Stage | null) => {
           set((state) => {
-            state.stageRef = stage as any;
+            // Immer WritableDraft<Stage> is incompatible with Konva.Stage (DOM ref); we only store the ref, never mutate it
+            (state as { stageRef: Konva.Stage | null }).stageRef = stage;
           });
         },
 

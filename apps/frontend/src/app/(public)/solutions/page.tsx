@@ -21,7 +21,7 @@ function SolutionsHubPageContent() {
   const solutions = useMemo(() => [
     { 
       title: 'Virtual Try-On', 
-      description: 'Essayage virtuel en temps reel avec MediaPipe et realite augmentee pour une experience client immersive', 
+      description: 'Essayage virtuel en temps réel avec MediaPipe et réalité augmentée pour une expérience client immersive', 
       icon: Camera,
       href: '/solutions/virtual-try-on', 
       gradient: 'from-cyan-500 to-indigo-500',
@@ -29,7 +29,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'Configurator 3D', 
-      description: 'Visualisation 3D photorealiste de vos produits avec Three.js et rendu haute qualite', 
+      description: 'Visualisation 3D photoréaliste de vos produits avec Three.js et rendu haute qualité', 
       icon: Box,
       href: '/solutions/configurator-3d', 
       gradient: 'from-violet-500 to-purple-500',
@@ -37,7 +37,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'Visual Customizer', 
-      description: 'Editeur visuel puissant avec Konva.js pour personnaliser vos produits en temps reel', 
+      description: 'Éditeur visuel puissant avec Konva.js pour personnaliser vos produits en temps réel', 
       icon: Palette,
       href: '/solutions/customizer', 
       gradient: 'from-indigo-500 to-violet-500',
@@ -45,7 +45,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: '3D Asset Hub', 
-      description: 'Gestion professionnelle de vos assets 3D avec bibliotheque centralisee et optimisee', 
+      description: 'Gestion professionnelle de vos assets 3D avec bibliothèque centralisée et optimisée', 
       icon: Sparkles,
       href: '/solutions/3d-asset-hub', 
       gradient: 'from-emerald-500 to-teal-500',
@@ -53,7 +53,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'AI Design Hub', 
-      description: 'Generez des milliers de designs avec l\'IA DALL-E 3 en quelques minutes', 
+      description: 'Générez des milliers de designs avec l\'IA DALL-E 3 en quelques minutes', 
       icon: Sparkles,
       href: '/solutions/ai-design-hub', 
       gradient: 'from-pink-500 to-rose-500',
@@ -61,7 +61,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'Branding', 
-      description: 'Brand kit complet pour maintenir la coherence visuelle de votre marque', 
+      description: 'Brand kit complet pour maintenir la cohérence visuelle de votre marque', 
       icon: Briefcase,
       href: '/solutions/branding', 
       gradient: 'from-indigo-500 to-cyan-500',
@@ -69,7 +69,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'E-commerce', 
-      description: 'Integrations natives avec Shopify, WooCommerce et autres plateformes', 
+      description: 'Intégrations natives avec Shopify, WooCommerce et autres plateformes', 
       icon: Store,
       href: '/solutions/ecommerce', 
       gradient: 'from-emerald-500 to-green-500',
@@ -77,7 +77,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'Marketing', 
-      description: 'Campagnes marketing automatisees avec generation de visuels en masse', 
+      description: 'Campagnes marketing automatisées avec génération de visuels en masse', 
       icon: Megaphone,
       href: '/solutions/marketing', 
       gradient: 'from-amber-500 to-orange-500',
@@ -85,7 +85,7 @@ function SolutionsHubPageContent() {
     },
     { 
       title: 'Social Media', 
-      description: 'Gestion et creation de contenu pour tous vos reseaux sociaux', 
+      description: 'Gestion et création de contenu pour tous vos réseaux sociaux', 
       icon: Share2,
       href: '/solutions/social', 
       gradient: 'from-pink-500 to-fuchsia-500',
@@ -130,7 +130,7 @@ function SolutionsHubPageContent() {
             </GradientText>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-white/50 leading-relaxed">
-            9 solutions professionnelles pour transformer votre business e-commerce et offrir des experiences de personnalisation exceptionnelles
+            9 solutions professionnelles pour transformer votre business e-commerce et offrir des expériences de personnalisation exceptionnelles
           </p>
         </div>
       </section>

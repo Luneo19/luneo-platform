@@ -8,9 +8,6 @@ import type { NextRequest } from 'next/server';
 import { generateNonce, buildCSPWithNonce } from '@/lib/security/csp-nonce';
 import { logger } from '@/lib/logger';
 
-// Rate limiting store (in production, use Redis)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
 // Configuration
 const middlewareConfig = {
   // Rate limiting
@@ -404,28 +401,6 @@ async function handleRateLimit(
     logger.error('Rate limiting error', error instanceof Error ? error : undefined);
     return null;
   }
-}
-
-function getClientIP(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
-}
-
-// Legacy functions - kept for backward compatibility but not used anymore
-// Rate limiting now uses Upstash Redis via @/lib/rate-limit
-function getRateLimitBucket(pathname: string): string {
-  if (pathname.startsWith('/api/auth')) return 'auth';
-  if (pathname.startsWith('/api/')) return 'api';
-  return 'public';
-}
-
-function getMaxRequests(pathname: string): number {
-  if (pathname.startsWith('/api/auth')) return middlewareConfig.rateLimit.maxRequests.auth;
-  if (pathname.startsWith('/api/')) return middlewareConfig.rateLimit.maxRequests.api;
-  return middlewareConfig.rateLimit.maxRequests.public;
 }
 
 /**

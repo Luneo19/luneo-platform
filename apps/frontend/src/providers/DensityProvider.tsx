@@ -54,8 +54,16 @@ export function DensityProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  }, [sidebarCollapsed, setSidebarCollapsed]);
+    setSidebarCollapsedState((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('luneo-sidebar-collapsed', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
 
   // Apply density class to document
   useEffect(() => {

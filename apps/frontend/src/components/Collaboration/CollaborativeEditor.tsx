@@ -247,7 +247,7 @@ function CollaborativeEditorContent({
                 return (
                 <div key={participant.id} className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={p.avatar} />
+                    <AvatarImage src={p.avatar} alt={p.name ?? p.email ?? ''} />
                     <AvatarFallback>
                       {p.name?.charAt(0) || 'U'}
                     </AvatarFallback>
@@ -273,7 +273,7 @@ function CollaborativeEditorContent({
                   <div key={comment.id} className="space-y-1">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={comment.avatar} />
+                        <AvatarImage src={comment.avatar} alt={comment.userName} />
                         <AvatarFallback>
                           {comment.userName.charAt(0)}
                         </AvatarFallback>

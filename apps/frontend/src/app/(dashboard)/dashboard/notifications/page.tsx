@@ -7,6 +7,7 @@
 import { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useI18n } from '@/i18n/useI18n';
 import { useNotificationsPage } from './hooks/useNotificationsPage';
 import { NotificationsHeader } from './components/NotificationsHeader';
 import { NotificationsStatsGrid } from './components/NotificationsStatsGrid';
@@ -16,6 +17,7 @@ import { NotificationsPreferencesTab } from './components/NotificationsPreferenc
 import { NotificationsModals } from './components/NotificationsModals';
 
 function NotificationsPageContent() {
+  const { t } = useI18n();
   const s = useNotificationsPage();
 
   if (s.loading) {
@@ -23,7 +25,7 @@ function NotificationsPageContent() {
       <div className="flex items-center justify-center min-h-[60vh] dash-bg">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-cyan-400 mx-auto" />
-          <p className="mt-4 text-white/60">Chargement des notifications...</p>
+          <p className="mt-4 text-white/60">{t('notifications.loading')}</p>
         </div>
       </div>
     );
@@ -39,7 +41,7 @@ function NotificationsPageContent() {
             onClick={() => void s.refetch()}
             className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:opacity-90"
           >
-            Réessayer
+            {t('common.retry')}
           </button>
         </div>
       </div>
@@ -60,10 +62,10 @@ function NotificationsPageContent() {
       <NotificationsStatsGrid stats={s.stats} />
       <Tabs value={s.activeTab} onValueChange={(v) => s.setActiveTab(v as typeof s.activeTab)} className="space-y-6">
         <TabsList className="bg-white/[0.03] border border-white/10">
-          <TabsTrigger value="all" className="data-[state=active]:bg-cyan-600">Toutes ({s.stats.total})</TabsTrigger>
-          <TabsTrigger value="unread" className="data-[state=active]:bg-cyan-600">Non lues ({s.stats.unread})</TabsTrigger>
-          <TabsTrigger value="archived" className="data-[state=active]:bg-cyan-600">Archivées ({s.stats.archived})</TabsTrigger>
-          <TabsTrigger value="preferences" className="data-[state=active]:bg-cyan-600">Préférences</TabsTrigger>
+          <TabsTrigger value="all" className="data-[state=active]:bg-cyan-600">{t('notifications.tabAll', { count: s.stats.total })}</TabsTrigger>
+          <TabsTrigger value="unread" className="data-[state=active]:bg-cyan-600">{t('notifications.tabUnread', { count: s.stats.unread })}</TabsTrigger>
+          <TabsTrigger value="archived" className="data-[state=active]:bg-cyan-600">{t('notifications.tabArchived', { count: s.stats.archived })}</TabsTrigger>
+          <TabsTrigger value="preferences" className="data-[state=active]:bg-cyan-600">{t('notifications.preferences')}</TabsTrigger>
         </TabsList>
 
         {(s.activeTab === 'all' || s.activeTab === 'unread' || s.activeTab === 'archived') && (

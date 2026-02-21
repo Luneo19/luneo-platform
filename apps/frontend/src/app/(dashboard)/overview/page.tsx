@@ -18,7 +18,7 @@ import { OverviewChecklist } from './components/OverviewChecklist';
 import { OverviewErrorBanner } from './components/OverviewErrorBanner';
 import { OverviewLoadingState } from './components/OverviewLoadingState';
 import { OverviewErrorState } from './components/OverviewErrorState';
-import { Sparkles, Layers, TrendingUp, Store, Zap, ChevronRight, Palette } from 'lucide-react';
+import { Sparkles, Layers, TrendingUp, Store, Zap, ChevronRight } from 'lucide-react';
 
 type SuggestionItem = {
   id: string;
@@ -42,8 +42,8 @@ function getAISuggestions(designCount: number, orderCount: number, t: TFunction)
     base.push({
       id: 'first-product',
       icon: Layers,
-      title: 'Créez votre premier produit',
-      description: 'Ajoutez un produit et configurez la personnalisation',
+      title: t('overview.suggestions.firstProduct'),
+      description: t('overview.suggestions.firstProductDesc'),
       href: '/dashboard/products',
     });
   }
@@ -52,8 +52,8 @@ function getAISuggestions(designCount: number, orderCount: number, t: TFunction)
     base.push({
       id: 'connect-channel',
       icon: Store,
-      title: 'Connectez un canal de vente',
-      description: 'Shopify, Widget ou Storefront pour commencer à vendre',
+      title: t('overview.suggestions.connectChannel'),
+      description: t('overview.suggestions.connectChannelDesc'),
       href: '/dashboard/channels',
     });
   }
@@ -62,8 +62,8 @@ function getAISuggestions(designCount: number, orderCount: number, t: TFunction)
     base.push({
       id: 'production',
       icon: TrendingUp,
-      title: 'Configurez la production',
-      description: 'Connectez un fournisseur POD pour automatiser',
+      title: t('overview.suggestions.configureProduction'),
+      description: t('overview.suggestions.configureProductionDesc'),
       href: '/dashboard/production',
     });
   }
@@ -72,22 +72,22 @@ function getAISuggestions(designCount: number, orderCount: number, t: TFunction)
     {
       id: 'ai-generate',
       icon: Sparkles,
-      title: 'Générez des designs par IA',
-      description: 'Créez des visuels uniques en quelques secondes',
+      title: t('overview.suggestions.aiGenerate'),
+      description: t('overview.suggestions.aiGenerateDesc'),
       href: '/dashboard/ai-studio',
     },
     {
       id: 'shopify',
       icon: Store,
-      title: 'Intégration Shopify',
-      description: 'Connectez votre boutique en 2 clics',
+      title: t('overview.suggestions.shopify'),
+      description: t('overview.suggestions.shopifyDesc'),
       href: '/dashboard/channels',
     },
     {
       id: 'templates',
       icon: Zap,
-      title: 'Parcourir les templates',
-      description: 'Démarrez avec des modèles prêts à l\'emploi',
+      title: t('overview.suggestions.browseTemplates'),
+      description: t('overview.suggestions.browseTemplatesDesc'),
       href: '/dashboard/library',
     }
   );
@@ -111,6 +111,7 @@ export default function DashboardPage() {
     quickActions,
     designCount,
     orderCount,
+    pipeline,
   } = useOverviewData();
 
   const { t } = useI18n();
@@ -144,13 +145,12 @@ export default function DashboardPage() {
         {error && <OverviewErrorBanner error={error} onRetry={refresh} />}
         <OverviewStatsGrid stats={displayStats} chartData={chartData} />
 
-        {/* Pipeline visuel — Du design à la livraison */}
         <OverviewPipeline
-          products={designCount}
-          selling={designCount > 0 ? Math.max(1, Math.floor(designCount * 0.7)) : 0}
-          orders={orderCount}
-          inProduction={orderCount > 0 ? Math.max(0, Math.floor(orderCount * 0.2)) : 0}
-          delivered={orderCount > 0 ? Math.max(0, Math.floor(orderCount * 0.6)) : 0}
+          products={pipeline.products}
+          selling={pipeline.selling}
+          orders={pipeline.orders}
+          inProduction={pipeline.inProduction}
+          delivered={pipeline.delivered}
         />
 
         {/* Checklist d'onboarding — visible tant que pas completee */}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
             <div className="dash-card rounded-2xl p-5 border border-white/[0.06] h-full">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
                 <Sparkles className="w-5 h-5 text-amber-400" />
-                Suggestions IA
+                {t('overview.aiSuggestions')}
               </h2>
               <div className="space-y-3">
                 {aiSuggestions.map((item) => {

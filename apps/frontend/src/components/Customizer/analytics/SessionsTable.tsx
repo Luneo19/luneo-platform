@@ -45,9 +45,10 @@ export function SessionsTable({ customizerId, dateFrom, dateTo }: SessionsTableP
     setIsLoading(true);
     try {
       const result = await api.get<{ sessions: Session[]; total: number }>(
-        `/api/v1/visual-customizer/customizers/${customizerId}/analytics/sessions`,
+        '/api/v1/visual-customizer/analytics/sessions',
         {
           params: {
+            customizerId,
             from: dateFrom.toISOString(),
             to: dateTo.toISOString(),
             sort: sortField,

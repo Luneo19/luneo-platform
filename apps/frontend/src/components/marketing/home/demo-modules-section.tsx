@@ -16,35 +16,35 @@ const demoModules = [
   {
     id: 'virtual-try-on',
     title: 'Virtual Try-On',
-    description: 'Vos clients essaient vos produits en direct depuis leur navigateur. Reduisez les retours de 40% grace a l\'essayage virtuel AR.',
+    description: 'Vos clients essaient vos produits en direct depuis leur navigateur. Réduisez les retours de 40% grâce à l\'essayage virtuel AR.',
     icon: Camera,
     href: '/demo/virtual-try-on',
     gradient: 'from-cyan-500 to-indigo-500',
-    badge: 'Realite Augmentee',
+    badge: 'Réalité Augmentée',
     iconBg: 'rgba(6,182,212,0.12)',
-    features: ['Tracking facial haute precision', 'Compatible mobile et desktop', 'Integration en 1 clic', '-40% de retours produits'],
+    features: ['Tracking facial haute précision', 'Compatible mobile et desktop', 'Intégration en 1 clic', '-40% de retours produits'],
   },
   {
     id: '3d-configurator',
     title: 'Configurateur 3D',
-    description: 'Offrez a vos clients une visualisation produit photorealiste a 360°. +35% de taux de conversion en moyenne.',
+    description: 'Offrez à vos clients une visualisation produit photoréaliste à 360°. +35% de taux de conversion en moyenne.',
     icon: Box,
     href: '/demo/3d-configurator',
     gradient: 'from-violet-500 to-purple-500',
-    badge: 'Rendu temps reel',
+    badge: 'Rendu temps réel',
     iconBg: 'rgba(124,58,237,0.12)',
-    features: ['Rendu photorealiste PBR', 'Materiaux personnalisables', 'Export haute qualite', '+35% de conversions'],
+    features: ['Rendu photoréaliste PBR', 'Matériaux personnalisables', 'Export haute qualité', '+35% de conversions'],
   },
   {
     id: 'ai-agents',
     title: 'Agents IA',
-    description: 'Automatisez la creation de designs, l\'analyse de donnees et le support client avec nos agents IA specialises.',
+    description: 'Automatisez la création de designs, l\'analyse de données et le support client avec nos agents IA spécialisés.',
     icon: Sparkles,
     href: '/demo/ai-agents',
     gradient: 'from-pink-500 to-rose-500',
     badge: 'Intelligence Artificielle',
     iconBg: 'rgba(236,72,153,0.12)',
-    features: ['Generation de designs IA', 'Analyses predictives', 'Support automatise 24/7', 'Personnalisation contextuelle'],
+    features: ['Génération de designs IA', 'Analyses prédictives', 'Support automatisé 24/7', 'Personnalisation contextuelle'],
   },
   {
     id: 'smart-analytics',
@@ -55,12 +55,12 @@ const demoModules = [
     gradient: 'from-emerald-500 to-teal-500',
     badge: 'Business Intelligence',
     iconBg: 'rgba(16,185,129,0.12)',
-    features: ['Funnels de conversion', 'Predictions IA', 'Detection d\'anomalies', 'Recommandations temps reel'],
+    features: ['Funnels de conversion', 'Prédictions IA', 'Détection d\'anomalies', 'Recommandations temps réel'],
   },
   {
     id: 'ar-experience',
     title: 'Experience AR',
-    description: 'Creez des experiences immersives en realite augmentee directement integrees a votre boutique e-commerce.',
+    description: 'Créez des expériences immersives en réalité augmentée directement intégrées à votre boutique e-commerce.',
     icon: Wand2,
     href: '/demo/ar-experience',
     gradient: 'from-amber-500 to-orange-500',
@@ -100,7 +100,7 @@ function DemoModulesSectionContent() {
                 </GradientText>
               </>
             }
-            subtitle="Testez nos 5 modules principaux avec des demos interactives. Aucun compte requis."
+            subtitle="Testez nos 5 modules principaux avec des démos interactives. Aucun compte requis."
             className="mb-16 sm:mb-20"
           />
         </ScrollReveal>
@@ -159,7 +159,7 @@ function DemoModulesSectionContent() {
                       {/* CTA */}
                       <Link href={mod.href}>
                         <MagneticButton variant="secondary" size="md" className="w-full">
-                          Tester la demo
+                          Tester la démo
                           <ArrowRight className="w-3.5 h-3.5" />
                         </MagneticButton>
                       </Link>
@@ -176,7 +176,7 @@ function DemoModulesSectionContent() {
           <div className="text-center">
             <Link href="/demo">
               <MagneticButton variant="primary" size="xl" glow>
-                Voir toutes les demos
+                Voir toutes les démos
                 <ArrowRight className="w-5 h-5" />
               </MagneticButton>
             </Link>

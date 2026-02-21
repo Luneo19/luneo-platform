@@ -23,7 +23,7 @@ const arFeatures = [
   {
     id: 'hand-tracking',
     label: 'Hand Tracking',
-    description: 'Essayez des bracelets et bagues en temps reel avec le suivi des mains',
+    description: 'Essayez des bracelets et bagues en temps réel avec le suivi des mains',
     icon: Hand,
     color: 'amber',
   },
@@ -78,7 +78,7 @@ function ARExperienceDemoPageContent() {
                     Demo
                   </span>
                 </h1>
-                <p className="text-gray-400">Experiences AR immersives avec WebXR</p>
+                <p className="text-gray-400">Expériences AR immersives avec WebXR</p>
               </div>
             </div>
           </motion>
@@ -234,7 +234,7 @@ function ARExperienceDemoPageContent() {
             <Hand className="w-10 h-10 text-amber-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">Hand Tracking</h3>
             <p className="text-sm text-gray-400">
-              Detectez les mains en temps reel pour essayer bijoux et accessoires
+              Détectez les mains en temps réel pour essayer bijoux et accessoires
             </p>
           </div>
           <div className="p-6 bg-gray-900/50 border border-orange-500/20 rounded-lg">

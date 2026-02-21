@@ -5,7 +5,7 @@ import { endpoints } from '@/lib/api/client';
 
 const fetchStats = async () => {
   const res = await endpoints.orion.prometheus.stats();
-  return res.data;
+  return (res as { data?: unknown })?.data ?? res;
 };
 
 export function usePrometheus() {
@@ -17,12 +17,12 @@ export function usePrometheus() {
 
   const analyzeTicket = async (ticketId: string) => {
     const res = await endpoints.orion.prometheus.analyzeTicket(ticketId);
-    return res.data;
+    return (res as { data?: unknown })?.data ?? res;
   };
 
   const generateResponse = async (ticketId: string) => {
     const res = await endpoints.orion.prometheus.generateResponse(ticketId);
-    return res.data;
+    return (res as { data?: unknown })?.data ?? res;
   };
 
   return {

@@ -1,5 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, OrderStatus, ProductionOrderStatus, ProductStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { CurrencyUtils } from '@/config/currency.config';
@@ -1264,6 +1264,49 @@ export class AnalyticsService {
       daily,
       total,
     };
+  }
+
+  /**
+   * Get pipeline data for Overview dashboard: products, selling, orders, inProduction, delivered.
+   */
+  async getPipelineData(brandId: string | undefined): Promise<{
+    products: number;
+    selling: number;
+    orders: number;
+    inProduction: number;
+    delivered: number;
+  }> {
+    if (!brandId) {
+      return { products: 0, selling: 0, orders: 0, inProduction: 0, delivered: 0 };
+    }
+
+    const [products, selling, orders, inProduction, delivered] = await Promise.all([
+      this.prisma.product.count({
+        where: { brandId, deletedAt: null },
+      }),
+      this.prisma.product.count({
+        where: { brandId, status: ProductStatus.ACTIVE, deletedAt: null },
+      }),
+      this.prisma.order.count({
+        where: {
+          brandId,
+          status: { in: [OrderStatus.CREATED, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.PROCESSING] },
+          deletedAt: null,
+        },
+      }),
+      this.prisma.productionOrder.count({
+        where: { brandId, status: ProductionOrderStatus.IN_PRODUCTION },
+      }),
+      this.prisma.order.count({
+        where: {
+          brandId,
+          status: { in: [OrderStatus.SHIPPED, OrderStatus.DELIVERED] },
+          deletedAt: null,
+        },
+      }),
+    ]);
+
+    return { products, selling, orders, inProduction, delivered };
   }
 
   /**

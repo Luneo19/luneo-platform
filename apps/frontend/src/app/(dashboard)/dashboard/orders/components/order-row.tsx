@@ -88,7 +88,7 @@ export function OrderRow({
               {order.tracking_number && (
                 <>
                   <span>•</span>
-                  <span>Tracking: {order.tracking_number}</span>
+                  <span>{t('orders.tracking')}: {order.tracking_number}</span>
                 </>
               )}
             </div>

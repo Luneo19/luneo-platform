@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 
@@ -59,10 +58,6 @@ export function useCredits(): UseCreditsReturn {
     isCritical,
   };
 }
-
-
-
-
 
 
 

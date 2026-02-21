@@ -350,7 +350,7 @@ export function CustomersTable({
                         className="flex items-center gap-3 hover:text-white transition-colors"
                       >
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={customer.avatar || undefined} />
+                          <AvatarImage src={customer.avatar || undefined} alt={customer.name} />
                           <AvatarFallback className="bg-zinc-700 text-zinc-300">
                             {customer.name
                               .split(' ')

@@ -93,7 +93,7 @@ export class ZoneConstraints {
   /**
    * Checks if maximum elements constraint is met
    */
-  static checkMaxElements(zone: ZoneConfig, currentCount: number, max: number): boolean {
+  static checkMaxElements(zone: ZoneConfig, currentCount: number): boolean {
     if (!zone.constraints?.maxElements) {
       return true;
     }

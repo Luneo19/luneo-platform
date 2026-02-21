@@ -3,6 +3,8 @@
  * Manages font loading using FontFace API
  */
 
+import { logger } from '@/lib/logger';
+
 export interface CustomFont {
   family: string;
   url: string;
@@ -51,7 +53,7 @@ export class FontManager {
       document.fonts.add(fontFace);
       this.loadedFonts.add(fontFamily);
     } catch (error) {
-      console.error(`Failed to load font ${fontFamily}:`, error);
+      logger.error(`Failed to load font: ${fontFamily}`, error instanceof Error ? error : new Error(String(error)));
       throw new Error(`Failed to load font: ${fontFamily}`);
     }
   }

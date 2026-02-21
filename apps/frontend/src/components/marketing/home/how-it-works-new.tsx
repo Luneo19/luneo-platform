@@ -12,7 +12,7 @@ import {
 const steps = [
   {
     number: '01',
-    title: 'Creez votre compte',
+    title: 'Créez votre compte',
     description: "Inscrivez-vous en quelques secondes avec juste votre email. Aucune carte bancaire requise pour commencer l'essai gratuit de 14 jours.",
     icon: UserPlus,
     gradient: 'from-indigo-500 to-violet-500',
@@ -21,15 +21,15 @@ const steps = [
   {
     number: '02',
     title: 'Configurez votre espace',
-    description: 'Personnalisez votre environnement, importez vos produits, invitez votre equipe et configurez les integrations.',
+    description: 'Personnalisez votre environnement, importez vos produits, invitez votre équipe et configurez les intégrations.',
     icon: Settings,
     gradient: 'from-violet-500 to-purple-500',
     iconBg: 'rgba(124,58,237,0.12)',
   },
   {
     number: '03',
-    title: 'Lancez et developpez',
-    description: 'Mettez en ligne vos produits personnalises et developpez sans effort au fur et a mesure que votre entreprise grandit.',
+    title: 'Lancez et développez',
+    description: 'Mettez en ligne vos produits personnalisés et développez sans effort au fur et à mesure que votre entreprise grandit.',
     icon: Rocket,
     gradient: 'from-emerald-500 to-cyan-500',
     iconBg: 'rgba(16,185,129,0.12)',
@@ -51,16 +51,16 @@ export function HowItWorksNew() {
         {/* Section Header */}
         <ScrollReveal direction="up">
           <PremiumSectionHeader
-            badge="Comment ca marche"
+            badge="Comment ça marche"
             title={
               <>
                 Lancez-vous en{' '}
                 <GradientText variant="violet" className="font-editorial italic">
-                  3 etapes simples
+                  3 étapes simples
                 </GradientText>
               </>
             }
-            subtitle="De zero au lancement en un temps record."
+            subtitle="De zéro au lancement en un temps record."
             className="mb-16 sm:mb-20"
           />
         </ScrollReveal>

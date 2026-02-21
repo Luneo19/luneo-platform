@@ -42,7 +42,7 @@ function HermesPageContent() {
     'orion-hermes-dashboard',
     async () => {
       const res = await endpoints.orion.hermes.dashboard();
-      return res.data as HermesDashboard;
+      return (res as { data: HermesDashboard }).data;
     },
     { refreshInterval: 30000 }
   );

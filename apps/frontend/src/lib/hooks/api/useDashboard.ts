@@ -174,6 +174,40 @@ export function useDashboardUsage(
   });
 }
 
+/** Pipeline counts: products, selling, orders, inProduction, delivered */
+export interface PipelineResponse {
+  products: number;
+  selling: number;
+  orders: number;
+  inProduction: number;
+  delivered: number;
+}
+
+/**
+ * Hook pour récupérer les données du pipeline (GET /api/v1/analytics/pipeline)
+ */
+export function usePipelineData(
+  options?: Omit<UseQueryOptions<PipelineResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PipelineResponse>({
+    queryKey: ['dashboard', 'pipeline'],
+    queryFn: async () => {
+      const data = await endpoints.analytics.pipeline();
+      const raw = (data as Record<string, unknown>) ?? {};
+      return {
+        products: Number(raw?.products ?? 0),
+        selling: Number(raw?.selling ?? 0),
+        orders: Number(raw?.orders ?? 0),
+        inProduction: Number(raw?.inProduction ?? 0),
+        delivered: Number(raw?.delivered ?? 0),
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1,
+    ...options,
+  });
+}
+
 /**
  * Hook pour récupérer les données de graphiques du dashboard
  */

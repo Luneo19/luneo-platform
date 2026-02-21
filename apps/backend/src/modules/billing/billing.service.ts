@@ -51,6 +51,86 @@ export class BillingService {
     return this.stripeClient.getCircuitStatus();
   }
 
+  /**
+   * Verify a Stripe checkout session after successful payment.
+   * Returns session details for the frontend success page.
+   */
+  async verifyCheckoutSession(
+    userId: string,
+    sessionId: string,
+  ): Promise<{
+    success: boolean;
+    data: {
+      planName: string;
+      amount: number;
+      currency: string;
+      customerEmail: string;
+      subscriptionId: string;
+      trialEnd?: string;
+    };
+  }> {
+    try {
+      const session = await this.executeWithResilience(
+        async () => {
+          const stripe = await this.getStripe();
+          return stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['subscription'],
+          });
+        },
+        'stripe.checkout.sessions.retrieve',
+      );
+
+      const metadataUserId = session.metadata?.userId as string | undefined;
+      if (metadataUserId !== userId) {
+        this.logger.warn('Verify session: userId mismatch', {
+          sessionId,
+          metadataUserId,
+          requestUserId: userId,
+        });
+        throw new BadRequestException('This checkout session does not belong to you');
+      }
+
+      const subscription = session.subscription as Stripe.Subscription | null | undefined;
+      const subscriptionId = typeof session.subscription === 'string'
+        ? session.subscription
+        : subscription?.id ?? '';
+
+      const firstItem = subscription?.items?.data?.[0];
+      const priceId = firstItem?.price?.id;
+      const planInfo = priceId ? await this.getPlanFromPriceId(priceId) : { planName: 'unknown', interval: 'monthly' };
+      const planName = planInfo.planName.charAt(0).toUpperCase() + planInfo.planName.slice(1);
+
+      const amount = session.amount_total ?? firstItem?.price?.unit_amount ?? 0;
+      const currency = (session.currency ?? firstItem?.price?.currency ?? 'eur').toLowerCase();
+      const customerEmail = (session.customer_email ?? session.customer_details?.email ?? '').toString();
+      const trialEnd = subscription?.trial_end
+        ? new Date(subscription.trial_end * 1000).toISOString()
+        : undefined;
+
+      return {
+        success: true,
+        data: {
+          planName,
+          amount: amount ?? 0,
+          currency,
+          customerEmail,
+          subscriptionId,
+          ...(trialEnd && { trialEnd }),
+        },
+      };
+    } catch (error: unknown) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.error(
+        'verifyCheckoutSession failed',
+        error instanceof Error ? error.stack : String(error),
+        { userId, sessionId },
+      );
+      throw new InternalServerErrorException(
+        'Unable to verify checkout session. Please try again or contact support.',
+      );
+    }
+  }
+
   /** Execute Stripe operation with resilience (circuit breaker + retry) */
   private async executeWithResilience<T>(
     operation: () => Promise<T>,

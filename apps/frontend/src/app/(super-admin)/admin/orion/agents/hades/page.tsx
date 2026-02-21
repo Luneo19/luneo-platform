@@ -65,7 +65,7 @@ function HadesPageContent() {
     'orion-hades-dashboard',
     async () => {
       const res = await endpoints.orion.hades.dashboard();
-      return res.data as HadesDashboard;
+      return (res as { data: HadesDashboard }).data;
     },
     { refreshInterval: 30000 }
   );

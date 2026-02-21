@@ -40,6 +40,7 @@ import { useI18n } from '@/i18n/useI18n';
 
 interface ShippingAddress {
   name: string;
+  email: string;
   street: string;
   city: string;
   postalCode: string;
@@ -71,6 +72,7 @@ export default function CheckoutPage() {
 
   const [address, setAddress] = useState<ShippingAddress>({
     name: '',
+    email: '',
     street: '',
     city: '',
     postalCode: '',
@@ -91,13 +93,13 @@ export default function CheckoutPage() {
       e.preventDefault();
       setError(null);
 
-      if (!address.name || !address.street || !address.city || !address.postalCode) {
+      if (!address.name || !address.email || !address.street || !address.city || !address.postalCode) {
         setError(t('common.fillRequired'));
         return;
       }
 
       if (items.length === 0) {
-        setError('Votre panier est vide');
+        setError(t('checkout.emptyCart'));
         return;
       }
 
@@ -127,7 +129,7 @@ export default function CheckoutPage() {
             phone: address.phone,
           },
           shippingMethod,
-          customerEmail: address.name,
+          customerEmail: address.email,
           customerName: address.name,
           customerNotes: '',
         }) as { id?: string; checkoutUrl?: string; paymentUrl?: string; error?: string; message?: string };
@@ -144,7 +146,7 @@ export default function CheckoutPage() {
 
         logger.info('Order created from checkout', { orderId: order.id });
       } catch (err: unknown) {
-        let message = 'Erreur lors du paiement';
+        let message = t('checkout.paymentError');
         if (err && typeof err === 'object' && 'response' in err) {
           const res = (err as { response?: { data?: { error?: string; message?: string } } }).response;
           const data = res?.data;
@@ -162,19 +164,19 @@ export default function CheckoutPage() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [items, address, shippingMethod, clearCart, router, brandId]
+    [items, address, shippingMethod, clearCart, router, brandId, t]
   );
 
   if (items.length === 0) {
     return (
       <div className="container max-w-2xl mx-auto py-16 px-4 text-center">
         <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
-        <h1 className="text-2xl font-bold mb-2">Votre panier est vide</h1>
-        <p className="text-muted-foreground mb-6">Ajoutez des produits pour continuer</p>
+        <h1 className="text-2xl font-bold mb-2">{t('checkout.emptyCart')}</h1>
+        <p className="text-muted-foreground mb-6">{t('checkout.addProducts')}</p>
         <Link href="/">
           <Button>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
+            {t('common.back')}
           </Button>
         </Link>
       </div>
@@ -186,9 +188,9 @@ export default function CheckoutPage() {
       <div className="mb-6">
         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
           <ArrowLeft className="w-4 h-4" />
-          Continuer les achats
+          {t('checkout.continueShopping')}
         </Link>
-        <h1 className="text-3xl font-bold mt-4">Finaliser la commande</h1>
+        <h1 className="text-3xl font-bold mt-4">{t('checkout.title')}</h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -198,7 +200,7 @@ export default function CheckoutPage() {
             {/* Shipping Address */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Adresse de livraison</CardTitle>
+                <CardTitle className="text-lg">{t('checkout.shippingAddress')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -208,6 +210,17 @@ export default function CheckoutPage() {
                     value={address.name}
                     onChange={(e) => setAddress({ ...address, name: e.target.value })}
                     placeholder="Jean Dupont"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">{t('common.email')} *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={address.email}
+                    onChange={(e) => setAddress({ ...address, email: e.target.value })}
+                    placeholder="jean.dupont@email.com"
                     required
                   />
                 </div>
@@ -258,7 +271,7 @@ export default function CheckoutPage() {
             {/* Shipping Method */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Mode de livraison</CardTitle>
+                <CardTitle className="text-lg">{t('checkout.shippingMethod')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="space-y-3">
@@ -297,8 +310,8 @@ export default function CheckoutPage() {
           <div>
             <Card className="sticky top-8">
               <CardHeader>
-                <CardTitle className="text-lg">Récapitulatif</CardTitle>
-                <CardDescription>{items.length} article{items.length > 1 ? 's' : ''}</CardDescription>
+                <CardTitle className="text-lg">{t('checkout.summary')}</CardTitle>
+                <CardDescription>{items.length} {t('checkout.articles', { count: items.length })}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Items */}
@@ -320,15 +333,15 @@ export default function CheckoutPage() {
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sous-total</span>
+                    <span className="text-muted-foreground">{t('checkout.subtotal')}</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Livraison ({selectedShipping.label})</span>
+                    <span className="text-muted-foreground">{t('checkout.shipping')} ({selectedShipping.label})</span>
                     <span>{formatPrice(shipping)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">TVA (20%)</span>
+                    <span className="text-muted-foreground">{t('checkout.tax')}</span>
                     <span>{formatPrice(tax)}</span>
                   </div>
                 </div>
@@ -336,7 +349,7 @@ export default function CheckoutPage() {
                 <Separator />
 
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
+                  <span>{t('checkout.total')}</span>
                   <span>{formatPrice(total)}</span>
                 </div>
 
@@ -345,24 +358,23 @@ export default function CheckoutPage() {
                   className="w-full"
                   size="lg"
                   disabled={isSubmitting}
-                  onClick={handleSubmit}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Traitement...
+                      {t('checkout.processing')}
                     </>
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Payer {formatPrice(total)}
+                      {t('checkout.pay')} {formatPrice(total)}
                     </>
                   )}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                   <Lock className="w-3 h-3" />
-                  Paiement sécurisé par Stripe
+                  {t('checkout.securePayment')}
                 </p>
               </CardContent>
             </Card>

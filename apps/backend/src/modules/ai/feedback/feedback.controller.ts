@@ -9,6 +9,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -37,7 +38,7 @@ export class FeedbackController {
     @Req() req: { user?: { id?: string } },
   ) {
     const userId = req.user?.id;
-    if (!userId) throw new Error('User ID required');
+    if (!userId) throw new UnauthorizedException('User ID required');
     return this.feedbackService.create({
       generationId,
       userId,
@@ -59,7 +60,7 @@ export class FeedbackController {
     @Req() req: { user?: { id?: string } },
   ) {
     const userId = req.user?.id;
-    if (!userId) throw new Error('User ID required');
+    if (!userId) throw new UnauthorizedException('User ID required');
     await this.feedbackService.delete(feedbackId, userId);
   }
 }

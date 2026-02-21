@@ -142,6 +142,7 @@ dist/
 output/
 *.glb 
 .vercel
+*.bak
 .env.bak
 .env.production
 .env.supabase*
@@ -162,5 +163,5 @@ env.production.example
 .turbo/
 *-vars.txt
 
-# Local development scripts
+# Local development scripts (note: root package.json "setup" uses scripts/setup.js — ensure scripts/ is tracked if needed)
 scripts/

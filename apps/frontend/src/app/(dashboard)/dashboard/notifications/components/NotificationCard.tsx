@@ -84,7 +84,7 @@ export function NotificationCard({
                 <p className="text-sm text-zinc-400 mt-1">{notification.message}</p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
                   <span>{formatRelativeDate(new Date(notification.created_at))}</span>
-                  {notification.read_at && <span>Lu {formatRelativeDate(new Date(notification.read_at))}</span>}
+                  {notification.read_at && <span>{t('notifications.readAt')} {formatRelativeDate(new Date(notification.read_at))}</span>}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">

@@ -27,13 +27,16 @@ export function ZoneConfigPanel({ zone, onUpdate }: ZoneConfigPanelProps) {
   };
 
   const handleNestedChange = (path: string[], value: unknown) => {
-    const updated = { ...localZone };
-    let current: any = updated;
+    const updated = { ...localZone } as Record<string, unknown>;
+    let current: Record<string, unknown> = updated;
     for (let i = 0; i < path.length - 1; i++) {
-      current = current[path[i]] = { ...current[path[i]] };
+      const key = path[i];
+      const next = typeof current[key] === 'object' && current[key] !== null ? { ...(current[key] as Record<string, unknown>) } : {};
+      current[key] = next;
+      current = next;
     }
-    current[path[path.length - 1]] = value;
-    setLocalZone(updated);
+    current[path[path.length - 1] as string] = value;
+    setLocalZone(updated as unknown as typeof localZone);
   };
 
   const handleSave = () => {

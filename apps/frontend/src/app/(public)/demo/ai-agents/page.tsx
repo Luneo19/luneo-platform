@@ -23,40 +23,40 @@ const agents = [
   {
     name: 'Luna',
     role: 'Business Intelligence',
-    description: 'Analyse de donnees, rapports automatises, insights strategiques pour le B2B',
+    description: 'Analyse de données, rapports automatisés, insights stratégiques pour le B2B',
     icon: BarChart3,
     color: 'purple',
-    greeting: 'Bonjour ! Je suis Luna, votre analyste BI. Posez-moi une question sur vos donnees.',
+    greeting: 'Bonjour ! Je suis Luna, votre analyste BI. Posez-moi une question sur vos données.',
     examples: [
       'Quel est mon meilleur segment client ?',
-      'Previsions de revenu pour Q2',
-      'Analyse de la retention mensuelle',
+      'Prévisions de revenu pour Q2',
+      'Analyse de la rétention mensuelle',
     ],
   },
   {
     name: 'Aria',
     role: 'Creative Assistant',
-    description: 'Generation de contenus, suggestions de design, optimisation creative pour le B2C',
+    description: 'Génération de contenus, suggestions de design, optimisation créative pour le B2C',
     icon: Sparkles,
     color: 'pink',
-    greeting: 'Hey ! Je suis Aria, votre assistante creative. Comment puis-je vous inspirer ?',
+    greeting: 'Hey ! Je suis Aria, votre assistante créative. Comment puis-je vous inspirer ?',
     examples: [
-      'Suggere un design pour un t-shirt ete',
-      'Optimise ma description produit',
-      'Idees de collection automne',
+      'Suggérez un design pour un t-shirt été',
+      'Optimisez ma description produit',
+      'Idées de collection automne',
     ],
   },
   {
     name: 'Nova',
     role: 'Support Intelligent',
-    description: 'Support client automatise, resolution de problemes, FAQ dynamique avec RAG',
+    description: 'Support client automatisé, résolution de problèmes, FAQ dynamique avec RAG',
     icon: Shield,
     color: 'cyan',
     greeting: 'Salut ! Je suis Nova, votre support IA. Comment puis-je vous aider ?',
     examples: [
       'Comment configurer mon webhook ?',
       'Ma commande est en retard',
-      'Comment exporter en haute resolution ?',
+      'Comment exporter en haute résolution ?',
     ],
   },
 ];
@@ -112,7 +112,7 @@ function AIAgentsDemoPageContent() {
       { role: 'user', text: userMsg },
       {
         role: 'agent',
-        text: `Merci pour votre message ! Je suis ${agents[selectedAgent].name}, votre assistante IA. J'analyse votre demande et je prepare une reponse personnalisee basee sur vos donnees. Activez votre compte pour debloquer les reponses IA en temps reel.`,
+        text: `Merci pour votre message ! Je suis ${agents[selectedAgent].name}, votre assistante IA. J'analyse votre demande et je prépare une réponse personnalisée basée sur vos données. Activez votre compte pour débloquer les réponses IA en temps réel.`,
       },
     ]);
   }, [input, selectedAgent]);

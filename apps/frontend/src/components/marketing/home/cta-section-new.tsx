@@ -22,7 +22,7 @@ export function CTASectionNew({ title, subtitle }: CTASectionNewProps = {}) {
 
   const defaultTitle = (
     <>
-      <span className="text-white">Pret a </span>
+      <span className="text-white">Prêt à </span>
       <GradientText variant="violet" className="font-editorial italic">
         transformer
       </GradientText>
@@ -32,7 +32,7 @@ export function CTASectionNew({ title, subtitle }: CTASectionNewProps = {}) {
   );
   const defaultSubtitle = (
     <>
-      Rejoignez des milliers de marques qui utilisent Luneo pour creer des experiences produit{' '}
+      Rejoignez des milliers de marques qui utilisent Luneo pour créer des expériences produit{' '}
       <span className="text-white/80 font-medium">exceptionnelles</span>.
     </>
   );

@@ -98,7 +98,7 @@ export function CustomerDetail({
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={customer.avatar || undefined} />
+              <AvatarImage src={customer.avatar || undefined} alt={customer.name} />
               <AvatarFallback className="bg-zinc-700 text-zinc-300 text-xl">
                 {getInitials(customer.name)}
               </AvatarFallback>

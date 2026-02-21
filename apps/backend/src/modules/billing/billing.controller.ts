@@ -75,6 +75,22 @@ export class BillingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('verify-session')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Vérifier une session de checkout Stripe' })
+  @ApiQuery({ name: 'session_id', required: true, type: String })
+  @ApiResponse({ status: 200, description: 'Session vérifiée' })
+  async verifySession(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Query('session_id') sessionId: string,
+  ) {
+    if (!sessionId) {
+      throw new BadRequestException('session_id is required');
+    }
+    return this.billingService.verifyCheckoutSession(req.user.id, sessionId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('subscription')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Récupérer les informations d\'abonnement de l\'utilisateur' })

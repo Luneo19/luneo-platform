@@ -130,7 +130,7 @@ function CommentThreadComponent({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <Avatar className="w-6 h-6">
-                <AvatarImage src={comment.author.avatar} />
+                <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
                 <AvatarFallback className="text-xs bg-slate-700">
                   {comment.author.name.charAt(0)}
                 </AvatarFallback>

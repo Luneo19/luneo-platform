@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotionDiv as MotionDiv } from '@/lib/performance/dynamic-motion';
 import { TrendingUp, TrendingDown, DollarSign, Download, Eye, Palette, Zap, Package, FileText } from 'lucide-react';
 import { MiniBarChart } from './MiniBarChart';
 
@@ -13,13 +13,13 @@ export type StatItem = {
   icon: string;
 };
 
-const colorMap: Record<string, { gradient: string; bg: string; chart: string }> = {
-  'Produits actifs': { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
-  'Commandes': { gradient: 'from-cyan-500 to-blue-500', bg: 'bg-cyan-500/10', chart: 'bg-cyan-500' },
-  'Designs créés': { gradient: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-500/10', chart: 'bg-emerald-500' },
-  'Revenus': { gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-500/10', chart: 'bg-amber-500' },
-  'Vues totales': { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
-  'Téléchargements': { gradient: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-500/10', chart: 'bg-emerald-500' },
+const colorByIcon: Record<string, { gradient: string; bg: string; chart: string }> = {
+  Package: { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
+  FileText: { gradient: 'from-cyan-500 to-blue-500', bg: 'bg-cyan-500/10', chart: 'bg-cyan-500' },
+  Palette: { gradient: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-500/10', chart: 'bg-emerald-500' },
+  DollarSign: { gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-500/10', chart: 'bg-amber-500' },
+  Eye: { gradient: 'from-purple-500 to-pink-500', bg: 'bg-purple-500/10', chart: 'bg-purple-500' },
+  Download: { gradient: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-500/10', chart: 'bg-emerald-500' },
 };
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -29,6 +29,15 @@ const iconMap: Record<string, React.ReactNode> = {
   Eye: <Eye className="w-5 h-5" />,
   Download: <Download className="w-5 h-5" />,
   DollarSign: <DollarSign className="w-5 h-5" />,
+};
+
+const chartDataByIcon: Record<string, 'designs' | 'views' | 'revenue'> = {
+  Package: 'designs',
+  Palette: 'designs',
+  FileText: 'views',
+  Eye: 'views',
+  DollarSign: 'revenue',
+  Download: 'designs',
 };
 
 export function OverviewStatsGrid({
@@ -41,23 +50,17 @@ export function OverviewStatsGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, index) => {
-        const colors = colorMap[stat.title] || {
+        const colors = colorByIcon[stat.icon] || {
           gradient: 'from-purple-500 to-pink-500',
           bg: 'bg-purple-500/10',
           chart: 'bg-purple-500',
         };
-        const chartValues =
-          stat.title === 'Designs créés' || stat.title === 'Produits actifs'
-            ? chartData?.designs || []
-            : stat.title === 'Vues totales' || stat.title === 'Commandes'
-              ? chartData?.views || []
-              : stat.title === 'Revenus'
-                ? chartData?.revenue || []
-                : [15, 22, 18, 25, 20, 28, 24];
+        const chartKey = chartDataByIcon[stat.icon];
+        const chartValues = chartKey && chartData ? (chartData[chartKey] || []) : [];
 
         return (
-          <motion.div
-            key={stat.title}
+          <MotionDiv
+            key={stat.icon + index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
@@ -83,7 +86,7 @@ export function OverviewStatsGrid({
             <h3 className="text-2xl font-bold text-white mb-1">{stat.value}</h3>
             <p className="text-sm text-white/40 mb-3">{stat.title}</p>
             <MiniBarChart data={chartValues} color={colors.chart} />
-          </motion.div>
+          </MotionDiv>
         );
       })}
     </div>

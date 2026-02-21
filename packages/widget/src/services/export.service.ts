@@ -140,7 +140,7 @@ export class ExportService {
   ): Promise<void> {
     const data = layer.data as ImageLayerData;
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       

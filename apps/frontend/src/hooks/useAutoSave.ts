@@ -68,7 +68,7 @@ export function useAutoSave(
     persistToLocalStorage(sessionId, canvasData);
 
     try {
-      await (endpoints as Record<string, any>).visualCustomizer?.sessions?.update(sessionId, { canvasData });
+      await endpoints.visualCustomizer.sessions.update(sessionId, { canvasData });
       lastSavedPayloadRef.current = payload;
       setLastSavedAt(new Date());
       setIsDirty(false);

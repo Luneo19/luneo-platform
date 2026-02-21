@@ -43,7 +43,7 @@ type ZeusDashboard = {
 
 const fetcher = async (): Promise<ZeusDashboard> => {
   const res = await endpoints.orion.zeus.dashboard();
-  return res.data;
+  return (res as { data: ZeusDashboard }).data;
 };
 
 function ZeusPageContent() {

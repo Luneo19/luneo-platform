@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { RequestWithUser } from '@/common/types/user.types';
 import { RBACService } from './services/rbac.service';
 import { AuditLogsService, AuditEventType } from './services/audit-logs.service';
@@ -86,7 +87,10 @@ export class SecurityController {
   @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get role statistics' })
   @ApiResponse({ status: 200, description: 'Stats retrieved' })
-  async getRoleStats(@Query('brandId') brandId?: string) {
+  async getRoleStats(@Request() req: RequestWithUser, @Query('brandId') queryBrandId?: string) {
+    // SECURITY: Only PLATFORM_ADMIN can query arbitrary brandId; others are scoped to their brand
+    const brandId =
+      req.user?.role === UserRole.PLATFORM_ADMIN ? queryBrandId : req.user?.brandId ?? undefined;
     return this.rbacService.getRoleStats(brandId);
   }
 
@@ -98,14 +102,17 @@ export class SecurityController {
   @ApiOperation({ summary: 'Search audit logs' })
   @ApiResponse({ status: 200, description: 'Audit logs retrieved' })
   async searchAuditLogs(
+    @Request() req: RequestWithUser,
     @Query('userId') userId?: string,
-    @Query('brandId') brandId?: string,
+    @Query('brandId') queryBrandId?: string,
     @Query('eventType') eventType?: AuditEventType,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
+    const brandId =
+      req.user?.role === UserRole.PLATFORM_ADMIN ? queryBrandId : req.user?.brandId ?? undefined;
     return this.auditLogs.search({
       userId,
       brandId,
@@ -155,9 +162,12 @@ export class SecurityController {
   @ApiOperation({ summary: 'Get audit statistics' })
   @ApiResponse({ status: 200, description: 'Stats retrieved' })
   async getAuditStats(
-    @Query('brandId') brandId?: string,
+    @Request() req: RequestWithUser,
+    @Query('brandId') queryBrandId?: string,
     @Query('days') days?: string,
   ) {
+    const brandId =
+      req.user?.role === UserRole.PLATFORM_ADMIN ? queryBrandId : req.user?.brandId ?? undefined;
     return this.auditLogs.getStats(brandId, days ? parseInt(days, 10) : 30);
   }
 
@@ -166,10 +176,12 @@ export class SecurityController {
   @RequirePermissions(Permission.AUDIT_EXPORT)
   @ApiOperation({ summary: 'Export audit logs to CSV' })
   @ApiResponse({ status: 200, description: 'CSV exported' })
-  async exportAuditLogsCSV(@Query() dto: ExportAuditLogsDto) {
+  async exportAuditLogsCSV(@Request() req: RequestWithUser, @Query() dto: ExportAuditLogsDto) {
+    const brandId =
+      req.user?.role === UserRole.PLATFORM_ADMIN ? dto.brandId : req.user?.brandId ?? undefined;
     const filters = {
       userId: dto.userId,
-      brandId: dto.brandId,
+      brandId,
       eventType: dto.eventType,
       resourceType: dto.resourceType,
       resourceId: dto.resourceId,

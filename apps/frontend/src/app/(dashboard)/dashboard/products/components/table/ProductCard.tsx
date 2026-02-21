@@ -234,19 +234,19 @@ export const ProductCard = memo(function ProductCard({
             {(product as ProductDisplay & { zones?: unknown[] }).zones && ((product as ProductDisplay & { zones?: unknown[] }).zones?.length ?? 0) > 0 && (
               <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
                 <Palette className="w-2.5 h-2.5" />
-                Customizer
+                {t('products.badgeCustomizer')}
               </span>
             )}
             {product.model3dUrl && (
               <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 <Box className="w-2.5 h-2.5" />
-                3D
+                {t('products.badge3d')}
               </span>
             )}
             {(product as ProductDisplay & { arEnabled?: boolean }).arEnabled && (
               <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
                 <Globe className="w-2.5 h-2.5" />
-                AR
+                {t('products.badgeAr')}
               </span>
             )}
           </div>
@@ -276,15 +276,16 @@ export const ProductCard = memo(function ProductCard({
 });
 
 function NextStepIndicator({ product }: { product: ProductDisplay }) {
+  const { t } = useI18n();
   const hasCustomizer = ((product as ProductDisplay & { zones?: unknown[] }).zones?.length ?? 0) > 0;
   const has3D = !!product.model3dUrl;
 
   let step: { label: string; href: string } | null = null;
 
   if (!hasCustomizer) {
-    step = { label: 'Ajouter la personnalisation', href: `/dashboard/products/${product.id}/customize` };
+    step = { label: t('products.addCustomization'), href: `/dashboard/products/${product.id}/customize` };
   } else if (!has3D) {
-    step = { label: 'Ajouter un modèle 3D', href: `/dashboard/products/${product.id}/3d-ar` };
+    step = { label: t('products.add3dModel'), href: `/dashboard/products/${product.id}/3d-ar` };
   }
 
   if (!step) return null;

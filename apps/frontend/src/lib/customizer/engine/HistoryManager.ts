@@ -4,6 +4,7 @@
  */
 
 import Konva from 'konva';
+import { logger } from '@/lib/logger';
 
 export interface HistoryEntry {
   label: string;
@@ -121,7 +122,7 @@ export class HistoryManager {
       }
       return true;
     } catch (error) {
-      console.error('Failed to restore state:', error);
+      logger.error('Failed to restore state', error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   }
@@ -181,7 +182,7 @@ export class HistoryManager {
       }
       return true;
     } catch (error) {
-      console.error('Failed to restore state:', error);
+      logger.error('Failed to restore state', error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   }

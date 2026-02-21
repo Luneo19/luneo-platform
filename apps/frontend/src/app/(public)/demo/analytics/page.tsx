@@ -21,20 +21,20 @@ import { Card } from '@/components/ui/card';
 const mockMetrics = [
   { label: 'Visiteurs uniques', value: '12,480', change: '+8.3%', up: true, icon: Users },
   { label: 'Taux de conversion', value: '4.2%', change: '+1.1%', up: true, icon: Target },
-  { label: 'Designs personnalises', value: '3,847', change: '+22.4%', up: true, icon: TrendingUp },
+  { label: 'Designs personnalisés', value: '3,847', change: '+22.4%', up: true, icon: TrendingUp },
   { label: 'Engagement moyen', value: '2m 34s', change: '+15.6%', up: true, icon: PieChart },
 ];
 
 const mockFunnel = [
   { step: 'Vue produit', count: 8240, pct: 100 },
-  { step: 'Personnalisation lancee', count: 4120, pct: 50.0 },
-  { step: 'Design finalise', count: 2060, pct: 25.0 },
-  { step: 'Commande validee', count: 1030, pct: 12.5 },
+  { step: 'Personnalisation lancée', count: 4120, pct: 50.0 },
+  { step: 'Design finalisé', count: 2060, pct: 25.0 },
+  { step: 'Commande validée', count: 1030, pct: 12.5 },
 ];
 
 const mockCohorts = [
   { month: 'Jan', m0: 100, m1: 72, m2: 58, m3: 49, m4: 44 },
-  { month: 'Fev', m0: 100, m1: 68, m2: 54, m3: 47 },
+  { month: 'Fév', m0: 100, m1: 68, m2: 54, m3: 47 },
   { month: 'Mar', m0: 100, m1: 74, m2: 61 },
   { month: 'Avr', m0: 100, m1: 71 },
   { month: 'Mai', m0: 100 },
@@ -67,7 +67,7 @@ function SmartAnalyticsDemoPageContent() {
                     Demo
                   </span>
                 </h1>
-                <p className="text-gray-400">Analytics avances avec predictions IA et funnels</p>
+                <p className="text-gray-400">Analytics avancés avec prédictions IA et funnels</p>
               </div>
             </div>
           </motion>
@@ -227,30 +227,30 @@ function SmartAnalyticsDemoPageContent() {
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 bg-gray-900/50 border border-emerald-500/20 rounded-lg">
             <BarChart3 className="w-10 h-10 text-emerald-400 mb-4" />
-            <h3 className="text-lg font-bold text-white mb-2">Predictions IA</h3>
+            <h3 className="text-lg font-bold text-white mb-2">Prédictions IA</h3>
             <p className="text-sm text-gray-400">
-              Anticipez les tendances avec des modeles predictifs entraines sur vos donnees
+              Anticipez les tendances avec des modèles prédictifs entraînés sur vos données
             </p>
           </div>
           <div className="p-6 bg-gray-900/50 border border-teal-500/20 rounded-lg">
             <Target className="w-10 h-10 text-teal-400 mb-4" />
-            <h3 className="text-lg font-bold text-white mb-2">Funnels avances</h3>
+            <h3 className="text-lg font-bold text-white mb-2">Funnels avancés</h3>
             <p className="text-sm text-gray-400">
-              Visualisez chaque etape du parcours client et identifiez les points de friction
+              Visualisez chaque étape du parcours client et identifiez les points de friction
             </p>
           </div>
           <div className="p-6 bg-gray-900/50 border border-cyan-500/20 rounded-lg">
             <Activity className="w-10 h-10 text-cyan-400 mb-4" />
-            <h3 className="text-lg font-bold text-white mb-2">Anomalies detectees</h3>
+            <h3 className="text-lg font-bold text-white mb-2">Anomalies détectées</h3>
             <p className="text-sm text-gray-400">
-              Alertes automatiques quand une metrique devie de la normale
+              Alertes automatiques quand une métrique dévie de la normale
             </p>
           </div>
         </div>
 
         {/* CTA */}
         <div className="mt-12 text-center">
-          <p className="text-gray-400 mb-4">Debloquez les analytics IA complets avec un compte</p>
+          <p className="text-gray-400 mb-4">Débloquez les analytics IA complets avec un compte</p>
           <Link href="/register">
             <Button
               size="lg"

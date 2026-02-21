@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Bell, Loader2, CheckCheck, Trash2 } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { NotificationCard } from './NotificationCard';
 import type { Notification } from './types';
 
@@ -44,6 +45,7 @@ export function NotificationsListSection({
   onMarkAsRead,
   onDelete,
 }: NotificationsListSectionProps) {
+  const { t } = useI18n();
   const hasFilters = searchTerm || filterType !== 'all' || filterPriority !== 'all' || filterStatus !== 'all';
 
   if (loading) {
@@ -58,9 +60,9 @@ export function NotificationsListSection({
     return (
       <Card className="p-12 bg-zinc-800/50 border-zinc-700 text-center">
         <Bell className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Aucune notification</h3>
+        <h3 className="text-lg font-semibold text-white mb-2">{t('notifications.noNotifications')}</h3>
         <p className="text-zinc-400">
-          {hasFilters ? 'Aucune notification ne correspond à vos filtres' : 'Vous êtes à jour !'}
+          {hasFilters ? t('notifications.noMatchFilters') : t('notifications.allCaughtUp')}
         </p>
       </Card>
     );
@@ -77,18 +79,18 @@ export function NotificationsListSection({
               id="select-all"
             />
             <Label htmlFor="select-all" className="text-zinc-300 cursor-pointer">
-              {selectedNotifications.size > 0 ? `${selectedNotifications.size} sélectionnée(s)` : 'Sélectionner tout'}
+              {selectedNotifications.size > 0 ? t('notifications.selectedCount', { count: selectedNotifications.size }) : t('notifications.selectAll')}
             </Label>
           </div>
           {selectedNotifications.size > 0 && (
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={onBulkMarkRead} className="border-zinc-600">
                 <CheckCheck className="w-4 h-4 mr-2" />
-                Marquer lu
+                {t('common.markAsRead')}
               </Button>
               <Button size="sm" variant="outline" onClick={onBulkDelete} className="border-gray-600 text-red-400">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer
+                {t('common.delete')}
               </Button>
             </div>
           )}

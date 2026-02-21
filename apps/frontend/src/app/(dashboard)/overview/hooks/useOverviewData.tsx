@@ -5,6 +5,7 @@ import {
   useDashboardStats,
   useDashboardChartData,
   useDashboardUsage,
+  usePipelineData,
 } from '@/lib/hooks/api/useDashboard';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useI18n } from '@/i18n/useI18n';
@@ -26,6 +27,7 @@ export function useOverviewData() {
   const { data: dashboardStats, isLoading: statsLoading, error: statsError, refetch: refreshStats } = useDashboardStats(selectedPeriod);
   const { data: chartData, isLoading: chartLoading } = useDashboardChartData(selectedPeriod);
   const { data: usageData } = useDashboardUsage(selectedPeriod);
+  const { data: pipelineData } = usePipelineData();
   const { notifications, loading: notificationsLoading } = useNotifications(10);
 
   const loading = statsLoading || chartLoading;
@@ -37,14 +39,14 @@ export function useOverviewData() {
     const ordersCount = dashboardStats.period?.orders ?? 0;
     return [
       {
-        title: 'Produits actifs',
+        title: t('overview.stats.activeProducts'),
         value: productsCount.toLocaleString('fr-FR'),
         change: `+${dashboardStats.period?.designs ?? 0}`,
         changeType: 'positive' as const,
         icon: 'Package',
       },
       {
-        title: 'Commandes',
+        title: t('overview.stats.orders'),
         value: ordersCount.toLocaleString('fr-FR'),
         change: `${ordersCount > 0 ? '+' : ''}${ordersCount}`,
         changeType: (ordersCount > 0 ? 'positive' : 'negative') as 'positive' | 'negative',
@@ -71,8 +73,8 @@ export function useOverviewData() {
     stats.length > 0
       ? stats
       : [
-          { title: 'Produits actifs', value: '0', change: '+0', changeType: 'positive', icon: 'Package' },
-          { title: 'Commandes', value: '0', change: '+0', changeType: 'positive', icon: 'FileText' },
+          { title: t('overview.stats.activeProducts'), value: '0', change: '+0', changeType: 'positive', icon: 'Package' },
+          { title: t('overview.stats.orders'), value: '0', change: '+0', changeType: 'positive', icon: 'FileText' },
           { title: t('overview.designsCreated'), value: '0', change: '+0', changeType: 'positive', icon: 'Palette' },
           { title: t('dashboard.revenue'), value: '€0.00', change: `+0 ${t('overview.ordersCount')}`, changeType: 'positive', icon: 'DollarSign' },
         ];
@@ -83,7 +85,7 @@ export function useOverviewData() {
       ...(dashboardStats.recent.designs?.slice(0, 3) || []).map((design) => ({
         id: design.id,
         type: 'design',
-        title: design.prompt || 'Design créé',
+        title: design.prompt || t('overview.recentDesignCreated'),
         description: `Design ${design.status || 'créé'}`,
         time: design.created_at,
         status: design.status,
@@ -92,15 +94,15 @@ export function useOverviewData() {
       ...(dashboardStats.recent.orders?.slice(0, 2) || []).map((order) => ({
         id: order.id,
         type: 'order',
-        title: `Commande ${order.status}`,
-        description: `Montant: €${(order.total_amount ?? 0).toFixed(2)}`,
+        title: t('overview.orderStatus', { status: order.status ?? '' }),
+        description: t('overview.orderAmount', { amount: (order.total_amount ?? 0).toFixed(2) }),
         time: order.created_at,
         status: order.status,
       })),
     ]
       .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
       .slice(0, 5);
-  }, [dashboardStats]);
+  }, [dashboardStats, t]);
 
   const topDesigns: TopDesignItem[] = useMemo(() => {
     if (!dashboardStats?.recent?.designs) return [];
@@ -108,51 +110,51 @@ export function useOverviewData() {
     const designLikes = usageData?.designLikes ?? {};
     return dashboardStats.recent.designs.slice(0, 5).map((design) => ({
       id: design.id,
-      title: design.prompt || 'Design sans titre',
+      title: design.prompt || t('overview.untitledDesign'),
       image: design.preview_url || '/placeholder-design.svg',
       views: designViews[design.id] ?? 0,
       likes: designLikes[design.id] ?? 0,
       created_at: design.created_at,
     }));
-  }, [dashboardStats, usageData]);
+  }, [dashboardStats, usageData, t]);
 
   const quickActions: QuickActionItem[] = useMemo(
     () => [
       {
         id: 'create-product',
-        title: 'Créer un produit',
-        description: 'Ajouter un nouveau produit à personnaliser',
+        title: t('overview.quickActions.createProduct'),
+        description: t('overview.quickActions.createProductDesc'),
         icon: <Package className="w-6 h-6" />,
         href: '/dashboard/products',
         color: 'from-purple-500 to-pink-500',
       },
       {
         id: 'channels',
-        title: 'Connecter un canal',
-        description: 'Shopify, Widget, Storefront',
+        title: t('overview.quickActions.connectChannel'),
+        description: t('overview.quickActions.connectChannelDesc'),
         icon: <ShoppingBag className="w-6 h-6" />,
         href: '/dashboard/channels',
         color: 'from-cyan-500 to-blue-500',
       },
       {
         id: 'orders',
-        title: 'Voir les commandes',
-        description: 'Suivi et gestion',
+        title: t('overview.quickActions.viewOrders'),
+        description: t('overview.quickActions.viewOrdersDesc'),
         icon: <FileText className="w-6 h-6" />,
         href: '/dashboard/orders',
         color: 'from-orange-500 to-red-500',
       },
       {
         id: 'ai-studio',
-        title: 'Générer avec l\'IA',
-        description: 'Studio de création IA',
+        title: t('overview.quickActions.aiGenerate'),
+        description: t('overview.quickActions.aiGenerateDesc'),
         icon: <Sparkles className="w-6 h-6" />,
         href: '/dashboard/ai-studio',
         color: 'from-green-500 to-emerald-500',
         badge: 'IA',
       },
     ],
-    []
+    [t]
   );
 
   const goals: GoalItem[] = useMemo(() => {
@@ -185,6 +187,14 @@ export function useOverviewData() {
   const designCount = dashboardStats?.overview?.designs ?? 0;
   const orderCount = dashboardStats?.period?.orders ?? 0;
 
+  const pipeline = {
+    products: pipelineData?.products ?? 0,
+    selling: pipelineData?.selling ?? 0,
+    orders: pipelineData?.orders ?? 0,
+    inProduction: pipelineData?.inProduction ?? 0,
+    delivered: pipelineData?.delivered ?? 0,
+  };
+
   return {
     loading,
     error,
@@ -199,6 +209,7 @@ export function useOverviewData() {
     goals,
     designCount,
     orderCount,
+    pipeline,
     notifications: notifications as NotificationItem[],
     showAllNotifications,
     setShowAllNotifications,

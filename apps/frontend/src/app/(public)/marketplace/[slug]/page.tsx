@@ -339,7 +339,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
               <TabsList className="bg-slate-900 border border-slate-800">
                 <TabsTrigger value="overview">Description</TabsTrigger>
                 <TabsTrigger value="reviews">
-                  Avis ({displayTemplate.reviewCount})
+                  {t('public.marketplace.reviews')} ({displayTemplate.reviewCount})
                 </TabsTrigger>
                 <TabsTrigger value="specs">Spécifications</TabsTrigger>
               </TabsList>
@@ -355,7 +355,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
 
                     {/* Tags */}
                     <div className="mt-6 pt-6 border-t border-slate-800">
-                      <h4 className="text-sm font-medium mb-3">Tags</h4>
+                      <h4 className="text-sm font-medium mb-3">{t('public.marketplace.tags')}</h4>
                       <div className="flex flex-wrap gap-2">
                         {displayTemplate.tags.map((tag) => (
                           <Badge key={tag} variant="outline" className="border-slate-700">
@@ -389,14 +389,14 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                             />
                           ))}
                         </div>
-                        <p className="text-sm text-slate-400">{displayTemplate.reviewCount} avis</p>
+                        <p className="text-sm text-slate-400">{displayTemplate.reviewCount} {t('public.marketplace.reviews')}</p>
                       </div>
 
                       {/* Distribution */}
                       <div className="flex-1 space-y-2">
                         {ratingDistribution.map(({ stars, count, percentage }) => (
                           <div key={stars} className="flex items-center gap-3">
-                            <span className="text-sm w-12">{stars} étoiles</span>
+                            <span className="text-sm w-12">{stars} {t('public.marketplace.stars')}</span>
                             <Progress value={percentage} className="flex-1 h-2" />
                             <span className="text-sm text-slate-400 w-8">{count}</span>
                           </div>
@@ -414,14 +414,14 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage src={review.user.avatar} />
+                              <AvatarImage src={review.user.avatar} alt={review.user?.name === 'Utilisateur' ? t('public.marketplace.user') : (review.user?.name || t('public.marketplace.user'))} />
                               <AvatarFallback className="bg-slate-700">
-                                {review.user.name.charAt(0)}
+                                {(review.user.name === 'Utilisateur' ? t('public.marketplace.user') : review.user.name || t('public.marketplace.user')).charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-medium">{review.user.name}</span>
+                                <span className="font-medium">{review.user.name === 'Utilisateur' ? t('public.marketplace.user') : (review.user.name || t('public.marketplace.user'))}</span>
                                 {review.verified && (
                                   <Badge className="bg-green-500/20 text-green-400 text-xs">
                                     <Check className="w-3 h-3 mr-1" />
@@ -470,19 +470,19 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                   <CardContent className="p-6">
                     <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <h4 className="text-sm text-slate-400 mb-1">Format</h4>
+                        <h4 className="text-sm text-slate-400 mb-1">{t('public.marketplace.format')}</h4>
                         <p className="font-medium">{displayTemplate.format.toUpperCase()}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm text-slate-400 mb-1">Dimensions</h4>
+                        <h4 className="text-sm text-slate-400 mb-1">{t('public.marketplace.dimensions')}</h4>
                         <p className="font-medium">{displayTemplate.dimensions.width} x {displayTemplate.dimensions.height}px</p>
                       </div>
                       <div>
-                        <h4 className="text-sm text-slate-400 mb-1">Taille du fichier</h4>
+                        <h4 className="text-sm text-slate-400 mb-1">{t('public.marketplace.fileSize')}</h4>
                         <p className="font-medium">{formatFileSize(displayTemplate.fileSize)}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm text-slate-400 mb-1">Compatibilité</h4>
+                        <h4 className="text-sm text-slate-400 mb-1">{t('public.marketplace.compatibility')}</h4>
                         <p className="font-medium capitalize">{displayTemplate.compatibility.join(', ')}</p>
                       </div>
                       <div>
@@ -519,7 +519,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
                 <div className="space-y-3 mb-6">
                   <Button className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
                     <ShoppingCart className="w-5 h-5 mr-2" />
-                    {displayTemplate.price > 0 ? 'Acheter maintenant' : 'Télécharger'}
+                    {displayTemplate.price > 0 ? t('public.marketplace.buyNow') : t('public.marketplace.download')}
                   </Button>
                   <Button variant="outline" className="w-full border-slate-700">
                     <Eye className="w-4 h-4 mr-2" />
@@ -568,7 +568,7 @@ function MarketplaceTemplatePageContent({ params }: { params: { slug: string } |
               <CardContent>
                 <div className="flex items-center gap-4 mb-4">
                   <Avatar className="w-14 h-14">
-                    <AvatarImage src={displayTemplate.creator.avatar} />
+                    <AvatarImage src={displayTemplate.creator.avatar} alt={displayTemplate.creator?.name ?? 'Creator'} />
                     <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-lg">
                       {displayTemplate.creator.name.charAt(0)}
                     </AvatarFallback>

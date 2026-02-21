@@ -13,6 +13,7 @@ import { useText } from '@/hooks/customizer';
 import { useFonts } from '@/hooks/customizer';
 import { useLayersStore } from '@/stores/customizer';
 import { ColorPickerTool } from './ColorPickerTool';
+import { logger } from '@/lib/logger';
 
 /**
  * TextTool - Text tool panel with font, size, style, alignment options
@@ -50,7 +51,7 @@ export function TextTool() {
         textAlign: alignment,
       });
     } catch (error) {
-      console.error('Failed to add text:', error);
+      logger.error('Failed to add text', error instanceof Error ? error : new Error(String(error)));
     }
   };
 

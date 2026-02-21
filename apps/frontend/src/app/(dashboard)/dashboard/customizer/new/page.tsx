@@ -28,11 +28,11 @@ function NewCustomizerContent() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/customizer">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Customizers
+            Retour aux customizers
           </Link>
         </Button>
-        <h1 className="mt-4 text-2xl font-bold">Create New Customizer</h1>
-        <p className="text-muted-foreground">Set up a new visual customizer for your products</p>
+        <h1 className="mt-4 text-2xl font-bold">Créer un nouveau customizer</h1>
+        <p className="text-muted-foreground">Configurez un éditeur visuel pour vos produits</p>
       </div>
 
       <CustomizerForm

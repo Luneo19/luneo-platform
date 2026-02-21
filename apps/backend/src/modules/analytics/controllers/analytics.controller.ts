@@ -274,6 +274,30 @@ export class AnalyticsController {
     const brandId = req?.user?.brandId ?? undefined;
     return this.analyticsService.getOrdersAnalytics(brandId, startDate, endDate);
   }
+
+  @Get('pipeline')
+  @ApiOperation({ summary: 'Données du pipeline marchand' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pipeline data: products, selling, orders, inProduction, delivered',
+    schema: {
+      type: 'object',
+      properties: {
+        products: { type: 'number' },
+        selling: { type: 'number' },
+        orders: { type: 'number' },
+        inProduction: { type: 'number' },
+        delivered: { type: 'number' },
+      },
+    },
+  })
+  async getPipelineData(@Request() req: { user?: CurrentUser }) {
+    const brandId = req.user?.brandId;
+    if (!brandId && req.user?.role !== 'PLATFORM_ADMIN') {
+      return { products: 0, selling: 0, orders: 0, inProduction: 0, delivered: 0 };
+    }
+    return this.analyticsService.getPipelineData(brandId ?? undefined);
+  }
 }
 
 

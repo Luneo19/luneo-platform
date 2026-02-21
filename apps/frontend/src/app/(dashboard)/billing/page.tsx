@@ -12,7 +12,17 @@
 import { useState, useMemo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { trpc } from '@/lib/trpc/client';
+
+interface PaymentMethod {
+  id: string;
+  type: string;
+  last4?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  isDefault?: boolean;
+}
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { formatDate, formatPrice, formatBytes } from '@/lib/utils/formatters';
@@ -28,6 +38,7 @@ import { CreditCard, Download, AlertCircle, Package, TrendingUp, Zap, Database }
 // ========================================
 
 function BillingPageContent() {
+  const { t } = useI18n();
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
 
   // Queries
@@ -98,12 +109,12 @@ function BillingPageContent() {
   // ========================================
 
   const handleCancelSubscription = useCallback(() => {
-    if (!confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) {
+    if (!confirm(t('billing.confirmCancel'))) {
       return;
     }
 
     cancelMutation.mutate({ cancelAtPeriodEnd: true });
-  }, [cancelMutation]);
+  }, [cancelMutation, t]);
 
   const handleReactivateSubscription = useCallback(() => {
     reactivateMutation.mutate();
@@ -118,30 +129,30 @@ function BillingPageContent() {
       }
     } catch (error) {
       logger.error('Error downloading invoice', { error });
-      alert('Erreur lors du téléchargement de la facture');
+      alert(t('billing.invoiceDownloadError'));
     }
-  }, []);
+  }, [t]);
 
   const handleSetDefaultPaymentMethod = useCallback(
     (paymentMethodId: string) => {
-      if (!confirm('Définir ce moyen de paiement comme défaut ?')) {
+      if (!confirm(t('billing.confirmSetDefault'))) {
         return;
       }
 
       setDefaultPaymentMethodMutation.mutate({ paymentMethodId });
     },
-    [setDefaultPaymentMethodMutation]
+    [setDefaultPaymentMethodMutation, t]
   );
 
   const handleRemovePaymentMethod = useCallback(
     (paymentMethodId: string) => {
-      if (!confirm('Supprimer ce moyen de paiement ?')) {
+      if (!confirm(t('billing.confirmRemovePayment'))) {
         return;
       }
 
       removePaymentMethodMutation.mutate({ paymentMethodId });
     },
-    [removePaymentMethodMutation]
+    [removePaymentMethodMutation, t]
   );
 
   // ========================================
@@ -153,7 +164,7 @@ function BillingPageContent() {
       <div className="flex items-center justify-center min-h-[60vh] dash-bg">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/10 border-t-purple-500 mx-auto" />
-          <p className="mt-4 text-white/60">Chargement...</p>
+          <p className="mt-4 text-white/60">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -164,14 +175,14 @@ function BillingPageContent() {
   const limits = limitsQuery.data;
   const rawInvoices = invoicesQuery.data?.invoices ?? invoicesQuery.data;
   const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
-  const rawPaymentMethods = (paymentMethodsQuery.data as { paymentMethods?: unknown[] } | undefined)?.paymentMethods ?? paymentMethodsQuery.data;
-  const paymentMethods = Array.isArray(rawPaymentMethods) ? rawPaymentMethods : [];
+  const rawPaymentMethods = (paymentMethodsQuery.data as { paymentMethods?: PaymentMethod[] } | undefined)?.paymentMethods ?? paymentMethodsQuery.data;
+  const paymentMethods: PaymentMethod[] = Array.isArray(rawPaymentMethods) ? rawPaymentMethods as PaymentMethod[] : [];
 
   return (
     <div className="container mx-auto py-8 px-4 dash-bg min-h-screen">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-white">Facturation</h1>
-        <p className="text-white/60">Gérez votre abonnement et vos factures</p>
+        <h1 className="text-3xl font-bold mb-2 text-white">{t('billing.title')}</h1>
+        <p className="text-white/60">{t('billing.subtitle')}</p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -180,19 +191,19 @@ function BillingPageContent() {
             value="overview"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
-            Vue d'ensemble
+            {t('billing.tabs.overview')}
           </TabsTrigger>
           <TabsTrigger
             value="invoices"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
-            Factures
+            {t('billing.tabs.invoices')}
           </TabsTrigger>
           <TabsTrigger
             value="payment-methods"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
           >
-            Moyens de paiement
+            {t('billing.tabs.paymentMethods')}
           </TabsTrigger>
         </TabsList>
 
@@ -203,17 +214,17 @@ function BillingPageContent() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white">Abonnement</CardTitle>
+                  <CardTitle className="text-white">{t('billing.subscription')}</CardTitle>
                   <CardDescription className="text-white/60">
                     {subscription ? (
                       <>
-                        Plan {subscription.plan.toUpperCase()}
+                        {t('billing.plan', { name: subscription.plan.toUpperCase() })}
                         {subscription.cancelAtPeriodEnd && (
-                          <span className="dash-badge dash-badge-live ml-2">Annulé</span>
+                          <span className="dash-badge dash-badge-live ml-2">{t('billing.cancelled')}</span>
                         )}
                       </>
                     ) : (
-                      'Aucun abonnement actif'
+                      t('billing.noSubscription')
                     )}
                   </CardDescription>
                 </div>
@@ -230,7 +241,7 @@ function BillingPageContent() {
                       }
                     }}
                   >
-                    Gérer les paiements (Stripe)
+                    {t('billing.managePayments')}
                   </Button>
                   {subscription && (
                     <>
@@ -239,11 +250,11 @@ function BillingPageContent() {
                           onClick={handleReactivateSubscription}
                           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
                         >
-                          Réactiver
+                          {t('billing.reactivate')}
                         </Button>
                       ) : (
                         <Button variant="destructive" onClick={handleCancelSubscription} className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30">
-                          Annuler
+                          {t('common.cancel')}
                         </Button>
                       )}
                     </>
@@ -255,14 +266,14 @@ function BillingPageContent() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-sm text-white/60">Période actuelle</span>
+                    <span className="text-sm text-white/60">{t('billing.currentPeriod')}</span>
                     <span className="text-sm font-medium text-white">
                       {formatDate(subscription.currentPeriodStart)} -{' '}
                       {formatDate(subscription.currentPeriodEnd)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-white/60">Statut</span>
+                    <span className="text-sm text-white/60">{t('billing.status')}</span>
                     <span
                       className={
                         subscription.status === 'active'
@@ -281,9 +292,9 @@ function BillingPageContent() {
           {/* Usage Card - glass with gradient progress */}
           <Card className="dash-card border-white/[0.06]">
             <CardHeader>
-              <CardTitle className="text-white">Utilisation</CardTitle>
+              <CardTitle className="text-white">{t('billing.usage')}</CardTitle>
               <CardDescription className="text-white/60">
-                Utilisation pour la période en cours
+                {t('billing.usageDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -292,7 +303,7 @@ function BillingPageContent() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">Personnalisations</span>
+                    <span className="text-sm font-medium text-white">{t('billing.customizations')}</span>
                   </div>
                   <span className="text-sm text-white/60">
                     {usage?.customizations || 0} / {limits?.monthlyCustomizations || 0}
@@ -309,7 +320,7 @@ function BillingPageContent() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">Rendus</span>
+                    <span className="text-sm font-medium text-white">{t('billing.renders')}</span>
                   </div>
                   <span className="text-sm text-white/60">
                     {usage?.renders || 0} / {limits?.monthlyRenders || 0}
@@ -326,7 +337,7 @@ function BillingPageContent() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">Appels API</span>
+                    <span className="text-sm font-medium text-white">{t('billing.apiCalls')}</span>
                   </div>
                   <span className="text-sm text-white/60">
                     {usage?.apiCalls || 0} / {limits?.monthlyApiCalls || 0}
@@ -343,7 +354,7 @@ function BillingPageContent() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Database className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">Stockage</span>
+                    <span className="text-sm font-medium text-white">{t('billing.storage')}</span>
                   </div>
                   <span className="text-sm text-white/60">
                     {formatBytes(usage?.storageBytes || 0)} /{' '}
@@ -363,24 +374,24 @@ function BillingPageContent() {
         <TabsContent value="invoices">
           <Card className="dash-card border-white/[0.06]">
             <CardHeader>
-              <CardTitle className="text-white">Factures</CardTitle>
-              <CardDescription className="text-white/60">Historique de vos factures</CardDescription>
+              <CardTitle className="text-white">{t('billing.tabs.invoices')}</CardTitle>
+              <CardDescription className="text-white/60">{t('billing.invoiceHistory')}</CardDescription>
             </CardHeader>
             <CardContent>
               {invoices.length === 0 ? (
                 <div className="text-center py-12">
                   <AlertCircle className="mx-auto h-12 w-12 text-white/40 mb-4" />
-                  <p className="text-white/60">Aucune facture trouvée</p>
+                  <p className="text-white/60">{t('billing.noInvoices')}</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/[0.06] hover:bg-transparent">
-                      <TableHead className="text-white/60">Numéro</TableHead>
-                      <TableHead className="text-white/60">Date</TableHead>
-                      <TableHead className="text-white/60">Montant</TableHead>
-                      <TableHead className="text-white/60">Statut</TableHead>
-                      <TableHead className="text-white/60">Actions</TableHead>
+                      <TableHead className="text-white/60">{t('billing.invoiceNumber')}</TableHead>
+                      <TableHead className="text-white/60">{t('billing.date')}</TableHead>
+                      <TableHead className="text-white/60">{t('billing.amount')}</TableHead>
+                      <TableHead className="text-white/60">{t('billing.status')}</TableHead>
+                      <TableHead className="text-white/60">{t('common.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -425,18 +436,18 @@ function BillingPageContent() {
         <TabsContent value="payment-methods">
           <Card className="dash-card border-white/[0.06]">
             <CardHeader>
-              <CardTitle className="text-white">Moyens de paiement</CardTitle>
+              <CardTitle className="text-white">{t('billing.tabs.paymentMethods')}</CardTitle>
               <CardDescription className="text-white/60">
-                Gérez vos méthodes de paiement
+                {t('billing.managePaymentMethods')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-12">
                   <CreditCard className="mx-auto h-12 w-12 text-white/40 mb-4" />
-                  <p className="text-white/60 mb-4">Aucune méthode de paiement</p>
+                  <p className="text-white/60 mb-4">{t('billing.noPaymentMethods')}</p>
                   <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0">
-                    Ajouter une carte
+                    {t('billing.addCard')}
                   </Button>
                 </div>
               ) : (
@@ -450,9 +461,9 @@ function BillingPageContent() {
                         <CreditCard className="h-6 w-6 text-white/40" />
                         <div>
                           <div className="font-medium text-white flex items-center gap-2">
-                            {method.type === 'card' ? 'Carte' : 'Compte bancaire'}
+                            {method.type === 'card' ? t('billing.card') : t('billing.bankAccount')}
                             {method.isDefault && (
-                              <span className="dash-badge dash-badge-new">Par défaut</span>
+                              <span className="dash-badge dash-badge-new">{t('billing.default')}</span>
                             )}
                           </div>
                           {method.last4 && (
@@ -462,7 +473,7 @@ function BillingPageContent() {
                           )}
                           {method.expiryMonth && method.expiryYear && (
                             <div className="text-sm text-white/60">
-                              Expire {method.expiryMonth}/{method.expiryYear}
+                              {t('billing.expires')} {method.expiryMonth}/{method.expiryYear}
                             </div>
                           )}
                         </div>
@@ -476,7 +487,7 @@ function BillingPageContent() {
                             disabled={setDefaultPaymentMethodMutation.isPending}
                             className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
                           >
-                            {setDefaultPaymentMethodMutation.isPending ? '...' : 'Définir par défaut'}
+                            {setDefaultPaymentMethodMutation.isPending ? '...' : t('billing.setDefault')}
                           </Button>
                         )}
                         <Button
@@ -486,7 +497,7 @@ function BillingPageContent() {
                           disabled={removePaymentMethodMutation.isPending}
                           className="text-white/60 hover:text-white hover:bg-white/[0.04]"
                         >
-                          {removePaymentMethodMutation.isPending ? '...' : 'Supprimer'}
+                          {removePaymentMethodMutation.isPending ? '...' : t('common.delete')}
                         </Button>
                       </div>
                     </div>

@@ -3,21 +3,19 @@
 import useSWR from 'swr';
 import { endpoints } from '@/lib/api/client';
 
-const fetchReviewQueue = async (params?: any) => {
+export type ReviewQueueParams = Parameters<typeof endpoints.orion.prometheus.reviewQueue>[0];
+
+const fetchReviewQueue = async (params?: ReviewQueueParams) => {
   const res = await endpoints.orion.prometheus.reviewQueue(params);
-  return res.data;
+  return (res as { data?: unknown })?.data ?? res;
 };
 
 const fetchReviewStats = async () => {
   const res = await endpoints.orion.prometheus.reviewStats();
-  return res.data;
+  return (res as { data?: unknown })?.data ?? res;
 };
 
-export function useReviewQueue(params?: {
-  status?: string;
-  page?: number;
-  limit?: number;
-}) {
+export function useReviewQueue(params?: ReviewQueueParams) {
   const { data, error, isLoading, mutate } = useSWR(
     ['orion-review-queue', params],
     () => fetchReviewQueue(params),
