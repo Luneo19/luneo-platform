@@ -227,6 +227,11 @@ function RegisterPageContent() {
         });
 
         if (!signupResp.ok) {
+          if (signupResp.status === 409) {
+            setError(t('auth.register.errors.emailExists'));
+            setIsLoading(false);
+            return;
+          }
           const errData = await signupResp.json().catch(() => ({}));
           throw new Error(errData.message || 'Registration failed');
         }

@@ -11,7 +11,5 @@ export { TicketDetailDialog } from './TicketDetailDialog';
 export { TemplateDialog } from './TemplateDialog';
 export { CsatDialog } from './CsatDialog';
 export { ExportDialog } from './ExportDialog';
-export { SupportFeatureSections } from './SupportFeatureSections';
-export { SupportFeatureSectionsExtended } from './SupportFeatureSectionsExtended';
 export { useSupportPage } from './useSupportPage';
 export type { ResponseTemplate, SLA, SupportTab, ViewMode } from './types';

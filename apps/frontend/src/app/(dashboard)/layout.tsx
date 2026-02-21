@@ -15,7 +15,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
 
   return (
-    <div className="min-h-screen dash-bg flex overflow-x-hidden">
+    <div className="min-h-screen dash-bg dark flex overflow-x-hidden">
       {/* Subtle gradient mesh background */}
       <div className="fixed inset-0 dash-gradient-mesh pointer-events-none" />
 

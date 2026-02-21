@@ -9,7 +9,6 @@ import { RESPONSE_TEMPLATES } from './constants';
 import {
   SupportHeader,
   SupportStatsCards,
-  SupportSlaAlerts,
   TicketsTab,
   KnowledgeTab,
   TemplatesTab,
@@ -19,8 +18,6 @@ import {
   TemplateDialog,
   CsatDialog,
   ExportDialog,
-  SupportFeatureSections,
-  SupportFeatureSectionsExtended,
 } from './index';
 
 function SupportPageContentInner() {
@@ -97,7 +94,6 @@ function SupportPageContentInner() {
         pendingCount={tickets.filter((t) => t.status === 'pending').length}
         urgentCount={tickets.filter((t) => t.priority === 'high').length}
       />
-      <SupportSlaAlerts tickets={tickets} calculateSLA={calculateSLA} onViewTicket={handleViewTicket} />
 
       <Tabs value={activeTab} onValueChange={(v) => support.setActiveTab(v as 'tickets' | 'knowledge' | 'templates' | 'analytics')} className="space-y-6">
         <TabsList className="bg-gray-50 border-gray-200">
@@ -163,9 +159,6 @@ function SupportPageContentInner() {
       <TemplateDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} onUseTemplate={handleUseTemplate} />
       <CsatDialog open={showCSATDialog} onOpenChange={setShowCSATDialog} rating={csatRating} setRating={setCsatRating} comment={csatComment} setComment={setCsatComment} onSubmit={handleSubmitCSAT} ticketId={selectedTicket?.id ?? null} />
       <ExportDialog open={showExportDialog} onOpenChange={support.setShowExportDialog} filterStatus={support.filterStatus} filterPriority={support.filterPriority} filterCategory={support.filterCategory} onExport={() => { support.toast({ title: t('common.export'), description: t('support.loading') }); support.setShowExportDialog(false); }} />
-
-      <SupportFeatureSections />
-      <SupportFeatureSectionsExtended />
     </div>
   );
 }
