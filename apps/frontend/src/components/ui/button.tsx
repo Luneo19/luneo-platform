@@ -74,9 +74,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <Slot
           className={cn(buttonVariants({ variant, size, className }))}
           ref={ref}
-          disabled={disabled || loading}
           aria-label={ariaLabel || autoAriaLabel}
-          aria-disabled={disabled || loading}
+          aria-disabled={disabled || loading || undefined}
+          data-disabled={disabled || loading || undefined}
           {...props}
         >
           {children}
