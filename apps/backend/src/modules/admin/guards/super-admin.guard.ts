@@ -1,10 +1,3 @@
-// @ts-nocheck
-/**
- * ★★★ SUPER ADMIN GUARD ★★★
- * Guard NestJS pour protéger les routes admin
- * Vérifie que l'utilisateur a le rôle PLATFORM_ADMIN
- */
-
 import {
   Injectable,
   CanActivate,
@@ -13,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 
 @Injectable()
 export class SuperAdminGuard implements CanActivate {
@@ -27,8 +20,7 @@ export class SuperAdminGuard implements CanActivate {
       throw new UnauthorizedException('Authentication required');
     }
 
-    // Vérifier que l'utilisateur a le rôle PLATFORM_ADMIN
-    if (user.role !== UserRole.PLATFORM_ADMIN) {
+    if (user.role !== PlatformRole.ADMIN) {
       throw new ForbiddenException(
         'Access denied. Super Admin privileges required.',
       );

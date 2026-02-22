@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { PLAN_CONFIGS, normalizePlanTier, PlanTier, getPlanConfig } from '@/libs/plans';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrencyUtils, detectCurrency } from '@/config/currency.config';
@@ -11,7 +10,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
+import { Plan, OrgStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeClientService } from './services/stripe-client.service';
 import { StripeWebhookService } from './services/stripe-webhook.service';
@@ -204,19 +203,26 @@ export class BillingService {
     const existingUser = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        brand: {
+        memberships: {
+          where: { isActive: true },
           select: {
-            id: true,
-            stripeCustomerId: true,
-            stripeSubscriptionId: true,
-            subscriptionStatus: true,
-            subscriptionPlan: true,
+            organization: {
+              select: {
+                id: true,
+                stripeCustomerId: true,
+                stripeSubscriptionId: true,
+                status: true,
+                plan: true,
+              },
+            },
           },
+          take: 1,
         },
       },
     });
+    const existingOrg = existingUser?.memberships?.[0]?.organization;
 
-    if (existingUser?.brand?.stripeSubscriptionId && existingUser.brand.subscriptionStatus === 'ACTIVE') {
+    if (existingOrg?.stripeSubscriptionId && existingOrg.status === 'ACTIVE') {
       throw new BadRequestException(
         'Vous avez déjà un abonnement actif. Veuillez annuler votre abonnement actuel ou changer de plan depuis votre dashboard.',
       );
@@ -234,14 +240,20 @@ export class BillingService {
       );
     }
 
-    // ✅ Multi-currency: detect from country (brand or header) / locale (Accept-Language)
+    // ✅ Multi-currency: detect from country (organization or header) / locale (Accept-Language)
     let country = options?.country;
     if (!country && userId && !userId.startsWith('guest_')) {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { brand: { select: { country: true } } },
+        select: {
+          memberships: {
+            where: { isActive: true },
+            select: { organization: { select: { country: true } } },
+            take: 1,
+          },
+        },
       });
-      country = user?.brand?.country ?? undefined;
+      country = user?.memberships?.[0]?.organization?.country ?? undefined;
     }
     const currency = detectCurrency(country, options?.locale);
 
@@ -353,7 +365,7 @@ export class BillingService {
       const session = await this.executeWithResilience(
         async () => {
           const stripe = await this.getStripe();
-          const existingCustomerId = existingUser?.brand?.stripeCustomerId;
+          const existingCustomerId = existingOrg?.stripeCustomerId;
           return stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
@@ -394,13 +406,13 @@ export class BillingService {
   }
 
   async getPaymentMethods(userId: string) {
-      // Récupérer le brand de l'utilisateur
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { brand: true },
+        include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
+      const org = user?.memberships?.[0]?.organization;
 
-      if (!user?.brand?.stripeCustomerId) {
+      if (!org?.stripeCustomerId) {
         return { paymentMethods: [] };
       }
 
@@ -410,7 +422,7 @@ export class BillingService {
         async () => {
       const stripe = await this.getStripe();
           return stripe.paymentMethods.list({
-            customer: user.brand!.stripeCustomerId!,
+            customer: org!.stripeCustomerId!,
         type: 'card',
       });
         },
@@ -439,17 +451,17 @@ export class BillingService {
   }
 
   async addPaymentMethod(userId: string, paymentMethodId: string, setAsDefault: boolean = false) {
-      // Récupérer le brand de l'utilisateur
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { brand: true },
+        include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
+      const org = user?.memberships?.[0]?.organization;
 
-      if (!user?.brand) {
-      throw new NotFoundException('Brand not found for user');
+      if (!org) {
+      throw new NotFoundException('Organization not found for user');
       }
 
-      let customerId = user.brand.stripeCustomerId;
+      let customerId = org.stripeCustomerId;
 
     try {
       // Créer un customer Stripe si nécessaire
@@ -462,7 +474,7 @@ export class BillingService {
           email: user.email || undefined,
           metadata: {
             userId: user.id,
-                brandId: user.brand!.id,
+                organizationId: org!.id,
           },
         });
           },
@@ -471,9 +483,8 @@ export class BillingService {
 
         customerId = customer.id;
 
-        // Sauvegarder le customer ID
-        await this.prisma.brand.update({
-          where: { id: user.brand.id },
+        await this.prisma.organization.update({
+          where: { id: org!.id },
           data: { stripeCustomerId: customerId },
         });
       }
@@ -523,23 +534,23 @@ export class BillingService {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { brand: true },
+        include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
+      const org = user?.memberships?.[0]?.organization;
 
-      if (!user?.brand?.stripeCustomerId) {
+      if (!org?.stripeCustomerId) {
         throw new NotFoundException('Aucun compte de facturation trouvé');
       }
 
       const stripe = await this.getStripe();
 
-      // Verify that the payment method belongs to THIS brand's Stripe customer
       const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-      if (paymentMethod.customer !== user.brand.stripeCustomerId) {
+      if (paymentMethod.customer !== org.stripeCustomerId) {
         this.logger.warn('IDOR attempt: user tried to detach payment method belonging to another customer', {
           userId,
           paymentMethodId,
           requestedCustomer: paymentMethod.customer,
-          actualCustomer: user.brand.stripeCustomerId,
+          actualCustomer: org.stripeCustomerId,
         });
         throw new NotFoundException('Méthode de paiement non trouvée');
       }
@@ -560,13 +571,13 @@ export class BillingService {
 
   async getInvoices(userId: string, page: number = 1, limit: number = 20) {
     try {
-      // Récupérer le brand de l'utilisateur
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { brand: true },
+        include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
+      const org = user?.memberships?.[0]?.organization;
 
-      if (!user?.brand?.stripeCustomerId) {
+      if (!org?.stripeCustomerId) {
         return {
           invoices: [],
           pagination: {
@@ -580,8 +591,7 @@ export class BillingService {
         };
       }
 
-      // Récupérer les factures depuis Stripe avec résilience
-      const stripeCustomerId = user.brand!.stripeCustomerId!;
+      const stripeCustomerId = org!.stripeCustomerId!;
       const invoices = await this.executeWithResilience(
         async () => {
           const stripe = await this.getStripe();
@@ -634,14 +644,14 @@ export class BillingService {
    */
   async getSubscription(userId: string) {
     try {
-      // Récupérer le brand de l'utilisateur
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { brand: true },
+        include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
+      const org = user?.memberships?.[0]?.organization;
 
-      if (!user?.brandId || !user.brand) {
-        // Pas de brand = plan FREE par défaut (SINGLE SOURCE OF TRUTH: plan-config.ts)
+      if (!org) {
+        // Pas d'organization = plan FREE par défaut (SINGLE SOURCE OF TRUTH: plan-config.ts)
         const freePlanConfig = PLAN_CONFIGS[PlanTier.FREE];
         return {
           plan: 'free' as const,
@@ -680,30 +690,28 @@ export class BillingService {
         };
       }
 
-      const brand = user.brand;
-      
-      // Déterminer le plan depuis brand.plan ou subscriptionPlan (SINGLE SOURCE OF TRUTH: plan-config)
-      const plan = normalizePlanTier(brand.subscriptionPlan || brand.plan || 'free');
+      // Déterminer le plan depuis organization.plan (SINGLE SOURCE OF TRUTH: plan-config)
+      const plan = normalizePlanTier(org.plan || 'FREE');
 
-      // Déterminer le statut depuis subscriptionStatus ou Stripe
+      // Déterminer le statut depuis organization.status ou Stripe
       let status: 'active' | 'trialing' | 'past_due' | 'canceled' = 'active';
       
-      if (brand.subscriptionStatus) {
+      if (org.status) {
         const statusMap: Record<string, 'active' | 'trialing' | 'past_due' | 'canceled'> = {
           'ACTIVE': 'active',
-          'TRIALING': 'trialing',
-          'PAST_DUE': 'past_due',
+          'TRIAL': 'trialing',
+          'SUSPENDED': 'past_due',
           'CANCELED': 'canceled',
         };
-        status = statusMap[brand.subscriptionStatus] || 'active';
+        status = statusMap[org.status] || 'active';
       }
 
       // Récupérer les détails depuis Stripe si subscription ID existe
       let stripeSubscription: Stripe.Subscription | null = null;
-      if (brand.stripeSubscriptionId) {
+      if (org.stripeSubscriptionId) {
         try {
           const stripe = await this.getStripe();
-          stripeSubscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+          stripeSubscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId!);
           
           // Utiliser le statut Stripe si disponible
           if (stripeSubscription.status === 'active') {
@@ -717,7 +725,7 @@ export class BillingService {
           }
         } catch (stripeError) {
           this.logger.warn('Failed to retrieve Stripe subscription', {
-            subscriptionId: brand.stripeSubscriptionId,
+            subscriptionId: org.stripeSubscriptionId,
             userId,
             error: stripeError instanceof Error ? stripeError.message : String(stripeError),
           });
@@ -733,58 +741,33 @@ export class BillingService {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       
-      const [designsCount, teamMembersCount] = await Promise.all([
-        this.prisma.design.count({
-          where: {
-            brandId: brand.id,
-            createdAt: { gte: startOfMonth },
-          },
-        }),
-        this.prisma.user.count({
-          where: {
-            brandId: brand.id,
-          },
-        }),
-      ]);
+      const teamMembersCount = await this.prisma.organizationMember.count({
+        where: { organizationId: org.id, isActive: true },
+      });
 
       // Usage reel depuis les tables de tracking
-      const [renders3DCount, storageBytesResult, apiCallsResult] = await Promise.all([
-        // Renders 3D: count from UsageRecord for current month
+      const usageResults = await Promise.all([
         this.prisma.usageRecord.aggregate({
-          where: { brandId: brand.id, type: 'renders_3d', recordedAt: { gte: startOfMonth } },
-          _sum: { count: true },
+          where: { organizationId: org.id, type: 'AGENT_MESSAGE' as any, periodStart: { gte: startOfMonth } },
+          _sum: { quantity: true },
         }),
-        // Storage: sum of asset file sizes for the brand
-        this.prisma.assetFile.aggregate({
-          where: { brandId: brand.id },
-          _sum: { sizeBytes: true },
-        }),
-        // API calls: count from UsageRecord for current month
         this.prisma.usageRecord.aggregate({
-          where: { brandId: brand.id, type: 'api_calls', recordedAt: { gte: startOfMonth } },
-          _sum: { count: true },
+          where: { organizationId: org.id, type: 'API_CALL' as any, periodStart: { gte: startOfMonth } },
+          _sum: { quantity: true },
         }),
       ]);
 
-      // AI usage from AIQuota table
-      const aiQuota = await this.prisma.aIQuota.findFirst({
-        where: {
-          OR: [
-            { brandId: brand.id },
-            { userId },
-          ],
-        },
-      }).catch(() => null);
+      const [messagesResult, apiCallsResult] = usageResults;
 
       const currentUsage = {
-        designs: designsCount,
-        renders2D: brand.monthlyGenerations || 0,
-        renders3D: renders3DCount._sum.count || 0,
-        aiGenerations: aiQuota?.monthlyUsed ?? 0,
-        storageGB: Math.round(((storageBytesResult._sum.sizeBytes || 0) / (1024 * 1024 * 1024)) * 100) / 100,
-        apiCalls: apiCallsResult._sum.count || 0,
+        designs: 0,
+        renders2D: 0,
+        renders3D: 0,
+        aiGenerations: messagesResult._sum.quantity || 0,
+        storageGB: 0,
+        apiCalls: apiCallsResult._sum.quantity || 0,
         teamMembers: teamMembersCount,
-        aiTokens: aiQuota?.usedTokens ?? 0,
+        aiTokens: 0,
       };
 
       // Commission rate from plan-config
@@ -809,16 +792,16 @@ export class BillingService {
         currentPeriodStart: stripeSubscription?.current_period_start
           ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
           : undefined,
-        currentPeriodEnd: brand.planExpiresAt?.toISOString() || 
+        currentPeriodEnd: org.planPeriodEnd?.toISOString() || 
                    (stripeSubscription?.current_period_end 
                      ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
                      : undefined),
-        expiresAt: brand.planExpiresAt?.toISOString() || 
+        expiresAt: org.planPeriodEnd?.toISOString() || 
                    (stripeSubscription?.current_period_end 
                      ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
                      : undefined),
         cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end ?? false,
-        stripeSubscriptionId: brand.stripeSubscriptionId || undefined,
+        stripeSubscriptionId: org.stripeSubscriptionId || undefined,
       };
     } catch (error) {
       this.logger.error('Error getting subscription', error, { userId });
@@ -830,18 +813,18 @@ export class BillingService {
     try {
       const stripe = await this.getStripe();
       
-      // Récupérer le customer_id depuis la base de données
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { brand: true },
+        include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
+      const org = user?.memberships?.[0]?.organization;
 
-      if (!user?.brand?.stripeCustomerId) {
+      if (!org?.stripeCustomerId) {
         throw new NotFoundException('Stripe customer ID not found');
       }
       
       const session = await stripe.billingPortal.sessions.create({
-        customer: user.brand.stripeCustomerId,
+        customer: org.stripeCustomerId,
         return_url: `${this.configService.get<string>('app.frontendUrl')}/dashboard/billing`,
       });
 
@@ -893,21 +876,20 @@ export class BillingService {
     // 1. Récupérer l'utilisateur et son abonnement actuel
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { brand: true },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
     });
+    const org = user?.memberships?.[0]?.organization;
 
-    if (!user?.brand) {
-      throw new NotFoundException('User brand not found');
+    if (!org) {
+      throw new NotFoundException('User organization not found');
     }
 
-    const { brand } = user;
-    
-    if (!brand.stripeCustomerId || !brand.stripeSubscriptionId) {
+    if (!org.stripeCustomerId || !org.stripeSubscriptionId) {
       throw new BadRequestException('User does not have an active subscription. Please subscribe first.');
     }
 
     // 2. Récupérer l'abonnement Stripe actuel
-    const currentSubscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+    const currentSubscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId!);
     
     if (currentSubscription.status === 'canceled' || currentSubscription.status === 'incomplete_expired') {
       throw new BadRequestException('Cannot change plan for canceled subscription. Please create a new subscription.');
@@ -980,7 +962,7 @@ export class BillingService {
     if (prorationBehavior === 'create_prorations') {
       try {
         const preview = await stripe.invoices.retrieveUpcoming({
-          customer: brand.stripeCustomerId,
+          customer: org.stripeCustomerId!,
           subscription: currentSubscription.id,
           subscription_items: [
             {
@@ -1097,42 +1079,31 @@ export class BillingService {
       }
 
       // 10. Mettre à jour la base de données locale avec protection transactionnelle
-      const planMapping: Record<string, string> = {
+      const planMapping: Record<string, Plan> = {
         'starter': 'STARTER',
-        'professional': 'PROFESSIONAL',
+        'professional': 'PRO',
         'business': 'BUSINESS',
         'enterprise': 'ENTERPRISE',
       };
 
       try {
-        // BILLING FIX: For scheduled downgrades, do NOT update plan in DB now.
-        // The plan change will take effect at period end and be synced by the
-        // customer.subscription.updated webhook when Stripe actually switches the price.
-        // Updating the plan now would drop user limits immediately while they're still
-        // paying for the current (higher) plan until period end.
         if (isUpgrade || immediateChange) {
-          const planConfig = getPlanConfig(normalizePlanTier(newPlanId));
-          const whiteLabel = planConfig.limits.whiteLabel === true;
           await this.prisma.$transaction(async (tx) => {
-            await tx.brand.update({
-              where: { id: brand.id },
+            await tx.organization.update({
+              where: { id: org.id },
               data: {
-                plan: newPlanId,
-                subscriptionPlan: (planMapping[newPlanId] || 'STARTER') as SubscriptionPlan,
-                whiteLabel,
-                ...(isUpgrade ? { subscriptionStatus: 'ACTIVE' } : {}),
+                plan: planMapping[newPlanId] || 'STARTER',
+                ...(isUpgrade ? { status: 'ACTIVE' as OrgStatus } : {}),
               },
             });
           });
         } else {
-          // Scheduled downgrade: only store metadata for UI display (not the plan itself)
-          this.logger.log(`Scheduled downgrade for brand ${brand.id}: plan will change to ${newPlanId} at period end. DB plan unchanged.`);
+          this.logger.log(`Scheduled downgrade for org ${org.id}: plan will change to ${newPlanId} at period end. DB plan unchanged.`);
         }
       } catch (dbError) {
-        // CRITICAL: Stripe was updated but DB failed - log for manual reconciliation
         this.logger.error('CRITICAL: Stripe subscription updated but database sync failed', {
           userId,
-          brandId: brand.id,
+          organizationId: org.id,
           stripeSubscriptionId: updatedSubscription.id,
           newPlan: newPlanId,
           error: dbError instanceof Error ? dbError.message : 'Unknown',
@@ -1157,9 +1128,9 @@ export class BillingService {
       try {
         await this.auditLogsService.logSuccess(AuditEventType.BILLING_UPDATED, 'plan_change', {
           userId,
-          brandId: brand.id,
+          brandId: org.id,
           resourceType: 'subscription',
-          resourceId: brand.stripeSubscriptionId || undefined,
+          resourceId: org.stripeSubscriptionId || undefined,
           metadata: {
             previousPlan: currentPlanInfo.planName,
             newPlan: newPlanId,
@@ -1290,14 +1261,15 @@ export class BillingService {
     
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { brand: true },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
     });
+    const previewOrg = user?.memberships?.[0]?.organization;
 
-    if (!user?.brand?.stripeCustomerId || !user?.brand?.stripeSubscriptionId) {
+    if (!previewOrg?.stripeCustomerId || !previewOrg?.stripeSubscriptionId) {
       throw new BadRequestException('User does not have an active subscription');
     }
 
-    const currentSubscription = await stripe.subscriptions.retrieve(user.brand.stripeSubscriptionId);
+    const currentSubscription = await stripe.subscriptions.retrieve(previewOrg.stripeSubscriptionId);
     const currentPriceId = currentSubscription.items.data[0]?.price.id;
     const currentPlanInfo = await this.getPlanFromPriceId(currentPriceId);
     
@@ -1327,7 +1299,7 @@ export class BillingService {
     if (currentPriceId !== newPriceId) {
       try {
         const preview = await stripe.invoices.retrieveUpcoming({
-          customer: user.brand.stripeCustomerId,
+          customer: previewOrg.stripeCustomerId!,
           subscription: currentSubscription.id,
           subscription_items: [
             {
@@ -1388,11 +1360,12 @@ export class BillingService {
   }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { brand: true },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
     });
+    const impactOrg = user?.memberships?.[0]?.organization;
 
-    if (!user?.brand) {
-      throw new NotFoundException('User brand not found');
+    if (!impactOrg) {
+      throw new NotFoundException('User organization not found');
     }
 
     // Limites par plan - Source: @/libs/plans (SINGLE SOURCE OF TRUTH)
@@ -1426,25 +1399,25 @@ export class BillingService {
       description: string;
     }> = [];
 
-    // Vérifier les produits
-    const productCount = await this.prisma.product.count({
-      where: { brandId: user.brand.id, deletedAt: null },
+    // Vérifier les agents (V2 equivalent of products)
+    const agentCount = await this.prisma.agent.count({
+      where: { organizationId: impactOrg.id, deletedAt: null },
     });
     
-    if (newLimits.products !== -1 && productCount > newLimits.products) {
+    if (newLimits.products !== -1 && agentCount > newLimits.products) {
       impactedResources.push({
-        resource: 'products',
-        current: productCount,
+        resource: 'agents',
+        current: agentCount,
         newLimit: newLimits.products,
-        excess: productCount - newLimits.products,
+        excess: agentCount - newLimits.products,
         action: 'readonly',
-        description: `${productCount - newLimits.products} produits passeront en lecture seule. Vous ne pourrez pas en créer de nouveaux.`,
+        description: `${agentCount - newLimits.products} agents passeront en lecture seule. Vous ne pourrez pas en créer de nouveaux.`,
       });
     }
 
     // Vérifier les membres d'équipe
-    const teamCount = await this.prisma.user.count({
-      where: { brandId: user.brand.id },
+    const teamCount = await this.prisma.organizationMember.count({
+      where: { organizationId: impactOrg.id, isActive: true },
     });
     
     if (newLimits.teamMembers !== -1 && teamCount > newLimits.teamMembers) {
@@ -1463,27 +1436,26 @@ export class BillingService {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
     
-    const designsThisMonth = await this.prisma.design.count({
+    const conversationsThisMonth = await this.prisma.conversation.count({
       where: {
-        userId,
+        organizationId: impactOrg.id,
         createdAt: { gte: startOfMonth },
-        deletedAt: null,
       },
     });
     
-    if (newLimits.designsPerMonth !== -1 && designsThisMonth > newLimits.designsPerMonth) {
+    if (newLimits.designsPerMonth !== -1 && conversationsThisMonth > newLimits.designsPerMonth) {
       impactedResources.push({
-        resource: 'designs_monthly',
-        current: designsThisMonth,
+        resource: 'conversations_monthly',
+        current: conversationsThisMonth,
         newLimit: newLimits.designsPerMonth,
-        excess: designsThisMonth - newLimits.designsPerMonth,
+        excess: conversationsThisMonth - newLimits.designsPerMonth,
         action: 'readonly',
-        description: `Vous avez déjà ${designsThisMonth} designs ce mois. Avec le nouveau plan, vous ne pourrez plus créer de designs jusqu'au mois prochain.`,
+        description: `Vous avez déjà ${conversationsThisMonth} conversations ce mois. Avec le nouveau plan, vous ne pourrez plus en créer jusqu'au mois prochain.`,
       });
     }
 
     // Déterminer les fonctionnalités perdues
-    const currentPlanName = normalizePlanTier(user.brand.subscriptionPlan || user.brand.plan || 'starter');
+    const currentPlanName = normalizePlanTier(impactOrg.plan || 'FREE');
     const currentLimits = getDowngradeLimits(currentPlanName);
     
     const lostFeatures = currentLimits.features.filter(
@@ -1542,19 +1514,18 @@ export class BillingService {
     
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { brand: true },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
     });
+    const cancelOrg = user?.memberships?.[0]?.organization;
 
-    if (!user?.brand?.stripeSubscriptionId) {
+    if (!cancelOrg?.stripeSubscriptionId) {
       throw new BadRequestException('No active subscription found');
     }
 
     try {
-      const subscription = await stripe.subscriptions.retrieve(user.brand.stripeSubscriptionId);
+      const subscription = await stripe.subscriptions.retrieve(cancelOrg.stripeSubscriptionId!);
       
-      // Vérifier s'il y a un changement de prix programmé via schedule
       if (subscription.schedule) {
-        // Annuler le schedule et garder l'abonnement actuel
         await stripe.subscriptionSchedules.cancel(subscription.schedule as string);
         
         this.logger.log('Cancelled scheduled downgrade', { userId, subscriptionId: subscription.id });
@@ -1562,11 +1533,10 @@ export class BillingService {
         return {
           success: true,
           message: 'Le downgrade programmé a été annulé. Vous conservez votre plan actuel.',
-          currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
+          currentPlan: cancelOrg.plan || 'unknown',
         };
       }
 
-      // Vérifier s'il y a cancel_at_period_end configuré (ancienne méthode)
       if (subscription.cancel_at_period_end) {
         const _updatedSubscription = await stripe.subscriptions.update(subscription.id, {
           cancel_at_period_end: false,
@@ -1577,13 +1547,11 @@ export class BillingService {
         return {
           success: true,
           message: 'L\'annulation programmée a été annulée. Votre abonnement continuera.',
-          currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
+          currentPlan: cancelOrg.plan || 'unknown',
         };
       }
 
-      // Vérifier si le metadata contient une info de downgrade
       if (subscription.metadata?.pendingDowngradeTo) {
-        // Nettoyer le metadata
         await stripe.subscriptions.update(subscription.id, {
           metadata: {
             ...subscription.metadata,
@@ -1595,14 +1563,14 @@ export class BillingService {
         return {
           success: true,
           message: 'Le downgrade programmé a été annulé.',
-          currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
+          currentPlan: cancelOrg.plan || 'unknown',
         };
       }
 
       return {
         success: false,
         message: 'Aucun downgrade programmé trouvé pour cet abonnement.',
-        currentPlan: user.brand.subscriptionPlan || user.brand.plan || 'unknown',
+        currentPlan: cancelOrg.plan || 'unknown',
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1627,10 +1595,11 @@ export class BillingService {
     
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { brand: true },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
     });
+    const subOrg = user?.memberships?.[0]?.organization;
 
-    if (!user?.brand?.stripeSubscriptionId) {
+    if (!subOrg?.stripeSubscriptionId) {
       throw new BadRequestException('No active subscription found');
     }
 
@@ -1638,18 +1607,15 @@ export class BillingService {
       let subscription: Stripe.Subscription;
       
       if (immediate) {
-        // Annulation immédiate - l'accès est coupé tout de suite
-        subscription = await stripe.subscriptions.cancel(user.brand.stripeSubscriptionId);
+        subscription = await stripe.subscriptions.cancel(subOrg.stripeSubscriptionId!);
         
-        await this.prisma.brand.update({
-          where: { id: user.brand.id },
+        await this.prisma.organization.update({
+          where: { id: subOrg.id },
           data: {
-            subscriptionStatus: 'CANCELED',
-            plan: 'free',
-            subscriptionPlan: 'FREE' as SubscriptionPlan,
+            status: 'CANCELED' as OrgStatus,
+            plan: 'FREE' as Plan,
             stripeSubscriptionId: null,
-            planExpiresAt: null,
-            whiteLabel: false,
+            planPeriodEnd: null,
           },
         });
 
@@ -1660,8 +1626,7 @@ export class BillingService {
           message: 'Votre abonnement a été annulé immédiatement. Vous avez été basculé sur le plan gratuit.',
         };
       } else {
-        // Annulation à la fin de la période de facturation
-        subscription = await stripe.subscriptions.update(user.brand.stripeSubscriptionId, {
+        subscription = await stripe.subscriptions.update(subOrg.stripeSubscriptionId!, {
           cancel_at_period_end: true,
         });
 
@@ -1704,17 +1669,18 @@ export class BillingService {
     
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { brand: true },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
     });
+    const schedOrg = user?.memberships?.[0]?.organization;
 
-    if (!user?.brand) {
-      throw new NotFoundException('User brand not found');
+    if (!schedOrg) {
+      throw new NotFoundException('User organization not found');
     }
 
-    const currentPlan = normalizePlanTier(user.brand.subscriptionPlan || user.brand.plan || 'starter');
-    const currentStatus = user.brand.subscriptionStatus || 'unknown';
+    const currentPlan = normalizePlanTier(schedOrg.plan || 'FREE');
+    const currentStatus = schedOrg.status || 'unknown';
 
-    if (!user.brand.stripeSubscriptionId) {
+    if (!schedOrg.stripeSubscriptionId) {
       return {
         hasScheduledChanges: false,
         currentPlan,
@@ -1723,7 +1689,7 @@ export class BillingService {
     }
 
     try {
-      const subscription = await stripe.subscriptions.retrieve(user.brand.stripeSubscriptionId);
+      const subscription = await stripe.subscriptions.retrieve(schedOrg.stripeSubscriptionId!);
 
       // Vérifier cancel_at_period_end
       if (subscription.cancel_at_period_end) {
@@ -1906,18 +1872,17 @@ export class BillingService {
 
       // Log to audit trail
       try {
-        // Find the brand associated with this subscription
-        const brand = await this.prisma.brand.findFirst({
+        const refundOrg = await this.prisma.organization.findFirst({
           where: { stripeSubscriptionId: subscriptionId },
         });
-        if (brand) {
+        if (refundOrg) {
           await this.auditLogsService.logSuccess(
             AuditEventType.BILLING_UPDATED,
             'subscription.refunded',
             {
               resourceType: 'subscription',
               resourceId: subscriptionId,
-              brandId: brand.id,
+              brandId: refundOrg.id,
               metadata: {
                 refundId: refund.id,
                 amount: refund.amount,
@@ -1952,61 +1917,58 @@ export class BillingService {
    * Synchronise le statut d'abonnement avec Stripe
    * Utile pour corriger les incohérences
    */
-  async syncSubscriptionStatus(brandId: string): Promise<{ synced: boolean; status?: string }> {
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId },
+  async syncSubscriptionStatus(organizationId: string): Promise<{ synced: boolean; status?: string }> {
+    const syncOrg = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
     });
 
-    if (!brand?.stripeSubscriptionId) {
+    if (!syncOrg?.stripeSubscriptionId) {
       return { synced: false };
     }
 
     try {
       const stripe = await this.getStripe();
-      const subscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+      const subscription = await stripe.subscriptions.retrieve(syncOrg.stripeSubscriptionId!);
 
-      // Map Stripe status to our status
-      const statusMap: Record<string, string> = {
+      const statusMap: Record<string, OrgStatus> = {
         active: 'ACTIVE',
-        trialing: 'TRIALING',
-        past_due: 'PAST_DUE',
+        trialing: 'TRIAL',
+        past_due: 'SUSPENDED',
         canceled: 'CANCELED',
-        unpaid: 'PAST_DUE',
-        incomplete: 'PAST_DUE',
+        unpaid: 'SUSPENDED',
+        incomplete: 'SUSPENDED',
         incomplete_expired: 'CANCELED',
-        paused: 'PAST_DUE',
+        paused: 'SUSPENDED',
       };
 
       const newStatus = statusMap[subscription.status] || 'ACTIVE';
 
-      // Also sync plan from Stripe subscription items
       const planItem = subscription.items?.data?.find(
         (item) => !item.price?.metadata?.addon,
       );
-      const planName = planItem?.price?.metadata?.plan || brand.plan || 'free';
-      const planToEnum: Record<string, string> = {
-        free: 'FREE', starter: 'STARTER', professional: 'PROFESSIONAL',
-        business: 'BUSINESS', enterprise: 'ENTERPRISE',
+      const planName = planItem?.price?.metadata?.plan || syncOrg.plan || 'FREE';
+      const planToEnum: Record<string, Plan> = {
+        free: 'FREE', starter: 'STARTER', professional: 'PRO',
+        pro: 'PRO', business: 'BUSINESS', enterprise: 'ENTERPRISE',
       };
-      const planExpiresAt = subscription.current_period_end
+      const planPeriodEnd = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000)
         : null;
 
-      await this.prisma.brand.update({
-        where: { id: brandId },
+      await this.prisma.organization.update({
+        where: { id: organizationId },
         data: {
-          subscriptionStatus: newStatus as SubscriptionStatus,
-          plan: planName.toLowerCase(),
-          subscriptionPlan: (planToEnum[planName.toLowerCase()] || 'FREE') as SubscriptionPlan,
-          planExpiresAt,
+          status: newStatus,
+          plan: planToEnum[planName.toLowerCase()] || 'FREE',
+          planPeriodEnd,
         },
       });
 
-      this.logger.log(`Synced subscription for brand ${brandId}: status=${newStatus}, plan=${planName}`);
+      this.logger.log(`Synced subscription for org ${organizationId}: status=${newStatus}, plan=${planName}`);
 
       return { synced: true, status: newStatus };
     } catch (error) {
-      this.logger.error(`Failed to sync subscription status for brand ${brandId}`, error);
+      this.logger.error(`Failed to sync subscription status for org ${organizationId}`, error);
       return { synced: false };
     }
   }

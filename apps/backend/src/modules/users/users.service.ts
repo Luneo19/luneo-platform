@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
@@ -49,32 +48,23 @@ export class UsersService {
             lastName: true,
             avatar: true,
             role: true,
-            brandId: true,
+            phone: true,
+            timezone: true,
             createdAt: true,
             updatedAt: true,
-            brand: {
+            memberships: {
+              where: { isActive: true },
               select: {
-                id: true,
-                name: true,
-                logo: true,
+                organizationId: true,
+                organization: {
+                  select: {
+                    id: true,
+                    name: true,
+                    logo: true,
+                  },
+                },
               },
-            },
-            userQuota: {
-              select: {
-                id: true,
-                monthlyLimit: true,
-                monthlyUsed: true,
-                costLimitCents: true,
-                costUsedCents: true,
-                resetAt: true,
-              },
-            },
-            userProfile: {
-              select: {
-                phone: true,
-                website: true,
-                timezone: true,
-              },
+              take: 1,
             },
           },
         });
@@ -95,29 +85,17 @@ export class UsersService {
   async updateProfile(userId: string, updateData: UpdateProfileDto) {
     const { firstName, lastName, avatar, phone, website, timezone } = updateData;
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          firstName,
-          lastName,
-          avatar,
-        },
-      });
-      const profilePayload =
-        phone !== undefined || website !== undefined || timezone !== undefined
-          ? { phone: phone ?? undefined, website: website ?? undefined, timezone: timezone ?? undefined }
-          : undefined;
-      if (profilePayload) {
-        await tx.userProfile.upsert({
-          where: { userId },
-          create: { userId, ...profilePayload },
-          update: profilePayload,
-        });
-      }
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName,
+        lastName,
+        avatar,
+        ...(phone !== undefined && { phone }),
+        ...(timezone !== undefined && { timezone }),
+      },
     });
 
-    // CACHE-01: Invalider le cache utilisateur après modification
     await this.cache.invalidate(userId, 'user');
     this.logger.debug(`Cache invalidated for user:${userId}`);
 
@@ -130,22 +108,17 @@ export class UsersService {
         lastName: true,
         avatar: true,
         role: true,
-        brandId: true,
+        phone: true,
+        timezone: true,
         createdAt: true,
         updatedAt: true,
-        brand: { select: { id: true, name: true, logo: true } },
-        userQuota: {
+        memberships: {
+          where: { isActive: true },
           select: {
-            id: true,
-            monthlyLimit: true,
-            monthlyUsed: true,
-            costLimitCents: true,
-            costUsedCents: true,
-            resetAt: true,
+            organizationId: true,
+            organization: { select: { id: true, name: true, logo: true } },
           },
-        },
-        userProfile: {
-          select: { phone: true, website: true, timezone: true },
+          take: 1,
         },
       },
     });
@@ -154,19 +127,36 @@ export class UsersService {
   }
 
   /**
-   * CACHE-01: Récupère le quota utilisateur avec cache Redis (TTL 1min)
-   * TTL court car les quotas changent fréquemment
+   * CACHE-01: Récupère le quota utilisateur via Organization (TTL 1min)
    */
   async getUserQuota(userId: string) {
     const quota = await this.cache.get(
       `quota:${userId}`,
       'user',
       async () => {
-        return this.prisma.userQuota.findUnique({
-          where: { userId },
+        const membership = await this.prisma.organizationMember.findFirst({
+          where: { userId, isActive: true },
+          include: {
+            organization: {
+              select: {
+                id: true,
+                conversationsUsed: true,
+                conversationsLimit: true,
+                agentsUsed: true,
+                agentsLimit: true,
+                knowledgeSourcesUsed: true,
+                knowledgeSourcesLimit: true,
+                teamMembersUsed: true,
+                teamMembersLimit: true,
+                currentMonthSpend: true,
+                monthlyBudgetLimit: true,
+              },
+            },
+          },
         });
+        return membership?.organization ?? null;
       },
-      { ttl: 60, tags: [`user:${userId}`, `quota:${userId}`] } // 1 minute
+      { ttl: 60, tags: [`user:${userId}`, `quota:${userId}`] }
     );
 
     if (!quota) {
@@ -177,12 +167,15 @@ export class UsersService {
   }
 
   async resetUserQuota(userId: string) {
-    return this.prisma.userQuota.update({
-      where: { userId },
+    const membership = await this.prisma.organizationMember.findFirst({
+      where: { userId, isActive: true },
+    });
+    if (!membership) throw new NotFoundException('Organization not found');
+    return this.prisma.organization.update({
+      where: { id: membership.organizationId },
       data: {
-        monthlyUsed: 0,
-        costUsedCents: 0,
-        resetAt: new Date(),
+        conversationsUsed: 0,
+        currentMonthSpend: 0,
       },
     });
   }
@@ -221,13 +214,12 @@ export class UsersService {
   }
 
   async getSessions(userId: string) {
-    // Utiliser RefreshToken comme sessions
     const tokens = await this.prisma.refreshToken.findMany({
       where: {
         userId,
         expiresAt: { gt: new Date() },
         revokedAt: null,
-        usedAt: null, // Only show active (unused) tokens as sessions
+        isRevoked: false,
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -235,20 +227,17 @@ export class UsersService {
         id: true,
         createdAt: true,
         expiresAt: true,
-        // SECURITY FIX: Include real session metadata
-        ipAddress: true,
-        userAgent: true,
-        deviceInfo: true,
+        deviceId: true,
+        deviceName: true,
       },
     });
 
     return {
       sessions: tokens.map((token, index) => ({
         id: token.id,
-        // SECURITY FIX: Return real metadata instead of 'Unknown'
-        device: token.deviceInfo || this.parseDevice(token.userAgent),
-        browser: this.parseBrowser(token.userAgent),
-        ip: token.ipAddress ? this.maskIp(token.ipAddress) : 'Unknown',
+        device: this.parseDevice(token.deviceName),
+        browser: this.parseBrowser(token.deviceName),
+        ip: token.deviceId ? this.maskIp(token.deviceId) : 'Unknown',
         current: index === 0,
         lastActive: token.createdAt,
         createdAt: token.createdAt,

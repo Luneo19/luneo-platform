@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -124,9 +123,7 @@ export class TokenService {
         userId,
         token,
         expiresAt,
-        // SEC-08: Si family fourni, utiliser la même famille (rotation)
-        // family field removed in V2
-        // SECURITY FIX: Store session metadata for suspicious activity detection
+        ...(family && { deviceId: family }),
         ...(metadata?.ipAddress && { deviceId: metadata.ipAddress }),
         ...(metadata?.userAgent && { deviceName: metadata.userAgent.substring(0, 200) }),
       },
@@ -163,93 +160,83 @@ export class TokenService {
         secret,
       });
 
-      // Check if token exists in database
       const tokenRecord = await this.prisma.refreshToken.findUnique({
         where: { token: refreshToken },
-        include: {
-          user: {
-            include: {
-              memberships: { where: { isActive: true }, include: { organization: true }, take: 1 },
-            },
-          },
-        },
       });
 
       if (!tokenRecord) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      // SEC-08: Détection de réutilisation de token
-      // Si le token a déjà été utilisé, c'est une potentielle attaque
       if (tokenRecord.isRevoked || tokenRecord.revokedAt) {
         this.logger.warn(
           `Refresh token reuse detected for user ${tokenRecord.userId}. ` +
-          `Token family ${tokenRecord?.deviceId} will be invalidated. ` +
+          `Token device ${tokenRecord.deviceId} will be invalidated. ` +
           `Potential token theft attempt.`
         );
         
-        // Invalider toute la famille de tokens (sécurité)
         await this.prisma.refreshToken.updateMany({
-          where: { family: tokenRecord?.deviceId },
+          where: { userId: tokenRecord.userId, deviceId: tokenRecord.deviceId },
           data: { revokedAt: new Date() },
         });
         
         throw new UnauthorizedException('Refresh token has been revoked. Please login again.');
       }
 
-      // Vérifier expiration
       if (tokenRecord.expiresAt < new Date()) {
         throw new UnauthorizedException('Refresh token expired');
       }
 
-      // SECURITY FIX: Verify user is still active before allowing token refresh
-      if (tokenRecord.user.deletedAt !== null) {
+      const tokenUser = await this.prisma.user.findUnique({
+        where: { id: tokenRecord.userId },
+        include: {
+          memberships: { where: { isActive: true }, include: { organization: true }, take: 1 },
+        },
+      });
+
+      if (!tokenUser) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      if (tokenUser.deletedAt !== null) {
         this.logger.warn(`Token refresh denied for inactive user ${tokenRecord.userId}`);
         throw new UnauthorizedException('User account is inactive');
       }
 
-      // SECURITY FIX: IP/User-Agent binding - warn on suspicious changes
-      if (metadata?.ipAddress && tokenRecord.ipAddress && metadata.ipAddress !== tokenRecord.ipAddress) {
+      if (metadata?.ipAddress && tokenRecord.deviceId && metadata.ipAddress !== tokenRecord.deviceId) {
         this.logger.warn(
-          `Refresh token IP mismatch for user ${tokenRecord.userId}: ` +
-          `original=${tokenRecord.ipAddress}, current=${metadata.ipAddress}. ` +
-          `Token family: ${tokenRecord?.deviceId}`
+          `Refresh token device mismatch for user ${tokenRecord.userId}: ` +
+          `original=${tokenRecord.deviceId}, current=${metadata.ipAddress}. `
         );
-        // Note: We log but don't block (IPs change legitimately with mobile/VPN).
-        // For high-security mode, uncomment the line below:
-        // throw new UnauthorizedException('Session security violation. Please login again.');
       }
 
-      // Generate new tokens
       const tokens = await this.generateTokens(
-        tokenRecord.user.id,
-        tokenRecord.user.email,
-        tokenRecord.user.role,
+        tokenUser.id,
+        tokenUser.email,
+        tokenUser.role,
       );
 
-      // SEC-08: Marquer l'ancien token comme utilisé (pas supprimer, pour détecter réutilisation)
       await this.prisma.refreshToken.update({
         where: { id: tokenRecord.id },
         data: { isRevoked: true },
       });
 
-      // Save new refresh token with same family and updated metadata
       await this.saveRefreshToken(
-        tokenRecord.user.id, 
+        tokenUser.id, 
         tokens.refreshToken,
-        tokenRecord.// family removed, // Conserver la famille pour traçabilité
-        metadata, // SECURITY FIX: Propagate session metadata
+        tokenRecord.deviceId ?? undefined,
+        metadata,
       );
 
       return {
         user: {
-          id: tokenRecord.user.id,
-          email: tokenRecord.user.email,
-          firstName: tokenRecord.user.firstName,
-          lastName: tokenRecord.user.lastName,
-          role: tokenRecord.user.role,
-          organizationId: tokenRecord.user.memberships?.[0]?.organizationId ?? null,
-          organization: tokenRecord.user.memberships?.[0]?.organization ?? null,
+          id: tokenUser.id,
+          email: tokenUser.email,
+          firstName: tokenUser.firstName,
+          lastName: tokenUser.lastName,
+          role: tokenUser.role,
+          organizationId: tokenUser.memberships?.[0]?.organizationId ?? null,
+          organization: tokenUser.memberships?.[0]?.organization ?? null,
         },
         ...tokens,
       };

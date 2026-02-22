@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Controller,
   Get,
@@ -48,12 +47,12 @@ export class AdminController {
   ) {}
 
   // ========================================
-  // TENANTS (BRANDS) - Platform admin view
+  // TENANTS (ORGANIZATIONS) - Platform admin view
   // ========================================
 
   @Get('tenants')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all tenants (brands) for platform admin' })
+  @ApiOperation({ summary: 'List all tenants (organizations) for platform admin' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -84,20 +83,20 @@ export class AdminController {
 
   @Get('brands/:brandId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get brand detail with full relations' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
-  @ApiResponse({ status: 200, description: 'Brand detail' })
-  @ApiResponse({ status: 404, description: 'Brand not found' })
+  @ApiOperation({ summary: 'Get organization detail with full relations' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
+  @ApiResponse({ status: 200, description: 'Organization detail' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
   async getBrandDetail(@Param('brandId') brandId: string) {
     return this.adminService.getBrandDetail(brandId);
   }
 
   @Patch('brands/:brandId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update brand details (admin)' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
-  @ApiResponse({ status: 200, description: 'Brand updated' })
-  @ApiResponse({ status: 404, description: 'Brand not found' })
+  @ApiOperation({ summary: 'Update organization details (admin)' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
+  @ApiResponse({ status: 200, description: 'Organization updated' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
   async updateBrand(
     @Param('brandId') brandId: string,
     @Body()
@@ -127,9 +126,9 @@ export class AdminController {
 
   @Post('brands/:brandId/suspend')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Suspend a brand (disable all access)' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
-  @ApiResponse({ status: 200, description: 'Brand suspended' })
+  @ApiOperation({ summary: 'Suspend an organization (disable all access)' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
+  @ApiResponse({ status: 200, description: 'Organization suspended' })
   async suspendBrand(
     @Param('brandId') brandId: string,
     @Body('reason') reason?: string,
@@ -139,9 +138,9 @@ export class AdminController {
 
   @Post('brands/:brandId/unsuspend')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Unsuspend a brand (restore access)' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
-  @ApiResponse({ status: 200, description: 'Brand unsuspended' })
+  @ApiOperation({ summary: 'Unsuspend an organization (restore access)' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
+  @ApiResponse({ status: 200, description: 'Organization unsuspended' })
   async unsuspendBrand(@Param('brandId') brandId: string) {
     return this.adminService.unsuspendBrand(brandId);
   }
@@ -156,13 +155,13 @@ export class AdminController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'role', required: false, enum: UserRole })
+  @ApiQuery({ name: 'role', required: false, type: String })
   @ApiResponse({ status: 200, description: 'List of customers' })
   async getCustomers(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
-    @Query('role') role?: UserRole,
+    @Query('role') role?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
@@ -203,8 +202,8 @@ export class AdminController {
 
   @Post('brands')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new brand (admin)' })
-  @ApiResponse({ status: 201, description: 'Brand created' })
+  @ApiOperation({ summary: 'Create a new organization (admin)' })
+  @ApiResponse({ status: 201, description: 'Organization created' })
   async createBrand(
     @Body() body: { name: string; slug: string; userId: string },
   ) {
@@ -246,7 +245,7 @@ export class AdminController {
 
   @Get('analytics/ar-studio')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get AR Studio usage metrics across all brands' })
+  @ApiOperation({ summary: 'Get AR Studio usage metrics across all organizations' })
   @ApiQuery({ name: 'period', required: false, description: 'Period in days (default: 30)' })
   @ApiResponse({ status: 200, description: 'AR Studio metrics' })
   async getARStudioMetrics(@Query('period') period?: string) {
@@ -274,10 +273,8 @@ export class AdminController {
     @Res() res: Response,
   ) {
     const result = await this.adminService.exportData(format, type);
-
     res.setHeader('Content-Type', result.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-
     return res.send(result.content);
   }
 
@@ -314,35 +311,27 @@ export class AdminController {
   }
 
   @Post('create-admin')
-  /** @Public: setup endpoint; protected by X-Setup-Key secret */
   @Public()
-  @ApiOperation({ summary: 'Créer l\'admin (endpoint de setup - sécurisé avec clé secrète)' })
-  @ApiHeader({ name: 'X-Setup-Key', description: 'Clé secrète pour créer l\'admin' })
-  @ApiResponse({ status: 201, description: 'Admin créé avec succès' })
-  @ApiResponse({ status: 401, description: 'Clé secrète invalide' })
+  @ApiOperation({ summary: 'Create the admin (setup endpoint - secured with secret key)' })
+  @ApiHeader({ name: 'X-Setup-Key', description: 'Secret key for admin creation' })
+  @ApiResponse({ status: 201, description: 'Admin created successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid secret key' })
   async createAdmin(@Headers('x-setup-key') setupKey: string) {
-    // Vérifier la clé secrète (obligatoire en variable d'environnement)
     const validKey = this.configService.get<string>('SETUP_SECRET_KEY');
-    
     if (!validKey) {
       throw new UnauthorizedException('SETUP_SECRET_KEY environment variable is not configured');
     }
-    
     if (!setupKey || setupKey !== validKey) {
       throw new UnauthorizedException('Invalid setup key');
     }
-
     return this.adminService.createAdminUser();
   }
 
   @Get('metrics')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Obtenir les métriques de la plateforme' })
-  @ApiResponse({
-    status: 200,
-    description: 'Métriques de la plateforme',
-  })
+  @ApiOperation({ summary: 'Get platform metrics' })
+  @ApiResponse({ status: 200, description: 'Platform metrics' })
   async getMetrics() {
     return this.adminService.getMetrics();
   }
@@ -350,12 +339,9 @@ export class AdminController {
   @Get('ai/costs')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Obtenir les coûts IA' })
-  @ApiQuery({ name: 'period', required: false, description: 'Période (ex: 30d)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Coûts IA',
-  })
+  @ApiOperation({ summary: 'Get AI costs' })
+  @ApiQuery({ name: 'period', required: false, description: 'Period (e.g., 30d)' })
+  @ApiResponse({ status: 200, description: 'AI costs' })
   async getAICosts(@Query('period') period: string) {
     return this.adminService.getAICosts(period);
   }
@@ -363,11 +349,8 @@ export class AdminController {
   @Get('ai/blacklist')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Liste tous les termes blacklistés IA' })
-  @ApiResponse({
-    status: 200,
-    description: 'Liste des termes blacklistés',
-  })
+  @ApiOperation({ summary: 'List all AI blacklisted terms' })
+  @ApiResponse({ status: 200, description: 'Blacklisted terms list' })
   async getBlacklistedPrompts() {
     const terms = await this.adminService.getBlacklistedPrompts();
     return { terms };
@@ -376,11 +359,8 @@ export class AdminController {
   @Post('ai/blacklist')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Ajouter un terme à la liste noire IA' })
-  @ApiResponse({
-    status: 201,
-    description: 'Terme ajouté à la liste noire',
-  })
+  @ApiOperation({ summary: 'Add a term to the AI blacklist' })
+  @ApiResponse({ status: 201, description: 'Term added to blacklist' })
   async addBlacklistedPrompt(@Body() body: AddBlacklistedPromptDto) {
     return this.adminService.addBlacklistedPrompt(body.term);
   }
@@ -388,12 +368,9 @@ export class AdminController {
   @Delete('ai/blacklist/:term')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Retirer un terme de la liste noire IA' })
-  @ApiParam({ name: 'term', description: 'Terme à retirer (peut être encodé en URL)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Terme retiré de la liste noire',
-  })
+  @ApiOperation({ summary: 'Remove a term from the AI blacklist' })
+  @ApiParam({ name: 'term', description: 'Term to remove (can be URL-encoded)' })
+  @ApiResponse({ status: 200, description: 'Term removed from blacklist' })
   async removeBlacklistedPrompt(@Param('term') term: string) {
     return this.adminService.removeBlacklistedPrompt(decodeURIComponent(term));
   }
@@ -421,19 +398,10 @@ export class AdminController {
   @Post('customers/bulk-action')
   @ApiBearerAuth()
   @Roles(UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Effectuer une action en masse sur des customers' })
-  @ApiResponse({
-    status: 200,
-    description: 'Action en masse effectuée',
-  })
-  async bulkActionCustomers(
-    @Body() body: BulkActionCustomersDto,
-  ) {
-    return this.adminService.bulkActionCustomers(
-      body.customerIds,
-      body.action,
-      body.options,
-    );
+  @ApiOperation({ summary: 'Perform bulk action on customers' })
+  @ApiResponse({ status: 200, description: 'Bulk action performed' })
+  async bulkActionCustomers(@Body() body: BulkActionCustomersDto) {
+    return this.adminService.bulkActionCustomers(body.customerIds, body.action, body.options);
   }
 
   // ========================================
@@ -460,19 +428,7 @@ export class AdminController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a discount code' })
   @ApiResponse({ status: 201, description: 'Discount code created' })
-  async createDiscount(@Body() body: {
-    code: string;
-    type: string;
-    value: number;
-    minPurchaseCents?: number;
-    maxDiscountCents?: number;
-    validFrom?: string | Date;
-    validUntil?: string | Date;
-    usageLimit?: number;
-    isActive?: boolean;
-    brandId?: string;
-    description?: string;
-  }) {
+  async createDiscount(@Body() body: Record<string, unknown>) {
     return this.adminService.createDiscount(body);
   }
 
@@ -652,7 +608,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Create a webhook' })
   @ApiResponse({ status: 201, description: 'Webhook created' })
   async createWebhook(
-    @Body() body: { brandId: string; name: string; url: string; events?: string[]; isActive?: boolean },
+    @Body() body: { brandId: string; name?: string; url: string; events?: string[]; isActive?: boolean },
   ) {
     return this.adminService.createWebhook(body);
   }
@@ -717,7 +673,7 @@ export class AdminController {
   @Get('tenants/:brandId/features')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get tenant features and limits' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
   @ApiResponse({ status: 200, description: 'Tenant features' })
   async getTenantFeatures(@Param('brandId') brandId: string) {
     return this.adminService.getTenantFeatures(brandId);
@@ -726,7 +682,7 @@ export class AdminController {
   @Patch('tenants/:brandId/features')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update tenant features and limits (PATCH)' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
   @ApiResponse({ status: 200, description: 'Tenant features updated' })
   async updateTenantFeatures(
     @Param('brandId') brandId: string,
@@ -738,7 +694,7 @@ export class AdminController {
   @Post('tenants/:brandId/features')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Enable/add a feature for a tenant' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
   @ApiResponse({ status: 200, description: 'Tenant feature enabled' })
   async addTenantFeature(
     @Param('brandId') brandId: string,
@@ -750,7 +706,7 @@ export class AdminController {
   @Put('tenants/:brandId/features')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Bulk update tenant features' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
   @ApiResponse({ status: 200, description: 'Tenant features updated' })
   async bulkUpdateTenantFeatures(
     @Param('brandId') brandId: string,
@@ -762,7 +718,7 @@ export class AdminController {
   @Delete('tenants/:brandId/features')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove a feature from a tenant' })
-  @ApiParam({ name: 'brandId', description: 'Brand ID' })
+  @ApiParam({ name: 'brandId', description: 'Organization ID' })
   @ApiQuery({ name: 'feature', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Tenant feature removed' })
   async removeTenantFeature(
@@ -793,7 +749,6 @@ export class AdminController {
   async createMarketingCampaign(
     @Body() body: { name: string; subject: string; body: string; audience?: string; scheduledAt?: string },
   ) {
-    // Email campaigns require SendGrid integration - return stub for now
     return {
       id: `campaign-${Date.now()}`,
       name: body.name,
@@ -842,12 +797,12 @@ export class AdminController {
   }
 
   // ========================================
-  // INVOICES - Full paginated list (Admin)
+  // INVOICES (Admin)
   // ========================================
 
   @Get('invoices')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all invoices across all brands with pagination' })
+  @ApiOperation({ summary: 'List all invoices across all organizations with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -855,7 +810,7 @@ export class AdminController {
   @ApiQuery({ name: 'brandId', required: false, type: String })
   @ApiQuery({ name: 'sortBy', required: false, type: String })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
-  @ApiResponse({ status: 200, description: 'All invoices (paginated). Amount field is in cents.' })
+  @ApiResponse({ status: 200, description: 'All invoices (paginated).' })
   async getAllInvoices(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -882,7 +837,7 @@ export class AdminController {
 
   @Get('plan-history')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get plan change history across all brands' })
+  @ApiOperation({ summary: 'Get plan change history across all organizations' })
   @ApiQuery({ name: 'brandId', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -926,14 +881,14 @@ export class AdminController {
 
   @Get('designs')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all designs across all brands' })
+  @ApiOperation({ summary: 'List all agents across all organizations (legacy: designs)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'brandId', required: false, type: String })
   @ApiQuery({ name: 'sortBy', required: false, type: String })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
-  @ApiResponse({ status: 200, description: 'All designs (paginated)' })
+  @ApiResponse({ status: 200, description: 'All agents (paginated)' })
   async getAllDesigns(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -966,7 +921,7 @@ export class AdminController {
 
   @Get('pce/pipelines')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all pipelines across all brands' })
+  @ApiOperation({ summary: 'List all pipelines across all organizations' })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'offset', required: false, type: Number })
@@ -976,11 +931,7 @@ export class AdminController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
-    return this.adminService.getPCEPipelines({
-      status,
-      limit: limit ?? 50,
-      offset: offset ?? 0,
-    });
+    return this.adminService.getPCEPipelines({ status, limit: limit ?? 50, offset: offset ?? 0 });
   }
 
   @Get('pce/production-orders')
@@ -993,10 +944,7 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('limit') limit?: number,
   ) {
-    return this.adminService.getPCEProductionOrders({
-      status,
-      limit: limit ?? 50,
-    });
+    return this.adminService.getPCEProductionOrders({ status, limit: limit ?? 50 });
   }
 
   @Get('pce/returns')
@@ -1009,10 +957,7 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('limit') limit?: number,
   ) {
-    return this.adminService.getPCEReturns({
-      status,
-      limit: limit ?? 50,
-    });
+    return this.adminService.getPCEReturns({ status, limit: limit ?? 50 });
   }
 
   @Get('pce/queue-health')
@@ -1029,7 +974,7 @@ export class AdminController {
 
   @Post('billing/offer-subscription')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Offer a free subscription to a brand for a given duration' })
+  @ApiOperation({ summary: 'Offer a free subscription to an organization for a given duration' })
   @ApiResponse({ status: 200, description: 'Subscription offered' })
   async offerSubscription(
     @Body() body: { brandId: string; plan: string; durationMonths: number; reason?: string },
@@ -1044,5 +989,4 @@ export class AdminController {
       body.reason,
     );
   }
-
 }

@@ -1,31 +1,26 @@
-// @ts-nocheck
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Prisma, PaymentStatus, SubscriptionPlan, SubscriptionStatus, DiscountType, ReferralStatus, CommissionStatus, TicketStatus, PipelineStatus, ProductionOrderStatus, ReturnStatus } from '@prisma/client';
-import { UserRole } from '@/common/compat/v1-enums';
+import { Prisma, Plan, OrgStatus, PlatformRole, TicketStatus, InvoiceStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
 import { AuditLogService, AuditAction } from '@/modules/audit/services/audit-log.service';
 import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
 import { PlanTier } from '@/libs/plans/plan-config.types';
 
-/**
- * Helper: Get the monthly price for a SubscriptionPlan enum value.
- */
-function getPlanPrice(subscriptionPlan: SubscriptionPlan | string | null | undefined): number {
-  if (!subscriptionPlan) return 0;
-  // Map Prisma SubscriptionPlan enum to PlanTier
+function getPlanPrice(plan: Plan | string | null | undefined): number {
+  if (!plan) return 0;
   const tierMap: Record<string, PlanTier> = {
     FREE: PlanTier.FREE,
     STARTER: PlanTier.STARTER,
+    PRO: PlanTier.PROFESSIONAL,
     PROFESSIONAL: PlanTier.PROFESSIONAL,
     BUSINESS: PlanTier.BUSINESS,
     ENTERPRISE: PlanTier.ENTERPRISE,
   };
-  const tier = tierMap[String(subscriptionPlan).toUpperCase()];
+  const tier = tierMap[String(plan).toUpperCase()];
   if (!tier) return 0;
   return PLAN_CONFIGS[tier]?.pricing?.monthlyPrice ?? 0;
 }
@@ -43,12 +38,9 @@ export class AdminService {
   ) {}
 
   // ========================================
-  // TENANTS (BRANDS)
+  // TENANTS (ORGANIZATIONS)
   // ========================================
 
-  /**
-   * List all tenants (brands) for platform admin dashboard.
-   */
   async getTenants(params?: { page?: number; limit?: number; search?: string; plan?: string; status?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
     const page = params?.page || 1;
     const limit = params?.limit || 20;
@@ -56,18 +48,18 @@ export class AdminService {
     const sortBy = params?.sortBy || 'createdAt';
     const sortOrder = params?.sortOrder || 'desc';
 
-    const where: Prisma.BrandWhereInput = {};
+    const where: Prisma.OrganizationWhereInput = {};
     if (params?.search) {
       where.OR = [
         { name: { contains: params.search, mode: 'insensitive' } },
         { slug: { contains: params.search, mode: 'insensitive' } },
       ];
     }
-    if (params?.plan) where.subscriptionPlan = params.plan as SubscriptionPlan;
-    if (params?.status) where.subscriptionStatus = params.status as SubscriptionStatus;
+    if (params?.plan) where.plan = params.plan as Plan;
+    if (params?.status) where.status = params.status as OrgStatus;
 
-    const [brands, total] = await Promise.all([
-      this.prisma.brand.findMany({
+    const [organizations, total] = await Promise.all([
+      this.prisma.organization.findMany({
         where,
         skip,
         take: limit,
@@ -78,38 +70,35 @@ export class AdminService {
           slug: true,
           logo: true,
           plan: true,
-          subscriptionPlan: true,
-          subscriptionStatus: true,
           status: true,
           stripeCustomerId: true,
           stripeSubscriptionId: true,
-          aiCostLimitCents: true,
-          aiCostUsedCents: true,
-          monthlyGenerations: true,
-          maxMonthlyGenerations: true,
-          maxProducts: true,
-          trialEndsAt: true,
-          planExpiresAt: true,
+          currentMonthSpend: true,
+          monthlyBudgetLimit: true,
+          conversationsUsed: true,
+          conversationsLimit: true,
+          agentsUsed: true,
+          agentsLimit: true,
+          planPeriodEnd: true,
           createdAt: true,
           updatedAt: true,
           _count: {
             select: {
-              users: true,
-              products: true,
-              designs: true,
-              orders: true,
+              members: true,
+              agents: true,
+              conversations: true,
             },
           },
         },
       }),
-      this.prisma.brand.count({ where }),
+      this.prisma.organization.count({ where }),
     ]);
 
     return {
-      brands: brands.map((b) => ({
-        ...b,
-        plan: b.plan || b.subscriptionPlan || 'starter',
-        status: b.status || b.subscriptionStatus || 'active',
+      brands: organizations.map((o) => ({
+        ...o,
+        plan: o.plan || 'FREE',
+        status: o.status || 'ACTIVE',
       })),
       pagination: {
         page,
@@ -117,29 +106,25 @@ export class AdminService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-      // Keep backward compatibility
-      tenants: brands.map((b) => ({
-        id: b.id,
-        name: b.name || 'Unnamed Tenant',
-        plan: b.subscriptionPlan || 'starter',
-        status: b.subscriptionStatus || 'active',
+      tenants: organizations.map((o) => ({
+        id: o.id,
+        name: o.name || 'Unnamed Tenant',
+        plan: o.plan || 'FREE',
+        status: o.status || 'ACTIVE',
       })),
     };
   }
 
-  /**
-   * Suspend a brand - disables all access for the brand and its users
-   */
   async suspendBrand(brandId: string, reason?: string) {
-    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
-    if (!brand) throw new NotFoundException(`Brand ${brandId} not found`);
+    const org = await this.prisma.organization.findUnique({ where: { id: brandId } });
+    if (!org) throw new NotFoundException(`Organization ${brandId} not found`);
 
-    await this.prisma.brand.update({
+    await this.prisma.organization.update({
       where: { id: brandId },
-      data: { status: 'SUSPENDED' },
+      data: { status: OrgStatus.SUSPENDED, suspendedAt: new Date(), suspendedReason: reason },
     });
 
-    this.logger.warn(`Brand ${brandId} (${brand.name}) suspended. Reason: ${reason || 'No reason provided'}`);
+    this.logger.warn(`Organization ${brandId} (${org.name}) suspended. Reason: ${reason || 'No reason provided'}`);
 
     return {
       success: true,
@@ -150,19 +135,16 @@ export class AdminService {
     };
   }
 
-  /**
-   * Unsuspend a brand - restores access
-   */
   async unsuspendBrand(brandId: string) {
-    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
-    if (!brand) throw new NotFoundException(`Brand ${brandId} not found`);
+    const org = await this.prisma.organization.findUnique({ where: { id: brandId } });
+    if (!org) throw new NotFoundException(`Organization ${brandId} not found`);
 
-    await this.prisma.brand.update({
+    await this.prisma.organization.update({
       where: { id: brandId },
-      data: { status: 'ACTIVE' },
+      data: { status: OrgStatus.ACTIVE, suspendedAt: null, suspendedReason: null },
     });
 
-    this.logger.log(`Brand ${brandId} (${brand.name}) unsuspended.`);
+    this.logger.log(`Organization ${brandId} (${org.name}) unsuspended.`);
 
     return {
       success: true,
@@ -172,9 +154,6 @@ export class AdminService {
     };
   }
 
-  /**
-   * Ban a user - disables their account
-   */
   async banUser(userId: string, reason?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException(`User ${userId} not found`);
@@ -196,9 +175,6 @@ export class AdminService {
     };
   }
 
-  /**
-   * Unban a user - restores their account access
-   */
   async unbanUser(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException(`User ${userId} not found`);
@@ -219,48 +195,51 @@ export class AdminService {
     };
   }
 
-  /**
-   * Get brand detail with full relations
-   */
   async getBrandDetail(brandId: string) {
-    const brand = await this.prisma.brand.findUnique({
+    const org = await this.prisma.organization.findUnique({
       where: { id: brandId },
       include: {
-        users: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-            lastLoginAt: true,
-            isActive: true,
-            createdAt: true,
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                lastLoginAt: true,
+                deletedAt: true,
+                createdAt: true,
+              },
+            },
           },
         },
         _count: {
           select: {
-            users: true,
-            products: true,
-            designs: true,
-            orders: true,
+            members: true,
+            agents: true,
+            conversations: true,
             invoices: true,
           },
         },
       },
     });
 
-    if (!brand) {
-      throw new NotFoundException(`Brand ${brandId} not found`);
+    if (!org) {
+      throw new NotFoundException(`Organization ${brandId} not found`);
     }
 
-    return brand;
+    return {
+      ...org,
+      users: org.members.map((m) => ({
+        ...m.user,
+        orgRole: m.role,
+        isActive: m.user.deletedAt === null,
+      })),
+    };
   }
 
-  /**
-   * Update brand details (admin)
-   * @param syncStripe - If true and plan changed, sync the change to Stripe via BillingService.changePlan
-   */
   async updateBrand(
     brandId: string,
     data: {
@@ -284,87 +263,80 @@ export class AdminService {
       syncStripe?: boolean;
     },
   ) {
-    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
-    if (!brand) throw new NotFoundException(`Brand ${brandId} not found`);
+    const org = await this.prisma.organization.findUnique({ where: { id: brandId } });
+    if (!org) throw new NotFoundException(`Organization ${brandId} not found`);
 
     const newPlan = data.subscriptionPlan ?? data.plan;
     const planChanged =
       newPlan !== undefined &&
       newPlan !== null &&
-      String(newPlan).toLowerCase() !== String(brand.subscriptionPlan ?? brand.plan ?? '').toLowerCase();
+      String(newPlan).toUpperCase() !== String(org.plan).toUpperCase();
 
     if (data.syncStripe === true && planChanged && newPlan) {
-      const brandUser = await this.prisma.user.findFirst({
-        where: { brandId },
-        select: { id: true },
+      const orgMember = await this.prisma.organizationMember.findFirst({
+        where: { organizationId: brandId },
+        select: { userId: true },
       });
-      if (brandUser) {
+      if (orgMember) {
         try {
-          await this.billingService.changePlan(brandUser.id, String(newPlan).toLowerCase(), {
+          await this.billingService.changePlan(orgMember.userId, String(newPlan).toLowerCase(), {
             immediateChange: true,
           });
-          this.logger.log(`Stripe plan synced for brand ${brandId} -> ${newPlan}`);
+          this.logger.log(`Stripe plan synced for org ${brandId} -> ${newPlan}`);
         } catch (err) {
           this.logger.warn(
-            `Stripe sync failed for brand ${brandId} (plan ${newPlan}): ${err instanceof Error ? err.message : String(err)}`,
+            `Stripe sync failed for org ${brandId} (plan ${newPlan}): ${err instanceof Error ? err.message : String(err)}`,
           );
-          // Continue with DB update; admin can retry Stripe separately
         }
       } else {
-        this.logger.warn(`Stripe sync skipped for brand ${brandId}: no user found for brand`);
+        this.logger.warn(`Stripe sync skipped for org ${brandId}: no member found`);
       }
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.OrganizationUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.description !== undefined) updateData.description = data.description;
     if (data.website !== undefined) updateData.website = data.website;
-    if (data.industry !== undefined) updateData.industry = data.industry;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.plan !== undefined) updateData.plan = data.plan;
-    if (data.subscriptionPlan !== undefined) updateData.subscriptionPlan = data.subscriptionPlan;
-    if (data.subscriptionStatus !== undefined) updateData.subscriptionStatus = data.subscriptionStatus;
-    if (data.maxProducts !== undefined) updateData.maxProducts = data.maxProducts;
-    if (data.maxMonthlyGenerations !== undefined) updateData.maxMonthlyGenerations = data.maxMonthlyGenerations;
-    if (data.aiCostLimitCents !== undefined) updateData.aiCostLimitCents = data.aiCostLimitCents;
-    if (data.companyName !== undefined) updateData.companyName = data.companyName;
-    if (data.vatNumber !== undefined) updateData.vatNumber = data.vatNumber;
-    if (data.address !== undefined) updateData.address = data.address;
-    if (data.city !== undefined) updateData.city = data.city;
+    if (data.status !== undefined) updateData.status = data.status as OrgStatus;
+    if (newPlan !== undefined) updateData.plan = newPlan.toUpperCase() as Plan;
     if (data.country !== undefined) updateData.country = data.country;
     if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.vatNumber !== undefined) updateData.taxId = data.vatNumber;
+    if (data.maxMonthlyGenerations !== undefined) updateData.conversationsLimit = data.maxMonthlyGenerations;
+    if (data.aiCostLimitCents !== undefined) updateData.monthlyBudgetLimit = data.aiCostLimitCents / 100;
 
-    const updated = await this.prisma.brand.update({
+    const updated = await this.prisma.organization.update({
       where: { id: brandId },
       data: updateData,
       include: {
-        users: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-            lastLoginAt: true,
-            isActive: true,
-            createdAt: true,
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                lastLoginAt: true,
+                deletedAt: true,
+                createdAt: true,
+              },
+            },
           },
         },
         _count: {
           select: {
-            users: true,
-            products: true,
-            designs: true,
-            orders: true,
+            members: true,
+            agents: true,
+            conversations: true,
             invoices: true,
           },
         },
       },
     });
 
-    this.logger.log(`Brand ${brandId} updated by admin`);
+    this.logger.log(`Organization ${brandId} updated by admin`);
 
-    // SECURITY FIX: Audit log all admin brand modifications with before/after values
     try {
       const auditAction = planChanged
         ? AuditAction.ADMIN_BRAND_PLAN_CHANGED
@@ -372,19 +344,19 @@ export class AdminService {
 
       await this.auditLogService?.log({
         action: auditAction,
-        resourceType: 'Brand',
+        resourceType: 'Organization',
         resourceId: brandId,
         success: true,
         metadata: {
           changes: Object.keys(updateData),
-          previousPlan: brand.subscriptionPlan,
-          newPlan: newPlan || brand.subscriptionPlan,
+          previousPlan: org.plan,
+          newPlan: newPlan || org.plan,
           planChanged,
           syncedToStripe: data.syncStripe === true && planChanged,
         },
       });
     } catch (auditError) {
-      this.logger.warn(`Failed to write audit log for brand update: ${auditError instanceof Error ? auditError.message : String(auditError)}`);
+      this.logger.warn(`Failed to write audit log for org update: ${auditError instanceof Error ? auditError.message : String(auditError)}`);
     }
 
     return updated;
@@ -394,14 +366,11 @@ export class AdminService {
   // CUSTOMER MANAGEMENT
   // ========================================
 
-  /**
-   * List all customers with pagination and filtering
-   */
   async getCustomers(options: {
     page?: number;
     limit?: number;
     search?: string;
-    role?: UserRole;
+    role?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
@@ -411,8 +380,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {};
-    
-    // Filter by search (email, firstName, lastName)
+
     if (search) {
       where.OR = [
         { email: { contains: search, mode: 'insensitive' } },
@@ -421,9 +389,8 @@ export class AdminService {
       ];
     }
 
-    // Filter by role
     if (role) {
-      where.role = role;
+      where.role = role as PlatformRole;
     }
 
     const [customers, total] = await Promise.all([
@@ -439,36 +406,18 @@ export class AdminService {
           lastName: true,
           role: true,
           emailVerified: true,
-          isActive: true,
+          deletedAt: true,
           createdAt: true,
           updatedAt: true,
           lastLoginAt: true,
-          brand: {
+          memberships: {
             select: {
-              id: true,
-              name: true,
-              subscriptionPlan: true,
-              subscriptionStatus: true,
+              organization: {
+                select: { id: true, name: true, plan: true, status: true },
+              },
+              role: true,
             },
-          },
-          customer: {
-            select: {
-              totalRevenue: true,
-              ltv: true,
-              engagementScore: true,
-              churnRisk: true,
-              totalSessions: true,
-              totalTimeSpent: true,
-              lastSeenAt: true,
-              firstSeenAt: true,
-            },
-          },
-          healthScore: {
-            select: {
-              healthScore: true,
-              churnRisk: true,
-              engagementScore: true,
-            },
+            take: 1,
           },
         },
       }),
@@ -477,31 +426,37 @@ export class AdminService {
 
     return {
       data: customers.map((user) => {
-        const brand = user.brand;
-        const cust = user.customer;
-        const hs = user.healthScore;
+        const membership = user.memberships[0];
+        const org = membership?.organization;
 
-        // Determine status
         let status: string = 'active';
-        if (brand?.subscriptionStatus === 'TRIALING') status = 'trial';
-        else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 30 * 24 * 60 * 60 * 1000) status = 'churned';
-        else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 14 * 24 * 60 * 60 * 1000) status = 'at-risk';
+        if (org?.status === OrgStatus.TRIAL) status = 'trial';
+        else if (user.lastLoginAt && Date.now() - new Date(user.lastLoginAt).getTime() > 30 * 24 * 60 * 60 * 1000) status = 'churned';
+        else if (user.lastLoginAt && Date.now() - new Date(user.lastLoginAt).getTime() > 14 * 24 * 60 * 60 * 1000) status = 'at-risk';
         else if (!user.lastLoginAt) status = 'none';
 
         return {
-          ...user,
-          // Customer intelligence
-          ltv: cust?.ltv ?? 0,
-          totalRevenue: cust?.totalRevenue ?? 0,
-          engagementScore: cust?.engagementScore ?? hs?.engagementScore ?? 0,
-          churnRisk: hs?.churnRisk?.toLowerCase() ?? cust?.churnRisk ?? 'low',
-          totalSessions: cust?.totalSessions ?? 0,
-          totalTimeSpent: cust?.totalTimeSpent ?? 0,
-          lastSeenAt: cust?.lastSeenAt ?? user.lastLoginAt,
-          // Computed
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          emailVerified: user.emailVerified,
+          isActive: user.deletedAt === null,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          lastLoginAt: user.lastLoginAt,
+          brand: org ? { id: org.id, name: org.name, plan: org.plan, status: org.status } : null,
+          ltv: 0,
+          totalRevenue: 0,
+          engagementScore: 0,
+          churnRisk: 'low',
+          totalSessions: 0,
+          totalTimeSpent: 0,
+          lastSeenAt: user.lastLoginAt,
           status,
-          planPrice: getPlanPrice(brand?.subscriptionPlan),
-          plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
+          planPrice: getPlanPrice(org?.plan),
+          plan: org?.plan ? String(org.plan) : 'FREE',
           name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
         };
       }),
@@ -514,9 +469,6 @@ export class AdminService {
     };
   }
 
-  /**
-   * Get customer details by ID
-   */
   async getCustomerById(customerId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: customerId },
@@ -527,58 +479,18 @@ export class AdminService {
         lastName: true,
         role: true,
         emailVerified: true,
-        isActive: true,
+        deletedAt: true,
         createdAt: true,
         updatedAt: true,
         lastLoginAt: true,
-        brand: {
+        memberships: {
           select: {
-            id: true,
-            name: true,
-            plan: true,
-            subscriptionPlan: true,
-            subscriptionStatus: true,
+            organization: {
+              select: { id: true, name: true, plan: true, status: true },
+            },
+            role: true,
           },
-        },
-        customer: {
-          select: {
-            totalRevenue: true,
-            ltv: true,
-            engagementScore: true,
-            churnRisk: true,
-            totalSessions: true,
-            totalTimeSpent: true,
-            lastSeenAt: true,
-            firstSeenAt: true,
-          },
-        },
-        healthScore: {
-          select: {
-            healthScore: true,
-            churnRisk: true,
-            engagementScore: true,
-          },
-        },
-        designs: {
-          take: 10,
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            prompt: true,
-            status: true,
-            createdAt: true,
-          },
-        },
-        orders: {
-          take: 10,
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            orderNumber: true,
-            status: true,
-            totalCents: true,
-            createdAt: true,
-          },
+          take: 1,
         },
       },
     });
@@ -587,29 +499,37 @@ export class AdminService {
       throw new NotFoundException(`Customer with ID ${customerId} not found`);
     }
 
-    const brand = user.brand;
-    const cust = user.customer;
-    const hs = user.healthScore;
+    const membership = user.memberships[0];
+    const org = membership?.organization;
 
-    // Determine status (same logic as getCustomers)
     let status: string = 'active';
-    if (brand?.subscriptionStatus === 'TRIALING') status = 'trial';
-    else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 30 * 24 * 60 * 60 * 1000) status = 'churned';
-    else if (user.lastLoginAt && new Date().getTime() - new Date(user.lastLoginAt).getTime() > 14 * 24 * 60 * 60 * 1000) status = 'at-risk';
+    if (org?.status === OrgStatus.TRIAL) status = 'trial';
+    else if (user.lastLoginAt && Date.now() - new Date(user.lastLoginAt).getTime() > 30 * 24 * 60 * 60 * 1000) status = 'churned';
+    else if (user.lastLoginAt && Date.now() - new Date(user.lastLoginAt).getTime() > 14 * 24 * 60 * 60 * 1000) status = 'at-risk';
     else if (!user.lastLoginAt) status = 'none';
 
     return {
-      ...user,
-      ltv: cust?.ltv ?? 0,
-      totalRevenue: cust?.totalRevenue ?? 0,
-      engagementScore: cust?.engagementScore ?? hs?.engagementScore ?? 0,
-      churnRisk: hs?.churnRisk?.toLowerCase() ?? cust?.churnRisk ?? 'low',
-      totalSessions: cust?.totalSessions ?? 0,
-      totalTimeSpent: cust?.totalTimeSpent ?? 0,
-      lastSeenAt: cust?.lastSeenAt ?? user.lastLoginAt,
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      isActive: user.deletedAt === null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      lastLoginAt: user.lastLoginAt,
+      brand: org ? { id: org.id, name: org.name, plan: org.plan, status: org.status } : null,
+      ltv: 0,
+      totalRevenue: 0,
+      engagementScore: 0,
+      churnRisk: 'low',
+      totalSessions: 0,
+      totalTimeSpent: 0,
+      lastSeenAt: user.lastLoginAt,
       status,
-      planPrice: getPlanPrice(brand?.subscriptionPlan),
-      plan: brand?.subscriptionPlan ? String(brand.subscriptionPlan) : 'free',
+      planPrice: getPlanPrice(org?.plan),
+      plan: org?.plan ? String(org.plan) : 'FREE',
       name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
     };
   }
@@ -618,9 +538,6 @@ export class AdminService {
   // CREATE / UPDATE CUSTOMER (Admin)
   // ========================================
 
-  /**
-   * Create a new user (admin action).
-   */
   async createCustomer(data: {
     email: string;
     name?: string;
@@ -633,7 +550,6 @@ export class AdminService {
       throw new BadRequestException(`User with email ${data.email} already exists`);
     }
 
-    // Split name into first/last for DB schema
     const nameParts = (data.name || '').split(' ');
     const firstName = nameParts[0] || undefined;
     const lastName = nameParts.slice(1).join(' ') || undefined;
@@ -643,12 +559,9 @@ export class AdminService {
         email: data.email,
         firstName,
         lastName,
-        role: (data.role as UserRole) || UserRole.CONSUMER,
-        brandId: data.brandId || undefined,
-        emailVerified: true, // Admin-created users are pre-verified
-        isActive: true,
-        // Password is optional — admin-created users may need to set via reset flow
-        ...(data.password ? { passwordHash: data.password } : {}),
+        role: PlatformRole.USER,
+        emailVerified: true,
+        ...(data.password ? { passwordHash: await bcrypt.hash(data.password, 13) } : {}),
       },
       select: {
         id: true,
@@ -656,20 +569,25 @@ export class AdminService {
         firstName: true,
         lastName: true,
         role: true,
-        brandId: true,
-        isActive: true,
+        deletedAt: true,
         emailVerified: true,
         createdAt: true,
       },
     });
 
+    if (data.brandId) {
+      const org = await this.prisma.organization.findUnique({ where: { id: data.brandId } });
+      if (org) {
+        await this.prisma.organizationMember.create({
+          data: { organizationId: data.brandId, userId: user.id, role: 'MEMBER' },
+        });
+      }
+    }
+
     this.logger.log(`Admin created user ${user.id} (${user.email})`);
-    return user;
+    return { ...user, isActive: user.deletedAt === null, brandId: data.brandId || null };
   }
 
-  /**
-   * Update a user (admin action).
-   */
   async updateCustomer(
     customerId: string,
     data: {
@@ -685,14 +603,13 @@ export class AdminService {
     }
 
     const nameParts = data.name ? data.name.split(' ') : [];
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (data.name !== undefined) {
       updateData.firstName = nameParts[0] || undefined;
       updateData.lastName = nameParts.slice(1).join(' ') || undefined;
     }
-    if (data.role !== undefined) updateData.role = data.role as UserRole;
-    if (data.brandId !== undefined) updateData.brandId = data.brandId;
-    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+    if (data.role !== undefined) updateData.role = data.role as PlatformRole;
+    if (data.isActive !== undefined) updateData.deletedAt = data.isActive ? null : new Date();
 
     const user = await this.prisma.user.update({
       where: { id: customerId },
@@ -703,25 +620,30 @@ export class AdminService {
         firstName: true,
         lastName: true,
         role: true,
-        brandId: true,
-        isActive: true,
+        deletedAt: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
+    if (data.brandId !== undefined) {
+      await this.prisma.organizationMember.deleteMany({ where: { userId: customerId } });
+      if (data.brandId) {
+        await this.prisma.organizationMember.create({
+          data: { organizationId: data.brandId, userId: customerId, role: 'MEMBER' },
+        });
+      }
+    }
+
     this.logger.log(`Admin updated user ${user.id}`);
-    return user;
+    return { ...user, isActive: user.deletedAt === null };
   }
 
-  /**
-   * Create a new brand (admin action).
-   */
   async createBrand(data: { name: string; slug: string; userId: string }) {
-    const existingSlug = await this.prisma.brand.findUnique({ where: { slug: data.slug } });
+    const existingSlug = await this.prisma.organization.findUnique({ where: { slug: data.slug } });
     if (existingSlug) {
-      throw new BadRequestException(`Brand with slug "${data.slug}" already exists`);
+      throw new BadRequestException(`Organization with slug "${data.slug}" already exists`);
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: data.userId } });
@@ -729,11 +651,13 @@ export class AdminService {
       throw new NotFoundException(`User with ID ${data.userId} not found`);
     }
 
-    const brand = await this.prisma.brand.create({
+    const org = await this.prisma.organization.create({
       data: {
         name: data.name,
         slug: data.slug,
-        users: { connect: { id: data.userId } },
+        members: {
+          create: { userId: data.userId, role: 'OWNER' },
+        },
       },
       select: {
         id: true,
@@ -743,23 +667,14 @@ export class AdminService {
       },
     });
 
-    // Link user to brand
-    await this.prisma.user.update({
-      where: { id: data.userId },
-      data: { brandId: brand.id },
-    });
-
-    this.logger.log(`Admin created brand ${brand.id} (${brand.name}) for user ${data.userId}`);
-    return brand;
+    this.logger.log(`Admin created organization ${org.id} (${org.name}) for user ${data.userId}`);
+    return org;
   }
 
   // ========================================
   // ANALYTICS
   // ========================================
 
-  /**
-   * Get analytics overview — full structure expected by frontend useAdminOverview hook.
-   */
   async getAnalyticsOverview() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -770,67 +685,28 @@ export class AdminService {
     twelveMonthsAgo.setDate(1);
     twelveMonthsAgo.setHours(0, 0, 0, 0);
 
-    const nonAdminWhere = { role: { not: UserRole.PLATFORM_ADMIN } as const };
-    const paidOrderWhere = { status: 'PAID' as const };
+    const nonAdminWhere: Prisma.UserWhereInput = { role: { not: PlatformRole.ADMIN } };
 
     const [
       totalCustomers,
       newCustomersLast30Days,
-      _totalOrders,
-      _ordersLast30Days,
-      revenueData,
-      previousRevenueData,
-      activeCustomers,
-      totalRevenueAllTime,
-      recentOrdersForActivity,
+      totalConversations,
+      conversationsLast30Days,
+      activeOrgs,
+      canceledOrgs,
       recentUsersForCustomers,
-      ordersForRevenueChart,
       usersCreatedForChart,
       planDistributionRaw,
-      ordersForLtv,
+      allActiveOrgs,
     ] = await Promise.all([
       this.prisma.user.count({ where: nonAdminWhere }),
       this.prisma.user.count({
         where: { ...nonAdminWhere, createdAt: { gte: thirtyDaysAgo } },
       }),
-      this.prisma.order.count(),
-      this.prisma.order.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-      this.prisma.order.aggregate({
-        where: { ...paidOrderWhere, createdAt: { gte: thirtyDaysAgo } },
-        _sum: { totalCents: true },
-      }),
-      this.prisma.order.aggregate({
-        where: {
-          ...paidOrderWhere,
-          createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-        },
-        _sum: { totalCents: true },
-      }),
-      this.prisma.user.count({
-        where: {
-          ...nonAdminWhere,
-          orders: { some: { createdAt: { gte: thirtyDaysAgo } } },
-        },
-      }),
-      this.prisma.order.aggregate({
-        where: paidOrderWhere,
-        _sum: { totalCents: true },
-      }),
-      this.prisma.order.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        where: { deletedAt: null },
-        select: {
-          id: true,
-          orderNumber: true,
-          totalCents: true,
-          status: true,
-          createdAt: true,
-          customerName: true,
-          customerEmail: true,
-          user: { select: { id: true, firstName: true, lastName: true, email: true } },
-        },
-      }),
+      this.prisma.conversation.count(),
+      this.prisma.conversation.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      this.prisma.organization.count({ where: { status: OrgStatus.ACTIVE, deletedAt: null } }),
+      this.prisma.organization.count({ where: { status: OrgStatus.CANCELED, deletedAt: null } }),
       this.prisma.user.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -842,75 +718,50 @@ export class AdminService {
           lastName: true,
           avatar: true,
           lastLoginAt: true,
-          isActive: true,
+          deletedAt: true,
           createdAt: true,
-          brand: {
-            select: { subscriptionPlan: true, subscriptionStatus: true },
-          },
-          orders: {
-            where: paidOrderWhere,
-            select: { totalCents: true },
+          memberships: {
+            select: { organization: { select: { plan: true, status: true } } },
+            take: 1,
           },
         },
-      }),
-      this.prisma.order.findMany({
-        where: {
-          ...paidOrderWhere,
-          createdAt: { gte: twelveMonthsAgo },
-          deletedAt: null,
-        },
-        select: { createdAt: true, totalCents: true },
-        take: 1000,
       }),
       this.prisma.user.findMany({
         where: { ...nonAdminWhere, createdAt: { gte: twelveMonthsAgo } },
         select: { createdAt: true },
         take: 1000,
       }),
-      this.prisma.brand.groupBy({
-        by: ['subscriptionPlan'],
+      this.prisma.organization.groupBy({
+        by: ['plan'],
         where: { deletedAt: null },
         _count: true,
       }),
-      this.prisma.order.findMany({
-        where: { ...paidOrderWhere, userId: { not: null } },
-        select: { userId: true, totalCents: true },
-        take: 1000,
+      this.prisma.organization.findMany({
+        where: { status: OrgStatus.ACTIVE, deletedAt: null },
+        select: { plan: true },
       }),
     ]);
 
-    const mrr = (revenueData._sum.totalCents || 0) / 100;
-    const previousMrr = (previousRevenueData._sum.totalCents || 0) / 100;
-    const mrrChange = mrr - previousMrr;
-    const mrrChangePercent = previousMrr > 0 ? (mrrChange / previousMrr) * 100 : 0;
-    const churnRate =
-      totalCustomers > 0
-        ? Math.round(((totalCustomers - activeCustomers) / totalCustomers) * 10000) / 100
-        : 0;
-    const totalRevenue = (totalRevenueAllTime._sum.totalCents || 0) / 100;
-    const avgRevenuePerUser = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
-    const ltvValue = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+    const mrr = allActiveOrgs.reduce((sum, o) => sum + getPlanPrice(o.plan), 0);
+    const totalOrgs = activeOrgs + canceledOrgs;
+    const churnRate = totalOrgs > 0 ? Math.round((canceledOrgs / totalOrgs) * 10000) / 100 : 0;
+    const avgRevenuePerUser = totalCustomers > 0 ? mrr / totalCustomers : 0;
+    const ltvValue = avgRevenuePerUser * 12;
 
     const trend = (current: number, previous: number): 'up' | 'down' | 'neutral' =>
       current > previous ? 'up' : current < previous ? 'down' : 'neutral';
+    const customerTrend: 'up' | 'down' | 'neutral' = newCustomersLast30Days > 0 ? 'up' : 'neutral';
 
-    const customerTrend: 'up' | 'down' | 'neutral' =
-      newCustomersLast30Days > 0 ? 'up' : 'neutral';
+    const recentActivity = [
+      {
+        id: 'conv-summary',
+        type: 'conversation',
+        message: `${conversationsLast30Days} conversations in the last 30 days`,
+        timestamp: new Date(),
+        metadata: { totalConversations, conversationsLast30Days },
+      },
+    ];
 
-    // Recent activity from last 10 orders
-    const recentActivity = recentOrdersForActivity.map((o) => ({
-      id: o.id,
-      type: 'order',
-      message: `Order ${o.orderNumber} - ${(o.totalCents / 100).toFixed(2)} €`,
-      customerName:
-        o.customerName ??
-        (o.user ? [o.user.firstName, o.user.lastName].filter(Boolean).join(' ') || undefined : undefined),
-      customerEmail: o.customerEmail ?? o.user?.email,
-      timestamp: o.createdAt,
-      metadata: { orderNumber: o.orderNumber, totalCents: o.totalCents, status: o.status },
-    }));
-
-    // Recent customers with status
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const fourteenDaysAgo = new Date();
@@ -919,16 +770,16 @@ export class AdminService {
     thirtyDaysAgoForChurn.setDate(thirtyDaysAgoForChurn.getDate() - 30);
 
     const recentCustomers = recentUsersForCustomers.map((u) => {
-      const plan = u.brand?.subscriptionPlan ?? null;
-      const planName = plan ? String(plan) : null;
-      const mrrUser = u.orders.reduce((s, o) => s + (o.totalCents || 0), 0) / 100;
+      const org = u.memberships[0]?.organization;
+      const planName = org?.plan ? String(org.plan) : null;
+      const mrrUser = getPlanPrice(org?.plan);
       const lastLogin = u.lastLoginAt ?? null;
       let status: 'active' | 'trial' | 'churned' | 'at-risk' = 'active';
-      if (u.brand?.subscriptionStatus === SubscriptionStatus.TRIALING) status = 'trial';
+      if (org?.status === OrgStatus.TRIAL) status = 'trial';
       else if (lastLogin && lastLogin < thirtyDaysAgoForChurn) status = 'churned';
       else if (lastLogin && lastLogin < fourteenDaysAgo) status = 'at-risk';
       else if (lastLogin && lastLogin >= sevenDaysAgo) status = 'active';
-      else if (u.isActive) status = 'active';
+      else if (u.deletedAt === null) status = 'active';
       else status = 'at-risk';
 
       return {
@@ -938,13 +789,12 @@ export class AdminService {
         avatar: u.avatar ?? null,
         plan: planName,
         mrr: Math.round(mrrUser * 100) / 100,
-        ltv: Math.round((u.orders.reduce((s, o) => s + (o.totalCents || 0), 0) / 100) * 100) / 100,
+        ltv: Math.round(mrrUser * 12 * 100) / 100,
         status,
         customerSince: u.createdAt,
       };
     });
 
-    // Revenue chart: last 12 months
     const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const revenueByMonth: Record<string, { revenue: number; newCustomers: number }> = {};
     for (let i = 0; i < 12; i++) {
@@ -952,11 +802,7 @@ export class AdminService {
       d.setMonth(d.getMonth() - (11 - i));
       d.setDate(1);
       d.setHours(0, 0, 0, 0);
-      revenueByMonth[monthKey(d)] = { revenue: 0, newCustomers: 0 };
-    }
-    for (const o of ordersForRevenueChart) {
-      const key = monthKey(o.createdAt);
-      if (revenueByMonth[key] != null) revenueByMonth[key].revenue += o.totalCents / 100;
+      revenueByMonth[monthKey(d)] = { revenue: mrr, newCustomers: 0 };
     }
     for (const u of usersCreatedForChart) {
       const key = monthKey(u.createdAt);
@@ -971,79 +817,31 @@ export class AdminService {
         newCustomers,
       }));
 
-    // Plan distribution: count + mrr per plan (MRR from orders in last 30 days by brand plan)
-    const planCounts = new Map<string, { count: number; mrr: number }>();
-    for (const g of planDistributionRaw) {
-      const name = String(g.subscriptionPlan);
-      planCounts.set(name, { count: g._count, mrr: 0 });
-    }
-    const ordersByBrandPlan = await this.prisma.order.groupBy({
-      by: ['brandId'],
-      where: { ...paidOrderWhere, createdAt: { gte: thirtyDaysAgo }, deletedAt: null },
-      _sum: { totalCents: true },
-    });
-    const brandIds = await this.prisma.brand.findMany({
-      where: { deletedAt: null },
-      select: { id: true, subscriptionPlan: true },
-    });
-    const brandPlanMap = new Map(brandIds.map((b) => [b.id, b.subscriptionPlan]));
-    for (const ob of ordersByBrandPlan) {
-      const plan = brandPlanMap.get(ob.brandId);
-      if (plan == null) continue;
-      const name = String(plan);
-      const entry = planCounts.get(name);
-      if (entry) entry.mrr += (ob._sum.totalCents || 0) / 100;
-    }
-    const planDistribution = Array.from(planCounts.entries()).map(([name, { count, mrr }]) => ({
-      name,
-      count,
-      mrr: Math.round(mrr * 100) / 100,
+    const planDistribution = planDistributionRaw.map((g) => ({
+      name: String(g.plan),
+      count: g._count,
+      mrr: Math.round(g._count * getPlanPrice(g.plan) * 100) / 100,
     }));
 
-    // LTV: average, median, byPlan (defaults), projected
-    const ltvByUser = new Map<string, number>();
-    for (const o of ordersForLtv) {
-      if (o.userId) ltvByUser.set(o.userId, (ltvByUser.get(o.userId) || 0) + o.totalCents / 100);
-    }
-    const ltvValues = Array.from(ltvByUser.values());
-    const ltvMedian =
-      ltvValues.length === 0
-        ? 0
-        : (() => {
-            const sorted = [...ltvValues].sort((a, b) => a - b);
-            const mid = Math.floor(sorted.length / 2);
-            return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-          })();
-    const ltvByPlanAvg: Record<string, number> = {};
-    const payingUserIds = Array.from(ltvByUser.keys());
-    if (payingUserIds.length > 0) {
-      const usersWithPlan = await this.prisma.user.findMany({
-        where: { id: { in: payingUserIds } },
-        select: {
-          id: true,
-          brand: { select: { subscriptionPlan: true } },
-        },
-      });
-      const planSums: Record<string, { total: number; count: number }> = {};
-      for (const u of usersWithPlan) {
-        const plan = u.brand?.subscriptionPlan ? String(u.brand.subscriptionPlan) : 'FREE';
-        const userLtv = ltvByUser.get(u.id) ?? 0;
-        if (!planSums[plan]) planSums[plan] = { total: 0, count: 0 };
-        planSums[plan].total += userLtv;
-        planSums[plan].count += 1;
-      }
-      for (const [plan, { total, count }] of Object.entries(planSums)) {
-        ltvByPlanAvg[plan] = Math.round((total / count) * 100) / 100;
-      }
-    }
+    const churnRevenue = canceledOrgs > 0
+      ? await (async () => {
+          const canceledOrgPlans = await this.prisma.organization.findMany({
+            where: { status: OrgStatus.CANCELED, deletedAt: null },
+            select: { plan: true },
+          });
+          return canceledOrgPlans.reduce((sum, o) => sum + getPlanPrice(o.plan), 0);
+        })()
+      : 0;
+
+    const nrr = mrr > 0 ? Math.round(((mrr - churnRevenue) / mrr) * 10000) / 100 : 100;
 
     return {
       kpis: {
         mrr: {
           value: Math.round(mrr * 100) / 100,
-          change: Math.round(mrrChange * 100) / 100,
-          changePercent: Math.round(mrrChangePercent * 100) / 100,
-          trend: trend(mrr, previousMrr),
+          change: 0,
+          changePercent: 0,
+          trend: 'neutral' as const,
         },
         customers: {
           value: totalCustomers,
@@ -1064,107 +862,38 @@ export class AdminService {
       revenue: {
         mrr: Math.round(mrr * 100) / 100,
         arr: Math.round(mrr * 12 * 100) / 100,
-        mrrGrowth: Math.round(mrrChange * 100) / 100,
-        mrrGrowthPercent: Math.round(mrrChangePercent * 100) / 100,
-        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        mrrGrowth: 0,
+        mrrGrowthPercent: 0,
+        totalRevenue: Math.round(mrr * 100) / 100,
         avgRevenuePerUser: Math.round(avgRevenuePerUser * 100) / 100,
       },
-      // ADMIN FIX: Calculate churn revenue from canceled/downgraded subscriptions
-      churn: await (async () => {
-        try {
-          // Get brands that canceled in the period
-          const canceledBrands = await this.prisma.brand.findMany({
-            where: {
-              subscriptionStatus: SubscriptionStatus.CANCELED,
-              updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-            },
-            select: { subscriptionPlan: true },
-          });
-          const churnRevenue = canceledBrands.reduce(
-            (sum, b) => sum + getPlanPrice(b.subscriptionPlan),
-            0,
-          );
-          // NRR = (MRR start + expansion - contraction - churn) / MRR start * 100
-          // Simplified: we don't have expansion/contraction tracking yet
-          const nrr = mrr > 0 ? Math.round(((mrr - churnRevenue) / mrr) * 10000) / 100 : 100;
-          return {
-            rate: churnRate,
-            count: totalCustomers - activeCustomers,
-            revenueChurn: Math.round(churnRevenue * 100) / 100,
-            netRevenueRetention: nrr,
-          };
-        } catch {
-          return {
-            rate: churnRate,
-            count: totalCustomers - activeCustomers,
-            revenueChurn: 0,
-            netRevenueRetention: 100 - churnRate,
-          };
-        }
-      })(),
+      churn: {
+        rate: churnRate,
+        count: canceledOrgs,
+        revenueChurn: Math.round(churnRevenue * 100) / 100,
+        netRevenueRetention: nrr,
+      },
       ltv: {
         average: Math.round(ltvValue * 100) / 100,
-        median: Math.round(ltvMedian * 100) / 100,
-        byPlan: ltvByPlanAvg,
+        median: Math.round(ltvValue * 100) / 100,
+        byPlan: Object.fromEntries(
+          planDistribution.map((p) => [p.name, p.count > 0 ? Math.round((p.mrr / p.count) * 12 * 100) / 100 : 0]),
+        ),
         projected: Math.round(ltvValue * 1.1 * 100) / 100,
       },
-      // ADMIN FIX: Derive acquisition channels from registration data
       acquisition: await (async () => {
         try {
-          // Count users by registration method
-          const [oauthUsers, referredUsers] = await Promise.all([
-            this.prisma.oAuthAccount.groupBy({
-              by: ['provider'],
-              _count: true,
-            }),
-            this.prisma.referral.count({
-              where: { status: ReferralStatus.COMPLETED },
-            }),
-          ]);
-
+          const oauthUsers = await this.prisma.oAuthAccount.groupBy({
+            by: ['provider'],
+            _count: true,
+          });
           const oauthTotal = oauthUsers.reduce((sum, g) => sum + g._count, 0);
-          const organicCount = Math.max(0, totalCustomers - oauthTotal - referredUsers);
-
+          const organicCount = Math.max(0, totalCustomers - oauthTotal);
           const byChannel: Record<string, number> = { organic: organicCount };
           for (const g of oauthUsers) {
             byChannel[g.provider] = g._count;
           }
-          if (referredUsers > 0) {
-            byChannel['referral'] = referredUsers;
-          }
-
-          // CAC: Calculate from MarketingSpend table if data exists
-          let cac: number | null = null;
-          let paybackPeriod: number | null = null;
-          let ltvCacRatio: number | null = null;
-          try {
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-            const spendResult = await this.prisma.marketingSpend.aggregate({
-              _sum: { amount: true },
-              where: { date: { gte: thirtyDaysAgo } },
-            });
-            const totalSpendEur = (spendResult._sum.amount || 0) / 100;
-            const newUsersLast30d = await this.prisma.user.count({
-              where: { createdAt: { gte: thirtyDaysAgo }, deletedAt: null },
-            });
-            if (newUsersLast30d > 0 && totalSpendEur > 0) {
-              cac = Math.round((totalSpendEur / newUsersLast30d) * 100) / 100;
-              if (ltvValue > 0 && cac > 0) {
-                ltvCacRatio = Math.round((ltvValue / cac) * 100) / 100;
-                // Payback period in months = CAC / (MRR per customer)
-                const mrrPerCustomer = activeCustomers > 0 ? mrr / activeCustomers : 0;
-                paybackPeriod = mrrPerCustomer > 0 ? Math.round((cac / mrrPerCustomer) * 10) / 10 : null;
-              }
-            }
-          } catch {
-            // MarketingSpend table may not exist yet (migration pending)
-          }
-          return {
-            cac,
-            paybackPeriod,
-            ltvCacRatio,
-            byChannel,
-          };
+          return { cac: null, paybackPeriod: null, ltvCacRatio: null, byChannel };
         } catch {
           return { cac: null, paybackPeriod: null, ltvCacRatio: null, byChannel: {} };
         }
@@ -1179,18 +908,16 @@ export class AdminService {
             by: ['provider'],
             _count: true,
           });
-          const referredCount = await this.prisma.referral.count({
-            where: { status: ReferralStatus.COMPLETED },
-          });
           const oauthTotal = oauthGroups.reduce((sum, g) => sum + g._count, 0);
           const channels = [
-            { channel: 'Organic', count: Math.max(0, totalCustomers - oauthTotal - referredCount), cac: null as number | null },
-            ...oauthGroups.map(g => ({ channel: g.provider.charAt(0).toUpperCase() + g.provider.slice(1), count: g._count, cac: null as number | null })),
+            { channel: 'Organic', count: Math.max(0, totalCustomers - oauthTotal), cac: null as number | null },
+            ...oauthGroups.map((g) => ({
+              channel: g.provider.charAt(0).toUpperCase() + g.provider.slice(1),
+              count: g._count,
+              cac: null as number | null,
+            })),
           ];
-          if (referredCount > 0) {
-            channels.push({ channel: 'Referral', count: referredCount, cac: null });
-          }
-          return channels.filter(c => c.count > 0);
+          return channels.filter((c) => c.count > 0);
         } catch {
           return totalCustomers > 0 ? [{ channel: 'Organic', count: totalCustomers, cac: null }] : [];
         }
@@ -1198,55 +925,29 @@ export class AdminService {
     };
   }
 
-  /**
-   * Get revenue metrics
-   */
   async getRevenueMetrics(period: string = '30d') {
-    const days = parseInt(period.replace('d', '')) || 30;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const activeOrgs = await this.prisma.organization.findMany({
+      where: { status: OrgStatus.ACTIVE, deletedAt: null },
+      select: { plan: true },
+    });
 
-    const [revenueData, _ordersByDay] = await Promise.all([
-      this.prisma.order.aggregate({
-        where: {
-          status: 'PAID',
-          createdAt: { gte: startDate },
-        },
-        _sum: { totalCents: true },
-        _count: true,
-      }),
-      this.prisma.order.groupBy({
-        by: ['createdAt'],
-        where: {
-          status: 'PAID',
-          createdAt: { gte: startDate },
-        },
-        _sum: { totalCents: true },
-        _count: true,
-      }),
-    ]);
-
-    const totalRevenue = (revenueData._sum.totalCents || 0) / 100;
-    const mrr = totalRevenue / (days / 30);
+    const mrr = activeOrgs.reduce((sum, o) => sum + getPlanPrice(o.plan), 0);
     const arr = mrr * 12;
 
     return {
-      totalRevenue,
+      totalRevenue: Math.round(mrr * 100) / 100,
       mrr: Math.round(mrr * 100) / 100,
       arr: Math.round(arr * 100) / 100,
-      orderCount: revenueData._count,
-      averageOrderValue: revenueData._count > 0 ? totalRevenue / revenueData._count : 0,
+      orderCount: activeOrgs.length,
+      averageOrderValue: activeOrgs.length > 0 ? mrr / activeOrgs.length : 0,
       period,
     };
   }
 
-  /**
-   * Export data (CSV or PDF)
-   */
   async exportData(format: 'csv' | 'pdf', type: 'customers' | 'analytics' | 'orders') {
     if (type === 'customers') {
       const customers = await this.prisma.user.findMany({
-        where: { role: { not: UserRole.PLATFORM_ADMIN } },
+        where: { role: { not: PlatformRole.ADMIN } },
         take: 100,
         select: {
           id: true,
@@ -1255,31 +956,30 @@ export class AdminService {
           lastName: true,
           role: true,
           createdAt: true,
-          brand: {
-            select: { name: true, subscriptionPlan: true },
+          memberships: {
+            select: { organization: { select: { name: true, plan: true } } },
+            take: 1,
           },
         },
       });
 
       if (format === 'csv') {
-        const headers = ['id', 'email', 'firstName', 'lastName', 'role', 'brandName', 'plan', 'createdAt'];
-        const rows = customers.map(c => [
+        const headers = ['id', 'email', 'firstName', 'lastName', 'role', 'orgName', 'plan', 'createdAt'];
+        const rows = customers.map((c) => [
           c.id,
           c.email,
           c.firstName || '',
           c.lastName || '',
           c.role,
-          c.brand?.name || '',
-          c.brand?.subscriptionPlan || 'FREE',
+          c.memberships[0]?.organization?.name || '',
+          c.memberships[0]?.organization?.plan || 'FREE',
           c.createdAt.toISOString(),
         ]);
-        
-        const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
         return { content: csv, contentType: 'text/csv', filename: `customers-${Date.now()}.csv` };
       }
 
-      // For PDF, return structured data (actual PDF generation would need a library like PDFKit)
-      return { 
+      return {
         content: Buffer.from(JSON.stringify(customers, null, 2)).toString('base64'),
         contentType: 'application/pdf',
         filename: `customers-${Date.now()}.pdf`,
@@ -1288,14 +988,12 @@ export class AdminService {
 
     if (type === 'analytics') {
       const analytics = await this.getAnalyticsOverview();
-      
       if (format === 'csv') {
         const headers = Object.keys(analytics);
         const values = Object.values(analytics);
         const csv = [headers.join(','), values.join(',')].join('\n');
         return { content: csv, contentType: 'text/csv', filename: `analytics-${Date.now()}.csv` };
       }
-
       return {
         content: Buffer.from(JSON.stringify(analytics, null, 2)).toString('base64'),
         contentType: 'application/pdf',
@@ -1304,38 +1002,36 @@ export class AdminService {
     }
 
     if (type === 'orders') {
-      const orders = await this.prisma.order.findMany({
+      // TODO: V2 has no Order model — export conversations instead
+      const conversations = await this.prisma.conversation.findMany({
         take: 1000,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
-          orderNumber: true,
-          customerEmail: true,
+          visitorEmail: true,
           status: true,
-          totalCents: true,
+          messageCount: true,
           createdAt: true,
         },
       });
 
       if (format === 'csv') {
-        const headers = ['id', 'orderNumber', 'customerEmail', 'status', 'total', 'createdAt'];
-        const rows = orders.map(o => [
-          o.id,
-          o.orderNumber,
-          o.customerEmail || '',
-          o.status,
-          (o.totalCents / 100).toFixed(2),
-          o.createdAt.toISOString(),
+        const headers = ['id', 'visitorEmail', 'status', 'messageCount', 'createdAt'];
+        const rows = conversations.map((c) => [
+          c.id,
+          c.visitorEmail || '',
+          c.status,
+          String(c.messageCount),
+          c.createdAt.toISOString(),
         ]);
-        
-        const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        return { content: csv, contentType: 'text/csv', filename: `orders-${Date.now()}.csv` };
+        const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        return { content: csv, contentType: 'text/csv', filename: `conversations-${Date.now()}.csv` };
       }
 
       return {
-        content: Buffer.from(JSON.stringify(orders, null, 2)).toString('base64'),
+        content: Buffer.from(JSON.stringify(conversations, null, 2)).toString('base64'),
         contentType: 'application/pdf',
-        filename: `orders-${Date.now()}.pdf`,
+        filename: `conversations-${Date.now()}.pdf`,
       };
     }
 
@@ -1346,87 +1042,70 @@ export class AdminService {
   // BILLING
   // ========================================
 
-  /**
-   * Get billing/subscription overview
-   */
   async getBillingOverview() {
-    const brands = await this.prisma.brand.findMany({
+    const orgs = await this.prisma.organization.findMany({
       where: { deletedAt: null },
       select: {
         id: true,
         name: true,
         plan: true,
-        subscriptionPlan: true,
-        subscriptionStatus: true,
+        status: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
-        planExpiresAt: true,
-        trialEndsAt: true,
+        planPeriodEnd: true,
         createdAt: true,
       },
     });
 
-    // Calculate plan distribution
     const subscribersByPlan: Record<string, number> = {};
     let activeSubscriptions = 0;
     let trialSubscriptions = 0;
     let cancelledSubscriptions = 0;
 
-    for (const brand of brands) {
-      const plan = brand.subscriptionPlan || brand.plan || 'free';
+    for (const org of orgs) {
+      const plan = org.plan || 'FREE';
       subscribersByPlan[plan] = (subscribersByPlan[plan] || 0) + 1;
 
-      if (brand.subscriptionStatus === SubscriptionStatus.ACTIVE) activeSubscriptions++;
-      else if (brand.subscriptionStatus === SubscriptionStatus.TRIALING) trialSubscriptions++;
-      else if (brand.subscriptionStatus === SubscriptionStatus.CANCELED) cancelledSubscriptions++;
+      if (org.status === OrgStatus.ACTIVE) activeSubscriptions++;
+      else if (org.status === OrgStatus.TRIAL) trialSubscriptions++;
+      else if (org.status === OrgStatus.CANCELED) cancelledSubscriptions++;
     }
 
-    // Get recent invoices
     const recentInvoices = await this.prisma.invoice.findMany({
       take: 20,
       orderBy: { createdAt: 'desc' },
       include: {
-        brand: { select: { name: true } },
+        organization: { select: { name: true } },
       },
     });
 
-    // Get revenue from orders (paymentStatus SUCCEEDED)
-    const revenue = await this.prisma.order.aggregate({
-      where: { paymentStatus: PaymentStatus.SUCCEEDED },
-      _sum: { totalCents: true },
-    });
-
-    const totalRevenue = (revenue._sum.totalCents || 0) / 100;
-
-    // MRR = sum of monthly recurring price for all ACTIVE subscriptions
-    const mrr = brands
-      .filter(b => b.subscriptionStatus === SubscriptionStatus.ACTIVE)
-      .reduce((sum, b) => sum + getPlanPrice(b.subscriptionPlan), 0);
+    const mrr = orgs
+      .filter((o) => o.status === OrgStatus.ACTIVE)
+      .reduce((sum, o) => sum + getPlanPrice(o.plan), 0);
     const arr = mrr * 12;
+
+    const totalRevenue = recentInvoices
+      .filter((inv) => inv.status === 'PAID')
+      .reduce((sum, inv) => sum + inv.total, 0);
 
     return {
       mrr: Math.round(mrr * 100) / 100,
       arr: Math.round(arr * 100) / 100,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       subscribersByPlan,
-      // ADMIN FIX: Calculate actual revenue per plan (subscribers * monthly price)
       revenueByPlan: Object.fromEntries(
-        Object.entries(subscribersByPlan).map(([plan, count]) => [
-          plan,
-          count * getPlanPrice(plan),
-        ]),
+        Object.entries(subscribersByPlan).map(([plan, count]) => [plan, count * getPlanPrice(plan)]),
       ),
-      // ADMIN FIX: Calculate churn revenue from cancelled subscriptions
-      churnRevenue: brands
-        .filter(b => b.subscriptionStatus === SubscriptionStatus.CANCELED)
-        .reduce((sum, b) => sum + getPlanPrice(b.subscriptionPlan), 0),
+      churnRevenue: orgs
+        .filter((o) => o.status === OrgStatus.CANCELED)
+        .reduce((sum, o) => sum + getPlanPrice(o.plan), 0),
       activeSubscriptions,
       trialSubscriptions,
       cancelledSubscriptions,
       recentInvoices: recentInvoices.map((inv) => ({
         id: inv.id,
-        brandName: inv.brand?.name || 'Unknown',
-        amount: Number(inv.amount),
+        brandName: inv.organization?.name || 'Unknown',
+        amount: inv.total,
         currency: inv.currency,
         status: inv.status,
         paidAt: inv.paidAt?.toISOString() || null,
@@ -1436,26 +1115,24 @@ export class AdminService {
   }
 
   async getMetrics() {
-    const [
-      totalUsers,
-      totalBrands,
-      totalProducts,
-      totalOrders,
-      totalDesigns,
-    ] = await Promise.all([
+    const [totalUsers, totalOrganizations, totalAgents, totalConversations, totalMessages] = await Promise.all([
       this.prisma.user.count(),
-      this.prisma.brand.count(),
-      this.prisma.product.count(),
-      this.prisma.order.count(),
-      this.prisma.design.count(),
+      this.prisma.organization.count(),
+      this.prisma.agent.count(),
+      this.prisma.conversation.count(),
+      this.prisma.message.count(),
     ]);
 
     return {
       totalUsers,
-      totalBrands,
-      totalProducts,
-      totalOrders,
-      totalDesigns,
+      totalBrands: totalOrganizations,
+      totalProducts: totalAgents,
+      totalOrders: totalConversations,
+      totalDesigns: totalMessages,
+      totalOrganizations,
+      totalAgents,
+      totalConversations,
+      totalMessages,
       timestamp: new Date().toISOString(),
     };
   }
@@ -1478,7 +1155,7 @@ export class AdminService {
         throw new Error('ADMIN_EMAIL must be set in production');
       }
       const finalAdminEmail = adminEmail || 'admin@localhost.dev';
-      
+
       const adminUser = await this.prisma.user.upsert({
         where: { email: finalAdminEmail },
         update: {},
@@ -1487,12 +1164,12 @@ export class AdminService {
           passwordHash: adminPassword,
           firstName: 'Admin',
           lastName: 'Luneo',
-          role: 'PLATFORM_ADMIN',
+          role: PlatformRole.ADMIN,
           emailVerified: true,
         },
       });
 
-      this.logger.log(`✅ Admin user created/verified: ${adminUser.email}`);
+      this.logger.log(`Admin user created/verified: ${adminUser.email}`);
       return {
         success: true,
         message: 'Admin user created successfully',
@@ -1500,51 +1177,40 @@ export class AdminService {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`❌ Failed to create admin: ${message}`);
+      this.logger.error(`Failed to create admin: ${message}`);
       throw error;
     }
   }
 
-  async getAICosts(period: string = '30d') {
+  async getAICosts(_period: string = '30d') {
+    // TODO: V2 uses UsageRecord instead of AICost — implement when usage tracking is wired
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
 
-    const costs = await this.prisma.aICost.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
+    try {
+      const records = await this.prisma.usageRecord.findMany({
+        where: { createdAt: { gte: startDate } },
+        take: 1000,
+        select: {
+          id: true,
+          organizationId: true,
+          type: true,
+          quantity: true,
+          createdAt: true,
+          organization: { select: { id: true, name: true, logo: true } },
         },
-      },
-      take: 1000,
-      select: {
-        id: true,
-        brandId: true,
-        provider: true,
-        model: true,
-        costCents: true,
-        createdAt: true,
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            logo: true,
-          },
-        },
-      },
-    });
+      });
 
-    const totalCost = costs.reduce((sum, cost) => sum + cost.costCents, 0);
-    const costsByProvider = costs.reduce((acc, cost) => {
-      acc[cost.provider] = (acc[cost.provider] || 0) + cost.costCents;
-      return acc;
-    }, {} as Record<string, number>);
+      const totalCost = records.reduce((sum, r) => sum + r.quantity, 0);
+      const costsByProvider: Record<string, number> = {};
+      for (const r of records) {
+        costsByProvider[r.type] = (costsByProvider[r.type] || 0) + r.quantity;
+      }
 
-    return {
-      totalCost,
-      costsByProvider,
-      costs,
-      period,
-    };
+      return { totalCost, costsByProvider, costs: records, period: _period };
+    } catch {
+      return { totalCost: 0, costsByProvider: {}, costs: [], period: _period };
+    }
   }
 
   // ========================================
@@ -1553,15 +1219,8 @@ export class AdminService {
 
   private static readonly SETTINGS_PREFIX = 'platform:settings:';
 
-  /**
-   * Get all platform settings
-   */
   async getSettings() {
-    const configs = await this.prisma.systemConfig.findMany({
-      where: { key: { startsWith: AdminService.SETTINGS_PREFIX } },
-      take: 100,
-    });
-
+    // TODO: V2 has no SystemConfig model — using FeatureFlag.rules as fallback storage
     const settings: Record<string, string | boolean | number> = {
       enforce2FA: false,
       sessionTimeout: 30,
@@ -1574,21 +1233,30 @@ export class AdminService {
       timezone: 'Europe/Paris',
     };
 
-    for (const config of configs) {
-      const key = config.key.replace(AdminService.SETTINGS_PREFIX, '');
-      try {
-        settings[key] = JSON.parse(config.value);
-      } catch {
-        settings[key] = config.value;
+    try {
+      const flags = await this.prisma.featureFlag.findMany({
+        where: { key: { startsWith: AdminService.SETTINGS_PREFIX } },
+        take: 100,
+      });
+
+      for (const flag of flags) {
+        const key = flag.key.replace(AdminService.SETTINGS_PREFIX, '');
+        if (flag.rules) {
+          try {
+            const value = (flag.rules as Record<string, unknown>).value;
+            if (value !== undefined) settings[key] = value as string | boolean | number;
+          } catch { /* ignore parse errors */ }
+        } else {
+          settings[key] = flag.enabled;
+        }
       }
+    } catch {
+      this.logger.warn('Could not load settings from FeatureFlag table');
     }
 
     return { settings };
   }
 
-  /**
-   * Update platform settings
-   */
   async updateSettings(updates: Record<string, unknown>) {
     const validKeys = [
       'enforce2FA', 'sessionTimeout', 'ipWhitelist',
@@ -1601,16 +1269,26 @@ export class AdminService {
     for (const [key, value] of Object.entries(updates)) {
       if (!validKeys.includes(key)) continue;
 
-      const configKey = `${AdminService.SETTINGS_PREFIX}${key}`;
-      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-
-      await this.prisma.systemConfig.upsert({
-        where: { key: configKey },
-        create: { key: configKey, value: stringValue, description: `Platform setting: ${key}` },
-        update: { value: stringValue },
-      });
-
-      updated.push(key);
+      const flagKey = `${AdminService.SETTINGS_PREFIX}${key}`;
+      try {
+        await this.prisma.featureFlag.upsert({
+          where: { key: flagKey },
+          create: {
+            key: flagKey,
+            name: `Platform setting: ${key}`,
+            description: `Platform setting: ${key}`,
+            enabled: typeof value === 'boolean' ? value : true,
+            rules: { value } as Prisma.InputJsonValue,
+          },
+          update: {
+            enabled: typeof value === 'boolean' ? value : true,
+            rules: { value } as Prisma.InputJsonValue,
+          },
+        });
+        updated.push(key);
+      } catch {
+        this.logger.warn(`Failed to persist setting: ${key}`);
+      }
     }
 
     this.logger.log(`Updated platform settings: ${updated.join(', ')}`);
@@ -1621,9 +1299,7 @@ export class AdminService {
 
   async addBlacklistedPrompt(term: string) {
     const normalized = term.toLowerCase().trim();
-    if (!normalized) {
-      throw new BadRequestException('Term cannot be empty');
-    }
+    if (!normalized) throw new BadRequestException('Term cannot be empty');
     const terms = await this.getBlacklistedPrompts();
     const set = new Set(terms);
     set.add(normalized);
@@ -1633,14 +1309,14 @@ export class AdminService {
   }
 
   async getBlacklistedPrompts(): Promise<string[]> {
-    const config = await this.prisma.systemConfig.findUnique({
-      where: { key: AdminService.BLACKLIST_CONFIG_KEY },
-    });
-    if (!config?.value) return [];
     try {
-      return JSON.parse(config.value) as string[];
+      const flag = await this.prisma.featureFlag.findUnique({
+        where: { key: AdminService.BLACKLIST_CONFIG_KEY },
+      });
+      if (!flag?.rules) return [];
+      const rules = flag.rules as Record<string, unknown>;
+      return (rules.terms as string[]) ?? [];
     } catch {
-      this.logger.warn('Invalid JSON in ai:blacklisted_prompts config');
       return [];
     }
   }
@@ -1656,20 +1332,23 @@ export class AdminService {
   }
 
   private async persistBlacklistedPrompts(terms: string[]) {
-    await this.prisma.systemConfig.upsert({
+    await this.prisma.featureFlag.upsert({
       where: { key: AdminService.BLACKLIST_CONFIG_KEY },
       create: {
         key: AdminService.BLACKLIST_CONFIG_KEY,
-        value: JSON.stringify(terms),
-        description: 'AI blacklisted prompt terms (content moderation)',
+        name: 'AI blacklisted prompt terms',
+        description: 'Content moderation blacklist',
+        enabled: true,
+        rules: { terms } as Prisma.InputJsonValue,
       },
-      update: { value: JSON.stringify(terms) },
+      update: { rules: { terms } as Prisma.InputJsonValue },
     });
   }
 
-  /**
-   * Bulk actions for customers
-   */
+  // ========================================
+  // BULK ACTIONS
+  // ========================================
+
   async bulkActionCustomers(
     customerIds: string[],
     action: 'email' | 'export' | 'tag' | 'segment' | 'delete',
@@ -1683,9 +1362,10 @@ export class AdminService {
       case 'export':
         return this.bulkExportCustomers(customerIds);
       case 'tag':
-        return this.bulkTagCustomers(customerIds, Array.isArray(options?.tags) ? options.tags : []);
+        return { success: true, message: `Tagged ${customerIds.length} customers`, count: customerIds.length };
       case 'segment':
-        return this.bulkSegmentCustomers(customerIds, typeof options?.segmentId === 'string' ? options.segmentId : undefined);
+        // TODO: V2 has no AnalyticsSegment model
+        return { success: true, message: `Segment action not available in V2`, count: 0 };
       case 'delete':
         return this.bulkDeleteCustomers(customerIds);
       default:
@@ -1696,12 +1376,7 @@ export class AdminService {
   private async bulkSendEmail(customerIds: string[], options?: { subject?: string; template?: string }) {
     const customers = await this.prisma.user.findMany({
       where: { id: { in: customerIds } },
-      select: { 
-        id: true, 
-        email: true, 
-        firstName: true,
-        lastName: true,
-      },
+      select: { id: true, email: true, firstName: true, lastName: true },
     });
 
     const subject = options?.subject ?? 'Message from Luneo';
@@ -1719,252 +1394,96 @@ export class AdminService {
       });
     }
     this.logger.log(`Sent email to ${customers.length} customers`);
-    return {
-      success: true,
-      message: `Email sent to ${customers.length} customers`,
-      count: customers.length,
-    };
+    return { success: true, message: `Email sent to ${customers.length} customers`, count: customers.length };
   }
 
   private async bulkExportCustomers(customerIds: string[]) {
     const customers = await this.prisma.user.findMany({
       where: { id: { in: customerIds } },
       include: {
-        brand: {
-          select: {
-            subscriptionPlan: true,
-            subscriptionStatus: true,
-          },
+        memberships: {
+          select: { organization: { select: { plan: true, status: true } } },
+          take: 1,
         },
       },
     });
 
-    // Format for CSV export
-    const csvData = customers.map((customer) => ({
-      id: customer.id,
-      email: customer.email,
-      name: [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'N/A',
-      plan: customer.brand?.subscriptionPlan || 'FREE',
-      createdAt: customer.createdAt.toISOString(),
+    const csvData = customers.map((c) => ({
+      id: c.id,
+      email: c.email,
+      name: [c.firstName, c.lastName].filter(Boolean).join(' ') || 'N/A',
+      plan: c.memberships[0]?.organization?.plan || 'FREE',
+      createdAt: c.createdAt.toISOString(),
     }));
 
-    return {
-      success: true,
-      data: csvData,
-      count: customers.length,
-    };
-  }
-
-  private async bulkTagCustomers(customerIds: string[], tags: string[]) {
-    this.logger.log(`Tagging ${customerIds.length} customers with tags: ${tags.join(', ')}`);
-    return {
-      success: true,
-      message: `Tagged ${customerIds.length} customers`,
-      count: customerIds.length,
-    };
-  }
-
-  private async bulkSegmentCustomers(customerIds: string[], segmentId?: string) {
-    if (!segmentId) {
-      throw new BadRequestException('Segment ID is required');
-    }
-
-    const segment = await this.prisma.analyticsSegment.findUnique({
-      where: { id: segmentId },
-      select: { id: true, criteria: true, userCount: true },
-    });
-    if (!segment) {
-      throw new NotFoundException(`Segment ${segmentId} not found`);
-    }
-
-    const criteria = (segment.criteria as Record<string, unknown>) ?? {};
-    const memberIds = (criteria.memberIds as string[]) ?? [];
-    const merged = [...new Set([...memberIds, ...customerIds])];
-    await this.prisma.analyticsSegment.update({
-      where: { id: segmentId },
-      data: {
-        criteria: { ...criteria, memberIds: merged } as Prisma.InputJsonValue,
-        userCount: merged.length,
-      },
-    });
-
-    this.logger.log(`Added ${customerIds.length} customers to segment ${segmentId}`);
-    return {
-      success: true,
-      message: `Added ${customerIds.length} customers to segment`,
-      count: customerIds.length,
-    };
+    return { success: true, data: csvData, count: customers.length };
   }
 
   private async bulkDeleteCustomers(customerIds: string[]) {
-    // Soft delete: Set isActive to false (User model doesn't have deletedAt)
     await this.prisma.user.updateMany({
       where: { id: { in: customerIds } },
       data: { deletedAt: new Date() },
     });
 
     this.logger.log(`Deleted ${customerIds.length} customers`);
-    return {
-      success: true,
-      message: `Deleted ${customerIds.length} customers`,
-      count: customerIds.length,
-    };
+    return { success: true, message: `Deleted ${customerIds.length} customers`, count: customerIds.length };
   }
 
   // ========================================
   // DISCOUNT CODES MANAGEMENT
   // ========================================
 
-  async getDiscounts(options?: { page?: number; limit?: number; isActive?: boolean }) {
-    const page = options?.page || 1;
-    const limit = Math.min(options?.limit || 50, 100);
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.DiscountWhereInput = {};
-    if (options?.isActive !== undefined) where.isActive = options.isActive;
-
-    const [discounts, total] = await Promise.all([
-      this.prisma.discount.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.discount.count({ where }),
-    ]);
-
-    return { discounts, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  async getDiscounts(_options?: { page?: number; limit?: number; isActive?: boolean }) {
+    // TODO: V2 has no Discount model — e-commerce features removed
+    return { discounts: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
   }
 
-  async createDiscount(data: {
-    code: string;
-    type: string;
-    value: number;
-    minPurchaseCents?: number;
-    maxDiscountCents?: number;
-    validFrom?: string | Date;
-    validUntil?: string | Date;
-    usageLimit?: number;
-    isActive?: boolean;
-    brandId?: string;
-    description?: string;
-  }) {
-    const code = data.code.toUpperCase().trim();
-
-    // Check uniqueness
-    const existing = await this.prisma.discount.findUnique({ where: { code } });
-    if (existing) {
-      throw new Error(`Discount code "${code}" already exists`);
-    }
-
-    const discountType = data.type.toUpperCase() === 'FIXED' ? 'FIXED' : 'PERCENTAGE';
-
-    return this.prisma.discount.create({
-      data: {
-        code,
-        type: discountType as DiscountType,
-        value: data.value,
-        minPurchaseCents: data.minPurchaseCents ?? 0,
-        maxDiscountCents: data.maxDiscountCents,
-        validFrom: data.validFrom ? new Date(data.validFrom) : new Date(),
-        validUntil: data.validUntil ? new Date(data.validUntil) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        usageLimit: data.usageLimit,
-        usageCount: 0,
-        isActive: data.isActive ?? true,
-        brandId: data.brandId,
-        description: data.description,
-      },
-    });
+  async createDiscount(_data: Record<string, unknown>) {
+    // TODO: V2 has no Discount model
+    return { message: 'Discount management not available in V2' };
   }
 
-  async updateDiscount(id: string, data: Record<string, unknown>) {
-    return this.prisma.discount.update({
-      where: { id },
-      data: data as Prisma.DiscountUpdateInput,
-    });
+  async updateDiscount(_id: string, _data: Record<string, unknown>) {
+    // TODO: V2 has no Discount model
+    return { message: 'Discount management not available in V2' };
   }
 
-  async deleteDiscount(id: string) {
-    return this.prisma.discount.delete({ where: { id } });
+  async deleteDiscount(_id: string) {
+    // TODO: V2 has no Discount model
+    return { message: 'Discount management not available in V2' };
   }
 
   // ========================================
   // REFERRAL / COMMISSIONS MANAGEMENT
   // ========================================
 
-  async getReferrals(options?: { page?: number; limit?: number; status?: string }) {
-    const page = options?.page || 1;
-    const limit = Math.min(options?.limit || 50, 100);
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.ReferralWhereInput = {};
-    if (options?.status) where.status = options.status as ReferralStatus;
-
-    const [referrals, total] = await Promise.all([
-      this.prisma.referral.findMany({
-        where,
-        include: {
-          referrer: { select: { id: true, firstName: true, lastName: true, email: true } },
-          referredUser: { select: { id: true, firstName: true, lastName: true, email: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.referral.count({ where }),
-    ]);
-
-    return { referrals, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  async getReferrals(_options?: { page?: number; limit?: number; status?: string }) {
+    // TODO: V2 has no Referral model
+    return { referrals: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
   }
 
-  async getCommissions(options?: { page?: number; limit?: number; status?: string }) {
-    const page = options?.page || 1;
-    const limit = Math.min(options?.limit || 50, 100);
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.CommissionWhereInput = {};
-    if (options?.status) where.status = options.status as CommissionStatus;
-
-    const [commissions, total] = await Promise.all([
-      this.prisma.commission.findMany({
-        where,
-        include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true } },
-          referral: { select: { id: true, referralCode: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.commission.count({ where }),
-    ]);
-
-    return { commissions, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  async getCommissions(_options?: { page?: number; limit?: number; status?: string }) {
+    // TODO: V2 has no Commission model
+    return { commissions: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
   }
 
-  async approveCommission(commissionId: string) {
-    return this.prisma.commission.update({
-      where: { id: commissionId },
-      data: { status: 'APPROVED' },
-    });
+  async approveCommission(_commissionId: string) {
+    // TODO: V2 has no Commission model
+    return { message: 'Commission management not available in V2' };
   }
 
-  async markCommissionPaid(commissionId: string) {
-    return this.prisma.commission.update({
-      where: { id: commissionId },
-      data: { status: 'PAID', paidAt: new Date() },
-    });
+  async markCommissionPaid(_commissionId: string) {
+    // TODO: V2 has no Commission model
+    return { message: 'Commission management not available in V2' };
   }
 
-  async rejectCommission(commissionId: string) {
-    return this.prisma.commission.update({
-      where: { id: commissionId },
-      data: { status: 'CANCELLED' },
-    });
+  async rejectCommission(_commissionId: string) {
+    // TODO: V2 has no Commission model
+    return { message: 'Commission management not available in V2' };
   }
 
   // ========================================
-  // SUPPORT - AGENT ASSIGNMENT & TICKETS
+  // SUPPORT - TICKETS
   // ========================================
 
   async getAllTickets(options?: { page?: number; limit?: number; status?: string; assignedTo?: string }) {
@@ -1974,14 +1493,14 @@ export class AdminService {
 
     const where: Prisma.TicketWhereInput = {};
     if (options?.status) where.status = options.status as TicketStatus;
-    if (options?.assignedTo) where.assignedTo = options.assignedTo;
+    if (options?.assignedTo) where.assignedToId = options.assignedTo;
 
     const [tickets, total] = await Promise.all([
       this.prisma.ticket.findMany({
         where,
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true } },
-          assignedUser: { select: { id: true, firstName: true, lastName: true, email: true } },
+          createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } },
           messages: { take: 1, orderBy: { createdAt: 'desc' } },
         },
         orderBy: { createdAt: 'desc' },
@@ -1991,7 +1510,14 @@ export class AdminService {
       this.prisma.ticket.count({ where }),
     ]);
 
-    return { tickets, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+    return {
+      tickets: tickets.map((t) => ({
+        ...t,
+        user: t.createdBy,
+        assignedUser: t.assignedTo,
+      })),
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
   }
 
   async assignTicket(ticketId: string, agentId: string) {
@@ -2000,52 +1526,38 @@ export class AdminService {
 
     const updated = await this.prisma.ticket.update({
       where: { id: ticketId },
-      data: { assignedTo: agentId },
-    });
-
-    // Create activity
-    await this.prisma.ticketActivity.create({
-      data: {
-        ticketId,
-        action: 'assigned',
-        userId: agentId,
-        newValue: `Assigned to ${agent.firstName || agent.email}`,
-      },
+      data: { assignedToId: agentId },
     });
 
     return updated;
   }
 
   async addAgentReply(ticketId: string, agentId: string, content: string) {
+    const agent = await this.prisma.user.findUnique({
+      where: { id: agentId },
+      select: { firstName: true, email: true },
+    });
+
     const message = await this.prisma.ticketMessage.create({
       data: {
         ticketId,
-        userId: agentId,
+        authorId: agentId,
+        authorName: agent?.firstName || agent?.email || 'Staff',
+        authorEmail: agent?.email,
+        isStaff: true,
         content,
-        type: 'AGENT',
       },
     });
 
-    // Update ticket
     await this.prisma.ticket.update({
       where: { id: ticketId },
       data: { updatedAt: new Date() },
     });
 
-    // Create activity
-    await this.prisma.ticketActivity.create({
-      data: {
-        ticketId,
-        action: 'message_added',
-        userId: agentId,
-        newValue: 'Staff reply added',
-      },
-    });
-
     return message;
   }
 
-  async updateTicketStatus(ticketId: string, status: string, agentId: string) {
+  async updateTicketStatus(ticketId: string, status: string, _agentId: string) {
     const data: Prisma.TicketUpdateInput = { status: status as TicketStatus };
     if (status === 'RESOLVED') data.resolvedAt = new Date();
     if (status === 'CLOSED') data.closedAt = new Date();
@@ -2053,16 +1565,6 @@ export class AdminService {
     const ticket = await this.prisma.ticket.update({
       where: { id: ticketId },
       data,
-    });
-
-    await this.prisma.ticketActivity.create({
-      data: {
-        ticketId,
-        action: 'status_changed',
-        userId: agentId,
-        oldValue: 'previous',
-        newValue: status,
-      },
     });
 
     return ticket;
@@ -2078,7 +1580,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.WebhookWhereInput = {};
-    if (params.brandId) where.brandId = params.brandId;
+    if (params.brandId) where.organizationId = params.brandId;
 
     const [webhooks, total] = await Promise.all([
       this.prisma.webhook.findMany({
@@ -2087,14 +1589,19 @@ export class AdminService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          brand: { select: { id: true, name: true } },
+          organization: { select: { id: true, name: true } },
         },
       }),
       this.prisma.webhook.count({ where }),
     ]);
 
     return {
-      data: webhooks,
+      data: webhooks.map((w) => ({
+        ...w,
+        brand: w.organization,
+        brandId: w.organizationId,
+        isActive: w.status === 'ACTIVE',
+      })),
       total,
       page,
       limit,
@@ -2106,20 +1613,17 @@ export class AdminService {
     const webhook = await this.prisma.webhook.findUnique({
       where: { id },
       include: {
-        brand: { select: { id: true, name: true } },
-        webhookLogs: {
-          take: 20,
-          orderBy: { createdAt: 'desc' },
-        },
+        organization: { select: { id: true, name: true } },
+        logs: { take: 20, orderBy: { createdAt: 'desc' } },
       },
     });
     if (!webhook) throw new NotFoundException('Webhook not found');
-    return webhook;
+    return { ...webhook, brand: webhook.organization, brandId: webhook.organizationId };
   }
 
   async createWebhook(data: {
     brandId: string;
-    name: string;
+    name?: string;
     url: string;
     events?: string[];
     isActive?: boolean;
@@ -2129,11 +1633,11 @@ export class AdminService {
 
     return this.prisma.webhook.create({
       data: {
-        brandId: data.brandId,
-        name: data.name,
+        organizationId: data.brandId,
         url: data.url,
+        events: data.events ?? [],
         secret,
-        isActive: data.isActive ?? true,
+        status: data.isActive === false ? 'PAUSED' : 'ACTIVE',
       },
     });
   }
@@ -2143,20 +1647,16 @@ export class AdminService {
     if (!webhook) throw new NotFoundException('Webhook not found');
 
     const updateData: Prisma.WebhookUpdateInput = {};
-    if (data.name !== undefined) updateData.name = data.name as string;
     if (data.url !== undefined) updateData.url = data.url as string;
-    if (data.isActive !== undefined) updateData.isActive = data.isActive as boolean;
+    if (data.isActive !== undefined) updateData.status = (data.isActive as boolean) ? 'ACTIVE' : 'PAUSED';
+    if (data.events !== undefined) updateData.events = data.events as string[];
 
-    return this.prisma.webhook.update({
-      where: { id },
-      data: updateData,
-    });
+    return this.prisma.webhook.update({ where: { id }, data: updateData });
   }
 
   async deleteWebhook(id: string) {
     const webhook = await this.prisma.webhook.findUnique({ where: { id } });
     if (!webhook) throw new NotFoundException('Webhook not found');
-
     await this.prisma.webhook.delete({ where: { id } });
     return { success: true, message: 'Webhook deleted' };
   }
@@ -2194,41 +1694,44 @@ export class AdminService {
   // EVENTS (Admin)
   // ========================================
 
-  async getEvents(params: { days?: number; type?: string; page?: number; limit?: number }) {
-    const days = params.days || 30;
-    const page = params.page || 1;
-    const limit = params.limit || 50;
+  async getEvents(_params: { days?: number; type?: string; page?: number; limit?: number }) {
+    // TODO: V2 has no Event model — use AuditLog as proxy
+    const days = _params.days || 30;
+    const page = _params.page || 1;
+    const limit = _params.limit || 50;
     const skip = (page - 1) * limit;
-
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const where: Prisma.EventWhereInput = {
-      createdAt: { gte: since },
-    };
-    if (params.type) where.type = params.type;
+    const where: Prisma.AuditLogWhereInput = { createdAt: { gte: since } };
+    if (_params.type) where.action = _params.type;
 
     const [events, total] = await Promise.all([
-      this.prisma.event.findMany({
+      this.prisma.auditLog.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          customer: {
-            select: {
-              id: true,
-              userId: true,
-              user: { select: { email: true, firstName: true, lastName: true } },
-            },
-          },
+        select: {
+          id: true,
+          action: true,
+          resource: true,
+          resourceId: true,
+          userId: true,
+          metadata: true,
+          createdAt: true,
+          user: { select: { email: true, firstName: true, lastName: true } },
         },
       }),
-      this.prisma.event.count({ where }),
+      this.prisma.auditLog.count({ where }),
     ]);
 
     return {
-      data: events,
+      data: events.map((e) => ({
+        ...e,
+        type: e.action,
+        timestamp: e.createdAt,
+      })),
       total,
       page,
       limit,
@@ -2241,49 +1744,48 @@ export class AdminService {
   // ========================================
 
   async getTenantFeatures(brandId: string) {
-    const brand = await this.prisma.brand.findUnique({
+    const org = await this.prisma.organization.findUnique({
       where: { id: brandId },
       select: {
         id: true,
         name: true,
         plan: true,
-        subscriptionPlan: true,
-        maxProducts: true,
-        maxMonthlyGenerations: true,
-        aiCostLimitCents: true,
-        aiCostUsedCents: true,
-        monthlyGenerations: true,
+        conversationsLimit: true,
+        agentsLimit: true,
+        knowledgeSourcesLimit: true,
+        teamMembersLimit: true,
+        monthlyBudgetLimit: true,
+        currentMonthSpend: true,
+        conversationsUsed: true,
+        agentsUsed: true,
+        features: true,
       },
     });
-    if (!brand) throw new NotFoundException('Brand not found');
-    return brand;
+    if (!org) throw new NotFoundException('Organization not found');
+    return org;
   }
 
-  async updateTenantFeatures(
-    brandId: string,
-    features: Record<string, unknown>,
-  ) {
-    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
-    if (!brand) throw new NotFoundException('Brand not found');
+  async updateTenantFeatures(brandId: string, features: Record<string, unknown>) {
+    const org = await this.prisma.organization.findUnique({ where: { id: brandId } });
+    if (!org) throw new NotFoundException('Organization not found');
 
-    const updateData: Prisma.BrandUpdateInput = {};
-    if (features.maxProducts !== undefined) updateData.maxProducts = features.maxProducts as number;
-    if (features.maxMonthlyGenerations !== undefined) updateData.maxMonthlyGenerations = features.maxMonthlyGenerations as number;
-    if (features.aiCostLimitCents !== undefined) updateData.aiCostLimitCents = features.aiCostLimitCents as number;
+    const updateData: Prisma.OrganizationUpdateInput = {};
+    if (features.conversationsLimit !== undefined) updateData.conversationsLimit = features.conversationsLimit as number;
+    if (features.agentsLimit !== undefined) updateData.agentsLimit = features.agentsLimit as number;
+    if (features.knowledgeSourcesLimit !== undefined) updateData.knowledgeSourcesLimit = features.knowledgeSourcesLimit as number;
+    if (features.teamMembersLimit !== undefined) updateData.teamMembersLimit = features.teamMembersLimit as number;
+    if (features.monthlyBudgetLimit !== undefined) updateData.monthlyBudgetLimit = features.monthlyBudgetLimit as number;
+    if (features.maxProducts !== undefined) updateData.agentsLimit = features.maxProducts as number;
+    if (features.maxMonthlyGenerations !== undefined) updateData.conversationsLimit = features.maxMonthlyGenerations as number;
+    if (features.aiCostLimitCents !== undefined) updateData.monthlyBudgetLimit = (features.aiCostLimitCents as number) / 100;
 
-    return this.prisma.brand.update({
-      where: { id: brandId },
-      data: updateData,
-    });
+    return this.prisma.organization.update({ where: { id: brandId }, data: updateData });
   }
 
   // ========================================
-  // INVOICES - Full paginated list (Admin)
+  // INVOICES (Admin)
   // ========================================
 
-  /**
-   * List ALL invoices across all brands with pagination, search and filters.
-   */
   async getAllInvoices(params?: {
     page?: number;
     limit?: number;
@@ -2300,13 +1802,13 @@ export class AdminService {
     const sortOrder = params?.sortOrder || 'desc';
 
     const where: Prisma.InvoiceWhereInput = {};
-    if (params?.brandId) where.brandId = params.brandId;
-    if (params?.status) where.status = params.status;
+    if (params?.brandId) where.organizationId = params.brandId;
+    if (params?.status) where.status = params.status as InvoiceStatus;
     if (params?.search) {
       where.OR = [
         { id: { contains: params.search, mode: 'insensitive' } },
         { stripeInvoiceId: { contains: params.search, mode: 'insensitive' } },
-        { brand: { name: { contains: params.search, mode: 'insensitive' } } },
+        { organization: { name: { contains: params.search, mode: 'insensitive' } } },
       ];
     }
 
@@ -2317,7 +1819,7 @@ export class AdminService {
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
-          brand: { select: { id: true, name: true, slug: true, subscriptionPlan: true } },
+          organization: { select: { id: true, name: true, slug: true, plan: true } },
         },
       }),
       this.prisma.invoice.count({ where }),
@@ -2327,10 +1829,11 @@ export class AdminService {
       invoices: invoices.map((inv) => ({
         id: inv.id,
         stripeInvoiceId: inv.stripeInvoiceId,
-        brandId: inv.brandId,
-        brandName: inv.brand?.name || 'Unknown',
-        brandPlan: inv.brand?.subscriptionPlan || null,
-        amount: Number(inv.amount),
+        brandId: inv.organizationId,
+        organizationId: inv.organizationId,
+        brandName: inv.organization?.name || 'Unknown',
+        brandPlan: inv.organization?.plan || null,
+        amount: inv.total,
         currency: inv.currency,
         status: inv.status,
         paidAt: inv.paidAt?.toISOString() || null,
@@ -2350,23 +1853,20 @@ export class AdminService {
   // PLAN CHANGE HISTORY (Admin)
   // ========================================
 
-  /**
-   * Get plan change history for a specific brand or all brands.
-   * Uses the AuditLog model to track subscription plan changes.
-   */
-  async getPlanChangeHistory(params?: {
-    brandId?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async getPlanChangeHistory(params?: { brandId?: string; page?: number; limit?: number }) {
     const page = params?.page || 1;
     const limit = Math.min(params?.limit || 20, 100);
     const skip = (page - 1) * limit;
 
-    // Get plan changes from AuditLog if available, otherwise reconstruct from brands
     try {
       const where: Prisma.AuditLogWhereInput = {
-        action: { in: ['SUBSCRIPTION_CREATED', 'SUBSCRIPTION_UPDATED', 'SUBSCRIPTION_CANCELED', 'PLAN_CHANGED', 'subscription.updated', 'subscription.deleted', 'checkout.session.completed'] },
+        action: {
+          in: [
+            'SUBSCRIPTION_CREATED', 'SUBSCRIPTION_UPDATED', 'SUBSCRIPTION_CANCELED',
+            'PLAN_CHANGED', 'subscription.updated', 'subscription.deleted',
+            'checkout.session.completed',
+          ],
+        },
       };
       if (params?.brandId) where.resourceId = params.brandId;
 
@@ -2375,51 +1875,49 @@ export class AdminService {
           where,
           skip,
           take: limit,
-          orderBy: { timestamp: 'desc' },
+          orderBy: { createdAt: 'desc' },
           select: {
             id: true,
             action: true,
-            resourceType: true,
+            resource: true,
             resourceId: true,
             userId: true,
             metadata: true,
-            timestamp: true,
+            createdAt: true,
           },
         }),
         this.prisma.auditLog.count({ where }),
       ]);
 
-      // Enrich with brand names
-      const brandIds = [...new Set(logs.map(l => l.resourceId).filter(Boolean))] as string[];
-      const brands = brandIds.length > 0
-        ? await this.prisma.brand.findMany({
-            where: { id: { in: brandIds } },
-            select: { id: true, name: true, subscriptionPlan: true },
+      const orgIds = [...new Set(logs.map((l) => l.resourceId).filter(Boolean))] as string[];
+      const orgs = orgIds.length > 0
+        ? await this.prisma.organization.findMany({
+            where: { id: { in: orgIds } },
+            select: { id: true, name: true, plan: true },
           })
         : [];
-      const brandMap = new Map(brands.map(b => [b.id, b]));
+      const orgMap = new Map(orgs.map((o) => [o.id, o]));
 
       return {
         history: logs.map((log) => {
-          const brand = log.resourceId ? brandMap.get(log.resourceId) : null;
+          const org = log.resourceId ? orgMap.get(log.resourceId) : null;
           const meta = log.metadata as Record<string, unknown> | null;
           return {
             id: log.id,
             action: log.action,
             brandId: log.resourceId,
-            brandName: brand?.name || 'Unknown',
-            currentPlan: brand?.subscriptionPlan || null,
+            brandName: org?.name || 'Unknown',
+            currentPlan: org?.plan || null,
             previousPlan: meta?.previousPlan || meta?.fromPlan || null,
             newPlan: meta?.newPlan || meta?.toPlan || meta?.plan || null,
             userId: log.userId,
             metadata: meta,
-            createdAt: log.timestamp.toISOString(),
+            createdAt: log.createdAt.toISOString(),
           };
         }),
         meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
       };
     } catch {
-      // Fallback if AuditLog model doesn't have those actions
       this.logger.warn('AuditLog query for plan changes failed, returning empty history');
       return { history: [], meta: { total: 0, page, limit, totalPages: 0 } };
     }
@@ -2429,23 +1927,13 @@ export class AdminService {
   // UPDATE CUSTOMER EMAIL (Admin)
   // ========================================
 
-  /**
-   * Update a customer's email address (admin action).
-   * Validates uniqueness before update.
-   */
   async updateCustomerEmail(customerId: string, newEmail: string) {
     const existing = await this.prisma.user.findUnique({ where: { id: customerId } });
-    if (!existing) {
-      throw new NotFoundException(`Customer with ID ${customerId} not found`);
-    }
+    if (!existing) throw new NotFoundException(`Customer with ID ${customerId} not found`);
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) {
-      throw new BadRequestException('Invalid email format');
-    }
+    if (!emailRegex.test(newEmail)) throw new BadRequestException('Invalid email format');
 
-    // Check uniqueness
     const duplicate = await this.prisma.user.findUnique({ where: { email: newEmail } });
     if (duplicate && duplicate.id !== customerId) {
       throw new BadRequestException('This email address is already used by another account');
@@ -2460,23 +1948,20 @@ export class AdminService {
         firstName: true,
         lastName: true,
         role: true,
-        isActive: true,
+        deletedAt: true,
         updatedAt: true,
       },
     });
 
     this.logger.log(`Admin updated email for user ${customerId}: ${existing.email} -> ${newEmail}`);
-    return updated;
+    return { ...updated, isActive: updated.deletedAt === null };
   }
 
   // ========================================
   // GLOBAL DESIGNS LIST (Admin)
   // ========================================
 
-  /**
-   * List all designs across all brands with pagination and filters.
-   */
-  async getAllDesigns(params?: {
+  async getAllDesigns(_params?: {
     page?: number;
     limit?: number;
     search?: string;
@@ -2484,396 +1969,143 @@ export class AdminService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    const page = params?.page || 1;
-    const limit = Math.min(params?.limit || 20, 100);
+    // TODO: V2 has no Design model — return agents as a proxy
+    const page = _params?.page || 1;
+    const limit = Math.min(_params?.limit || 20, 100);
     const skip = (page - 1) * limit;
-    const sortBy = params?.sortBy || 'createdAt';
-    const sortOrder = params?.sortOrder || 'desc';
 
-    const where: Prisma.DesignWhereInput = {};
-    if (params?.brandId) where.brandId = params.brandId;
-    if (params?.search) {
+    const where: Prisma.AgentWhereInput = {};
+    if (_params?.brandId) where.organizationId = _params.brandId;
+    if (_params?.search) {
       where.OR = [
-        { name: { contains: params.search, mode: 'insensitive' } },
-        { brand: { name: { contains: params.search, mode: 'insensitive' } } },
+        { name: { contains: _params.search, mode: 'insensitive' } },
+        { organization: { name: { contains: _params.search, mode: 'insensitive' } } },
       ];
     }
 
-    const [designs, total] = await Promise.all([
-      this.prisma.design.findMany({
+    const [agents, total] = await Promise.all([
+      this.prisma.agent.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [_params?.sortBy || 'createdAt']: _params?.sortOrder || 'desc' },
         select: {
           id: true,
           name: true,
           status: true,
-          previewUrl: true,
-          imageUrl: true,
+          avatar: true,
           createdAt: true,
           updatedAt: true,
-          brand: { select: { id: true, name: true } },
-          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          organization: { select: { id: true, name: true } },
         },
       }),
-      this.prisma.design.count({ where }),
+      this.prisma.agent.count({ where }),
     ]);
 
     return {
-      designs: designs.map((d) => ({
-        ...d,
-        thumbnailUrl: d.previewUrl || d.imageUrl || null,
+      designs: agents.map((a) => ({
+        id: a.id,
+        name: a.name,
+        status: a.status,
+        thumbnailUrl: a.avatar || null,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+        brand: a.organization,
       })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  /**
-   * Get AR Studio usage metrics across all brands.
-   * Admin-only endpoint for monitoring AR feature adoption.
-   */
-  async getARStudioMetrics(periodDays: number = 30) {
-    const since = new Date();
-    since.setDate(since.getDate() - periodDays);
-
-    const [
-      totalProjects,
-      totalModels,
-      totalSessions,
-      totalQRCodes,
-      totalCollaborationRooms,
-      sessionsInPeriod,
-      platformDistribution,
-      topProjects,
-      conversionFunnels,
-    ] = await Promise.all([
-      // Total counts
-      this.prisma.aRProject.count(),
-      this.prisma.aR3DModel.count(),
-      this.prisma.aRSession.count(),
-      this.prisma.aRQRCode.count(),
-      this.prisma.aRCollaborationRoom.count(),
-
-      // Sessions in period
-      this.prisma.aRSession.count({
-        where: { startedAt: { gte: since } },
-      }),
-
-      // Platform distribution
-      this.prisma.aRSession.groupBy({
-        by: ['platform'],
-        where: { startedAt: { gte: since } },
-        _count: true,
-      }),
-
-      // Top projects by sessions
-      this.prisma.aRSession.groupBy({
-        by: ['projectId'],
-        where: { startedAt: { gte: since } },
-        _count: true,
-        orderBy: { _count: { projectId: 'desc' } },
-        take: 10,
-      }),
-
-      // Conversion funnels in period
-      this.prisma.aRConversionFunnel.findMany({
-        where: { date: { gte: since } },
-        select: {
-          qrScans: true,
-          arLaunches: true,
-          modelPlacements: true,
-          engagedSessions: true,
-          screenshots: true,
-          shares: true,
-          addToCarts: true,
-          purchases: true,
-          totalRevenue: true,
-        },
-      }),
-    ]);
-
-    // Aggregate funnel data
-    const aggregatedFunnel = conversionFunnels.reduce(
-      (acc, f) => ({
-        qrScans: acc.qrScans + f.qrScans,
-        arLaunches: acc.arLaunches + f.arLaunches,
-        modelPlacements: acc.modelPlacements + f.modelPlacements,
-        engagedSessions: acc.engagedSessions + f.engagedSessions,
-        screenshots: acc.screenshots + f.screenshots,
-        shares: acc.shares + f.shares,
-        addToCarts: acc.addToCarts + f.addToCarts,
-        purchases: acc.purchases + f.purchases,
-        totalRevenue: acc.totalRevenue + f.totalRevenue,
-      }),
-      {
-        qrScans: 0,
-        arLaunches: 0,
-        modelPlacements: 0,
-        engagedSessions: 0,
-        screenshots: 0,
-        shares: 0,
-        addToCarts: 0,
-        purchases: 0,
-        totalRevenue: 0,
-      },
-    );
-
-    return {
-      period: { days: periodDays, since: since.toISOString() },
-      totals: {
-        projects: totalProjects,
-        models: totalModels,
-        sessions: totalSessions,
-        qrCodes: totalQRCodes,
-        collaborationRooms: totalCollaborationRooms,
-      },
-      periodMetrics: {
-        sessions: sessionsInPeriod,
-        sessionsPerDay: Math.round(sessionsInPeriod / periodDays),
-      },
-      platformDistribution: platformDistribution.map((p) => ({
-        platform: p.platform,
-        count: p._count,
-        percentage: sessionsInPeriod > 0 ? Math.round((p._count / sessionsInPeriod) * 100) : 0,
-      })),
-      conversionFunnel: aggregatedFunnel,
-      topProjects: topProjects.map((p) => ({
-        projectId: p.projectId,
-        sessionCount: p._count,
-      })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
   // ========================================
-  // PCE Analytics
+  // AR Studio Metrics (Admin)
   // ========================================
 
-  /**
-   * Get PCE overview for admin dashboard (pipelines, fulfillments, returns, production orders).
-   */
-  async getPCEOverview(): Promise<{
-    totalPipelines: number;
-    activePipelines: number;
-    completedPipelines: number;
-    failedPipelines: number;
-    totalFulfillments: number;
-    totalReturns: number;
-    totalProductionOrders: number;
-    avgPipelineDurationMs: number;
-  }> {
-    const [
-      totalPipelines,
-      activePipelines,
-      completedPipelines,
-      failedPipelines,
-      totalFulfillments,
-      totalReturns,
-      totalProductionOrders,
-      completedWithDuration,
-    ] = await Promise.all([
-      this.prisma.pipeline.count(),
-      this.prisma.pipeline.count({ where: { status: 'IN_PROGRESS' } }),
-      this.prisma.pipeline.count({ where: { status: 'COMPLETED' } }),
-      this.prisma.pipeline.count({ where: { status: 'FAILED' } }),
-      this.prisma.fulfillment.count(),
-      this.prisma.return.count(),
-      this.prisma.productionOrder.count(),
-      this.prisma.pipeline.findMany({
-        where: {
-          status: 'COMPLETED',
-          startedAt: { not: null },
-          completedAt: { not: null },
-        },
-        select: {
-          startedAt: true,
-          completedAt: true,
-        },
-        take: 1000,
-      }),
-    ]);
-
-    let avgPipelineDurationMs = 0;
-    if (completedWithDuration.length > 0) {
-      const totalMs = completedWithDuration.reduce((sum, p) => {
-        const start = p.startedAt!.getTime();
-        const end = p.completedAt!.getTime();
-        return sum + (end - start);
-      }, 0);
-      avgPipelineDurationMs = Math.round(totalMs / completedWithDuration.length);
-    }
-
+  async getARStudioMetrics(_periodDays: number = 30) {
+    // TODO: V2 has no AR models — return empty metrics
     return {
-      totalPipelines,
-      activePipelines,
-      completedPipelines,
-      failedPipelines,
-      totalFulfillments,
-      totalReturns,
-      totalProductionOrders,
-      avgPipelineDurationMs,
+      period: { days: _periodDays, since: new Date(Date.now() - _periodDays * 86400000).toISOString() },
+      totals: { projects: 0, models: 0, sessions: 0, qrCodes: 0, collaborationRooms: 0 },
+      periodMetrics: { sessions: 0, sessionsPerDay: 0 },
+      platformDistribution: [],
+      conversionFunnel: {
+        qrScans: 0, arLaunches: 0, modelPlacements: 0, engagedSessions: 0,
+        screenshots: 0, shares: 0, addToCarts: 0, purchases: 0, totalRevenue: 0,
+      },
+      topProjects: [],
     };
   }
 
-  /**
-   * List pipelines across all brands for admin view, with order and brand info.
-   */
-  async getPCEPipelines(params: {
-    status?: string;
-    limit?: number;
-    offset?: number;
-  }) {
-    const limit = params.limit ?? 50;
-    const offset = params.offset ?? 0;
-    const where: Prisma.PipelineWhereInput = params.status ? { status: params.status as PipelineStatus } : {};
+  // ========================================
+  // PCE Analytics (Admin)
+  // ========================================
 
-    const [pipelines, total] = await Promise.all([
-      this.prisma.pipeline.findMany({
-        where,
-        skip: offset,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          order: {
-            select: {
-              id: true,
-              orderNumber: true,
-              status: true,
-              totalCents: true,
-              createdAt: true,
-            },
-          },
-          brand: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      }),
-      this.prisma.pipeline.count({ where }),
-    ]);
-
+  async getPCEOverview() {
+    // TODO: V2 has no PCE models (Pipeline, Fulfillment, Return, ProductionOrder)
     return {
-      pipelines,
-      total,
-      limit,
-      offset,
+      totalPipelines: 0,
+      activePipelines: 0,
+      completedPipelines: 0,
+      failedPipelines: 0,
+      totalFulfillments: 0,
+      totalReturns: 0,
+      totalProductionOrders: 0,
+      avgPipelineDurationMs: 0,
     };
   }
 
-  /**
-   * Basic queue health: counts by status for Pipeline, Fulfillment, RenderJob.
-   */
+  async getPCEPipelines(_params: { status?: string; limit?: number; offset?: number }) {
+    // TODO: V2 has no Pipeline model
+    return { pipelines: [], total: 0, limit: _params.limit ?? 50, offset: _params.offset ?? 0 };
+  }
+
   async getPCEQueueHealth() {
-    const [pipelineByStatus, fulfillmentByStatus, renderJobByStatus] = await Promise.all([
-      this.prisma.pipeline.groupBy({
-        by: ['status'],
-        _count: true,
-      }),
-      this.prisma.fulfillment.groupBy({
-        by: ['status'],
-        _count: true,
-      }),
-      this.prisma.renderJob.groupBy({
-        by: ['status'],
-        _count: true,
-      }),
-    ]);
-
-    return {
-      pipelines: Object.fromEntries(pipelineByStatus.map((p) => [p.status, p._count])),
-      fulfillments: Object.fromEntries(fulfillmentByStatus.map((f) => [f.status, f._count])),
-      renderJobs: Object.fromEntries(renderJobByStatus.map((r) => [r.status, r._count])),
-    };
+    // TODO: V2 has no Pipeline/Fulfillment/RenderJob models
+    return { pipelines: {}, fulfillments: {}, renderJobs: {} };
   }
 
-  /**
-   * List production orders for admin with optional status filter.
-   */
-  async getPCEProductionOrders(params: { status?: string; limit?: number }) {
-    const limit = params.limit ?? 50;
-    const where: Prisma.ProductionOrderWhereInput = params.status ? { status: params.status as ProductionOrderStatus } : {};
-
-    const [orders, total] = await Promise.all([
-      this.prisma.productionOrder.findMany({
-        where,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          brand: { select: { id: true, name: true } },
-          order: { select: { id: true, orderNumber: true } },
-        },
-      }),
-      this.prisma.productionOrder.count({ where }),
-    ]);
-
-    return { productionOrders: orders, total, limit };
+  async getPCEProductionOrders(_params: { status?: string; limit?: number }) {
+    // TODO: V2 has no ProductionOrder model
+    return { productionOrders: [], total: 0, limit: _params.limit ?? 50 };
   }
 
-  /**
-   * List returns for admin with optional status filter.
-   */
-  async getPCEReturns(params: { status?: string; limit?: number }) {
-    const limit = params.limit ?? 50;
-    const where: Prisma.ReturnWhereInput = params.status ? { status: params.status as ReturnStatus } : {};
-
-    const [returns, total] = await Promise.all([
-      this.prisma.return.findMany({
-        where,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          brand: { select: { id: true, name: true } },
-        },
-      }),
-      this.prisma.return.count({ where }),
-    ]);
-
-    return { returns, total, limit };
+  async getPCEReturns(_params: { status?: string; limit?: number }) {
+    // TODO: V2 has no Return model
+    return { returns: [], total: 0, limit: _params.limit ?? 50 };
   }
 
-  /**
-   * Offer a free subscription to a brand (admin-only).
-   * Updates the brand's subscription plan and sets a trial end date.
-   */
+  // ========================================
+  // Offer Free Subscription (Admin)
+  // ========================================
+
   async offerFreeSubscription(
     brandId: string,
-    plan: string,
+    planValue: string,
     durationMonths: number,
     reason?: string,
   ) {
-    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
-    if (!brand) {
-      throw new Error(`Brand ${brandId} not found`);
-    }
+    const org = await this.prisma.organization.findUnique({ where: { id: brandId } });
+    if (!org) throw new Error(`Organization ${brandId} not found`);
 
-    const planEnum = plan.toUpperCase() as SubscriptionPlan;
-    const validPlans: string[] = Object.values(SubscriptionPlan);
+    const planEnum = planValue.toUpperCase() as Plan;
+    const validPlans: string[] = Object.values(Plan);
     if (!validPlans.includes(planEnum)) {
-      throw new Error(`Invalid plan: ${plan}. Must be one of: ${validPlans.join(', ')}`);
+      throw new Error(`Invalid plan: ${planValue}. Must be one of: ${validPlans.join(', ')}`);
     }
 
-    const trialEnd = new Date();
-    trialEnd.setMonth(trialEnd.getMonth() + durationMonths);
+    const periodEnd = new Date();
+    periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
 
-    const updated = await this.prisma.brand.update({
+    const updated = await this.prisma.organization.update({
       where: { id: brandId },
       data: {
-        subscriptionPlan: planEnum,
-        subscriptionStatus: SubscriptionStatus.ACTIVE,
-        trialEndsAt: trialEnd,
+        plan: planEnum,
+        status: OrgStatus.ACTIVE,
+        planPeriodEnd: periodEnd,
       },
     });
 
     this.logger.log(
-      `Offered free ${plan} subscription to brand ${brandId} for ${durationMonths} months. Reason: ${reason || 'N/A'}`,
+      `Offered free ${planValue} subscription to org ${brandId} for ${durationMonths} months. Reason: ${reason || 'N/A'}`,
     );
 
     return {
@@ -2881,8 +2113,8 @@ export class AdminService {
       brand: {
         id: updated.id,
         name: updated.name,
-        plan: updated.subscriptionPlan,
-        trialEndsAt: trialEnd,
+        plan: updated.plan,
+        trialEndsAt: periodEnd,
       },
       durationMonths,
       reason,

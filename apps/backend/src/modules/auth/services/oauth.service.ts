@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * OAuth Service
  * Centralized OAuth logic and user management
@@ -246,17 +245,12 @@ export class OAuthService {
         include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
       });
 
-      // Create user quota
-      await this.prisma.userQuota.create({
-        data: {
-          userId: newUser.id,
-        },
-      });
-
       this.logger.log(`New OAuth user created: ${newUser.email}`);
       return newUser;
-    } catch (error) {
-      this.logger.error(`Failed to find or create OAuth user: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to find or create OAuth user: ${msg}`, stack);
       throw new UnauthorizedException('Failed to authenticate with OAuth provider');
     }
   }
@@ -377,8 +371,10 @@ export class OAuthService {
 
       this.logger.log(`OAuth account unlinked: ${provider} for user ${userId}`);
       return { success: true, deleted: deleted.count };
-    } catch (error) {
-      this.logger.error(`Failed to unlink OAuth account: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to unlink OAuth account: ${msg}`, stack);
       throw error;
     }
   }
@@ -399,8 +395,10 @@ export class OAuthService {
       });
 
       return accounts;
-    } catch (error) {
-      this.logger.error(`Failed to get linked accounts: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get linked accounts: ${msg}`, stack);
       throw error;
     }
   }

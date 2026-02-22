@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -130,7 +129,7 @@ export class AuthService {
     // ✅ Record referral if referralCode provided
     if (referralCode && referralCode.trim()) {
       try {
-        await this.referralService.recordReferral(user.id, referralCode.trim());
+        await this.referralService.recordReferral({ userId: user.id, referralCode: referralCode.trim() });
         this.logger.log('Referral recorded successfully', { userId: user.id, referralCode });
       } catch (referralError) {
         // Non-blocking: referral recording failure should not block signup
@@ -473,14 +472,13 @@ export class AuthService {
       throw new BadRequestException('Invalid 2FA code');
     }
 
-    // Activer 2FA — déplacer le secret vers le champ dédié, nettoyer metadata
     const { temp2FASecret: _, ...cleanMeta } = userMeta;
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         twoFactorEnabled: true,
         twoFactorSecret: tempSecret,
-        metadata: cleanMeta,
+        metadata: cleanMeta as Prisma.InputJsonValue,
       },
     });
 
@@ -503,7 +501,7 @@ export class AuthService {
       data: {
         twoFactorEnabled: false,
         twoFactorSecret: null,
-        metadata: cleanMeta,
+        metadata: cleanMeta as Prisma.InputJsonValue,
       },
     });
 
@@ -534,8 +532,9 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    const settings = (user.memberships?.[0]?.organization?.settings as Record<string, unknown>) || {};
-    const onboardingStatus = (settings.onboardingStatus as Record<string, unknown>) || {};
+    const org = user.memberships?.[0]?.organization;
+    const onboardingData = (org?.onboardingData as Record<string, unknown>) || {};
+    const onboardingStatus = (onboardingData.onboardingStatus as Record<string, unknown>) || {};
     const completed = onboardingStatus.completed === true;
     const welcomeCompleted = onboardingStatus.welcome_completed === true;
     const profileCompleted = onboardingStatus.profile_completed === true;
@@ -570,8 +569,8 @@ export class AuthService {
     }
 
     let brandId = user.memberships?.[0]?.organizationId;
-    let settings: Record<string, unknown> = (user.memberships?.[0]?.organization?.settings as Record<string, unknown>) || {};
-    let onboardingStatus: Record<string, unknown> = (typeof settings.onboardingStatus === 'object' && settings.onboardingStatus !== null ? settings.onboardingStatus : {}) as Record<string, unknown>;
+    let onboardingDataObj: Record<string, unknown> = (user.memberships?.[0]?.organization?.onboardingData as Record<string, unknown>) || {};
+    let onboardingStatus: Record<string, unknown> = (typeof onboardingDataObj.onboardingStatus === 'object' && onboardingDataObj.onboardingStatus !== null ? onboardingDataObj.onboardingStatus : {}) as Record<string, unknown>;
 
     switch (step) {
       case 'welcome':
@@ -603,7 +602,7 @@ export class AuthService {
           await this.prisma.organizationMember.create({
             data: { userId, organizationId: brand.id, role: 'OWNER' },
           });
-          settings = {};
+          onboardingDataObj = {};
         } else {
           await this.prisma.organization.update({
             where: { id: brandId },
@@ -620,7 +619,7 @@ export class AuthService {
       case 'preferences':
         onboardingStatus = { ...(onboardingStatus as Record<string, unknown>), preferences_completed: true };
         if (data && Object.keys(data).length > 0) {
-          settings = { ...settings, preferences: data };
+          onboardingDataObj = { ...onboardingDataObj, preferences: data };
         }
         break;
       case 'complete':
@@ -634,12 +633,15 @@ export class AuthService {
         throw new BadRequestException(`Invalid onboarding step: ${step}`);
     }
 
-    settings.onboardingStatus = onboardingStatus;
+    onboardingDataObj.onboardingStatus = onboardingStatus;
 
     if (brandId) {
       await this.prisma.organization.update({
         where: { id: brandId },
-        data: { settings: settings as Prisma.InputJsonValue },
+        data: {
+          onboardingData: onboardingDataObj as Prisma.InputJsonValue,
+          onboardingCompleted: onboardingStatus.completed === true,
+        },
       });
     }
 
@@ -1139,12 +1141,12 @@ export class AuthService {
         userId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
-        expiresAt: data.expiresAt,
+        tokenExpiresAt: data.expiresAt,
       },
       update: {
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
-        expiresAt: data.expiresAt,
+        tokenExpiresAt: data.expiresAt,
       },
     });
   }
