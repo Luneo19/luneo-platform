@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { trpc } from '@/lib/trpc/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
@@ -20,56 +20,41 @@ interface Integration {
   created_at: string;
 }
 
-// Map tRPC integration (IntegrationService shape) to hook's Integration
-function mapTrpcToIntegration(row: {
-  id: string;
-  platform: string;
-  shopDomain?: string;
-  status?: string;
-  lastSyncAt?: Date | null;
-  config?: Record<string, unknown>;
-  createdAt: Date;
-}): Integration {
+function mapApiToIntegration(row: Record<string, unknown>): Integration {
+  const platform = String(row.platform ?? '');
   return {
-    id: row.id,
-    platform: row.platform,
-    platform_name: row.platform.charAt(0).toUpperCase() + row.platform.slice(1),
+    id: String(row.id),
+    platform,
+    platform_name: platform.charAt(0).toUpperCase() + platform.slice(1),
     store_url: row.shopDomain ? `https://${row.shopDomain}` : null,
-    store_name: row.shopDomain ?? null,
-    status: row.status ?? 'active',
+    store_name: (row.shopDomain as string) ?? null,
+    status: String(row.status ?? 'active'),
     is_active: (row.status ?? 'active') === 'active',
-    last_sync_at: row.lastSyncAt ? new Date(row.lastSyncAt).toISOString() : null,
+    last_sync_at: row.lastSyncAt ? new Date(row.lastSyncAt as string).toISOString() : null,
     last_sync_status: null,
     products_synced: Number((row.config as Record<string, unknown>)?.productsSynced ?? 0),
     orders_synced: Number((row.config as Record<string, unknown>)?.ordersSynced ?? 0),
-    created_at: new Date(row.createdAt).toISOString(),
+    created_at: new Date((row.createdAt as string) ?? Date.now()).toISOString(),
   };
 }
 
 export function useIntegrations() {
-  const integrationsQuery = trpc.integration.list.useQuery();
-  const deleteMutation = trpc.integration.delete.useMutation({
-    onSuccess: () => {
-      integrationsQuery.refetch();
-    },
+  const queryClient = useQueryClient();
+
+  const integrationsQuery = useQuery({
+    queryKey: ['integrations'],
+    queryFn: () => api.get<Record<string, unknown>[]>('/api/v1/integrations').then(r => (r as { data: unknown }).data ?? r ?? []),
   });
 
-  const rawList = (integrationsQuery.data ?? []) as unknown as Array<{
-    id: string;
-    platform: string;
-    shopDomain?: string;
-    status?: string;
-    lastSyncAt?: Date | null;
-    config?: Record<string, unknown>;
-    createdAt: Date;
-  }>;
-  const integrations: Integration[] = rawList.map(mapTrpcToIntegration);
+  const deleteMutation = useMutation({
+    mutationFn: (vars: { id: string }) => api.delete(`/api/v1/integrations/${vars.id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['integrations'] }); },
+  });
+
+  const rawList = (integrationsQuery.data ?? []) as Record<string, unknown>[];
+  const integrations: Integration[] = Array.isArray(rawList) ? rawList.map(mapApiToIntegration) : [];
   const loading = integrationsQuery.isLoading;
   const error = integrationsQuery.error?.message ?? null;
-
-  const fetchIntegrations = useCallback(() => {
-    integrationsQuery.refetch();
-  }, [integrationsQuery]);
 
   const connectShopify = useCallback(async (storeDomain: string) => {
     window.location.href = `/api/integrations/shopify/connect?shop=${encodeURIComponent(storeDomain)}`;
@@ -83,16 +68,15 @@ export function useIntegrations() {
     if (result && typeof result === 'object' && 'success' in result && !(result as SyncResponse).success) {
       throw new Error((result as SyncResponse).error || 'Sync failed');
     }
-    integrationsQuery.refetch();
+    queryClient.invalidateQueries({ queryKey: ['integrations'] });
     return (result as SyncResponse)?.data ?? result;
-  }, [integrationsQuery]);
+  }, [queryClient]);
 
   const disconnectIntegration = useCallback(
     async (integrationId: string) => {
       try {
         await deleteMutation.mutateAsync({ id: integrationId });
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to disconnect';
         logger.error('Error disconnecting integration', { error: err, integrationId });
         throw err;
       }
@@ -101,8 +85,8 @@ export function useIntegrations() {
   );
 
   const refresh = useCallback(() => {
-    integrationsQuery.refetch();
-  }, [integrationsQuery]);
+    queryClient.invalidateQueries({ queryKey: ['integrations'] });
+  }, [queryClient]);
 
   return {
     integrations,

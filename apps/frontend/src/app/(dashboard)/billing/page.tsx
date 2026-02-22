@@ -12,8 +12,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
-import { trpc } from '@/lib/trpc/client';
 
 interface PaymentMethod {
   id: string;
@@ -23,7 +23,7 @@ interface PaymentMethod {
   expiryYear?: number;
   isDefault?: boolean;
 }
-import { endpoints } from '@/lib/api/client';
+import { endpoints, api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { formatDate, formatPrice, formatBytes } from '@/lib/utils/formatters';
 import { Button } from '@/components/ui/button';
@@ -42,35 +42,57 @@ function BillingPageContent() {
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
 
   // Queries
-  const subscriptionQuery = trpc.billing.getSubscription.useQuery();
-  const usageQuery = trpc.billing.getUsageMetrics.useQuery({});
-  const limitsQuery = trpc.billing.getBillingLimits.useQuery();
-  const invoicesQuery = trpc.billing.listInvoices.useQuery({ limit: 20 });
-  const paymentMethodsQuery = trpc.billing.listPaymentMethods.useQuery();
+  const subscriptionQuery = useQuery({
+    queryKey: ['billing', 'subscription'],
+    queryFn: () => endpoints.billing.subscription(),
+  });
+  const usageQuery = useQuery({
+    queryKey: ['billing', 'usage'],
+    queryFn: () => api.get<{ customizations: number; renders: number; apiCalls: number; storageBytes: number }>('/api/v1/billing/usage'),
+  });
+  const limitsQuery = useQuery({
+    queryKey: ['billing', 'limits'],
+    queryFn: () => api.get<{ monthlyCustomizations: number; monthlyRenders: number; monthlyApiCalls: number; storageBytes: number }>('/api/v1/billing/limits'),
+  });
+  const invoicesQuery = useQuery({
+    queryKey: ['billing', 'invoices'],
+    queryFn: () => endpoints.billing.invoices(),
+  });
+  const paymentMethodsQuery = useQuery({
+    queryKey: ['billing', 'paymentMethods'],
+    queryFn: () => endpoints.billing.paymentMethods(),
+  });
 
   // Mutations
-  const cancelMutation = trpc.billing.cancelSubscription.useMutation({
+  const cancelMutation = useMutation({
+    mutationFn: (params: { cancelAtPeriodEnd: boolean }) =>
+      endpoints.billing.cancelSubscription(!params.cancelAtPeriodEnd),
     onSuccess: () => {
       subscriptionQuery.refetch();
       logger.info('Subscription cancelled');
     },
   });
 
-  const reactivateMutation = trpc.billing.reactivateSubscription.useMutation({
+  const reactivateMutation = useMutation({
+    mutationFn: () => api.post('/api/v1/billing/reactivate'),
     onSuccess: () => {
       subscriptionQuery.refetch();
       logger.info('Subscription reactivated');
     },
   });
 
-  const setDefaultPaymentMethodMutation = trpc.billing.setDefaultPaymentMethod.useMutation({
+  const setDefaultPaymentMethodMutation = useMutation({
+    mutationFn: (params: { paymentMethodId: string }) =>
+      api.post('/api/v1/billing/set-default-payment-method', params),
     onSuccess: () => {
       paymentMethodsQuery.refetch();
       logger.info('Default payment method set');
     },
   });
 
-  const removePaymentMethodMutation = trpc.billing.removePaymentMethod.useMutation({
+  const removePaymentMethodMutation = useMutation({
+    mutationFn: (_params: { paymentMethodId: string }) =>
+      endpoints.billing.removePaymentMethod(),
     onSuccess: () => {
       paymentMethodsQuery.refetch();
       logger.info('Payment method removed');
@@ -122,8 +144,7 @@ function BillingPageContent() {
 
   const handleDownloadInvoice = useCallback(async (invoiceId: string) => {
     try {
-      const { trpcVanilla } = await import('@/lib/trpc/vanilla-client');
-      const result = await trpcVanilla.billing.downloadInvoice.query({ id: invoiceId });
+      const result = await api.get<{ url?: string }>(`/api/v1/billing/invoices/${invoiceId}/download`);
       if (result.url) {
         window.open(result.url, '_blank');
       }

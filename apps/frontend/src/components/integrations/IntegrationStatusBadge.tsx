@@ -3,7 +3,8 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
-import { trpc } from '@/lib/trpc/client';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 
 interface IntegrationStatusBadgeProps {
   integrationType: 'shopify' | 'woocommerce' | 'stripe' | 'zapier' | 'printful' | 'make';
@@ -11,7 +12,7 @@ interface IntegrationStatusBadgeProps {
 }
 
 export function IntegrationStatusBadge({ integrationType, className }: IntegrationStatusBadgeProps) {
-  const { data: integrations, isLoading, error } = trpc.integration.list.useQuery(undefined, {
+  const { data: integrations, isLoading, error } = useQuery({ queryKey: ['integrations'], queryFn: () => api.get('/api/v1/integrations').then((r: any) => r.data ?? r),
     retry: false,
     refetchOnWindowFocus: false,
     enabled: typeof window !== 'undefined', // Only run on client

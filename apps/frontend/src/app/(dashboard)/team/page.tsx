@@ -15,7 +15,8 @@ import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { TeamSkeleton } from '@/components/ui/skeletons';
 import { formatRelativeTime } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { trpc } from '@/lib/trpc/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { endpoints } from '@/lib/api/client';
 
 interface TeamMember {
   id: string;
@@ -46,43 +47,57 @@ function TeamPageContent() {
   const [inviteRole, setInviteRole] = useState<'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'>('MEMBER');
   const [editingMember, setEditingMember] = useState<string | null>(null);
 
-  const teamQuery = trpc.team.listMembers.useQuery();
-  const inviteMutation = trpc.team.inviteMember.useMutation({
+  const queryClient = useQueryClient();
+  const teamQuery = useQuery({
+    queryKey: ['team', 'members'],
+    queryFn: async () => {
+      const [members, invites] = await Promise.all([
+        endpoints.team.members(),
+        endpoints.team.invites(),
+      ]);
+      return { members, pendingInvites: invites } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+    },
+  });
+  const inviteMutation = useMutation({
+    mutationFn: (data: { email: string; role: string }) => endpoints.team.invite(data.email, data.role),
     onSuccess: () => {
-      teamQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
       setShowInviteModal(false);
       setInviteEmail('');
       toast({ title: t('common.success'), description: t('dashboard.team.invitationSent') });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
-  const updateRoleMutation = trpc.team.updateMemberRole.useMutation({
+  const updateRoleMutation = useMutation({
+    mutationFn: (data: { memberId: string; role: string }) => endpoints.team.update(data.memberId, { role: data.role }),
     onSuccess: () => {
-      teamQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
       setEditingMember(null);
       toast({ title: t('common.success'), description: t('dashboard.team.roleUpdated') });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
-  const removeMemberMutation = trpc.team.removeMember.useMutation({
+  const removeMemberMutation = useMutation({
+    mutationFn: (data: { memberId: string }) => endpoints.team.remove(data.memberId),
     onSuccess: () => {
-      teamQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
       toast({ title: t('common.success'), description: t('dashboard.team.memberRemoved') });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
-  const cancelInviteMutation = trpc.team.cancelInvite.useMutation({
+  const cancelInviteMutation = useMutation({
+    mutationFn: (data: { inviteId: string }) => endpoints.team.cancelInvite(data.inviteId),
     onSuccess: () => {
-      teamQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
       toast({ title: t('common.success'), description: t('dashboard.team.invitationCancelled') });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });

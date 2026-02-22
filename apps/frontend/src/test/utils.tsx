@@ -5,9 +5,7 @@
 import { ReactElement, useState } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { trpc, getTRPCClient } from '@/lib/trpc/client';
 
-// Custom render function with providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = useState(
     () =>
@@ -18,12 +16,9 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
         },
       })
   );
-  const [trpcClient] = useState(() => getTRPCClient());
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </trpc.Provider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 };
 
@@ -34,4 +29,3 @@ const customRender = (
 
 export * from '@testing-library/react';
 export { customRender as render };
-

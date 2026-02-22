@@ -12,9 +12,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { trpc } from '@/lib/trpc/client';
 import { logger } from '@/lib/logger';
 
 interface UserProfile {
@@ -61,11 +61,17 @@ function SettingsPageContent() {
     timezone: 'Europe/Paris'
   });
 
-  const profileQuery = trpc.profile.get.useQuery();
-  const updateProfileMutation = trpc.profile.update.useMutation({
+  const queryClient = useQueryClient();
+
+  const profileQuery = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => endpoints.auth.me(),
+  });
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => api.patch('/api/v1/users/me', data),
     onSuccess: (data: unknown) => {
       setSaving(false);
-      profileQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
       const d = data as { name?: string; email?: string; company?: string; role?: string; avatar_url?: string; phone?: string; website?: string; timezone?: string };
       setProfile({
         name: String(d?.name ?? ''),
@@ -79,18 +85,20 @@ function SettingsPageContent() {
       });
       toast({ title: t('common.success'), description: t('settings.profile.saved') });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setSaving(false);
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
-  const changePasswordMutation = trpc.profile.changePassword.useMutation({
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      api.post('/api/v1/users/change-password', data),
     onSuccess: () => {
       setSaving(false);
       toast({ title: t('common.success'), description: t('settings.security.passwordChanged') });
       setShowPassword(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       setSaving(false);
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },

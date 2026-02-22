@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { trpc } from '@/lib/trpc/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 import { formatRelativeDate } from '@/lib/utils/formatters';
 import { Bell, Check, CheckCheck, ExternalLink, Settings, X } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -27,33 +28,29 @@ import { memo, useCallback, useMemo, useState } from 'react';
 function NotificationCenterContent() {
   const [isOpen, setIsOpen] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const queryClient = useQueryClient();
 
-  const notificationsQuery = trpc.notification.list.useQuery(
-    { limit: 50 },
-    {
-      refetchInterval: 60000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  // Mutations
-  const markAsReadMutation = trpc.notification.markAsRead.useMutation({
-    onSuccess: () => {
-      notificationsQuery.refetch();
-    },
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.get<{ notifications: Array<{ id: string; title: string; message: string; read: boolean; createdAt: string; actionUrl?: string; actionLabel?: string }>; unreadCount: number }>('/api/v1/notifications?limit=50').then(r => (r as { data: unknown }).data ?? r),
+    refetchInterval: 60000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
-  const markAllAsReadMutation = trpc.notification.markAllAsRead.useMutation({
-    onSuccess: () => {
-      notificationsQuery.refetch();
-    },
+  const markAsReadMutation = useMutation({
+    mutationFn: (vars: { id: string }) => api.patch(`/api/v1/notifications/${vars.id}/read`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['notifications'] }); },
   });
 
-  const deleteMutation = trpc.notification.delete.useMutation({
-    onSuccess: () => {
-      notificationsQuery.refetch();
-    },
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => api.post('/api/v1/notifications/read-all'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['notifications'] }); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (vars: { id: string }) => api.delete(`/api/v1/notifications/${vars.id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['notifications'] }); },
   });
 
   // ========================================

@@ -11,7 +11,6 @@ import type { TranslationMessages, SupportedLocale } from '@/i18n/server';
 import { FeatureFlagProvider } from '@/contexts/FeatureFlagContext';
 import { BrandThemeProvider } from '@/components/theme/BrandThemeProvider';
 import { registerServiceWorker } from '@/lib/pwa/register-service-worker';
-import { trpc, getTRPCClient } from '@/lib/trpc/client';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -58,8 +57,6 @@ export function Providers({
       })
   );
 
-  const [trpcClient] = useState(() => getTRPCClient());
-
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') {
       registerServiceWorker();
@@ -68,7 +65,6 @@ export function Providers({
 
   return (
     <ErrorBoundary>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider
             attribute="class"
@@ -101,7 +97,6 @@ export function Providers({
             </I18nProvider>
           </ThemeProvider>
         </QueryClientProvider>
-      </trpc.Provider>
     </ErrorBoundary>
   );
 }
