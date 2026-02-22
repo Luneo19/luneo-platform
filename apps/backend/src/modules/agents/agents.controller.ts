@@ -143,4 +143,36 @@ export class AgentsController {
   ) {
     return this.agentsService.detachKnowledgeBase(id, user.organizationId!, kbId);
   }
+
+  // ═══════════════ Flow Builder Endpoints ═══════════════
+
+  @Patch(':id/flow')
+  @ApiOperation({ summary: 'Save agent flow (nodes + edges)' })
+  async saveFlow(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Body() body: { nodes: unknown[]; edges: unknown[] },
+  ) {
+    return this.agentsService.saveFlow(id, user.organizationId!, body);
+  }
+
+  @Post(':id/test')
+  @ApiOperation({ summary: 'Test agent flow in sandbox mode' })
+  async testFlow(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Body() body: { message: string; flow: { nodes: unknown[]; edges: unknown[] } },
+  ) {
+    return this.agentsService.testFlow(id, user.organizationId!, body.message, body.flow);
+  }
+
+  @Post(':id/publish')
+  @ApiOperation({ summary: 'Validate and publish agent flow' })
+  async publishFlow(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Body() body: { flow: { nodes: unknown[]; edges: unknown[] } },
+  ) {
+    return this.agentsService.publishFlow(id, user.organizationId!, body.flow);
+  }
 }

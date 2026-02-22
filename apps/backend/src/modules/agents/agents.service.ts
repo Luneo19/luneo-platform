@@ -8,6 +8,7 @@ import {
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { OrchestratorService, AgentExecutionResult } from '@/modules/orchestrator/orchestrator.service';
 import { AgentStatus, Prisma } from '@prisma/client';
+import { FlowExecutionEngine, type FlowNode, type FlowEdge } from '@/libs/flow/flow-execution-engine';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
 
@@ -404,5 +405,86 @@ export class AgentsService {
     });
 
     return agent;
+  }
+
+  // ═══════════════ Flow Builder Methods ═══════════════
+
+  async saveFlow(
+    agentId: string,
+    organizationId: string,
+    flowData: { nodes: unknown[]; edges: unknown[] },
+  ) {
+    const agent = await this.prisma.agent.findFirst({
+      where: { id: agentId, organizationId, deletedAt: null },
+    });
+    if (!agent) throw new NotFoundException('Agent not found');
+
+    const updated = await this.prisma.agent.update({
+      where: { id: agentId },
+      data: {
+        flowData: flowData as Prisma.InputJsonValue,
+        flowVersion: { increment: 1 },
+        updatedAt: new Date(),
+      },
+    });
+
+    return { data: updated };
+  }
+
+  async testFlow(
+    agentId: string,
+    organizationId: string,
+    message: string,
+    flow: { nodes: unknown[]; edges: unknown[] },
+  ) {
+    const agent = await this.prisma.agent.findFirst({
+      where: { id: agentId, organizationId, deletedAt: null },
+    });
+    if (!agent) throw new NotFoundException('Agent not found');
+
+    const engine = new FlowExecutionEngine();
+    const result = await engine.execute(
+      { nodes: flow.nodes as FlowNode[], edges: flow.edges as FlowEdge[] },
+      message,
+      { sandbox: true, traceExecution: true, agentId },
+    );
+
+    return {
+      data: {
+        response: result.finalResponse || 'Aucune réponse générée par le flow.',
+        sources: result.sources,
+        executionTrace: result.trace,
+      },
+    };
+  }
+
+  async publishFlow(
+    agentId: string,
+    organizationId: string,
+    flow: { nodes: unknown[]; edges: unknown[] },
+  ) {
+    const agent = await this.prisma.agent.findFirst({
+      where: { id: agentId, organizationId, deletedAt: null },
+    });
+    if (!agent) throw new NotFoundException('Agent not found');
+
+    const nodes = flow.nodes as FlowNode[];
+    const hasTrigger = nodes.some((n) => n.data?.block?.category === 'TRIGGER');
+    if (!hasTrigger) {
+      throw new BadRequestException('Flow must contain at least one Trigger block');
+    }
+
+    const updated = await this.prisma.agent.update({
+      where: { id: agentId },
+      data: {
+        flowData: flow as Prisma.InputJsonValue,
+        flowVersion: { increment: 1 },
+        status: AgentStatus.ACTIVE,
+        updatedAt: new Date(),
+      },
+    });
+
+    this.logger.log(`Agent ${agentId} published with flow version ${updated.flowVersion}`);
+    return { data: updated };
   }
 }
