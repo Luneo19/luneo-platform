@@ -21,6 +21,7 @@ import {
   AgentAnalyticsService,
   DateRangeQuery,
 } from './agent-analytics.service';
+import { InsightsService } from './services/insights.service';
 
 @ApiTags('agent-analytics')
 @ApiBearerAuth()
@@ -29,7 +30,10 @@ import {
 export class AgentAnalyticsController {
   private readonly logger = new Logger(AgentAnalyticsController.name);
 
-  constructor(private readonly analyticsService: AgentAnalyticsService) {}
+  constructor(
+    private readonly analyticsService: AgentAnalyticsService,
+    private readonly insightsService: InsightsService,
+  ) {}
 
   // --- Organisation-level analytics (nouveaux endpoints) ---
 
@@ -122,6 +126,17 @@ export class AgentAnalyticsController {
       range,
       isNaN(limitNum) ? 10 : limitNum,
     );
+  }
+
+  @Get('insights')
+  @ApiOperation({ summary: 'Insights IA hebdomadaires pour le dashboard' })
+  @ApiResponse({ status: 200, description: 'Liste d\'insights générés' })
+  async getInsights(@CurrentUser() user: CurrentUserType) {
+    const orgId = user.organizationId;
+    if (!orgId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    return this.insightsService.getWeeklyInsights(orgId);
   }
 
   // --- Agent-level analytics (endpoints existants) ---
