@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Injectable,
   Logger,
@@ -7,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { ChannelStatus } from '@prisma/client';
+import { ChannelStatus, WidgetPosition, WidgetSize } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
@@ -53,15 +52,13 @@ export class ChannelsService {
         agentId: dto.agentId,
         type: dto.type,
         status: ChannelStatus.ACTIVE,
-        widgetPrimaryColor: dto.widgetPrimaryColor,
+        widgetColor: dto.widgetPrimaryColor,
         widgetSecondaryColor: dto.widgetSecondaryColor,
-        widgetPosition: dto.widgetPosition as any,
-        widgetSize: dto.widgetSize as any,
+        widgetPosition: (dto.widgetPosition as WidgetPosition) ?? undefined,
+        widgetSize: (dto.widgetSize as WidgetSize) ?? undefined,
         widgetWelcomeMessage: dto.widgetWelcomeMessage,
         widgetPlaceholder: dto.widgetPlaceholder,
-        widgetLogoUrl: dto.widgetLogoUrl,
-        widgetAutoOpen: dto.widgetAutoOpen ?? false,
-        widgetAutoOpenDelay: dto.widgetAutoOpenDelay,
+        widgetAvatar: dto.widgetLogoUrl,
       },
     });
 
@@ -78,15 +75,13 @@ export class ChannelsService {
       where: { id: channel.id },
       data: {
         ...(dto.status && { status: dto.status }),
-        ...(dto.widgetPrimaryColor !== undefined && { widgetPrimaryColor: dto.widgetPrimaryColor }),
+        ...(dto.widgetPrimaryColor !== undefined && { widgetColor: dto.widgetPrimaryColor }),
         ...(dto.widgetSecondaryColor !== undefined && { widgetSecondaryColor: dto.widgetSecondaryColor }),
-        ...(dto.widgetPosition !== undefined && { widgetPosition: dto.widgetPosition as any }),
-        ...(dto.widgetSize !== undefined && { widgetSize: dto.widgetSize as any }),
+        ...(dto.widgetPosition !== undefined && { widgetPosition: dto.widgetPosition as WidgetPosition }),
+        ...(dto.widgetSize !== undefined && { widgetSize: dto.widgetSize as WidgetSize }),
         ...(dto.widgetWelcomeMessage !== undefined && { widgetWelcomeMessage: dto.widgetWelcomeMessage }),
         ...(dto.widgetPlaceholder !== undefined && { widgetPlaceholder: dto.widgetPlaceholder }),
-        ...(dto.widgetLogoUrl !== undefined && { widgetLogoUrl: dto.widgetLogoUrl }),
-        ...(dto.widgetAutoOpen !== undefined && { widgetAutoOpen: dto.widgetAutoOpen }),
-        ...(dto.widgetAutoOpenDelay !== undefined && { widgetAutoOpenDelay: dto.widgetAutoOpenDelay }),
+        ...(dto.widgetLogoUrl !== undefined && { widgetAvatar: dto.widgetLogoUrl }),
       },
     });
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Injectable,
   Logger,
@@ -52,7 +51,7 @@ export class AgentsService {
       escalationEmail: dto.escalationEmail,
       fallbackMessage: dto.fallbackMessage,
       contextWindow: dto.contextWindow ?? 10,
-      businessHours: dto.businessHours ?? undefined,
+      businessHours: dto.businessHours as Prisma.InputJsonValue ?? undefined,
       enableMemory: dto.enableMemory ?? true,
       enableSentiment: dto.enableSentiment ?? true,
     };
@@ -66,7 +65,7 @@ export class AgentsService {
       }
       data.template = { connect: { id: dto.templateId } };
       data.systemPrompt = dto.systemPrompt ?? template.systemPrompt;
-      data.modules = template.defaultModules;
+      data.modules = template.defaultModules as Prisma.InputJsonValue;
       data.model = dto.model ?? template.defaultModel;
       data.temperature = dto.temperature ?? template.defaultTemperature;
       data.maxTokensPerReply =
@@ -302,7 +301,7 @@ export class AgentsService {
         latencyMs: Date.now() - startTime,
         model: result.model,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Sandbox test failed for agent ${id}`, error);
       return {
         response: agent.fallbackMessage || 'Desole, une erreur est survenue pendant le test.',
@@ -384,10 +383,10 @@ export class AgentsService {
       confidenceThreshold: sourceAgent.confidenceThreshold,
       escalationEmail: sourceAgent.escalationEmail,
       fallbackMessage: sourceAgent.fallbackMessage,
-      businessHours: sourceAgent.businessHours,
+      businessHours: (sourceAgent.businessHours ?? undefined) as Prisma.InputJsonValue | undefined,
       enableMemory: sourceAgent.enableMemory,
       enableSentiment: sourceAgent.enableSentiment,
-      modules: sourceAgent.modules,
+      modules: sourceAgent.modules as Prisma.InputJsonValue,
       status: AgentStatus.DRAFT,
     };
     if (sourceAgent.templateId) {

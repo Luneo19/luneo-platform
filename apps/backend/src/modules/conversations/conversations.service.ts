@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Injectable,
   Logger,
@@ -73,6 +72,10 @@ export class ConversationsService {
   }
 
   async getById(id: string, user: CurrentUser) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+
     const conversation = await this.prisma.conversation.findFirst({
       where: {
         id,
@@ -110,6 +113,10 @@ export class ConversationsService {
   async create(dto: CreateConversationDto, user: CurrentUser) {
     if (!user.organizationId) {
       throw new BadRequestException('Organisation requise');
+    }
+
+    if (!dto.channelType) {
+      throw new BadRequestException('channelType est requis');
     }
 
     const agent = await this.prisma.agent.findFirst({
@@ -237,25 +244,26 @@ export class ConversationsService {
       throw new BadRequestException('Organisation requise');
     }
 
-    const cacheKey = `conversation-stats:${user.organizationId}`;
+    const orgId = user.organizationId;
+    const cacheKey = `conversation-stats:${orgId}`;
 
     return this.cache.getOrSet(cacheKey, async () => {
       const [total, active, escalated, resolved, avgSatisfaction] =
         await Promise.all([
           this.prisma.conversation.count({
-            where: { organizationId: user.organizationId, deletedAt: null },
+            where: { organizationId: orgId, deletedAt: null },
           }),
           this.prisma.conversation.count({
-            where: { organizationId: user.organizationId, status: ConversationStatus.ACTIVE, deletedAt: null },
+            where: { organizationId: orgId, status: ConversationStatus.ACTIVE, deletedAt: null },
           }),
           this.prisma.conversation.count({
-            where: { organizationId: user.organizationId, status: ConversationStatus.ESCALATED, deletedAt: null },
+            where: { organizationId: orgId, status: ConversationStatus.ESCALATED, deletedAt: null },
           }),
           this.prisma.conversation.count({
-            where: { organizationId: user.organizationId, status: ConversationStatus.RESOLVED, deletedAt: null },
+            where: { organizationId: orgId, status: ConversationStatus.RESOLVED, deletedAt: null },
           }),
           this.prisma.conversation.aggregate({
-            where: { organizationId: user.organizationId, satisfactionRating: { not: null }, deletedAt: null },
+            where: { organizationId: orgId, satisfactionRating: { not: null }, deletedAt: null },
             _avg: { satisfactionRating: true },
           }),
         ]);
@@ -265,12 +273,16 @@ export class ConversationsService {
         active,
         escalated,
         resolved,
-        avgSatisfaction: avgSatisfaction._avg.satisfactionRating ?? null,
+        avgSatisfaction: avgSatisfaction._avg?.satisfactionRating ?? null,
       };
     }, 300);
   }
 
   private async ensureConversationAccess(id: string, user: CurrentUser) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+
     const conversation = await this.prisma.conversation.findFirst({
       where: {
         id,

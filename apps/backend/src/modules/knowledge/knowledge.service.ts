@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Injectable,
   Logger,
@@ -97,7 +96,7 @@ export class KnowledgeService {
       data: dto,
     });
 
-    await this.cache.invalidateCachePattern?.(`kb:${id}:*`);
+    await this.cache.invalidate(`kb:${id}:*`, 'knowledge');
     return updated;
   }
 
@@ -133,7 +132,7 @@ export class KnowledgeService {
     }
 
     const base = await this.getBase(user, baseId);
-    const orgId = user.organizationId;
+    const orgId = user.organizationId ?? undefined;
     const sanitizedName = (file.originalname || 'document')
       .replace(/[^a-zA-Z0-9._-]/g, '_')
       .slice(0, 100);
@@ -257,7 +256,7 @@ export class KnowledgeService {
         sourceId,
         knowledgeBaseId,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to enqueue indexing job for source ${sourceId}`, error);
     }
   }
@@ -428,7 +427,7 @@ export class KnowledgeService {
       });
 
       this.logger.log(`Source ${sourceId} indexed: ${chunks.length} chunks, ${totalTokens} tokens`);
-    } catch (error) {
+    } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to process source ${sourceId}: ${msg}`, error instanceof Error ? error.stack : undefined);
       await this.prisma.knowledgeSource.update({
