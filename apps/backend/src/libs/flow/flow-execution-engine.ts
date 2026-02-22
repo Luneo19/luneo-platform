@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject } from '@nestjs/common';
 
 export interface FlowNode {
   id: string;
@@ -58,18 +58,26 @@ export type BlockHandler = (
   output?: string;
 }>;
 
+export const FLOW_ORCHESTRATOR = 'FLOW_ORCHESTRATOR';
+export const FLOW_LLM = 'FLOW_LLM';
+export const FLOW_KNOWLEDGE = 'FLOW_KNOWLEDGE';
+
+@Injectable()
 export class FlowExecutionEngine {
   private readonly logger = new Logger(FlowExecutionEngine.name);
   private readonly blockHandlers: Map<string, BlockHandler>;
   private executionTrace: ExecutionStep[];
 
   constructor(
+    @Optional() @Inject(FLOW_ORCHESTRATOR)
     private readonly orchestratorService?: {
       executeAgent: (params: Record<string, unknown>) => Promise<{ response: string; sources?: Array<{ title: string; content: string }> }>;
     },
+    @Optional() @Inject(FLOW_LLM)
     private readonly llmService?: {
       complete: (params: Record<string, unknown>) => Promise<{ content: string }>;
     },
+    @Optional() @Inject(FLOW_KNOWLEDGE)
     private readonly knowledgeService?: {
       search: (params: Record<string, unknown>) => Promise<Array<{ title: string; content: string; score: number }>>;
     },

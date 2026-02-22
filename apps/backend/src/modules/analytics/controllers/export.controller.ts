@@ -19,7 +19,7 @@ export class AnalyticsExportController {
   private async requireBusinessPlanForExport(userId: string): Promise<void> {
     const plan = await this.plansService.getUserPlan(userId);
     const limits = this.plansService.getPlanLimits(plan);
-    if (!limits.customExport) {
+    if (!limits.advancedAnalytics) {
       throw new ForbiddenException(
         'Analytics export requires Business plan or higher',
       );

@@ -68,6 +68,7 @@ import {
 import { KPISkeleton, ChartSkeleton } from '@/components/ui/skeleton';
 import { ErrorDisplay } from '@/components/ui/error-display';
 import { useI18n } from '@/i18n/useI18n';
+import { InsightsCard } from '@/components/dashboard/InsightsCard';
 
 // Chart palette (dark theme)
 const CHART_COLORS = [
@@ -417,6 +418,11 @@ function AnalyticsLuxuryPageContent() {
             </Card>
           </div>
         ) : null}
+
+        {/* AI Insights */}
+        <div className="mb-10">
+          <InsightsCard />
+        </div>
 
         {/* Charts */}
         <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">

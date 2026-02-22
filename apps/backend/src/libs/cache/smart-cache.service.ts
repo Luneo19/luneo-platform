@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisOptimizedService } from '../redis/redis-optimized.service';
 import { PrismaOptimizedService } from '../prisma/prisma-optimized.service';
@@ -219,23 +218,21 @@ export class SmartCacheService {
     this.logger.log('Starting cache warmup...');
     
     try {
-      // Récupérer les brands les plus actives
-      const activeBrands = await this.prismaService.brand.findMany({
+      const activeOrgs = await this.prismaService.organization.findMany({
         select: { id: true },
         orderBy: { createdAt: 'desc' },
         take: 10
       });
 
-      // Pré-charger les données pour chaque brand
-      for (const brand of activeBrands) {
+      for (const org of activeOrgs) {
         await Promise.allSettled([
           this.preload(
-            [brand.id],
+            [org.id],
             'brand',
-            async (id) => this.prismaService.brand.findUnique({ where: { id } })
+            async (id) => this.prismaService.organization.findUnique({ where: { id } })
           ),
           this.preload(
-            [brand.id],
+            [org.id],
             'analytics',
             async (id) => this.prismaService.getDashboardMetrics(id)
           )

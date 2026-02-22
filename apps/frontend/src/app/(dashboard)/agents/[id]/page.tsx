@@ -21,6 +21,7 @@ import {
   Trash2,
   Copy,
   Check,
+  Workflow,
 } from 'lucide-react';
 
 interface Agent {
@@ -211,9 +212,18 @@ export default function AgentDetailPage() {
               <p className="text-sm text-white/50">{agent.description || 'Sans description'}</p>
             </div>
           </div>
-          <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
-            {agent.status}
-          </span>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => router.push(`/agents/${agent.id}/builder`)}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
+            >
+              <Workflow className="mr-2 h-4 w-4" />
+              Visual Builder
+            </Button>
+            <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
+              {agent.status}
+            </span>
+          </div>
         </div>
       </div>
 

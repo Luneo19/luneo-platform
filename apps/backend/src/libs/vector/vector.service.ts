@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pinecone, Index as PineconeIndex } from '@pinecone-database/pinecone';
@@ -98,7 +97,7 @@ export class VectorService implements VectorProvider, OnModuleInit {
 
     const BATCH_SIZE = 100;
     for (let i = 0; i < vectors.length; i += BATCH_SIZE) {
-      await index.upsert(vectors.slice(i, i + BATCH_SIZE));
+      await index.upsert({ records: vectors.slice(i, i + BATCH_SIZE) });
     }
     this.logger.debug(`Pinecone upsert: ${records.length} vectors`);
   }

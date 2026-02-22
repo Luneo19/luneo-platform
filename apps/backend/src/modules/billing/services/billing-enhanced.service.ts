@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Injectable,
   Logger,
@@ -10,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { StripeClientService } from './stripe-client.service';
 import type Stripe from 'stripe';
-import { SubscriptionPlan } from '@prisma/client';
+import { Plan } from '@prisma/client';
 
 @Injectable()
 export class BillingEnhancedService {
@@ -26,25 +25,25 @@ export class BillingEnhancedService {
    * Creates Stripe checkout session with optional coupon support.
    */
   async createCheckoutSession(
-    brandId: string,
+    organizationId: string,
     planId: string,
     couponCode?: string,
   ): Promise<{ sessionId: string; url: string }> {
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId },
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
       select: {
         id: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
-        subscriptionStatus: true,
-        users: { take: 1, select: { id: true, email: true } },
+        status: true,
+        members: { take: 1, select: { user: { select: { id: true, email: true } } } },
       },
     });
-    if (!brand) {
-      throw new NotFoundException('Brand not found');
+    if (!org) {
+      throw new NotFoundException('Organization not found');
     }
-    if (brand.stripeSubscriptionId && brand.subscriptionStatus === 'ACTIVE') {
-      throw new BadRequestException('Brand already has an active subscription');
+    if (org.stripeSubscriptionId && org.status === 'ACTIVE') {
+      throw new BadRequestException('Organization already has an active subscription');
     }
 
     const stripe = await this.stripeClient.getStripe();
@@ -53,21 +52,21 @@ export class BillingEnhancedService {
       throw new BadRequestException(`Invalid plan: ${planId}`);
     }
 
-    const customerId = brand.stripeCustomerId ?? undefined;
-    const userEmail = brand.users[0]?.email ?? undefined;
+    const customerId = org.stripeCustomerId ?? undefined;
+    const userEmail = org.members[0]?.user?.email ?? undefined;
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: this.configService.get<string>('app.frontendUrl', 'http://localhost:3000') + '/dashboard/billing?success=1',
       cancel_url: this.configService.get<string>('app.frontendUrl', 'http://localhost:3000') + '/dashboard/billing?cancel=1',
-      metadata: { brandId, planId },
+      metadata: { organizationId, planId },
       ...(customerId && { customer: customerId }),
       ...(!customerId && userEmail && { customer_email: userEmail }),
     };
 
     if (couponCode) {
-      const coupon = await this.applyCoupon(brandId, couponCode);
+      const coupon = await this.applyCoupon(organizationId, couponCode);
       if (coupon?.couponId) {
         sessionParams.discounts =
           coupon.couponId.startsWith('promo_')
@@ -86,12 +85,12 @@ export class BillingEnhancedService {
   /**
    * Handles plan upgrade with proration.
    */
-  async handleUpgrade(brandId: string, newPlanId: string): Promise<void> {
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId },
-      select: { stripeSubscriptionId: true, subscriptionPlan: true },
+  async handleUpgrade(organizationId: string, newPlanId: string): Promise<void> {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { stripeSubscriptionId: true, plan: true },
     });
-    if (!brand?.stripeSubscriptionId) {
+    if (!org?.stripeSubscriptionId) {
       throw new BadRequestException('No active subscription to upgrade');
     }
 
@@ -101,33 +100,33 @@ export class BillingEnhancedService {
       throw new BadRequestException(`Invalid plan: ${newPlanId}`);
     }
 
-    const subscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId);
     const itemId = subscription.items.data[0]?.id;
     if (!itemId) {
       throw new InternalServerErrorException('Subscription has no items');
     }
 
-    await stripe.subscriptions.update(brand.stripeSubscriptionId, {
+    await stripe.subscriptions.update(org.stripeSubscriptionId, {
       items: [{ id: itemId, price: newPriceId }],
       proration_behavior: 'create_prorations',
     });
 
-    await this.prisma.brand.update({
-      where: { id: brandId },
-      data: { plan: newPlanId, subscriptionPlan: newPlanId.toUpperCase() as SubscriptionPlan },
+    await this.prisma.organization.update({
+      where: { id: organizationId },
+      data: { plan: newPlanId.toUpperCase() as Plan },
     });
-    this.logger.log(`Upgraded brand ${brandId} to plan ${newPlanId}`);
+    this.logger.log(`Upgraded organization ${organizationId} to plan ${newPlanId}`);
   }
 
   /**
    * Handles plan downgrade; effective at period end.
    */
-  async handleDowngrade(brandId: string, newPlanId: string): Promise<void> {
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId },
+  async handleDowngrade(organizationId: string, newPlanId: string): Promise<void> {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
       select: { stripeSubscriptionId: true },
     });
-    if (!brand?.stripeSubscriptionId) {
+    if (!org?.stripeSubscriptionId) {
       throw new BadRequestException('No active subscription to downgrade');
     }
 
@@ -137,34 +136,34 @@ export class BillingEnhancedService {
       throw new BadRequestException(`Invalid plan: ${newPlanId}`);
     }
 
-    const subscription = await stripe.subscriptions.retrieve(brand.stripeSubscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId);
     const itemId = subscription.items.data[0]?.id;
     if (!itemId) {
       throw new InternalServerErrorException('Subscription has no items');
     }
 
-    await stripe.subscriptions.update(brand.stripeSubscriptionId, {
+    await stripe.subscriptions.update(org.stripeSubscriptionId, {
       items: [{ id: itemId, price: newPriceId }],
       proration_behavior: 'none',
     });
 
-    await this.prisma.brand.update({
-      where: { id: brandId },
-      data: { plan: newPlanId, subscriptionPlan: newPlanId.toUpperCase() as SubscriptionPlan },
+    await this.prisma.organization.update({
+      where: { id: organizationId },
+      data: { plan: newPlanId.toUpperCase() as Plan },
     });
-    this.logger.log(`Scheduled downgrade for brand ${brandId} to ${newPlanId} at period end`);
+    this.logger.log(`Scheduled downgrade for organization ${organizationId} to ${newPlanId} at period end`);
   }
 
   /**
    * Validates and applies a coupon to the brand (returns coupon ID for checkout or existing subscription).
    */
-  async applyCoupon(brandId: string, couponCode: string): Promise<{ couponId: string; valid: boolean } | null> {
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId },
+  async applyCoupon(organizationId: string, couponCode: string): Promise<{ couponId: string; valid: boolean } | null> {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
       select: { id: true },
     });
-    if (!brand) {
-      throw new NotFoundException('Brand not found');
+    if (!org) {
+      throw new NotFoundException('Organization not found');
     }
 
     const stripe = await this.stripeClient.getStripe();
@@ -195,11 +194,11 @@ export class BillingEnhancedService {
       return { action: 'none' };
     }
 
-    const brand = await this.prisma.brand.findFirst({
+    const org = await this.prisma.organization.findFirst({
       where: { stripeSubscriptionId: subscriptionId },
-      select: { id: true, gracePeriodEndsAt: true },
+      select: { id: true },
     });
-    if (!brand) {
+    if (!org) {
       return { action: 'none' };
     }
 
@@ -219,9 +218,9 @@ export class BillingEnhancedService {
 
     if (failedCount >= maxAttempts || new Date() > windowEnd) {
       await stripe.subscriptions.cancel(subscriptionId);
-      await this.prisma.brand.update({
-        where: { id: brand.id },
-        data: { subscriptionStatus: 'CANCELED', gracePeriodEndsAt: null },
+      await this.prisma.organization.update({
+        where: { id: org.id },
+        data: { status: 'CANCELED' },
       });
       this.logger.log(`Dunning: canceled subscription ${subscriptionId} after ${failedCount} attempts`);
       return { action: 'cancel' };

@@ -27,7 +27,7 @@ export interface AnalyticsDashboard {
 export interface AnalyticsFilters {
   startDate?: Date;
   endDate?: Date;
-  brandId?: string;
+  organizationId?: string;
   userId?: string;
   productId?: string;
   period?: 'hour' | 'day' | 'week' | 'month' | 'year';

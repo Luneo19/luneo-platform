@@ -18,6 +18,7 @@ import {
   Loader2,
   Star,
 } from 'lucide-react';
+import { MessageCorrection } from '@/components/conversations/MessageCorrection';
 
 interface Message {
   id: string;
@@ -181,10 +182,12 @@ export default function ConversationDetailPage() {
               const isAssistant = msg.role === 'ASSISTANT';
               const sources = parseSources(msg.sourcesUsed);
 
+              const prevMsg = conversation.messages[conversation.messages.indexOf(msg) - 1];
+
               return (
                 <div
                   key={msg.id}
-                  className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                  className={`group flex ${isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
@@ -205,6 +208,15 @@ export default function ConversationDetailPage() {
                       <span className="text-xs text-white/40">
                         {new Date(msg.createdAt).toLocaleString('fr-FR')}
                       </span>
+                      {isAssistant && (
+                        <MessageCorrection
+                          agentId={conversation.agent.id}
+                          messageId={msg.id}
+                          conversationId={conversation.id}
+                          originalContent={msg.content}
+                          userQuestion={prevMsg?.role === 'USER' ? prevMsg.content : undefined}
+                        />
+                      )}
                     </div>
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     {isAssistant && sources.length > 0 && (

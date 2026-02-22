@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Injectable,
   CanActivate,
@@ -7,7 +6,9 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PlatformRole } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
+import { CurrentUser } from '../types/user.types';
 
 @Injectable()
 export class OnboardingGuard implements CanActivate {
@@ -17,22 +18,21 @@ export class OnboardingGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ user?: { id: string; brandId?: string | null; role?: string } }>();
+    const request = context.switchToHttp().getRequest<{ user?: CurrentUser }>();
     const user = request.user;
 
-    // PLATFORM_ADMIN bypasses onboarding check — they manage the platform, not a brand
-    if (user?.role === 'PLATFORM_ADMIN') {
+    if (user?.role === PlatformRole.ADMIN) {
       return true;
     }
 
-    if (!user?.brandId) {
+    if (!user?.organizationId) {
       this.throwRedirect();
     }
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: user.brandId },
-      include: { organization: true },
+    const org = await this.prisma.organization.findUnique({
+      where: { id: user.organizationId! },
+      select: { onboardingCompleted: true },
     });
-    const completed = brand?.organization?.onboardingCompletedAt != null;
+    const completed = org?.onboardingCompleted === true;
     if (!completed) {
       this.throwRedirect();
     }
@@ -44,7 +44,7 @@ export class OnboardingGuard implements CanActivate {
     const redirectTo = frontendUrl ? `${frontendUrl.replace(/\/$/, '')}/onboarding` : '/onboarding';
     throw new HttpException(
       { message: 'Onboarding required', redirectTo },
-      HttpStatus.FOUND, // 302
+      HttpStatus.FOUND,
     );
   }
 }

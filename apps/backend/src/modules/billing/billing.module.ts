@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { CreditsModule } from '@/libs/credits/credits.module';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';

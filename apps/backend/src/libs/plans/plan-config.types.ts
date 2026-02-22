@@ -33,16 +33,18 @@ export enum PlanTier {
  * Valeurs numeriques: -1 = illimite.
  */
 export interface FeatureLimits {
-  designsPerMonth: number;
+  agentsLimit: number;
+  knowledgeBasesLimit: number;
+  conversationsPerMonth: number;
+  documentsLimit: number;
   teamMembers: number;
   storageGB: number;
-  maxProducts: number;
   apiAccess: boolean;
   advancedAnalytics: boolean;
   prioritySupport: boolean;
-  customExport: boolean;
   whiteLabel: boolean;
-  arEnabled: boolean;
+  visualBuilder: boolean;
+  emailChannel: boolean;
 }
 
 // ============================================================================
@@ -107,9 +109,10 @@ export interface PlanInfo {
 // ============================================================================
 
 export interface AddonBonus {
-  designsPerMonth?: number;
+  agentsLimit?: number;
   storageGB?: number;
   teamMembers?: number;
+  conversationsPerMonth?: number;
 }
 
 export interface ActiveAddon {

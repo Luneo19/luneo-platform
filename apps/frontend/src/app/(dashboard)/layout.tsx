@@ -8,11 +8,15 @@ import { TerminologyProvider } from '@/providers/TerminologyProvider';
 import { DensityProvider, useDensity } from '@/providers/DensityProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/i18n/useI18n';
+import { CommandPalette } from '@/components/CommandPalette';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { PageTransition } from '@/components/PageTransition';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { sidebarCollapsed } = useDensity();
   const { t } = useI18n();
+  useKeyboardShortcuts();
 
   return (
     <div className="min-h-screen dash-bg dark flex overflow-x-hidden">
@@ -53,10 +57,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             className="transition-all duration-200 px-4 sm:px-6"
             style={{ paddingTop: 'var(--dash-padding)', paddingBottom: 'var(--dash-padding)' }}
           >
-            {children}
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>
+
+      <CommandPalette />
     </div>
   );
 }

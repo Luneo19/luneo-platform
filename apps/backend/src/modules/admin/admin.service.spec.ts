@@ -196,18 +196,18 @@ describe('AdminService', () => {
   describe('getMetrics', () => {
     it('should return dashboard metrics', async () => {
       mockPrisma.user.count.mockResolvedValue(10);
-      mockPrisma.brand.count.mockResolvedValue(5);
-      mockPrisma.product.count.mockResolvedValue(20);
-      mockPrisma.order.count.mockResolvedValue(30);
-      mockPrisma.design.count.mockResolvedValue(40);
+      mockPrisma.organization.count.mockResolvedValue(5);
+      mockPrisma.agent.count.mockResolvedValue(20);
+      mockPrisma.conversation.count.mockResolvedValue(30);
+      mockPrisma.message.count.mockResolvedValue(40);
 
       const result = await service.getMetrics();
 
       expect(result.totalUsers).toBe(10);
-      expect(result.totalBrands).toBe(5);
-      expect(result.totalProducts).toBe(20);
-      expect(result.totalOrders).toBe(30);
-      expect(result.totalDesigns).toBe(40);
+      expect(result.totalOrganizations).toBe(5);
+      expect(result.totalAgents).toBe(20);
+      expect(result.totalConversations).toBe(30);
+      expect(result.totalMessages).toBe(40);
       expect(result.timestamp).toBeDefined();
     });
   });

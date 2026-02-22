@@ -1,14 +1,14 @@
-// @ts-nocheck
 import {
   Injectable,
   CanActivate,
   ExecutionContext,
   Logger,
 } from '@nestjs/common';
+import { PlatformRole } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
 export interface IndustryConfigRequest {
-  user?: { brandId?: string | null; role?: string };
+  user?: { organizationId?: string | null; role?: PlatformRole };
   industryConfigured?: boolean;
 }
 
@@ -22,24 +22,24 @@ export class IndustryConfigGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<IndustryConfigRequest>();
     const user = request.user;
 
-    if (user?.role === 'PLATFORM_ADMIN') {
+    if (user?.role === PlatformRole.ADMIN) {
       request.industryConfigured = true;
       return true;
     }
 
-    if (!user?.brandId) {
-      this.logger.debug(`User has no brandId – marking industryConfigured=false`);
+    if (!user?.organizationId) {
+      this.logger.debug(`User has no organizationId – marking industryConfigured=false`);
       request.industryConfigured = false;
       return true;
     }
 
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: user.brandId },
-      include: { organization: true },
+    const org = await this.prisma.organization.findUnique({
+      where: { id: user.organizationId },
+      select: { industry: true },
     });
 
-    if (!brand?.organization || brand.organization.industryId == null) {
-      this.logger.debug(`Brand ${user.brandId} has no industry – marking industryConfigured=false`);
+    if (!org || org.industry == null) {
+      this.logger.debug(`Organization ${user.organizationId} has no industry – marking industryConfigured=false`);
       request.industryConfigured = false;
       return true;
     }

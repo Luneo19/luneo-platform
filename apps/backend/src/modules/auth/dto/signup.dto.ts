@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { IsEmail, IsString, IsOptional, IsStrongPassword, IsIn, IsNotEmpty, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@/common/compat/v1-enums';

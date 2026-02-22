@@ -264,11 +264,11 @@ export class AdminController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Export data to CSV or PDF' })
   @ApiQuery({ name: 'format', required: true, enum: ['csv', 'pdf'] })
-  @ApiQuery({ name: 'type', required: true, enum: ['customers', 'analytics', 'orders'] })
+  @ApiQuery({ name: 'type', required: true, enum: ['customers', 'analytics', 'conversations'] })
   @ApiResponse({ status: 200, description: 'Exported file' })
   async exportData(
     @Query('format') format: 'csv' | 'pdf',
-    @Query('type') type: 'customers' | 'analytics' | 'orders',
+    @Query('type') type: 'customers' | 'analytics' | 'conversations',
     @Res() res: Response,
   ) {
     const result = await this.adminService.exportData(format, type);
@@ -875,12 +875,12 @@ export class AdminController {
   }
 
   // ========================================
-  // GLOBAL DESIGNS LIST (Admin)
+  // GLOBAL AGENTS LIST (Admin)
   // ========================================
 
   @Get('designs')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all agents across all organizations (legacy: designs)' })
+  @ApiOperation({ summary: 'List all agents across all organizations' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })

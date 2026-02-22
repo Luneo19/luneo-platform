@@ -1,11 +1,10 @@
-// @ts-nocheck
 import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { SubscriptionPlan } from '@prisma/client';
+import { Plan, PlatformRole } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrentUser } from '../types/user.types';
 
@@ -13,11 +12,11 @@ const ENTERPRISE_ONLY_MESSAGE =
   'Le SSO est disponible uniquement sur le plan Enterprise';
 
 /**
- * Guard that ensures the user's brand is on the Enterprise plan.
+ * Guard that ensures the user's organization is on the Enterprise plan.
  * Use on SSO Enterprise (and other enterprise-only) endpoints.
  *
- * - PLATFORM_ADMIN and SUPER_ADMIN bypass (they can manage any brand).
- * - Other roles: require request.user.brandId and brand.subscriptionPlan === ENTERPRISE.
+ * - ADMIN bypasses (they can manage any organization).
+ * - Other roles: require request.user.organizationId and org.plan === ENTERPRISE.
  */
 @Injectable()
 export class EnterprisePlanGuard implements CanActivate {
@@ -31,21 +30,21 @@ export class EnterprisePlanGuard implements CanActivate {
       throw new ForbiddenException(ENTERPRISE_ONLY_MESSAGE);
     }
 
-    if (user.role === 'PLATFORM_ADMIN') {
+    if (user.role === PlatformRole.ADMIN) {
       return true;
     }
 
-    const brandId = user.brandId;
-    if (!brandId) {
+    const organizationId = user.organizationId;
+    if (!organizationId) {
       throw new ForbiddenException(ENTERPRISE_ONLY_MESSAGE);
     }
 
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: brandId },
-      select: { subscriptionPlan: true },
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { plan: true },
     });
 
-    if (!brand || brand.subscriptionPlan !== SubscriptionPlan.ENTERPRISE) {
+    if (!org || org.plan !== Plan.ENTERPRISE) {
       throw new ForbiddenException(ENTERPRISE_ONLY_MESSAGE);
     }
 

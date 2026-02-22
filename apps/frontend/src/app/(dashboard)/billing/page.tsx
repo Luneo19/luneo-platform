@@ -31,7 +31,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Download, AlertCircle, Package, TrendingUp, Zap, Database } from 'lucide-react';
+import { CreditCard, Download, AlertCircle, Zap, Database, MessageSquare, FileText, Bot, HardDrive } from 'lucide-react';
 
 // ========================================
 // COMPONENT
@@ -48,11 +48,11 @@ function BillingPageContent() {
   });
   const usageQuery = useQuery({
     queryKey: ['billing', 'usage'],
-    queryFn: () => api.get<{ customizations: number; renders: number; apiCalls: number; storageBytes: number }>('/api/v1/billing/usage'),
+    queryFn: () => api.get<{ messagesAi: number; conversations: number; documentsIndexed: number; activeAgents: number; storageBytes: number }>('/api/v1/billing/usage'),
   });
   const limitsQuery = useQuery({
     queryKey: ['billing', 'limits'],
-    queryFn: () => api.get<{ monthlyCustomizations: number; monthlyRenders: number; monthlyApiCalls: number; storageBytes: number }>('/api/v1/billing/limits'),
+    queryFn: () => api.get<{ monthlyMessagesAi: number; monthlyConversations: number; monthlyDocumentsIndexed: number; maxActiveAgents: number; storageBytes: number }>('/api/v1/billing/limits'),
   });
   const invoicesQuery = useQuery({
     queryKey: ['billing', 'invoices'],
@@ -107,16 +107,20 @@ function BillingPageContent() {
     if (!usageQuery.data || !limitsQuery.data) return {};
 
     return {
-      customizations: Math.min(
-        (usageQuery.data.customizations / limitsQuery.data.monthlyCustomizations) * 100,
+      messagesAi: Math.min(
+        (usageQuery.data.messagesAi / limitsQuery.data.monthlyMessagesAi) * 100,
         100
       ),
-      renders: Math.min(
-        (usageQuery.data.renders / limitsQuery.data.monthlyRenders) * 100,
+      conversations: Math.min(
+        (usageQuery.data.conversations / limitsQuery.data.monthlyConversations) * 100,
         100
       ),
-      apiCalls: Math.min(
-        (usageQuery.data.apiCalls / limitsQuery.data.monthlyApiCalls) * 100,
+      documentsIndexed: Math.min(
+        (usageQuery.data.documentsIndexed / limitsQuery.data.monthlyDocumentsIndexed) * 100,
+        100
+      ),
+      activeAgents: Math.min(
+        (usageQuery.data.activeAgents / limitsQuery.data.maxActiveAgents) * 100,
         100
       ),
       storage: Math.min(
@@ -319,62 +323,79 @@ function BillingPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Customizations */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">{t('billing.customizations')}</span>
-                  </div>
-                  <span className="text-sm text-white/60">
-                    {usage?.customizations || 0} / {limits?.monthlyCustomizations || 0}
-                  </span>
-                </div>
-                <Progress
-                  value={usagePercentages.customizations || 0}
-                  className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-purple-600 [&>div]:to-pink-600 bg-white/[0.06]"
-                />
-              </div>
-
-              {/* Renders */}
+              {/* Messages IA */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">{t('billing.renders')}</span>
+                    <span className="text-sm font-medium text-white">{t('billing.messagesAi')}</span>
                   </div>
                   <span className="text-sm text-white/60">
-                    {usage?.renders || 0} / {limits?.monthlyRenders || 0}
+                    {usage?.messagesAi || 0} / {limits?.monthlyMessagesAi || 0}
                   </span>
                 </div>
                 <Progress
-                  value={usagePercentages.renders || 0}
+                  value={usagePercentages.messagesAi || 0}
                   className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-purple-600 [&>div]:to-pink-600 bg-white/[0.06]"
                 />
               </div>
 
-              {/* API Calls */}
+              {/* Conversations */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-white/40" />
-                    <span className="text-sm font-medium text-white">{t('billing.apiCalls')}</span>
+                    <MessageSquare className="h-4 w-4 text-white/40" />
+                    <span className="text-sm font-medium text-white">{t('billing.conversations')}</span>
                   </div>
                   <span className="text-sm text-white/60">
-                    {usage?.apiCalls || 0} / {limits?.monthlyApiCalls || 0}
+                    {usage?.conversations || 0} / {limits?.monthlyConversations || 0}
                   </span>
                 </div>
                 <Progress
-                  value={usagePercentages.apiCalls || 0}
+                  value={usagePercentages.conversations || 0}
                   className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-purple-600 [&>div]:to-pink-600 bg-white/[0.06]"
                 />
               </div>
 
-              {/* Storage */}
+              {/* Documents indexés */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-white/40" />
+                    <FileText className="h-4 w-4 text-white/40" />
+                    <span className="text-sm font-medium text-white">{t('billing.documentsIndexed')}</span>
+                  </div>
+                  <span className="text-sm text-white/60">
+                    {usage?.documentsIndexed || 0} / {limits?.monthlyDocumentsIndexed || 0}
+                  </span>
+                </div>
+                <Progress
+                  value={usagePercentages.documentsIndexed || 0}
+                  className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-purple-600 [&>div]:to-pink-600 bg-white/[0.06]"
+                />
+              </div>
+
+              {/* Agents actifs */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-white/40" />
+                    <span className="text-sm font-medium text-white">{t('billing.activeAgents')}</span>
+                  </div>
+                  <span className="text-sm text-white/60">
+                    {usage?.activeAgents || 0} / {limits?.maxActiveAgents || 0}
+                  </span>
+                </div>
+                <Progress
+                  value={usagePercentages.activeAgents || 0}
+                  className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-purple-600 [&>div]:to-pink-600 bg-white/[0.06]"
+                />
+              </div>
+
+              {/* Stockage */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4 text-white/40" />
                     <span className="text-sm font-medium text-white">{t('billing.storage')}</span>
                   </div>
                   <span className="text-sm text-white/60">

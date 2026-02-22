@@ -1,21 +1,17 @@
-// @ts-nocheck
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { PlatformRole } from '@prisma/client';
 import { CurrentUser } from '../types/user.types';
 
 /**
  * Guard that ensures the authenticated user can only access resources
- * belonging to their own brand. PLATFORM_ADMIN bypasses.
+ * belonging to their own organization. Platform ADMIN bypasses.
  *
- * SECURITY FIX: Now also checks request.brandId (injected by BrandScopedGuard)
- * and no longer silently allows access when brandId is missing from the request.
- * For BRAND_ADMIN/BRAND_USER roles, the user MUST have a brandId.
- *
- * It looks for a brandId in (priority order):
- *   1. request.brandId (injected by global BrandScopedGuard)
- *   2. Route params (`:brandId`)
- *   3. Query params (`?brandId=...`)
- *   4. Request body (`body.brandId`)
+ * It looks for an organizationId in (priority order):
+ *   1. request.organizationId (injected by OrgScopedGuard)
+ *   2. Route params (`:organizationId`)
+ *   3. Query params (`?organizationId=...`)
+ *   4. Request body (`body.organizationId`)
  *
  * Usage:
  *   @UseGuards(JwtAuthGuard, BrandOwnershipGuard)
@@ -42,37 +38,29 @@ export class BrandOwnershipGuard implements CanActivate {
       throw new ForbiddenException('Utilisateur non authentifié');
     }
 
-    // Platform admins can access any brand
-    if (user.role === 'PLATFORM_ADMIN') {
+    if (user.role === PlatformRole.ADMIN) {
       return true;
     }
 
-    // SECURITY FIX: BRAND_ADMIN and BRAND_USER must always have a brandId
-    if ((user.role === 'BRAND_ADMIN' || user.role === 'BRAND_USER') && !user.brandId) {
-      throw new ForbiddenException('Aucun brand associé à votre compte');
+    if (user.role === PlatformRole.USER && !user.organizationId) {
+      throw new ForbiddenException('Aucune organisation associée à votre compte');
     }
 
-    // Extract brandId from request.brandId (BrandScopedGuard), route params, query params, or body
-    const brandId =
-      request.brandId ||
-      request.params?.brandId ||
-      request.query?.brandId ||
-      request.body?.brandId;
+    const organizationId =
+      request.organizationId ||
+      request.params?.organizationId ||
+      request.query?.organizationId ||
+      request.body?.organizationId;
 
-    if (!brandId) {
-      // SECURITY FIX: If user has a brand role but no brandId can be resolved,
-      // allow only if the user's own brandId will be used by the service layer.
-      // For CONSUMER/FABRICATOR roles this is fine (multi-brand access).
-      if (user.role === 'BRAND_ADMIN' || user.role === 'BRAND_USER') {
-        // No brandId in request but user has one — services should use user.brandId.
-        // This is acceptable as BrandScopedGuard already injected request.brandId.
+    if (!organizationId) {
+      if (user.role === PlatformRole.USER) {
         return true;
       }
       return true;
     }
 
-    if (user.brandId && user.brandId !== brandId) {
-      this.logger.warn(`Brand ownership violation: user ${user.id} (brand ${user.brandId}) tried to access brand ${brandId}`);
+    if (user.organizationId && user.organizationId !== organizationId) {
+      this.logger.warn(`Organization ownership violation: user ${user.id} (org ${user.organizationId}) tried to access org ${organizationId}`);
       throw new ForbiddenException('Accès non autorisé à cette ressource');
     }
 

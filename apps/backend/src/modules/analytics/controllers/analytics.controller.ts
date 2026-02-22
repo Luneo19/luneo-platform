@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { Controller, Get, Post, Body, Query, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { PlatformRole } from '@prisma/client';
 import { RequestWithUser, RequestWithOptionalUser, CurrentUser } from '@/common/types/user.types';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Public } from '@/common/decorators/public.decorator';
@@ -63,32 +63,31 @@ export class AnalyticsController {
     @Request() req: { user?: CurrentUser },
   ) {
     const user = req.user;
-    const brandId = user?.brandId;
-    const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? undefined : (brandId || undefined);
-    if (!scopedBrandId && user?.role !== 'PLATFORM_ADMIN') {
+    const organizationId = user?.organizationId;
+    const scopedOrgId = user?.role === PlatformRole.ADMIN ? undefined : (organizationId || undefined);
+    if (!scopedOrgId && user?.role !== PlatformRole.ADMIN) {
       return {
         overview: { products: 0, designs: 0, sessions: 0, revenue: 0 },
         period: { designs: 0, orders: 0, revenue: 0 },
         recent: { designs: [], orders: [] },
       };
     }
-    return this.analyticsService.getDashboard(period, scopedBrandId);
+    return this.analyticsService.getDashboard(period, scopedOrgId);
   }
 
   @Get('usage')
   @ApiOperation({ summary: 'Get usage analytics' })
   @ApiResponse({ status: 200, description: 'Usage analytics retrieved successfully' })
   async getUsage(
-    @Query('brandId') brandId: string,
+    @Query('organizationId') organizationId: string,
     @Request() req: { user?: CurrentUser },
   ) {
     const user = req.user;
-    if (user && user.role !== 'PLATFORM_ADMIN' && brandId && brandId !== user.brandId) {
-      throw new ForbiddenException('Access denied: cannot view other brand analytics');
+    if (user && user.role !== PlatformRole.ADMIN && organizationId && organizationId !== user.organizationId) {
+      throw new ForbiddenException('Access denied: cannot view other organization analytics');
     }
-    const scopedBrandId = user?.role === 'PLATFORM_ADMIN' ? brandId : (user?.brandId || brandId || undefined);
-    if (!scopedBrandId) {
-      // PLATFORM_ADMIN without specific brand → return platform-wide summary
+    const scopedOrgId = user?.role === PlatformRole.ADMIN ? organizationId : (user?.organizationId || organizationId || undefined);
+    if (!scopedOrgId) {
       return {
         designs: { used: 0, limit: 0, percentage: 0 },
         renders: { used: 0, limit: 0, percentage: 0 },
@@ -96,7 +95,7 @@ export class AnalyticsController {
         apiCalls: { used: 0, limit: 0, percentage: 0 },
       };
     }
-    return this.analyticsService.getUsage(scopedBrandId);
+    return this.analyticsService.getUsage(scopedOrgId);
   }
 
   @Get('revenue')
@@ -106,10 +105,9 @@ export class AnalyticsController {
     @Query('period') period: string = 'last_30_days',
     @Request() req: { user?: CurrentUser },
   ) {
-    // SECURITY FIX: Non-admin users must be scoped to their brand
     const user = req.user;
-    const brandId = user?.role === 'PLATFORM_ADMIN' ? undefined : (user?.brandId || undefined);
-    return this.analyticsService.getRevenue(period, brandId);
+    const organizationId = user?.role === PlatformRole.ADMIN ? undefined : (user?.organizationId || undefined);
+    return this.analyticsService.getRevenue(period, organizationId);
   }
 
   @Post('web-vitals')
@@ -119,8 +117,8 @@ export class AnalyticsController {
   @ApiResponse({ status: 201, description: 'Web vital recorded successfully' })
   async recordWebVital(@Body() dto: RecordWebVitalDto, @Request() req: RequestWithOptionalUser) {
     const userId = req?.user?.id || null;
-    const brandId = req?.user?.brandId || null;
-    return this.analyticsService.recordWebVital(userId, brandId, {
+    const organizationId = req?.user?.organizationId || null;
+    return this.analyticsService.recordWebVital(userId, organizationId, {
       ...dto,
       timestamp: dto.timestamp ?? Date.now(),
     });
@@ -258,8 +256,8 @@ export class AnalyticsController {
     @Query('endDate') endDate?: string,
     @Request() req?: RequestWithOptionalUser,
   ) {
-    const brandId = req?.user?.brandId ?? undefined;
-    return this.analyticsService.getDesignsAnalytics(brandId, startDate, endDate);
+    const organizationId = req?.user?.organizationId ?? undefined;
+    return this.analyticsService.getDesignsAnalytics(organizationId, startDate, endDate);
   }
 
   @Get('orders')
@@ -272,8 +270,8 @@ export class AnalyticsController {
     @Query('endDate') endDate?: string,
     @Request() req?: RequestWithOptionalUser,
   ) {
-    const brandId = req?.user?.brandId ?? undefined;
-    return this.analyticsService.getOrdersAnalytics(brandId, startDate, endDate);
+    const organizationId = req?.user?.organizationId ?? undefined;
+    return this.analyticsService.getOrdersAnalytics(organizationId, startDate, endDate);
   }
 
   @Get('pipeline')
@@ -293,11 +291,11 @@ export class AnalyticsController {
     },
   })
   async getPipelineData(@Request() req: { user?: CurrentUser }) {
-    const brandId = req.user?.brandId;
-    if (!brandId && req.user?.role !== 'PLATFORM_ADMIN') {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId && req.user?.role !== PlatformRole.ADMIN) {
       return { products: 0, selling: 0, orders: 0, inProduction: 0, delivered: 0 };
     }
-    return this.analyticsService.getPipelineData(brandId ?? undefined);
+    return this.analyticsService.getPipelineData(organizationId ?? undefined);
   }
 }
 

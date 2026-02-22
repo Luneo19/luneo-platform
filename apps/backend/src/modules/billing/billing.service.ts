@@ -1374,16 +1374,16 @@ export class BillingService {
       const config = PLAN_CONFIGS[tier];
       const featureKeys: string[] = [];
       if (config.limits.apiAccess) featureKeys.push('api_access');
-      if (config.limits.arEnabled) featureKeys.push('ar_enabled');
+      if (config.limits.emailChannel) featureKeys.push('email_channel');
       if (config.limits.whiteLabel) featureKeys.push('white_label');
       if (config.limits.advancedAnalytics) featureKeys.push('advanced_analytics');
-      if (config.limits.customExport) featureKeys.push('custom_export');
+      if (config.limits.visualBuilder) featureKeys.push('visual_builder');
       if (config.limits.prioritySupport) featureKeys.push('priority_support');
-      if (tier === PlanTier.ENTERPRISE) return { ...config.limits, products: config.limits.maxProducts, storage: config.limits.storageGB, features: ['all'] };
+      if (tier === PlanTier.ENTERPRISE) return { ...config.limits, products: config.limits.agentsLimit, storage: config.limits.storageGB, features: ['all'] };
       return {
-        designsPerMonth: config.limits.designsPerMonth,
+        conversationsPerMonth: config.limits.conversationsPerMonth,
         teamMembers: config.limits.teamMembers,
-        products: config.limits.maxProducts,
+        products: config.limits.agentsLimit,
         storage: config.limits.storageGB,
         features: featureKeys.length > 0 ? featureKeys : ['basic_analytics', 'email_support'],
       };
@@ -1443,12 +1443,12 @@ export class BillingService {
       },
     });
     
-    if (newLimits.designsPerMonth !== -1 && conversationsThisMonth > newLimits.designsPerMonth) {
+    if (newLimits.conversationsPerMonth !== -1 && conversationsThisMonth > newLimits.conversationsPerMonth) {
       impactedResources.push({
         resource: 'conversations_monthly',
         current: conversationsThisMonth,
-        newLimit: newLimits.designsPerMonth,
-        excess: conversationsThisMonth - newLimits.designsPerMonth,
+        newLimit: newLimits.conversationsPerMonth,
+        excess: conversationsThisMonth - newLimits.conversationsPerMonth,
         action: 'readonly',
         description: `Vous avez déjà ${conversationsThisMonth} conversations ce mois. Avec le nouveau plan, vous ne pourrez plus en créer jusqu'au mois prochain.`,
       });

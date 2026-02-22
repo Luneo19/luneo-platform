@@ -19,6 +19,7 @@ export class AgentsService {
   constructor(
     private readonly prisma: PrismaOptimizedService,
     private readonly orchestratorService: OrchestratorService,
+    private readonly flowEngine: FlowExecutionEngine,
   ) {}
 
   async create(organizationId: string, dto: CreateAgentDto) {
@@ -442,8 +443,7 @@ export class AgentsService {
     });
     if (!agent) throw new NotFoundException('Agent not found');
 
-    const engine = new FlowExecutionEngine();
-    const result = await engine.execute(
+    const result = await this.flowEngine.execute(
       { nodes: flow.nodes as FlowNode[], edges: flow.edges as FlowEdge[] },
       message,
       { sandbox: true, traceExecution: true, agentId },

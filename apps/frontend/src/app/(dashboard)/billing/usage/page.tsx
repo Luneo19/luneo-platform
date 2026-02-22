@@ -9,18 +9,21 @@ import {
   MessageSquare,
   Bot,
   Database,
-  Users,
   Zap,
   TrendingUp,
   ArrowUpRight,
   CreditCard,
+  FileText,
+  HardDrive,
 } from 'lucide-react';
 
 interface UsageData {
   period: { start: string; end: string };
+  messagesAi: { used: number; limit: number; percentage: number };
   conversations: { used: number; limit: number; percentage: number };
+  documentsIndexed: { used: number; limit: number };
   agents: { used: number; limit: number };
-  knowledgeSources: { used: number; limit: number };
+  storageBytes: { used: number; limit: number };
   costs: {
     subscription: number;
     overage: number;
@@ -45,6 +48,14 @@ function formatCents(cents: number, currency = 'EUR'): string {
     currency,
     minimumFractionDigits: 2,
   }).format(cents / 100);
+}
+
+function formatStorageBytes(bytes: number): string {
+  if (bytes === 0) return '0 o';
+  const units = ['o', 'Ko', 'Mo', 'Go', 'To'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const value = bytes / Math.pow(1024, i);
+  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 export default function BillingUsagePage() {
@@ -163,25 +174,40 @@ export default function BillingUsagePage() {
             <h2 className="mb-5 text-lg font-semibold text-white">Consommation</h2>
             <div className="space-y-6">
               <UsageBar
+                icon={Zap}
+                label="Messages IA"
+                used={usage.messagesAi.used}
+                limit={usage.messagesAi.limit}
+                color="bg-purple-500"
+              />
+              <UsageBar
                 icon={MessageSquare}
                 label="Conversations"
                 used={usage.conversations.used}
                 limit={usage.conversations.limit}
-                color="bg-purple-500"
-              />
-              <UsageBar
-                icon={Bot}
-                label="Agents"
-                used={usage.agents.used}
-                limit={usage.agents.limit}
                 color="bg-pink-500"
               />
               <UsageBar
-                icon={Database}
-                label="Knowledge Sources"
-                used={usage.knowledgeSources.used}
-                limit={usage.knowledgeSources.limit}
+                icon={FileText}
+                label="Documents indexés"
+                used={usage.documentsIndexed.used}
+                limit={usage.documentsIndexed.limit}
                 color="bg-blue-500"
+              />
+              <UsageBar
+                icon={Bot}
+                label="Agents actifs"
+                used={usage.agents.used}
+                limit={usage.agents.limit}
+                color="bg-cyan-500"
+              />
+              <UsageBar
+                icon={HardDrive}
+                label="Stockage"
+                used={usage.storageBytes.used}
+                limit={usage.storageBytes.limit}
+                color="bg-emerald-500"
+                formatValue={formatStorageBytes}
               />
             </div>
           </div>
@@ -255,15 +281,18 @@ function UsageBar({
   used,
   limit,
   color,
+  formatValue,
 }: {
   icon: typeof MessageSquare;
   label: string;
   used: number;
   limit: number;
   color: string;
+  formatValue?: (v: number) => string;
 }) {
   const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const isNearLimit = pct >= 80;
+  const fmt = formatValue ?? ((v: number) => v.toLocaleString());
 
   return (
     <div>
@@ -273,7 +302,7 @@ function UsageBar({
           <span className="text-sm font-medium text-white">{label}</span>
         </div>
         <span className={`text-sm font-semibold ${isNearLimit ? 'text-amber-400' : 'text-white/60'}`}>
-          {used.toLocaleString()} / {limit.toLocaleString()}
+          {fmt(used)} / {fmt(limit)}
         </span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Controller,
   Get,
@@ -34,8 +33,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserRole } from '@/common/compat/v1-enums';
 import { CurrentUser } from '@/common/types/user.types';
 
-// Type pour le fichier uploadé (compatible avec multer)
-type UploadedFile = {
+type MulterFile = {
   fieldname: string;
   originalname: string;
   encoding: string;
@@ -179,7 +177,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Uploader un avatar' })
   @ApiResponse({ status: 200, description: 'Avatar uploadé avec succès' })
   async uploadAvatar(
-    @UploadedFile() file: UploadedFile,
+    @UploadedFile() file: MulterFile,
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.usersService.uploadAvatar(req.user.id, file);

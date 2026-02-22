@@ -944,7 +944,7 @@ export class AdminService {
     };
   }
 
-  async exportData(format: 'csv' | 'pdf', type: 'customers' | 'analytics' | 'orders') {
+  async exportData(format: 'csv' | 'pdf', type: 'customers' | 'analytics' | 'conversations') {
     if (type === 'customers') {
       const customers = await this.prisma.user.findMany({
         where: { role: { not: PlatformRole.ADMIN } },
@@ -1001,7 +1001,7 @@ export class AdminService {
       };
     }
 
-    if (type === 'orders') {
+    if (type === 'conversations') {
       // TODO: V2 has no Order model — export conversations instead
       const conversations = await this.prisma.conversation.findMany({
         take: 1000,
@@ -1125,10 +1125,6 @@ export class AdminService {
 
     return {
       totalUsers,
-      totalBrands: totalOrganizations,
-      totalProducts: totalAgents,
-      totalOrders: totalConversations,
-      totalDesigns: totalMessages,
       totalOrganizations,
       totalAgents,
       totalConversations,
@@ -1958,7 +1954,7 @@ export class AdminService {
   }
 
   // ========================================
-  // GLOBAL DESIGNS LIST (Admin)
+  // GLOBAL AGENTS LIST (Admin)
   // ========================================
 
   async getAllDesigns(_params?: {
@@ -2003,14 +1999,14 @@ export class AdminService {
     ]);
 
     return {
-      designs: agents.map((a) => ({
+      agents: agents.map((a) => ({
         id: a.id,
         name: a.name,
         status: a.status,
         thumbnailUrl: a.avatar || null,
         createdAt: a.createdAt,
         updatedAt: a.updatedAt,
-        brand: a.organization,
+        organization: a.organization,
       })),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
