@@ -88,7 +88,9 @@ export class RedisOptimizedService {
 
     this.redis.on('error', (error: Error) => {
       if (error.message?.includes('max requests limit exceeded')) {
-        this.logger.warn('Redis request limit exceeded. Cache will work in degraded mode.');
+        this.logger.warn('Redis request limit exceeded. Switching to degraded mode (in-memory fallback).');
+        this.redis?.disconnect();
+        this.redis = null;
         return;
       }
       if (error.message?.includes("Stream isn't writable") || error.message?.includes('enableOfflineQueue')) {
