@@ -405,6 +405,9 @@ model Agent {
   metadata         Json?
   tags             String[]
 
+  flowData         Json?
+  flowVersion      Int          @default(0)
+
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   lastActiveAt     DateTime?
@@ -414,6 +417,7 @@ model Agent {
   agentKnowledgeBases AgentKnowledgeBase[]
   conversations    Conversation[]
   analytics        AgentDailyAnalytics[]
+  corrections      AgentCorrection[]
 
   @@index([organizationId])
   @@index([status])
@@ -825,6 +829,33 @@ model Message {
   @@index([createdAt])
   @@index([flagged])
   @@map("messages")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AGENT CORRECTIONS (learning from user feedback)
+// ═══════════════════════════════════════════════════════════════════
+
+model AgentCorrection {
+  id               String   @id @default(cuid())
+
+  agentId          String
+  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  messageId        String
+  conversationId   String
+  originalContent  String   @db.Text
+  correctedContent String   @db.Text
+  userQuestion     String?  @db.Text
+  correctedBy      String?
+
+  indexedAt         DateTime?
+  priority         String   @default("HIGH")
+
+  createdAt        DateTime @default(now())
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@map("agent_corrections")
 }
 
 // ═══════════════════════════════════════════════════════════════════
