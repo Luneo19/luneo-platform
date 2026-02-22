@@ -17,6 +17,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AgentsService } from './agents.service';
+import { CorrectionsService } from './corrections.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
 import { TestAgentDto } from './dto/test-agent.dto';
@@ -31,7 +32,10 @@ import { AgentStatus } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AgentsController {
-  constructor(private readonly agentsService: AgentsService) {}
+  constructor(
+    private readonly agentsService: AgentsService,
+    private readonly correctionsService: CorrectionsService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new agent' })
@@ -174,5 +178,44 @@ export class AgentsController {
     @Body() body: { flow: { nodes: unknown[]; edges: unknown[] } },
   ) {
     return this.agentsService.publishFlow(id, user.organizationId!, body.flow);
+  }
+
+  // ═══════════════ Agent Learning / Corrections ═══════════════
+
+  @Post(':id/corrections')
+  @ApiOperation({ summary: 'Submit a correction for an agent response' })
+  async createCorrection(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Body() body: {
+      messageId: string;
+      conversationId: string;
+      originalContent: string;
+      correctedContent: string;
+      userQuestion?: string;
+    },
+  ) {
+    return this.correctionsService.createCorrection(id, user.organizationId!, {
+      ...body,
+      correctedBy: user.id,
+    });
+  }
+
+  @Get(':id/corrections')
+  @ApiOperation({ summary: 'List corrections for an agent' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async listCorrections(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.correctionsService.listCorrections(
+      id,
+      user.organizationId!,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 }
