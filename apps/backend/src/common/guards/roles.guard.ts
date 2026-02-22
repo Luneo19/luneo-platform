@@ -1,21 +1,10 @@
-// @ts-nocheck
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 
 export const ROLES_KEY = 'roles';
-export const Roles = (...roles: UserRole[]) => {
-  return (target: object, key?: string, descriptor?: PropertyDescriptor) => {
-    if (descriptor) {
-      Reflect.defineMetadata(ROLES_KEY, roles, descriptor.value);
-    } else {
-      Reflect.defineMetadata(ROLES_KEY, roles, target);
-    }
-    return descriptor ?? target;
-  };
-};
+export const Roles = (...roles: (PlatformRole | string)[]) => SetMetadata(ROLES_KEY, roles);
 
-// Use the same key as public.decorator.ts to avoid import issues
 const IS_PUBLIC_KEY = 'isPublic';
 
 @Injectable()
@@ -23,30 +12,20 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // Check if endpoint is public (bypass role check)
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
+    if (isPublic) return true;
 
-    if (isPublic) {
-      return true;
-    }
-
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-
-    if (!requiredRoles) {
-      return true;
-    }
+    if (!requiredRoles) return true;
 
     const { user } = context.switchToHttp().getRequest();
-    
-    if (!user) {
-      return false;
-    }
+    if (!user) return false;
 
     return requiredRoles.some((role) => user.role === role);
   }

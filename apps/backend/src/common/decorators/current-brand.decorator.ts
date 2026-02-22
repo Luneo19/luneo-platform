@@ -1,26 +1,28 @@
-// @ts-nocheck
 /**
- * @fileoverview Decorator pour récupérer le brand depuis le CurrentUser
- * @module CurrentBrandDecorator
+ * @CurrentOrg / @CurrentBrand decorator
+ * Extracts the organization from the current user.
+ * Keeps backward compat name "CurrentBrand" while returning org data.
  */
 
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { CurrentUser } from '../types/user.types';
 
 export const CurrentBrand = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
+  (_data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
     const user = request.user as CurrentUser;
 
-    if (!user?.brand) {
+    if (!user?.organization) {
       return null;
     }
 
     return {
-      id: user.brand.id,
-      name: user.brand.name,
-      logo: user.brand.logo,
-      website: user.brand.website,
+      id: user.organization.id,
+      name: user.organization.name,
+      slug: user.organization.slug,
+      logo: user.organization.logo,
     };
   },
 );
+
+export const CurrentOrg = CurrentBrand;
