@@ -37,7 +37,6 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 @ApiTags('admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
-// @ts-expect-error NestJS decorator typing - Roles returns object
 @Roles(UserRole.PLATFORM_ADMIN)
 export class AdminController {
   constructor(

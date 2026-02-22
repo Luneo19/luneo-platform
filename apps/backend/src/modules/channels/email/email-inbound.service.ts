@@ -24,40 +24,37 @@ export class EmailInboundService {
       return;
     }
 
-    const conversation = await this.findOrCreateConversation(channel.id, channel.agentId, parsed);
+    const conversation = await this.findOrCreateConversation(
+      channel.id,
+      channel.agentId,
+      channel.agent.organizationId,
+      parsed,
+    );
 
     await this.prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: MessageRole.USER,
         content: parsed.body,
-        metadata: {
-          emailFrom: parsed.from,
-          emailSubject: parsed.subject,
-          emailMessageId: parsed.messageId,
-        },
       },
     });
 
     await this.prisma.conversation.update({
       where: { id: conversation.id },
-      data: { messageCount: { increment: 1 }, lastMessageAt: new Date() },
+      data: { messageCount: { increment: 1 }, userMessageCount: { increment: 1 } },
     });
 
-    // TODO: Integrate with OrchestratorService to generate AI response
-    // For now, log that processing is complete
     this.logger.log(`Email processed for conversation ${conversation.id}`);
   }
 
   private async findChannelByEmail(toEmail: string) {
-    const localPart = toEmail.split('@')[0];
     return this.prisma.channel.findFirst({
       where: {
         type: ChannelType.EMAIL,
         status: 'ACTIVE',
         OR: [
-          { config: { path: ['email'], equals: toEmail } },
-          { config: { path: ['localPart'], equals: localPart } },
+          { emailForwardAddress: toEmail },
+          { emailFromAddress: toEmail },
         ],
       },
       include: { agent: { select: { id: true, organizationId: true } } },
@@ -67,13 +64,15 @@ export class EmailInboundService {
   private async findOrCreateConversation(
     channelId: string,
     agentId: string,
+    organizationId: string,
     parsed: ParsedEmail,
   ) {
     if (parsed.inReplyTo) {
       const existing = await this.prisma.conversation.findFirst({
         where: {
           channelId,
-          metadata: { path: ['emailThreadId'], equals: parsed.inReplyTo },
+          visitorEmail: parsed.from,
+          status: ConversationStatus.ACTIVE,
         },
       });
       if (existing) return existing;
@@ -82,15 +81,14 @@ export class EmailInboundService {
     return this.prisma.conversation.create({
       data: {
         agentId,
+        organizationId,
         channelId,
         channelType: ChannelType.EMAIL,
         status: ConversationStatus.ACTIVE,
         visitorId: parsed.from,
+        visitorEmail: parsed.from,
         visitorName: parsed.fromName,
-        metadata: {
-          emailThreadId: parsed.messageId,
-          emailSubject: parsed.subject,
-        },
+        summary: parsed.subject,
       },
     });
   }
