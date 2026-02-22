@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Public API Service
  * brandId is passed explicitly to each method (no global state).

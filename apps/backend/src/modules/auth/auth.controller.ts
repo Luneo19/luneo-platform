@@ -61,7 +61,7 @@ export class AuthController {
 
   /** Frontend base URL for OAuth/callback redirects (config or env, production-safe fallback). */
   private getFrontendUrl(): string {
-    return this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://app.luneo.app' : 'http://localhost:3000');
+    return this.configService.get('app.frontendUrl') || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://luneo.app' : 'http://localhost:3000');
   }
 
   @Post('signup')

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';

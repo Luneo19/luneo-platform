@@ -1,6 +1,9 @@
 /**
  * White-Label API under /white-label (alias for enterprise white-label)
- * POST /white-label/theme, POST /white-label/domain use current user's brandId.
+ * POST /white-label/theme, POST /white-label/domain use current user's organizationId (was brandId in V1).
+ *
+ * V2 NOTE: CustomTheme / CustomDomain models don't exist yet.
+ * Endpoints are kept alive but return stubbed / null responses.
  */
 
 import { BadRequestException, Body, Controller, Get, Post, Query, Request, UseGuards } from '@nestjs/common';
@@ -21,30 +24,30 @@ export class WhiteLabelController {
 
   @Post('theme')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Configure custom theme (uses current user brand)' })
-  @ApiResponse({ status: 201, description: 'Theme created' })
+  @ApiOperation({ summary: 'Configure custom theme (uses current user organization)' })
+  @ApiResponse({ status: 201, description: 'Theme created (stubbed in V2)' })
   async createTheme(@Body() dto: CreateThemeDto, @Request() req: ExpressRequest & { user: CurrentUser }) {
-    const brandId = req.user.brandId ?? dto.brandId;
-    if (!brandId) throw new BadRequestException('Brand context required');
+    const brandId = (req.user as any).organizationId ?? (req.user as any).brandId ?? dto.brandId;
+    if (!brandId) throw new BadRequestException('Organization context required');
     return this.whiteLabel.createTheme({ ...dto, brandId });
   }
 
   @Post('domain')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Configure custom domain (uses current user brand)' })
-  @ApiResponse({ status: 201, description: 'Domain created' })
+  @ApiOperation({ summary: 'Configure custom domain (uses current user organization)' })
+  @ApiResponse({ status: 201, description: 'Domain created (stubbed in V2)' })
   async createDomain(@Body() dto: CreateCustomDomainDto, @Request() req: ExpressRequest & { user: CurrentUser }) {
-    const brandId = req.user.brandId ?? dto.brandId;
-    if (!brandId) throw new BadRequestException('Brand context required');
+    const brandId = (req.user as any).organizationId ?? (req.user as any).brandId ?? dto.brandId;
+    if (!brandId) throw new BadRequestException('Organization context required');
     return this.whiteLabel.createCustomDomain({ ...dto, brandId });
   }
 
   @Get('theme')
-  @ApiOperation({ summary: 'Get active theme by brand (for theme provider)' })
-  @ApiResponse({ status: 200, description: 'Theme' })
+  @ApiOperation({ summary: 'Get active theme by organization (for theme provider)' })
+  @ApiResponse({ status: 200, description: 'Theme or null' })
   async getThemeByBrand(@Request() req: ExpressRequest & { query?: { brandId?: string }; user?: CurrentUser }) {
-    const brandId = req.query?.brandId ?? req.user?.brandId;
-    if (!brandId) throw new BadRequestException('brandId required');
+    const brandId = req.query?.brandId ?? (req.user as any)?.organizationId ?? (req.user as any)?.brandId;
+    if (!brandId) throw new BadRequestException('brandId / organizationId required');
     return this.whiteLabel.getActiveTheme(brandId);
   }
 

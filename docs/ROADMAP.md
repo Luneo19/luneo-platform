@@ -39,7 +39,7 @@ Roadmap détaillée du développement de **Luneo Enterprise**, SaaS B2B de perso
 - ✅ **Sentry** : Monitoring erreurs
 
 #### **✅ Déploiement**
-- ✅ **Frontend** : Vercel (app.luneo.app)
+- ✅ **Frontend** : Vercel (luneo.app)
 - ✅ **Backend** : Hetzner VPS
 - ✅ **Database** : PostgreSQL managed
 - ✅ **SSL** : Certificats automatiques

@@ -31,9 +31,9 @@ describe('SSOService', () => {
     brandId: 'brand-1',
     name: 'Acme SAML',
     samlEntryPoint: 'https://idp.example.com/sso',
-    samlIssuer: 'https://app.luneo.app/saml',
+    samlIssuer: 'https://luneo.app/saml',
     samlCert: '-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----',
-    samlCallbackUrl: 'https://app.luneo.app/auth/saml/callback',
+    samlCallbackUrl: 'https://luneo.app/auth/saml/callback',
   };
 
   const validOIDCData: OIDCConfigData = {
@@ -42,7 +42,7 @@ describe('SSOService', () => {
     oidcIssuer: 'https://auth.example.com',
     oidcClientId: 'client-id',
     oidcClientSecret: 'client-secret',
-    oidcCallbackUrl: 'https://app.luneo.app/auth/oidc/callback',
+    oidcCallbackUrl: 'https://luneo.app/auth/oidc/callback',
   };
 
   beforeEach(async () => {
@@ -218,8 +218,8 @@ describe('SSOService', () => {
         name: 'Acme',
         enabled: true,
         samlEntryPoint: 'https://idp.example.com/sso',
-        samlIssuer: 'https://app.luneo.app',
-        samlCallbackUrl: 'https://app.luneo.app/auth/saml/callback',
+        samlIssuer: 'https://luneo.app',
+        samlCallbackUrl: 'https://luneo.app/auth/saml/callback',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

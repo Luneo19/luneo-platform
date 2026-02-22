@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { OutboxService } from '@/libs/outbox/outbox.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';

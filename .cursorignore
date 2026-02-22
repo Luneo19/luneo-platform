@@ -207,3 +207,8 @@ apps/widget/
 # Python AI engine (separate service)
 # ===================
 apps/ai-engine/
+
+# ===================
+# Archive V1 (do not index)
+# ===================
+_archive/

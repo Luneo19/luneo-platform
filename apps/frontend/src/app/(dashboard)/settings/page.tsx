@@ -79,7 +79,7 @@ function SettingsPageContent() {
       });
       toast({ title: t('common.success'), description: t('settings.profile.saved') });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setSaving(false);
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
@@ -90,7 +90,7 @@ function SettingsPageContent() {
       toast({ title: t('common.success'), description: t('settings.security.passwordChanged') });
       setShowPassword(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setSaving(false);
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },

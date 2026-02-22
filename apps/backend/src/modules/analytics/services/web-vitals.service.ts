@@ -21,14 +21,13 @@ export class WebVitalsService {
     try {
       const webVital = await this.prisma.webVital.create({
         data: {
-          userId: dto.userId,
-          sessionId: dto.sessionId,
-          page: dto.url || '/',
-          metric: dto.name,
+          name: dto.name,
           value: dto.value,
           rating: dto.rating || this.calculateRating(dto.name, dto.value),
-          device: (dto.device ?? undefined) as Prisma.InputJsonValue | undefined,
-          connection: (dto.connection ?? undefined) as Prisma.InputJsonValue | undefined,
+          delta: dto.delta ?? null,
+          page: dto.url || '/',
+          sessionId: dto.sessionId ?? null,
+          connection: dto.connection ? JSON.stringify(dto.connection) : null,
         },
       });
 
@@ -39,7 +38,9 @@ export class WebVitalsService {
         data: webVital,
       };
     } catch (error) {
-      this.logger.error(`Failed to record Web Vital: ${error.message}`, error.stack);
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to record Web Vital: ${message}`, stack);
       throw error;
     }
   }
@@ -54,8 +55,6 @@ export class WebVitalsService {
         startDate,
         endDate,
         page,
-        userId,
-        brandId,
         pageNumber = 1,
         pageSize = 50,
       } = dto;
@@ -63,34 +62,21 @@ export class WebVitalsService {
       const where: Prisma.WebVitalWhereInput = {};
 
       if (metric) {
-        where.metric = metric;
+        where.name = metric;
       }
 
       if (startDate || endDate) {
-        where.timestamp = {};
+        where.createdAt = {};
         if (startDate) {
-          where.timestamp.gte = new Date(startDate);
+          where.createdAt.gte = new Date(startDate);
         }
         if (endDate) {
-          where.timestamp.lte = new Date(endDate);
+          where.createdAt.lte = new Date(endDate);
         }
       }
 
       if (page) {
         where.page = page;
-      }
-
-      if (userId) {
-        where.userId = userId;
-      }
-
-      // If brandId is provided, filter by users in that brand
-      if (brandId) {
-        const brandUsers = await this.prisma.user.findMany({
-          where: { brandId },
-          select: { id: true },
-        });
-        where.userId = { in: brandUsers.map((u) => u.id) };
       }
 
       const skip = (pageNumber - 1) * pageSize;
@@ -100,7 +86,7 @@ export class WebVitalsService {
           where,
           skip,
           take: pageSize,
-          orderBy: { timestamp: 'desc' },
+          orderBy: { createdAt: 'desc' },
         }),
         this.prisma.webVital.count({ where }),
       ]);
@@ -118,7 +104,9 @@ export class WebVitalsService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to get Web Vitals: ${error.message}`, error.stack);
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get Web Vitals: ${message}`, stack);
       throw error;
     }
   }
@@ -128,49 +116,35 @@ export class WebVitalsService {
    */
   async getWebVitalsSummary(dto: GetWebVitalsDto) {
     try {
-      const { startDate, endDate, userId, brandId } = dto;
+      const { startDate, endDate } = dto;
 
       const where: Prisma.WebVitalWhereInput = {};
 
       if (startDate || endDate) {
-        where.timestamp = {};
+        where.createdAt = {};
         if (startDate) {
-          where.timestamp.gte = new Date(startDate);
+          where.createdAt.gte = new Date(startDate);
         }
         if (endDate) {
-          where.timestamp.lte = new Date(endDate);
+          where.createdAt.lte = new Date(endDate);
         }
       }
 
-      if (userId) {
-        where.userId = userId;
-      }
-
-      if (brandId) {
-        const brandUsers = await this.prisma.user.findMany({
-          where: { brandId },
-          select: { id: true },
-        });
-        where.userId = { in: brandUsers.map((u) => u.id) };
-      }
-
-      // Get all Web Vitals for aggregation
       const webVitals = await this.prisma.webVital.findMany({
         where,
         select: {
-          metric: true,
+          name: true,
           value: true,
           rating: true,
           page: true,
         },
       });
 
-      // Group by metric
       const metrics = ['LCP', 'FID', 'CLS', 'FCP', 'TTFB', 'INP'];
       const summary: Record<string, { count: number; average: number; p50: number; p75: number; p95: number; p99: number; good: number; needsImprovement: number; poor: number }> = {};
 
       for (const metricName of metrics) {
-        const metricData = webVitals.filter((w) => w.metric === metricName);
+        const metricData = webVitals.filter((w) => w.name === metricName);
         
         if (metricData.length === 0) {
           summary[metricName] = {
@@ -214,7 +188,9 @@ export class WebVitalsService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to get Web Vitals summary: ${error.message}`, error.stack);
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get Web Vitals summary: ${message}`, stack);
       throw error;
     }
   }

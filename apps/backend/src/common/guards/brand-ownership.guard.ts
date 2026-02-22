@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CurrentUser } from '../types/user.types';

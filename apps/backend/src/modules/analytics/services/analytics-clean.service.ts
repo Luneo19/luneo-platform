@@ -97,7 +97,7 @@ export class AnalyticsCleanService {
     const events = await this.prisma.analyticsEvent.findMany({
       where: {
         brandId,
-        timestamp: {
+        createdAt: {
           gte: startDate,
           lte: endDate,
         },
@@ -106,13 +106,13 @@ export class AnalyticsCleanService {
         }),
       },
       select: {
-        timestamp: true,
+        createdAt: true,
       },
     });
 
     // Group by day
     const grouped = events.reduce((acc, event) => {
-      const date = event.timestamp.toISOString().split('T')[0];
+      const date = event.createdAt.toISOString().split('T')[0];
       acc[date] = (acc[date] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -135,10 +135,10 @@ export class AnalyticsCleanService {
       SELECT 
         "eventType",
         COUNT(*)::bigint as count
-      FROM "AnalyticsEvent"
+      FROM "analytics_events"
       WHERE "brandId" = ${brandId}
-        AND timestamp >= ${startDate}::timestamp
-        AND timestamp <= ${endDate}::timestamp
+        AND "createdAt" >= ${startDate}::timestamp
+        AND "createdAt" <= ${endDate}::timestamp
       GROUP BY "eventType"
       ORDER BY count DESC
       LIMIT ${limit}
@@ -162,7 +162,7 @@ export class AnalyticsCleanService {
     const events = await this.prisma.analyticsEvent.findMany({
       where: {
         brandId,
-        timestamp: {
+        createdAt: {
           gte: startDate,
           lte: endDate,
         },
@@ -175,21 +175,21 @@ export class AnalyticsCleanService {
         eventType: true,
         userId: true,
         sessionId: true,
-        timestamp: true,
+        createdAt: true,
         properties: true,
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 10000, // Limit for performance
     });
 
     // Convert to CSV
-    const headers = ['id', 'eventType', 'userId', 'sessionId', 'timestamp', 'properties'];
+    const headers = ['id', 'eventType', 'userId', 'sessionId', 'createdAt', 'properties'];
     const rows = events.map((e) => [
       e.id,
       e.eventType,
       e.userId || '',
       e.sessionId || '',
-      e.timestamp.toISOString(),
+      e.createdAt.toISOString(),
       JSON.stringify(e.properties),
     ]);
 
@@ -242,7 +242,7 @@ export class AnalyticsCleanService {
     const result = await this.prisma.analyticsEvent.count({
       where: {
         brandId,
-        timestamp: { gte: startDate, lte: endDate },
+        createdAt: { gte: startDate, lte: endDate },
         ...(eventTypes?.length && { eventType: { in: eventTypes } }),
       },
     });
@@ -259,7 +259,7 @@ export class AnalyticsCleanService {
       where: {
         brandId,
         eventType,
-        timestamp: { gte: startDate, lte: endDate },
+        createdAt: { gte: startDate, lte: endDate },
       },
     });
     return result;
@@ -272,10 +272,10 @@ export class AnalyticsCleanService {
   ): Promise<number> {
     const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(DISTINCT "userId")::bigint as count
-      FROM "AnalyticsEvent"
+      FROM "analytics_events"
       WHERE "brandId" = ${brandId}
-        AND timestamp >= ${startDate}::timestamp
-        AND timestamp <= ${endDate}::timestamp
+        AND "createdAt" >= ${startDate}::timestamp
+        AND "createdAt" <= ${endDate}::timestamp
         AND "userId" IS NOT NULL
     `;
     return Number(result[0]?.count || 0);
@@ -288,10 +288,10 @@ export class AnalyticsCleanService {
   ): Promise<number> {
     const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(DISTINCT "sessionId")::bigint as count
-      FROM "AnalyticsEvent"
+      FROM "analytics_events"
       WHERE "brandId" = ${brandId}
-        AND timestamp >= ${startDate}::timestamp
-        AND timestamp <= ${endDate}::timestamp
+        AND "createdAt" >= ${startDate}::timestamp
+        AND "createdAt" <= ${endDate}::timestamp
         AND "sessionId" IS NOT NULL
     `;
     return Number(result[0]?.count || 0);

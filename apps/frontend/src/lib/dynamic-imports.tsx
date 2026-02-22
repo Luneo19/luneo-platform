@@ -68,16 +68,9 @@ export const LazyIntegrations = createLazyComponent(
 
 // Imports dynamiques pour les composants lourds
 
-// 3D Components (très lourds: Three.js ~500KB)
-export const LazyProductConfigurator3D = createLazyComponent(
-  () => import('@/components/3d-configurator/ProductConfigurator3D'),
-  { ssr: false }
-);
-
-export const LazyThreeViewer = createLazyComponent(
-  () => import('@/components/ThreeViewer'),
-  { ssr: false }
-);
+// 3D/AR components removed (V1) — stubs for backward compatibility
+export const LazyProductConfigurator3D = (() => null) as ReturnType<typeof createLazyComponent>;
+export const LazyThreeViewer = (() => null) as ReturnType<typeof createLazyComponent>;
 
 // 2D Customizer (lourd: Konva.js ~300KB)
 export const LazyProductCustomizer = createLazyComponent(
@@ -85,16 +78,9 @@ export const LazyProductCustomizer = createLazyComponent(
   { ssr: false }
 );
 
-// AR Components (très lourds: AR libraries ~400KB)
-export const LazyViewInAR = createLazyComponent(
-  () => import('@/components/ar/ViewInAR').then(mod => ({ default: mod.ViewInAR })),
-  { ssr: false }
-);
-
-export const LazyARScreenshot = createLazyComponent(
-  () => import('@/components/ar/ARScreenshot').then(mod => ({ default: mod.ARScreenshot })),
-  { ssr: false }
-);
+// AR components removed (V1) — stubs for backward compatibility
+export const LazyViewInAR = (() => null) as ReturnType<typeof createLazyComponent>;
+export const LazyARScreenshot = (() => null) as ReturnType<typeof createLazyComponent>;
 
 // Charts (lourd: Recharts ~200KB) - Commenté car fichier n'existe pas encore
 // export const LazyCharts = createLazyComponent(

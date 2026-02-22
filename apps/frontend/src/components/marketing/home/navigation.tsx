@@ -1,446 +1,583 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
+  Menu,
+  X,
   ChevronDown,
   ChevronRight,
-  X,
-  Palette,
-  Box,
-  Glasses,
-  Printer,
-  Sparkles,
-  Package,
-  ShoppingCart,
-  Megaphone,
-  Fingerprint,
-  Share2,
+  MessageSquare,
   BookOpen,
+  BarChart3,
+  Plug,
+  Headphones,
+  ShoppingCart,
+  TrendingUp,
+  Wrench,
+  Megaphone,
+  FileText,
   HelpCircle,
-  Users,
-  Mail,
-  ArrowRight,
+  Newspaper,
+  Code,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { Button } from '@/components/ui/button';
-import { AnimatedBorderCTA } from '@/components/ui/animated-border';
 
-// =============================================================================
-// MEGA-MENU DATA
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
 
-const MENU_DATA = {
-  product: {
+interface MenuItemData {
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+}
+
+interface DropdownData {
+  label: string;
+  items: MenuItemData[];
+}
+
+const dropdowns: DropdownData[] = [
+  {
     label: 'Produit',
-    columns: [
+    items: [
       {
-        title: 'Personnalisation',
-        items: [
-          { href: '/solutions/visual-customizer', label: 'Customizer 2D', description: 'Éditeur visuel drag-and-drop', icon: Palette },
-          { href: '/solutions/configurator-3d', label: 'Configurateur 3D', description: 'Visualisation temps réel Three.js', icon: Box },
-          { href: '/solutions/virtual-try-on', label: 'Virtual Try-On AR', description: 'Essayage augmenté en direct', icon: Glasses },
-        ],
+        label: 'Agents Conversationnels',
+        description: 'Déployez des agents IA entraînés sur vos données',
+        icon: MessageSquare,
+        href: '/product/agents',
       },
       {
-        title: 'Production',
-        items: [
-          { href: '/solutions/3d-asset-hub', label: 'Export Print-Ready', description: 'CMYK, PDF/X-4, haute résolution', icon: Printer },
-          { href: '/solutions/ai-design-hub', label: 'AI Studio', description: 'Génération par intelligence artificielle', icon: Sparkles },
-          { href: '/solutions/ecommerce', label: 'Gestion Produits', description: 'Catalogue et variantes', icon: Package },
-        ],
+        label: 'Base de Connaissances',
+        description: 'Indexation vectorielle de vos documents',
+        icon: BookOpen,
+        href: '/product/knowledge-base',
+      },
+      {
+        label: 'Analytics & Insights',
+        description: 'Mesurez la performance de vos agents',
+        icon: BarChart3,
+        href: '/product/analytics',
+      },
+      {
+        label: 'Intégrations',
+        description: 'Connectez Shopify, Slack, Zendesk et plus',
+        icon: Plug,
+        href: '/product/integrations',
       },
     ],
-    cta: { href: '/demo', label: 'Voir la démo', description: 'Testez toutes les fonctionnalités' },
   },
-  solutions: {
+  {
     label: 'Solutions',
-    columns: [
+    items: [
       {
-        title: 'Par secteur',
-        items: [
-          { href: '/solutions/ecommerce', label: 'E-commerce', description: 'Personnalisation à grande échelle', icon: ShoppingCart },
-          { href: '/solutions/marketing', label: 'Marketing', description: 'Campagnes visuelles uniques', icon: Megaphone },
-          { href: '/solutions/branding', label: 'Branding', description: 'Identité de marque cohérente', icon: Fingerprint },
-          { href: '/solutions/social', label: 'Social Media', description: 'Contenu optimisé réseaux', icon: Share2 },
-        ],
+        label: 'Service Client',
+        description: 'Automatisez 80% des demandes clients',
+        icon: Headphones,
+        href: '/solutions/customer-service',
+      },
+      {
+        label: 'E-commerce',
+        description: 'Assistants shopping et suivi de commandes',
+        icon: ShoppingCart,
+        href: '/solutions/ecommerce',
+      },
+      {
+        label: 'Ventes',
+        description: 'Qualifiez vos leads automatiquement',
+        icon: TrendingUp,
+        href: '/solutions/sales',
+      },
+      {
+        label: 'Support Technique',
+        description: 'Résolution automatisée de tickets',
+        icon: Wrench,
+        href: '/solutions/technical-support',
+      },
+      {
+        label: 'Marketing',
+        description: 'Engagez vos visiteurs en temps réel',
+        icon: Megaphone,
+        href: '/solutions/marketing',
       },
     ],
-    cta: { href: '/integrations-overview', label: 'Intégrations', description: 'Shopify, WooCommerce, API...' },
   },
-  resources: {
+  {
     label: 'Ressources',
-    columns: [
+    items: [
       {
-        title: 'Apprendre',
-        items: [
-          { href: '/help/documentation', label: 'Documentation', description: 'Guides et références API', icon: BookOpen },
-          { href: '/help', label: "Centre d'aide", description: 'FAQ et support technique', icon: HelpCircle },
-          { href: '/community', label: 'Communauté', description: 'Échangez avec les utilisateurs', icon: Users },
-          { href: '/contact', label: 'Contact', description: 'Équipe commerciale et support', icon: Mail },
-        ],
+        label: 'Documentation',
+        description: 'Guides et tutoriels complets',
+        icon: FileText,
+        href: '/docs',
+      },
+      {
+        label: "Centre d'aide",
+        description: 'FAQ et assistance',
+        icon: HelpCircle,
+        href: '/help',
+      },
+      {
+        label: 'Blog',
+        description: 'Actualités et bonnes pratiques',
+        icon: Newspaper,
+        href: '/blog',
+      },
+      {
+        label: 'API Docs',
+        description: 'Référence API pour développeurs',
+        icon: Code,
+        href: '/api-docs',
       },
     ],
-    cta: { href: '/register', label: 'Commencer gratuitement', description: 'Essai gratuit 14 jours' },
   },
-} as const;
+];
 
-type MenuKey = keyof typeof MENU_DATA;
+// ---------------------------------------------------------------------------
+// Animation variants
+// ---------------------------------------------------------------------------
 
-// =============================================================================
-// NAVIGATION COMPONENT
-// =============================================================================
+const dropdownVariants = {
+  hidden: { opacity: 0, y: 8, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] },
+  },
+  exit: {
+    opacity: 0,
+    y: 8,
+    scale: 0.98,
+    transition: { duration: 0.15, ease: 'easeIn' },
+  },
+};
+
+const mobileMenuVariants = {
+  hidden: { x: '100%' },
+  visible: {
+    x: 0,
+    transition: { type: 'spring', damping: 30, stiffness: 300 },
+  },
+  exit: {
+    x: '100%',
+    transition: { duration: 0.25, ease: 'easeIn' },
+  },
+};
+
+const accordionVariants = {
+  hidden: { height: 0, opacity: 0 },
+  visible: {
+    height: 'auto',
+    opacity: 1,
+    transition: { duration: 0.25, ease: [0.23, 1, 0.32, 1] },
+  },
+  exit: {
+    height: 0,
+    opacity: 0,
+    transition: { duration: 0.2, ease: 'easeIn' },
+  },
+};
+
+const itemStagger = {
+  visible: { transition: { staggerChildren: 0.04 } },
+};
+
+const itemChild = {
+  hidden: { opacity: 0, x: -6 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.2 } },
+};
+
+// ---------------------------------------------------------------------------
+// Mega-menu dropdown panel
+// ---------------------------------------------------------------------------
+
+function DropdownPanel({
+  data,
+  onClose,
+}: {
+  data: DropdownData;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      variants={dropdownVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="absolute top-full left-1/2 -translate-x-1/2 pt-3"
+    >
+      <motion.div
+        variants={itemStagger}
+        initial="hidden"
+        animate="visible"
+        className={
+          'relative rounded-2xl border border-white/[0.08] bg-[#0c0c1d]/95 ' +
+          'backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden ' +
+          (data.items.length > 4 ? 'w-[540px]' : 'w-[460px]')
+        }
+      >
+        {/* Gradient top accent */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+
+        <div className="p-2">
+          {data.items.map((item) => (
+            <motion.div key={item.label} variants={itemChild}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                className={
+                  'group flex items-start gap-4 rounded-xl px-4 py-3 ' +
+                  'transition-colors hover:bg-white/[0.04]'
+                }
+              >
+                <div
+                  className={
+                    'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ' +
+                    'bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 ' +
+                    'border border-white/[0.06] ' +
+                    'group-hover:from-indigo-500/20 group-hover:to-cyan-500/20 ' +
+                    'group-hover:border-indigo-500/20 transition-all duration-200'
+                  }
+                >
+                  <item.icon className="h-5 w-5 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
+                    {item.label}
+                  </p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-white/40 group-hover:text-white/55 transition-colors">
+                    {item.description}
+                  </p>
+                </div>
+                <ChevronRight className="mt-1 h-4 w-4 text-white/0 group-hover:text-white/30 transition-all translate-x-0 group-hover:translate-x-0.5" />
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mobile accordion section
+// ---------------------------------------------------------------------------
+
+function MobileAccordion({
+  data,
+  onNavigate,
+}: {
+  data: DropdownData;
+  onNavigate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border-b border-white/[0.06]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-4 text-[15px] font-medium text-white/80"
+      >
+        {data.label}
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown className="h-4 w-4 text-white/40" />
+        </motion.span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            variants={accordionVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 space-y-0.5">
+              {data.items.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/[0.04] border border-white/[0.06]">
+                    <item.icon className="h-4 w-4 text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white/80">
+                      {item.label}
+                    </p>
+                    <p className="text-xs text-white/35">{item.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Navigation
+// ---------------------------------------------------------------------------
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
-  const [mobileAccordion, setMobileAccordion] = useState<MenuKey | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [mobileOpen]);
 
-  const openMenu = useCallback((key: MenuKey) => {
-    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
-    setActiveMenu(key);
+  const handleDropdownEnter = useCallback((label: string) => {
+    if (closeTimeout.current) {
+      clearTimeout(closeTimeout.current);
+      closeTimeout.current = null;
+    }
+    setOpenDropdown(label);
   }, []);
 
-  const startClose = useCallback(() => {
-    closeTimerRef.current = setTimeout(() => setActiveMenu(null), 200);
+  const handleDropdownLeave = useCallback(() => {
+    closeTimeout.current = setTimeout(() => setOpenDropdown(null), 150);
   }, []);
 
-  const cancelClose = useCallback(() => {
-    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
-  }, []);
-
-  const closeAll = useCallback(() => {
-    setActiveMenu(null);
-    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
-  }, []);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   return (
     <>
-      {/* ================================================================= */}
-      {/* NAVBAR */}
-      {/* ================================================================= */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-[1000] transition-all duration-500 ${
-          scrolled
-            ? 'bg-dark-bg/80 backdrop-blur-2xl border-b border-white/[0.06] shadow-lg shadow-black/20'
-            : 'bg-transparent'
-        }`}
+        className={
+          'fixed inset-x-0 top-0 z-50 transition-all duration-500 ' +
+          (scrolled
+            ? 'bg-[#030014]/80 backdrop-blur-2xl border-b border-white/[0.06]'
+            : 'bg-transparent')
+        }
       >
-        {/* Subtle glow line under navbar on scroll */}
-        {scrolled && (
-          <div className="absolute bottom-0 left-0 right-0 h-px glow-separator" />
-        )}
+        {/* Glow separator */}
+        <div
+          className={
+            'absolute inset-x-0 bottom-0 h-px transition-opacity duration-500 ' +
+            'bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent ' +
+            (scrolled ? 'opacity-100' : 'opacity-0')
+          }
+        />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-[72px]">
-            {/* Logo */}
-            <Logo variant="dark" size="default" href="/" onClick={closeAll} />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between lg:h-[68px]">
+            {/* ---- Left: Logo ---- */}
+            <Logo href="/" size="default" showText variant="dark" />
 
-            {/* Desktop Nav Items */}
+            {/* ---- Center: Nav links (desktop) ---- */}
             <div className="hidden lg:flex items-center gap-1">
-              {(Object.keys(MENU_DATA) as MenuKey[]).map((key) => (
+              {dropdowns.map((dd) => (
                 <div
-                  key={key}
-                  onMouseEnter={() => openMenu(key)}
-                  onMouseLeave={startClose}
+                  key={dd.label}
+                  className="relative"
+                  onMouseEnter={() => handleDropdownEnter(dd.label)}
+                  onMouseLeave={handleDropdownLeave}
                 >
                   <button
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                      activeMenu === key
-                        ? 'text-white bg-white/[0.08]'
-                        : 'text-white hover:bg-white/[0.04]'
-                    }`}
-                    aria-expanded={activeMenu === key}
-                    aria-haspopup="menu"
-                    aria-label={`${MENU_DATA[key].label}${activeMenu === key ? ', ouvert' : ''}`}
+                    type="button"
+                    className={
+                      'group flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ' +
+                      (openDropdown === dd.label
+                        ? 'text-white bg-white/[0.04]'
+                        : 'text-white/60 hover:text-white/90')
+                    }
                   >
-                    {MENU_DATA[key].label}
+                    {dd.label}
                     <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                        activeMenu === key ? 'rotate-180' : ''
-                      }`}
+                      className={
+                        'h-3.5 w-3.5 transition-transform duration-200 ' +
+                        (openDropdown === dd.label
+                          ? 'rotate-180 text-indigo-400'
+                          : 'text-white/30 group-hover:text-white/50')
+                      }
                     />
                   </button>
+
+                  <AnimatePresence>
+                    {openDropdown === dd.label && (
+                      <DropdownPanel
+                        data={dd}
+                        onClose={() => setOpenDropdown(null)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </div>
               ))}
 
+              {/* Tarifs – direct link */}
               <Link
                 href="/pricing"
-                className="px-4 py-2 text-sm font-medium text-white hover:bg-white/[0.04] rounded-lg transition-all duration-200"
-                onClick={closeAll}
+                className="rounded-lg px-3.5 py-2 text-sm font-medium text-white/60 transition-colors hover:text-white/90"
               >
                 Tarifs
               </Link>
             </div>
 
-            {/* Desktop CTA */}
+            {/* ---- Right: CTAs (desktop) ---- */}
             <div className="hidden lg:flex items-center gap-3">
-              <Link href="/login" onClick={closeAll}>
-                <AnimatedBorderCTA speed="normal" variant="white">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white bg-transparent hover:bg-transparent font-medium border-0"
-                  >
-                    Connexion
-                  </Button>
-                </AnimatedBorderCTA>
+              <Link
+                href="/login"
+                className={
+                  'rounded-lg border border-white/[0.08] px-4 py-2 text-sm font-medium ' +
+                  'text-white/70 transition-all hover:text-white hover:border-white/[0.15] hover:bg-white/[0.04]'
+                }
+              >
+                Se connecter
               </Link>
-              <Link href="/register" onClick={closeAll}>
-                <AnimatedBorderCTA speed="normal">
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                  >
-                    Essai gratuit
-                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                  </Button>
-                </AnimatedBorderCTA>
+              <Link
+                href="/register"
+                className={
+                  'relative rounded-lg px-5 py-2 text-sm font-semibold text-white ' +
+                  'bg-gradient-to-r from-indigo-500 to-cyan-500 ' +
+                  'shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.45)] ' +
+                  'transition-shadow duration-300'
+                }
+              >
+                Essai gratuit
               </Link>
             </div>
 
-            {/* Mobile Hamburger */}
+            {/* ---- Hamburger (mobile) ---- */}
             <button
-              className="lg:hidden p-2 -mr-2 rounded-lg hover:bg-white/[0.06] transition-colors"
-              onClick={() => setMobileOpen(!mobileOpen)}
+              type="button"
+              className="lg:hidden relative z-50 flex h-10 w-10 items-center justify-center rounded-lg text-white/80 hover:bg-white/[0.06] transition-colors"
+              onClick={() => setMobileOpen((v) => !v)}
               aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-              aria-expanded={mobileOpen}
-              aria-controls="mobile-nav-panel"
             >
-              <div className="w-5 h-5 relative">
-                <span
-                  className={`absolute left-0 w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${
-                    mobileOpen ? 'top-[9px] rotate-45' : 'top-1'
-                  }`}
-                />
-                <span
-                  className={`absolute left-0 top-[9px] w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${
-                    mobileOpen ? 'opacity-0 scale-0' : 'opacity-100'
-                  }`}
-                />
-                <span
-                  className={`absolute left-0 w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${
-                    mobileOpen ? 'top-[9px] -rotate-45' : 'top-[17px]'
-                  }`}
-                />
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                {mobileOpen ? (
+                  <motion.div
+                    key="close"
+                    initial={{ opacity: 0, rotate: -90 }}
+                    animate={{ opacity: 1, rotate: 0 }}
+                    exit={{ opacity: 0, rotate: 90 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <X className="h-5 w-5" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="menu"
+                    initial={{ opacity: 0, rotate: 90 }}
+                    animate={{ opacity: 1, rotate: 0 }}
+                    exit={{ opacity: 0, rotate: -90 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Menu className="h-5 w-5" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ================================================================= */}
-      {/* MEGA-MENU PANEL (Desktop) */}
-      {/* ================================================================= */}
-      <div
-        className={`fixed top-[72px] left-0 right-0 z-[999] transition-all duration-250 ease-out ${
-          activeMenu
-            ? 'opacity-100 translate-y-0 pointer-events-auto'
-            : 'opacity-0 -translate-y-2 pointer-events-none'
-        }`}
-        onMouseEnter={cancelClose}
-        onMouseLeave={startClose}
-      >
-        <div className="h-1" />
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-dark-card/95 backdrop-blur-xl rounded-2xl border border-white/[0.06] shadow-2xl shadow-black/40 overflow-hidden">
-            {activeMenu && (
-              <div className="p-8">
-                <div className="flex gap-8">
-                  {/* Columns */}
-                  <div className="flex-1 flex gap-8">
-                    {MENU_DATA[activeMenu].columns.map((col, ci) => (
-                      <div key={ci} className="flex-1">
-                        <h4 className="text-xs font-semibold text-white uppercase tracking-wider mb-4">
-                          {col.title}
-                        </h4>
-                        <div className="space-y-1">
-                          {col.items.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                              <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={closeAll}
-                                className="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-all duration-150"
-                              >
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-colors">
-                                  <Icon className="w-4 h-4 text-purple-400" />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
-                                    {item.label}
-                                  </div>
-                                  <div className="text-xs text-white mt-0.5 leading-relaxed">
-                                    {item.description}
-                                  </div>
-                                </div>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+      {/* ---- Mobile side panel ---- */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+              onClick={closeMobile}
+            />
 
-                  {/* CTA sidebar */}
-                  <div className="w-56 shrink-0 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/10 to-pink-500/10 border border-white/[0.04] rounded-xl p-5 flex flex-col justify-between">
-                    <div>
-                      <h4 className="text-sm font-semibold text-white mb-1.5">
-                        {MENU_DATA[activeMenu].cta.label}
-                      </h4>
-                      <p className="text-xs text-white leading-relaxed">
-                        {MENU_DATA[activeMenu].cta.description}
-                      </p>
-                    </div>
-                    <Link href={MENU_DATA[activeMenu].cta.href} onClick={closeAll}>
-                      <Button
-                        size="sm"
-                        className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 text-xs font-semibold"
-                      >
-                        Decouvrir
-                        <ArrowRight className="w-3 h-3 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay to close mega-menu on click outside */}
-      {activeMenu && <div className="fixed inset-0 z-[998]" onClick={closeAll} />}
-
-      {/* ================================================================= */}
-      {/* MOBILE MENU */}
-      {/* ================================================================= */}
-      <div
-        className={`fixed inset-0 z-[999] lg:hidden transition-all duration-300 ${
-          mobileOpen ? 'visible' : 'invisible pointer-events-none'
-        }`}
-      >
-        {/* Overlay */}
-        <div
-          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-            mobileOpen ? 'opacity-100' : 'opacity-0'
-          }`}
-          onClick={() => setMobileOpen(false)}
-        />
-
-        {/* Panel */}
-        <div
-          id="mobile-nav-panel"
-          className={`absolute top-0 right-0 w-full max-w-sm h-full bg-dark-bg border-l border-white/[0.06] shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
-            mobileOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          role="navigation"
-          aria-label="Menu de navigation"
-        >
-          {/* Mobile header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
-            <Logo variant="dark" size="small" href="/" onClick={() => setMobileOpen(false)} />
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
-              aria-label="Fermer le menu"
+            {/* Panel */}
+            <motion.aside
+              key="mobile-panel"
+              variants={mobileMenuVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className={
+                'fixed inset-y-0 right-0 z-40 w-full max-w-sm lg:hidden ' +
+                'bg-[#0a0a1a]/98 backdrop-blur-2xl border-l border-white/[0.06] ' +
+                'flex flex-col overflow-y-auto'
+              }
             >
-              <X className="w-5 h-5 text-white" aria-hidden />
-            </button>
-          </div>
+              {/* Header spacer */}
+              <div className="h-16 shrink-0" />
 
-          {/* Accordion sections */}
-          <div className="p-4 space-y-1">
-            {(Object.keys(MENU_DATA) as MenuKey[]).map((key) => (
-              <div key={key}>
-                <button
-                  onClick={() => setMobileAccordion(mobileAccordion === key ? null : key)}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
-                  aria-expanded={mobileAccordion === key}
-                  aria-controls={`mobile-accordion-${key}`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {MENU_DATA[key].label}
-                  </span>
-                  <ChevronRight
-                    className={`w-4 h-4 text-white transition-transform duration-200 ${
-                      mobileAccordion === key ? 'rotate-90' : ''
-                    }`}
+              {/* Accordion menus */}
+              <div className="flex-1">
+                {dropdowns.map((dd) => (
+                  <MobileAccordion
+                    key={dd.label}
+                    data={dd}
+                    onNavigate={closeMobile}
                   />
-                </button>
+                ))}
 
-                <div
-                  id={`mobile-accordion-${key}`}
-                  className={`overflow-hidden transition-all duration-200 ${
-                    mobileAccordion === key ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-                  }`}
+                {/* Tarifs link */}
+                <Link
+                  href="/pricing"
+                  onClick={closeMobile}
+                  className="flex items-center px-5 py-4 text-[15px] font-medium text-white/80 border-b border-white/[0.06] transition-colors hover:text-white"
                 >
-                  <div className="pl-3 pb-2 space-y-0.5">
-                    {MENU_DATA[key].columns.flatMap((col) =>
-                      col.items.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setMobileOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.04] transition-colors"
-                          >
-                            <Icon className="w-4 h-4 text-purple-400 shrink-0" />
-                            <div>
-                              <div className="text-sm font-medium text-white">{item.label}</div>
-                              <div className="text-xs text-white">{item.description}</div>
-                            </div>
-                          </Link>
-                        );
-                      }),
-                    )}
-                  </div>
-                </div>
+                  Tarifs
+                </Link>
               </div>
-            ))}
 
-            <Link
-              href="/pricing"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center px-3 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
-            >
-              <span className="text-sm font-semibold text-white">Tarifs</span>
-            </Link>
-          </div>
-
-          {/* Mobile CTA */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-dark-bg/95 backdrop-blur-sm border-t border-white/[0.06] space-y-2">
-            <Link href="/login" onClick={() => setMobileOpen(false)} className="block">
-              <Button variant="outline" className="w-full font-medium text-white border-white/[0.15] bg-white/[0.06] hover:bg-white/[0.1] hover:text-white">
-                Connexion
-              </Button>
-            </Link>
-            <Link href="/register" onClick={() => setMobileOpen(false)} className="block">
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold">
-                Essai gratuit
-                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+              {/* Bottom CTAs */}
+              <div className="shrink-0 border-t border-white/[0.06] p-5 space-y-3">
+                <Link
+                  href="/login"
+                  onClick={closeMobile}
+                  className={
+                    'flex w-full items-center justify-center rounded-xl border border-white/[0.1] ' +
+                    'py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/[0.04] hover:text-white'
+                  }
+                >
+                  Se connecter
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={closeMobile}
+                  className={
+                    'flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold text-white ' +
+                    'bg-gradient-to-r from-indigo-500 to-cyan-500 ' +
+                    'shadow-[0_0_20px_rgba(99,102,241,0.3)]'
+                  }
+                >
+                  Essai gratuit
+                </Link>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -24,8 +24,8 @@ Recommended services: Better Stack (betterstack.com) or Pingdom
 ### Endpoints to Monitor
 - `GET https://api.luneo.app/health` -- Backend health (expect 200)
 - `GET https://api.luneo.app/health/terminus` -- Detailed health (expect 200)
-- `GET https://app.luneo.app` -- Frontend (expect 200)
-- `GET https://app.luneo.app/login` -- Auth page (expect 200)
+- `GET https://luneo.app` -- Frontend (expect 200)
+- `GET https://luneo.app/login` -- Auth page (expect 200)
 
 ### Check intervals
 - Health endpoints: Every 1 minute

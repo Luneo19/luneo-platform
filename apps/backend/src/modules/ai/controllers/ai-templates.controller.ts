@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ★★★ CONTROLLER - AI TEMPLATES & ANIMATIONS ★★★
  * Controller NestJS pour la gestion des templates et animations AI

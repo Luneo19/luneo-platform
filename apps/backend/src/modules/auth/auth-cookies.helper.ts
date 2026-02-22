@@ -74,7 +74,7 @@ export class AuthCookiesHelper {
    * Extraire le domaine depuis une URL
    * Retourne toujours avec un point devant pour le partage de cookies cross-subdomain.
    * Ex: "https://luneo.app"      -> ".luneo.app"
-   *     "https://app.luneo.app"  -> ".luneo.app"
+   *     "https://www.luneo.app"  -> ".luneo.app"
    *     "http://localhost:3000"   -> null
    */
   private static extractDomain(url: string): string | null {
@@ -88,7 +88,7 @@ export class AuthCookiesHelper {
       }
 
       // Extraire le domaine principal avec point devant
-      // Ex: app.luneo.app -> .luneo.app
+      // Ex: www.luneo.app -> .luneo.app
       //     luneo.app     -> .luneo.app
       const parts = hostname.split('.');
       if (parts.length >= 2) {

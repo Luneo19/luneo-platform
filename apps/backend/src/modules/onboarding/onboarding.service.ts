@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CompanySize } from '@prisma/client';

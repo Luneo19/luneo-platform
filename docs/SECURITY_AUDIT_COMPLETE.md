@@ -106,7 +106,7 @@ app.enableCors({
 
 **Variables d'environnement:**
 - `CORS_ORIGIN` - Origines autorisées
-- Production: `https://app.luneo.app`
+- Production: `https://luneo.app`
 - Development: `*` (à restreindre)
 
 **Statut:** ✅ **CONFIGURÉ**

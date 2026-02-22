@@ -202,7 +202,7 @@ deploy-production:
     - name: Deploy
     - name: Wait for deployment
     - name: Health check
-      run: curl -f https://app.luneo.app/health
+      run: curl -f https://luneo.app/health
     - name: Smoke tests
       run: pnpm test:e2e:smoke
 ```

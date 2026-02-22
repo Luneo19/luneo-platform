@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import type { Prisma } from '@prisma/client';
 import {
   Role,

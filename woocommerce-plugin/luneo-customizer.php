@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 class Luneo_Product_Customizer {
     private $api_key;
-    private $app_url = 'https://app.luneo.app';
+    private $app_url = 'https://luneo.app';
 
     public function __construct() {
         add_action('admin_menu', [$this, 'add_admin_menu']);
@@ -63,7 +63,7 @@ class Luneo_Product_Customizer {
                             <input type="text" id="luneo_api_key" name="luneo_api_key" 
                                    value="<?php echo esc_attr(get_option('luneo_api_key')); ?>" 
                                    class="regular-text" />
-                            <p class="description">Get your API key from <a href="https://app.luneo.app/settings" target="_blank">Luneo Dashboard</a></p>
+                            <p class="description">Get your API key from <a href="https://luneo.app/settings" target="_blank">Luneo Dashboard</a></p>
                         </td>
                     </tr>
                     <tr>

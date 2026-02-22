@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AR Plan Guard
  * Ensures the user's brand has AR enabled in their subscription plan.

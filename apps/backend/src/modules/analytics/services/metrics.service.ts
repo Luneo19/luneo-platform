@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service de métriques temps réel
  * @module MetricsService

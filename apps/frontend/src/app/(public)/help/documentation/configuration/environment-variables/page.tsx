@@ -37,7 +37,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 # Application URLs
-NEXT_PUBLIC_APP_URL=https://app.luneo.app
+NEXT_PUBLIC_APP_URL=https://luneo.app
 NEXT_PUBLIC_API_URL=https://api.luneo.app
 
 # OpenAI (for AI features)

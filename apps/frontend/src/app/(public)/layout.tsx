@@ -16,7 +16,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-dark-bg relative">
+    <div className="dark bg-dark-bg relative">
       {/* Global electric grid background (Madgicx-style) */}
       <ElectricGridCSS variant="fade" cellSize={80} animated={true} />
       <CustomCursor color="#6366f1" />

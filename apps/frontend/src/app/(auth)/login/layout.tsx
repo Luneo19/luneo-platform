@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     title: 'Connexion | Luneo',
     description: 'Connectez-vous à votre compte Luneo pour accéder à vos designs, produits personnalisés et outils de création.',
     type: 'website',
-    url: 'https://app.luneo.app/login',
+    url: 'https://luneo.app/login',
     siteName: 'Luneo',
   },
   robots: {

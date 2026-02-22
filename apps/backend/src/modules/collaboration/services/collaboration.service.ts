@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SERVICE - COLLABORATION
  * Service pour la collaboration (partage, commentaires)

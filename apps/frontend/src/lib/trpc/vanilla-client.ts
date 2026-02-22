@@ -1,67 +1,12 @@
-/**
- * ★★★ VANILLA TRPC CLIENT - POUR SERVICES ★★★
- * Client tRPC vanilla pour utilisation dans les services
- * (en dehors des composants React)
- */
+// STUB: tRPC vanilla client replaced by REST API
 
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from './routers/_app';
-import { logger } from '@/lib/logger';
+const noopAsync = (): Promise<any> => Promise.resolve(undefined);
 
-// ========================================
-// CREATE VANILLA CLIENT
-// ========================================
+const procedureStub = { query: noopAsync, mutate: noopAsync };
 
-export function createVanillaTRPCClient() {
-  return createTRPCProxyClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: '/api/trpc',
-        // Auth tokens are in httpOnly cookies — sent automatically via credentials: 'include'
-        // No Authorization header needed
-        fetch: async (url, options) => {
-          try {
-            const response = await fetch(url, {
-              ...options,
-              credentials: 'include', // Send httpOnly cookies automatically
-            });
-            
-            if (!response.ok) {
-              const errorText = await response.text();
-              logger.error('tRPC request failed', {
-                url,
-                status: response.status,
-                error: errorText,
-              });
-            }
+const handler: ProxyHandler<any> = {
+  get: () => new Proxy(procedureStub, handler),
+};
 
-            return response;
-          } catch (error) {
-            logger.error('tRPC fetch error', { url, error });
-            throw error;
-          }
-        },
-      }),
-    ],
-  });
-}
-
-// ========================================
-// SINGLETON INSTANCE
-// ========================================
-
-let vanillaClient: ReturnType<typeof createVanillaTRPCClient> | null = null;
-
-export function getVanillaTRPCClient() {
-  if (!vanillaClient) {
-    vanillaClient = createVanillaTRPCClient();
-  }
-  return vanillaClient;
-}
-
-// ========================================
-// EXPORT
-// ========================================
-
-export const trpcVanilla = getVanillaTRPCClient();
-
+export const trpcVanilla: any = new Proxy({}, handler);
+export default trpcVanilla;

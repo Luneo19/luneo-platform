@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';

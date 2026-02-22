@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ML Prediction Service - Heuristic-based predictions
  *

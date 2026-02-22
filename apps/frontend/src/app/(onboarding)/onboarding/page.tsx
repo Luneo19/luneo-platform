@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * Onboarding Flow - Multi-étapes
- * O-001: Flow d'onboarding interactif pour nouveaux utilisateurs
+ * Onboarding Flow V2 - 7 étapes pour Luneo Agents IA
  */
 
 import React, { useCallback, memo, useEffect } from 'react';
+import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   LazyMotionDiv as motion,
@@ -16,20 +16,12 @@ import { endpoints } from '@/lib/api/client';
 import {
   User,
   Building,
-  Palette,
-  Box,
-  Camera,
-  Sparkles,
+  Target,
   ArrowRight,
   ArrowLeft,
   Check,
   Rocket,
-  Target,
-  Zap,
-  Crown,
-  Globe,
-  Plug,
-  Image as ImageIcon,
+  Bot,
   AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,124 +31,101 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { logger } from '@/lib/logger';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useIndustryStore } from '@/store/industry.store';
-import { Step2Industry } from './components/Step2Industry';
-import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const STEPS = [
-  { id: 1, titleKey: 'onboarding.step1.profile', icon: User },
-  { id: 2, titleKey: 'onboarding.step2.industry', icon: Building },
-  { id: 3, titleKey: 'onboarding.step3.useCases', icon: Target },
-  { id: 4, titleKey: 'onboarding.step4.goals', icon: Sparkles },
-  { id: 5, titleKey: 'onboarding.step5.integrations', icon: Plug },
-  { id: 6, titleKey: 'onboarding.step6.done', icon: Rocket },
+  { id: 1, title: 'Bienvenue', icon: User },
+  { id: 2, title: 'Organisation', icon: Building },
+  { id: 3, title: 'Secteur', icon: Building },
+  { id: 4, title: 'Taille', icon: Building },
+  { id: 5, title: 'Objectif', icon: Target },
+  { id: 6, title: 'Premier agent', icon: Bot },
+  { id: 7, title: 'Terminé', icon: Rocket },
 ];
 
-const USE_CASES = [
-  { id: 'product-customizer', nameKey: 'onboarding.step3.productConfigurator', descKey: 'onboarding.step3.productConfiguratorDesc', icon: Palette },
-  { id: '3d-viewer', nameKey: 'onboarding.step3.view3d', descKey: 'onboarding.step3.view3dDesc', icon: Box },
-  { id: 'virtual-tryon', nameKey: 'onboarding.step3.virtualTryOn', descKey: 'onboarding.step3.virtualTryOnDesc', icon: Camera },
-  { id: 'print-ready', nameKey: 'onboarding.step3.printReady', descKey: 'onboarding.step3.printReadyDesc', icon: ImageIcon },
+const SECTORS = [
+  { value: 'ECOMMERCE', label: 'E-commerce' },
+  { value: 'SAAS', label: 'SaaS' },
+  { value: 'FINTECH', label: 'Fintech' },
+  { value: 'HEALTHCARE', label: 'Santé' },
+  { value: 'RETAIL', label: 'Retail' },
+  { value: 'OTHER', label: 'Autre' },
 ];
 
-const GOALS = [
-  { id: 'increase-conversions', nameKey: 'onboarding.step4.increaseConversions', icon: Target },
-  { id: 'reduce-returns', nameKey: 'onboarding.step4.reduceReturns', icon: ArrowLeft },
-  { id: 'differentiate', nameKey: 'onboarding.step4.differentiate', icon: Crown },
-  { id: 'automate', nameKey: 'onboarding.step4.automate', icon: Zap },
-  { id: 'scale', nameKey: 'onboarding.step4.scale', icon: Rocket },
-  { id: 'expand-global', nameKey: 'onboarding.step4.expandGlobal', icon: Globe },
+const SIZES = [
+  { value: 'SOLO', label: 'Solo (1 personne)' },
+  { value: 'SMALL', label: 'Petite (2-10)' },
+  { value: 'MEDIUM', label: 'Moyenne (11-50)' },
+  { value: 'LARGE', label: 'Grande (51-200)' },
+  { value: 'ENTERPRISE', label: 'Enterprise (200+)' },
 ];
 
-const INTEGRATIONS = [
-  { id: 'shopify', name: 'Shopify', logo: '🛒' },
-  { id: 'woocommerce', name: 'WooCommerce', logo: '🔌' },
-  { id: 'magento', name: 'Magento', logo: '🎯' },
-  { id: 'prestashop', name: 'PrestaShop', logo: '🏪' },
-  { id: 'custom', name: 'Custom / API', logo: '⚙️' },
-  { id: 'none', nameKey: 'onboarding.step5.notYetDecided', logo: '❓' },
+const OBJECTIVES = [
+  { id: 'support', label: 'Support client', templateSlug: 'support-customer' },
+  { id: 'sales', label: 'Ventes', templateSlug: 'sales-assistant' },
+  { id: 'onboarding', label: 'Onboarding', templateSlug: 'onboarding-bot' },
+  { id: 'other', label: 'Autre', templateSlug: '' },
 ];
 
 const PAID_PLANS = ['starter', 'professional', 'business', 'enterprise'];
 
 function OnboardingPageContent() {
-  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const planFromUrl = searchParams.get('plan');
+  const { user } = useAuth();
   const {
     formData,
     currentStep,
     totalSteps,
     isSubmitting,
     isLoading,
-    selectedIndustry,
     error: storeError,
     fetchProgress,
     saveStep,
     nextStep,
     previousStep,
     setStepData,
-    setSelectedIndustry,
     completeOnboarding,
     skipOnboarding,
   } = useOnboardingStore();
-
-  const fetchAllIndustries = useIndustryStore((s) => s.fetchAllIndustries);
 
   useEffect(() => {
     fetchProgress();
   }, [fetchProgress]);
 
   useEffect(() => {
-    fetchAllIndustries();
-  }, [fetchAllIndustries]);
+    if (user && !formData.step1.firstName && !formData.step1.lastName) {
+      setStepData('step1', {
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+      });
+    }
+  }, [user, formData.step1.firstName, formData.step1.lastName, setStepData]);
 
-  const progress = (currentStep / STEPS.length) * 100;
-
-  const toggleUseCase = useCallback(
-    (id: string) => {
-      const useCases = formData.step3.useCases.includes(id)
-        ? formData.step3.useCases.filter((i) => i !== id)
-        : [...formData.step3.useCases, id];
-      setStepData('step3', { useCases });
-    },
-    [formData.step3.useCases, setStepData]
-  );
-
-  const toggleGoal = useCallback(
-    (id: string) => {
-      const goals = formData.step4.goals.includes(id)
-        ? formData.step4.goals.filter((i) => i !== id)
-        : [...formData.step4.goals, id];
-      setStepData('step4', { goals });
-    },
-    [formData.step4.goals, setStepData]
-  );
-
-  const toggleIntegration = useCallback(
-    (id: string) => {
-      const integrations = formData.step5.integrations.includes(id)
-        ? formData.step5.integrations.filter((i) => i !== id)
-        : [...formData.step5.integrations, id];
-      setStepData('step5', { integrations });
-    },
-    [formData.step5.integrations, setStepData]
-  );
+  const progress = (currentStep / totalSteps) * 100;
 
   const canProceed = useCallback(() => {
     switch (currentStep) {
       case 1:
-        return formData.step1.name.length >= 2;
+        return (formData.step1.firstName?.trim()?.length ?? 0) >= 1;
       case 2:
-        return formData.step2.industrySlug !== '';
+        return (formData.step2.companyName?.trim()?.length ?? 0) >= 2;
       case 3:
-        return formData.step3.useCases.length >= 1;
+        return formData.step3.sector !== '';
       case 4:
-        return formData.step4.goals.length >= 1;
+        return formData.step4.companySize !== '';
       case 5:
-        return formData.step5.integrations.length >= 1;
+        return formData.step5.objective !== '';
       case 6:
+      case 7:
         return true;
       default:
         return true;
@@ -174,8 +143,6 @@ function OnboardingPageContent() {
     } else {
       try {
         await completeOnboarding();
-
-        // CRITICAL FIX: If user registered with a paid plan, redirect to Stripe checkout
         if (planFromUrl && PAID_PLANS.includes(planFromUrl)) {
           try {
             const checkoutResponse = await endpoints.billing.subscribe(
@@ -183,7 +150,6 @@ function OnboardingPageContent() {
               undefined,
               'monthly',
             );
-            // Redirect to Stripe Checkout
             const url = (checkoutResponse as { url?: string })?.url;
             if (url) {
               window.location.href = url;
@@ -191,12 +157,10 @@ function OnboardingPageContent() {
             }
           } catch (checkoutErr) {
             logger.error('Failed to create checkout session after onboarding', checkoutErr);
-            // Fall through to dashboard with plan param so billing page can handle it
             router.push(`/dashboard?onboarding=complete&plan=${planFromUrl}`);
             return;
           }
         }
-
         router.push('/dashboard?onboarding=complete');
       } catch (err) {
         logger.error('Onboarding complete error', err);
@@ -212,17 +176,25 @@ function OnboardingPageContent() {
     try {
       await skipOnboarding();
       router.push('/dashboard');
-      } catch (err) {
-        logger.error('Onboarding skip error', err);
-      }
+    } catch (err) {
+      logger.error('Onboarding skip error', err);
+    }
   }, [skipOnboarding, router]);
 
-  if (isLoading && !formData.step1.name) {
+  const getCreateAgentUrl = () => {
+    const obj = OBJECTIVES.find((o) => o.id === formData.step5.objective);
+    if (obj?.templateSlug) {
+      return `/agents/create?templateId=${obj.templateSlug}`;
+    }
+    return '/agents/new';
+  };
+
+  if (isLoading && !formData.step1.firstName && !formData.step1.lastName) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-white/[0.06] border-t-[#8b5cf6] mx-auto mb-4" />
-          <p className="text-white/60">{t('onboarding.loadingProgress')}</p>
+          <p className="text-white/60">Chargement...</p>
         </div>
       </div>
     );
@@ -231,7 +203,6 @@ function OnboardingPageContent() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
-        {/* Error from store */}
         {storeError && (
           <motion
             initial={{ opacity: 0, y: -10 }}
@@ -243,17 +214,16 @@ function OnboardingPageContent() {
           </motion>
         )}
 
-        {/* Progress */}
         <motion
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 overflow-x-auto">
             {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
+              <div key={step.id} className="flex items-center flex-shrink-0">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors ${
                     currentStep > step.id
                       ? 'bg-[#8b5cf6] text-white'
                       : currentStep === step.id
@@ -262,14 +232,14 @@ function OnboardingPageContent() {
                   }`}
                 >
                   {currentStep > step.id ? (
-                    <Check className="w-5 h-5" />
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <step.icon className="w-5 h-5" />
+                    <step.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </div>
                 {index < STEPS.length - 1 && (
                   <div
-                    className={`h-1 w-8 sm:w-12 mx-1 rounded ${
+                    className={`h-1 w-4 sm:w-8 mx-0.5 sm:mx-1 rounded ${
                       currentStep > step.id
                         ? 'bg-gradient-to-r from-[#8b5cf6] to-[#ec4899]'
                         : 'bg-white/[0.2]'
@@ -286,10 +256,9 @@ function OnboardingPageContent() {
           />
         </motion>
 
-        {/* Content Card - dash-card */}
         <Card className="dash-card bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-8">
           <AnimatePresence mode="wait">
-            {/* Step 1: Profil */}
+            {/* Step 1: Bienvenue */}
             {currentStep === 1 && (
               <motion
                 key="step1"
@@ -299,66 +268,33 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2 text-white">
-                    {t('onboarding.welcome')}
-                  </h1>
-                  <p className="text-white/60">
-                    {t('onboarding.letsGetStarted')}
-                  </p>
+                  <h1 className="text-3xl font-bold mb-2 text-white">Bienvenue sur Luneo !</h1>
+                  <p className="text-white/60">Commençons par vous connaître</p>
                 </div>
-
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-white">{t('onboarding.step1.fullName')}</Label>
+                    <Label className="text-white">Prénom</Label>
                     <Input
-                      placeholder={t('onboarding.step1.fullNamePlaceholder')}
-                      value={formData.step1.name}
-                      onChange={(e) =>
-                        setStepData('step1', { name: e.target.value })
-                      }
+                      placeholder="Jean"
+                      value={formData.step1.firstName}
+                      onChange={(e) => setStepData('step1', { firstName: e.target.value })}
                       className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 h-12 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-white">{t('onboarding.step1.companyName')}</Label>
+                    <Label className="text-white">Nom</Label>
                     <Input
-                      placeholder={t('onboarding.step1.companyPlaceholder')}
-                      value={formData.step1.company}
-                      onChange={(e) =>
-                        setStepData('step1', { company: e.target.value })
-                      }
+                      placeholder="Dupont"
+                      value={formData.step1.lastName}
+                      onChange={(e) => setStepData('step1', { lastName: e.target.value })}
                       className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 h-12 rounded-xl"
                     />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-white">{t('onboarding.step1.role')}</Label>
-                      <Input
-                        placeholder={t('onboarding.step1.rolePlaceholder')}
-                        value={formData.step1.role}
-                        onChange={(e) =>
-                          setStepData('step1', { role: e.target.value })
-                        }
-                        className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-white">{t('onboarding.step1.teamSize')}</Label>
-                      <Input
-                        placeholder={t('onboarding.step1.teamSizePlaceholder')}
-                        value={formData.step1.teamSize}
-                        onChange={(e) =>
-                          setStepData('step1', { teamSize: e.target.value })
-                        }
-                        className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 rounded-xl"
-                      />
-                    </div>
                   </div>
                 </div>
               </motion>
             )}
 
-            {/* Step 2: Industry */}
+            {/* Step 2: Organisation */}
             {currentStep === 2 && (
               <motion
                 key="step2"
@@ -367,14 +303,34 @@ function OnboardingPageContent() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
-                <Step2Industry
-                  selectedIndustry={selectedIndustry}
-                  onSelectIndustry={setSelectedIndustry}
-                />
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold mb-2 text-white">Votre organisation</h1>
+                  <p className="text-white/60">Nom de l&apos;entreprise et site web</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-white">Nom de l&apos;entreprise</Label>
+                    <Input
+                      placeholder="Mon Entreprise"
+                      value={formData.step2.companyName}
+                      onChange={(e) => setStepData('step2', { companyName: e.target.value })}
+                      className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Site web</Label>
+                    <Input
+                      placeholder="https://www.example.com"
+                      value={formData.step2.website}
+                      onChange={(e) => setStepData('step2', { website: e.target.value })}
+                      className="dash-input bg-white/[0.04] border-white/[0.06] text-white placeholder:text-white/40 h-12 rounded-xl"
+                    />
+                  </div>
+                </div>
               </motion>
             )}
 
-            {/* Step 3: Use Cases */}
+            {/* Step 3: Secteur */}
             {currentStep === 3 && (
               <motion
                 key="step3"
@@ -384,45 +340,28 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2 text-white">
-                    Que souhaitez-vous faire ? 🎯
-                  </h1>
-                  <p className="text-white/60">
-                    Selectionnez au moins un cas d&apos;usage
-                  </p>
+                  <h1 className="text-3xl font-bold mb-2 text-white">Votre secteur</h1>
+                  <p className="text-white/60">Dans quel secteur évoluez-vous ?</p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {USE_CASES.map((useCase) => (
-                    <motion
-                      key={useCase.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleUseCase(useCase.id)}
-                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                        formData.step3.useCases.includes(useCase.id)
-                          ? 'bg-white/[0.06] border-[#8b5cf6]'
-                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
-                      }`}
-                    >
-                      <useCase.icon
-                        className={`w-8 h-8 mb-3 ${
-                          formData.step3.useCases.includes(useCase.id)
-                            ? 'text-[#8b5cf6]'
-                            : 'text-white/40'
-                        }`}
-                      />
-                      <h3 className="font-semibold mb-1 text-white">{t(useCase.nameKey)}</h3>
-                      <p className="text-sm text-white/60">
-                        {t(useCase.descKey)}
-                      </p>
-                    </motion>
-                  ))}
-                </div>
+                <Select
+                  value={formData.step3.sector}
+                  onValueChange={(v) => setStepData('step3', { sector: v })}
+                >
+                  <SelectTrigger className="dash-input bg-white/[0.04] border-white/[0.06] text-white h-12 rounded-xl">
+                    <SelectValue placeholder="Sélectionnez un secteur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECTORS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </motion>
             )}
 
-            {/* Step 4: Goals */}
+            {/* Step 4: Taille */}
             {currentStep === 4 && (
               <motion
                 key="step4"
@@ -432,47 +371,28 @@ function OnboardingPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2 text-white">
-                    {t('onboarding.step4.title')}
-                  </h1>
-                  <p className="text-white/60">
-                    {t('onboarding.step4.subtitle')}
-                  </p>
+                  <h1 className="text-3xl font-bold mb-2 text-white">Taille de l&apos;entreprise</h1>
+                  <p className="text-white/60">Combien de personnes dans votre équipe ?</p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {GOALS.map((goal) => (
-                    <motion
-                      key={goal.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleGoal(goal.id)}
-                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                        formData.step4.goals.includes(goal.id)
-                          ? 'bg-white/[0.06] border-[#8b5cf6]'
-                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <goal.icon
-                          className={`w-6 h-6 ${
-                            formData.step4.goals.includes(goal.id)
-                              ? 'text-[#8b5cf6]'
-                              : 'text-white/40'
-                          }`}
-                        />
-                        <span className="font-medium text-white">{t(goal.nameKey)}</span>
-                        {formData.step4.goals.includes(goal.id) && (
-                          <Check className="w-5 h-5 text-[#8b5cf6] ml-auto" />
-                        )}
-                      </div>
-                    </motion>
-                  ))}
-                </div>
+                <Select
+                  value={formData.step4.companySize}
+                  onValueChange={(v) => setStepData('step4', { companySize: v })}
+                >
+                  <SelectTrigger className="dash-input bg-white/[0.04] border-white/[0.06] text-white h-12 rounded-xl">
+                    <SelectValue placeholder="Sélectionnez une taille" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SIZES.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </motion>
             )}
 
-            {/* Step 5: Integrations */}
+            {/* Step 5: Objectif */}
             {currentStep === 5 && (
               <motion
                 key="step5"
@@ -483,34 +403,26 @@ function OnboardingPageContent() {
               >
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold mb-2 text-white">
-                    {t('onboarding.step5.title')}
+                    Quel est votre objectif principal ?
                   </h1>
-                  <p className="text-white/60">
-                    {t('onboarding.step5.subtitle')}
-                  </p>
+                  <p className="text-white/60">Nous adapterons les templates à votre besoin</p>
                 </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  {INTEGRATIONS.map((integration) => (
+                <div className="grid grid-cols-2 gap-4">
+                  {OBJECTIVES.map((obj) => (
                     <motion
-                      key={integration.id}
+                      key={obj.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => toggleIntegration(integration.id)}
-                      className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
-                        formData.step5.integrations.includes(integration.id)
+                      onClick={() => setStepData('step5', { objective: obj.id })}
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                        formData.step5.objective === obj.id
                           ? 'bg-white/[0.06] border-[#8b5cf6]'
-                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04]'
                       }`}
                     >
-                      <span className="text-3xl mb-2 block">
-                        {integration.logo}
-                      </span>
-                      <span className="text-sm font-medium text-white">
-                        {'nameKey' in integration ? t(integration.nameKey ?? '') : integration.name}
-                      </span>
-                      {formData.step5.integrations.includes(integration.id) && (
-                        <Check className="w-4 h-4 text-[#8b5cf6] mx-auto mt-2" />
+                      <span className="font-medium text-white">{obj.label}</span>
+                      {formData.step5.objective === obj.id && (
+                        <Check className="w-5 h-5 text-[#8b5cf6] mt-2" />
                       )}
                     </motion>
                   ))}
@@ -518,10 +430,37 @@ function OnboardingPageContent() {
               </motion>
             )}
 
-            {/* Step 6: Complete */}
+            {/* Step 6: Premier agent */}
             {currentStep === 6 && (
               <motion
                 key="step6"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold mb-2 text-white">Créez votre premier agent</h1>
+                  <p className="text-white/60">
+                    Un template a été présélectionné selon votre objectif
+                  </p>
+                </div>
+                <Link href={getCreateAgentUrl()}>
+                  <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12">
+                    <Bot className="w-5 h-5 mr-2" />
+                    Créer mon premier agent
+                  </Button>
+                </Link>
+                <p className="text-center text-white/40 text-sm">
+                  Vous pourrez aussi le faire plus tard depuis le dashboard
+                </p>
+              </motion>
+            )}
+
+            {/* Step 7: Terminé */}
+            {currentStep === 7 && (
+              <motion
+                key="step7"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
@@ -535,41 +474,29 @@ function OnboardingPageContent() {
                 >
                   <Rocket className="w-12 h-12 text-white" />
                 </motion>
-                <h1 className="text-3xl font-bold mb-4 text-white">
-                  Vous êtes prêt ! 🎉
-                </h1>
+                <h1 className="text-3xl font-bold mb-4 text-white">Tout est prêt !</h1>
                 <p className="text-white/60 mb-8 max-w-md mx-auto">
                   {planFromUrl && PAID_PLANS.includes(planFromUrl)
                     ? `Votre espace est configuré. Vous allez être redirigé vers le paiement pour activer votre plan ${planFromUrl}.`
-                    : 'Votre espace est configuré. Explorez Luneo et commencez à créer des expériences incroyables pour vos clients.'}
+                    : 'Votre espace est configuré. Créez vos agents IA et automatisez votre support client.'}
                 </p>
-
-                <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
+                <div className="grid grid-cols-2 gap-4 mb-8 max-w-md mx-auto">
                   <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
-                    <p className="text-2xl font-bold text-[#8b5cf6]">
-                      {planFromUrl && PAID_PLANS.includes(planFromUrl) ? planFromUrl.charAt(0).toUpperCase() + planFromUrl.slice(1) : 'Gratuit'}
-                    </p>
-                    <p className="text-xs text-white/60">
-                      {planFromUrl && PAID_PLANS.includes(planFromUrl) ? 'votre plan' : 'pour commencer'}
-                    </p>
+                    <p className="text-xl font-bold text-[#8b5cf6]">Agents IA</p>
+                    <p className="text-xs text-white/60">À votre disposition</p>
                   </div>
                   <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
-                    <p className="text-2xl font-bold text-[#ec4899]">5</p>
-                    <p className="text-xs text-white/60">designs inclus</p>
-                  </div>
-                  <div className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl">
-                    <p className="text-2xl font-bold text-[#8b5cf6]">24/7</p>
-                    <p className="text-xs text-white/60">support</p>
+                    <p className="text-xl font-bold text-[#ec4899]">24/7</p>
+                    <p className="text-xs text-white/60">Support</p>
                   </div>
                 </div>
               </motion>
             )}
           </AnimatePresence>
 
-          {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/[0.06]">
             <div>
-              {currentStep > 1 && currentStep < 6 && (
+              {currentStep > 1 && currentStep < 7 && (
                 <Button
                   variant="ghost"
                   onClick={handlePrevious}
@@ -581,7 +508,7 @@ function OnboardingPageContent() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              {currentStep < 6 && (
+              {currentStep < 7 && currentStep !== 6 && (
                 <Button
                   variant="ghost"
                   onClick={handleSkip}
@@ -590,31 +517,42 @@ function OnboardingPageContent() {
                   Passer
                 </Button>
               )}
-              <Button
-                onClick={handleNext}
-                disabled={!canProceed() || isSubmitting}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white min-w-[140px] border-0"
-              >
-                {isSubmitting ? (
-                  'Chargement...'
-                ) : currentStep === 6 ? (
-                  <>
-                    {planFromUrl && PAID_PLANS.includes(planFromUrl) ? 'Procéder au paiement' : 'Accéder au dashboard'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                ) : (
-                  <>
-                    Continuer
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
+              {currentStep === 6 ? (
+                <Button
+                  onClick={() => nextStep()}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white min-w-[140px] border-0"
+                >
+                  Continuer
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleNext}
+                  disabled={!canProceed() || isSubmitting}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white min-w-[140px] border-0"
+                >
+                  {isSubmitting ? (
+                    'Chargement...'
+                  ) : currentStep === 7 ? (
+                    <>
+                      {planFromUrl && PAID_PLANS.includes(planFromUrl)
+                        ? 'Procéder au paiement'
+                        : 'Accéder au dashboard'}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  ) : (
+                    <>
+                      Continuer
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
 
-        {/* Skip Link - hidden on final step */}
-        {currentStep < 6 && (
+        {currentStep < 7 && currentStep !== 6 && (
           <motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -625,7 +563,7 @@ function OnboardingPageContent() {
               onClick={handleSkip}
               className="text-sm text-white/40 hover:text-white/60 transition-colors"
             >
-              {t('onboarding.nav.configureLater')}
+              Configurer plus tard
             </button>
           </motion>
         )}

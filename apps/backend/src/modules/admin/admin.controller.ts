@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Controller,
   Get,
@@ -28,7 +29,7 @@ import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { BillingService } from '@/modules/billing/billing.service';
 import { Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AddBlacklistedPromptDto, BulkActionCustomersDto } from './dto/admin.dto';

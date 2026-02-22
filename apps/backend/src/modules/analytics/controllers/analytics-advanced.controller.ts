@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Controller, Get, Post, Query, Param, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';

@@ -34,8 +34,9 @@ export function BrandThemeProvider({ children }: { children: React.ReactNode }) 
       return;
     }
     const hostname = window.location.hostname;
-    // Skip white-label theme fetch on localhost/dev — no backend running locally
-    if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
+    const skipDomains = ['localhost', '127.0.0.1', 'luneo.app', 'www.luneo.app'];
+    const isVercelPreview = hostname.endsWith('.vercel.app');
+    if (!hostname || skipDomains.includes(hostname) || isVercelPreview) {
       setApplied(true);
       return;
     }

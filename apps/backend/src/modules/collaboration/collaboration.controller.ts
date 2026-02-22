@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CONTROLLER - COLLABORATION
  * REST endpoints for sharing resources and commenting

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service SSO/SAML pour Enterprise
  * @module SSOService

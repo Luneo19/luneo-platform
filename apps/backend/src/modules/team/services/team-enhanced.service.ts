@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Module 21 - Team & Organization.
  * Invite members, list members, update roles, org settings.

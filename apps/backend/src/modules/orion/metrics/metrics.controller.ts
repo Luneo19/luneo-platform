@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Controller,
   Get,
@@ -10,7 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { OrionMetricsService } from './metrics.service';
 

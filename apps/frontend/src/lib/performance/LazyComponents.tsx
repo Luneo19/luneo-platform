@@ -70,30 +70,10 @@ function LoadingCanvasWithI18n() {
   );
 }
 
-// Lazy loaded components with prefetch disabled
-export const LazyThreeViewer = dynamic(
-  () => import('@/components/ThreeViewer').then(mod => mod.default || mod),
-  {
-    loading: () => <Loading3DWithI18n />,
-    ssr: false, // 3D components should not SSR
-  }
-);
-
-export const LazyARViewer = dynamic(
-  () => import('@/components/ar/ARViewer').then(mod => mod.default || mod),
-  {
-    loading: () => <LoadingARWithI18n />,
-    ssr: false,
-  }
-);
-
-export const LazyCanvasEditor = dynamic(
-  () => import('@/components/editor/CanvasEditor').then(mod => mod.default || mod),
-  {
-    loading: () => <LoadingCanvasWithI18n />,
-    ssr: false,
-  }
-);
+// V1 3D/AR components removed — stubs for backward compatibility
+export const LazyThreeViewer = (() => null) as unknown as React.ComponentType;
+export const LazyARViewer = (() => null) as unknown as React.ComponentType;
+export const LazyCanvasEditor = (() => null) as unknown as React.ComponentType;
 
 export const LazyProductCustomizer = dynamic(
   () => import('@/components/ProductCustomizer').then(mod => mod.default || mod),
@@ -154,15 +134,6 @@ export function LazyWrapper({ children, fallback }: LazyWrapperProps) {
  */
 export function preloadComponent(componentName: string): void {
   switch (componentName) {
-    case 'ThreeViewer':
-      import('@/components/ThreeViewer');
-      break;
-    case 'ARViewer':
-      import('@/components/ar/ARViewer');
-      break;
-    case 'CanvasEditor':
-      import('@/components/editor/CanvasEditor');
-      break;
     case 'ProductCustomizer':
       import('@/components/ProductCustomizer');
       break;

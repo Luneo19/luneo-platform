@@ -10,8 +10,7 @@
  *       Do NOT duplicate endpoints across both layers.
  */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import type { LunaResponse, LunaAction, AriaResponse, AriaSuggestion, AgentConversation, NovaResponse } from '@/types/agents';
-import type { Design, DesignSummary, LoginCredentials, RegisterData, User } from '@/lib/types';
+import type { LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 interface AuthSessionResponse {
@@ -22,12 +21,7 @@ interface AuthSessionResponse {
   tempToken?: string;
 }
 
-interface GenerateDesignResponse {
-  designId?: string;
-  [key: string]: unknown;
-}
-
-/** Admin client (user + brand subscription); from GET /api/v1/admin/customers */
+/** Admin client (user + organization subscription); from GET /api/v1/admin/customers */
 export interface AdminClient {
   id: string;
   email: string;
@@ -36,7 +30,7 @@ export interface AdminClient {
   name: string;
   role?: string;
   createdAt: string;
-  brand?: { id: string; name: string | null; subscriptionPlan: string | null; subscriptionStatus: string | null };
+  organization?: { id: string; name: string | null; subscriptionPlan: string | null; subscriptionStatus: string | null };
   plan: string;
   status: string;
   planPrice?: number;
@@ -56,25 +50,6 @@ export interface AdminTicket {
   createdAt: string;
   updatedAt?: string;
   client?: { id: string; email?: string; name?: string; firstName?: string; lastName?: string };
-  [key: string]: unknown;
-}
-
-/** Admin discount/promo code; from GET /api/v1/admin/discounts */
-export interface AdminDiscount {
-  id: string;
-  code: string;
-  type: 'PERCENTAGE' | 'FIXED';
-  value: number;
-  validFrom: string;
-  validUntil: string;
-  usageLimit: number | null;
-  usageCount?: number;
-  isActive: boolean;
-  brandId: string | null;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-  brand?: { id: string; name: string | null };
   [key: string]: unknown;
 }
 
@@ -425,94 +400,111 @@ export const endpoints = {
       api.put<{ success: boolean }>('/api/v1/settings/notifications', preferences),
   },
 
-  // Brands (backend: GET/PUT /brands/settings)
-  brands: {
-    current: () => api.get('/api/v1/brands/settings'),
-    update: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
-    settings: () => api.get('/api/v1/brands/settings'),
-    updateSettings: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
+  // Organizations (renamed from brands)
+  organizations: {
+    current: () => api.get('/api/v1/organizations/settings'),
+    update: (data: Record<string, unknown>) => api.put('/api/v1/organizations/settings', data),
   },
 
-  // Products
-  products: {
-    list: (params?: { page?: number; limit?: number }) =>
-      api.get('/api/v1/products', { params }),
-    get: (id: string) => api.get(`/api/v1/products/${id}`),
-    create: (data: Record<string, unknown>) => api.post('/api/v1/products', data),
-    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/products/${id}`, data),
-    delete: (id: string) => api.delete(`/api/v1/products/${id}`),
-    variants: {
-      list: (productId: string) => api.get(`/api/v1/products/${productId}/variants`),
-      create: (productId: string, data: Record<string, unknown>) =>
-        api.post(`/api/v1/products/${productId}/variants`, data),
-      update: (productId: string, variantId: string, data: Record<string, unknown>) =>
-        api.patch(`/api/v1/products/${productId}/variants/${variantId}`, data),
-      updateStock: (productId: string, variantId: string, stock: number) =>
-        api.patch(`/api/v1/products/${productId}/variants/${variantId}/stock`, { stock }),
-      delete: (productId: string, variantId: string) =>
-        api.delete(`/api/v1/products/${productId}/variants/${variantId}`),
-      bulkCreate: (productId: string, data: { attributeOptions: Record<string, string[]>; basePrice?: number; baseStock?: number }) =>
-        api.post(`/api/v1/products/${productId}/variants/bulk`, data),
+  // Agents V2
+  agents: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get('/api/v1/agents', { params }),
+    get: (id: string) => api.get(`/api/v1/agents/${id}`),
+    create: (data: {
+      name: string;
+      description?: string;
+      templateId?: string;
+      model?: string;
+      temperature?: number;
+      tone?: string;
+      languages?: string[];
+      greeting?: string;
+      systemPrompt?: string;
+      customInstructions?: string;
+      maxTokensPerReply?: number;
+    }) => api.post<{ id: string; data?: { id: string } }>('/api/v1/agents', data),
+    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/agents/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/agents/${id}`),
+    publish: (id: string) => api.post(`/api/v1/agents/${id}/publish`),
+    pause: (id: string) => api.post(`/api/v1/agents/${id}/pause`),
+    test: (id: string, data: { message: string; context?: { visitorName?: string; visitorEmail?: string } }) =>
+      api.post<{ response: string; sources?: Array<{ title: string; url?: string; score?: number; preview?: string }>; metadata?: { model?: string; tokensIn?: number; tokensOut?: number; costUsd?: number; latencyMs?: number; confidence?: number } }>(`/api/v1/agents/${id}/test`, data),
+    attachKnowledgeBase: (agentId: string, knowledgeBaseId: string) =>
+      api.post(`/api/v1/agents/${agentId}/knowledge-bases`, { knowledgeBaseId }),
+    detachKnowledgeBase: (agentId: string, kbId: string) =>
+      api.delete(`/api/v1/agents/${agentId}/knowledge-bases/${kbId}`),
+  },
+
+  // Agent Templates
+  agentTemplates: {
+    list: (params?: { category?: string; plan?: string }) =>
+      api.get('/api/v1/agent-templates', { params }),
+    get: (slug: string) => api.get(`/api/v1/agent-templates/${slug}`),
+  },
+
+  // Conversations
+  conversations: {
+    list: (params?: { status?: string; agentId?: string; search?: string; cursor?: string; limit?: number }) =>
+      api.get('/api/v1/conversations', { params }),
+    get: (id: string) => api.get(`/api/v1/conversations/${id}`),
+    create: (data: { agentId: string; channelType: string; visitorEmail?: string; visitorName?: string }) =>
+      api.post('/api/v1/conversations', data),
+    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/conversations/${id}`, data),
+    addMessage: (id: string, data: { content: string; role?: string }) =>
+      api.post(`/api/v1/conversations/${id}/messages`, data),
+    escalate: (id: string) => api.post(`/api/v1/conversations/${id}/escalate`),
+    resolve: (id: string) => api.post(`/api/v1/conversations/${id}/resolve`),
+    stats: () => api.get('/api/v1/conversations/stats'),
+  },
+
+  // Channels
+  channels: {
+    list: (agentId: string) => api.get('/api/v1/channels', { params: { agentId } }),
+    create: (data: { agentId: string; type: string; widgetColor?: string; widgetPosition?: string }) =>
+      api.post('/api/v1/channels', data),
+    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/channels/${id}`, data),
+    delete: (id: string) => api.delete(`/api/v1/channels/${id}`),
+  },
+
+  // Knowledge Bases
+  knowledge: {
+    bases: {
+      list: () => api.get('/api/v1/knowledge/bases'),
+      get: (id: string) => api.get(`/api/v1/knowledge/bases/${id}`),
+      create: (data: { name: string; description?: string; language?: string }) =>
+        api.post('/api/v1/knowledge/bases', data),
+      update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/knowledge/bases/${id}`, data),
+      delete: (id: string) => api.delete(`/api/v1/knowledge/bases/${id}`),
+    },
+    sources: {
+      list: (baseId: string) => api.get(`/api/v1/knowledge/bases/${baseId}/sources`),
+      create: (baseId: string, data: { name: string; type: string; fileUrl?: string; websiteUrl?: string; textContent?: string }) =>
+        api.post(`/api/v1/knowledge/bases/${baseId}/sources`, data),
+      upload: (baseId: string, formData: FormData) =>
+        api.post(`/api/v1/knowledge/bases/${baseId}/sources/upload`, formData),
+      delete: (id: string) => api.delete(`/api/v1/knowledge/sources/${id}`),
+      reindex: (id: string) => api.post(`/api/v1/knowledge/sources/${id}/reindex`),
     },
   },
 
-  // Projects / Workspaces
-  projects: {
-    list: (params?: { page?: number; limit?: number; type?: string; status?: string; search?: string }) =>
-      api.get<{ data: unknown[]; meta: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean; hasPrev: boolean } }>('/api/v1/projects', { params }),
-    get: (id: string) => api.get(`/api/v1/projects/${id}`),
-    create: (data: { name: string; slug: string; type: string; description?: string; settings?: Record<string, unknown>; webhookUrl?: string }) =>
-      api.post('/api/v1/projects', data),
-    update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/projects/${id}`, data),
-    delete: (id: string) => api.delete(`/api/v1/projects/${id}`),
-    regenerateApiKey: (id: string) => api.post(`/api/v1/projects/${id}/regenerate-api-key`),
-    workspaces: {
-      list: (projectId: string) => api.get(`/api/v1/projects/${projectId}/workspaces`),
-      get: (projectId: string, workspaceId: string) => api.get(`/api/v1/projects/${projectId}/workspaces/${workspaceId}`),
-      create: (projectId: string, data: Record<string, unknown>) => api.post(`/api/v1/projects/${projectId}/workspaces`, data),
-      update: (projectId: string, workspaceId: string, data: Record<string, unknown>) =>
-        api.patch(`/api/v1/projects/${projectId}/workspaces/${workspaceId}`, data),
-      delete: (projectId: string, workspaceId: string) =>
-        api.delete(`/api/v1/projects/${projectId}/workspaces/${workspaceId}`),
-    },
+  // Agent Analytics
+  agentAnalytics: {
+    get: (agentId: string, params?: { startDate?: string; endDate?: string }) =>
+      api.get(`/api/v1/agent-analytics/agents/${agentId}/analytics`, { params }),
+    summary: (agentId: string, params?: { startDate?: string; endDate?: string }) =>
+      api.get(`/api/v1/agent-analytics/agents/${agentId}/analytics/summary`, { params }),
+    overview: (params?: { from?: string; to?: string }) =>
+      api.get('/api/v1/agent-analytics/overview', { params }),
+    timeseries: (params: { metric: string; from?: string; to?: string; granularity?: 'day' | 'week' | 'month' }) =>
+      api.get<Array<{ date: string; value: number }>>('/api/v1/agent-analytics/timeseries', { params }),
+    agentsComparison: (params?: { from?: string; to?: string }) =>
+      api.get('/api/v1/agent-analytics/agents/comparison', { params }),
+    topTopics: (params?: { from?: string; to?: string; limit?: number }) =>
+      api.get('/api/v1/agent-analytics/topics', { params }),
   },
 
-  // Designs
-  designs: {
-    list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
-      api.get<DesignSummary[] | { designs: DesignSummary[]; pagination: { hasNext: boolean; total: number } }>('/api/v1/designs', { params }),
-    get: (id: string) => api.get<Design>(`/api/v1/designs/${id}`),
-    create: (data: Partial<Design>) => api.post<Design>('/api/v1/designs', data),
-    delete: (id: string) => api.delete<void>(`/api/v1/designs/${id}`),
-  },
-
-  // AI
-  ai: {
-    generate: (data: { prompt: string; productId: string; options?: Record<string, unknown> }) =>
-      api.post<GenerateDesignResponse>('/api/v1/ai/generate', data),
-    /** Generation status: param is the job/generation publicId (backend uses :publicId in route). */
-    status: (publicId: string) => api.get(`/api/v1/generation/${publicId}/status`),
-    upscale: (designId: string) => api.post(`/api/v1/ai/upscale`, { designId }),
-    removeBackground: (designId: string) => api.post(`/api/v1/ai/background-removal`, { designId }),
-    extractColors: (imageUrl: string) => api.post(`/api/v1/ai/extract-colors`, { imageUrl }),
-    smartCrop: (data: { imageUrl: string; aspectRatio: string }) => api.post(`/api/v1/ai/smart-crop`, data),
-  },
-
-  // Orders
-  orders: {
-    list: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
-      api.get('/api/v1/orders', { params }),
-    get: (id: string) => api.get(`/api/v1/orders/${id}`),
-    create: (data: Record<string, unknown>) => api.post('/api/v1/orders', data),
-    update: (id: string, data: Record<string, unknown>) => api.put(`/api/v1/orders/${id}`, data),
-    cancel: (orderId: string, reason?: string) =>
-      api.post(`/api/v1/orders/${orderId}/cancel`, { reason }),
-    updateStatus: (id: string, status: string) => api.put(`/api/v1/orders/${id}/status`, { status }),
-    tracking: (id: string) => api.get(`/api/v1/orders/${id}/tracking`),
-    refund: (id: string, reason: string) => api.post(`/api/v1/orders/${id}/refund`, { reason }),
-  },
-
-  // Analytics (backend: GET /analytics/dashboard, /revenue, /realtime, designs, orders, pipeline, etc.)
+  // Analytics (kept for dashboard-level metrics)
   analytics: {
     overview: (params?: { period?: string }) =>
       api.get('/api/v1/analytics/dashboard', { params }),
@@ -577,14 +569,6 @@ export const endpoints = {
     delete: (id: string) => api.delete(`/api/v1/notifications/${id}`),
   },
 
-  // Visual Customizer (sessions, designs)
-  visualCustomizer: {
-    sessions: {
-      update: (sessionId: string, payload: { canvasData: unknown }) =>
-        api.put(`/api/v1/visual-customizer/sessions/${sessionId}`, payload),
-    },
-  },
-
   // Security & GDPR
   security: {
     exportData: () => api.get<Blob | { url?: string; data?: unknown }>('/api/v1/security/gdpr/export'),
@@ -604,6 +588,14 @@ export const endpoints = {
     test: (type: string, config: Record<string, unknown>) => api.post(`/api/v1/integrations/${type}/test`, config),
     shopifyStatus: () =>
       api.get<{ connected: boolean; shopDomain?: string; status?: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/shopify/status'),
+    shopifyV2: {
+      connect: (data: { shopDomain: string; accessToken: string }) =>
+        api.post<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/connect', data),
+      disconnect: () =>
+        api.delete<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/disconnect'),
+      status: () =>
+        api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status'),
+    },
     woocommerceStatus: () =>
       api.get<{ connected: boolean; siteUrl?: string; status: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/woocommerce/status'),
     zapierSubscriptions: () =>
@@ -715,143 +707,6 @@ export const endpoints = {
       api.post<{ success: boolean; rating: number }>(`/api/v1/support/tickets/${ticketId}/csat`, data),
   },
 
-  // Discount codes
-  discountCodes: {
-    validate: (code: string, subtotalCents?: number, brandId?: string) =>
-      api.post<{ discountId: string; code: string; discountCents: number; type: string; description?: string }>('/api/v1/discount-codes/validate', { code, subtotalCents, brandId }),
-  },
-
-  // Referral / Affiliate
-  referral: {
-    stats: () =>
-      api.get<{
-        referralCode: string;
-        referralLink: string;
-        totalReferrals: number;
-        activeReferrals: number;
-        totalEarnings: number;
-        pendingEarnings: number;
-        recentReferrals?: unknown[];
-      }>('/api/v1/referral/stats'),
-    join: (email: string) => api.post('/api/v1/referral/join', { email }),
-    withdraw: () => api.post('/api/v1/referral/withdraw'),
-  },
-
-  // Virtual Try-On (sessions & configurations)
-  tryOn: {
-    // Sessions
-    createSession: (body: { configurationId: string; visitorId: string; deviceInfo?: Record<string, unknown> }) =>
-      api.post<{ id: string; sessionId?: string }>('/api/v1/try-on/sessions', body),
-    getSession: (sessionId: string) =>
-      api.get<{ id: string; sessionId?: string; status: string }>(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}`),
-    endSession: (sessionId: string, body?: { conversionAction?: string; renderQuality?: string }) =>
-      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/end`, body || {}),
-
-    // Configurations
-    createConfiguration: (projectId: string, body: { name: string; productType: string; settings?: Record<string, unknown> }) =>
-      api.post('/api/v1/try-on/configurations', body, { params: { projectId } }),
-    getConfigurations: (projectId: string) =>
-      api.get('/api/v1/try-on/configurations', { params: { projectId } }),
-    getConfiguration: (id: string, projectId: string) =>
-      api.get(`/api/v1/try-on/configurations/${encodeURIComponent(id)}`, { params: { projectId } }),
-    updateConfiguration: (id: string, projectId: string, body: Record<string, unknown>) =>
-      api.patch(`/api/v1/try-on/configurations/${encodeURIComponent(id)}`, body, { params: { projectId } }),
-    deleteConfiguration: (id: string, projectId: string) =>
-      api.delete(`/api/v1/try-on/configurations/${encodeURIComponent(id)}`, { params: { projectId } }),
-
-    // Product mappings
-    addProduct: (configId: string, projectId: string, body: { productId: string }) =>
-      api.post(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/products`, body, { params: { projectId } }),
-    removeProduct: (configId: string, projectId: string, productId: string) =>
-      api.delete(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/products/${encodeURIComponent(productId)}`, { params: { projectId } }),
-
-    // 3D Model management
-    uploadModel: (configId: string, formData: FormData) =>
-      api.post(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/model`, formData),
-    deleteModel: (configId: string, productId: string, format?: string) =>
-      api.delete(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/model`, { params: { productId, format } }),
-    getModelPreview: (configId: string, productId: string) =>
-      api.get(`/api/v1/try-on/configurations/${encodeURIComponent(configId)}/model/preview`, { params: { productId } }),
-
-    // Screenshots
-    getScreenshots: (sessionId: string) =>
-      api.get(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/screenshots`),
-    batchUploadScreenshots: (sessionId: string, body: { screenshots: Array<{ imageBase64: string; productId: string; metadata?: Record<string, unknown> }> }) =>
-      api.post<{ created: number; failed: number; total: number }>(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/screenshots/batch`, body),
-
-    // Product tracking
-    trackProductTried: (sessionId: string, productId: string) =>
-      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/product-tried`, { productId }),
-
-    // Performance
-    submitPerformance: (sessionId: string, body: { metrics: Array<{ fps: number; detectionLatencyMs: number; renderLatencyMs: number; gpuInfo?: string; deviceType: string; browserInfo?: string }> }) =>
-      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/performance`, body),
-    getDeviceStats: (days?: number) =>
-      api.get('/api/v1/try-on/performance/device-stats', { params: { days } }),
-
-    // Calibration
-    submitCalibration: (sessionId: string, body: Record<string, unknown>) =>
-      api.post(`/api/v1/try-on/sessions/${encodeURIComponent(sessionId)}/calibration`, body),
-
-    // Device compatibility
-    checkDeviceCompatibility: (deviceType: string, gpuInfo?: string) =>
-      api.get('/api/v1/try-on/device-compatibility', { params: { deviceType, gpuInfo } }),
-
-    // Analytics
-    getAnalytics: (days?: number) =>
-      api.get('/api/v1/try-on/analytics', { params: { days } }),
-    getAnalyticsROI: (days?: number) =>
-      api.get('/api/v1/try-on/analytics/roi', { params: { days } }),
-    getAnalyticsFunnel: (days?: number) =>
-      api.get('/api/v1/try-on/analytics/funnel', { params: { days } }),
-    getAnalyticsProducts: (days?: number) =>
-      api.get('/api/v1/try-on/analytics/products', { params: { days } }),
-    getAnalyticsDevices: (days?: number) =>
-      api.get('/api/v1/try-on/analytics/devices', { params: { days } }),
-    getAnalyticsTrend: (days?: number) =>
-      api.get('/api/v1/try-on/analytics/trend', { params: { days } }),
-    getAnalyticsShares: (days?: number) =>
-      api.get('/api/v1/try-on/analytics/shares', { params: { days } }),
-
-    // Conversions
-    getConversions: (params?: { days?: number; action?: string }) =>
-      api.get('/api/v1/try-on/conversions', { params }),
-    getConversionReport: (days?: number) =>
-      api.get('/api/v1/try-on/conversions/report', { params: { days } }),
-    attributeRevenue: (conversionId: string, body: { revenue: number; orderId?: string; commissionRate?: number }) =>
-      api.post(`/api/v1/try-on/conversions/${encodeURIComponent(conversionId)}/revenue`, body),
-
-    // Widget config
-    getWidgetConfig: () =>
-      api.get('/api/v1/try-on/widget-config'),
-    updateWidgetConfig: (body: Record<string, unknown>) =>
-      api.patch('/api/v1/try-on/widget-config', body),
-    getEmbedCode: (params?: { format?: string }) =>
-      api.get('/api/v1/try-on/widget-config/embed-code', { params }),
-  },
-
-  // Experiments (A/B)
-  experiments: {
-    getAssignment: (experimentName: string) =>
-      api.get<{ variant: string }>(`/api/v1/experiments/assignment/${encodeURIComponent(experimentName)}`),
-    recordConversion: (payload: { experimentName: string; value?: number; sessionId?: string; eventType?: string }) =>
-      api.post('/api/v1/experiments/conversion', payload),
-  },
-
-  // Marketplace (templates listing, detail, reviews)
-  marketplace: {
-    templates: (params?: Record<string, unknown>) =>
-      api.get<{ items?: unknown[]; templates?: unknown[] }>('/api/v1/marketplace/templates', { params }),
-    template: (slug: string) => api.get(`/api/v1/marketplace/templates/${encodeURIComponent(slug)}`),
-    reviews: (templateId: string) =>
-      api.get<{ reviews?: unknown[]; items?: unknown[] }>(`/api/v1/marketplace/templates/${templateId}/reviews`),
-  },
-
-  // AI Studio (3D templates, etc.)
-  aiStudio: {
-    templates: () => api.get<{ templates?: unknown[]; data?: unknown[] }>('/api/v1/ai-studio/templates'),
-  },
-
   // Admin
   admin: {
     metrics: () => api.get('/api/v1/admin/metrics'),
@@ -864,7 +719,6 @@ export const endpoints = {
         options?: Record<string, unknown>;
       }) => api.post('/api/v1/admin/customers/bulk-action', data),
     },
-    // Client management (uses admin/customers + brands endpoints; relative URLs for Vercel proxy)
     clients: {
       list: (params?: {
         page?: number;
@@ -877,45 +731,14 @@ export const endpoints = {
         sortOrder?: 'asc' | 'desc';
       }) => api.get<{ data: AdminClient[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/customers', { params }),
       get: (id: string) => api.get<AdminClient>(`/api/v1/admin/customers/${id}`),
-      updatePlan: (brandId: string, plan: string) =>
-        api.patch(`/api/v1/admin/brands/${brandId}`, { subscriptionPlan: plan, plan }),
-      offerSubscription: (body: { brandId: string; plan: string; durationMonths: number; reason?: string }) =>
+      updatePlan: (orgId: string, plan: string) =>
+        api.patch(`/api/v1/admin/organizations/${orgId}`, { subscriptionPlan: plan, plan }),
+      offerSubscription: (body: { organizationId: string; plan: string; durationMonths: number; reason?: string }) =>
         api.post('/api/v1/admin/billing/offer-subscription', body),
-      suspend: (brandId: string, reason?: string) =>
-        api.post(`/api/v1/admin/brands/${brandId}/suspend`, { reason }),
-      unsuspend: (brandId: string) =>
-        api.post(`/api/v1/admin/brands/${brandId}/unsuspend`),
-    },
-    // Promo / discount codes (admin/discounts)
-    promoCodes: {
-      list: (params?: { page?: number; limit?: number; status?: string }) =>
-        api.get<{ data: AdminDiscount[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/discounts', { params }),
-      get: (id: string) => api.get<AdminDiscount>(`/api/v1/admin/discounts/${id}`),
-      create: (body: {
-        code: string;
-        type: 'PERCENTAGE' | 'FIXED';
-        value: number;
-        validFrom?: string;
-        validTo?: string;
-        usageLimit?: number;
-        isActive?: boolean;
-        description?: string;
-        brandId?: string;
-        minPurchaseCents?: number;
-        maxDiscountCents?: number;
-      }) => api.post<AdminDiscount>('/api/v1/admin/discounts', body),
-      update: (id: string, body: Partial<{
-        code: string;
-        type: 'PERCENTAGE' | 'FIXED';
-        value: number;
-        validFrom: string;
-        validTo: string;
-        usageLimit: number;
-        isActive: boolean;
-        description: string;
-        brandId: string;
-      }>) => api.put<AdminDiscount>(`/api/v1/admin/discounts/${id}`, body),
-      delete: (id: string) => api.delete<{ success: boolean }>(`/api/v1/admin/discounts/${id}`),
+      suspend: (orgId: string, reason?: string) =>
+        api.post(`/api/v1/admin/organizations/${orgId}/suspend`, { reason }),
+      unsuspend: (orgId: string) =>
+        api.post(`/api/v1/admin/organizations/${orgId}/unsuspend`),
     },
     tickets: (params?: { page?: number; limit?: number; status?: string; priority?: string }) =>
       api.get<{ data: AdminTicket[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/support/tickets', { params }),
@@ -1070,140 +893,7 @@ export const endpoints = {
     },
   },
 
-  // Agents
-  agents: {
-    luna: {
-      chat: (data: { message: string; conversationId?: string; context?: unknown }) =>
-        api.post<{ success: boolean; data: LunaResponse }>('/api/v1/agents/luna/chat', data),
-      action: (data: { action: LunaAction }) =>
-        api.post<{ success: boolean; data: unknown }>('/api/v1/agents/luna/action', data),
-      conversations: () =>
-        api.get<{ success: boolean; data: { conversations: AgentConversation[] } }>('/api/v1/agents/luna/conversations'),
-      conversationMessages: (conversationId: string) =>
-        api.get<{ success: boolean; data: { conversationId: string; messages: Array<{ role: string; content: string; createdAt: string }> } }>(`/api/v1/agents/luna/conversations/${conversationId}`),
-    },
-    aria: {
-      chat: (data: { sessionId: string; productId: string; message: string; context?: unknown }) =>
-        api.post<{ success: boolean; data: AriaResponse }>('/api/v1/agents/aria/chat', data),
-      quickSuggest: (productId: string, occasion: string, language?: string) =>
-        api.get<{ success: boolean; data: AriaSuggestion[] }>(`/api/v1/agents/aria/quick-suggest?productId=${productId}&occasion=${occasion}&language=${language || 'fr'}`),
-      improveText: (data: { text: string; style: string; language?: string; productId?: string }) =>
-        api.post<{ success: boolean; data: { original: string; improved: string; variations: string[] } }>('/api/v1/agents/aria/improve', data),
-      recommendStyle: (data: { text: string; occasion: string; productType?: string }) =>
-        api.post<{ success: boolean; data: Array<{ font: string; color: string; reason: string }> }>('/api/v1/agents/aria/recommend-style', data),
-      translate: (data: { text: string; targetLanguage: string; sourceLanguage?: string }) =>
-        api.post<{ success: boolean; data: { original: string; translated: string; sourceLanguage: string; targetLanguage: string } }>('/api/v1/agents/aria/translate', data),
-      spellCheck: (data: { text: string; language?: string }) =>
-        api.post<{ success: boolean; data: { original: string; corrected: string; errors: Array<{ word: string; suggestion: string; position: number }> } }>('/api/v1/agents/aria/spell-check', data),
-      giftIdeas: (data: { occasion: string; recipient: string; budget?: string; preferences?: string }) =>
-        api.post<{ success: boolean; data: Array<{ idea: string; product: string; personalization: string; reason: string }> }>('/api/v1/agents/aria/gift-ideas', data),
-    },
-    nova: {
-      chat: (data: { message: string; brandId?: string; userId?: string; context?: unknown }) =>
-        api.post<{ success: boolean; data: NovaResponse }>('/api/v1/agents/nova/chat', data),
-      faq: (query: string, limit?: number) =>
-        api.get<{ success: boolean; data: Array<{ id: string; title: string; slug: string; content: string }> }>(`/api/v1/agents/nova/faq?query=${encodeURIComponent(query)}&limit=${limit || 5}`),
-      ticket: (data: { subject: string; description: string; priority: 'low' | 'medium' | 'high' | 'urgent'; category?: 'TECHNICAL' | 'BILLING' | 'FEATURE' | 'OTHER' }) =>
-        api.post<{ success: boolean; data: { id: string; ticketNumber: string } }>('/api/v1/agents/nova/ticket', data),
-    },
-    // Shared endpoints
-    conversations: (agentType?: string) =>
-      api.get<{ success: boolean; data: { conversations: AgentConversation[] } }>(`/api/v1/agents/conversations${agentType ? `?agentType=${agentType}` : ''}`),
-    conversation: (conversationId: string) =>
-      api.get<{ success: boolean; data: AgentConversation }>(`/api/v1/agents/conversations/${conversationId}`),
-    feedback: (data: { messageId: string; rating: number; comment?: string; category?: string }) =>
-      api.post<{ success: boolean }>('/api/v1/agents/feedback', data),
-  },
-
-  // AR Studio
-  ar: {
-    /** Resolve short code: follows redirect manually and returns redirect URL + parsed modelId if path is /ar/viewer/:modelId */
-    view: {
-      resolve: async (shortCode: string): Promise<{ redirectUrl: string; modelId?: string; platform?: string; method?: string }> => {
-        const url = `${API_BASE_URL}/api/v1/ar/view/${encodeURIComponent(shortCode)}`;
-        const res = await axios.get(url, { maxRedirects: 0, validateStatus: (s) => s === 302 || s === 404 });
-        if (res.status === 404) {
-          const err = new Error('Short link not found or expired');
-          (err as Error & { response?: { status: number } }).response = { status: 404 };
-          throw err;
-        }
-        const location = res.headers?.location;
-        if (!location) {
-          throw new Error('Invalid response from AR view');
-        }
-        try {
-          const parsed = new URL(location, typeof window !== 'undefined' ? window.location.origin : 'https://localhost');
-          const match = parsed.pathname.match(/\/ar\/viewer\/([^/]+)/);
-          return {
-            redirectUrl: location,
-            modelId: match?.[1],
-            platform: parsed.searchParams.get('platform') ?? undefined,
-            method: parsed.searchParams.get('method') ?? undefined,
-          };
-        } catch {
-          return { redirectUrl: location };
-        }
-      },
-    },
-    /** Get viewer config for a model (URLs per platform, features). Public. */
-    viewerConfig: (modelId: string) =>
-      api.get<{
-        platform: string;
-        method: string;
-        format: string;
-        features: Record<string, boolean>;
-        ios: { arQuickLookUrl: string; ready: boolean };
-        android: { intentUrl: string; modelUrl: string; webxrFallback: boolean };
-        web: unknown;
-        desktop: { qrTargetUrl: string; landingPageUrl: string };
-      }>(`/api/v1/ar/viewer/${modelId}`),
-    embedConfig: (projectId: string) =>
-      api.get<{ projectId: string; embedUrl: string; models: Array<{ id: string; name: string; viewerUrl: string }> }>(`/api/v1/ar/embed/${projectId}`),
-    projects: {
-      get: (projectId: string) => api.get(`/api/v1/ar/projects/${projectId}`),
-      models: {
-        list: (projectId: string, params?: { page?: number; limit?: number }) =>
-          api.get<{ data: unknown[]; meta?: { total: number; page: number; limit: number } }>(`/api/v1/ar/projects/${projectId}/models`, { params }),
-        upload: (projectId: string, formData: FormData) =>
-          api.post<{ id: string; name: string; status: string }>(`/api/v1/ar/projects/${projectId}/models`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-        convert: (projectId: string, modelId: string) =>
-          api.post(`/api/v1/ar/projects/${projectId}/models/${modelId}/convert`, {}),
-        optimize: (projectId: string, modelId: string) =>
-          api.post(`/api/v1/ar/projects/${projectId}/models/${modelId}/optimize`, {}),
-        delete: (projectId: string, modelId: string) =>
-          api.delete(`/api/v1/ar/projects/${projectId}/models/${modelId}`),
-      },
-      targets: {
-        list: (projectId: string) => api.get<{ data: unknown[] }>(`/api/v1/ar/projects/${projectId}/targets`),
-        create: (projectId: string, formData: FormData) =>
-          api.post(`/api/v1/ar/projects/${projectId}/targets`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-        analyze: (projectId: string, targetId: string) =>
-          api.post<{ qualityScore: number; trackingQuality: string }>(`/api/v1/ar/projects/${projectId}/targets/${targetId}/analyze`, {}),
-        linkModel: (projectId: string, targetId: string, modelId: string) =>
-          api.patch(`/api/v1/ar/projects/${projectId}/targets/${targetId}/link`, { modelId }),
-      },
-      qrCodes: {
-        list: (projectId: string) => api.get<{ data: unknown[] }>(`/api/v1/ar/projects/${projectId}/qr-codes`),
-        create: (projectId: string, data: { url: string; options?: { fgColor?: string; bgColor?: string; logo?: string; style?: string } }) =>
-          api.post<{ id: string; imageUrl: string }>(`/api/v1/ar/projects/${projectId}/qr-codes`, data),
-        download: (projectId: string, qrId: string, format: 'png' | 'svg' | 'pdf') =>
-          api.get<Blob>(`/api/v1/ar/projects/${projectId}/qr-codes/${qrId}/download`, { params: { format }, responseType: 'blob' }),
-      },
-      analytics: (projectId: string, params?: { startDate?: string; endDate?: string }) =>
-        api.get<{ sessions: number; avgDuration: number; placements: number; conversions: number; sessionsOverTime?: unknown[]; platformDistribution?: unknown[] }>(`/api/v1/ar/projects/${projectId}/analytics`, { params }),
-    },
-    analytics: {
-      dashboard: (params?: { startDate?: string; endDate?: string }) =>
-        api.get<{ totalSessions: number; avgDuration: number; conversionRate: number; revenue: number; sessionsTrend?: unknown[]; platformDistribution?: unknown[]; topModels?: unknown[] }>(`/api/v1/ar/analytics/dashboard`, { params }),
-      sessions: (params?: { startDate?: string; endDate?: string; platform?: string; projectId?: string; page?: number; limit?: number }) =>
-        api.get<{ data: unknown[]; meta?: { total: number; page: number; limit: number } }>(`/api/v1/ar/analytics/sessions`, { params }),
-      conversions: (params?: { startDate?: string; endDate?: string }) =>
-        api.get<{ funnel: unknown[]; rates: Record<string, number>; revenue: number }>(`/api/v1/ar/analytics/conversions`, { params }),
-      heatmaps: (params?: { modelId?: string }) =>
-        api.get<{ viewAngleDistribution?: unknown[]; scaleDistribution?: unknown[]; placementZones?: unknown[] }>(`/api/v1/ar/analytics/heatmaps`, { params }),
-    },
-  },
 };
 
 export default api;
-export type { AuthSessionResponse, GenerateDesignResponse };
+export type { AuthSessionResponse };

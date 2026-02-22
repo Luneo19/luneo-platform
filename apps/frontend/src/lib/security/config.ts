@@ -70,7 +70,6 @@ export const securityConfig = {
     allowedOrigins: [
       APP_URL,
       'https://www.luneo.app',
-      'https://app.luneo.app',
     ],
     allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [

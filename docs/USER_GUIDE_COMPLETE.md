@@ -16,7 +16,7 @@ Luneo est une plateforme SaaS professionnelle de personnalisation de produits en
 
 ### 1. Créer un Compte
 
-1. Visitez [https://app.luneo.app](https://app.luneo.app)
+1. Visitez [https://luneo.app](https://luneo.app)
 2. Cliquez sur **"S'inscrire"** ou **"Get Started"**
 3. Remplissez le formulaire ou connectez-vous avec Google/GitHub
 4. Vérifiez votre email
@@ -379,7 +379,7 @@ R: Oui, utilisez la fonction "Partager" pour générer un lien.
 
 ### Obtenir de l'Aide
 
-- **Documentation** : [https://app.luneo.app/help/documentation](https://app.luneo.app/help/documentation)
+- **Documentation** : [https://luneo.app/help/documentation](https://luneo.app/help/documentation)
 - **Email** : support@luneo.app
 - **Chat** : Disponible dans le dashboard (si activé)
 

@@ -46,12 +46,10 @@ export class WebVitalsController {
     description: 'Invalid metric data',
   })
   async recordWebVital(@Body() dto: CreateWebVitalDto, @Request() req: ExpressRequest & { user?: CurrentUser }) {
-    const userId = req.user?.id;
     const sessionId = (req.headers['x-session-id'] as string | undefined) ?? (req as ExpressRequest & { session?: { id?: string } }).session?.id;
     
     return this.webVitalsService.recordWebVital({
       ...dto,
-      userId,
       sessionId,
     });
   }
@@ -91,15 +89,8 @@ export class WebVitalsController {
     status: 200,
     description: 'Web Vitals retrieved successfully',
   })
-  async getWebVitals(@Query() query: GetWebVitalsDto, @Request() req: ExpressRequest & { user?: CurrentUser }) {
-    const userId = req.user?.id;
-    const brandId = req.user?.brandId;
-
-    return this.webVitalsService.getWebVitals({
-      ...query,
-      userId: userId ?? undefined,
-      brandId: brandId ?? undefined,
-    });
+  async getWebVitals(@Query() query: GetWebVitalsDto) {
+    return this.webVitalsService.getWebVitals(query);
   }
 
   @Get('summary')
@@ -125,14 +116,7 @@ export class WebVitalsController {
     status: 200,
     description: 'Web Vitals summary retrieved successfully',
   })
-  async getWebVitalsSummary(@Query() query: GetWebVitalsDto, @Request() req: ExpressRequest & { user?: CurrentUser }) {
-    const userId = req.user?.id;
-    const brandId = req.user?.brandId;
-
-    return this.webVitalsService.getWebVitalsSummary({
-      ...query,
-      userId: userId ?? undefined,
-      brandId: brandId ?? undefined,
-    });
+  async getWebVitalsSummary(@Query() query: GetWebVitalsDto) {
+    return this.webVitalsService.getWebVitalsSummary(query);
   }
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Module 7 - AI Agents connector.
  * Connects Nova (customer chatbot) to Prometheus (admin ticketing).

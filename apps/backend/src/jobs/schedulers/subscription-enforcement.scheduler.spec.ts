@@ -20,7 +20,7 @@ describe('SubscriptionEnforcementScheduler', () => {
     },
   };
   const mockEmailService = { sendEmail: jest.fn() };
-  const mockConfigService = { get: jest.fn().mockReturnValue('https://app.luneo.app') };
+  const mockConfigService = { get: jest.fn().mockReturnValue('https://luneo.app') };
 
   beforeEach(async () => {
     jest.clearAllMocks();

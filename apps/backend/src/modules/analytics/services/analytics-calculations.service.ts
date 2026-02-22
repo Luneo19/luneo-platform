@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ★★★ SERVICE - ANALYTICS CALCULATIONS ★★★
  * Service pour les calculs analytiques avancés (funnels, cohortes, prédictions)

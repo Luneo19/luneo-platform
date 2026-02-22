@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';

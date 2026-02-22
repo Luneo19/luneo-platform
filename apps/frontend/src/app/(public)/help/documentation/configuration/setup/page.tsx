@@ -27,7 +27,7 @@ function ConfigSetupPageContent() {
           1. Créer votre compte
         </h3>
         <p className="text-gray-300">
-          Inscrivez-vous sur <a href="/register" className="text-blue-400 hover:underline">app.luneo.app</a> et confirmez votre email.
+          Inscrivez-vous sur <a href="/register" className="text-blue-400 hover:underline">luneo.app</a> et confirmez votre email.
         </p>
       </Card>
 

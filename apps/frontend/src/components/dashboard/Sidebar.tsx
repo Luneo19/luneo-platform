@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
@@ -9,88 +9,25 @@ import { useDensity } from '@/providers/DensityProvider';
 import { sidebarConfig } from '@/styles/dashboard-tokens';
 import { useI18n } from '@/i18n/useI18n';
 import { useAuth } from '@/hooks/useAuth';
-import { 
-  LayoutDashboard, 
-  Palette, 
-  Globe,
-  BarChart3, 
-  Package, 
-  CreditCard, 
-  Users, 
-  Plug, 
+import {
+  LayoutDashboard,
+  Bot,
+  MessageSquare,
+  BookOpen,
+  BarChart3,
+  Plug,
+  CreditCard,
   Settings,
+  Users,
+  HelpCircle,
   Bell,
   Search,
   X,
   ChevronRight,
   ChevronDown,
-  Box,
-  Camera,
-  Layers,
-  FileText,
   Crown,
-  BookOpen,
-  MessageSquare,
-  Database,
-  Eye,
-  Activity,
-  Library,
-  Upload,
-  LayoutTemplate,
-  Store,
-  Coins,
-  FlaskConical,
-  TrendingUp,
-  Edit,
-  Video,
   Shield,
-  Webhook,
-  Gem,
-  Glasses,
-  Shirt,
-  Printer,
-  Sofa,
-  Sparkles,
-  Gift,
-  Trophy,
-  LayoutGrid,
-  Factory,
-  ShoppingBag,
-  Truck
 } from 'lucide-react';
-import { useIndustryStore, type IndustryModuleConfig } from '@/store/industry.store';
-import { useDashboardStore } from '@/store/dashboard.store';
-import { useSubscription } from '@/lib/hooks/api/useSubscription';
-import type { PlanTier } from '@/lib/hooks/api/useSubscription';
-
-// Map industry icon names to Lucide components
-const INDUSTRY_ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
-  gem: Gem, glasses: Glasses, shirt: Shirt, printer: Printer,
-  sofa: Sofa, sparkles: Sparkles, gift: Gift, trophy: Trophy,
-  'layout-grid': LayoutGrid,
-};
-
-// Map module slugs to their navigation config
-const MODULE_NAV_MAP: Record<string, { section: string; itemName: string }> = {
-  'ai-studio': { section: 'Créer', itemName: 'Studio IA' },
-  'products': { section: 'Créer', itemName: 'Mes Produits' },
-  'orders': { section: 'Vendre', itemName: 'Commandes' },
-  'analytics': { section: 'Piloter', itemName: 'Analytics' },
-  'marketplace': { section: 'Vendre', itemName: 'Marketplace' },
-};
-
-const PLAN_HIERARCHY: Record<PlanTier, number> = {
-  free: 0,
-  starter: 1,
-  professional: 2,
-  business: 3,
-  enterprise: 4,
-};
-
-/** Plan badge label for sidebar (PRO, BUSINESS, etc.) */
-function planBadgeLabel(plan: PlanTier): string {
-  return plan === 'professional' ? 'PRO' : plan === 'business' ? 'BUSINESS' : plan === 'enterprise' ? 'ENTERPRISE' : plan.toUpperCase();
-}
 
 interface NavItem {
   name: string;
@@ -99,305 +36,110 @@ interface NavItem {
   description: string;
   badge?: string;
   children?: NavItem[];
-  moduleSlug?: string;
-  minimumPlan?: PlanTier;
-  priority?: 'PRIMARY' | 'SECONDARY' | 'AVAILABLE' | 'HIDDEN';
-  sortOrder?: number;
 }
 
 const navigationSections: Array<{ title: string; items: NavItem[] }> = [
   {
-    title: 'Créer',
+    title: '',
     items: [
       {
-        name: 'Tableau de bord',
+        name: 'Overview',
         href: '/dashboard',
         icon: LayoutDashboard,
-        description: 'Vue d\'ensemble du pipeline'
+        description: 'Vue d\'ensemble de la plateforme',
       },
       {
-        name: 'Mes Produits',
-        href: '/dashboard/products',
-        icon: Package,
-        description: 'Produits, personnalisation, 3D & AR',
-        moduleSlug: 'products',
+        name: 'Agents',
+        href: '/dashboard/agents',
+        icon: Bot,
+        description: 'Gérer vos agents IA',
       },
       {
-        name: 'Studio IA',
-        href: '/dashboard/ai-studio',
-        icon: Palette,
-        description: 'Génération de designs par IA',
-        badge: 'Pro',
-        moduleSlug: 'ai-studio',
-        minimumPlan: 'professional',
-        children: [
-          { name: 'Générateur 2D', href: '/dashboard/ai-studio/2d', icon: Palette, description: 'Designs 2D' },
-          { name: 'Modèles 3D', href: '/dashboard/ai-studio/3d', icon: Box, description: 'Objets 3D' },
-          { name: 'Animations', href: '/dashboard/ai-studio/animations', icon: Video, description: 'Animations IA' },
-          { name: 'Templates', href: '/dashboard/ai-studio/templates', icon: Layers, description: 'Modèles prêts' }
-        ]
+        name: 'Conversations',
+        href: '/dashboard/conversations',
+        icon: MessageSquare,
+        description: 'Historique des conversations',
       },
       {
-        name: 'Bibliothèque',
-        href: '/dashboard/library',
-        icon: Library,
-        description: 'Assets, templates et ressources',
-        children: [
-          { name: 'Bibliothèque', href: '/dashboard/library', icon: Library, description: 'Tous les assets' },
-          { name: 'Import', href: '/dashboard/library/import', icon: Upload, description: 'Importer des fichiers' },
-          { name: 'Templates', href: '/dashboard/ai-studio/templates', icon: LayoutTemplate, description: 'Modèles prêts' }
-        ]
-      }
-    ]
-  },
-  {
-    title: 'Vendre',
-    items: [
-      {
-        name: 'Canaux de vente',
-        href: '/dashboard/channels',
-        icon: ShoppingBag,
-        description: 'Shopify, Widget, Storefront, API',
+        name: 'Knowledge',
+        href: '/dashboard/knowledge',
+        icon: BookOpen,
+        description: 'Base de connaissances',
+        badge: 'Bientôt',
       },
-      {
-        name: 'Commandes',
-        href: '/dashboard/orders',
-        icon: FileText,
-        description: 'Suivi et gestion des commandes',
-        moduleSlug: 'orders',
-      },
-      {
-        name: 'Marketplace',
-        href: '/dashboard/marketplace',
-        icon: Store,
-        description: 'Acheter et vendre des designs',
-        moduleSlug: 'marketplace',
-        children: [
-          { name: 'Explorer', href: '/dashboard/marketplace', icon: Store, description: 'Parcourir le marketplace' },
-          { name: 'Mes ventes', href: '/dashboard/marketplace/seller', icon: Store, description: 'Gérer vos annonces' },
-        ],
-      },
-    ]
-  },
-  {
-    title: 'Produire',
-    items: [
-      {
-        name: 'Production',
-        href: '/dashboard/production',
-        icon: Factory,
-        description: 'POD, fabrication et expéditions',
-      },
-    ]
-  },
-  {
-    title: 'Piloter',
-    items: [
       {
         name: 'Analytics',
         href: '/dashboard/analytics',
         icon: BarChart3,
-        description: 'Performance et conversions',
-        moduleSlug: 'analytics',
-        children: [
-          { name: 'Vue d\'ensemble', href: '/dashboard/analytics', icon: BarChart3, description: 'Métriques principales' },
-          { name: 'Designs', href: '/dashboard/analytics/designs', icon: Palette, description: 'Designs, taux de complétion' },
-          { name: 'Studio IA', href: '/dashboard/analytics/ai', icon: Sparkles, description: 'Générations, crédits' },
-          { name: 'Configurateur 3D', href: '/dashboard/analytics/configurator', icon: Box, description: 'Sessions, configs sauvegardées' },
-          { name: 'Virtual Try-On', href: '/dashboard/analytics/try-on', icon: Camera, description: 'Sessions AR, conversions' },
-          { name: 'Temps réel', href: '/dashboard/monitoring', icon: Activity, description: 'Monitoring live' },
-          { name: 'Analytics Avancées', href: '/dashboard/analytics-advanced', icon: TrendingUp, description: 'Analyses approfondies' },
-          { name: 'A/B Testing', href: '/dashboard/ab-testing', icon: FlaskConical, description: 'Tests d\'optimisation' }
-        ]
+        description: 'Performance et statistiques',
       },
+      {
+        name: 'Intégrations',
+        href: '/dashboard/integrations',
+        icon: Plug,
+        description: 'Connexions et canaux',
+      },
+    ],
+  },
+  {
+    title: 'Gestion',
+    items: [
       {
         name: 'Facturation',
         href: '/dashboard/billing',
         icon: CreditCard,
-        description: 'Plans, crédits et parrainage',
-        children: [
-          { name: 'Abonnement', href: '/dashboard/billing', icon: CreditCard, description: 'Plans et abonnements' },
-          { name: 'Crédits IA', href: '/dashboard/credits', icon: Coins, description: 'Acheter des crédits' },
-          { name: 'Portail Stripe', href: '/dashboard/billing/portal', icon: CreditCard, description: 'Gestion Stripe' },
-          { name: 'Parrainage', href: '/dashboard/affiliate', icon: Gift, description: 'Programme d\'affiliation' }
-        ]
-      },
-      {
-        name: 'Équipe',
-        href: '/dashboard/team',
-        icon: Users,
-        description: 'Membres et collaboration'
+        description: 'Plans et abonnements',
       },
       {
         name: 'Paramètres',
         href: '/dashboard/settings',
         icon: Settings,
-        description: 'Configuration et sécurité',
-        children: [
-          { name: 'Général', href: '/dashboard/settings', icon: Settings, description: 'Profil et marque' },
-          { name: 'Sécurité', href: '/dashboard/security', icon: Shield, description: 'Mot de passe et 2FA' },
-          { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, description: 'Préférences de notification' },
-          { name: 'Développeurs', href: '/dashboard/webhooks', icon: Webhook, description: 'Webhooks et API' },
-        ]
-      }
-    ]
-  }
+        description: 'Configuration du compte',
+      },
+      {
+        name: 'Équipe',
+        href: '/dashboard/team',
+        icon: Users,
+        description: 'Membres et rôles',
+      },
+      {
+        name: 'Support',
+        href: '/dashboard/support',
+        icon: HelpCircle,
+        description: 'Aide et assistance',
+      },
+    ],
+  },
 ];
 
-/**
- * Hook that sorts and filters navigation items based on industry module config.
- * PRIMARY modules are shown first, then SECONDARY, then AVAILABLE.
- * HIDDEN modules are filtered out.
- */
-function useAdaptiveSections() {
-  const { industryConfig, currentIndustry } = useIndustryStore();
-  const { userPreferences } = useDashboardStore();
-
-  return useMemo(() => {
-    if (!industryConfig?.modules || industryConfig.modules.length === 0) {
-      // No industry config — return default navigation
-      return navigationSections;
-    }
-
-    // Create a map of moduleSlug -> config for quick lookup
-    const moduleMap = new Map<string, IndustryModuleConfig>();
-    for (const m of industryConfig.modules) {
-      moduleMap.set(m.moduleSlug, m);
-    }
-
-    // Apply user sidebar order override if available
-    const userSidebarOrder = userPreferences?.sidebarOrder ?? null;
-
-    return navigationSections.map((section) => {
-      const sortedItems = section.items
-        .map((item) => {
-          if (!item.moduleSlug) return { ...item, priority: 'PRIMARY' as const, sortOrder: -1 };
-          const config = moduleMap.get(item.moduleSlug);
-          if (!config) return { ...item, priority: 'AVAILABLE' as const, sortOrder: 999 };
-          return {
-            ...item,
-            priority: config.priority,
-            sortOrder: config.sortOrder,
-          };
-        })
-        .filter((item) => item.priority !== 'HIDDEN')
-        .sort((a, b) => {
-          // User override takes top priority
-          if (userSidebarOrder) {
-            const aIdx = userSidebarOrder.indexOf(a.moduleSlug ?? a.name);
-            const bIdx = userSidebarOrder.indexOf(b.moduleSlug ?? b.name);
-            if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-            if (aIdx !== -1) return -1;
-            if (bIdx !== -1) return 1;
-          }
-          // Then by priority: PRIMARY < SECONDARY < AVAILABLE
-          const priorityOrder = { PRIMARY: 0, SECONDARY: 1, AVAILABLE: 2, HIDDEN: 3 };
-          const pA = priorityOrder[a.priority ?? 'AVAILABLE'];
-          const pB = priorityOrder[b.priority ?? 'AVAILABLE'];
-          if (pA !== pB) return pA - pB;
-          return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-        });
-
-      return { ...section, items: sortedItems };
-    });
-  }, [industryConfig, userPreferences]);
-}
-
-function SidebarIndustryBadge({ isCollapsed }: { isCollapsed: boolean }) {
-  const { currentIndustry } = useIndustryStore();
-
-  if (!currentIndustry) return null;
-
-  const IconComponent = INDUSTRY_ICON_MAP[currentIndustry.icon] || LayoutGrid;
-
-  if (isCollapsed) {
-    return (
-      <div className="flex justify-center py-2">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${currentIndustry.accentColor}25` }}
-        >
-          <IconComponent className="w-4 h-4" style={{ color: currentIndustry.accentColor }} />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="mx-4 mb-2 px-3 py-2 rounded-lg flex items-center gap-2"
-      style={{ backgroundColor: `${currentIndustry.accentColor}12` }}
-    >
-      <IconComponent className="w-4 h-4" style={{ color: currentIndustry.accentColor }} />
-      <span className="text-xs font-medium" style={{ color: currentIndustry.accentColor }}>
-        {currentIndustry.labelFr}
-      </span>
-    </div>
-  );
-}
-
 const SIDEBAR_SECTION_KEYS: Record<string, string> = {
-  'Créer': 'dashboard.sidebar.sections.create',
-  'Vendre': 'dashboard.sidebar.sections.sell',
-  'Produire': 'dashboard.sidebar.sections.produce',
-  'Piloter': 'dashboard.sidebar.sections.manage',
+  'Gestion': 'dashboard.sidebar.sections.management',
 };
 
 const SIDEBAR_ITEM_KEYS: Record<string, string> = {
-  '/dashboard': 'dashboard.sidebar.dashboard',
-  '/dashboard/products': 'dashboard.sidebar.products',
-  '/dashboard/ai-studio': 'dashboard.sidebar.aiStudio',
-  '/dashboard/library': 'dashboard.sidebar.library',
-  '/dashboard/channels': 'dashboard.sidebar.channels',
-  '/dashboard/orders': 'dashboard.sidebar.orders',
-  '/dashboard/marketplace': 'dashboard.sidebar.marketplace',
-  '/dashboard/production': 'dashboard.sidebar.production',
+  '/dashboard': 'dashboard.sidebar.overview',
+  '/dashboard/agents': 'dashboard.sidebar.agents',
+  '/dashboard/conversations': 'dashboard.sidebar.conversations',
+  '/dashboard/knowledge': 'dashboard.sidebar.knowledge',
   '/dashboard/analytics': 'dashboard.sidebar.analytics',
+  '/dashboard/integrations': 'dashboard.sidebar.integrations',
   '/dashboard/billing': 'dashboard.sidebar.billing',
-  '/dashboard/team': 'dashboard.sidebar.team',
   '/dashboard/settings': 'dashboard.sidebar.settings',
+  '/dashboard/team': 'dashboard.sidebar.team',
+  '/dashboard/support': 'dashboard.sidebar.support',
 };
 
 const SIDEBAR_ITEM_DESC_KEYS: Record<string, string> = {
-  '/dashboard': 'dashboard.sidebar.dashboardPipelineDesc',
-  '/dashboard/products': 'dashboard.sidebar.productsDesc',
-  '/dashboard/ai-studio': 'dashboard.sidebar.aiStudioDesc',
-  '/dashboard/library': 'dashboard.sidebar.libraryDesc',
-  '/dashboard/channels': 'dashboard.sidebar.channelsDesc',
-  '/dashboard/orders': 'dashboard.sidebar.ordersDesc',
-  '/dashboard/marketplace': 'dashboard.sidebar.marketplaceDesc',
-  '/dashboard/production': 'dashboard.sidebar.productionDesc',
+  '/dashboard': 'dashboard.sidebar.overviewDesc',
+  '/dashboard/agents': 'dashboard.sidebar.agentsDesc',
+  '/dashboard/conversations': 'dashboard.sidebar.conversationsDesc',
+  '/dashboard/knowledge': 'dashboard.sidebar.knowledgeDesc',
   '/dashboard/analytics': 'dashboard.sidebar.analyticsDesc',
+  '/dashboard/integrations': 'dashboard.sidebar.integrationsDesc',
   '/dashboard/billing': 'dashboard.sidebar.billingDesc',
-  '/dashboard/team': 'dashboard.sidebar.teamDesc',
   '/dashboard/settings': 'dashboard.sidebar.settingsDesc',
-};
-
-const SIDEBAR_CHILD_KEYS: Record<string, { nameKey: string; descKey: string }> = {
-  // Studio IA
-  '/dashboard/ai-studio/2d': { nameKey: 'dashboard.sidebar.aiStudio2d', descKey: 'dashboard.sidebar.aiStudio2dDesc' },
-  '/dashboard/ai-studio/3d': { nameKey: 'dashboard.sidebar.aiStudio3d', descKey: 'dashboard.sidebar.aiStudio3dDesc' },
-  '/dashboard/ai-studio/animations': { nameKey: 'dashboard.sidebar.aiStudioAnimations', descKey: 'dashboard.sidebar.aiStudioAnimationsDesc' },
-  '/dashboard/ai-studio/templates': { nameKey: 'dashboard.sidebar.aiStudioTemplates', descKey: 'dashboard.sidebar.aiStudioTemplatesDesc' },
-  // Bibliothèque
-  '/dashboard/library': { nameKey: 'dashboard.sidebar.libraryAll', descKey: 'dashboard.sidebar.libraryAllDesc' },
-  '/dashboard/library/import': { nameKey: 'dashboard.sidebar.libraryImport', descKey: 'common.importFiles' },
-  // Marketplace
-  '/dashboard/marketplace': { nameKey: 'dashboard.sidebar.marketplaceBrowse', descKey: 'dashboard.sidebar.marketplaceBrowseDesc' },
-  '/dashboard/marketplace/seller': { nameKey: 'dashboard.sidebar.marketplaceSeller', descKey: 'dashboard.sidebar.marketplaceSellerDesc' },
-  // Analytics
-  '/dashboard/analytics': { nameKey: 'dashboard.sidebar.analyticsMain', descKey: 'dashboard.sidebar.analyticsMainDesc' },
-  '/dashboard/analytics/designs': { nameKey: 'dashboard.sidebar.analyticsDesigns', descKey: 'dashboard.sidebar.analyticsDesignsDesc' },
-  '/dashboard/analytics/ai': { nameKey: 'dashboard.sidebar.analyticsAI', descKey: 'dashboard.sidebar.analyticsAIDesc' },
-  '/dashboard/analytics/configurator': { nameKey: 'dashboard.sidebar.analyticsConfigurator', descKey: 'dashboard.sidebar.analyticsConfiguratorDesc' },
-  '/dashboard/analytics/try-on': { nameKey: 'dashboard.sidebar.analyticsTryOn', descKey: 'dashboard.sidebar.analyticsTryOnDesc' },
-  '/dashboard/analytics-advanced': { nameKey: 'dashboard.sidebar.analyticsAdvanced', descKey: 'dashboard.sidebar.analyticsAdvancedDesc' },
-  '/dashboard/ab-testing': { nameKey: 'dashboard.sidebar.analyticsABTesting', descKey: 'dashboard.sidebar.analyticsABTestingDesc' },
-  // Facturation
-  '/dashboard/billing': { nameKey: 'dashboard.sidebar.billingMain', descKey: 'dashboard.sidebar.billingMainDesc' },
-  '/dashboard/billing/portal': { nameKey: 'dashboard.sidebar.billingPortal', descKey: 'dashboard.sidebar.billingPortalDesc' },
-  // Paramètres
-  '/dashboard/settings': { nameKey: 'dashboard.sidebar.settingsGeneral', descKey: 'dashboard.sidebar.settingsGeneralDesc' },
+  '/dashboard/team': 'dashboard.sidebar.teamDesc',
+  '/dashboard/support': 'dashboard.sidebar.supportDesc',
 };
 
 interface SidebarProps {
@@ -415,15 +157,6 @@ function Sidebar({ onClose }: SidebarProps = {}) {
   const isMobileOverlay = Boolean(onClose);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
-  const adaptiveSections = useAdaptiveSections();
-  const { data: subscription } = useSubscription();
-
-  const hasMinimumPlan = (minimumPlan: PlanTier): boolean => {
-    if (!subscription) return true;
-    const userLevel = PLAN_HIERARCHY[subscription.plan] ?? 0;
-    const requiredLevel = PLAN_HIERARCHY[minimumPlan] ?? 0;
-    return userLevel >= requiredLevel;
-  };
 
   const toggleExpanded = useCallback((itemName: string) => {
     setExpandedItems(prev =>
@@ -443,6 +176,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
 
   const isItemActive = (item: NavItem) => {
     if (item.href === pathname) return true;
+    if (item.href !== '/dashboard' && pathname?.startsWith(item.href)) return true;
     if (item.children) {
       return item.children.some(child => child.href === pathname);
     }
@@ -472,7 +206,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white">Luneo</h1>
-                <p className="text-xs text-white/40">Creative Studio</p>
+                <p className="text-xs text-white/40">Agent IA</p>
               </div>
             </Link>
           )}
@@ -509,14 +243,14 @@ function Sidebar({ onClose }: SidebarProps = {}) {
         </div>
       )}
 
-      {/* Industry Badge */}
-      <SidebarIndustryBadge isCollapsed={effectiveCollapsed} />
-
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
-        {adaptiveSections.map((section) => (
-          <div key={section.title} className="mb-6">
-            {!effectiveCollapsed && (
+        {navigationSections.map((section) => (
+          <div key={section.title || '_main'} className="mb-6">
+            {section.title && (
+              <div className="mx-4 mb-3 border-t border-white/[0.06]" />
+            )}
+            {!effectiveCollapsed && section.title && (
               <h3 className="px-4 text-xs font-semibold text-white/30 uppercase tracking-wider mb-2">
                 {SIDEBAR_SECTION_KEYS[section.title] ? t(SIDEBAR_SECTION_KEYS[section.title]) : section.title}
               </h3>
@@ -527,14 +261,9 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                 const isActive = isItemActive(item);
                 const isExpanded = expandedItems.includes(item.name);
                 const Icon = item.icon;
-                const requiredPlan = item.minimumPlan;
-                const hasAccess = requiredPlan ? hasMinimumPlan(requiredPlan) : true;
-                const showPlanBadge = requiredPlan && !effectiveCollapsed;
-                const planBadge = showPlanBadge ? planBadgeLabel(requiredPlan) : null;
 
                 return (
-                  <div key={item.name} className={requiredPlan && !hasAccess ? 'opacity-60' : undefined}>
-                    {/* Main Item */}
+                  <div key={item.name}>
                     <div
                       className={`mx-2 rounded-lg transition-all duration-200 border ${
                         isActive ? 'dash-sidebar-item-active' : 'border-transparent hover:bg-white/[0.04]'
@@ -554,34 +283,17 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                             <Icon className="w-4 h-4" />
                           </div>
                           {!effectiveCollapsed && (
-                            <>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span>{SIDEBAR_ITEM_KEYS[item.href] ? t(SIDEBAR_ITEM_KEYS[item.href]) : item.name}</span>
-                                  {planBadge ? (
-                                    <span className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
-                                      requiredPlan === 'professional'
-                                        ? 'bg-purple-500/20 text-purple-400'
-                                        : requiredPlan === 'business'
-                                          ? 'bg-amber-500/20 text-amber-400'
-                                          : 'bg-white/10 text-white/70'
-                                    }`}>
-                                      {planBadge}
-                                    </span>
-                                  ) : item.badge ? (
-                                    <span className={`ml-2 px-2 py-0.5 text-xs rounded-full dash-badge ${
-                                      item.badge === 'Pro' ? 'dash-badge-pro' :
-                                      item.badge === 'Enterprise' ? 'dash-badge-enterprise' :
-                                      item.badge === 'Live' ? 'dash-badge-live' :
-                                      'dash-badge-new'
-                                    }`}>
-                                      {item.badge}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <p className="text-xs text-white/50 mt-0.5">{SIDEBAR_ITEM_DESC_KEYS[item.href] ? t(SIDEBAR_ITEM_DESC_KEYS[item.href]) : item.description}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span>{SIDEBAR_ITEM_KEYS[item.href] ? t(SIDEBAR_ITEM_KEYS[item.href]) : item.name}</span>
+                                {item.badge && (
+                                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full dash-badge dash-badge-new">
+                                    {item.badge}
+                                  </span>
+                                )}
                               </div>
-                            </>
+                              <p className="text-xs text-white/50 mt-0.5">{SIDEBAR_ITEM_DESC_KEYS[item.href] ? t(SIDEBAR_ITEM_DESC_KEYS[item.href]) : item.description}</p>
+                            </div>
                           )}
                         </Link>
 
@@ -628,8 +340,8 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                                 >
                                   <ChildIcon className="w-4 h-4 mr-3" />
                                   <div>
-                                    <div>{SIDEBAR_CHILD_KEYS[child.href] ? t(SIDEBAR_CHILD_KEYS[child.href].nameKey) : child.name}</div>
-                                    <p className="text-xs text-white/30">{SIDEBAR_CHILD_KEYS[child.href] ? t(SIDEBAR_CHILD_KEYS[child.href].descKey) : child.description}</p>
+                                    <div>{child.name}</div>
+                                    <p className="text-xs text-white/30">{child.description}</p>
                                   </div>
                                 </Link>
                               );
@@ -646,17 +358,9 @@ function Sidebar({ onClose }: SidebarProps = {}) {
         ))}
       </div>
 
-      {/* Quick Links — Support & Documentation */}
+      {/* Documentation link */}
       <div className="border-t border-white/[0.06] px-2 py-2">
         <div className={`flex ${effectiveCollapsed ? 'flex-col items-center gap-1' : 'items-center gap-1'}`}>
-          <Link
-            href="/dashboard/support"
-            onClick={handleNavClick}
-            className="flex items-center px-3 py-2 text-xs text-white/40 hover:text-white/70 rounded-lg hover:bg-white/[0.04] transition-colors"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            {!effectiveCollapsed && <span className="ml-2">{t('dashboard.sidebar.support')}</span>}
-          </Link>
           <Link
             href="/help/documentation"
             onClick={handleNavClick}
@@ -737,7 +441,6 @@ function Sidebar({ onClose }: SidebarProps = {}) {
   );
 }
 
-// Optimisation avec React.memo pour éviter les re-renders inutiles
 const SidebarMemo = memo(Sidebar);
 
 export default function SidebarWithErrorBoundary(props: SidebarProps) {

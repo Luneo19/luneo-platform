@@ -295,7 +295,7 @@ https://api.luneo.app/api/docs
 
 | Service | URL | Status |
 |---------|-----|--------|
-| **Frontend** | https://app.luneo.app | ✅ ACTIF |
+| **Frontend** | https://luneo.app | ✅ ACTIF |
 | **Backend** | https://api.luneo.app | ⏳ À déployer |
 | **API Docs** | https://api.luneo.app/api/docs | ⏳ À déployer |
 

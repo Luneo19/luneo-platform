@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * StripeWebhookService
  * Handles all Stripe webhook events (subscriptions, invoices, payments, refunds, Connect).

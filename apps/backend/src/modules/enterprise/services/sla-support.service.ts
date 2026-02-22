@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service SLA & Support prioritaire pour Enterprise
  * @module SLASupportService

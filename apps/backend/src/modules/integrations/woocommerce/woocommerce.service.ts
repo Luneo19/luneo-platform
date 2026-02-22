@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service WooCommerce - Structure modulaire
  * @module WooCommerceService

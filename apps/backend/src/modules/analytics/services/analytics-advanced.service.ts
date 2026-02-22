@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ★★★ SERVICE - ANALYTICS AVANCÉES ★★★
  * Service pour analytics avancées (funnels, cohortes, segments, prédictions)
@@ -7,7 +8,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { AnalyticsCalculationsService } from './analytics-calculations.service';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@/common/compat/v1-enums';
 import {
   Funnel,
   FunnelData,

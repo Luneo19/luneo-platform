@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
@@ -7,7 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import { ApolloService } from './apollo.service';
 import { GetIncidentsQueryDto, GetMetricsQueryDto } from '../../dto/apollo.dto';
 

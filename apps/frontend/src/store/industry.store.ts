@@ -1,182 +1,43 @@
+/**
+ * STUB: Industry store (V1 feature archived)
+ * Provides default values for V1 code that still references industry config
+ */
 import { create } from 'zustand';
-import { api } from '@/lib/api/client';
-import { logger } from '@/lib/logger';
 
-// ========================================
-// TYPES
-// ========================================
-
-export interface Industry {
-  id: string;
-  slug: string;
-  labelFr: string;
-  labelEn: string;
-  icon: string;
-  accentColor: string;
-  description: string | null;
-  isActive: boolean;
-  sortOrder: number;
-}
-
-export interface IndustryModuleConfig {
-  id: string;
-  moduleSlug: string;
-  priority: 'PRIMARY' | 'SECONDARY' | 'AVAILABLE' | 'HIDDEN';
-  sortOrder: number;
-  isDefaultEnabled: boolean;
-  defaultSettings: Record<string, unknown> | null;
-}
-
-export interface IndustryWidgetConfig {
-  id: string;
-  widgetSlug: string;
-  position: number;
-  gridColumn: number;
-  gridRow: number;
-  gridWidth: number;
-  gridHeight: number;
-  isDefaultVisible: boolean;
-}
-
-export interface IndustryKpiConfig {
-  id: string;
-  kpiSlug: string;
-  labelFr: string;
-  labelEn: string;
-  icon: string;
-  sortOrder: number;
-  isDefaultVisible: boolean;
-  calculationMethod: string | null;
-}
-
-export interface IndustryTemplate {
+interface Industry {
   id: string;
   name: string;
-  description: string | null;
-  thumbnailUrl: string | null;
-  templateData: Record<string, unknown> | null;
-  productType: string | null;
-  is3D: boolean;
-  modelUrl: string | null;
-  sortOrder: number;
+  slug: string;
+  icon: string;
+  labelFr: string;
+  labelEn: string;
+  description: string;
+  accentColor: string;
 }
-
-export interface IndustryTerminologyEntry {
-  id: string;
-  genericTerm: string;
-  customTermFr: string;
-  customTermEn: string;
-  context: string;
-}
-
-export interface IndustryConfig {
-  modules: IndustryModuleConfig[];
-  widgets: IndustryWidgetConfig[];
-  kpis: IndustryKpiConfig[];
-  templates: IndustryTemplate[];
-  terminology: Record<string, string>;
-}
-
-// ========================================
-// STORE
-// ========================================
 
 interface IndustryState {
-  currentIndustry: Industry | null;
-  industryConfig: IndustryConfig | null;
+  currentIndustry: string | null;
+  industryConfig: Record<string, unknown>;
   allIndustries: Industry[];
   isLoading: boolean;
-  error: string | null;
-
-  // Actions
-  fetchCurrentIndustry: (slug: string) => Promise<void>;
-  fetchAllIndustries: () => Promise<void>;
-  setIndustry: (slug: string) => Promise<void>;
-  getTerminology: (genericTerm: string) => string;
-  reset: () => void;
+  setIndustry: (industry: string) => void;
 }
 
-export const useIndustryStore = create<IndustryState>()((set, get) => ({
+const DEFAULT_INDUSTRIES: Industry[] = [
+  { id: 'ecommerce', name: 'E-commerce', slug: 'ecommerce', icon: '🛒', labelFr: 'E-commerce', labelEn: 'E-commerce', accentColor: '#10B981', description: 'Boutiques en ligne et marketplaces' },
+  { id: 'saas', name: 'SaaS', slug: 'saas', icon: '💻', labelFr: 'SaaS', labelEn: 'SaaS', accentColor: '#6366F1', description: 'Logiciels en tant que service' },
+  { id: 'fintech', name: 'Fintech', slug: 'fintech', icon: '💰', labelFr: 'Fintech', labelEn: 'Fintech', accentColor: '#F59E0B', description: 'Services financiers et bancaires' },
+  { id: 'healthcare', name: 'Sante', slug: 'healthcare', icon: '🏥', labelFr: 'Sante', labelEn: 'Healthcare', accentColor: '#EF4444', description: 'Sante et bien-etre' },
+  { id: 'education', name: 'Education', slug: 'education', icon: '📚', labelFr: 'Education', labelEn: 'Education', accentColor: '#8B5CF6', description: 'Formation et enseignement' },
+  { id: 'retail', name: 'Retail', slug: 'retail', icon: '🏪', labelFr: 'Retail', labelEn: 'Retail', accentColor: '#EC4899', description: 'Commerce de detail' },
+  { id: 'agency', name: 'Agence', slug: 'agency', icon: '🏢', labelFr: 'Agence', labelEn: 'Agency', accentColor: '#14B8A6', description: 'Agences et consulting' },
+  { id: 'other', name: 'Autre', slug: 'other', icon: '🔧', labelFr: 'Autre', labelEn: 'Other', accentColor: '#6B7280', description: 'Autre secteur' },
+];
+
+export const useIndustryStore = create<IndustryState>((set) => ({
   currentIndustry: null,
-  industryConfig: null,
-  allIndustries: [],
+  industryConfig: {},
+  allIndustries: DEFAULT_INDUSTRIES,
   isLoading: false,
-  error: null,
-
-  fetchCurrentIndustry: async (slug: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const data = await api.get<{
-        industry: Industry;
-        moduleConfigs: IndustryModuleConfig[];
-        widgetConfigs: IndustryWidgetConfig[];
-        kpiConfigs: IndustryKpiConfig[];
-        templates: IndustryTemplate[];
-        terminology: IndustryTerminologyEntry[];
-      }>(`/api/v1/industries/${slug}`);
-
-      const terminologyMap: Record<string, string> = {};
-      if (data.terminology) {
-        for (const t of data.terminology) {
-          terminologyMap[t.genericTerm] = t.customTermFr;
-        }
-      }
-
-      set({
-        currentIndustry: data.industry ?? data as unknown as Industry,
-        industryConfig: {
-          modules: data.moduleConfigs ?? [],
-          widgets: data.widgetConfigs ?? [],
-          kpis: data.kpiConfigs ?? [],
-          templates: data.templates ?? [],
-          terminology: terminologyMap,
-        },
-        isLoading: false,
-      });
-    } catch (error) {
-      logger.error('Failed to fetch industry', error instanceof Error ? error : new Error(String(error)));
-      set({ error: 'Failed to fetch industry', isLoading: false });
-    }
-  },
-
-  fetchAllIndustries: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const data = await api.get<Industry[] | { data?: Industry[] }>('/api/v1/industries');
-      const list = Array.isArray(data) ? data : ((data as { data?: Industry[] })?.data ?? []);
-      set({ allIndustries: list, isLoading: false });
-    } catch (error) {
-      logger.error('Failed to fetch industries', error instanceof Error ? error : new Error(String(error)));
-      set({ error: 'Failed to fetch industries', isLoading: false });
-    }
-  },
-
-  setIndustry: async (slug: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      await api.patch('/api/v1/organizations/current/industry', { industrySlug: slug });
-      await get().fetchCurrentIndustry(slug);
-    } catch (error) {
-      logger.error('Failed to set industry', error instanceof Error ? error : new Error(String(error)));
-      set({ error: 'Failed to set industry', isLoading: false });
-    }
-  },
-
-  getTerminology: (genericTerm: string): string => {
-    const config = get().industryConfig;
-    if (config?.terminology && config.terminology[genericTerm]) {
-      return config.terminology[genericTerm];
-    }
-    return genericTerm;
-  },
-
-  reset: () => {
-    set({
-      currentIndustry: null,
-      industryConfig: null,
-      allIndustries: [],
-      isLoading: false,
-      error: null,
-    });
-  },
+  setIndustry: (industry: string) => set({ currentIndustry: industry }),
 }));

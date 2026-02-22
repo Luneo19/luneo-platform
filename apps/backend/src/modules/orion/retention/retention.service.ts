@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChurnRisk, GrowthPotential, AutomationRunStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';

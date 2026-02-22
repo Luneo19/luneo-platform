@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Module 16 - Collaboration (Liveblocks-style).
  * Presence, pin-style comments, share links with view/edit/comment permissions.

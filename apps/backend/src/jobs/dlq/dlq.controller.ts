@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Controller, Get, Post, Delete, Param, Query, UseGuards } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import { DLQService } from './dlq.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';

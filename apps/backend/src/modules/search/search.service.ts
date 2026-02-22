@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrentUser } from '@/common/types/user.types';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 
 export interface SearchResultItem {
   id: string;

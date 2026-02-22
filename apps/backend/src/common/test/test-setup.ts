@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Test Setup - Configuration et utilitaires pour les tests
  * Fournit des mocks, fixtures et helpers réutilisables

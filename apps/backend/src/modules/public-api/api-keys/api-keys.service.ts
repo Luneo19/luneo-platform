@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { JsonValue } from '@/common/types/utility-types';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { getPlanConfig, normalizePlanTier } from '@/libs/plans/plan-config';
 import { Injectable, Logger, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 

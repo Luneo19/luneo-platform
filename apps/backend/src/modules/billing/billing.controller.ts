@@ -1,11 +1,9 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, InternalServerErrorException, Logger, Post, Query, RawBodyRequest, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, InternalServerErrorException, Logger, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request as ExpressRequest } from 'express';
-import Stripe from 'stripe';
-import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BillingService } from './billing.service';
 import { CreateCheckoutSessionDto, AddPaymentMethodDto, ChangePlanDto, CancelSubscriptionDto } from './dto/billing.dto';
@@ -449,74 +447,4 @@ export class BillingController {
     return this.billingService.cancelSubscription(req.user.id, body?.immediate || false);
   }
 
-  /** @Public: Stripe webhook; verified by stripe-signature */
-  @Public()
-  @Throttle({ default: { limit: 50, ttl: 60000 } })
-  @Post('webhook')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Webhook Stripe pour les événements de paiement' })
-  async handleWebhook(
-    @Request() req: RawBodyRequest<ExpressRequest>,
-    @Headers('stripe-signature') signature: string,
-  ): Promise<{ received: boolean; processed?: boolean }> {
-    if (!signature) {
-      throw new BadRequestException('Missing Stripe signature header');
-    }
-
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      this.logger.error('STRIPE_WEBHOOK_SECRET is not configured');
-      throw new BadRequestException('Webhook secret not configured');
-    }
-
-    let event: Stripe.Event;
-
-    try {
-      // BILLING FIX: Handle both rawBody (NestFactory rawBody: true) and body (express.raw())
-      const payload = (req as unknown as { rawBody?: Buffer }).rawBody ?? req.body;
-      if (!payload || (!Buffer.isBuffer(payload) && typeof payload !== 'string')) {
-        throw new BadRequestException('Missing raw body for webhook verification. Ensure rawBody is enabled.');
-      }
-      const stripe = await this.billingService.getStripe();
-      // SECURITY FIX: constructEvent validates signature + timestamp (default tolerance: 300s)
-      // This prevents replay attacks with events older than 5 minutes
-      event = stripe.webhooks.constructEvent(
-        payload,
-        signature,
-        webhookSecret,
-      );
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn('Invalid Stripe webhook signature', { error: message });
-      throw new BadRequestException(`Webhook signature verification failed: ${message}`);
-    }
-
-    // SECURITY FIX: Defense-in-depth - reject events older than 1 hour
-    // (constructEvent already rejects > 5 min, but this catches edge cases)
-    const eventAge = Date.now() / 1000 - event.created;
-    if (eventAge > 3600) {
-      this.logger.warn(`Rejecting stale webhook event ${event.id} (age: ${Math.round(eventAge)}s)`);
-      throw new BadRequestException('Webhook event too old');
-    }
-
-    this.logger.log('Stripe webhook received', {
-      type: event.type,
-      id: event.id,
-    });
-
-    try {
-      const result = await this.billingService.handleStripeWebhook(event);
-      
-      return {
-        received: true,
-        processed: result.processed,
-      };
-    } catch (error) {
-      this.logger.error('Error processing Stripe webhook', error, {
-        eventType: event.type,
-        eventId: event.id,
-      });
-      throw error;
-    }
-  }
 }

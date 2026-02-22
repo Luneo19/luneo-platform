@@ -110,7 +110,6 @@ async function createApp(): Promise<Application> {
   const corsOriginEnv = corsOriginFromConfig || '';
 
   const productionOrigins = [
-    'https://app.luneo.app',
     'https://luneo.app',
     'https://www.luneo.app',
     'https://api.luneo.app',

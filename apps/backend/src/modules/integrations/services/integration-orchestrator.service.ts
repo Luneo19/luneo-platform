@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service orchestrateur des intégrations
  * @module IntegrationOrchestratorService

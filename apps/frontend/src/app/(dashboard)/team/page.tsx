@@ -54,7 +54,7 @@ function TeamPageContent() {
       setInviteEmail('');
       toast({ title: t('common.success'), description: t('dashboard.team.invitationSent') });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
@@ -64,7 +64,7 @@ function TeamPageContent() {
       setEditingMember(null);
       toast({ title: t('common.success'), description: t('dashboard.team.roleUpdated') });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
@@ -73,7 +73,7 @@ function TeamPageContent() {
       teamQuery.refetch();
       toast({ title: t('common.success'), description: t('dashboard.team.memberRemoved') });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });
@@ -82,7 +82,7 @@ function TeamPageContent() {
       teamQuery.refetch();
       toast({ title: t('common.success'), description: t('dashboard.team.invitationCancelled') });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({ title: t('common.error'), description: getErrorDisplayMessage(error), variant: 'destructive' });
     },
   });

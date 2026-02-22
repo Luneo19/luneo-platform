@@ -3,7 +3,7 @@
 ## Architecture de déploiement
 
 ```
-[Vercel] ---- Frontend (Next.js) ---- https://app.luneo.app
+[Vercel] ---- Frontend (Next.js) ---- https://luneo.app
                      |
                      | API calls
                      v
@@ -70,8 +70,8 @@ Dans Vercel > Project > Settings > Environment Variables :
 | Variable | Valeur | Environnement |
 |----------|--------|---------------|
 | `NEXT_PUBLIC_API_URL` | `https://api.luneo.app` | Production |
-| `NEXT_PUBLIC_APP_URL` | `https://app.luneo.app` | Production |
-| `NEXT_PUBLIC_SITE_URL` | `https://app.luneo.app` | Production |
+| `NEXT_PUBLIC_APP_URL` | `https://luneo.app` | Production |
+| `NEXT_PUBLIC_SITE_URL` | `https://luneo.app` | Production |
 | `NEXT_PUBLIC_WS_URL` | `wss://api.luneo.app` | Production |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_xxx` | Production |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Votre cloud name | Production |
@@ -88,8 +88,8 @@ Dans Vercel > Project > Settings > Environment Variables :
 - **Region** : `cdg1` (Paris)
 
 ### 2.4 Domaine
-1. Settings > Domains > Ajouter `app.luneo.app`
-2. Configurer DNS : CNAME `app.luneo.app` → `cname.vercel-dns.com`
+1. Settings > Domains > Ajouter `luneo.app`
+2. Configurer DNS : CNAME `luneo.app` → `cname.vercel-dns.com`
 
 ---
 
@@ -182,7 +182,7 @@ curl https://api.luneo.app/api/v1/health
 # Ouvrir https://api.luneo.app/api/v1/docs
 
 # Frontend
-curl -s -o /dev/null -w "%{http_code}" https://app.luneo.app
+curl -s -o /dev/null -w "%{http_code}" https://luneo.app
 # Doit retourner 200
 
 # Auth flow

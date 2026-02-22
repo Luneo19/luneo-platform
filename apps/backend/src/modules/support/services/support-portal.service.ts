@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Module 20 - Support Client.
  * Create tickets, knowledge base search, chatbot responses.

@@ -57,7 +57,7 @@ export function useLogin() {
       const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
       router.push(safeRedirect || getRoleBasedRedirect(data.user?.role));
     },
-    onError: (error) => {
+    onError: (error: any) => {
       logger.error('Login failed', {
         error,
         message: error.message,
@@ -85,7 +85,7 @@ export function useRegister() {
       // Redirect to overview
       router.push('/overview');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       logger.error('Registration failed', {
         error,
         message: error.message,

@@ -3,6 +3,8 @@ import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { AnalyticsCleanController } from './controllers/analytics-clean.controller';
 import { AnalyticsCleanService } from './services/analytics-clean.service';
+import { WebVitalsController } from './controllers/web-vitals.controller';
+import { WebVitalsService } from './services/web-vitals.service';
 
 /**
  * Clean Analytics Module - Minimaliste et performant
@@ -10,8 +12,8 @@ import { AnalyticsCleanService } from './services/analytics-clean.service';
  */
 @Module({
   imports: [PrismaModule, SmartCacheModule],
-  controllers: [AnalyticsCleanController],
-  providers: [AnalyticsCleanService],
-  exports: [AnalyticsCleanService],
+  controllers: [AnalyticsCleanController, WebVitalsController],
+  providers: [AnalyticsCleanService, WebVitalsService],
+  exports: [AnalyticsCleanService, WebVitalsService],
 })
 export class AnalyticsCleanModule {}

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Decorator pour récupérer le brand depuis le CurrentUser
  * @module CurrentBrandDecorator

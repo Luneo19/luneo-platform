@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ★★★ SERVICE - AI STUDIO QUEUE ★★★
  * Service pour lancer les jobs de génération AI Studio

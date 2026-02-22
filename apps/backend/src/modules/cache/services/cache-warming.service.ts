@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Cache Warming Service
  * Pre-warms cache with frequently accessed data

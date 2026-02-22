@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     title: 'Inscription | Luneo',
     description: 'Inscrivez-vous gratuitement sur Luneo et commencez à créer des produits personnalisés avec notre plateforme de customisation IA.',
     type: 'website',
-    url: 'https://app.luneo.app/register',
+    url: 'https://luneo.app/register',
     siteName: 'Luneo',
   },
   robots: {

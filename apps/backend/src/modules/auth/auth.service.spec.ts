@@ -132,7 +132,7 @@ describe('AuthService', () => {
                 'jwt.refreshSecret': 'test-refresh-secret',
                 'jwt.expiresIn': '15m',
                 'jwt.refreshExpiresIn': '7d',
-                'app.frontendUrl': 'https://app.luneo.app',
+                'app.frontendUrl': 'https://luneo.app',
                 'app.nodeEnv': 'test',
               };
               return defaults[key];

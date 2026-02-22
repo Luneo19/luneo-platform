@@ -26,7 +26,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<CurrentUser> {
-    // SECURITY FIX: Check if access token has been revoked (logout, password change)
     if (payload.iat) {
       const isBlacklisted = await this.tokenBlacklist.isBlacklisted(payload.sub, payload.iat);
       if (isBlacklisted) {
@@ -36,19 +35,33 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { brand: true },
+      include: {
+        memberships: {
+          where: { isActive: true },
+          include: {
+            organization: {
+              select: { id: true, name: true, slug: true, plan: true, logo: true },
+            },
+          },
+          orderBy: { joinedAt: 'desc' },
+          take: 1,
+        },
+      },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || user.deletedAt) {
       throw new UnauthorizedException('User not found or inactive');
     }
+
+    const primaryMembership = user.memberships[0] ?? null;
 
     return {
       id: user.id,
       email: user.email,
       role: user.role,
-      brandId: user.brandId,
-      brand: user.brand,
+      organizationId: primaryMembership?.organizationId ?? null,
+      organization: primaryMembership?.organization ?? null,
+      brandId: primaryMembership?.organizationId ?? null,
     };
   }
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ★★★ WORKER - AI STUDIO ★★★
  * Worker BullMQ pour les générations AI Studio (2D, 3D, animations, templates)

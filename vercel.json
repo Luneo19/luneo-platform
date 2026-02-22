@@ -2,7 +2,7 @@
   "version": 2,
   "framework": "nextjs",
   "installCommand": "npm install -g pnpm@8 && pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile",
-  "buildCommand": "cd apps/frontend && npx prisma generate && pnpm run build",
+  "buildCommand": "cd apps/backend && npx prisma generate && cd ../frontend && pnpm run build",
   "outputDirectory": "apps/frontend/.next",
   "regions": ["cdg1"],
   "env": {

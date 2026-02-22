@@ -283,9 +283,9 @@ test('user can login', async ({ page }) => {
 
 ```env
 NEXT_PUBLIC_API_URL=https://api.luneo.app/api
-NEXT_PUBLIC_APP_URL=https://app.luneo.app
+NEXT_PUBLIC_APP_URL=https://luneo.app
 NEXTAUTH_SECRET=your-production-secret
-NEXTAUTH_URL=https://app.luneo.app
+NEXTAUTH_URL=https://luneo.app
 ```
 
 ### Docker

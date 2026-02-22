@@ -6,5 +6,5 @@
     "moduleResolution": "bundler",
     "noEmit": true
   },
-  "exclude": ["node_modules", "apps", "packages", "sdk"]
+  "exclude": ["node_modules", "apps", "packages", "sdk", "_archive"]
 }

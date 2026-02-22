@@ -38,7 +38,7 @@ function SecurityCorsPageContent() {
           <ul className="list-disc list-inside text-gray-300 space-y-2">
             <li>https://app.example.com</li>
             <li>https://example.com</li>
-            <li>https://app.luneo.app (production) ou http://localhost:3000 (développement local uniquement)</li>
+            <li>https://luneo.app (production) ou http://localhost:3000 (développement local uniquement)</li>
           </ul>
         </div>
 

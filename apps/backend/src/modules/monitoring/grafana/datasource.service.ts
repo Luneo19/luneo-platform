@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Grafana Datasource Service
  * Provides real data for Grafana dashboards

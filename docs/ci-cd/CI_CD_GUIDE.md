@@ -203,7 +203,7 @@ Le pipeline CI/CD de Luneo Platform est configuré dans `.github/workflows/ci.ym
 
 **Environnement GitHub:**
 - `production`
-- URL: `https://app.luneo.app`
+- URL: `https://luneo.app`
 
 **Secrets:**
 - `VERCEL_TOKEN`

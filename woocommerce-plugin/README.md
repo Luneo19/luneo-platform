@@ -23,7 +23,7 @@ zip -r luneo-customizer.zip . -x "*.git*" "node_modules/*"
 ## Configuration
 
 ### API Key
-Obtenez votre clé API depuis le [Dashboard Luneo](https://app.luneo.app/settings)
+Obtenez votre clé API depuis le [Dashboard Luneo](https://luneo.app/settings)
 
 ### Widget URL
 Par défaut : `https://cdn.luneo.app/widget/v1/luneo-widget.iife.js`

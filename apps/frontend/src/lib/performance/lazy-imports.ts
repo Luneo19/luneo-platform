@@ -51,15 +51,9 @@ export const LazyAnalyticsDashboard = dynamic(
 ) as React.ComponentType<unknown>;
 
 /**
- * Lazy load AR/VR components
+ * AR/VR components removed (V1) — stub for backward compatibility
  */
-export const LazyARViewer = dynamic(
-  () => import('@/components/ar/ARViewer').catch(() => ({ default: () => null })),
-  {
-    loading: LoadingAR,
-    ssr: false,
-  }
-) as React.ComponentType<unknown>;
+export const LazyARViewer = (() => null) as unknown as React.ComponentType<unknown>;
 
 /**
  * Lazy load heavy editor components

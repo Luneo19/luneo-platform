@@ -8,7 +8,7 @@ import { EmailJobData } from './email.processor';
 import { TemplateRenderer, escapeHtml } from './template-renderer';
 
 function emailLayout(content: string, previewText?: string, frontendUrl?: string): string {
-  const baseUrl = frontendUrl ?? 'https://app.luneo.app';
+  const baseUrl = frontendUrl ?? 'https://luneo.app';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -71,7 +71,7 @@ export class EmailService {
   private getFrontendUrl(): string {
     return this.configService.get<string>('app.frontendUrl')
       ?? this.configService.get<string>('FRONTEND_URL')
-      ?? 'https://app.luneo.app';
+      ?? 'https://luneo.app';
   }
 
   private initializeProviders() {

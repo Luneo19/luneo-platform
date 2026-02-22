@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

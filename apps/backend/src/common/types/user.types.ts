@@ -1,64 +1,57 @@
 /**
- * User Types - Types pour les utilisateurs et l'authentification
- * Types centralisés pour remplacer les 'any' dans les services
+ * User Types - Types pour les utilisateurs et l'authentification V2
+ * Adapte pour le schema multi-tenant Organization (ex-Brand)
  */
 
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
-/** Express request with optional user (e.g. public or authenticated routes) */
 export type RequestWithOptionalUser = import('express').Request & { user?: CurrentUser };
-
-/** Express request with required user (use after JwtAuthGuard) */
 export type RequestWithUser = import('express').Request & { user: CurrentUser };
 
-/** Express request with user and brandId (set by BrandScopedGuard) */
-export type RequestWithUserAndBrand = RequestWithUser & { brandId: string };
-
 /**
- * Utilisateur actuel authentifié
- * Retourné par JWT Strategy et utilisé dans les guards
+ * Utilisateur actuel authentifie
+ * Retourne par JWT Strategy apres validation du token
  */
 export interface CurrentUser {
   id: string;
   email: string;
-  role: UserRole;
-  brandId?: string | null;
-  brand?: {
+  role: PlatformRole;
+  organizationId: string | null;
+  organization?: {
     id: string;
     name: string;
+    slug: string;
+    plan: string;
     logo?: string | null;
-    website?: string | null;
   } | null;
+  /** @deprecated Use organizationId instead */
+  brandId?: string | null;
 }
 
 /**
  * Payload JWT standard
  */
 export interface JwtPayload {
-  sub: string; // User ID
+  sub: string;
   email: string;
-  role: UserRole;
+  role: PlatformRole;
   iat?: number;
   exp?: number;
 }
 
 /**
- * Utilisateur minimal pour les vérifications d'autorisation
+ * Utilisateur minimal pour les verifications d'autorisation
  */
 export interface MinimalUser {
   id: string;
-  role: UserRole;
-  brandId?: string | null;
+  role: PlatformRole;
+  organizationId?: string | null;
 }
 
-/**
- * Helper pour extraire un MinimalUser d'un CurrentUser
- */
 export function toMinimalUser(user: CurrentUser): MinimalUser {
   return {
     id: user.id,
     role: user.role,
-    brandId: user.brandId,
+    organizationId: user.organizationId,
   };
 }
-

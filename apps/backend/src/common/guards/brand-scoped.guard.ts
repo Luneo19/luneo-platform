@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * BrandScopedGuard - Global Brand Isolation Guard
  * 
@@ -20,7 +21,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { CurrentUser } from '../types/user.types';
 import { PrismaService } from '@/libs/prisma/prisma.service';

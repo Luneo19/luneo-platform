@@ -1,17 +1,10 @@
 import {
-  Navigation,
   HeroSectionNew,
   FeaturesSectionNew,
   HowItWorksNew,
-  DemoModulesSection,
-  TestimonialsNew,
   PricingSectionNew,
-  Integrations,
-  FAQSection,
   CTASectionNew,
-  FooterNew,
-  CursorGlow,
-  LogoWatermarkSection,
+  SocialProofSection,
 } from '@/components/marketing/home';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { generateMetadata as generateSEOMetadata, getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/metadata';
@@ -28,18 +21,17 @@ import type { Metadata } from 'next';
  */
 
 export const metadata: Metadata = generateSEOMetadata({
-  title: 'Luneo - Personnalisation de Produits avec IA',
-  description: 'Plateforme SaaS B2B pour la personnalisation de produits avec intelligence artificielle. Créez des designs uniques, visualisez en 3D/AR, et intégrez facilement dans votre e-commerce.',
+  title: 'Luneo - Agents IA autonomes pour votre service client',
+  description: 'Déployez des agents IA qui résolvent 80% des demandes clients. Créez, entraînez et déployez des agents conversationnels alimentés par vos données. En 15 minutes, sans code.',
   keywords: [
-    'personnalisation produits',
-    'IA design',
-    '3D configurator',
-    'AR try-on',
-    'e-commerce',
-    'SaaS B2B',
-    'white-label',
-    'Shopify',
-    'WooCommerce',
+    'agents IA',
+    'service client',
+    'chatbot',
+    'support automatisé',
+    'IA conversationnelle',
+    'SaaS',
+    'automatisation',
+    'base de connaissances',
   ],
   ogType: 'website',
   ogImage: '/og-image.png',
@@ -49,10 +41,10 @@ const softwareApplicationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'Luneo',
-  applicationCategory: 'DesignApplication',
+  applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description:
-    'Plateforme SaaS B2B pour la personnalisation de produits avec intelligence artificielle. Créez des designs uniques, visualisez en 3D/AR, et intégrez facilement dans votre e-commerce.',
+    'Agents IA autonomes pour le service client. Créez, entraînez et déployez des agents conversationnels alimentés par vos données. En 15 minutes, sans code.',
   url: SEO_BASE_URL,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
 };
@@ -78,14 +70,10 @@ export default function HomePage() {
       />
       <main className="min-h-screen w-full min-w-0">
         <HeroSectionNew />
+        <SocialProofSection />
         <FeaturesSectionNew />
-        <DemoModulesSection />
         <HowItWorksNew />
-        <TestimonialsNew />
         <PricingSectionNew />
-        <Integrations />
-        <FAQSection />
-        <LogoWatermarkSection />
         <CTASectionNew />
       </main>
     </>

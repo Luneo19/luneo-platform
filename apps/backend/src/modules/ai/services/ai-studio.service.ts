@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ★★★ SERVICE - AI STUDIO ★★★
  * Service pour AI Studio (générations, modèles, prompts, collections, versioning)

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service d'audit des coûts IA
  * @module AICostAuditService

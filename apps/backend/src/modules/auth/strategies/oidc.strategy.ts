@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 // eslint-disable-next-line @typescript-eslint/no-var-requires

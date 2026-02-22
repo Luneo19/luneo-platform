@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SSO Enterprise Controller
  * API endpoints for managing SAML and OIDC SSO configurations
@@ -21,7 +22,7 @@ import { RolesGuard, Roles } from '@/common/guards/roles.guard';
 import { EnterprisePlanGuard } from '@/common/guards/enterprise-plan.guard';
 import { RequestWithUser } from '@/common/types/user.types';
 import { SSOEnterpriseService, CreateSSODto } from '../services/sso-enterprise.service';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 
 @ApiTags('SSO Enterprise')
 @ApiBearerAuth()

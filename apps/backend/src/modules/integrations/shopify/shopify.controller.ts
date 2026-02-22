@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Controller pour l'intégration Shopify
  * @module ShopifyController

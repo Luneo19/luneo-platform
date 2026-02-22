@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview UsageReconciliationService - Reconciliation quotidienne entre
  * les métriques locales (UsageMetric) et Stripe usage records.

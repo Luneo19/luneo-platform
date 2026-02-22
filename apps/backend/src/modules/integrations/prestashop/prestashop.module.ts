@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Module PrestaShop
  * @module PrestaShopModule

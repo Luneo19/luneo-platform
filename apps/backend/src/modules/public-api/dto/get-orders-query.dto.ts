@@ -1,28 +1,18 @@
-import { IsOptional, IsNumber, Min, Max, IsEnum } from 'class-validator';
+// V1 DTO — Orders feature archived in V2
+// Kept as stub to prevent import errors
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsNumber, Min, Max, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus } from '@prisma/client';
 
 export class GetOrdersQueryDto {
-  @ApiPropertyOptional({
-    description: 'Page number',
-    example: 1,
-    minimum: 1,
-    default: 1,
-  })
+  @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({
-    description: 'Number of items per page',
-    example: 10,
-    minimum: 1,
-    maximum: 100,
-    default: 10,
-  })
+  @ApiPropertyOptional({ description: 'Items per page', default: 10 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -30,12 +20,8 @@ export class GetOrdersQueryDto {
   @Max(100)
   limit?: number = 10;
 
-  @ApiPropertyOptional({
-    description: 'Filter orders by status',
-    enum: OrderStatus,
-    example: OrderStatus.PAID,
-  })
+  @ApiPropertyOptional({ description: 'Filter by status' })
   @IsOptional()
-  @IsEnum(OrderStatus)
-  status?: OrderStatus;
+  @IsString()
+  status?: string;
 }

@@ -84,7 +84,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
       const base =
         typeof window !== 'undefined'
           ? new URL(imageSrc, window.location.origin)
-          : new URL(imageSrc, 'https://app.luneo.app');
+          : new URL(imageSrc, 'https://luneo.app');
       base.searchParams.set('quality', String(quality));
       return base.toString();
     } catch {

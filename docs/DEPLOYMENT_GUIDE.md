@@ -70,7 +70,7 @@ Dans Railway > projet > service backend > **Variables**, ajouter:
 NODE_ENV=production
 PORT=3000
 API_PREFIX=/api/v1
-FRONTEND_URL=https://app.luneo.app
+FRONTEND_URL=https://luneo.app
 BACKEND_URL=https://api.luneo.app
 ```
 
@@ -115,8 +115,8 @@ STRIPE_PRICE_BUSINESS_MONTHLY=price_...
 STRIPE_PRICE_BUSINESS_YEARLY=price_...
 STRIPE_PRICE_ENTERPRISE_MONTHLY=price_...
 STRIPE_PRICE_ENTERPRISE_YEARLY=price_...
-STRIPE_SUCCESS_URL=https://app.luneo.app/dashboard/billing/success
-STRIPE_CANCEL_URL=https://app.luneo.app/dashboard/billing/cancel
+STRIPE_SUCCESS_URL=https://luneo.app/dashboard/billing/success
+STRIPE_CANCEL_URL=https://luneo.app/dashboard/billing/cancel
 STRIPE_TRIAL_PERIOD_DAYS=14
 ```
 
@@ -143,7 +143,7 @@ SENTRY_ENVIRONMENT=production
 
 ### CORS et Securite
 ```
-CORS_ORIGINS=https://app.luneo.app,https://luneo.app,https://www.luneo.app
+CORS_ORIGINS=https://luneo.app,https://luneo.app,https://www.luneo.app
 ADMIN_DEFAULT_PASSWORD=<mot-de-passe-fort>
 ADMIN_EMAIL=admin@luneo.app
 SEED_SAMPLE_DATA=false
@@ -158,7 +158,7 @@ Dans Vercel > projet > **Settings > Environment Variables**, ajouter:
 
 ### URLs
 ```
-NEXT_PUBLIC_APP_URL=https://app.luneo.app
+NEXT_PUBLIC_APP_URL=https://luneo.app
 NEXT_PUBLIC_API_URL=https://api.luneo.app
 NEXT_PUBLIC_SITE_URL=https://luneo.app
 ```
@@ -240,9 +240,9 @@ curl https://api.luneo.app/health/terminus
 ```
 
 ### Frontend
-- [ ] Page d'accueil: https://app.luneo.app
-- [ ] Page login: https://app.luneo.app/login
-- [ ] Page pricing: https://app.luneo.app/pricing
+- [ ] Page d'accueil: https://luneo.app
+- [ ] Page login: https://luneo.app/login
+- [ ] Page pricing: https://luneo.app/pricing
 
 ### Flux complet
 1. Creer un compte (inscription)
@@ -272,7 +272,7 @@ curl https://api.luneo.app/health/terminus
 ### Uptime
 Configurer Better Stack ou Pingdom:
 - `GET https://api.luneo.app/health` (toutes les 1 min)
-- `GET https://app.luneo.app` (toutes les 5 min)
+- `GET https://luneo.app` (toutes les 5 min)
 
 ### Slack
 Si `SLACK_WEBHOOK_URL` est configure, les deployments envoient des notifications.

@@ -168,10 +168,10 @@ async function bootstrap() {
         update: {},
         create: {
           email: finalAdminEmail,
-          password: adminPassword,
+          passwordHash: adminPassword,
           firstName: 'Admin',
           lastName: 'Luneo',
-          role: 'PLATFORM_ADMIN',
+          role: 'ADMIN',
           emailVerified: true,
         },
       });
@@ -259,7 +259,6 @@ async function bootstrap() {
     
     // Fallback: origines en dur si CORS_ORIGINS non défini
     const productionOrigins = [
-      'https://app.luneo.app',
       'https://luneo.app',
       'https://www.luneo.app',
       'https://api.luneo.app',
@@ -347,7 +346,7 @@ async function bootstrap() {
           // SECURITY FIX: Restrict imgSrc to known domains instead of wildcard https:
           imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', 'https://cdn.luneo.app', 'https://lh3.googleusercontent.com', 'https://avatars.githubusercontent.com'],
           // SECURITY FIX: Restrict connectSrc to known API domains instead of wildcard https:
-          connectSrc: ["'self'", 'https://api.stripe.com', 'https://api.openai.com', 'https://api.cloudinary.com', 'https://api.luneo.app', 'https://app.luneo.app'],
+          connectSrc: ["'self'", 'https://api.stripe.com', 'https://api.openai.com', 'https://api.cloudinary.com', 'https://api.luneo.app', 'https://luneo.app'],
           fontSrc: ["'self'", 'data:'],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],

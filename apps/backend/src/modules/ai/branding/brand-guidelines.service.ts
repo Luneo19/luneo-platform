@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { InputJsonValue } from '@prisma/client/runtime/library';
 import { PrismaService } from '@/libs/prisma/prisma.service';

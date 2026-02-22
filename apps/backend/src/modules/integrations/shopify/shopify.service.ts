@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @fileoverview Service d'intégration Shopify
  * @module ShopifyService

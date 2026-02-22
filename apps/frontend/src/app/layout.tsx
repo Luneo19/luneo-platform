@@ -53,24 +53,24 @@ import { serverLogger } from "@/lib/logger-server";
 export const metadata: Metadata = {
   metadataBase: new URL(SEO_BASE_URL),
   title: {
-    default: 'Luneo - Plateforme de personnalisation produit IA',
+    default: 'Luneo - Agents IA autonomes pour votre entreprise',
     template: '%s | Luneo',
   },
-  description: 'Luneo est la plateforme SaaS de personnalisation produit par IA : éditeur 2D/3D, Virtual Try-On AR, export print-ready, intégrations e-commerce (Shopify, WooCommerce).',
+  description: 'Luneo est la plateforme d\'agents IA pour automatiser votre service client, vos ventes et votre support. Deployez des agents conversationnels entraines sur vos donnees en 15 minutes, sans code.',
   keywords: [
-    'personnalisation produits',
-    'design 2D',
-    'configurateur 3D',
-    'virtual try-on',
-    'AR',
-    'print-ready',
-    'CMYK',
-    'Shopify',
-    'WooCommerce',
-    'customizer',
-    'product configurator',
-    'e-commerce',
-    'print on demand',
+    'agents IA',
+    'chatbot IA',
+    'service client automatise',
+    'support client IA',
+    'agent conversationnel',
+    'RAG',
+    'base de connaissances',
+    'automatisation support',
+    'IA entreprise',
+    'agent virtuel',
+    'NLP',
+    'intelligence artificielle',
+    'SaaS IA',
   ],
   authors: [{ name: 'Luneo Team' }],
   creator: 'Luneo',
@@ -85,21 +85,21 @@ export const metadata: Metadata = {
     locale: 'fr_FR',
     url: SEO_BASE_URL,
     siteName: 'Luneo',
-    title: 'Luneo - Plateforme de personnalisation produit IA',
-    description: 'Luneo est la plateforme SaaS de personnalisation produit par IA : éditeur 2D/3D, Virtual Try-On AR, export print-ready.',
+    title: 'Luneo - Agents IA autonomes pour votre entreprise',
+    description: 'Deployez des agents IA qui resolvent 80% des demandes clients automatiquement. Service client, ventes, support — en 15 minutes, sans code.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Luneo Platform - Product Customization',
+        alt: 'Luneo - Plateforme d\'Agents IA',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Luneo - Plateforme de personnalisation produit IA',
-    description: 'Luneo est la plateforme SaaS de personnalisation produit par IA : éditeur 2D/3D, Virtual Try-On AR, export print-ready.',
+    title: 'Luneo - Agents IA autonomes pour votre entreprise',
+    description: 'Deployez des agents IA qui resolvent 80% des demandes clients automatiquement. Service client, ventes, support — en 15 minutes, sans code.',
     images: ['/og-image.png'],
     creator: '@luneo_app',
   },
@@ -184,15 +184,15 @@ export default async function RootLayout({
     featureFlags = {
       flags: {
         enableAIGeneration: true,
-        enable3DConfigurator: true,
-        enableVirtualTryOn: true,
-        enableARExport: true,
-        enableBulkGeneration: true,
+        enable3DConfigurator: false,
+        enableVirtualTryOn: false,
+        enableARExport: false,
+        enableBulkGeneration: false,
         enableAdvancedAnalytics: true,
         enableTeamCollaboration: true,
         enableShopifyIntegration: true,
         enableWooCommerceIntegration: true,
-        enablePrintfulIntegration: true,
+        enablePrintfulIntegration: false,
         enableNewPricingPage: true,
         enableReferralProgram: true,
         enableNotificationCenter: true,
@@ -257,9 +257,11 @@ export default async function RootLayout({
             <Suspense fallback={null}>
               <LazyAnalytics />
             </Suspense>
-            <Suspense fallback={null}>
-              <WebVitalsReporter />
-            </Suspense>
+            {process.env.NODE_ENV !== 'production' && (
+              <Suspense fallback={null}>
+                <WebVitalsReporter />
+              </Suspense>
+            )}
           </AnalyticsProvider>
         </Providers>
       </body>

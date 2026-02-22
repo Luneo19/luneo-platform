@@ -1,94 +1,128 @@
-'use client';
+import {
+  MessageSquareBot,
+  BookOpen,
+  BarChart3,
+  Globe,
+  BrainCircuit,
+  ShieldCheck,
+} from 'lucide-react';
 
-import React, { memo } from 'react';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Palette, Box, Camera, Sparkles, Zap, Shield } from 'lucide-react';
-import { PageHero, SectionHeader, FeatureCard } from '@/components/marketing/shared';
-import { CTASectionNew } from '@/components/marketing/home';
+const features = [
+  {
+    icon: MessageSquareBot,
+    title: 'Agents Conversationnels',
+    description:
+      'Déployez des agents IA entraînés sur vos données pour répondre automatiquement à vos clients, 24h/24 et 7j/7.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Base de Connaissances',
+    description:
+      'Importez et indexez automatiquement vos documents, FAQ et sites web pour alimenter vos agents en quelques clics.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Analytics & Insights',
+    description:
+      'Mesurez la performance de vos agents avec des tableaux de bord en temps réel : résolution, satisfaction, volumes.',
+  },
+  {
+    icon: Globe,
+    title: 'Multi-canal',
+    description:
+      'Widget web, email, Slack, WhatsApp, Telegram — déployez un agent partout où vos clients vous contactent.',
+  },
+  {
+    icon: BrainCircuit,
+    title: 'Multi-modèles IA',
+    description:
+      'GPT-4, Claude, Mistral — choisissez le modèle adapté à vos besoins et basculez en un clic.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Sécurité & Conformité',
+    description:
+      'RGPD, chiffrement AES-256, hébergement européen. Vos données restent protégées et souveraines.',
+  },
+];
 
-function FeaturesPageContent() {
-  const features = [
-    { 
-      icon: <Palette className="w-6 h-6" />, 
-      title: 'Customizer 2D', 
-      description: 'Éditeur visuel puissant avec Konva.js pour personnaliser vos produits en temps réel avec des layers illimités',
-      color: 'blue' as const
-    },
-    { 
-      icon: <Box className="w-6 h-6" />, 
-      title: 'Configurator 3D', 
-      description: 'Visualisation 3D photoréaliste avec Three.js et matériaux PBR pour un rendu de qualité professionnelle',
-      color: 'purple' as const
-    },
-    { 
-      icon: <Camera className="w-6 h-6" />, 
-      title: 'Virtual Try-On', 
-      description: 'Essayage virtuel en temps réel avec MediaPipe pour une expérience AR immersive sur mobile et web',
-      color: 'green' as const
-    },
-    { 
-      icon: <Sparkles className="w-6 h-6" />, 
-      title: 'AI Generation', 
-      description: 'Génération IA avec DALL-E 3 et bulk generation pour créer des milliers de designs en quelques minutes',
-      color: 'orange' as const
-    },
-    { 
-      icon: <Zap className="w-6 h-6" />, 
-      title: 'Performance', 
-      description: 'Optimisations avancées avec 60 FPS, lazy loading et code splitting pour des performances optimales',
-      color: 'cyan' as const
-    },
-    { 
-      icon: <Shield className="w-6 h-6" />, 
-      title: 'Security', 
-      description: 'Sécurité enterprise avec OAuth, JWT, RBAC et chiffrement de bout en bout pour protéger vos données',
-      color: 'indigo' as const
-    },
-  ];
-
+export default function FeaturesPage() {
   return (
-    <>
-      <PageHero
-        title="Fonctionnalités"
-        description="Une plateforme complète de personnalisation produits avec tous les outils dont vous avez besoin pour réussir"
-        badge="Fonctionnalités"
-        gradient="from-blue-600 via-purple-600 to-pink-600"
-      />
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      {/* Hero */}
+      <section className="relative overflow-hidden py-24 sm:py-32">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 blur-3xl" />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <span className="mb-4 inline-block rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-medium text-white/70">
+            Fonctionnalités
+          </span>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            Tout ce qu&apos;il faut pour{' '}
+            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              automatiser votre support
+            </span>
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-white/60">
+            Une plateforme complète d&apos;agents IA pour transformer votre
+            relation client. Déploiement rapide, résultats immédiats.
+          </p>
+        </div>
+      </section>
 
-      <section className="dark-section relative py-20 sm:py-24 md:py-32 noise-overlay">
-        <div className="absolute inset-0 gradient-mesh-purple" />
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            title="Tout ce dont vous avez besoin pour réussir"
-            description="Des fonctionnalités puissantes conçues pour vous aider à créer, lancer et faire croître vos produits personnalisés"
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-            {features.map((feature, index) => (
-              <FeatureCard
-                key={feature.title}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-                color={feature.color}
-                staggerIndex={index}
-              />
-            ))}
+      {/* Feature Grid */}
+      <section className="relative pb-24 sm:pb-32">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.03] p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.12] hover:bg-white/[0.05]"
+                >
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-1 ring-white/10">
+                    <Icon className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-white">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-white/60">
+                    {feature.description}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <CTASectionNew />
-    </>
-  );
-}
-
-const MemoizedFeaturesPageContent = memo(FeaturesPageContent);
-
-export default function FeaturesPage() {
-  return (
-    <ErrorBoundary level="page" componentName="FeaturesPage">
-      <MemoizedFeaturesPageContent />
-    </ErrorBoundary>
+      {/* CTA */}
+      <section className="relative border-t border-white/[0.06] py-24">
+        <div className="absolute inset-0 bg-gradient-to-t from-purple-600/5 to-transparent" />
+        <div className="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold sm:text-4xl">
+            Prêt à déployer votre premier agent ?
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-white/60">
+            Créez un compte gratuit et lancez votre agent IA en moins de 5
+            minutes. Aucune carte bancaire requise.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <a
+              href="/register"
+              className="inline-flex items-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-3 font-medium text-white shadow-lg shadow-purple-500/25 transition-all hover:shadow-purple-500/40"
+            >
+              Commencer gratuitement
+            </a>
+            <a
+              href="/contact"
+              className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-8 py-3 font-medium text-white/80 transition-all hover:bg-white/[0.08]"
+            >
+              Contacter l&apos;équipe
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

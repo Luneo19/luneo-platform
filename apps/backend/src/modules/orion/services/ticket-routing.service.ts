@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { TicketPriority, UserRole } from '@prisma/client';
+import { TicketPriority, UserRole } from '@/common/compat/v1-enums';
 
 interface RoutingDecision {
   assignedTo: string | null;

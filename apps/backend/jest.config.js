@@ -17,7 +17,13 @@ module.exports = {
   testRegex,
   testPathIgnorePatterns: isIntegration ? [] : ['integration\\.spec\\.ts$'],
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': [
+      'ts-jest',
+      {
+        isolatedModules: true,
+        tsconfig: { skipLibCheck: true },
+      },
+    ],
   },
   collectCoverageFrom: [
     'src/**/*.(t|j)s',
@@ -38,6 +44,8 @@ module.exports = {
     '^@/libs/(.*)$': '<rootDir>/src/libs/$1',
     // Mock native canvas module (not available outside Docker)
     '^canvas$': '<rootDir>/src/common/test/__mocks__/canvas.ts',
+    // Mock Pinecone (optional dependency, not needed for unit tests)
+    '^@pinecone-database/pinecone$': '<rootDir>/src/common/test/__mocks__/pinecone.ts',
   },
   coverageThreshold: {
     global: {

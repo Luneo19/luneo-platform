@@ -28,7 +28,7 @@ function QuickstartPageContent() {
             <h2 className="text-3xl font-bold mb-6 text-white">Étape 1 : Créer un compte</h2>
             <div className="bg-gray-800/50 border border-gray-700 text-gray-300 p-4 rounded-lg mb-4">
               <pre className="text-sm">{`# Via l'interface web
-https://app.luneo.app/register
+https://luneo.app/register
 
 # Ou via API
 curl -X POST https://api.luneo.app/v1/auth/signup \\

@@ -1,389 +1,358 @@
-import { PrismaClient, UserRole, BrandStatus, DesignStatus } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
-import { seedIndustries } from './seed/industry.seed';
+import { PrismaClient } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.log('🌱 Seeding Luneo V2 database...');
 
-  // Ensure critical columns exist (in case migrations were marked as applied but not executed)
-  // Execute each SQL command separately (PostgreSQL doesn't support multiple commands in one statement)
-  try {
-    console.log('🔧 Verifying critical database columns before seed...');
-    const columnQueries = [
-      // User 2FA columns
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "is_2fa_enabled" BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "two_fa_secret" TEXT',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "temp_2fa_secret" TEXT',
-      'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backup_codes" TEXT[] DEFAULT ARRAY[]::TEXT[]',
-      // Product columns (used by CacheWarmingService)
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "slug" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "negativePrompt" TEXT',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT NOT NULL DEFAULT \'openai\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "generationQuality" TEXT NOT NULL DEFAULT \'standard\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputFormat" TEXT NOT NULL DEFAULT \'png\'',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputWidth" INTEGER NOT NULL DEFAULT 1024',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "outputHeight" INTEGER NOT NULL DEFAULT 1024',
-      'ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT true',
-      // Brand columns (used by CacheWarmingService)
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxMonthlyGenerations" INTEGER NOT NULL DEFAULT 100',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "maxProducts" INTEGER NOT NULL DEFAULT 5',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "arEnabled" BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "whiteLabel" BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)',
-      // Create SubscriptionPlan enum if it doesn't exist, then add subscriptionPlan column
-      'DO $$ BEGIN CREATE TYPE "SubscriptionPlan" AS ENUM (\'FREE\', \'STARTER\', \'PROFESSIONAL\', \'ENTERPRISE\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionPlan" "SubscriptionPlan" NOT NULL DEFAULT \'FREE\'',
-      // Create SubscriptionStatus enum if it doesn't exist, then add subscriptionStatus column
-      'DO $$ BEGIN CREATE TYPE "SubscriptionStatus" AS ENUM (\'ACTIVE\', \'PAST_DUE\', \'CANCELED\', \'TRIALING\'); EXCEPTION WHEN duplicate_object THEN null; END $$',
-      'ALTER TABLE "Brand" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT \'TRIALING\'',
-    ];
-
-    for (const query of columnQueries) {
-      try {
-        await prisma.$executeRawUnsafe(query);
-      } catch (queryError: any) {
-        // Ignore individual column errors (may already exist)
-        console.debug(`  ⚠️  Skipped column check (may already exist): ${query.substring(0, 50)}...`);
-      }
-    }
-    console.log('✅ Critical columns verified/created');
-  } catch (error: any) {
-    // Non-critical - columns may already exist or migration already applied
-    console.log('ℹ️ Column verification (non-critical):', error.message?.substring(0, 100));
-  }
-
-  // Create platform admin user
-  const adminPassword = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || 'admin123', 12);
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@luneo.com' },
+  // 1. Super admin
+  const adminPassword = await bcrypt.hash('Admin123!', 10);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@luneo.app' },
     update: {},
     create: {
-      email: 'admin@luneo.com',
-      password: adminPassword,
-      firstName: 'Admin',
-      lastName: 'Luneo',
-      role: UserRole.PLATFORM_ADMIN,
-      emailVerified: true,
-      userQuota: {
-        create: {
-          monthlyLimit: 1000,
-          costLimitCents: 50000, // 500€
-        },
-      },
-    },
-  });
-
-  console.log('✅ Admin user created:', adminUser.email);
-
-  const shouldSeedSampleData = process.env.SEED_SAMPLE_DATA === 'true';
-
-  if (shouldSeedSampleData) {
-    // Create sample data (brand, product, design, order) - only when SEED_SAMPLE_DATA=true
-    try {
-      // Create sample brand
-      const sampleBrand = await prisma.brand.upsert({
-    where: { slug: 'sample-brand' },
-    update: {},
-    create: {
-      name: 'Sample Brand',
-      slug: 'sample-brand',
-      description: 'A sample brand for testing',
-      status: BrandStatus.VERIFIED,
-      companyName: 'Sample Brand Ltd',
-      address: '123 Sample Street',
-      city: 'Paris',
-      country: 'France',
-      postalCode: '75001',
-      phone: '+33123456789',
-      plan: 'premium',
-    },
-  });
-
-  console.log('✅ Sample brand created:', sampleBrand.name);
-
-  // Create brand admin user
-  const brandAdminPassword = await bcrypt.hash('brand123', 12);
-  const brandAdmin = await prisma.user.upsert({
-    where: { email: 'brand@luneo.com' },
-    update: {},
-    create: {
-      email: 'brand@luneo.com',
-      password: brandAdminPassword,
-      firstName: 'Brand',
+      email: 'admin@luneo.app',
+      passwordHash: adminPassword,
+      firstName: 'Super',
       lastName: 'Admin',
-      role: UserRole.BRAND_ADMIN,
       emailVerified: true,
-      brandId: sampleBrand.id,
-      userQuota: {
-        create: {
-          monthlyLimit: 500,
-          costLimitCents: 25000, // 250€
-        },
-      },
+      role: 'ADMIN',
     },
   });
+  console.log(`✅ Super admin created: ${admin.email}`);
 
-  console.log('✅ Brand admin user created:', brandAdmin.email);
-
-  // Create sample product
-  const sampleProduct = await prisma.product.upsert({
-    where: { id: 'sample-product-1' },
-    update: {},
-    create: {
-      id: 'sample-product-1',
-      name: 'T-Shirt Personnalisé',
-      slug: 't-shirt-personnalise',
-      description: 'T-shirt en coton bio personnalisable',
-      sku: 'TSH-001',
-      price: 29.99,
-      currency: 'EUR',
-      images: [
-        'https://example.com/tshirt-white.jpg',
-        'https://example.com/tshirt-black.jpg',
+  // 2. Agent Templates
+  const templates = [
+    {
+      name: 'Agent Support Client',
+      slug: 'support-agent',
+      description: 'Repond aux questions clients 24/7 avec precision et empathie. Ideal pour le service client.',
+      category: 'SUPPORT' as const,
+      icon: '🎧',
+      color: '#6366F1',
+      systemPrompt: `Tu es un assistant support client expert et empathique. Tu aides les clients a resoudre leurs problemes rapidement et efficacement. Tu es toujours poli, patient et professionnel. Si tu ne connais pas la reponse, tu l'admets honnetement et proposes d'escalader vers un humain.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'escalation', enabled: true },
+        { type: 'sentiment', enabled: true },
+      ]),
+      capabilities: ['FAQ', 'Troubleshooting', 'Order tracking', 'Returns', 'Escalation'],
+      tools: ['knowledge_search', 'escalate_to_human', 'create_ticket'],
+      requiredSources: ['faq', 'documentation'],
+      suggestedQuestions: [
+        'Quel est le delai de livraison ?',
+        'Comment retourner un article ?',
+        'Je n\'ai pas recu ma commande',
       ],
-      model3dUrl: 'https://example.com/tshirt-3d.glb',
-      modelConfig: {
-        scale: 1.0,
-        rotation: [0, 0, 0],
-        position: [0, 0, 0],
-      },
-      customizationOptions: {
-        colors: ['white', 'black', 'blue', 'red'],
-        sizes: ['S', 'M', 'L', 'XL'],
-        materials: ['cotton', 'polyester'],
-      },
-      brandId: sampleBrand.id,
-      isActive: true,
-      isPublic: true,
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Importer votre FAQ', description: 'Uploadez vos documents FAQ ou connectez votre base de connaissances' },
+        { step: 2, title: 'Configurer l\'escalation', description: 'Definissez quand l\'agent doit passer la main a un humain' },
+        { step: 3, title: 'Personnaliser le ton', description: 'Ajustez le ton et le style de reponse' },
+        { step: 4, title: 'Tester et deployer', description: 'Testez votre agent et deployez-le sur vos canaux' },
+      ]),
+      estimatedSetupTime: 15,
+      targetUseCases: ['customer-support', 'helpdesk', 'faq-automation'],
     },
-  });
-
-  console.log('✅ Sample product created:', sampleProduct.name);
-
-  // Create sample design
-  const sampleDesign = await prisma.design.upsert({
-    where: { id: 'sample-design-1' },
-    update: {},
-    create: {
-      id: 'sample-design-1',
-      name: 'Design Floral',
-      description: 'Design floral élégant',
-      prompt: 'A beautiful floral pattern with roses and leaves',
-      options: {
-        style: 'realistic',
-        colors: ['pink', 'green'],
-        resolution: '1024x1024',
-      },
-      status: DesignStatus.COMPLETED,
-      previewUrl: 'https://example.com/design-preview.jpg',
-      highResUrl: 'https://example.com/design-highres.jpg',
-      costCents: 50,
-      provider: 'openai',
-      metadata: {
-        model: 'dall-e-3',
-        duration: 5000,
-        tokens: 100,
-      },
-      userId: brandAdmin.id,
-      brandId: sampleBrand.id,
-      productId: sampleProduct.id,
-      completedAt: new Date(),
+    {
+      name: 'Agent Sales SDR',
+      slug: 'sales-sdr-agent',
+      description: 'Qualifie les leads, repond aux questions produit et book des demos automatiquement.',
+      category: 'SALES' as const,
+      icon: '📈',
+      color: '#10B981',
+      systemPrompt: `Tu es un SDR (Sales Development Representative) expert. Tu qualifies les leads en posant les bonnes questions, tu reponds aux questions sur le produit/service, et tu proposes de booker une demo quand le lead est qualifie. Tu es enthousiaste mais pas agressif.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'lead_qualification', enabled: true },
+        { type: 'calendar_booking', enabled: false },
+      ]),
+      capabilities: ['Lead qualification', 'Product info', 'Demo booking', 'Pricing questions'],
+      tools: ['knowledge_search', 'qualify_lead', 'book_demo', 'send_email'],
+      requiredSources: ['product-catalog', 'pricing'],
+      suggestedQuestions: [
+        'Quels sont vos tarifs ?',
+        'Pouvez-vous me faire une demo ?',
+        'Quelle est la difference entre vos plans ?',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Importer catalogue produit', description: 'Connectez vos fiches produits et tarifs' },
+        { step: 2, title: 'Definir criteres de qualification', description: 'Configurez votre scoring de leads' },
+        { step: 3, title: 'Connecter calendrier', description: 'Liez Calendly ou Google Calendar pour les demos' },
+        { step: 4, title: 'Tester et deployer', description: 'Testez votre SDR virtuel' },
+      ]),
+      estimatedSetupTime: 20,
+      targetUseCases: ['lead-generation', 'sales-qualification', 'demo-booking'],
     },
-  });
-
-  console.log('✅ Sample design created:', sampleDesign.name);
-
-  // Create sample order
-  const sampleOrder = await prisma.order.upsert({
-    where: { id: 'sample-order-1' },
-    update: {},
-    create: {
-      id: 'sample-order-1',
-      orderNumber: 'ORD-20241219-001',
-      status: 'PAID',
-      customerEmail: 'customer@example.com',
-      customerName: 'John Doe',
-      customerPhone: '+33123456789',
-      shippingAddress: {
-        street: '456 Customer Street',
-        city: 'Lyon',
-        country: 'France',
-        postalCode: '69001',
-      },
-      subtotalCents: 2999,
-      taxCents: 600,
-      shippingCents: 0,
-      totalCents: 3599,
-      currency: 'EUR',
-      paymentStatus: 'SUCCEEDED',
-      stripePaymentId: 'pi_sample_123',
-      userId: brandAdmin.id,
-      brandId: sampleBrand.id,
-      designId: sampleDesign.id,
-      productId: sampleProduct.id,
-      paidAt: new Date(),
+    {
+      name: 'Agent Onboarding',
+      slug: 'onboarding-agent',
+      description: 'Guide les nouveaux utilisateurs etape par etape a travers votre produit.',
+      category: 'ONBOARDING' as const,
+      icon: '🚀',
+      color: '#F59E0B',
+      systemPrompt: `Tu es un guide d'onboarding patient et pedagogique. Tu accompagnes les nouveaux utilisateurs dans la decouverte du produit, etape par etape. Tu t'adaptes au niveau de l'utilisateur et tu utilises des exemples concrets.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'progress_tracking', enabled: true },
+      ]),
+      capabilities: ['Step-by-step guidance', 'Feature discovery', 'Tutorial', 'Best practices'],
+      tools: ['knowledge_search', 'track_progress', 'suggest_next_step'],
+      requiredSources: ['documentation', 'tutorials'],
+      suggestedQuestions: [
+        'Comment commencer ?',
+        'Quelle est la prochaine etape ?',
+        'Montrez-moi comment faire',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Importer documentation', description: 'Uploadez vos guides et tutoriels' },
+        { step: 2, title: 'Definir le parcours', description: 'Creez les etapes d\'onboarding' },
+        { step: 3, title: 'Tester et deployer', description: 'Testez le parcours complet' },
+      ]),
+      estimatedSetupTime: 15,
+      targetUseCases: ['user-onboarding', 'product-tour', 'feature-adoption'],
     },
-  });
+    {
+      name: 'Agent FAQ Intelligent',
+      slug: 'faq-agent',
+      description: 'Repond instantanement aux questions frequentes a partir de votre base de connaissances.',
+      category: 'SUPPORT' as const,
+      icon: '❓',
+      color: '#3B82F6',
+      systemPrompt: `Tu es un assistant FAQ specialise. Tu reponds aux questions frequentes de maniere precise et concise en te basant uniquement sur la base de connaissances fournie. Si une question sort de ton domaine, tu le dis clairement.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+      ]),
+      capabilities: ['FAQ search', 'Quick answers', 'Source citation'],
+      tools: ['knowledge_search'],
+      requiredSources: ['faq'],
+      suggestedQuestions: [
+        'Comment ca marche ?',
+        'Quels sont les horaires ?',
+        'Comment vous contacter ?',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Importer votre FAQ', description: 'Uploadez vos FAQ existantes' },
+        { step: 2, title: 'Tester et deployer', description: 'Verifiez les reponses et deployez' },
+      ]),
+      estimatedSetupTime: 10,
+      targetUseCases: ['faq-automation', 'self-service'],
+    },
+    {
+      name: 'Agent Avis & Reviews',
+      slug: 'reviews-agent',
+      description: 'Collecte et repond aux avis clients automatiquement.',
+      category: 'REVIEWS' as const,
+      icon: '⭐',
+      color: '#EF4444',
+      systemPrompt: `Tu es un specialiste de la gestion des avis clients. Tu reponds aux avis positifs avec gratitude et aux avis negatifs avec empathie et solutions concretes. Tu cherches toujours a transformer une experience negative en positive.`,
+      defaultModules: JSON.stringify([
+        { type: 'sentiment', enabled: true },
+        { type: 'escalation', enabled: true },
+      ]),
+      capabilities: ['Review response', 'Sentiment analysis', 'Feedback collection', 'Escalation'],
+      tools: ['knowledge_search', 'analyze_sentiment', 'escalate_to_human'],
+      requiredSources: ['product-catalog', 'policies'],
+      suggestedQuestions: [
+        'J\'ai un probleme avec mon achat',
+        'Je suis tres satisfait !',
+        'Comment laisser un avis ?',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Definir les politiques', description: 'Importez vos politiques de retour et garantie' },
+        { step: 2, title: 'Configurer les reponses', description: 'Personnalisez les templates de reponses' },
+        { step: 3, title: 'Tester et deployer', description: 'Testez avec des exemples d\'avis' },
+      ]),
+      estimatedSetupTime: 15,
+      targetUseCases: ['review-management', 'customer-feedback', 'reputation-management'],
+    },
+    {
+      name: 'Agent Email Triage',
+      slug: 'email-triage-agent',
+      description: 'Trie, categorise et repond automatiquement aux emails entrants.',
+      category: 'EMAIL' as const,
+      icon: '📧',
+      color: '#8B5CF6',
+      systemPrompt: `Tu es un assistant de triage email. Tu analyses chaque email entrant, tu le categorises (support, vente, spam, urgent), tu rediges une reponse appropriee et tu escalades si necessaire. Tu es precis et rapide.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'classification', enabled: true },
+        { type: 'escalation', enabled: true },
+      ]),
+      capabilities: ['Email classification', 'Auto-response', 'Priority detection', 'Routing'],
+      tools: ['knowledge_search', 'classify_email', 'send_reply', 'escalate_to_human'],
+      requiredSources: ['faq', 'email-templates'],
+      suggestedQuestions: [],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Connecter email', description: 'Connectez votre boite email (Gmail, Outlook)' },
+        { step: 2, title: 'Definir les categories', description: 'Configurez les categories de triage' },
+        { step: 3, title: 'Importer templates', description: 'Importez vos templates de reponses email' },
+        { step: 4, title: 'Tester et deployer', description: 'Testez avec des emails exemples' },
+      ]),
+      estimatedSetupTime: 20,
+      targetUseCases: ['email-automation', 'inbox-management', 'email-routing'],
+    },
+    {
+      name: 'Agent Custom',
+      slug: 'custom-agent',
+      description: 'Agent entierement personnalisable. Configurez chaque aspect selon vos besoins.',
+      category: 'CUSTOM' as const,
+      icon: '⚙️',
+      color: '#6B7280',
+      systemPrompt: `Tu es un assistant IA personnalise. Suis les instructions specifiques fournies par l'utilisateur.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+      ]),
+      capabilities: ['Customizable'],
+      tools: ['knowledge_search'],
+      requiredSources: [],
+      suggestedQuestions: [],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Definir le role', description: 'Ecrivez le prompt systeme et definissez le role de votre agent' },
+        { step: 2, title: 'Ajouter des connaissances', description: 'Importez vos documents et donnees' },
+        { step: 3, title: 'Configurer les modules', description: 'Activez les modules dont vous avez besoin' },
+        { step: 4, title: 'Tester et deployer', description: 'Testez et lancez votre agent' },
+      ]),
+      estimatedSetupTime: 30,
+      targetUseCases: ['custom'],
+    },
+    {
+      name: 'Agent RH & Recrutement',
+      slug: 'hr-recruitment-agent',
+      description: 'Repond aux candidats, explique les postes ouverts et guide le processus de recrutement.',
+      category: 'CUSTOM' as const,
+      icon: '👥',
+      color: '#8B5CF6',
+      systemPrompt: `Tu es un assistant RH specialise dans le recrutement. Tu aides les candidats a comprendre les postes disponibles, le processus de candidature et les avantages de l'entreprise. Tu es accueillant, professionnel et transparent. Tu ne promets jamais un poste et tu rediriges vers le recruteur pour les questions specifiques sur le salaire.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'escalation', enabled: true },
+      ]),
+      capabilities: ['FAQ postes ouverts', 'Process candidature', 'Avantages entreprise', 'Suivi candidature', 'Redirection recruteur'],
+      tools: ['knowledge_search', 'escalate_to_human'],
+      requiredSources: ['fiches-de-poste', 'politique-rh'],
+      suggestedQuestions: [
+        'Quels postes sont ouverts actuellement ?',
+        'Comment postuler ?',
+        'Quels sont les avantages ?',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Importer fiches de poste', description: 'Uploadez vos descriptions de postes et avantages' },
+        { step: 2, title: 'Configurer escalation', description: 'Definissez quand rediriger vers un recruteur' },
+        { step: 3, title: 'Tester et deployer', description: 'Testez avec des questions de candidats' },
+      ]),
+      estimatedSetupTime: 15,
+      targetUseCases: ['recruitment', 'hr-faq', 'candidate-support'],
+    },
+    {
+      name: 'Agent E-commerce',
+      slug: 'ecommerce-agent',
+      description: 'Gere le suivi de commandes, les retours et les questions produits pour votre boutique en ligne.',
+      category: 'SUPPORT' as const,
+      icon: '🛒',
+      color: '#10B981',
+      systemPrompt: `Tu es un assistant e-commerce expert. Tu aides les clients avec le suivi de leurs commandes, les retours et remboursements, les questions sur les produits et la livraison. Tu es patient, precis et oriente solution. Tu peux verifier le statut des commandes si l'integration Shopify est active.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'escalation', enabled: true },
+        { type: 'sentiment', enabled: true },
+      ]),
+      capabilities: ['Suivi commandes', 'Retours et remboursements', 'FAQ produits', 'Livraison', 'Integration Shopify'],
+      tools: ['knowledge_search', 'get_order_status', 'escalate_to_human'],
+      requiredSources: ['faq-produits', 'politique-retour', 'guide-livraison'],
+      suggestedQuestions: [
+        'Ou en est ma commande ?',
+        'Comment faire un retour ?',
+        'Quels sont les delais de livraison ?',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Connecter Shopify', description: 'Liez votre boutique Shopify pour le suivi des commandes' },
+        { step: 2, title: 'Importer FAQ', description: 'Uploadez vos FAQ produits et politiques de retour' },
+        { step: 3, title: 'Configurer escalation', description: 'Definissez les regles d\'escalation' },
+        { step: 4, title: 'Tester et deployer', description: 'Testez avec des scenarios clients reels' },
+      ]),
+      estimatedSetupTime: 20,
+      targetUseCases: ['ecommerce-support', 'order-tracking', 'returns'],
+    },
+    {
+      name: 'Agent IT Helpdesk',
+      slug: 'it-helpdesk-agent',
+      description: 'Resout les problemes IT courants: reset mot de passe, VPN, logiciels et troubleshooting.',
+      category: 'SUPPORT' as const,
+      icon: '💻',
+      color: '#3B82F6',
+      systemPrompt: `Tu es un technicien IT helpdesk de niveau 1. Tu aides les employes avec les problemes techniques courants: reset de mot de passe, configuration VPN, installation de logiciels, problemes d'imprimante, etc. Tu suis des procedures precises et tu escalades vers le niveau 2 si le probleme est complexe. Tu es patient et pedagogique.`,
+      defaultModules: JSON.stringify([
+        { type: 'rag', enabled: true },
+        { type: 'escalation', enabled: true },
+      ]),
+      capabilities: ['Reset mot de passe', 'Configuration VPN', 'Installation logiciels', 'Troubleshooting', 'Tickets IT'],
+      tools: ['knowledge_search', 'create_ticket', 'escalate_to_human'],
+      requiredSources: ['procedures-it', 'faq-technique', 'guide-vpn'],
+      suggestedQuestions: [
+        'J\'ai oublie mon mot de passe',
+        'Comment configurer le VPN ?',
+        'Mon imprimante ne fonctionne pas',
+      ],
+      setupSteps: JSON.stringify([
+        { step: 1, title: 'Importer procedures IT', description: 'Uploadez vos guides et procedures techniques' },
+        { step: 2, title: 'Configurer escalation', description: 'Definissez quand passer au niveau 2' },
+        { step: 3, title: 'Tester et deployer', description: 'Testez avec des tickets IT reels' },
+      ]),
+      estimatedSetupTime: 15,
+      targetUseCases: ['it-support', 'helpdesk', 'technical-support'],
+    },
+  ];
 
-      console.log('✅ Sample order created:', sampleOrder.orderNumber);
-
-      // --- Additional seed data for all verticals ---
-
-      // Project + Workspace
-      const sampleProject = await prisma.project.upsert({
-        where: { id: 'sample-project-1' },
+  for (const template of templates) {
+    await prisma.agentTemplate.upsert({
+      where: { slug: template.slug },
         update: {},
         create: {
-          id: 'sample-project-1',
-          name: 'Mon Premier Projet',
-          slug: 'mon-premier-projet',
-          description: 'Projet de test pour la plateforme',
-          type: 'DESIGN',
-          status: 'ACTIVE',
-          brandId: sampleBrand.id,
+        ...template,
+        defaultModules: JSON.parse(template.defaultModules as string),
+        setupSteps: JSON.parse(template.setupSteps as string),
+        targetIndustries: [],
+        targetCompanySizes: [],
         },
       });
-      console.log('✅ Sample project created:', sampleProject.name);
-
-      const sampleWorkspace = await prisma.workspace.upsert({
-        where: { id: 'sample-workspace-1' },
-        update: {},
-        create: {
-          id: 'sample-workspace-1',
-          name: 'Development',
-          slug: 'development',
-          description: 'Environnement de developpement',
-          environment: 'DEVELOPMENT',
-          isDefault: true,
-          brandId: sampleBrand.id,
-        },
-      });
-      console.log('✅ Sample workspace created:', sampleWorkspace.name);
-
-      // Team Member
-      await prisma.teamMember.upsert({
-        where: { id: 'sample-team-member-1' },
-        update: {},
-        create: {
-          id: 'sample-team-member-1',
-          organizationId: sampleBrand.id,
-          userId: brandAdmin.id,
-          email: 'brand@luneo.com',
-          role: 'admin',
-          permissions: ['brand:read', 'brand:update', 'design:create', 'design:read'],
-          status: 'active',
-          joinedAt: new Date(),
-        },
-      });
-      console.log('✅ Sample team member created');
-
-      // Team Invite
-      await prisma.teamInvite.upsert({
-        where: { id: 'sample-team-invite-1' },
-        update: {},
-        create: {
-          id: 'sample-team-invite-1',
-          organizationId: sampleBrand.id,
-          email: 'designer@example.com',
-          role: 'designer',
-          token: 'sample-invite-token-' + Date.now(),
-          invitedBy: brandAdmin.id,
-          status: 'pending',
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
-      });
-      console.log('✅ Sample team invite created');
-
-      // Try-On Configuration
-      await prisma.tryOnConfiguration.upsert({
-        where: { id: 'sample-tryon-config-1' },
-        update: {},
-        create: {
-          id: 'sample-tryon-config-1',
-          projectId: sampleProject.id,
-          name: 'Essayage Lunettes',
-          productType: 'GLASSES',
-          settings: { cameraFacing: 'user', arEnabled: true },
-          isActive: true,
-        },
-      });
-      console.log('✅ Sample try-on configuration created');
-
-      // Notification
-      await prisma.notification.upsert({
-        where: { id: 'sample-notification-1' },
-        update: {},
-        create: {
-          id: 'sample-notification-1',
-          userId: brandAdmin.id,
-          type: 'info',
-          title: 'Bienvenue sur Luneo',
-          message: 'Votre compte a ete configure avec succes. Explorez les fonctionnalites !',
-          read: false,
-          actionUrl: '/dashboard/overview',
-          actionLabel: 'Voir le dashboard',
-        },
-      });
-      console.log('✅ Sample notification created');
-
-      // API Key
-      await prisma.apiKey.upsert({
-        where: { id: 'sample-apikey-1' },
-        update: {},
-        create: {
-          id: 'sample-apikey-1',
-          name: 'Test API Key',
-          key: 'lun_test_' + Date.now(),
-          scopes: ['read', 'write'],
-          permissions: ['products:read', 'orders:read', 'orders:create'],
-          isActive: true,
-          brandId: sampleBrand.id,
-        },
-      });
-      console.log('✅ Sample API key created');
-
-      // Discount
-      await prisma.discount.upsert({
-        where: { id: 'sample-discount-1' },
-        update: {},
-        create: {
-          id: 'sample-discount-1',
-          code: 'WELCOME20',
-          type: 'PERCENTAGE',
-          value: 20,
-          validFrom: new Date(),
-          validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-          usageLimit: 100,
-          usageCount: 0,
-          isActive: true,
-          brandId: sampleBrand.id,
-          description: 'Remise de bienvenue 20% pour les nouveaux clients',
-        },
-      });
-      console.log('✅ Sample discount code WELCOME20 created');
-      console.log('Sample data seeded (SEED_SAMPLE_DATA=true)');
-    } catch (sampleDataError: any) {
-      // Non-critical - sample data creation failed, but admin was created
-      console.log('⚠️ Sample data creation failed (non-critical):', sampleDataError.message?.substring(0, 200));
-      console.log('✅ Admin user was created successfully - seed partially completed');
-    }
-  } else {
-    console.log('Skipping sample data (set SEED_SAMPLE_DATA=true to seed)');
   }
+  console.log(`✅ ${templates.length} agent templates created`);
 
-  // Seed industries and their configurations (idempotent)
-  await seedIndustries(prisma);
-  console.log('✅ Industries seeded');
+  // 3. Feature Flags
+  const featureFlags = [
+    { key: 'agents.multi_agent', name: 'Multi-agent orchestration', enabled: false, rolloutPercentage: 0 },
+    { key: 'agents.voice', name: 'Voice conversations', enabled: false, rolloutPercentage: 0 },
+    { key: 'channels.whatsapp', name: 'WhatsApp channel', enabled: false, rolloutPercentage: 0 },
+    { key: 'channels.instagram', name: 'Instagram DM channel', enabled: false, rolloutPercentage: 0 },
+    { key: 'channels.email', name: 'Email channel', enabled: true, rolloutPercentage: 100 },
+    { key: 'channels.slack', name: 'Slack channel', enabled: true, rolloutPercentage: 100 },
+    { key: 'analytics.advanced', name: 'Advanced analytics', enabled: true, rolloutPercentage: 100 },
+    { key: 'analytics.roi', name: 'ROI calculator', enabled: true, rolloutPercentage: 100 },
+    { key: 'integrations.shopify', name: 'Shopify integration', enabled: true, rolloutPercentage: 100 },
+    { key: 'integrations.hubspot', name: 'HubSpot integration', enabled: false, rolloutPercentage: 0 },
+    { key: 'integrations.zapier', name: 'Zapier integration', enabled: true, rolloutPercentage: 100 },
+    { key: 'knowledge.website_crawler', name: 'Website crawler', enabled: true, rolloutPercentage: 100 },
+    { key: 'knowledge.api_connectors', name: 'API connectors', enabled: false, rolloutPercentage: 0 },
+    { key: 'billing.usage_metering', name: 'Usage-based billing', enabled: true, rolloutPercentage: 100 },
+  ];
 
-  console.log('🎉 Database seed completed successfully!');
+  for (const flag of featureFlags) {
+    await prisma.featureFlag.upsert({
+      where: { key: flag.key },
+        update: {},
+      create: flag,
+    });
+  }
+  console.log(`✅ ${featureFlags.length} feature flags created`);
+
+  console.log('🎉 Seed completed!');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error during seed:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

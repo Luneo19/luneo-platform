@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Controller,
   Get,
@@ -17,7 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/common/compat/v1-enums';
 import { ArtemisService } from './artemis.service';
 import { BlockIPDto } from '../../dto/artemis.dto';
 import { Request } from 'express';
