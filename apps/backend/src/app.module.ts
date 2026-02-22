@@ -39,7 +39,6 @@ import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
-import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { SearchModule } from './modules/search/search.module';
 import { SupportModule } from './modules/support/support.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
@@ -69,13 +68,6 @@ import { AnalyticsModule as PublicApiAnalyticsModule } from './modules/public-ap
 
 // Integration sub-modules (kept for V2 connectors)
 import { ShopifyModule } from './modules/integrations/shopify/shopify.module';
-
-// =============================================
-// MODULES A REFACTORER (4 modules - contenu a adapter)
-// =============================================
-import { AiModule } from './modules/ai/ai.module';
-import { OrionModule } from './modules/orion/orion.module';
-import { GenerationModule } from './modules/generation/generation.module';
 
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 
@@ -230,7 +222,6 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     EmailModule,
     FeatureFlagsModule,
     CronJobsModule,
-    CollaborationModule,
     SearchModule,
     SupportModule,
     WebhooksModule,
@@ -261,11 +252,6 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
 
     // --- Organizations (renamed from brands) ---
     OrganizationsModule,
-
-    // --- Modules to refactor deeply ---
-    // AiModule, // V1 AI Studio (image/video generation) - disabled for V2
-    // OrionModule, // V1 admin super-intelligence - complex deps, disabled for V2
-    // GenerationModule, // V1 module - circular dependency, disabled
 
     // --- V2 Agent IA modules ---
     AgentsModule,
