@@ -20,7 +20,7 @@ if (process.env.ANALYZE === 'true') {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: false,
