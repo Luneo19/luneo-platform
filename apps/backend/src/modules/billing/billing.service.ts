@@ -231,7 +231,7 @@ export class BillingService {
     }
 
     // Restrict self-service checkout to allowed plans only (Enterprise requires contact sales)
-    const SELF_SERVICE_PLANS = ['starter', 'professional', 'business'];
+    const SELF_SERVICE_PLANS = ['pro', 'business'];
     if (!SELF_SERVICE_PLANS.includes(planId.toLowerCase())) {
       throw new BadRequestException(
         `Le plan "${planId}" n'est pas disponible en self-service. Veuillez contacter notre équipe commerciale.`,
@@ -277,11 +277,7 @@ export class BillingService {
 
       // BILLING FIX: No more test fallbacks in production
       planPriceIds = {
-        starter: {
-          monthly: getPriceId('stripe.priceStarterMonthly', 'price_test_starter_monthly'),
-          yearly: getPriceId('stripe.priceStarterYearly', 'price_test_starter_yearly'),
-        },
-        professional: {
+        pro: {
           monthly: getPriceId('stripe.priceProMonthly', 'price_test_pro_monthly'),
           yearly: getPriceId('stripe.priceProYearly', 'price_test_pro_yearly'),
         },
@@ -844,7 +840,7 @@ export class BillingService {
    * - Downgrades: Appliquer à la fin de la période courante
    * 
    * @param userId - ID de l'utilisateur
-   * @param newPlanId - ID du nouveau plan (starter, professional, business, enterprise)
+   * @param newPlanId - ID du nouveau plan (pro, business, enterprise)
    * @param options - Options de changement de plan
    */
   async changePlan(
@@ -1078,8 +1074,7 @@ export class BillingService {
 
       // 10. Mettre à jour la base de données locale avec protection transactionnelle
       const planMapping: Record<string, Plan> = {
-        'starter': 'STARTER',
-        'professional': 'PRO',
+        'pro': 'PRO',
         'business': 'BUSINESS',
         'enterprise': 'ENTERPRISE',
       };
@@ -1090,7 +1085,7 @@ export class BillingService {
             await tx.organization.update({
               where: { id: org.id },
               data: {
-                plan: planMapping[newPlanId] || 'STARTER',
+                plan: planMapping[newPlanId] || 'PRO',
                 ...(isUpgrade ? { status: 'ACTIVE' as OrgStatus } : {}),
               },
             });
@@ -1177,11 +1172,8 @@ export class BillingService {
     const priceIdMappings: Record<string, { planName: string; interval: string }> = {};
     
     // Construire le mapping depuis la configuration
-    // Include both 'Pro' and 'Professional' variants since config uses 'Pro' shorthand
     const plans: Array<{ configName: string; planName: string }> = [
-      { configName: 'Starter', planName: 'starter' },
-      { configName: 'Pro', planName: 'professional' },
-      { configName: 'Professional', planName: 'professional' },
+      { configName: 'Pro', planName: 'pro' },
       { configName: 'Business', planName: 'business' },
       { configName: 'Enterprise', planName: 'enterprise' },
     ];
@@ -1207,13 +1199,10 @@ export class BillingService {
    * Get Stripe Price ID for a plan
    */
   private getPriceIdForPlan(planId: string, interval: 'monthly' | 'yearly'): string | null {
-    // BILLING FIX: Map plan names to their config key names.
-    // 'professional' maps to 'Pro' in config (stripe.priceProMonthly),
-    // not 'Professional' (which would be stripe.priceProfessionalMonthly - doesn't exist).
     const PLAN_CONFIG_MAP: Record<string, string> = {
-      starter: 'Starter',
-      professional: 'Pro',
       pro: 'Pro',
+      starter: 'Pro', // backward compat
+      professional: 'Pro', // backward compat
       business: 'Business',
       enterprise: 'Enterprise',
     };
@@ -1789,8 +1778,7 @@ export class BillingService {
   private getTrialDaysForPlan(planId: string): number {
     const defaultTrialDays = this.configService.get<number>('stripe.trialPeriodDays') || 14;
     const trialDaysByPlan: Record<string, number> = {
-      starter: 14,
-      professional: 14,
+      pro: 14,
       business: 14,
       enterprise: 30,
     };
@@ -1939,7 +1927,7 @@ export class BillingService {
       );
       const planName = planItem?.price?.metadata?.plan || syncOrg.plan || 'FREE';
       const planToEnum: Record<string, Plan> = {
-        free: 'FREE', starter: 'STARTER', professional: 'PRO',
+        free: 'FREE', starter: 'PRO', professional: 'PRO',
         pro: 'PRO', business: 'BUSINESS', enterprise: 'ENTERPRISE',
       };
       const planPeriodEnd = subscription.current_period_end

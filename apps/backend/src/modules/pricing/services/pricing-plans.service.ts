@@ -5,7 +5,7 @@
  * Conforme au plan PHASE 6 - Pricing & Rentabilité IA - Plans granulaires + Add-ons
  *
  * FONCTIONNALITÉS:
- * - Définition des plans Starter/Pro/Business/Enterprise
+ * - Définition des plans Pro/Business/Enterprise
  * - Gestion des add-ons (AI credits, AR sessions, storage)
  * - Calcul des prix avec add-ons
  * - Validation des limites par plan
@@ -29,7 +29,7 @@ import { PlanTier } from '@/libs/plans/plan-config.types';
 /**
  * Type de plan
  */
-export type PlanType = 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanType = 'pro' | 'business' | 'enterprise';
 
 /**
  * Type d'add-on
@@ -111,61 +111,30 @@ export class PricingPlansService {
 
   // ✅ Définition des plans (conforme au plan PHASE 6)
   private readonly plans: Record<PlanType, PlanConfig> = {
-    starter: {
-      id: 'starter',
-      name: 'Starter',
-      description: 'Parfait pour découvrir Luneo et tester toutes les fonctionnalités de base',
-      monthlyPriceCents: PLAN_CONFIGS[PlanTier.STARTER].pricing.monthlyPrice * 100,
-      yearlyPriceCents: PLAN_CONFIGS[PlanTier.STARTER].pricing.yearlyPrice * 100,
-      features: [
-        '50 designs/mois',
-        'Customizer 2D',
-        '100 rendus 2D/mois',
-        '10 rendus 3D/mois',
-        'Export PNG/PDF',
-        'Support standard',
-        '3 membres d\'équipe',
-        '5 GB stockage',
-      ],
-      limits: {
-        ai_generations: 20,
-        ar_sessions: 100,
-        storage_gb: 5,
-        api_calls: 10000,
-        team_members: 3,
-        designs_per_month: 50,
-        renders_2d: 100,
-        renders_3d: 10,
-      },
-      addOns: ['ai_credits', 'ar_sessions', 'storage_gb'],
-    },
-    professional: {
-      id: 'professional',
-      name: 'Professional',
+    pro: {
+      id: 'pro',
+      name: 'Pro',
       description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
-      monthlyPriceCents: PLAN_CONFIGS[PlanTier.PROFESSIONAL].pricing.monthlyPrice * 100,
-      yearlyPriceCents: PLAN_CONFIGS[PlanTier.PROFESSIONAL].pricing.yearlyPrice * 100,
+      monthlyPriceCents: PLAN_CONFIGS[PlanTier.PRO].pricing.monthlyPrice * 100,
+      yearlyPriceCents: PLAN_CONFIGS[PlanTier.PRO].pricing.yearlyPrice * 100,
       features: [
-        `${PLAN_CONFIGS[PlanTier.PROFESSIONAL].limits.conversationsPerMonth} conversations/mois`,
-        'Customizer 2D/3D',
-        `${PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'renders_2d')?.limit ?? 500} rendus 2D/mois`,
-        `${PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'renders_3d')?.limit ?? 50} rendus 3D/mois`,
-        'Export HD illimité',
-        'Configurateur 3D',
-        'Support prioritaire',
+        `${PLAN_CONFIGS[PlanTier.PRO].limits.conversationsPerMonth} conversations/mois`,
+        'Visual Builder',
+        'Canal Email',
         'API accès complet',
-        `${PLAN_CONFIGS[PlanTier.PROFESSIONAL].limits.teamMembers} membres d\'équipe`,
-        `${PLAN_CONFIGS[PlanTier.PROFESSIONAL].limits.storageGB} GB stockage`,
+        'Support prioritaire',
+        `${PLAN_CONFIGS[PlanTier.PRO].limits.teamMembers} membres d'équipe`,
+        `${PLAN_CONFIGS[PlanTier.PRO].limits.storageGB} GB stockage`,
       ],
       limits: {
-        ai_generations: PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'ai_generations')?.limit ?? 100,
-        ar_sessions: PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'virtual_tryons')?.limit ?? 1000,
-        storage_gb: PLAN_CONFIGS[PlanTier.PROFESSIONAL].limits.storageGB,
-        api_calls: PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'api_calls')?.limit ?? 50000,
-        team_members: PLAN_CONFIGS[PlanTier.PROFESSIONAL].limits.teamMembers,
-        designs_per_month: PLAN_CONFIGS[PlanTier.PROFESSIONAL].limits.conversationsPerMonth,
-        renders_2d: PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'renders_2d')?.limit ?? 500,
-        renders_3d: PLAN_CONFIGS[PlanTier.PROFESSIONAL].quotas.find(q => q.metric === 'renders_3d')?.limit ?? 50,
+        ai_generations: PLAN_CONFIGS[PlanTier.PRO].quotas.find(q => q.metric === 'ai_generations')?.limit ?? 100,
+        ar_sessions: PLAN_CONFIGS[PlanTier.PRO].quotas.find(q => q.metric === 'virtual_tryons')?.limit ?? 1000,
+        storage_gb: PLAN_CONFIGS[PlanTier.PRO].limits.storageGB,
+        api_calls: PLAN_CONFIGS[PlanTier.PRO].quotas.find(q => q.metric === 'api_calls')?.limit ?? 50000,
+        team_members: PLAN_CONFIGS[PlanTier.PRO].limits.teamMembers,
+        designs_per_month: PLAN_CONFIGS[PlanTier.PRO].limits.conversationsPerMonth,
+        renders_2d: PLAN_CONFIGS[PlanTier.PRO].quotas.find(q => q.metric === 'renders_2d')?.limit ?? 500,
+        renders_3d: PLAN_CONFIGS[PlanTier.PRO].quotas.find(q => q.metric === 'renders_3d')?.limit ?? 50,
       },
       addOns: ['ai_credits', 'ar_sessions', 'storage_gb', 'api_calls', 'team_members'],
     },
@@ -239,56 +208,56 @@ export class PricingPlansService {
         { minQuantity: 500, discountPercent: 10 }, // 10% de remise à partir de 500 crédits
         { minQuantity: 1000, discountPercent: 15 }, // 15% de remise à partir de 1000 crédits
       ],
-      availableForPlans: ['starter', 'professional', 'business', 'enterprise'],
+      availableForPlans: ['pro', 'business', 'enterprise'],
     },
     ar_sessions: {
       id: 'ar_sessions',
       name: 'Sessions AR supplémentaires',
       description: 'Pack de sessions AR pour Virtual Try-On',
       unit: 'sessions',
-      basePriceCents: 10, // 0.10€ par session
+      basePriceCents: 10,
       bulkDiscounts: [
         { minQuantity: 1000, discountPercent: 10 },
         { minQuantity: 5000, discountPercent: 15 },
         { minQuantity: 10000, discountPercent: 20 },
       ],
-      availableForPlans: ['starter', 'professional', 'business', 'enterprise'],
+      availableForPlans: ['pro', 'business', 'enterprise'],
     },
     storage_gb: {
       id: 'storage_gb',
       name: 'Stockage supplémentaire',
       description: 'Espace de stockage supplémentaire (par GB)',
       unit: 'gb',
-      basePriceCents: 50, // 0.50€ par GB
+      basePriceCents: 50,
       bulkDiscounts: [
-        { minQuantity: 100, discountPercent: 10 }, // 10% de remise à partir de 100 GB
-        { minQuantity: 500, discountPercent: 20 }, // 20% de remise à partir de 500 GB
+        { minQuantity: 100, discountPercent: 10 },
+        { minQuantity: 500, discountPercent: 20 },
       ],
-      availableForPlans: ['starter', 'professional', 'business', 'enterprise'],
+      availableForPlans: ['pro', 'business', 'enterprise'],
     },
     api_calls: {
       id: 'api_calls',
       name: 'Appels API supplémentaires',
       description: 'Pack d\'appels API supplémentaires (par 1000 appels)',
       unit: 'calls',
-      basePriceCents: 10, // 0.10€ par 1000 appels
+      basePriceCents: 10,
       bulkDiscounts: [
         { minQuantity: 10000, discountPercent: 10 },
         { minQuantity: 100000, discountPercent: 20 },
       ],
-      availableForPlans: ['professional', 'business', 'enterprise'],
+      availableForPlans: ['pro', 'business', 'enterprise'],
     },
     team_members: {
       id: 'team_members',
       name: 'Membres d\'équipe supplémentaires',
       description: 'Ajout de membres d\'équipe supplémentaires',
       unit: 'members',
-      basePriceCents: 500, // 5€ par membre
+      basePriceCents: 500,
       bulkDiscounts: [
         { minQuantity: 5, discountPercent: 10 },
         { minQuantity: 10, discountPercent: 15 },
       ],
-      availableForPlans: ['professional', 'business', 'enterprise'],
+      availableForPlans: ['pro', 'business', 'enterprise'],
     },
   };
 

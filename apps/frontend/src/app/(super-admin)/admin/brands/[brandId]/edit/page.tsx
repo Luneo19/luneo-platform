@@ -41,8 +41,7 @@ const STATUS_OPTIONS = [
 
 const PLAN_OPTIONS = [
   { value: 'free', label: 'Free' },
-  { value: 'starter', label: 'Starter' },
-  { value: 'professional', label: 'Professional' },
+  { value: 'pro', label: 'Pro' },
   { value: 'business', label: 'Business' },
   { value: 'enterprise', label: 'Enterprise' },
 ];

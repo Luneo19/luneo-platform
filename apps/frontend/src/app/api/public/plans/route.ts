@@ -37,66 +37,21 @@ const DEFAULT_PLANS = [
     stripePriceId: null,
   },
   {
-    id: 'starter',
-    name: 'Starter',
-    description: 'Parfait pour les créateurs indépendants et petits projets',
-    price: { monthly: 19, yearly: 190 },
+    id: 'pro',
+    name: 'Pro',
+    description: 'Pour les équipes qui scalent avec les agents IA',
+    price: { monthly: 49, yearly: 468 },
     currency: 'EUR',
     features: [
-      { name: '50 designs/mois', included: true },
-      { name: 'Customizer 2D', included: true },
-      { name: '100 rendus 2D/mois', included: true },
-      { name: '10 rendus 3D/mois', included: true },
-      { name: '100 sessions Virtual Try-On/mois', included: true },
-      { name: 'Export PNG/PDF', included: true },
-      { name: 'Support email', included: true },
-      { name: '3 membres d\'équipe', included: true },
-      { name: '5 GB stockage', included: true },
-      { name: 'Commission 5%', included: true },
-      { name: 'Dépassement facturé (ex: 0,30€/try-on)', included: true },
-      { name: 'API access', included: false },
-      { name: 'Branding personnalisé', included: false },
-    ],
-    limits: {
-      designs: 50,
-      products: 10,
-      renders2D: 100,
-      renders3D: 10,
-      virtualTryons: 100,
-      tryOnScreenshots: 500,
-      storage: '5 GB',
-      apiCalls: 10000,
-      teamMembers: 3,
-    },
-    popular: false,
-    stripePriceId: process.env.STRIPE_PRICE_STARTER_MONTHLY ? {
-      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_STARTER_YEARLY || null,
-    } : null,
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
-    price: { monthly: 49, yearly: 490 },
-    currency: 'EUR',
-    features: [
-      { name: '200 designs/mois', included: true },
-      { name: 'Customizer 2D', included: true },
-      { name: 'Configurateur 3D', included: true },
-      { name: '500 rendus 2D/mois', included: true },
-      { name: '50 rendus 3D/mois', included: true },
-      { name: '1 000 sessions Virtual Try-On/mois', included: true },
-      { name: 'Export tous formats', included: true },
-      { name: 'Virtual Try-On', included: true },
-      { name: 'API access (50K calls/mois)', included: true },
+      { name: '5 agents IA', included: true },
+      { name: '2 000 conversations/mois', included: true },
+      { name: '5 bases de connaissances', included: true },
+      { name: 'Visual Builder', included: true },
+      { name: 'Canal email', included: true },
+      { name: 'API access', included: true },
       { name: 'Support prioritaire', included: true },
-      { name: '10 membres d\'équipe', included: true },
-      { name: '25 GB stockage', included: true },
-      { name: 'White-label', included: true },
-      { name: 'Webhooks temps réel', included: true },
-      { name: 'Commission 3%', included: true },
-      { name: 'Dépassement facturé (ex: 0,20€/try-on)', included: true },
+      { name: '5 membres d\'équipe', included: true },
+      { name: '10 GB stockage', included: true },
     ],
     limits: {
       designs: 200,
@@ -105,9 +60,9 @@ const DEFAULT_PLANS = [
       renders3D: 50,
       virtualTryons: 1000,
       tryOnScreenshots: 5000,
-      storage: '25 GB',
+      storage: '10 GB',
       apiCalls: 50000,
-      teamMembers: 10,
+      teamMembers: 5,
     },
     popular: true,
     stripePriceId: process.env.STRIPE_PRICE_PRO_MONTHLY ? {
@@ -118,8 +73,8 @@ const DEFAULT_PLANS = [
   {
     id: 'business',
     name: 'Business',
-    description: 'Pour les équipes qui ont besoin de collaboration et de volume',
-    price: { monthly: 99, yearly: 990 },
+    description: 'Pour les entreprises avec des besoins avancés',
+    price: { monthly: 149, yearly: 1428 },
     currency: 'EUR',
     features: [
       { name: '1000 designs/mois', included: true },
@@ -130,7 +85,7 @@ const DEFAULT_PLANS = [
       { name: 'White-label complet', included: true },
       { name: 'API & SDKs (200K calls/mois)', included: true },
       { name: 'Support dédié', included: true },
-      { name: '50 membres d\'équipe', included: true },
+      { name: '25 membres d\'équipe', included: true },
       { name: '100 GB stockage', included: true },
       { name: 'SLA 99.5%', included: true },
       { name: 'Analytics avancés', included: true },
@@ -146,7 +101,7 @@ const DEFAULT_PLANS = [
       tryOnScreenshots: 50000,
       storage: '100 GB',
       apiCalls: 200000,
-      teamMembers: 50,
+      teamMembers: 25,
     },
     popular: false,
     stripePriceId: process.env.STRIPE_PRICE_BUSINESS_MONTHLY ? {
@@ -267,7 +222,7 @@ export async function GET(request: NextRequest) {
             };
           })
           .sort((a: { id: string }, b: { id: string }) => {
-            const order = ['free', 'starter', 'professional', 'business', 'enterprise'];
+            const order = ['free', 'pro', 'business', 'enterprise'];
             return order.indexOf(a.id) - order.indexOf(b.id);
           });
 

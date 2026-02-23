@@ -78,8 +78,11 @@ function PlanLimitsContent() {
 
   const getPlanColor = useCallback((planName: string) => {
     switch (planName.toLowerCase()) {
-      case 'starter': return 'bg-gray-500';
-      case 'professional': return 'bg-blue-500';
+      case 'free': return 'bg-gray-500';
+      case 'pro':
+      case 'starter':
+      case 'professional':
+        return 'bg-blue-500';
       case 'business': return 'bg-green-500';
       case 'enterprise': return 'bg-purple-500';
       default: return 'bg-gray-500';

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { OrchestratorService } from '@/modules/orchestrator/orchestrator.service';
+import { QuotasService } from '@/modules/quotas/quotas.service';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { Observable, Subject } from 'rxjs';
@@ -19,6 +20,7 @@ export class WidgetApiService {
   constructor(
     private readonly prisma: PrismaOptimizedService,
     private readonly orchestratorService: OrchestratorService,
+    private readonly quotasService: QuotasService,
   ) {}
 
   async getWidgetConfig(widgetId: string) {
@@ -75,6 +77,8 @@ export class WidgetApiService {
     if (!channel) {
       throw new NotFoundException('Widget not found');
     }
+
+    await this.quotasService.enforceQuota(channel.agent.organizationId, 'conversations');
 
     // Validate origin against allowed domains
     const allowedOrigins = channel.widgetAllowedOrigins ?? [];

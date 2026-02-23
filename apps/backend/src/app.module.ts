@@ -57,6 +57,7 @@ import { LlmWrapperModule } from './modules/llm/llm.module';
 import { WidgetApiModule } from './modules/widget-api/widget-api.module';
 import { OrchestratorModule } from './modules/orchestrator/orchestrator.module';
 import { AgentAnalyticsModule } from './modules/agent-analytics/agent-analytics.module';
+import { QuotasModule } from './modules/quotas/quotas.module';
 
 // =============================================
 // LIBS INFRASTRUCTURE
@@ -197,6 +198,7 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     WidgetApiModule,
     OrchestratorModule,
     AgentAnalyticsModule,
+    QuotasModule,
 
     // --- Infrastructure ---
     CommonModule,

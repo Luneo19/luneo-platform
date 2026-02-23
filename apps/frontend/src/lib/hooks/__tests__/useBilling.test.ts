@@ -116,7 +116,7 @@ describe('useBilling', () => {
 
   describe('Refresh', () => {
     it('should refresh subscription and invoices', async () => {
-      const sub = { tier: 'starter', status: 'active' };
+      const sub = { tier: 'pro', status: 'active' };
       mockSubscriptionFn
         .mockResolvedValueOnce({ data: { subscription: null } })
         .mockResolvedValueOnce({ data: { subscription: sub } });

@@ -67,7 +67,7 @@ export function getTranslatedPlans(t: TFn): Plan[] {
       features: getTranslatedPlanFeatures(t, 'free'),
       limits: {
         agents: 1,
-        conversationsPerMonth: 50,
+        conversationsPerMonth: 100,
         knowledgeBases: 1,
         documentsPerKB: 10,
         storageMB: 500,
@@ -91,7 +91,7 @@ export function getTranslatedPlans(t: TFn): Plan[] {
         conversationsPerMonth: 2_000,
         knowledgeBases: 5,
         documentsPerKB: 50,
-        storageMB: 5_000,
+        storageMB: 10_000,
       },
     },
     {
@@ -106,11 +106,11 @@ export function getTranslatedPlans(t: TFn): Plan[] {
       ctaHref: '/register?plan=business',
       features: getTranslatedPlanFeatures(t, 'business'),
       limits: {
-        agents: 20,
-        conversationsPerMonth: 10_000,
-        knowledgeBases: 20,
+        agents: 25,
+        conversationsPerMonth: 15_000,
+        knowledgeBases: 25,
         documentsPerKB: 200,
-        storageMB: 25_000,
+        storageMB: 100_000,
       },
     },
     {
@@ -172,7 +172,7 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       category: 'agents',
       free: '1',
       pro: '5',
-      business: '20',
+      business: '25',
       enterprise: t('pricing.featureValues.unlimited'),
     },
     {
@@ -202,9 +202,9 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       name: fn('conversations-monthly'),
       description: fd('conversations-monthly'),
       category: 'conversations',
-      free: '50',
+      free: '100',
       pro: '2 000',
-      business: '10 000',
+      business: '15 000',
       enterprise: t('pricing.featureValues.unlimited'),
     },
     {
@@ -236,7 +236,7 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       category: 'knowledge',
       free: '1',
       pro: '5',
-      business: '20',
+      business: '25',
       enterprise: t('pricing.featureValues.unlimited'),
     },
     {
@@ -480,7 +480,7 @@ export const PLANS: Plan[] = [
       '2FA',
       'Support communautaire',
     ],
-    limits: { agents: 1, conversationsPerMonth: 50, knowledgeBases: 1, documentsPerKB: 10, storageMB: 500 },
+    limits: { agents: 1, conversationsPerMonth: 100, knowledgeBases: 1, documentsPerKB: 10, storageMB: 500 },
   },
   {
     id: 'pro',
@@ -504,7 +504,7 @@ export const PLANS: Plan[] = [
       'Historique 30 jours',
       'Support prioritaire',
     ],
-    limits: { agents: 5, conversationsPerMonth: 2_000, knowledgeBases: 5, documentsPerKB: 50, storageMB: 5_000 },
+    limits: { agents: 5, conversationsPerMonth: 2_000, knowledgeBases: 5, documentsPerKB: 50, storageMB: 10_000 },
   },
   {
     id: 'business',
@@ -528,7 +528,7 @@ export const PLANS: Plan[] = [
       'Historique illimité',
       'Support dédié',
     ],
-    limits: { agents: 20, conversationsPerMonth: 10_000, knowledgeBases: 20, documentsPerKB: 200, storageMB: 25_000 },
+    limits: { agents: 25, conversationsPerMonth: 15_000, knowledgeBases: 25, documentsPerKB: 200, storageMB: 100_000 },
   },
   {
     id: 'enterprise',

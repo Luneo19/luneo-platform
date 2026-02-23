@@ -12,7 +12,7 @@ let PLAN_CATALOG: PlanCatalog;
 let getPlanDefinition: (plan: PlanTier) => PlanDefinition;
 let listPlans: () => PlanDefinition[];
 
-type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
+type PlanTier = 'free' | 'pro' | 'business' | 'enterprise';
 type UsageMetricType = 'designs_created' | 'renders_2d' | 'renders_3d' | 'exports_gltf' | 'exports_usdz' | 'ai_generations' | 'storage_gb' | 'bandwidth_gb' | 'api_calls' | 'webhook_deliveries' | 'custom_domains' | 'team_members' | 'virtual_tryons' | 'try_on_screenshots';
 type UsagePeriod = 'hour' | 'day' | 'month';
 type OverageBehavior = 'block' | 'charge';
@@ -96,16 +96,9 @@ if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.l
       quotas: [],
       features: [],
     },
-    starter: {
-      id: 'starter',
-      name: 'Starter',
-      basePriceCents: 1_900, // €19
-      quotas: [],
-      features: [],
-    },
-    professional: {
-      id: 'professional',
-      name: 'Professional',
+    pro: {
+      id: 'pro',
+      name: 'Pro',
       basePriceCents: 4_900, // €49
       quotas: [],
       features: [],
@@ -113,14 +106,14 @@ if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.l
     business: {
       id: 'business',
       name: 'Business',
-      basePriceCents: 9_900, // €99
+      basePriceCents: 14_900, // €149
       quotas: [],
       features: [],
     },
     enterprise: {
       id: 'enterprise',
       name: 'Enterprise',
-      basePriceCents: 29_900, // €299
+      basePriceCents: 49_900, // €499
       quotas: [],
       features: [],
     },
@@ -129,10 +122,10 @@ if (mod?.PLAN_DEFINITIONS && mod?.PLAN_CATALOG && mod.getPlanDefinition && mod.l
   PLAN_CATALOG = {
     plans: PLAN_DEFINITIONS,
     defaultPlan: 'free',
-    availableTiers: ['free', 'starter', 'professional', 'business', 'enterprise'],
+    availableTiers: ['free', 'pro', 'business', 'enterprise'],
   };
   
-  getPlanDefinition = (plan: PlanTier) => PLAN_DEFINITIONS[plan] || PLAN_DEFINITIONS.starter;
+  getPlanDefinition = (plan: PlanTier) => PLAN_DEFINITIONS[plan] || PLAN_DEFINITIONS['pro'];
   listPlans = () => Object.values(PLAN_DEFINITIONS);
   
   if (typeof window === 'undefined') {

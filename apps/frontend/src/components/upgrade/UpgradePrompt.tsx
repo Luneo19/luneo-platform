@@ -25,16 +25,14 @@ interface UpgradePromptProps {
 
 const planIcons: Record<PlanTier, typeof Sparkles> = {
   free: Sparkles,
-  starter: Sparkles,
-  professional: Zap,
+  pro: Zap,
   business: Crown,
   enterprise: Building2,
 };
 
 const planColors: Record<PlanTier, string> = {
   free: 'border-gray-500/20 bg-gray-500/5',
-  starter: 'border-cyan-500/20 bg-cyan-500/5',
-  professional: 'border-purple-500/20 bg-purple-500/5',
+  pro: 'border-purple-500/20 bg-purple-500/5',
   business: 'border-amber-500/20 bg-amber-500/5',
   enterprise: 'border-rose-500/20 bg-rose-500/5',
 };

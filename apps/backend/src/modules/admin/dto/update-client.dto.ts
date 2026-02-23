@@ -7,7 +7,7 @@ export class UpdateClientDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Subscription plan', example: 'professional' })
+  @ApiPropertyOptional({ description: 'Subscription plan', example: 'pro' })
   @IsOptional()
   @IsString()
   plan?: string;

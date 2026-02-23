@@ -15,16 +15,14 @@ import type { PlanTier } from '@/lib/hooks/api/useSubscription';
 
 const PLAN_BADGE: Record<PlanTier, string> = {
   free: 'FREE',
-  starter: 'STARTER',
-  professional: 'PRO',
+  pro: 'PRO',
   business: 'BUSINESS',
   enterprise: 'ENTERPRISE',
 };
 
 const PLAN_NAME: Record<PlanTier, string> = {
   free: 'Free',
-  starter: 'Starter',
-  professional: 'Professional',
+  pro: 'Pro',
   business: 'Business',
   enterprise: 'Enterprise',
 };
@@ -102,7 +100,7 @@ export function SoftPlanGate({ minimumPlan, featureName, children }: SoftPlanGat
                 asChild
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
               >
-                <Link href="/dashboard/billing" onClick={() => setModalOpen(false)}>
+                <Link href="/billing" onClick={() => setModalOpen(false)}>
                   Passer au plan {planName}
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>

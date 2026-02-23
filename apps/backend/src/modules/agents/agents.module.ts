@@ -8,9 +8,10 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 import { AgentTemplatesModule } from '@/modules/agent-templates/agent-templates.module';
 import { OrchestratorModule } from '@/modules/orchestrator/orchestrator.module';
 import { OrchestratorService } from '@/modules/orchestrator/orchestrator.service';
+import { QuotasModule } from '@/modules/quotas/quotas.module';
 
 @Module({
-  imports: [PrismaOptimizedModule, SmartCacheModule, AgentTemplatesModule, forwardRef(() => OrchestratorModule)],
+  imports: [PrismaOptimizedModule, SmartCacheModule, AgentTemplatesModule, forwardRef(() => OrchestratorModule), QuotasModule],
   controllers: [AgentsController],
   providers: [
     AgentsService,

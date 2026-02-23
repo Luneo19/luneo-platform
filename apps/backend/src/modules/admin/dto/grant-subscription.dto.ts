@@ -2,7 +2,7 @@ import { IsString, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class GrantSubscriptionDto {
-  @ApiProperty({ description: 'Target plan ID (e.g. starter, professional, business)', example: 'professional' })
+  @ApiProperty({ description: 'Target plan ID (e.g. pro, business, enterprise)', example: 'pro' })
   @IsString()
   planId: string;
 

@@ -13,6 +13,7 @@ import { ChunkingService } from '@/libs/chunking';
 import { DocumentParserService } from '@/libs/document-parser';
 import { QueuesService, JOB_TYPES } from '@/libs/queues';
 import { StorageService } from '@/libs/storage/storage.service';
+import { QuotasService } from '@/modules/quotas/quotas.service';
 import { KBSourceType, KBSourceStatus, DocProcessingStatus } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { CreateKnowledgeBaseDto } from './dto/create-knowledge-base.dto';
@@ -42,6 +43,7 @@ export class KnowledgeService {
     private documentParser: DocumentParserService,
     private storage: StorageService,
     private queues: QueuesService,
+    private quotasService: QuotasService,
   ) {}
 
   async listBases(user: CurrentUser) {
@@ -132,6 +134,11 @@ export class KnowledgeService {
     }
 
     const base = await this.getBase(user, baseId);
+
+    if (user.organizationId) {
+      await this.quotasService.enforceQuota(user.organizationId, 'documents');
+    }
+
     const orgId = user.organizationId ?? undefined;
     const sanitizedName = (file.originalname || 'document')
       .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -172,6 +179,10 @@ export class KnowledgeService {
 
   async addSource(user: CurrentUser, baseId: string, dto: CreateKnowledgeSourceDto) {
     const base = await this.getBase(user, baseId);
+
+    if (user.organizationId) {
+      await this.quotasService.enforceQuota(user.organizationId, 'documents');
+    }
 
     this.validateSourcePayload(dto);
 

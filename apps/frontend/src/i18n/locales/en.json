@@ -183,12 +183,8 @@
     "contactSales": "Contact Sales",
     "features": "Features",
     "plans": {
-      "starter": {
-        "name": "Starter",
-        "description": "Perfect for individuals getting started"
-      },
-      "professional": {
-        "name": "Professional",
+      "pro": {
+        "name": "Pro",
         "description": "For growing teams and businesses"
       },
       "business": {

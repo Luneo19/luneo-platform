@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { EmailParserService, type ParsedEmail } from './email-parser.service';
 import { EmailOutboundService } from './email-outbound.service';
+import { OrchestratorService } from '@/modules/orchestrator/orchestrator.service';
 import { ChannelType, ConversationStatus, MessageRole } from '@prisma/client';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class EmailInboundService {
     private readonly prisma: PrismaOptimizedService,
     private readonly emailParser: EmailParserService,
     private readonly emailOutbound: EmailOutboundService,
+    private readonly orchestratorService: OrchestratorService,
   ) {}
 
   async processInboundEmail(rawPayload: Record<string, unknown>): Promise<void> {
@@ -45,6 +47,36 @@ export class EmailInboundService {
     });
 
     this.logger.log(`Email processed for conversation ${conversation.id}`);
+
+    try {
+      const aiResult = await this.orchestratorService.executeAgent(
+        channel.agentId,
+        conversation.id,
+        parsed.textBody || parsed.body,
+      );
+
+      const fromAddress = channel.emailFromAddress || channel.emailForwardAddress || parsed.to;
+
+      await this.emailOutbound.sendReply({
+        to: parsed.from,
+        from: fromAddress,
+        subject: `Re: ${parsed.subject}`,
+        body: aiResult.content,
+        inReplyTo: parsed.messageId,
+        references: parsed.references
+          ? [...parsed.references, parsed.messageId]
+          : [parsed.messageId],
+        agentName: channel.agent.name,
+      });
+
+      this.logger.log(
+        `AI response sent for conversation ${conversation.id} (${aiResult.tokensIn}+${aiResult.tokensOut} tokens)`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate/send AI response for conversation ${conversation.id}: ${error}`,
+      );
+    }
   }
 
   private async findChannelByEmail(toEmail: string) {
@@ -57,7 +89,7 @@ export class EmailInboundService {
           { emailFromAddress: toEmail },
         ],
       },
-      include: { agent: { select: { id: true, organizationId: true } } },
+      include: { agent: { select: { id: true, organizationId: true, name: true } } },
     });
   }
 

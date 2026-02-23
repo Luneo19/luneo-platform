@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 export const CreateCheckoutSessionSchema = z.object({
-  planId: z.enum(['starter', 'professional', 'business', 'enterprise'], {
+  planId: z.enum(['pro', 'business', 'enterprise'], {
     errorMap: () => ({ message: 'Plan invalide' }),
   }),
   email: z.string().email('Email invalide').optional(),
@@ -25,7 +25,7 @@ export const CreateCheckoutSessionSchema = z.object({
 });
 
 export const UpdateSubscriptionSchema = z.object({
-  planId: z.enum(['professional', 'business', 'enterprise']),
+  planId: z.enum(['pro', 'business', 'enterprise']),
   billingCycle: z.enum(['monthly', 'yearly']).optional(),
 });
 

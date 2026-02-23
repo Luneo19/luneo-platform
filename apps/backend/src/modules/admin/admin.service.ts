@@ -14,9 +14,9 @@ function getPlanPrice(plan: Plan | string | null | undefined): number {
   if (!plan) return 0;
   const tierMap: Record<string, PlanTier> = {
     FREE: PlanTier.FREE,
-    STARTER: PlanTier.STARTER,
-    PRO: PlanTier.PROFESSIONAL,
-    PROFESSIONAL: PlanTier.PROFESSIONAL,
+    STARTER: PlanTier.PRO, // backward compat
+    PRO: PlanTier.PRO,
+    PROFESSIONAL: PlanTier.PRO, // backward compat
     BUSINESS: PlanTier.BUSINESS,
     ENTERPRISE: PlanTier.ENTERPRISE,
   };

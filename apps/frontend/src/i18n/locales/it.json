@@ -303,12 +303,8 @@
     "currentPlan": "Piano attuale",
     "contactSales": "Contatta vendite",
     "plans": {
-      "starter": {
-        "name": "Starter",
-        "description": "Perfetto per singoli"
-      },
-      "professional": {
-        "name": "Professional",
+      "pro": {
+        "name": "Pro",
         "description": "Per team in crescita"
       },
       "business": {

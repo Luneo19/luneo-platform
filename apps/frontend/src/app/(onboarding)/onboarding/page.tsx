@@ -74,7 +74,7 @@ const OBJECTIVES = [
   { id: 'other', label: 'Autre', templateSlug: '' },
 ];
 
-const PAID_PLANS = ['starter', 'professional', 'business', 'enterprise'];
+const PAID_PLANS = ['pro', 'business', 'enterprise'];
 
 function OnboardingPageContent() {
   const router = useRouter();

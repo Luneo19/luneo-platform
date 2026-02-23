@@ -363,6 +363,10 @@ const nextConfig = {
         source: '/manifest.webmanifest',
         destination: '/manifest.json',
       },
+      {
+        source: '/widget.js',
+        destination: '/widget/v1/widget.min.js',
+      },
     ];
   },
 

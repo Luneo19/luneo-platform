@@ -60,28 +60,8 @@ const mockMergedPlans = [
     },
   },
   {
-    id: 'starter',
-    name: 'Starter',
-    description: 'Parfait pour les créateurs indépendants et petits projets',
-    priceMonthly: 19,
-    priceYearly: 182.4,
-    priceYearlyMonthly: 15.2,
-    currency: 'EUR',
-    cta: 'Démarrer l\'essai gratuit',
-    ctaHref: '/register?plan=starter',
-    features: ['50 designs/mois', 'Customizer 2D', '100 rendus 2D/mois'],
-    limits: {
-      designs: 50,
-      renders2D: 100,
-      renders3D: 10,
-      storage: '5 GB',
-      teamMembers: 3,
-      apiCalls: 10000,
-    },
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
+    id: 'pro',
+    name: 'Pro',
     description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
     priceMonthly: 49,
     priceYearly: 470.4,
@@ -90,7 +70,7 @@ const mockMergedPlans = [
     popular: true,
     badge: 'LE PLUS POPULAIRE',
     cta: 'Démarrer l\'essai gratuit',
-    ctaHref: '/register?plan=professional',
+    ctaHref: '/register?plan=pro',
     features: ['250 designs/mois', 'Customizer 2D + 3D', '500 rendus 2D/mois'],
     limits: {
       designs: 250,
@@ -245,8 +225,7 @@ describe('PricingPage', () => {
       
       // Check for plan names (may appear multiple times in pricing table + cards)
       expect(screen.getAllByText('Free').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Starter').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Professional').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Pro').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Business').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Enterprise').length).toBeGreaterThanOrEqual(1);
     });
@@ -256,8 +235,7 @@ describe('PricingPage', () => {
       
       // Check for plan cards which should contain pricing
       expect(screen.getByTestId('plan-card-free')).toBeInTheDocument();
-      expect(screen.getByTestId('plan-card-starter')).toBeInTheDocument();
-      expect(screen.getByTestId('plan-card-professional')).toBeInTheDocument();
+      expect(screen.getByTestId('plan-card-pro')).toBeInTheDocument();
       expect(screen.getByTestId('plan-card-business')).toBeInTheDocument();
       expect(screen.getByTestId('plan-card-enterprise')).toBeInTheDocument();
     });
@@ -276,7 +254,7 @@ describe('PricingPage', () => {
       expect(contactButtons.length).toBeGreaterThan(0);
     });
 
-    it('should show popular badge for Professional plan', () => {
+    it('should show popular badge for Pro plan', () => {
       render(<PricingPage />);
       
       expect(screen.getByText('LE PLUS POPULAIRE')).toBeInTheDocument();
@@ -289,8 +267,8 @@ describe('PricingPage', () => {
       const freeCard = screen.getByTestId('plan-card-free');
       expect(freeCard).toBeInTheDocument();
       
-      const professionalCard = screen.getByTestId('plan-card-professional');
-      expect(professionalCard).toBeInTheDocument();
+      const proCard = screen.getByTestId('plan-card-pro');
+      expect(proCard).toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,5 @@
 // Luneo Chat Widget Embed Script
-// Usage: <script src="https://cdn.luneo.app/widget.js" data-widget="wdg_xxx" async></script>
+// Usage: <script src="https://luneo.app/widget.js" data-widget="wdg_xxx" async></script>
 
 (function() {
   const WIDGET_API = "https://api.luneo.app/api/v1/widget";

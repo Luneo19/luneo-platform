@@ -6,6 +6,7 @@ import { ChunkingModule } from '@/libs/chunking';
 import { DocumentParserModule } from '@/libs/document-parser';
 import { StorageModule } from '@/libs/storage/storage.module';
 import { QueuesModule } from '@/libs/queues';
+import { QuotasModule } from '@/modules/quotas/quotas.module';
 import { KnowledgeController } from './knowledge.controller';
 import { KnowledgeService } from './knowledge.service';
 import { KnowledgeIndexingProcessor } from './knowledge-indexing.processor';
@@ -19,6 +20,7 @@ import { KnowledgeIndexingProcessor } from './knowledge-indexing.processor';
     DocumentParserModule,
     StorageModule,
     QueuesModule,
+    QuotasModule,
   ],
   controllers: [KnowledgeController],
   providers: [KnowledgeService, KnowledgeIndexingProcessor],

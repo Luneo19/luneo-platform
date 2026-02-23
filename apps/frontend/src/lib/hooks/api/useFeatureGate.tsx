@@ -20,13 +20,13 @@ export function useFeatureGate(feature: keyof import('./useSubscription').PlanLi
   // Déterminer le plan minimum requis pour cette fonctionnalité
   const getRequiredPlan = (feature: string): PlanTier | null => {
     const featurePlanMap: Record<string, PlanTier> = {
-      apiAccess: 'professional',
+      apiAccess: 'pro',
       advancedAnalytics: 'business',
       customExport: 'business',
       whiteLabel: 'business',
-      prioritySupport: 'professional',
-      arEnabled: 'professional',
-      configurator3d: 'professional',
+      prioritySupport: 'pro',
+      arEnabled: 'pro',
+      configurator3d: 'pro',
       marketplace: 'business',
       sso: 'enterprise',
       realTimeCollab: 'business',
@@ -158,18 +158,13 @@ export function useUpgradePrompt(requiredPlan: PlanTier) {
   const planMessages: Record<PlanTier, { title: string; description: string; cta: string }> = {
     free: {
       title: 'Plan Free',
-      description: 'Vous êtes sur le plan gratuit. Passez à Starter pour débloquer plus de fonctionnalités.',
-      cta: 'Passer à Starter',
+      description: 'Vous êtes sur le plan gratuit. Passez à Pro pour débloquer plus de fonctionnalités.',
+      cta: 'Passer à Pro',
     },
-    starter: {
-      title: 'Passer à Starter',
-      description: 'Débloquez plus de fonctionnalités avec le plan Starter',
-      cta: 'Essayer Starter',
-    },
-    professional: {
-      title: 'Upgrade vers Professional',
+    pro: {
+      title: 'Passer à Pro',
       description: 'Accédez à l\'API, au branding personnalisé et au support prioritaire',
-      cta: 'Passer à Professional',
+      cta: 'Essayer Pro',
     },
     business: {
       title: 'Upgrade vers Business',
@@ -183,5 +178,5 @@ export function useUpgradePrompt(requiredPlan: PlanTier) {
     },
   };
 
-  return planMessages[requiredPlan] || planMessages.professional;
+  return planMessages[requiredPlan] || planMessages.pro;
 }

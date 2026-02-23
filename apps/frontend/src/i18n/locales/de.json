@@ -352,8 +352,7 @@
     "currentPlan": "Aktueller Plan",
     "contactSales": "Vertrieb kontaktieren",
     "plans": {
-      "starter": { "name": "Starter", "description": "Perfekt für Einzelpersonen" },
-      "professional": { "name": "Professional", "description": "Für wachsende Teams" },
+      "pro": { "name": "Pro", "description": "Für wachsende Teams und Unternehmen" },
       "business": { "name": "Business", "description": "Für größere Organisationen" },
       "enterprise": { "name": "Enterprise", "description": "Maßgeschneiderte Lösungen" }
     }

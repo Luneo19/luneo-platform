@@ -12,14 +12,14 @@
 
 /**
  * Tiers de plans disponibles.
- * Synchronise avec l'enum SubscriptionPlan dans Prisma.
- * Tous les tiers (FREE/STARTER/PROFESSIONAL/BUSINESS/ENTERPRISE)
- * sont presents dans l'enum Prisma SubscriptionPlan.
+ * Synchronise avec l'enum Plan dans Prisma.
+ * Active plans: FREE / PRO / BUSINESS / ENTERPRISE
+ * STARTER is kept in Prisma enum for backward compat (existing DB rows)
+ * but mapped to PRO at runtime via normalizePlanTier().
  */
 export enum PlanTier {
   FREE = 'free',
-  STARTER = 'starter',
-  PROFESSIONAL = 'professional',
+  PRO = 'pro',
   BUSINESS = 'business',
   ENTERPRISE = 'enterprise',
 }

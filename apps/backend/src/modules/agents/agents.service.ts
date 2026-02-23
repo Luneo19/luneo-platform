@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { OrchestratorService, AgentExecutionResult } from '@/modules/orchestrator/orchestrator.service';
+import { QuotasService } from '@/modules/quotas/quotas.service';
 import { AgentStatus, Prisma } from '@prisma/client';
 import { FlowExecutionEngine, type FlowNode, type FlowEdge } from '@/libs/flow/flow-execution-engine';
 import { CreateAgentDto } from './dto/create-agent.dto';
@@ -20,6 +21,7 @@ export class AgentsService {
     private readonly prisma: PrismaOptimizedService,
     private readonly orchestratorService: OrchestratorService,
     private readonly flowEngine: FlowExecutionEngine,
+    private readonly quotasService: QuotasService,
   ) {}
 
   async create(organizationId: string, dto: CreateAgentDto) {
@@ -29,11 +31,8 @@ export class AgentsService {
     if (!org) {
       throw new NotFoundException('Organization not found');
     }
-    if (org.agentsUsed >= org.agentsLimit) {
-      throw new ForbiddenException(
-        `Agent limit reached (${org.agentsLimit}). Upgrade your plan.`,
-      );
-    }
+
+    await this.quotasService.enforceQuota(organizationId, 'agents');
 
     const data: Prisma.AgentCreateInput = {
       organization: { connect: { id: organizationId } },
@@ -356,17 +355,7 @@ export class AgentsService {
   async duplicate(id: string, organizationId: string) {
     const sourceAgent = await this.findOne(id, organizationId);
 
-    const org = await this.prisma.organization.findUnique({
-      where: { id: organizationId },
-    });
-    if (!org) {
-      throw new NotFoundException('Organization not found');
-    }
-    if (org.agentsUsed >= org.agentsLimit) {
-      throw new ForbiddenException(
-        `Agent limit reached (${org.agentsLimit}). Upgrade your plan.`,
-      );
-    }
+    await this.quotasService.enforceQuota(organizationId, 'agents');
 
     const createData: Prisma.AgentCreateInput = {
       organization: { connect: { id: organizationId } },

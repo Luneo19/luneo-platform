@@ -39,7 +39,7 @@ function PlansPageContent() {
 
   /**
    * Plans aligned with backend SINGLE SOURCE OF TRUTH: plan-config.ts
-   * FREE(0€) | STARTER(19€) | PROFESSIONAL(49€) | BUSINESS(99€) | ENTERPRISE(299€)
+   * FREE(0€) | PRO(49€) | BUSINESS(149€) | ENTERPRISE(sur devis)
    */
   const plans: Plan[] = useMemo(() => [
     {
@@ -70,38 +70,10 @@ function PlansPageContent() {
       highlights: ['Gratuit pour toujours', 'Idéal pour tester']
     },
     {
-      id: 'starter',
-      name: 'Starter',
-      price: PRICING.starter.monthly,
-      priceAnnual: PRICING.starter.yearly,
-      icon: <Zap className="w-8 h-8" />,
-      color: 'blue',
-      gradient: 'from-blue-600 to-cyan-600',
-      description: 'Parfait pour démarrer et créer vos premiers designs professionnels',
-      features: [
-        '50 designs/mois',
-        '5 GB de stockage',
-        '3 utilisateurs',
-        '10 produits',
-        'Customizer 2D',
-        '20 générations IA/mois',
-        'Rendu 3D (10/mois)',
-        'API (10 000 appels/mois)',
-        'Support prioritaire'
-      ],
-      limits: {
-        designs: '50/mois',
-        storage: '5 GB',
-        users: '3',
-        aiGenerations: '20/mois'
-      },
-      highlights: ['Pour bien démarrer', 'Support prioritaire']
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      price: PRICING.professional.monthly,
-      priceAnnual: PRICING.professional.yearly,
+      id: 'pro',
+      name: 'Pro',
+      price: PRICING.pro.monthly,
+      priceAnnual: PRICING.pro.yearly,
       icon: <Zap className="w-8 h-8" />,
       color: 'purple',
       gradient: 'from-purple-600 to-pink-600',
@@ -204,60 +176,60 @@ function PlansPageContent() {
 
   /**
    * Feature comparison aligned with backend plan-config.ts
-   * 5 columns: Free | Starter | Professional | Business | Enterprise
+   * 4 columns: Free | Pro | Business | Enterprise
    */
   const comparisonFeatures = [
     {
       category: 'Création & Design',
       features: [
-        { name: 'Customizer 2D', free: true, starter: true, pro: true, business: true, enterprise: true },
-        { name: 'Configurateur 3D', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'Virtual Try-On', free: false, starter: false, pro: 'Partiel', business: true, enterprise: true },
-        { name: 'AR/VR Export', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'White Label', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'Templates', free: 'Base', starter: 'Base', pro: 'Premium', business: 'Tous', enterprise: 'Illimité' },
+        { name: 'Customizer 2D', free: true, pro: true, business: true, enterprise: true },
+        { name: 'Configurateur 3D', free: false, pro: true, business: true, enterprise: true },
+        { name: 'Virtual Try-On', free: false, pro: 'Partiel', business: true, enterprise: true },
+        { name: 'AR/VR Export', free: false, pro: true, business: true, enterprise: true },
+        { name: 'White Label', free: false, pro: true, business: true, enterprise: true },
+        { name: 'Templates', free: 'Base', pro: 'Premium', business: 'Tous', enterprise: 'Illimité' },
       ]
     },
     {
       category: 'Intelligence Artificielle',
       features: [
-        { name: 'Génération IA', free: '3/mois', starter: '20/mois', pro: '100/mois', business: '500/mois', enterprise: 'Illimité' },
-        { name: 'Rendu 3D', free: false, starter: '10/mois', pro: '50/mois', business: '200/mois', enterprise: 'Illimité' },
-        { name: 'Bulk Generation', free: false, starter: false, pro: false, business: true, enterprise: true },
-        { name: 'AI Design Hub', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'Modèles IA personnalisés', free: false, starter: false, pro: false, business: false, enterprise: true },
+        { name: 'Génération IA', free: '3/mois', pro: '100/mois', business: '500/mois', enterprise: 'Illimité' },
+        { name: 'Rendu 3D', free: false, pro: '50/mois', business: '200/mois', enterprise: 'Illimité' },
+        { name: 'Bulk Generation', free: false, pro: false, business: true, enterprise: true },
+        { name: 'AI Design Hub', free: false, pro: true, business: true, enterprise: true },
+        { name: 'Modèles IA personnalisés', free: false, pro: false, business: false, enterprise: true },
       ]
     },
     {
       category: 'Collaboration',
       features: [
-        { name: 'Utilisateurs', free: '1', starter: '3', pro: '10', business: '50', enterprise: 'Illimité' },
-        { name: 'Produits', free: '2', starter: '10', pro: '50', business: '500', enterprise: 'Illimité' },
-        { name: 'Stockage', free: '0.5 GB', starter: '5 GB', pro: '25 GB', business: '100 GB', enterprise: 'Illimité' },
-        { name: 'Partage de designs', free: false, starter: true, pro: true, business: true, enterprise: true },
-        { name: 'Permissions granulaires', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'SSO/SAML', free: false, starter: false, pro: false, business: false, enterprise: true },
+        { name: 'Utilisateurs', free: '1', pro: '10', business: '50', enterprise: 'Illimité' },
+        { name: 'Produits', free: '2', pro: '50', business: '500', enterprise: 'Illimité' },
+        { name: 'Stockage', free: '0.5 GB', pro: '25 GB', business: '100 GB', enterprise: 'Illimité' },
+        { name: 'Partage de designs', free: false, pro: true, business: true, enterprise: true },
+        { name: 'Permissions granulaires', free: false, pro: true, business: true, enterprise: true },
+        { name: 'SSO/SAML', free: false, pro: false, business: false, enterprise: true },
       ]
     },
     {
       category: 'Intégrations',
       features: [
-        { name: 'API Access', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'Appels API/mois', free: '-', starter: '10 000', pro: '50 000', business: '200 000', enterprise: 'Illimité' },
-        { name: 'Webhooks', free: false, starter: false, pro: false, business: true, enterprise: true },
-        { name: 'E-commerce (Shopify, WooCommerce)', free: false, starter: false, pro: true, business: true, enterprise: true },
-        { name: 'Intégrations personnalisées', free: false, starter: false, pro: false, business: false, enterprise: true },
+        { name: 'API Access', free: false, pro: true, business: true, enterprise: true },
+        { name: 'Appels API/mois', free: '-', pro: '50 000', business: '200 000', enterprise: 'Illimité' },
+        { name: 'Webhooks', free: false, pro: false, business: true, enterprise: true },
+        { name: 'E-commerce (Shopify, WooCommerce)', free: false, pro: true, business: true, enterprise: true },
+        { name: 'Intégrations personnalisées', free: false, pro: false, business: false, enterprise: true },
       ]
     },
     {
       category: 'Support & Services',
       features: [
-        { name: 'Support', free: 'Email', starter: 'Email', pro: 'Prioritaire', business: '24/7 Prioritaire', enterprise: '24/7 Dédié' },
-        { name: 'SLA', free: '-', starter: '-', pro: '-', business: '99.9%', enterprise: '99.99%' },
-        { name: 'Account Manager', free: false, starter: false, pro: false, business: true, enterprise: true },
-        { name: 'Analytics avancés', free: false, starter: false, pro: false, business: true, enterprise: true },
-        { name: 'Export personnalisé', free: false, starter: false, pro: false, business: true, enterprise: true },
-        { name: 'Formation', free: false, starter: false, pro: false, business: 'Incluse', enterprise: 'Avancée' },
+        { name: 'Support', free: 'Email', pro: 'Prioritaire', business: '24/7 Prioritaire', enterprise: '24/7 Dédié' },
+        { name: 'SLA', free: '-', pro: '-', business: '99.9%', enterprise: '99.99%' },
+        { name: 'Account Manager', free: false, pro: false, business: true, enterprise: true },
+        { name: 'Analytics avancés', free: false, pro: false, business: true, enterprise: true },
+        { name: 'Export personnalisé', free: false, pro: false, business: true, enterprise: true },
+        { name: 'Formation', free: false, pro: false, business: 'Incluse', enterprise: 'Avancée' },
       ]
     }
   ];
@@ -341,7 +313,7 @@ function PlansPageContent() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {plans.map((plan, index) => {
           const price = billingPeriod === 'monthly' ? plan.price : plan.priceAnnual;
-          const isPopular = plan.id === 'professional';
+          const isPopular = plan.id === 'pro';
           const isEnterprise = plan.id === 'enterprise';
 
           return (
@@ -460,8 +432,7 @@ function PlansPageContent() {
               <tr className="border-b border-gray-700">
                 <th className="text-left py-4 text-gray-400 font-medium">Fonctionnalité</th>
                 <th className="text-center py-4 text-white font-medium">Free</th>
-                <th className="text-center py-4 text-white font-medium">Starter</th>
-                <th className="text-center py-4 text-white font-medium">Professional</th>
+                <th className="text-center py-4 text-white font-medium">Pro</th>
                 <th className="text-center py-4 text-white font-medium">Business</th>
                 <th className="text-center py-4 text-white font-medium">Enterprise</th>
               </tr>
@@ -470,7 +441,7 @@ function PlansPageContent() {
               {comparisonFeatures.map((category, catIndex) => (
                 <React.Fragment key={catIndex}>
                   <tr className="bg-gray-900/30">
-                    <td colSpan={6} className="py-3 px-4 text-white font-bold text-sm">
+                    <td colSpan={5} className="py-3 px-4 text-white font-bold text-sm">
                       {category.category}
                     </td>
                   </tr>
@@ -478,7 +449,6 @@ function PlansPageContent() {
                     <tr key={featIndex} className="border-b border-gray-800 hover:bg-gray-900/20">
                       <td className="py-3 text-gray-300 text-sm">{feature.name}</td>
                       <td className="py-3 text-center">{renderFeatureValue(feature.free)}</td>
-                      <td className="py-3 text-center">{renderFeatureValue(feature.starter)}</td>
                       <td className="py-3 text-center">{renderFeatureValue(feature.pro)}</td>
                       <td className="py-3 text-center">{renderFeatureValue(feature.business)}</td>
                       <td className="py-3 text-center">{renderFeatureValue(feature.enterprise)}</td>
@@ -502,7 +472,7 @@ function PlansPageContent() {
             },
             {
               q: 'Y a-t-il une période d\'essai ?',
-              a: 'Le plan Starter est gratuit à vie. Pour les autres plans, contactez-nous pour un essai gratuit de 14 jours.'
+              a: 'Le plan Free est gratuit à vie. Pour les autres plans, contactez-nous pour un essai gratuit de 14 jours.'
             },
             {
               q: 'Que se passe-t-il si je dépasse mes limites ?',

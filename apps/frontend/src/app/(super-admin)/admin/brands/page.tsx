@@ -33,11 +33,13 @@ const statusColors: Record<string, string> = {
 };
 
 const planColors: Record<string, string> = {
-  starter: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
-  professional: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  free: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+  pro: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   business: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   enterprise: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  free: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+  // Legacy DB values fallback
+  starter: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  professional: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
 };
 
 export default function BrandsPage() {
@@ -140,8 +142,7 @@ export default function BrandsPage() {
             <SelectContent>
               <SelectItem value="all">{t('admin.brands.allPlans')}</SelectItem>
               <SelectItem value="free">Free</SelectItem>
-              <SelectItem value="starter">Starter</SelectItem>
-              <SelectItem value="professional">Professional</SelectItem>
+              <SelectItem value="pro">Pro</SelectItem>
               <SelectItem value="business">Business</SelectItem>
               <SelectItem value="enterprise">Enterprise</SelectItem>
             </SelectContent>

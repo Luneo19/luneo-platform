@@ -7,7 +7,7 @@ import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 
-export type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'pro' | 'business' | 'enterprise';
 
 export interface PlanLimits {
   designsPerMonth: number | -1; // -1 = illimité
@@ -82,7 +82,7 @@ export function useSubscription(
         // En cas d'erreur (404, pas d'abonnement, etc.), retourner un plan par défaut
         // Cela permet à l'application de continuer à fonctionner même sans abonnement actif
         return {
-          plan: 'starter' as PlanTier,
+          plan: 'free' as PlanTier,
           status: 'active' as const,
           limits: {
             designsPerMonth: 50,
@@ -135,10 +135,9 @@ export function useHasMinimumPlan(
   
   const planHierarchy: Record<PlanTier, number> = {
     free: 0,
-    starter: 1,
-    professional: 2,
-    business: 3,
-    enterprise: 4,
+    pro: 1,
+    business: 2,
+    enterprise: 3,
   };
   
   return useQuery<boolean>({

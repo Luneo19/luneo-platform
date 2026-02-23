@@ -235,9 +235,10 @@ export function CustomersTable({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="starter">Starter</SelectItem>
+              <SelectItem value="free">Free</SelectItem>
               <SelectItem value="pro">Pro</SelectItem>
-              <SelectItem value="team">Team</SelectItem>
+              <SelectItem value="business">Business</SelectItem>
+              <SelectItem value="enterprise">Enterprise</SelectItem>
             </SelectContent>
           </Select>
         </div>

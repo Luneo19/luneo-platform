@@ -258,7 +258,7 @@ export class BillingController {
       throw new BadRequestException('planId is required');
     }
     
-    const validPlans = ['starter', 'professional', 'business', 'enterprise'];
+    const validPlans = ['pro', 'business', 'enterprise'];
     if (!validPlans.includes(body.planId.toLowerCase())) {
       throw new BadRequestException(`Invalid planId. Must be one of: ${validPlans.join(', ')}`);
     }

@@ -20,7 +20,7 @@ const codeExamples = {
 <script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://cdn.luneo.app/widget/v1/luneo-widget.js';
+    script.src = 'https://luneo.app/widget/v1/luneo-widget.js';
     script.async = true;
     document.head.appendChild(script);
     

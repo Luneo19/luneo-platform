@@ -8,7 +8,7 @@
  * ALL values in this file MUST be kept in sync with apps/backend/src/libs/plans/plan-config.ts
  */
 
-export type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'pro' | 'business' | 'enterprise';
 export type UsageMetricType =
   | 'designs_created'
   | 'renders_2d'
@@ -130,62 +130,20 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { id: 'sso_saml', label: 'SSO/SAML', enabled: false },
     ],
   },
-  starter: {
-    id: 'starter',
-    name: 'Starter',
-    basePriceCents: 1900, // €19/month — matches backend plan-config.ts
-    yearlyPriceCents: 19000, // €190/year
-    headline: 'Parfait pour démarrer',
+  pro: {
+    id: 'pro',
+    name: 'Pro',
+    basePriceCents: 4900, // €49/month
+    yearlyPriceCents: 46800, // €468/year (39/mo)
+    headline: 'Pour les équipes qui scalent',
     limits: {
-      teamMembers: 3,
-      storageGb: 5,
-      designsPerMonth: 50,
-      maxProducts: 10,
-      apiAccess: false,
-      arEnabled: false,
-      whiteLabel: false,
-      advancedAnalytics: false,
-      customExport: false,
-      prioritySupport: false,
-    },
-    quotas: [
-      { metric: 'designs_created', label: 'Designs', description: 'Designs créés par mois', limit: 50, period: 'month', overage: 'charge', overageRate: 50, unit: 'designs' },
-      { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 20, unit: 'rendus' },
-      { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 10, period: 'month', overage: 'charge', overageRate: 100, unit: 'rendus' },
-      { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 20, period: 'month', overage: 'charge', overageRate: 75, unit: 'générations' },
-      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 5, period: 'month', overage: 'charge', overageRate: 50, unit: 'GB' },
-      { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 10000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
-      { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 30, unit: 'sessions' },
-      { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 500, period: 'month', overage: 'charge', overageRate: 10, unit: 'screenshots' },
-      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 3, period: 'month', overage: 'block', unit: 'membres' },
-    ],
-    features: [
-      { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
-      { id: 'configurator_3d', label: 'Configurateur 3D', enabled: false },
-      { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: '100/mois' },
-      { id: 'ar_export', label: 'AR/VR Export', enabled: false },
-      { id: 'api_access', label: 'Accès API', enabled: false },
-      { id: 'white_label', label: 'White Label', enabled: false },
-      { id: 'advanced_analytics', label: 'Analytics avancés', enabled: false },
-      { id: 'custom_export', label: 'Export personnalisé', enabled: false },
-      { id: 'priority_support', label: 'Support prioritaire', enabled: false },
-      { id: 'sso_saml', label: 'SSO/SAML', enabled: false },
-    ],
-  },
-  professional: {
-    id: 'professional',
-    name: 'Professional',
-    basePriceCents: 4900, // €49/month — matches backend plan-config.ts
-    yearlyPriceCents: 49000, // €490/year
-    headline: 'Pour les créateurs professionnels',
-    limits: {
-      teamMembers: 10,
-      storageGb: 25,
+      teamMembers: 5,
+      storageGb: 10,
       designsPerMonth: 200,
       maxProducts: 50,
       apiAccess: true,
       arEnabled: true,
-      whiteLabel: true,
+      whiteLabel: false,
       advancedAnalytics: false,
       customExport: false,
       prioritySupport: true,
@@ -195,11 +153,11 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { metric: 'renders_2d', label: 'Rendus 2D', description: 'Rendus 2D par mois', limit: 500, period: 'month', overage: 'charge', overageRate: 15, unit: 'rendus' },
       { metric: 'renders_3d', label: 'Rendus 3D', description: 'Rendus 3D par mois', limit: 50, period: 'month', overage: 'charge', overageRate: 80, unit: 'rendus' },
       { metric: 'ai_generations', label: 'Générations IA', description: 'Générations IA par mois', limit: 100, period: 'month', overage: 'charge', overageRate: 60, unit: 'générations' },
-      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 25, period: 'month', overage: 'charge', overageRate: 40, unit: 'GB' },
+      { metric: 'storage_gb', label: 'Stockage', description: 'Espace de stockage', limit: 10, period: 'month', overage: 'charge', overageRate: 40, unit: 'GB' },
       { metric: 'api_calls', label: 'Appels API', description: 'Appels API par mois', limit: 50000, period: 'month', overage: 'charge', overageRate: 1, unit: 'appels' },
       { metric: 'virtual_tryons', label: 'Virtual Try-On', description: 'Sessions Virtual Try-On par mois', limit: 1000, period: 'month', overage: 'charge', overageRate: 20, unit: 'sessions' },
       { metric: 'try_on_screenshots', label: 'Screenshots Try-On', description: 'Screenshots Try-On par mois', limit: 5000, period: 'month', overage: 'charge', overageRate: 5, unit: 'screenshots' },
-      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 10, period: 'month', overage: 'block', unit: 'membres' },
+      { metric: 'team_members', label: 'Membres', description: "Membres de l'équipe", limit: 5, period: 'month', overage: 'block', unit: 'membres' },
     ],
     features: [
       { id: 'customizer_2d', label: 'Customizer 2D', enabled: true },
@@ -207,7 +165,7 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       { id: 'virtual_try_on', label: 'Virtual Try-On', enabled: true, description: '1 000/mois' },
       { id: 'ar_export', label: 'AR/VR Export', enabled: true },
       { id: 'api_access', label: 'Accès API', enabled: true },
-      { id: 'white_label', label: 'White Label', enabled: true },
+      { id: 'white_label', label: 'White Label', enabled: false },
       { id: 'advanced_analytics', label: 'Analytics avancés', enabled: false },
       { id: 'custom_export', label: 'Export personnalisé', enabled: false },
       { id: 'priority_support', label: 'Support prioritaire', enabled: true },
@@ -217,11 +175,11 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   business: {
     id: 'business',
     name: 'Business',
-    basePriceCents: 9900, // €99/month — matches backend plan-config.ts
-    yearlyPriceCents: 99000, // €990/year
+    basePriceCents: 14900, // €149/month
+    yearlyPriceCents: 142800, // €1428/year (119/mo)
     headline: 'Pour les équipes en croissance',
     limits: {
-      teamMembers: 50,
+      teamMembers: 25,
       storageGb: 100,
       designsPerMonth: 1000,
       maxProducts: 500,
@@ -259,8 +217,8 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
-    basePriceCents: 29900, // €299/month — matches backend plan-config.ts
-    yearlyPriceCents: 299000, // €2990/year
+    basePriceCents: 49900, // €499/month
+    yearlyPriceCents: 499000, // €4990/year
     headline: 'Solutions sur mesure',
     limits: {
       teamMembers: -1, // unlimited
@@ -303,13 +261,13 @@ const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
 export const PLAN_CATALOG: PlanCatalog = {
   plans: PLAN_DEFINITIONS,
   defaultPlan: 'free',
-  availableTiers: ['free', 'starter', 'professional', 'business', 'enterprise'],
+  availableTiers: ['free', 'pro', 'business', 'enterprise'],
 };
 
 export { PLAN_DEFINITIONS };
 
 export function getPlanDefinition(plan: PlanTier): PlanDefinition {
-  return PLAN_DEFINITIONS[plan] ?? PLAN_DEFINITIONS.free;
+  return PLAN_DEFINITIONS[plan] ?? PLAN_DEFINITIONS['free'];
 }
 
 export function listPlans(): PlanDefinition[] {

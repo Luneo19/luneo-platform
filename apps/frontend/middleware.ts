@@ -248,7 +248,7 @@ function setSecurityHeaders(response: NextResponse, nonce?: string): void {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://res.cloudinary.com https://cdn.luneo.app https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://*.stripe.com",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://luneo.app https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://*.stripe.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "connect-src 'self' https://api.luneo.app https://*.luneo.app https://api.stripe.com https://*.sentry.io https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",

@@ -162,7 +162,7 @@ export default function AgentDetailPage() {
   };
 
   const handleCopyEmbed = (widgetId: string) => {
-    const code = `<script src="https://cdn.luneo.app/widget.js" data-widget="${widgetId}" async></script>`;
+    const code = `<script src="https://luneo.app/widget.js" data-widget="${widgetId}" async></script>`;
     navigator.clipboard.writeText(code).then(() => {
       setCopiedWidgetId(widgetId);
       setTimeout(() => setCopiedWidgetId(null), 2000);
@@ -375,7 +375,7 @@ export default function AgentDetailPage() {
                       <div className="rounded-lg bg-black/30 p-3 font-mono text-xs text-white/80">
                         <p className="mb-2 text-white/50">Code d&apos;intégration :</p>
                         <code className="block break-all">
-                          {`<script src="https://cdn.luneo.app/widget.js" data-widget="${ch.widgetId}" async></script>`}
+                          {`<script src="https://luneo.app/widget.js" data-widget="${ch.widgetId}" async></script>`}
                         </code>
                         <Button
                           variant="outline"
