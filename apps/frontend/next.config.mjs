@@ -400,17 +400,7 @@ const nextConfig = {
       },
       {
         source: '/solution',
-        destination: '/features',
-        permanent: true,
-      },
-      {
-        source: '/solutions',
-        destination: '/features',
-        permanent: true,
-      },
-      {
-        source: '/solutions/:path*',
-        destination: '/features',
+        destination: '/solutions/customer-service',
         permanent: true,
       },
       {

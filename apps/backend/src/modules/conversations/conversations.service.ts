@@ -27,7 +27,7 @@ export class ConversationsService {
     const orgId = user.organizationId;
 
     if (!orgId) {
-      throw new BadRequestException('Organisation requise');
+      return { data: [], nextCursor: null, total: 0 };
     }
 
     const where: Prisma.ConversationWhereInput = {

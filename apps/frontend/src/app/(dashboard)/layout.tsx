@@ -89,7 +89,7 @@ export default function DashboardLayoutGroup({
 
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
     const isOnboardingPage = currentPath.startsWith('/onboarding');
-    const isAdmin = user.role === 'PLATFORM_ADMIN' || user.role === 'SUPER_ADMIN';
+    const isAdmin = user.role === 'ADMIN' || user.role === 'PLATFORM_ADMIN' || user.role === 'SUPER_ADMIN';
 
     if (isOnboardingPage || isAdmin) {
       setOnboardingChecked(true);
@@ -101,7 +101,10 @@ export default function DashboardLayoutGroup({
         const progressRes = await fetch('/api/onboarding/progress');
         if (progressRes.ok) {
           const progress = await progressRes.json();
-          const completed = progress.organization?.onboardingCompletedAt;
+          const completed =
+            progress.progress?.completedAt ||
+            progress.completedAt ||
+            progress.organization?.onboardingCompletedAt;
           if (!completed && (progress.currentStep ?? 0) < 6) {
             document.cookie = 'onboarding_completed=false; path=/; max-age=31536000; SameSite=Lax';
             router.push('/onboarding');
@@ -111,7 +114,7 @@ export default function DashboardLayoutGroup({
           }
         }
       } catch {
-        // Onboarding check failed silently
+        // Onboarding check failed — allow access to dashboard
       }
       setOnboardingChecked(true);
     })();

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
-import { Brain, Send, Star, TrendingDown, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { Brain, Send, Star, TrendingDown, Sparkles, Headphones, ShoppingCart, TrendingUp, Wrench, Megaphone } from 'lucide-react';
 
 interface ChatMessage {
   role: 'user' | 'agent';
@@ -10,18 +10,62 @@ interface ChatMessage {
   delay: number;
 }
 
-const CHAT_SCRIPT: ChatMessage[] = [
-  { role: 'user', text: 'Bonjour, quel est le statut de ma commande #12847 ?', delay: 1000 },
+interface ChatScenario {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  messages: ChatMessage[];
+}
+
+const SCENARIOS: ChatScenario[] = [
   {
-    role: 'agent',
-    text: 'Bonjour ! Votre commande #12847 est en cours de livraison. Elle devrait arriver demain avant 18h. Souhaitez-vous le lien de suivi ?',
-    delay: 3000,
+    label: 'Service Client',
+    icon: Headphones,
+    messages: [
+      { role: 'user', text: 'Bonjour, quel est le statut de ma commande #12847 ?', delay: 1000 },
+      { role: 'agent', text: 'Bonjour ! Votre commande #12847 est en cours de livraison. Elle devrait arriver demain avant 18h. Souhaitez-vous le lien de suivi ?', delay: 3000 },
+      { role: 'user', text: 'Oui, merci !', delay: 6000 },
+      { role: 'agent', text: "Voici votre lien de suivi : track.luneo.app/12847. N'hésitez pas si vous avez d'autres questions !", delay: 8000 },
+    ],
   },
-  { role: 'user', text: 'Oui, merci !', delay: 6000 },
   {
-    role: 'agent',
-    text: "Voici votre lien de suivi : track.luneo.app/12847. N'hésitez pas si vous avez d'autres questions !",
-    delay: 8000,
+    label: 'E-commerce',
+    icon: ShoppingCart,
+    messages: [
+      { role: 'user', text: 'Je cherche un cadeau pour ma femme, budget 100€', delay: 1000 },
+      { role: 'agent', text: 'Avec plaisir ! Voici 3 suggestions populaires : le coffret bien-être (89€), le sac Élégance (95€), ou le bijou personnalisé (79€). Lequel vous intéresse ?', delay: 3000 },
+      { role: 'user', text: 'Le coffret bien-être, vous pouvez me le réserver ?', delay: 6000 },
+      { role: 'agent', text: "C'est fait ! Le coffret bien-être est réservé dans votre panier pour 15 minutes. Voici le lien pour finaliser : shop.luneo.app/cart", delay: 8000 },
+    ],
+  },
+  {
+    label: 'Ventes',
+    icon: TrendingUp,
+    messages: [
+      { role: 'user', text: 'Je recherche une solution pour automatiser notre support', delay: 1000 },
+      { role: 'agent', text: 'Excellente démarche ! Combien de demandes clients traitez-vous par mois ? Et quels canaux utilisez-vous (email, chat, téléphone) ?', delay: 3000 },
+      { role: 'user', text: 'Environ 5 000 par mois, principalement email et chat', delay: 6000 },
+      { role: 'agent', text: "Parfait ! Notre plan Business à 149€/mois couvre 15 000 conversations. Souhaitez-vous planifier une démo de 15 min avec un expert ?", delay: 8000 },
+    ],
+  },
+  {
+    label: 'Support Tech',
+    icon: Wrench,
+    messages: [
+      { role: 'user', text: 'Mon application affiche une erreur 502 depuis ce matin', delay: 1000 },
+      { role: 'agent', text: "L'erreur 502 indique un problème de gateway. Votre service backend est-il démarré ? Pouvez-vous exécuter `docker ps` et me partager le résultat ?", delay: 3000 },
+      { role: 'user', text: 'Le container backend est bien UP depuis 2h', delay: 6000 },
+      { role: 'agent', text: "Vérifiez les logs avec `docker logs backend --tail 50`. Si vous voyez 'OOM killed', augmentez la mémoire allouée à 512MB.", delay: 8000 },
+    ],
+  },
+  {
+    label: 'Marketing',
+    icon: Megaphone,
+    messages: [
+      { role: 'user', text: 'Quelles sont vos offres pour les entreprises ?', delay: 1000 },
+      { role: 'agent', text: 'Nous proposons des plans adaptés à chaque taille ! Pour les PME, notre plan Pro à 49€/mois inclut 5 agents IA. Souhaitez-vous une démo personnalisée ?', delay: 3000 },
+      { role: 'user', text: 'Oui, pour une équipe de 25 personnes', delay: 6000 },
+      { role: 'agent', text: "Pour 25 utilisateurs, le plan Business (149€/mois) est idéal. Je vous envoie le lien pour réserver un créneau avec notre équipe !", delay: 8000 },
+    ],
   },
 ];
 
@@ -111,16 +155,23 @@ function SparklineSVG() {
 export function AgentDemoShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true, margin: '-80px' });
+  const [activeScenario, setActiveScenario] = useState(0);
   const [visibleMessages, setVisibleMessages] = useState<number[]>([]);
   const [showTyping, setShowTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  useEffect(() => {
-    if (!isInView) return;
+  const currentScript = SCENARIOS[activeScenario].messages;
+
+  const startAnimation = useCallback(() => {
+    setVisibleMessages([]);
+    setShowTyping(false);
+    setHasStarted(true);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
+    const script = SCENARIOS[activeScenario].messages;
 
-    CHAT_SCRIPT.forEach((msg, index) => {
+    script.forEach((msg, index) => {
       if (msg.role === 'agent') {
         timers.push(
           setTimeout(() => setShowTyping(true), msg.delay - 1200),
@@ -139,10 +190,23 @@ export function AgentDemoShowcase() {
     });
 
     return () => timers.forEach(clearTimeout);
-  }, [isInView]);
+  }, [activeScenario]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isInView) return;
+    return startAnimation();
+  }, [isInView, startAnimation]);
+
+  const handleScenarioChange = (index: number) => {
+    if (index === activeScenario) return;
+    setActiveScenario(index);
+  };
+
+  useEffect(() => {
+    const container = chatEndRef.current?.parentElement;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [visibleMessages, showTyping]);
 
   return (
@@ -172,6 +236,28 @@ export function AgentDemoShowcase() {
           </div>
         </div>
 
+        {/* Scenario tabs */}
+        <div className="flex items-center gap-1 px-3 py-2 border-b border-white/[0.06] bg-white/[0.01] overflow-x-auto scrollbar-thin">
+          {SCENARIOS.map((scenario, i) => {
+            const TabIcon = scenario.icon;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleScenarioChange(i)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  i === activeScenario
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
+                }`}
+              >
+                <TabIcon className="w-3.5 h-3.5" />
+                {scenario.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Panels */}
         <div className="flex flex-col md:flex-row min-h-[420px]">
           {/* Left: Chat */}
@@ -193,7 +279,7 @@ export function AgentDemoShowcase() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-h-[320px] scrollbar-thin">
               {visibleMessages.map((msgIndex) => {
-                const msg = CHAT_SCRIPT[msgIndex];
+                const msg = currentScript[msgIndex];
                 const isUser = msg.role === 'user';
                 return (
                   <motion.div

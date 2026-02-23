@@ -741,11 +741,11 @@ export class BillingService {
       // Usage reel depuis les tables de tracking
       const usageResults = await Promise.all([
         this.prisma.usageRecord.aggregate({
-          where: { organizationId: org.id, type: 'AGENT_MESSAGE' as any, periodStart: { gte: startOfMonth } },
+          where: { organizationId: org.id, type: 'MESSAGE', periodStart: { gte: startOfMonth } },
           _sum: { quantity: true },
         }),
         this.prisma.usageRecord.aggregate({
-          where: { organizationId: org.id, type: 'API_CALL' as any, periodStart: { gte: startOfMonth } },
+          where: { organizationId: org.id, type: 'API_CALL', periodStart: { gte: startOfMonth } },
           _sum: { quantity: true },
         }),
       ]);

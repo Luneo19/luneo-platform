@@ -59,6 +59,8 @@ import { OrchestratorModule } from './modules/orchestrator/orchestrator.module';
 import { AgentAnalyticsModule } from './modules/agent-analytics/agent-analytics.module';
 import { QuotasModule } from './modules/quotas/quotas.module';
 import { AnalyticsCleanModule } from './modules/analytics-clean/analytics-clean.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 // =============================================
 // LIBS INFRASTRUCTURE
@@ -201,6 +203,8 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     AgentAnalyticsModule,
     QuotasModule,
     AnalyticsCleanModule,
+    OnboardingModule,
+    NotificationsModule,
 
     // --- Infrastructure ---
     CommonModule,

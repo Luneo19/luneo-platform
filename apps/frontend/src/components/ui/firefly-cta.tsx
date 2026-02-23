@@ -62,34 +62,38 @@ function FireflyCTAInner({
 
   return (
     <div className={`firefly-cta group/firefly relative inline-flex ${className}`}>
-      {/* Firefly particles container */}
-      <div className="absolute inset-[-10px] pointer-events-none overflow-visible z-30" aria-hidden="true">
+      {/* Firefly particles container — extends 24px beyond button edge */}
+      <div className="absolute inset-[-24px] pointer-events-none overflow-visible z-30" aria-hidden="true">
         {configs.map((fly, i) => {
           const flyDuration = duration + i * 1.2;
           const delay = -(i * (duration / configs.length));
           const isReverse = i % 2 === 1;
+          const orbitPct = 48 + i * 2;
 
           return (
             <div
               key={i}
-              className="firefly-dot absolute gpu-accelerated"
+              className="firefly-dot absolute inset-0 gpu-accelerated"
               style={{
-                width: '3px',
-                height: '3px',
-                background: fly.color,
-                borderRadius: '50%',
-                boxShadow: `0 0 6px 2px ${fly.glow}, 0 0 12px 4px ${fly.glow}`,
-                top: '50%',
-                left: '50%',
-                marginTop: '-1.5px',
-                marginLeft: '-1.5px',
                 animation: `firefly-orbit ${flyDuration}s linear infinite${isReverse ? ' reverse' : ''}`,
                 animationDelay: `${delay}s`,
-                // Each firefly gets a slightly different orbit radius via CSS var
-                '--orbit-rx': `calc(50% + ${8 + i * 4}px)`,
-                '--orbit-ry': `calc(50% + ${4 + i * 2}px)`,
+                '--orbit-rx': `${orbitPct}%`,
+                '--orbit-ry': `${orbitPct}%`,
               } as React.CSSProperties}
-            />
+            >
+              <div
+                className="absolute top-1/2 left-1/2"
+                style={{
+                  width: '3px',
+                  height: '3px',
+                  marginTop: '-1.5px',
+                  marginLeft: '-1.5px',
+                  background: fly.color,
+                  borderRadius: '50%',
+                  boxShadow: `0 0 6px 2px ${fly.glow}, 0 0 12px 4px ${fly.glow}`,
+                }}
+              />
+            </div>
           );
         })}
       </div>

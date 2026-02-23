@@ -33,7 +33,7 @@ export function AdminGuard({ serverUser, children }: AdminGuardProps) {
       return;
     }
 
-    if (user.role !== 'PLATFORM_ADMIN') {
+    if (user.role !== 'PLATFORM_ADMIN' && user.role !== 'ADMIN') {
       router.push('/dashboard?error=unauthorized');
     }
   }, [serverUser, user, isLoading, router]);
@@ -56,7 +56,7 @@ export function AdminGuard({ serverUser, children }: AdminGuardProps) {
     );
   }
 
-  if (user.role !== 'PLATFORM_ADMIN') {
+  if (user.role !== 'PLATFORM_ADMIN' && user.role !== 'ADMIN') {
     return null;
   }
 

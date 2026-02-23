@@ -56,7 +56,7 @@ export async function checkAdminAccess(): Promise<boolean> {
       return false;
     }
 
-    return dbUser.role === 'PLATFORM_ADMIN';
+    return dbUser.role === 'PLATFORM_ADMIN' || dbUser.role === 'ADMIN';
   } catch (error) {
     serverLogger.error('[Admin Permissions] Error checking admin access', error);
     return false;
@@ -90,7 +90,7 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
 
   serverLogger.debug('[Admin Permissions] User role from JWT', { role: user.role });
 
-  if (user.role === 'PLATFORM_ADMIN') {
+  if (user.role === 'PLATFORM_ADMIN' || user.role === 'ADMIN') {
     serverLogger.debug('[Admin Permissions] Access granted based on JWT role');
     return {
       id: user.id,
@@ -111,7 +111,7 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
     isPlatformAdmin: dbUser?.role === 'PLATFORM_ADMIN',
   });
 
-  if (!dbUser || dbUser.isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
+  if (!dbUser || dbUser.isActive === false || (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN')) {
     serverLogger.debug('[Admin Permissions] Access denied, redirecting');
     redirect('/dashboard?error=unauthorized');
   }
@@ -142,7 +142,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     const cookie = (await headers()).get('cookie');
     const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || dbUser.isActive === false || dbUser.role !== 'PLATFORM_ADMIN') {
+    if (!dbUser || dbUser.isActive === false || (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN')) {
       return null;
     }
 

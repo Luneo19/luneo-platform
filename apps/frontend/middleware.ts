@@ -181,8 +181,7 @@ export async function middleware(request: NextRequest) {
           Buffer.from(accessToken.split('.')[1], 'base64').toString()
         );
         const userRole = payload.role || payload.userRole || '';
-        // SECURITY FIX: Only PLATFORM_ADMIN exists in Prisma UserRole enum
-        if (userRole !== 'PLATFORM_ADMIN') {
+        if (userRole !== 'ADMIN' && userRole !== 'PLATFORM_ADMIN') {
           // Non-admin user trying to access admin routes - redirect to dashboard
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }

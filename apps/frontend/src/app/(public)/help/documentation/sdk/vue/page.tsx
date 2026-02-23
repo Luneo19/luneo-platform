@@ -1,13 +1,11 @@
 'use client';
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import Link from 'next/link';
 import { Copy, CheckCircle } from 'lucide-react';
-import { logger } from '@/lib/logger';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
+import { Card } from '@/components/ui/card';
 
-function VueSDKPageContent() {
+export default function VueSDKPage() {
   const [copied, setCopied] = React.useState<string>('');
 
   const copyCode = useCallback((code: string, id: string) => {
@@ -16,93 +14,171 @@ function VueSDKPageContent() {
     setTimeout(() => setCopied(''), 2000);
   }, []);
 
-  const installCode = useMemo(() => `npm install @luneo/vue
-# ou
-yarn add @luneo/vue`, []);
+  const installCode = `npm install @luneo/widget`;
 
-  const configCode = useMemo(() => `import { createApp } from 'vue';
-import { LuneoPlugin } from '@luneo/vue';
+  const basicExample = `<template>
+  <div>
+    <h1>Mon Site</h1>
+    <LuneoWidget agent-id="agent_xxx" />
+  </div>
+</template>
 
-const app = createApp(App);
-app.use(LuneoPlugin, {
-  apiKey: 'YOUR_API_KEY'
-});
-app.mount('#app');`, []);
+<script setup>
+import { LuneoWidget } from '@luneo/widget/vue';
+</script>`;
 
-  const componentCode = useMemo(() => `<template>
-  <luneo-editor
-    template="t-shirt"
-    @save="onSave"
+  const propsExample = `<template>
+  <LuneoWidget
+    agent-id="agent_xxx"
+    position="bottom-right"
+    theme="dark"
+    primary-color="#6366f1"
+    welcome-message="Bonjour ! Comment puis-je vous aider ?"
+    placeholder="Écrivez votre message..."
+    :user="currentUser"
+    @message="onMessage"
+    @open="onOpen"
+    @close="onClose"
   />
 </template>
 
 <script setup>
-const onSave = (design) => {
-  logger.info('Saved:', design);
-};
-</script>`, []);
+import { ref } from 'vue';
+import { LuneoWidget } from '@luneo/widget/vue';
 
-  const CodeBlock = ({ code, id, title }: { code: string; id: string; title?: string }) => (
-    <div className="mb-6">
-      {title && <h3 className="text-2xl font-bold mb-4">{title}</h3>}
-      <div className="relative">
-        <div className="bg-gray-900 text-gray-100 p-4 rounded-lg">
-          <pre className="overflow-x-auto">
-            <code>{code}</code>
-          </pre>
-        </div>
-        <button
-          onClick={() => copyCode(code, id)}
-          className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600"
-        >
-          {copied === id ? (
-            <CheckCircle className="w-4 h-4 text-green-400" />
-          ) : (
-            <Copy className="w-4 h-4 text-gray-400" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
+const currentUser = ref({
+  id: 'user_123',
+  name: 'Jean Dupont',
+  email: 'jean@example.com',
+});
 
-  return (
-    <DocPageTemplate
-      title="Vue SDK"
-      description="Intégrez Luneo dans votre app Vue.js"
-      breadcrumbs={[
-        { label: 'Documentation', href: '/help/documentation' },
-        { label: 'SDK', href: '/help/documentation/sdk' },
-        { label: 'Vue', href: '/help/documentation/sdk/vue' }
-      ]}
-      relatedLinks={[
-        { title: 'React SDK', href: '/help/documentation/sdk/react', description: 'SDK React' },
-        { title: 'Angular SDK', href: '/help/documentation/sdk/angular', description: 'SDK Angular' }
-      ]}
-    >
-      <section className="mb-12">
-        <h2 className="text-3xl font-bold mb-6">Installation</h2>
-        <CodeBlock code={installCode} id="install" />
-      </section>
-
-      <section className="mb-12">
-        <h2 className="text-3xl font-bold mb-6">Configuration</h2>
-        <CodeBlock code={configCode} id="config" />
-      </section>
-
-      <section>
-        <h2 className="text-3xl font-bold mb-6">Composants</h2>
-        <CodeBlock code={componentCode} id="component" />
-      </section>
-    </DocPageTemplate>
-  );
+function onMessage(msg) {
+  console.log('Message:', msg);
 }
+function onOpen() {
+  console.log('Widget ouvert');
+}
+function onClose() {
+  console.log('Widget fermé');
+}
+</script>`;
 
-const VueSDKPageMemo = memo(VueSDKPageContent);
+  const pluginExample = `// main.ts
+import { createApp } from 'vue';
+import { LuneoPlugin } from '@luneo/widget/vue';
+import App from './App.vue';
 
-export default function VueSDKPage() {
+const app = createApp(App);
+
+app.use(LuneoPlugin, {
+  apiKey: 'pk_live_xxx',
+  defaultAgent: 'agent_xxx',
+  theme: 'dark',
+});
+
+app.mount('#app');`;
+
+  const composableExample = `<script setup>
+import { useLuneo } from '@luneo/widget/vue';
+
+const { open, close, sendMessage, isOpen } = useLuneo();
+
+function askSupport() {
+  open();
+  sendMessage('Je souhaite contacter le support.');
+}
+</script>
+
+<template>
+  <button @click="askSupport">
+    Contacter le support
+  </button>
+  <p v-if="isOpen">Le chat est ouvert</p>
+</template>`;
+
   return (
-    <ErrorBoundary componentName="VueSDKPage">
-      <VueSDKPageMemo />
-    </ErrorBoundary>
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8">
+        <Link href="/help/documentation" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 mb-4">
+          ← Documentation
+        </Link>
+        <h1 className="text-4xl font-bold text-white mb-4">Intégration Vue</h1>
+        <p className="text-xl text-gray-400">
+          Intégrez le widget de chat Luneo dans votre application Vue 3.
+        </p>
+      </div>
+
+      <Card className="p-6 bg-gray-800/50 border-gray-700 mb-8">
+        <h2 className="text-2xl font-bold text-white mb-4">Installation</h2>
+        <div className="relative">
+          <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 text-sm text-gray-300 font-mono overflow-x-auto">
+            {installCode}
+          </pre>
+          <button onClick={() => copyCode(installCode, 'install')} className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600">
+            {copied === 'install' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
+          </button>
+        </div>
+      </Card>
+
+      <Card className="p-6 bg-gray-800/50 border-gray-700 mb-8">
+        <h2 className="text-2xl font-bold text-white mb-4">Utilisation basique</h2>
+        <p className="text-gray-400 mb-4">
+          Importez et utilisez le composant <code className="text-blue-400">LuneoWidget</code> dans vos templates Vue.
+        </p>
+        <div className="relative">
+          <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto text-sm text-gray-300 font-mono">
+            {basicExample}
+          </pre>
+          <button onClick={() => copyCode(basicExample, 'basic')} className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600">
+            {copied === 'basic' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
+          </button>
+        </div>
+      </Card>
+
+      <Card className="p-6 bg-gray-800/50 border-gray-700 mb-8">
+        <h2 className="text-2xl font-bold text-white mb-4">Props et événements</h2>
+        <p className="text-gray-400 mb-4">
+          Personnalisez le widget et réagissez aux interactions utilisateur.
+        </p>
+        <div className="relative">
+          <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto text-sm text-gray-300 font-mono">
+            {propsExample}
+          </pre>
+          <button onClick={() => copyCode(propsExample, 'props')} className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600">
+            {copied === 'props' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
+          </button>
+        </div>
+      </Card>
+
+      <Card className="p-6 bg-gray-800/50 border-gray-700 mb-8">
+        <h2 className="text-2xl font-bold text-white mb-4">Plugin Vue</h2>
+        <p className="text-gray-400 mb-4">
+          Enregistrez le plugin globalement pour une configuration centralisée.
+        </p>
+        <div className="relative">
+          <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto text-sm text-gray-300 font-mono">
+            {pluginExample}
+          </pre>
+          <button onClick={() => copyCode(pluginExample, 'plugin')} className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600">
+            {copied === 'plugin' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
+          </button>
+        </div>
+      </Card>
+
+      <Card className="p-6 bg-gray-800/50 border-gray-700">
+        <h2 className="text-2xl font-bold text-white mb-4">Composable useLuneo</h2>
+        <p className="text-gray-400 mb-4">
+          Contrôlez le widget programmatiquement avec le composable <code className="text-blue-400">useLuneo</code>.
+        </p>
+        <div className="relative">
+          <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto text-sm text-gray-300 font-mono">
+            {composableExample}
+          </pre>
+          <button onClick={() => copyCode(composableExample, 'composable')} className="absolute top-3 right-3 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600">
+            {copied === 'composable' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
+          </button>
+        </div>
+      </Card>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
-import { Code, Book, ArrowRight } from 'lucide-react';
+import { Code, Book, ArrowRight, Bot, MessageSquare, Brain, Globe, BarChart, Puzzle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -10,46 +10,52 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 function APIReferencePageContent() {
   const sections = useMemo(() => [
     {
-      title: 'Authentification',
-      description: 'Configuration de l\'authentification JWT et API Keys',
-      href: '/help/documentation/api-reference/authentication',
-      icon: '🔐'
+      title: 'Agents',
+      description: 'Créez, configurez et gérez vos agents IA conversationnels',
+      href: '/help/documentation/api-reference/designs',
+      icon: <Bot className="w-8 h-8 text-blue-400" />
+    },
+    {
+      title: 'Conversations',
+      description: 'Gérez les sessions de chat entre vos agents et vos utilisateurs',
+      href: '/help/documentation/api-reference/orders',
+      icon: <MessageSquare className="w-8 h-8 text-purple-400" />
+    },
+    {
+      title: 'Bases de connaissances',
+      description: 'Indexez vos documents pour alimenter le RAG de vos agents',
+      href: '/help/documentation/api-reference/knowledge',
+      icon: <Brain className="w-8 h-8 text-green-400" />
+    },
+    {
+      title: 'Canaux',
+      description: 'Configurez les canaux de communication : web, Slack, WhatsApp, email',
+      href: '/help/documentation/api-reference/channels',
+      icon: <Globe className="w-8 h-8 text-cyan-400" />
+    },
+    {
+      title: 'Widget',
+      description: 'Intégrez le widget chat sur votre site avec le SDK JavaScript',
+      href: '/help/documentation/api-reference/js-sdk',
+      icon: <Puzzle className="w-8 h-8 text-orange-400" />
+    },
+    {
+      title: 'Analytics',
+      description: 'Accédez aux métriques de performance de vos agents',
+      href: '/help/documentation/api-reference/analytics',
+      icon: <BarChart className="w-8 h-8 text-emerald-400" />
     },
     {
       title: 'Endpoints principaux',
-      description: 'Liste complète des endpoints de l\'API',
+      description: 'Référence complète de tous les endpoints de l\'API',
       href: '/help/documentation/api-reference/endpoints',
-      icon: '📡'
+      icon: <Code className="w-8 h-8 text-red-400" />
     },
     {
-      title: 'Créer un design',
-      description: 'API pour créer des designs personnalisés',
-      href: '/help/documentation/api-reference/create-design',
-      icon: '🎨'
-    },
-    {
-      title: 'Créer une commande',
-      description: 'API pour créer des commandes',
-      href: '/help/documentation/api-reference/create-order',
-      icon: '🛒'
-    },
-    {
-      title: 'Webhooks',
-      description: 'Recevoir des notifications en temps réel',
-      href: '/help/documentation/api-reference/webhooks',
-      icon: '🔔'
-    },
-    {
-      title: 'SDK JavaScript',
-      description: 'SDK officiel pour JavaScript/TypeScript',
-      href: '/help/documentation/api-reference/js-sdk',
-      icon: '📦'
-    },
-    {
-      title: 'Limites et quotas',
-      description: 'Limites de taux et quotas par plan',
-      href: '/help/documentation/api-reference/rate-limits',
-      icon: '⚡'
+      title: 'SDKs',
+      description: 'Vue d\'ensemble des SDKs et clients disponibles',
+      href: '/help/documentation/api-reference/sdk',
+      icon: <Book className="w-8 h-8 text-yellow-400" />
     }
   ], []);
 
@@ -61,14 +67,12 @@ function APIReferencePageContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Breadcrumbs */}
           <div className="flex items-center text-sm text-gray-400 mb-6">
             <Link href="/help/documentation" className="hover:text-white">Documentation</Link>
             <span className="mx-2">›</span>
             <span className="text-white">API Reference</span>
           </div>
 
-          {/* Header */}
           <div className="mb-12">
             <Code className="w-16 h-16 mb-6 text-blue-400" />
             <h1 className="text-5xl font-bold mb-4">
@@ -76,12 +80,16 @@ function APIReferencePageContent() {
                 API Reference
               </span>
             </h1>
-            <p className="text-xl text-gray-300">
-              Documentation complète de l'API REST Luneo. Apprenez à intégrer Luneo dans vos applications.
+            <p className="text-xl text-gray-300 mb-6">
+              Documentation complète de l'API REST Luneo. Construisez des expériences conversationnelles IA sur mesure.
             </p>
+            <div className="flex flex-wrap gap-3 text-sm text-gray-400">
+              <span className="bg-gray-800 px-3 py-1 rounded-full">Base URL : https://api.luneo.app/api/v1</span>
+              <span className="bg-gray-800 px-3 py-1 rounded-full">Auth : Bearer JWT</span>
+              <span className="bg-gray-800 px-3 py-1 rounded-full">Format : JSON</span>
+            </div>
           </div>
 
-          {/* Sections Grid */}
           <div className="grid md:grid-cols-2 gap-4">
             {sections.map((section, index) => (
               <motion
@@ -92,7 +100,7 @@ function APIReferencePageContent() {
               >
                 <Link href={section.href}>
                   <Card className="bg-gray-800 border-gray-700 p-6 hover:border-blue-500/50 transition-all h-full group">
-                    <div className="text-3xl mb-4">{section.icon}</div>
+                    <div className="mb-4">{section.icon}</div>
                     <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
                       {section.title}
                     </h3>
@@ -107,16 +115,15 @@ function APIReferencePageContent() {
             ))}
           </div>
 
-          {/* Quick Start */}
           <div className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8">
             <Book className="w-12 h-12 mb-4" />
             <h2 className="text-2xl font-bold mb-2">Démarrage rapide</h2>
             <p className="text-blue-100 mb-4">
-              Nouveau sur l'API Luneo ? Commencez par notre guide de démarrage rapide.
+              Nouveau sur l'API Luneo ? Déployez votre premier agent IA en quelques minutes.
             </p>
-            <Link href="/help/quick-start">
+            <Link href="/help/documentation/quickstart/create-agent">
               <button className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white hover:bg-white/20 px-6 py-3 rounded-lg font-semibold transition-colors">
-                Guide de démarrage
+                Créer votre premier agent
                 <ArrowRight className="w-4 h-4 ml-2 inline" />
               </button>
             </Link>

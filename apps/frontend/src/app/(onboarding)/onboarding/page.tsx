@@ -5,7 +5,6 @@
  */
 
 import React, { useCallback, memo, useEffect } from 'react';
-import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   LazyMotionDiv as motion,
@@ -68,9 +67,9 @@ const SIZES = [
 ];
 
 const OBJECTIVES = [
-  { id: 'support', label: 'Support client', templateSlug: 'support-customer' },
-  { id: 'sales', label: 'Ventes', templateSlug: 'sales-assistant' },
-  { id: 'onboarding', label: 'Onboarding', templateSlug: 'onboarding-bot' },
+  { id: 'support', label: 'Support client', templateSlug: 'support-agent' },
+  { id: 'sales', label: 'Ventes', templateSlug: 'sales-sdr-agent' },
+  { id: 'onboarding', label: 'Onboarding', templateSlug: 'onboarding-agent' },
   { id: 'other', label: 'Autre', templateSlug: '' },
 ];
 
@@ -445,12 +444,22 @@ function OnboardingPageContent() {
                     Un template a été présélectionné selon votre objectif
                   </p>
                 </div>
-                <Link href={getCreateAgentUrl()}>
-                  <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12">
-                    <Bot className="w-5 h-5 mr-2" />
-                    Créer mon premier agent
-                  </Button>
-                </Link>
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12"
+                  disabled={isSubmitting}
+                  onClick={async () => {
+                    try {
+                      await completeOnboarding();
+                      router.push(getCreateAgentUrl());
+                    } catch (err) {
+                      logger.error('Failed to complete onboarding before agent creation', err);
+                      router.push(getCreateAgentUrl());
+                    }
+                  }}
+                >
+                  <Bot className="w-5 h-5 mr-2" />
+                  {isSubmitting ? 'Chargement...' : 'Créer mon premier agent'}
+                </Button>
                 <p className="text-center text-white/40 text-sm">
                   Vous pourrez aussi le faire plus tard depuis le dashboard
                 </p>

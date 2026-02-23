@@ -38,11 +38,15 @@ interface MenuItemData {
 interface DropdownData {
   label: string;
   items: MenuItemData[];
+  discoverHref?: string;
+  discoverLabel?: string;
 }
 
 const dropdowns: DropdownData[] = [
   {
     label: 'Produit',
+    discoverHref: '/features',
+    discoverLabel: 'Découvrir toutes les fonctionnalités',
     items: [
       {
         label: 'Agents Conversationnels',
@@ -72,6 +76,8 @@ const dropdowns: DropdownData[] = [
   },
   {
     label: 'Solutions',
+    discoverHref: '/solutions/customer-service',
+    discoverLabel: 'Découvrir toutes les solutions',
     items: [
       {
         label: 'Service Client',
@@ -107,6 +113,8 @@ const dropdowns: DropdownData[] = [
   },
   {
     label: 'Ressources',
+    discoverHref: '/help',
+    discoverLabel: 'Accéder au centre de ressources',
     items: [
       {
         label: 'Documentation',
@@ -258,6 +266,19 @@ function DropdownPanel({
             </motion.div>
           ))}
         </div>
+
+        {data.discoverHref && (
+          <div className="border-t border-white/[0.06] px-4 py-3">
+            <Link
+              href={data.discoverHref}
+              onClick={onClose}
+              className="group flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              {data.discoverLabel ?? 'Découvrir'}
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

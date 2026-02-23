@@ -5,61 +5,61 @@ import { FadeIn } from '@/components/animations/fade-in';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Check, Sparkles } from 'lucide-react';
+import { PRICING, PLAN_LIMITS } from '@/lib/pricing-constants';
+
+const fmt = (v: number) => (v === -1 ? 'Illimité' : v >= 1000 ? `${(v / 1000).toFixed(0)} 000` : String(v));
 
 const PLANS = [
   {
-    name: 'Free',
-    price: 0,
+    name: PRICING.free.name,
+    price: PRICING.free.monthly,
+    yearlyPrice: PRICING.free.yearlyMonthly,
     period: '/mois',
-    conversations: '50',
-    agents: '1',
-    kb: '1',
-    team: '1',
+    conversations: fmt(PLAN_LIMITS.free.conversationsPerMonth),
+    agents: String(PLAN_LIMITS.free.agents),
+    kb: String(PLAN_LIMITS.free.knowledgeBases),
+    team: String(PLAN_LIMITS.free.teamMembers),
     cta: 'Commencer',
+    href: '/register',
     popular: false,
   },
   {
-    name: 'Starter',
-    price: 49,
+    name: PRICING.pro.name,
+    price: PRICING.pro.monthly,
+    yearlyPrice: PRICING.pro.yearlyMonthly,
     period: '/mois',
-    conversations: '500',
-    agents: '3',
-    kb: '10',
-    team: '5',
+    conversations: fmt(PLAN_LIMITS.pro.conversationsPerMonth),
+    agents: String(PLAN_LIMITS.pro.agents),
+    kb: String(PLAN_LIMITS.pro.knowledgeBases),
+    team: String(PLAN_LIMITS.pro.teamMembers),
     cta: 'Essai gratuit',
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: 149,
-    period: '/mois',
-    conversations: '2 000',
-    agents: '10',
-    kb: 'Illimité',
-    team: '20',
-    cta: 'Essai gratuit',
+    href: '/register?plan=pro',
     popular: true,
   },
   {
-    name: 'Business',
-    price: 399,
+    name: PRICING.business.name,
+    price: PRICING.business.monthly,
+    yearlyPrice: PRICING.business.yearlyMonthly,
     period: '/mois',
-    conversations: 'Illimité',
-    agents: 'Illimité',
-    kb: 'Illimité',
-    team: 'Illimité',
-    cta: 'Contacter',
+    conversations: fmt(PLAN_LIMITS.business.conversationsPerMonth),
+    agents: String(PLAN_LIMITS.business.agents),
+    kb: String(PLAN_LIMITS.business.knowledgeBases),
+    team: String(PLAN_LIMITS.business.teamMembers),
+    cta: 'Essai gratuit',
+    href: '/register?plan=business',
     popular: false,
   },
   {
-    name: 'Enterprise',
-    price: null,
+    name: PRICING.enterprise.name,
+    price: null as number | null,
+    yearlyPrice: null as number | null,
     period: '',
-    conversations: 'Custom',
-    agents: 'Custom',
-    kb: 'Custom',
-    team: 'Custom',
-    cta: 'Contacter',
+    conversations: 'Sur mesure',
+    agents: 'Sur mesure',
+    kb: 'Sur mesure',
+    team: 'Sur mesure',
+    cta: 'Nous contacter',
+    href: '/contact',
     popular: false,
   },
 ];
@@ -99,7 +99,7 @@ export function PricingSectionNew() {
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {PLANS.map((plan, i) => (
             <FadeIn key={i} delay={i * 0.1}>
               <div
@@ -119,9 +119,14 @@ export function PricingSectionNew() {
                   {plan.price !== null ? (
                     <>
                       <span className="text-3xl font-bold text-white">
-                        {yearly ? Math.round(plan.price * 0.8) : plan.price}€
+                        {yearly ? plan.yearlyPrice : plan.price}€
                       </span>
                       <span className="text-white/40 text-sm">{plan.period}</span>
+                      {yearly && plan.price !== 0 && (
+                        <p className="text-xs text-violet-400 mt-1">
+                          au lieu de {plan.price}€/mois
+                        </p>
+                      )}
                     </>
                   ) : (
                     <span className="text-2xl font-bold text-white">Sur devis</span>
@@ -129,10 +134,10 @@ export function PricingSectionNew() {
                 </div>
                 <ul className="space-y-3 mb-8 text-sm">
                   {[
-                    `${plan.conversations} conversations`,
+                    `${plan.conversations} conversations/mois`,
                     `${plan.agents} agents`,
-                    `${plan.kb} bases`,
-                    `${plan.team} membres`,
+                    `${plan.kb} bases de connaissances`,
+                    `${plan.team} membres d'équipe`,
                   ].map((f, j) => (
                     <li key={j} className="flex items-center gap-2 text-white/60">
                       <Check className="w-4 h-4 text-violet-400 flex-shrink-0" />
@@ -140,7 +145,7 @@ export function PricingSectionNew() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/register" className="block">
+                <Link href={plan.href} className="block">
                   <Button
                     className={`w-full ${
                       plan.popular

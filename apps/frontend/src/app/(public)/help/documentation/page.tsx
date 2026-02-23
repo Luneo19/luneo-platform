@@ -4,8 +4,8 @@ import React, { memo, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { 
-  ArrowRight, Book, Code, Zap, Box, Eye, Palette, Webhook, Terminal, FileCode, BarChart, Lock,
-  Globe, Package, Settings, MessageSquare
+  ArrowRight, Book, Code, Zap, Bot, MessageSquare, Brain, Globe,
+  Package, Lock, Webhook, FileCode, BarChart, Plug
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,13 @@ function DocumentationPageContent() {
       title: 'Démarrage rapide',
       icon: <Zap className="w-6 h-6 sm:w-8 sm:h-8" />,
       color: 'orange',
-      description: 'Intégrez Luneo en 15 minutes',
+      description: 'Déployez votre premier agent IA en 10 minutes',
       links: [
-        { title: 'Installation', href: '/help/documentation/quickstart/installation', time: '5 min' },
-        { title: 'Configuration', href: '/help/documentation/quickstart/configuration', time: '5 min' },
-        { title: 'Premier customizer', href: '/help/documentation/quickstart/first-customizer', time: '5 min' },
-        { title: 'Deploy production', href: '/help/documentation/quickstart/deploy', time: '10 min' }
+        { title: 'Créer un compte', href: '/help/documentation/quickstart/signup', time: '2 min' },
+        { title: 'Créer un agent', href: '/help/documentation/quickstart/create-agent', time: '5 min' },
+        { title: 'Ajouter une base de connaissances', href: '/help/documentation/quickstart/knowledge-base', time: '5 min' },
+        { title: 'Intégrer le widget', href: '/help/documentation/quickstart/widget', time: '3 min' },
+        { title: 'Déployer en production', href: '/help/documentation/quickstart/deploy', time: '5 min' }
       ]
     },
     {
@@ -31,183 +32,112 @@ function DocumentationPageContent() {
       color: 'blue',
       description: 'Documentation complète de l\'API REST',
       links: [
-        { title: 'Authentication', href: '/help/documentation/api/authentication', badge: 'OAuth 2.0' },
-        { title: 'Products API', href: '/help/documentation/api/products', badge: 'REST' },
-        { title: 'Designs API', href: '/help/documentation/api/designs', badge: 'REST' },
-        { title: 'Orders API', href: '/help/documentation/api/orders', badge: 'REST' },
-        { title: 'Webhooks API', href: '/help/documentation/api/webhooks', badge: 'Events' },
-        { title: 'Rate Limiting', href: '/help/documentation/api/rate-limiting', badge: 'Important' }
+        { title: 'Agents API', href: '/help/documentation/api-reference/designs', badge: 'REST' },
+        { title: 'Conversations API', href: '/help/documentation/api-reference/orders', badge: 'REST' },
+        { title: 'Knowledge Bases API', href: '/help/documentation/api-reference/knowledge', badge: 'REST' },
+        { title: 'Widget API', href: '/help/documentation/api-reference/widget', badge: 'REST' },
+        { title: 'Analytics API', href: '/help/documentation/api-reference/analytics', badge: 'REST' },
+        { title: 'Tous les endpoints', href: '/help/documentation/api-reference/endpoints', badge: 'Référence' }
       ]
     },
     {
-      title: 'SDKs & Libraries',
+      title: 'SDKs & Widget',
       icon: <Package className="w-6 h-6 sm:w-8 sm:h-8" />,
       color: 'purple',
-      description: 'Intégration dans votre stack préférée',
+      description: 'Intégrez le chat IA sur votre site',
       links: [
-        { title: 'JavaScript / TypeScript', href: '/help/documentation/sdks/javascript', badge: 'NPM' },
-        { title: 'React Components', href: '/help/documentation/sdks/react', badge: 'NPM' },
-        { title: 'Node.js SDK', href: '/help/documentation/sdks/node', badge: 'NPM' },
-        { title: 'Python SDK', href: '/help/documentation/sdks/python', badge: 'PyPI' }
+        { title: 'Vue d\'ensemble des SDKs', href: '/help/documentation/api-reference/sdk', badge: 'Guide' },
+        { title: 'Widget JavaScript SDK', href: '/help/documentation/api-reference/js-sdk', badge: 'NPM' },
+        { title: 'Client REST API', href: '/help/documentation/sdks/rest-client', badge: 'HTTP' },
+        { title: 'Exemples d\'intégration', href: '/help/documentation/sdks/examples', badge: 'Code' }
       ]
     },
     {
-      title: 'CLI Tools',
-      icon: <Terminal className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'green',
-      description: 'Gérez Luneo depuis votre terminal',
-      links: [
-        { title: 'Installation CLI', href: '/help/documentation/cli/installation', badge: 'npm/yarn' },
-        { title: 'Commandes essentielles', href: '/help/documentation/cli/commands', badge: '20+ cmds' },
-        { title: 'Workflows CI/CD', href: '/help/documentation/cli/workflows', badge: 'Automation' }
-      ]
-    },
-    {
-      title: 'Customizer 2D',
-      icon: <Palette className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'pink',
-      description: 'Canvas 2D avec Konva.js',
-      links: [
-        { title: 'Getting Started', href: '/help/documentation/customizer/getting-started', time: '10 min' },
-        { title: 'Configuration options', href: '/help/documentation/customizer/configuration', badge: 'JSON' },
-        { title: 'Advanced features', href: '/help/documentation/customizer/advanced', badge: 'Plugins' },
-        { title: 'Exemples complets', href: '/help/documentation/customizer/examples', badge: 'Code' }
-      ]
-    },
-    {
-      title: 'Configurator 3D',
-      icon: <Box className="w-6 h-6 sm:w-8 sm:h-8" />,
+      title: 'Agents IA',
+      icon: <Bot className="w-6 h-6 sm:w-8 sm:h-8" />,
       color: 'cyan',
-      description: 'Visualisation 3D avec Three.js',
+      description: 'Créez et configurez vos agents conversationnels',
       links: [
-        { title: 'Setup 3D Models', href: '/help/documentation/3d/setup', badge: 'GLB/GLTF' },
-        { title: 'Gestion modèles', href: '/help/documentation/3d/models', badge: 'Import' },
-        { title: 'Materials & Textures', href: '/help/documentation/3d/materials', badge: 'PBR' },
-        { title: 'Export & Render', href: '/help/documentation/3d/export', badge: 'HD' }
+        { title: 'Créer un agent', href: '/help/documentation/agents/create', time: '5 min' },
+        { title: 'Personnalité et instructions', href: '/help/documentation/agents/personality', badge: 'Guide' },
+        { title: 'Modèles IA disponibles', href: '/help/documentation/agents/models', badge: 'GPT-4o' },
+        { title: 'Tests et itérations', href: '/help/documentation/agents/testing', badge: 'Playground' }
       ]
     },
     {
-      title: 'Virtual Try-On & AR',
-      icon: <Eye className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'indigo',
-      description: 'AR experiences avec WebXR',
+      title: 'Bases de connaissances',
+      icon: <Brain className="w-6 h-6 sm:w-8 sm:h-8" />,
+      color: 'green',
+      description: 'Indexation de documents avec RAG',
       links: [
-        { title: 'Setup AR viewer', href: '/help/documentation/ar/setup', badge: 'WebXR' },
-        { title: 'QR Codes AR', href: '/help/documentation/ar/qr-codes', badge: 'Mobile' },
-        { title: 'Tracking & Analytics', href: '/help/documentation/ar/tracking', badge: 'Metrics' }
+        { title: 'Créer une base', href: '/help/documentation/knowledge/create', time: '5 min' },
+        { title: 'Importer des documents', href: '/help/documentation/knowledge/import', badge: 'PDF, Web' },
+        { title: 'Synchronisation automatique', href: '/help/documentation/knowledge/sync', badge: 'Cron' },
+        { title: 'Optimiser la recherche', href: '/help/documentation/knowledge/optimize', badge: 'Avancé' }
       ]
     },
     {
-      title: 'AI Design Hub',
-      icon: <Zap className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'yellow',
-      description: 'Génération designs avec IA',
+      title: 'Canaux & Intégrations',
+      icon: <Plug className="w-6 h-6 sm:w-8 sm:h-8" />,
+      color: 'teal',
+      description: 'Connectez vos agents partout',
       links: [
-        { title: 'Image generation', href: '/help/documentation/ai/generation', badge: 'DALL-E 3' },
-        { title: 'Prompts effectifs', href: '/help/documentation/ai/prompts', badge: 'Guide' },
-        { title: 'Modèles IA', href: '/help/documentation/ai/models', badge: 'Comparison' }
+        { title: 'Widget Web', href: '/help/documentation/integrations/widget', badge: 'JavaScript' },
+        { title: 'Slack', href: '/help/documentation/integrations/slack', badge: 'Bot' },
+        { title: 'WhatsApp', href: '/help/documentation/integrations/whatsapp', badge: 'Business' },
+        { title: 'Email', href: '/help/documentation/integrations/email', badge: 'SMTP' },
+        { title: 'Shopify', href: '/help/documentation/integrations/shopify', badge: 'App' },
+        { title: 'Zapier / Make', href: '/help/documentation/integrations/zapier', badge: 'Automation' }
       ]
     },
     {
       title: 'Webhooks & Events',
       icon: <Webhook className="w-6 h-6 sm:w-8 sm:h-8" />,
       color: 'red',
-      description: 'Automation temps réel',
+      description: 'Notifications temps réel',
       links: [
-        { title: 'Setup webhooks', href: '/help/documentation/webhooks/setup', badge: 'POST' },
-        { title: 'Event types', href: '/help/documentation/webhooks/events', badge: '15+ types' },
-        { title: 'API Webhooks', href: '/help/documentation/api/webhooks', badge: 'REST' }
+        { title: 'Configurer les webhooks', href: '/help/documentation/webhooks/setup', badge: 'POST' },
+        { title: 'Types d\'événements', href: '/help/documentation/webhooks/events', badge: '12+ types' },
+        { title: 'Sécurité des webhooks', href: '/help/documentation/webhooks/security', badge: 'HMAC' }
       ]
     },
     {
-      title: 'Analytics & Tracking',
+      title: 'Analytics',
       icon: <BarChart className="w-6 h-6 sm:w-8 sm:h-8" />,
       color: 'emerald',
-      description: 'Mesurez votre performance',
+      description: 'Mesurez la performance de vos agents',
       links: [
-        { title: 'Analytics Overview', href: '/help/documentation/analytics/overview', badge: 'Real-time' },
-        { title: 'Événements trackés', href: '/help/documentation/analytics/events', badge: 'Tracking' },
-        { title: 'Dashboards', href: '/help/documentation/analytics/dashboards', badge: 'Visualisation' }
+        { title: 'Tableau de bord', href: '/help/documentation/analytics/dashboard', badge: 'Temps réel' },
+        { title: 'Métriques des agents', href: '/help/documentation/analytics/agents', badge: 'KPIs' },
+        { title: 'Satisfaction utilisateur', href: '/help/documentation/analytics/satisfaction', badge: 'CSAT' },
+        { title: 'Export de données', href: '/help/documentation/analytics/export', badge: 'CSV / API' }
       ]
     },
     {
-      title: 'Intégrations',
-      icon: <Globe className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'teal',
-      description: 'Connectez vos outils favoris',
-      links: [
-        { title: 'Shopify', href: '/help/documentation/integrations/shopify', badge: 'E-commerce' },
-        { title: 'WooCommerce', href: '/help/documentation/integrations/woocommerce', badge: 'WordPress' },
-        { title: 'BigCommerce', href: '/help/documentation/integrations/bigcommerce', badge: 'E-commerce' },
-        { title: 'Magento', href: '/help/documentation/integrations/magento', badge: 'Enterprise' },
-        { title: 'PrestaShop', href: '/help/documentation/integrations/prestashop', badge: 'E-commerce' },
-        { title: 'Printful', href: '/help/documentation/integrations/printful', badge: 'POD' },
-        { title: 'Printify', href: '/help/documentation/integrations/printify', badge: 'POD' },
-        { title: 'Zapier', href: '/help/documentation/integrations/zapier', badge: 'Automation' },
-        { title: 'Make', href: '/help/documentation/integrations/make', badge: 'Automation' },
-        { title: 'Stripe', href: '/help/documentation/integrations/stripe', badge: 'Payments' }
-      ]
-    },
-    {
-      title: 'Security & Compliance',
+      title: 'Sécurité & Conformité',
       icon: <Lock className="w-6 h-6 sm:w-8 sm:h-8" />,
       color: 'gray',
       description: 'Sécurité enterprise-grade',
       links: [
-        { title: 'Authentication & SSO', href: '/help/documentation/security/authentication', badge: 'OAuth' },
-        { title: 'Best Practices', href: '/help/documentation/security/best-practices', badge: 'Guide' },
-        { title: 'GDPR Compliance', href: '/help/documentation/security/gdpr', badge: 'EU' },
-        { title: 'SSL/TLS', href: '/help/documentation/security/ssl-tls', badge: 'Encryption' },
-        { title: 'Audit logs', href: '/help/documentation/security/audit', badge: 'Tracking' }
-      ]
-    },
-    {
-      title: 'Configuration',
-      icon: <Settings className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'slate',
-      description: 'Paramètres et configuration',
-      links: [
-        { title: 'Variables d\'environnement', href: '/help/documentation/configuration/environment-variables', badge: 'Env' },
-        { title: 'Configuration initiale', href: '/help/documentation/configuration/setup', badge: 'Setup' },
-        { title: 'Paramètres avancés', href: '/help/documentation/configuration/advanced', badge: 'Advanced' },
-        { title: 'Monitoring', href: '/help/documentation/configuration/monitoring', badge: 'Metrics' }
-      ]
-    },
-    {
-      title: 'Deployment',
-      icon: <Zap className="w-6 h-6 sm:w-8 sm:h-8" />,
-      color: 'violet',
-      description: 'Déploiement et infrastructure',
-      links: [
-        { title: 'Vercel', href: '/help/documentation/deployment/vercel', badge: 'Serverless' },
-        { title: 'Docker', href: '/help/documentation/deployment/docker', badge: 'Container' },
-        { title: 'Kubernetes', href: '/help/documentation/deployment/kubernetes', badge: 'K8s' },
-        { title: 'CDN & Caching', href: '/help/documentation/deployment/cdn', badge: 'Performance' }
+        { title: 'Authentification & SSO', href: '/help/documentation/security/authentication', badge: 'OAuth' },
+        { title: 'Chiffrement des données', href: '/help/documentation/security/encryption', badge: 'AES-256' },
+        { title: 'Conformité RGPD', href: '/help/documentation/security/gdpr', badge: 'EU' },
+        { title: 'Logs d\'audit', href: '/help/documentation/security/audit', badge: 'Tracking' }
       ]
     }
   ], []);
 
-  const quickLinks = useMemo(() => ['Démarrage rapide', 'API Reference', 'Exemples', 'Vidéos'], []);
+  const quickLinks = useMemo(() => ['Démarrage rapide', 'API Reference', 'Widget SDK', 'Agents IA'], []);
 
-  const exampleCode = useMemo(() => `import { LuneoCustomizer } from '@luneo/react';
-
-function ProductPage() {
-  return (
-    <LuneoCustomizer
-      productId="prod_abc123"
-      apiKey={process.env.LUNEO_API_KEY}
-      onSave={(design) => {
-        router.push(\`/checkout?design=\${design.id}\`);
-      }}
-      features={{
-        textTool: true,
-        imageTool: true,
-        templates: true,
-        aiGeneration: true
-      }}
-    />
-  );
-}`, []);
+  const exampleCode = useMemo(() => `<!-- Intégrez le chat Luneo en une ligne -->
+<script
+  src="https://cdn.luneo.app/widget.js"
+  data-agent-id="agent_abc123"
+  data-token="pk_live_xxxxxxxx"
+  data-lang="fr"
+  data-theme="dark"
+  async
+></script>`, []);
 
   const handleCopyCode = useCallback(() => {
     navigator.clipboard.writeText(exampleCode);
@@ -231,7 +161,7 @@ function ProductPage() {
               </h1>
               
               <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-8">
-                Guides complets, API references, exemples de code et best practices pour maîtriser la plateforme Luneo
+                Guides complets, API references et exemples de code pour créer et déployer vos agents IA conversationnels
               </p>
             </motion>
 
@@ -248,7 +178,7 @@ function ProductPage() {
 
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
               {quickLinks.map(link => (
-                <Link key={link} href={`#${link.toLowerCase().replace(' ', '-')}`}>
+                <Link key={link} href={`#${link.toLowerCase().replace(/ /g, '-')}`}>
                   <Button variant="outline" size="sm" className="text-xs sm:text-sm">
                     {link}
                   </Button>
@@ -311,14 +241,14 @@ function ProductPage() {
       <section className="py-12 sm:py-16 md:py-20 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-8 sm:mb-12">
-            Exemple: Intégrer le Customizer en 5 minutes
+            Intégrez le widget chat en 30 secondes
           </h2>
           
           <Card className="p-4 sm:p-6 md:p-8 bg-[#0a0a0f] border border-white/10 text-white">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <FileCode className="w-5 h-5 text-blue-400" />
-                <span className="text-xs sm:text-sm font-mono text-gray-400">customizer.tsx</span>
+                <span className="text-xs sm:text-sm font-mono text-gray-400">index.html</span>
               </div>
               <Button 
                 size="sm" 
@@ -336,9 +266,9 @@ function ProductPage() {
           </Card>
           
           <div className="mt-6 text-center">
-            <Link href="/help/documentation/quickstart">
+            <Link href="/help/documentation/api-reference/js-sdk">
               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-sm sm:text-base">
-                Voir le guide complet
+                Documentation complète du Widget SDK
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
             </Link>
@@ -351,11 +281,11 @@ function ProductPage() {
           <MessageSquare className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-6 text-blue-400" />
           
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
-            Besoin d'aide?
+            Besoin d'aide ?
           </h2>
           
           <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-8">
-            Notre équipe technique est là pour vous accompagner 24/7
+            Notre équipe technique est là pour vous accompagner
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
