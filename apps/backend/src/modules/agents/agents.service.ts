@@ -92,8 +92,8 @@ export class AgentsService {
     organizationId: string,
     options?: { page?: number; limit?: number; status?: AgentStatus },
   ) {
-    const page = options?.page ?? 1;
-    const limit = options?.limit ?? 20;
+    const page = Math.max(1, Number(options?.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(options?.limit) || 20));
     const skip = (page - 1) * limit;
 
     const where: Prisma.AgentWhereInput = {

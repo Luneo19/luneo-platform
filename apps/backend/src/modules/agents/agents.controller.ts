@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -37,11 +38,18 @@ export class AgentsController {
     private readonly correctionsService: CorrectionsService,
   ) {}
 
+  private requireOrg(user: CurrentUserType): string {
+    if (!user.organizationId) {
+      throw new ForbiddenException('Vous devez créer ou rejoindre une organisation pour gérer des agents.');
+    }
+    return user.organizationId;
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new agent' })
   @ApiResponse({ status: 201, description: 'Agent created' })
   create(@CurrentUser() user: CurrentUserType, @Body() dto: CreateAgentDto) {
-    return this.agentsService.create(user.organizationId!, dto);
+    return this.agentsService.create(this.requireOrg(user), dto);
   }
 
   @Get()
@@ -56,7 +64,7 @@ export class AgentsController {
     @Query('limit') limit?: number,
     @Query('status') status?: AgentStatus,
   ) {
-    return this.agentsService.findAll(user.organizationId!, { page, limit, status });
+    return this.agentsService.findAll(this.requireOrg(user), { page, limit, status });
   }
 
   @Get(':id')
@@ -64,7 +72,7 @@ export class AgentsController {
   @ApiResponse({ status: 200, description: 'Agent details' })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   findOne(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
-    return this.agentsService.findOne(id, user.organizationId!);
+    return this.agentsService.findOne(id, this.requireOrg(user));
   }
 
   @Patch(':id')
@@ -76,7 +84,7 @@ export class AgentsController {
     @Param('id') id: string,
     @Body() dto: UpdateAgentDto,
   ) {
-    return this.agentsService.update(id, user.organizationId!, dto);
+    return this.agentsService.update(id, this.requireOrg(user), dto);
   }
 
   @Delete(':id')
@@ -84,7 +92,7 @@ export class AgentsController {
   @ApiResponse({ status: 200, description: 'Agent deleted' })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   remove(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
-    return this.agentsService.remove(id, user.organizationId!);
+    return this.agentsService.remove(id, this.requireOrg(user));
   }
 
   @Post(':id/publish')
@@ -92,7 +100,7 @@ export class AgentsController {
   @ApiResponse({ status: 200, description: 'Agent published' })
   @ApiResponse({ status: 400, description: 'Agent already active' })
   publish(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
-    return this.agentsService.publish(id, user.organizationId!);
+    return this.agentsService.publish(id, this.requireOrg(user));
   }
 
   @Post(':id/pause')
@@ -100,7 +108,7 @@ export class AgentsController {
   @ApiResponse({ status: 200, description: 'Agent paused' })
   @ApiResponse({ status: 400, description: 'Agent is not active' })
   pause(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
-    return this.agentsService.pause(id, user.organizationId!);
+    return this.agentsService.pause(id, this.requireOrg(user));
   }
 
   @Post(':id/test')
@@ -112,7 +120,7 @@ export class AgentsController {
     @Param('id') id: string,
     @Body() dto: TestAgentDto,
   ) {
-    return this.agentsService.testAgent(id, user.organizationId!, dto.message);
+    return this.agentsService.testAgent(id, this.requireOrg(user), dto.message);
   }
 
   @Post(':id/duplicate')
@@ -121,7 +129,7 @@ export class AgentsController {
   @ApiResponse({ status: 403, description: 'Agent limit reached' })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   duplicate(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
-    return this.agentsService.duplicate(id, user.organizationId!);
+    return this.agentsService.duplicate(id, this.requireOrg(user));
   }
 
   @Post(':id/knowledge-bases')
@@ -133,7 +141,7 @@ export class AgentsController {
   ) {
     return this.agentsService.attachKnowledgeBase(
       id,
-      user.organizationId!,
+      this.requireOrg(user),
       dto.knowledgeBaseId,
     );
   }
@@ -145,7 +153,7 @@ export class AgentsController {
     @Param('id') id: string,
     @Param('kbId') kbId: string,
   ) {
-    return this.agentsService.detachKnowledgeBase(id, user.organizationId!, kbId);
+    return this.agentsService.detachKnowledgeBase(id, this.requireOrg(user), kbId);
   }
 
   // ═══════════════ Flow Builder Endpoints ═══════════════
@@ -157,7 +165,7 @@ export class AgentsController {
     @Param('id') id: string,
     @Body() body: { nodes: unknown[]; edges: unknown[] },
   ) {
-    return this.agentsService.saveFlow(id, user.organizationId!, body);
+    return this.agentsService.saveFlow(id, this.requireOrg(user), body);
   }
 
   @Post(':id/flow/test')
@@ -167,7 +175,7 @@ export class AgentsController {
     @Param('id') id: string,
     @Body() body: { message: string; flow: { nodes: unknown[]; edges: unknown[] } },
   ) {
-    return this.agentsService.testFlow(id, user.organizationId!, body.message, body.flow);
+    return this.agentsService.testFlow(id, this.requireOrg(user), body.message, body.flow);
   }
 
   @Post(':id/flow/publish')
@@ -177,7 +185,7 @@ export class AgentsController {
     @Param('id') id: string,
     @Body() body: { flow: { nodes: unknown[]; edges: unknown[] } },
   ) {
-    return this.agentsService.publishFlow(id, user.organizationId!, body.flow);
+    return this.agentsService.publishFlow(id, this.requireOrg(user), body.flow);
   }
 
   // ═══════════════ Agent Learning / Corrections ═══════════════
@@ -195,7 +203,7 @@ export class AgentsController {
       userQuestion?: string;
     },
   ) {
-    return this.correctionsService.createCorrection(id, user.organizationId!, {
+    return this.correctionsService.createCorrection(id, this.requireOrg(user), {
       ...body,
       correctedBy: user.id,
     });
@@ -213,7 +221,7 @@ export class AgentsController {
   ) {
     return this.correctionsService.listCorrections(
       id,
-      user.organizationId!,
+      this.requireOrg(user),
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
     );
