@@ -708,8 +708,8 @@ importers:
         specifier: ^18.4.4
         version: 18.6.3
       '@next/bundle-analyzer':
-        specifier: ^15.0.0
-        version: 15.5.12
+        specifier: ^16.1.6
+        version: 16.1.6
       '@playwright/test':
         specifier: ^1.55.1
         version: 1.58.1
@@ -4784,8 +4784,8 @@ packages:
       reflect-metadata: 0.1.14
     dev: false
 
-  /@next/bundle-analyzer@15.5.12:
-    resolution: {integrity: sha512-tDkdfvuKz9JlH+B/CEIY0+XqQ5gymVZZWvDer5HJI68rPI0EYfbSadbvIUvHTugYnMkyxSBf8u0P2yGOSQ4h+w==}
+  /@next/bundle-analyzer@16.1.6:
+    resolution: {integrity: sha512-ee2kagdTaeEWPlotgdTOqFHYcD3e2m2bbE3I9Rq2i6ABYi5OgopmtEUe8NM23viaYxLV2tDH/2nd5+qKoEr6cw==}
     dependencies:
       webpack-bundle-analyzer: 4.10.1
     transitivePeerDependencies:
