@@ -170,7 +170,7 @@
   },
   "pricing": {
     "title": "Tarification simple et transparente",
-    "subtitle": "Choisissez le plan qui vous convient",
+    "subtitle": "Choisissez le plan qui correspond à vos besoins en agents IA",
     "monthly": "Mensuel",
     "yearly": "Annuel",
     "savePercent": "Économisez {{percent}}%",
@@ -183,21 +183,21 @@
     "contactSales": "Contacter les ventes",
     "features": "Fonctionnalités",
     "plans": {
-      "starter": {
-        "name": "Starter",
-        "description": "Parfait pour les individus qui débutent"
+      "free": {
+        "name": "Gratuit",
+        "description": "Découvrez les agents IA Luneo gratuitement"
       },
-      "professional": {
-        "name": "Professionnel",
-        "description": "Pour les équipes et entreprises en croissance"
+      "pro": {
+        "name": "Pro",
+        "description": "Pour les équipes qui veulent des agents IA performants"
       },
       "business": {
         "name": "Business",
-        "description": "Pour les entreprises qui scalent"
+        "description": "Pour les entreprises avec des besoins avancés en IA"
       },
       "enterprise": {
-        "name": "Entreprise",
-        "description": "Solutions personnalisées pour grandes organisations"
+        "name": "Enterprise",
+        "description": "Solution sur-mesure pour les grandes organisations"
       }
     },
     "faq": {
@@ -207,7 +207,7 @@
       "q2": "Quels moyens de paiement acceptez-vous ?",
       "a2": "Nous acceptons toutes les cartes bancaires et PayPal.",
       "q3": "Y a-t-il un essai gratuit ?",
-      "a3": "Oui, tous les plans incluent un essai gratuit de 14 jours."
+      "a3": "Oui, le plan Gratuit est gratuit à vie. Les plans Pro et Business incluent un essai gratuit de 14 jours."
     }
   },
   "contact": {

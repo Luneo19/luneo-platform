@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
@@ -43,24 +42,21 @@ const DEFAULT_PREFERENCES: Required<NotificationPreferencesNested> = {
 export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Update the current user's notification preferences.
-   * Stores nested preferences in User.notificationPreferences JSON; merges with existing values.
-   */
   async updateNotificationPreferences(
     userId: string,
     dto: UpdateNotificationPreferencesDto,
   ): Promise<NotificationPreferencesNested> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { notificationPreferences: true },
+      select: { metadata: true },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const current = (user.notificationPreferences as NotificationPreferencesNested | null) ?? {};
+    const meta = (user.metadata as Record<string, unknown>) ?? {};
+    const current = (meta.notificationPreferences as NotificationPreferencesNested | undefined) ?? {};
     const merged: NotificationPreferencesNested = {
       email: { ...DEFAULT_PREFERENCES.email, ...current.email, ...dto.email },
       push: { ...DEFAULT_PREFERENCES.push, ...current.push, ...dto.push },
@@ -69,26 +65,24 @@ export class SettingsService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { notificationPreferences: merged as object },
+      data: { metadata: { ...meta, notificationPreferences: merged } as object },
     });
 
     return merged;
   }
 
-  /**
-   * Get the current user's notification preferences (nested shape with defaults).
-   */
   async getNotificationPreferences(userId: string): Promise<NotificationPreferencesNested> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { notificationPreferences: true },
+      select: { metadata: true },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const stored = (user.notificationPreferences as NotificationPreferencesNested | null) ?? {};
+    const meta = (user.metadata as Record<string, unknown>) ?? {};
+    const stored = (meta.notificationPreferences as NotificationPreferencesNested | undefined) ?? {};
     return {
       email: { ...DEFAULT_PREFERENCES.email, ...stored.email },
       push: { ...DEFAULT_PREFERENCES.push, ...stored.push },

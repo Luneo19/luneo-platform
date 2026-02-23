@@ -55,90 +55,6 @@ vi.mock('next/headers', () => ({
   })),
 }));
 
-// Mock tRPC - Mock complet pour tous les routers
-vi.mock('@/lib/trpc/client', () => ({
-  trpc: {
-    product: {
-      getById: {
-        useQuery: vi.fn(() => ({ data: null, isLoading: false, isPending: false })),
-      },
-      list: {
-        useQuery: vi.fn(() => ({ data: [], isLoading: false, isPending: false })),
-      },
-    },
-    customization: {
-      generateFromPrompt: {
-        useMutation: vi.fn(() => ({
-          mutate: vi.fn(),
-          mutateAsync: vi.fn(),
-          isLoading: false,
-          isPending: false,
-          isError: false,
-          error: null,
-        })),
-      },
-      checkStatus: {
-        useQuery: vi.fn(() => ({ data: null, isLoading: false, isPending: false })),
-      },
-      getById: {
-        useQuery: vi.fn(() => ({ data: null, isLoading: false, isPending: false })),
-      },
-    },
-    order: {
-      create: {
-        useMutation: vi.fn(() => ({
-          mutate: vi.fn(),
-          mutateAsync: vi.fn(),
-          isLoading: false,
-          isPending: false,
-        })),
-      },
-      list: {
-        useQuery: vi.fn(() => ({ data: [], isLoading: false, isPending: false })),
-      },
-    },
-    billing: {
-      getSubscription: {
-        useQuery: vi.fn(() => ({ data: null, isLoading: false, isPending: false })),
-      },
-    },
-    notification: {
-      list: {
-        useQuery: vi.fn(() => ({ 
-          data: { notifications: [], unreadCount: 0 }, 
-          isLoading: false, 
-          isPending: false,
-          refetch: vi.fn(),
-        })),
-      },
-      markAsRead: {
-        useMutation: vi.fn(() => ({
-          mutate: vi.fn(),
-          mutateAsync: vi.fn(),
-          isLoading: false,
-          isPending: false,
-        })),
-      },
-      markAllAsRead: {
-        useMutation: vi.fn(() => ({
-          mutate: vi.fn(),
-          mutateAsync: vi.fn(),
-          isLoading: false,
-          isPending: false,
-        })),
-      },
-      delete: {
-        useMutation: vi.fn(() => ({
-          mutate: vi.fn(),
-          mutateAsync: vi.fn(),
-          isLoading: false,
-          isPending: false,
-        })),
-      },
-    },
-  },
-}));
-
 // Mock IntersectionObserver (not available in jsdom)
 class MockIntersectionObserver {
   readonly root: Element | null = null;
@@ -184,6 +100,5 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Supabase has been fully removed. Auth is now cookie-based via NestJS backend.
-// API client is mocked per test file (auth.store.test, dashboard.store.test, industry.store.test, onboarding.store.test)
+// API client is mocked per test file (auth.store.test, dashboard.store.test, etc.)
 // so that client.test.ts can test the real client.

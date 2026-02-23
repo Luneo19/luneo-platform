@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Controller,
   Get,
@@ -16,7 +15,7 @@ import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { LlmService } from '@/libs/llm/llm.service';
 
 class TestCompletionDto {
@@ -55,11 +54,11 @@ export class LlmController {
   @ApiOperation({ summary: 'Lister les modèles LLM disponibles' })
   @ApiResponse({ status: 200, description: 'Liste des modèles' })
   listModels() {
-    return this.llmService.listModels();
+    return { models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo'] };
   }
 
   @Post('complete')
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Tester une complétion (admin uniquement)' })
   @ApiResponse({ status: 200, description: 'Résultat de la complétion' })
   async testCompletion(@Body() dto: TestCompletionDto) {
@@ -72,8 +71,9 @@ export class LlmController {
 
     return {
       content: result.content,
-      model: dto.model ?? 'gpt-4o-mini',
-      usage: result.usage,
+      model: result.model,
+      tokensIn: result.tokensIn,
+      tokensOut: result.tokensOut,
     };
   }
 }

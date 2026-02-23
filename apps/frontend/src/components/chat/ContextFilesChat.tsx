@@ -32,7 +32,7 @@ import {
   type ContextFile,
   type ContextFileContent,
 } from '@/lib/utils/context-files';
-import { endpoints } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -145,18 +145,18 @@ export function ContextFilesChat({
           .join('\n\n---\n\n');
       }
 
-      const response = await endpoints.agents.luna.chat({
+      const response = await api.post<{ message?: string; conversationId?: string }>('/api/v1/agents/luna/chat', {
         message: userMessage.content,
         conversationId,
         context: contextContent ? { contextFiles: contextContent } : undefined,
       });
 
       const replyText =
-        (response?.data?.message as string) ||
+        response?.message ||
         'Désolé, je n’ai pas pu générer une réponse. Réessayez.';
 
-      if (response?.data?.conversationId) {
-        setConversationId(response.data.conversationId as string);
+      if (response?.conversationId) {
+        setConversationId(response.conversationId);
       }
 
       const assistantMessage: Message = {

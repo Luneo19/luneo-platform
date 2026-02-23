@@ -1,12 +1,12 @@
 import { IsEmail, IsString, IsOptional, IsStrongPassword, IsIn, IsNotEmpty, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 
 /**
  * SECURITY FIX: Only CONSUMER and BRAND_USER are allowed for self-registration.
  * BRAND_ADMIN, PLATFORM_ADMIN, and FABRICATOR must be assigned by an admin.
  */
-const ALLOWED_SIGNUP_ROLES = [UserRole.CONSUMER, UserRole.BRAND_USER] as const;
+const ALLOWED_SIGNUP_ROLES = [PlatformRole.USER] as const;
 
 export class SignupDto {
   @ApiProperty({ description: 'Email de l\'utilisateur', example: 'user@example.com' })
@@ -42,8 +42,8 @@ export class SignupDto {
 
   @ApiPropertyOptional({ description: 'Rôle utilisateur (CONSUMER ou BRAND_USER uniquement)', enum: ALLOWED_SIGNUP_ROLES })
   @IsOptional()
-  @IsIn(ALLOWED_SIGNUP_ROLES, { message: 'Role must be CONSUMER or BRAND_USER for self-registration' })
-  role?: UserRole;
+  @IsIn(ALLOWED_SIGNUP_ROLES, { message: 'Role must be USER for self-registration' })
+  role?: PlatformRole;
 
   @ApiPropertyOptional({ description: 'Token CAPTCHA pour vérification', example: '03AGdBq...' })
   @IsOptional()

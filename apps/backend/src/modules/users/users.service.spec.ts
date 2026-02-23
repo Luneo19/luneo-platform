@@ -3,7 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 import { UsersService } from './users.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
@@ -31,8 +31,8 @@ describe('UsersService', () => {
   mockPrisma.$transaction = mockTransaction;
   const mockCache = { get: jest.fn(), invalidate: jest.fn() };
   const mockCloudinary = { uploadImage: jest.fn() };
-  const adminUser: CurrentUser = { id: 'user-1', email: 'admin@test.com', role: UserRole.PLATFORM_ADMIN };
-  const regularUser: CurrentUser = { id: 'user-2', email: 'user@test.com', role: UserRole.CONSUMER };
+  const adminUser: CurrentUser = { id: 'user-1', email: 'admin@test.com', role: PlatformRole.ADMIN };
+  const regularUser: CurrentUser = { id: 'user-2', email: 'user@test.com', role: PlatformRole.USER };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -84,8 +84,8 @@ describe('UsersService', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         avatar: null,
-        role: UserRole.CONSUMER,
-        brandId: null,
+        role: PlatformRole.USER,
+        organizationId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         brand: null,

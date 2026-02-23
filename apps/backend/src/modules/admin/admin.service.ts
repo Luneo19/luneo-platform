@@ -6,7 +6,7 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 import { Prisma, Plan, OrgStatus, PlatformRole, TicketStatus, InvoiceStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
-import { AuditLogService, AuditAction } from '@/modules/audit/services/audit-log.service';
+import { AuditLogsService, AuditEventType } from '@/modules/security/services/audit-logs.service';
 import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
 import { PlanTier } from '@/libs/plans/plan-config.types';
 
@@ -34,7 +34,7 @@ export class AdminService {
     private emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly billingService: BillingService,
-    @Optional() private readonly auditLogService?: AuditLogService,
+    @Optional() private readonly auditLogService?: AuditLogsService,
   ) {}
 
   // ========================================
@@ -339,14 +339,12 @@ export class AdminService {
 
     try {
       const auditAction = planChanged
-        ? AuditAction.ADMIN_BRAND_PLAN_CHANGED
-        : AuditAction.ADMIN_BRAND_UPDATED;
+        ? AuditEventType.BILLING_UPDATED
+        : AuditEventType.BRAND_UPDATED;
 
-      await this.auditLogService?.log({
-        action: auditAction,
+      await this.auditLogService?.logSuccess(auditAction, 'admin.org.update', {
         resourceType: 'Organization',
         resourceId: brandId,
-        success: true,
         metadata: {
           changes: Object.keys(updateData),
           previousPlan: org.plan,

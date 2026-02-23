@@ -6,7 +6,7 @@ const DEFAULT_PLANS = [
   {
     id: 'free',
     name: 'Free',
-    description: 'Essayez Luneo gratuitement avec des fonctionnalites de base',
+    description: 'Essayez Luneo gratuitement avec des fonctionnalités de base',
     price: { monthly: 0, yearly: 0 },
     currency: 'EUR',
     features: [
@@ -39,7 +39,7 @@ const DEFAULT_PLANS = [
   {
     id: 'starter',
     name: 'Starter',
-    description: 'Parfait pour les createurs independants et petits projets',
+    description: 'Parfait pour les créateurs indépendants et petits projets',
     price: { monthly: 19, yearly: 190 },
     currency: 'EUR',
     features: [
@@ -50,12 +50,12 @@ const DEFAULT_PLANS = [
       { name: '100 sessions Virtual Try-On/mois', included: true },
       { name: 'Export PNG/PDF', included: true },
       { name: 'Support email', included: true },
-      { name: '3 membres d\'equipe', included: true },
+      { name: '3 membres d\'équipe', included: true },
       { name: '5 GB stockage', included: true },
       { name: 'Commission 5%', included: true },
       { name: 'Dépassement facturé (ex: 0,30€/try-on)', included: true },
       { name: 'API access', included: false },
-      { name: 'Branding personnalise', included: false },
+      { name: 'Branding personnalisé', included: false },
     ],
     limits: {
       designs: 50,
@@ -77,7 +77,7 @@ const DEFAULT_PLANS = [
   {
     id: 'professional',
     name: 'Professional',
-    description: 'Pour les createurs et PME qui veulent passer a la vitesse superieure',
+    description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
     price: { monthly: 49, yearly: 490 },
     currency: 'EUR',
     features: [

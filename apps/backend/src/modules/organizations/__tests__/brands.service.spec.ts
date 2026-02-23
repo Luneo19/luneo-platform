@@ -3,7 +3,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { BrandsService } from '../brands.service';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 
 describe('BrandsService', () => {
@@ -28,15 +28,15 @@ describe('BrandsService', () => {
   const platformAdmin: CurrentUser = {
     id: 'admin-1',
     email: 'admin@test.com',
-    role: UserRole.PLATFORM_ADMIN,
-    brandId: null,
+    role: PlatformRole.ADMIN,
+    organizationId: null,
   };
 
   const brandUser: CurrentUser = {
     id: 'user-1',
     email: 'user@brand.com',
-    role: UserRole.BRAND_ADMIN,
-    brandId: 'brand-1',
+    role: PlatformRole.ADMIN,
+    organizationId: 'brand-1',
   };
 
   beforeEach(async () => {
@@ -60,7 +60,7 @@ describe('BrandsService', () => {
     it('should create brand when user is brand admin', async () => {
       mockCache.get.mockResolvedValue({
         id: 'user-1',
-        role: UserRole.BRAND_ADMIN,
+        role: PlatformRole.ADMIN,
       });
       const created = { id: 'brand-1', name: 'New Brand', users: [] };
       mockPrisma.brand.create.mockResolvedValue(created);
@@ -71,7 +71,7 @@ describe('BrandsService', () => {
     });
 
     it('should throw ForbiddenException when user is not brand admin', async () => {
-      mockCache.get.mockResolvedValue({ id: 'user-1', role: UserRole.CONSUMER });
+      mockCache.get.mockResolvedValue({ id: 'user-1', role: PlatformRole.USER });
       await expect(
         service.create({ name: 'New Brand' }, 'user-1'),
       ).rejects.toThrow(ForbiddenException);

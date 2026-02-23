@@ -1,23 +1,9 @@
-/**
- * @fileoverview Registry des outils disponibles pour les agents IA
- * @module ToolRegistryService
- */
-
-import { Injectable, Optional } from '@nestjs/common';
-import type { AgentTool } from './shopify-order.tool';
-import { ShopifyOrderTool } from './shopify-order.tool';
+import { Injectable } from '@nestjs/common';
+import type { AgentTool } from './index';
 
 @Injectable()
 export class ToolRegistryService {
   private tools = new Map<string, AgentTool>();
-
-  constructor(
-    @Optional() private readonly shopifyOrderTool?: ShopifyOrderTool,
-  ) {
-    if (this.shopifyOrderTool) {
-      this.register(this.shopifyOrderTool);
-    }
-  }
 
   register(tool: AgentTool): void {
     this.tools.set(tool.name, tool);

@@ -130,10 +130,10 @@ function TeamPageContent() {
   ];
 
   const permissions = {
-    owner: ['Tous les droits', 'Gérer la facturation', 'Supprimer l\'équipe'],
-    admin: ['Inviter membres', 'Gérer projets', 'Modifier paramètres'],
-    member: ['Créer designs', 'Modifier projets', 'Voir analytics'],
-    viewer: ['Voir projets', 'Commenter', 'Exporter designs']
+    owner: ['Tous les droits', 'Gérer la facturation', 'Supprimer l\'organisation'],
+    admin: ['Inviter des membres', 'Gérer les agents', 'Modifier les paramètres'],
+    member: ['Créer des agents', 'Gérer les conversations', 'Voir les analytics'],
+    viewer: ['Voir les agents', 'Lire les conversations', 'Consulter les analytics']
   };
 
   const handleInvite = useCallback(() => {

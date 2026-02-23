@@ -13,7 +13,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Verify2FADto } from './dto/verify-2fa.dto';
 import { Login2FADto } from './dto/login-2fa.dto';
-import { Prisma } from '@prisma/client'; import { UserRole } from '@/common/compat/v1-enums';
+import { Prisma, PlatformRole } from '@prisma/client';
 import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
@@ -96,7 +96,7 @@ export class AuthService {
         firstName,
         lastName,
         // SECURITY FIX: Only allow safe roles for self-registration
-        role: (role === UserRole.BRAND_USER) ? UserRole.BRAND_USER : UserRole.CONSUMER,
+        role: PlatformRole.USER,
       },
       include: {
         memberships: { where: { isActive: true }, include: { organization: true }, take: 1 },
@@ -296,8 +296,7 @@ export class AuthService {
 
     // Admin roles: 2FA recommandé — si non activé, inclure un flag dans la réponse
     // mais ne PAS bloquer la connexion (le dashboard affichera un prompt de setup)
-    const ADMIN_ROLES_REQUIRING_2FA: UserRole[] = [UserRole.PLATFORM_ADMIN, UserRole.BRAND_ADMIN];
-    const needs2FASetup = ADMIN_ROLES_REQUIRING_2FA.includes(user.role) && !user.twoFactorEnabled;
+    const needs2FASetup = user.role === PlatformRole.ADMIN && !user.twoFactorEnabled;
 
     return {
       user: {
@@ -351,8 +350,18 @@ export class AuthService {
       const userMeta = (user.metadata as Record<string, unknown>) || {};
       const backupCodes = (userMeta.backupCodes as string[]) || [];
 
-      // Vérifier code 2FA
-      const isValid = this.twoFactorService.verifyToken(user.twoFactorSecret, token);
+      // SEC: Decrypt twoFactorSecret (stored encrypted via EncryptionService)
+      let decryptedSecret: string;
+      try {
+        decryptedSecret = this.encryptionService.isEncrypted(user.twoFactorSecret)
+          ? this.encryptionService.decrypt(user.twoFactorSecret)
+          : user.twoFactorSecret;
+      } catch {
+        this.logger.error('Failed to decrypt 2FA secret', { userId: user.id });
+        throw new UnauthorizedException('2FA verification failed');
+      }
+
+      const isValid = this.twoFactorService.verifyToken(decryptedSecret, token);
       if (!isValid) {
         // Vérifier codes de backup (SEC-07: codes hashés, stockés dans metadata)
         if (backupCodes.length > 0) {
@@ -473,11 +482,12 @@ export class AuthService {
     }
 
     const { temp2FASecret: _, ...cleanMeta } = userMeta;
+    const encryptedSecret = this.encryptionService.encrypt(tempSecret);
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         twoFactorEnabled: true,
-        twoFactorSecret: tempSecret,
+        twoFactorSecret: encryptedSecret,
         metadata: cleanMeta as Prisma.InputJsonValue,
       },
     });
@@ -669,7 +679,7 @@ export class AuthService {
     return this.tokenService.logout(userId);
   }
 
-  async generateTokens(userId: string, email: string, role: UserRole) {
+  async generateTokens(userId: string, email: string, role: PlatformRole) {
     return this.tokenService.generateTokens(userId, email, role);
   }
 
@@ -1081,7 +1091,7 @@ export class AuthService {
         firstName: data.firstName,
         lastName: data.lastName,
         emailVerified: data.emailVerified ?? true,
-        role: UserRole.CONSUMER,
+        role: PlatformRole.USER,
       },
       include: {
         memberships: { where: { isActive: true }, include: { organization: true }, take: 1 },

@@ -1,8 +1,15 @@
 /**
- * V1 Compatibility Layer - Enum aliases
- * Maps old V1 enum values to V2 equivalents so legacy code can run
+ * @deprecated V1 Compatibility Layer — Enum aliases
+ * Maps old V1 enum values to V2 equivalents so legacy code can run.
+ *
+ * MIGRATION STATUS: Still actively imported by 20+ modules (auth, admin, security, etc.).
+ * These aliases CANNOT be removed yet. Migrate each consumer to use PlatformRole / OrgRole
+ * from @prisma/client before removing this file.
+ *
+ * Target: Remove after full V2 migration.
  */
 
+/** @deprecated Use PlatformRole from @prisma/client instead */
 export const UserRole = {
   PLATFORM_ADMIN: 'ADMIN' as const,
   BRAND_ADMIN: 'ADMIN' as const,
@@ -13,6 +20,7 @@ export const UserRole = {
   ADMIN: 'ADMIN' as const,
 } as const;
 
+/** @deprecated V1 enum — no longer has a Prisma model equivalent */
 export const OrderStatus = {
   PENDING: 'PENDING' as const,
   PAID: 'PAID' as const,
@@ -23,6 +31,7 @@ export const OrderStatus = {
   REFUNDED: 'REFUNDED' as const,
 } as const;
 
+/** @deprecated V1 enum — no longer has a Prisma model equivalent */
 export const DesignStatus = {
   DRAFT: 'DRAFT' as const,
   PROCESSING: 'PROCESSING' as const,
@@ -31,12 +40,14 @@ export const DesignStatus = {
   PUBLISHED: 'PUBLISHED' as const,
 } as const;
 
+/** @deprecated V1 enum — use OrgStatus from @prisma/client instead */
 export const BrandStatus = {
   ACTIVE: 'ACTIVE' as const,
   SUSPENDED: 'SUSPENDED' as const,
   TRIAL: 'TRIAL' as const,
 } as const;
 
+/** @deprecated V1 enum — no longer has a Prisma model equivalent */
 export const ProductStatus = {
   DRAFT: 'DRAFT' as const,
   ACTIVE: 'ACTIVE' as const,
@@ -49,7 +60,7 @@ export type DesignStatus = (typeof DesignStatus)[keyof typeof DesignStatus];
 export type BrandStatus = (typeof BrandStatus)[keyof typeof BrandStatus];
 export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus];
 
-// Additional V1 enums used by legacy code
+// @deprecated — Additional V1 enums used by legacy code. Remove after full migration.
 export const ChurnRisk = { LOW: 'LOW', MEDIUM: 'MEDIUM', HIGH: 'HIGH', CRITICAL: 'CRITICAL' } as const;
 export const SubscriptionPlan = { FREE: 'FREE', STARTER: 'STARTER', PRO: 'PRO', BUSINESS: 'BUSINESS', ENTERPRISE: 'ENTERPRISE' } as const;
 export const SubscriptionStatus = { ACTIVE: 'ACTIVE', TRIALING: 'TRIALING', PAST_DUE: 'PAST_DUE', CANCELED: 'CANCELED', PAUSED: 'PAUSED' } as const;

@@ -56,11 +56,11 @@ export const metadata: Metadata = {
     default: 'Luneo - Agents IA autonomes pour votre entreprise',
     template: '%s | Luneo',
   },
-  description: 'Luneo est la plateforme d\'agents IA pour automatiser votre service client, vos ventes et votre support. Deployez des agents conversationnels entraines sur vos donnees en 15 minutes, sans code.',
+  description: 'Luneo est la plateforme d\'agents IA pour automatiser votre service client, vos ventes et votre support. Déployez des agents conversationnels entraînés sur vos données en 15 minutes, sans code.',
   keywords: [
     'agents IA',
     'chatbot IA',
-    'service client automatise',
+    'service client automatisé',
     'support client IA',
     'agent conversationnel',
     'RAG',
@@ -86,7 +86,7 @@ export const metadata: Metadata = {
     url: SEO_BASE_URL,
     siteName: 'Luneo',
     title: 'Luneo - Agents IA autonomes pour votre entreprise',
-    description: 'Deployez des agents IA qui resolvent 80% des demandes clients automatiquement. Service client, ventes, support — en 15 minutes, sans code.',
+    description: 'Déployez des agents IA qui résolvent 80% des demandes clients automatiquement. Service client, ventes, support — en 15 minutes, sans code.',
     images: [
       {
         url: '/og-image.png',
@@ -99,7 +99,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Luneo - Agents IA autonomes pour votre entreprise',
-    description: 'Deployez des agents IA qui resolvent 80% des demandes clients automatiquement. Service client, ventes, support — en 15 minutes, sans code.',
+    description: 'Déployez des agents IA qui résolvent 80% des demandes clients automatiquement. Service client, ventes, support — en 15 minutes, sans code.',
     images: ['/og-image.png'],
     creator: '@luneo_app',
   },
@@ -131,10 +131,6 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
 };
 
-// Force dynamic rendering car loadI18nConfig() utilise cookies()
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default async function RootLayout({
   children,
 }: {
@@ -143,8 +139,8 @@ export default async function RootLayout({
   // Gestion d'erreur pour éviter les 500 (default fr for French platform)
   let locale: SupportedLocale = 'fr';
   let messages: TranslationMessages = {} as TranslationMessages;
-  let currency = 'USD';
-  let timezone = 'America/New_York';
+  let currency = 'EUR';
+  let timezone = 'Europe/Paris';
   let availableLocales: Array<{
     locale: SupportedLocale;
     label: string;
@@ -162,11 +158,10 @@ export default async function RootLayout({
     availableLocales = i18nConfig.availableLocales;
   } catch (error) {
     serverLogger.error('[Layout] Failed to load i18n config', error);
-    // Utiliser les valeurs par défaut (fr pour plateforme Luneo)
     locale = 'fr';
     messages = {} as TranslationMessages;
-    currency = 'USD';
-    timezone = 'America/New_York';
+    currency = 'EUR';
+    timezone = 'Europe/Paris';
     availableLocales = [
       { locale: 'en', label: 'English', region: 'United States', flag: '🇺🇸' },
       { locale: 'fr', label: 'Français', region: 'France', flag: '🇫🇷' },
@@ -183,22 +178,14 @@ export default async function RootLayout({
     // Utiliser les valeurs par défaut
     featureFlags = {
       flags: {
-        enableAIGeneration: true,
-        enable3DConfigurator: false,
-        enableVirtualTryOn: false,
-        enableARExport: false,
-        enableBulkGeneration: false,
-        enableAdvancedAnalytics: true,
-        enableTeamCollaboration: true,
-        enableShopifyIntegration: true,
-        enableWooCommerceIntegration: true,
-        enablePrintfulIntegration: false,
-        enableNewPricingPage: true,
-        enableReferralProgram: true,
-        enableNotificationCenter: true,
-        enableSupportTickets: true,
-        enableExperimentalFeatures: false,
-        enableDebugMode: false,
+        enableVisualBuilder: false,
+        enableEmailChannel: false,
+        enableAdvancedAnalytics: false,
+        enableWhiteLabel: false,
+        enableApiAccess: false,
+        enableAgentTemplates: true,
+        enableKnowledgeBase: true,
+        enableWidgetChat: true,
       },
       updatedAt: null,
     };

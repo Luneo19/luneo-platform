@@ -14,6 +14,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import {
   ApiTags,
   ApiOperation,
@@ -28,7 +29,7 @@ import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { BillingService } from '@/modules/billing/billing.service';
 import { Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AddBlacklistedPromptDto, BulkActionCustomersDto } from './dto/admin.dto';
@@ -37,7 +38,7 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 @ApiTags('admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
-@Roles(UserRole.PLATFORM_ADMIN)
+@Roles(PlatformRole.ADMIN)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -291,7 +292,7 @@ export class AdminController {
 
   @Post('billing/:subscriptionId/refund')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({
     summary: 'Refund a subscription payment',
     description: 'Issues a Stripe refund on the latest paid invoice of the given subscription. Platform admin only.',
@@ -320,7 +321,10 @@ export class AdminController {
     if (!validKey) {
       throw new UnauthorizedException('SETUP_SECRET_KEY environment variable is not configured');
     }
-    if (!setupKey || setupKey !== validKey) {
+    const isValid = setupKey &&
+      Buffer.byteLength(setupKey) === Buffer.byteLength(validKey) &&
+      timingSafeEqual(Buffer.from(setupKey), Buffer.from(validKey));
+    if (!isValid) {
       throw new UnauthorizedException('Invalid setup key');
     }
     return this.adminService.createAdminUser();
@@ -328,7 +332,7 @@ export class AdminController {
 
   @Get('metrics')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Get platform metrics' })
   @ApiResponse({ status: 200, description: 'Platform metrics' })
   async getMetrics() {
@@ -337,7 +341,7 @@ export class AdminController {
 
   @Get('ai/costs')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Get AI costs' })
   @ApiQuery({ name: 'period', required: false, description: 'Period (e.g., 30d)' })
   @ApiResponse({ status: 200, description: 'AI costs' })
@@ -347,7 +351,7 @@ export class AdminController {
 
   @Get('ai/blacklist')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'List all AI blacklisted terms' })
   @ApiResponse({ status: 200, description: 'Blacklisted terms list' })
   async getBlacklistedPrompts() {
@@ -357,7 +361,7 @@ export class AdminController {
 
   @Post('ai/blacklist')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Add a term to the AI blacklist' })
   @ApiResponse({ status: 201, description: 'Term added to blacklist' })
   async addBlacklistedPrompt(@Body() body: AddBlacklistedPromptDto) {
@@ -366,7 +370,7 @@ export class AdminController {
 
   @Delete('ai/blacklist/:term')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Remove a term from the AI blacklist' })
   @ApiParam({ name: 'term', description: 'Term to remove (can be URL-encoded)' })
   @ApiResponse({ status: 200, description: 'Term removed from blacklist' })
@@ -396,7 +400,7 @@ export class AdminController {
 
   @Post('customers/bulk-action')
   @ApiBearerAuth()
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Perform bulk action on customers' })
   @ApiResponse({ status: 200, description: 'Bulk action performed' })
   async bulkActionCustomers(@Body() body: BulkActionCustomersDto) {

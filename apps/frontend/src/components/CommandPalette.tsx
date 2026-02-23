@@ -67,17 +67,17 @@ export function CommandPalette() {
               <CommandItem
                 icon={<Plus className="h-4 w-4" />}
                 label="Créer un Agent"
-                onSelect={() => runAction('/dashboard/agents/new')}
+                onSelect={() => runAction('/agents/new')}
               />
               <CommandItem
                 icon={<BarChart3 className="h-4 w-4" />}
                 label="Voir les Analytics"
-                onSelect={() => runAction('/dashboard/analytics')}
+                onSelect={() => runAction('/analytics')}
               />
               <CommandItem
                 icon={<MessageSquare className="h-4 w-4" />}
                 label="Voir les Conversations"
-                onSelect={() => runAction('/dashboard/conversations')}
+                onSelect={() => runAction('/conversations')}
               />
             </Command.Group>
 
@@ -88,17 +88,17 @@ export function CommandPalette() {
               <CommandItem
                 icon={<Bot className="h-4 w-4" />}
                 label="Mes Agents"
-                onSelect={() => runAction('/dashboard/agents')}
+                onSelect={() => runAction('/agents')}
               />
               <CommandItem
                 icon={<Settings className="h-4 w-4" />}
                 label="Paramètres"
-                onSelect={() => runAction('/dashboard/settings')}
+                onSelect={() => runAction('/settings')}
               />
               <CommandItem
                 icon={<CreditCard className="h-4 w-4" />}
                 label="Facturation"
-                onSelect={() => runAction('/dashboard/billing')}
+                onSelect={() => runAction('/billing')}
               />
             </Command.Group>
           </Command.List>

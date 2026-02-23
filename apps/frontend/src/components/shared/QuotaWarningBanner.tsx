@@ -55,8 +55,8 @@ export function QuotaWarningBanner({
                 Limite atteinte
               </p>
               <p className="text-sm text-red-600">
-                Vous avez utilise {currentUsage}/{limit} {labels.plural} ce mois-ci.
-                Passez au plan superieur pour continuer.
+                Vous avez utilisé {currentUsage}/{limit} {labels.plural} ce mois-ci.
+                Passez au plan supérieur pour continuer.
               </p>
             </div>
           </div>

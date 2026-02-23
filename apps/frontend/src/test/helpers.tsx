@@ -107,25 +107,6 @@ export function createMockFetch(
 }
 
 /**
- * Helper pour créer un mock de tRPC
- */
-export function createMockTRPC() {
-  return {
-    useQuery: vi.fn().mockReturnValue({
-      data: null,
-      isLoading: false,
-      error: null,
-    }),
-    useMutation: vi.fn().mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn().mockResolvedValue({}),
-      isLoading: false,
-      error: null,
-    }),
-  };
-}
-
-/**
  * Helper pour nettoyer les mocks
  */
 export function clearAllMocks() {

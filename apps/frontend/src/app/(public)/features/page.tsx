@@ -1,5 +1,5 @@
 import {
-  MessageSquareBot,
+  MessageSquareDot,
   BookOpen,
   BarChart3,
   Globe,
@@ -9,7 +9,7 @@ import {
 
 const features = [
   {
-    icon: MessageSquareBot,
+    icon: MessageSquareDot,
     title: 'Agents Conversationnels',
     description:
       'Déployez des agents IA entraînés sur vos données pour répondre automatiquement à vos clients, 24h/24 et 7j/7.',

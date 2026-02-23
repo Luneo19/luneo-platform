@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
@@ -50,7 +49,7 @@ export class DocumentParserService {
     throw new Error(`Unsupported mime type: ${mimeType}`);
   }
 
-  async parseText(text: string): Promise<{ title: string; content: string }> {
+  async parseText(text: string): Promise<{ title: string; content: string; metadata: Record<string, unknown> }> {
     const lines = text.split('\n').filter((l) => l.trim());
     const firstLine = lines[0] ?? '';
     const title =
@@ -61,6 +60,7 @@ export class DocumentParserService {
     return {
       title,
       content: content || text,
+      metadata: {},
     };
   }
 
@@ -93,7 +93,8 @@ export class DocumentParserService {
   private async parsePdf(
     buffer: Buffer,
   ): Promise<{ title: string; content: string; metadata: Record<string, unknown> }> {
-    const pdfParse = (await import('pdf-parse')).default;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse');
     const data = await pdfParse(buffer);
     const title = (data.info?.Title as string) || 'Document PDF';
     return {

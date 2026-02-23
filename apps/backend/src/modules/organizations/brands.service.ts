@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { Prisma, BrandStatus } from '@/common/compat/v1-enums'; import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole, OrgStatus, Prisma } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { JsonValue } from '@/common/types/utility-types';
 
@@ -10,215 +9,209 @@ import { JsonValue } from '@/common/types/utility-types';
 export class BrandsService {
   constructor(
     private prisma: PrismaOptimizedService,
-    private cache: SmartCacheService
+    private cache: SmartCacheService,
   ) {}
 
   async create(createBrandDto: Record<string, JsonValue>, userId: string) {
     const user = await this.cache.get(
       `user:${userId}`,
       'user',
-      () => this.prisma.user.findUnique({
-        where: { id: userId },
-      })
+      () =>
+        this.prisma.user.findUnique({
+          where: { id: userId },
+        }),
     );
 
-    if (!user || (user.role !== UserRole.BRAND_ADMIN && user.role !== UserRole.PLATFORM_ADMIN)) {
-      throw new ForbiddenException('Only brand admins can create brands');
+    if (!user || user.role !== PlatformRole.ADMIN) {
+      throw new ForbiddenException('Only admins can create organizations');
     }
 
-    const name = (createBrandDto.name as string) || 'brand';
-    const baseSlug = name
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .slice(0, 60) || 'brand';
-    const slug = (createBrandDto.slug as string) || `${baseSlug}-${Date.now().toString(36)}`;
+    const name = (createBrandDto.name as string) || 'organization';
+    const baseSlug =
+      name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 60) || 'organization';
+    const slug =
+      (createBrandDto.slug as string) || `${baseSlug}-${Date.now().toString(36)}`;
 
     const { contactEmail: _contactEmail, ...rest } = createBrandDto;
 
-    const brand = await this.prisma.brand.create({
+    const organization = await this.prisma.organization.create({
       data: {
         ...rest,
         slug,
-        users: {
-          connect: { id: userId },
-        },
-      } as unknown as Prisma.BrandCreateInput,
-      include: {
-        users: true,
-      },
+        name: name,
+      } as unknown as Prisma.OrganizationCreateInput,
     });
 
-    if (!user.brandId) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { brandId: brand.id },
-      });
-      await this.cache.invalidate(`user:${userId}`, 'user');
-    }
+    await this.cache.invalidate('organizations:list', 'organization');
 
-    await this.cache.invalidate('brands:list', 'brand');
-
-    return brand;
+    return organization;
   }
 
   async findOne(id: string, currentUser: CurrentUser) {
-    // Vérifier les permissions d'abord (rapide)
-    if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
-        currentUser.brandId !== id) {
-      throw new ForbiddenException('Access denied to this brand');
+    if (
+      currentUser.role !== PlatformRole.ADMIN &&
+      currentUser.organizationId !== id
+    ) {
+      throw new ForbiddenException('Access denied to this organization');
     }
 
-    // Utiliser le cache intelligent pour récupérer la brand
-    const brand = await this.cache.get(
-      `brand:${id}`,
-      'brand',
-      () => this.prisma.brand.findUnique({
-        where: { id },
-        include: {
-          users: true,
-          products: true,
-        },
-      }),
-      { tags: [`brand:${id}`, 'brands:list'] }
+    const organization = await this.cache.get(
+      `organization:${id}`,
+      'organization',
+      () =>
+        this.prisma.organization.findUnique({
+          where: { id },
+          include: {
+            members: {
+              include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+            },
+          },
+        }),
+      { tags: [`organization:${id}`, 'organizations:list'] },
     );
 
-    if (!brand) {
-      throw new NotFoundException('Brand not found');
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
     }
 
-    return brand;
+    return organization;
   }
 
-  async update(id: string, updateBrandDto: Record<string, JsonValue>, currentUser: CurrentUser) {
-    // Check permissions
-    if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
-        currentUser.brandId !== id) {
-      throw new ForbiddenException('Access denied to this brand');
+  async update(
+    id: string,
+    updateBrandDto: Record<string, JsonValue>,
+    currentUser: CurrentUser,
+  ) {
+    if (
+      currentUser.role !== PlatformRole.ADMIN &&
+      currentUser.organizationId !== id
+    ) {
+      throw new ForbiddenException('Access denied to this organization');
     }
 
-    const brand = await this.prisma.brand.update({
+    const organization = await this.prisma.organization.update({
       where: { id },
-      data: updateBrandDto,
-      include: {
-        users: true,
-      },
+      data: updateBrandDto as unknown as Prisma.OrganizationUpdateInput,
     });
 
-    // Invalider le cache après mise à jour
-    await this.cache.invalidate(`brand:${id}`, 'brand');
+    await this.cache.invalidate(`organization:${id}`, 'organization');
 
-    return brand;
+    return organization;
   }
 
-  async addWebhook(brandId: string, webhookData: Record<string, JsonValue>, currentUser: CurrentUser) {
-    // Check permissions
-    if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
-        currentUser.brandId !== brandId) {
-      throw new ForbiddenException('Access denied to this brand');
+  async addWebhook(
+    organizationId: string,
+    webhookData: Record<string, JsonValue>,
+    currentUser: CurrentUser,
+  ) {
+    if (
+      currentUser.role !== PlatformRole.ADMIN &&
+      currentUser.organizationId !== organizationId
+    ) {
+      throw new ForbiddenException('Access denied to this organization');
     }
 
     const webhook = await this.prisma.webhook.create({
       data: {
         ...webhookData,
-        brandId,
+        organizationId,
       } as unknown as Prisma.WebhookCreateInput,
     });
 
-    // Invalider le cache des webhooks de la brand
-    await this.cache.invalidate(`webhooks:${brandId}`, 'brand');
+    await this.cache.invalidate(
+      `webhooks:${organizationId}`,
+      'organization',
+    );
 
     return webhook;
   }
 
-  /**
-   * Récupérer toutes les brands avec cache
-   */
-  async findAll(page: number = 1, limit: number = 20, filters: Record<string, JsonValue> = {}) {
-    const cacheKey = `brands:list:${page}:${limit}:${JSON.stringify(filters)}`;
-    
+  async findAll(
+    page: number = 1,
+    limit: number = 20,
+    filters: Record<string, JsonValue> = {},
+  ) {
+    const cacheKey = `organizations:list:${page}:${limit}:${JSON.stringify(filters)}`;
+
     return this.cache.get(
       cacheKey,
-      'brand',
-      () => this.prisma.brand.findMany({
-        where: filters,
-        select: {
-          id: true,
-          name: true,
-          logo: true,
-          website: true,
-          description: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          users: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+      'organization',
+      () =>
+        this.prisma.organization.findMany({
+          where: filters as unknown as Prisma.OrganizationWhereInput,
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            website: true,
+            status: true,
+            plan: true,
+            createdAt: true,
+            updatedAt: true,
+            members: {
+              include: {
+                user: {
+                  select: { id: true, firstName: true, lastName: true, email: true },
+                },
+              },
+            },
           },
-          _count: {
-            select: {
-              products: true,
-              designs: true,
-              orders: true
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit
-      }),
-      { ttl: 1800, tags: ['brands:list'] }
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+      { ttl: 1800, tags: ['organizations:list'] },
     );
   }
 
-  /**
-   * Statistiques d'une brand avec cache
-   */
-  async getBrandStats(brandId: string, currentUser: CurrentUser) {
-    // Check permissions
-    if (currentUser.role !== UserRole.PLATFORM_ADMIN && 
-        currentUser.brandId !== brandId) {
-      throw new ForbiddenException('Access denied to this brand');
+  async getBrandStats(organizationId: string, currentUser: CurrentUser) {
+    if (
+      currentUser.role !== PlatformRole.ADMIN &&
+      currentUser.organizationId !== organizationId
+    ) {
+      throw new ForbiddenException('Access denied to this organization');
     }
 
     return this.cache.get(
-      `brand:${brandId}:stats`,
+      `organization:${organizationId}:stats`,
       'analytics',
-      () => this.prisma.getDashboardMetrics(brandId),
-      { ttl: 300, tags: [`brand:${brandId}`] }
+      () => this.prisma.getDashboardMetrics(organizationId),
+      { ttl: 300, tags: [`organization:${organizationId}`] },
     );
   }
 
-  /**
-   * Recherche de brands avec cache
-   */
   async searchBrands(query: string, limit: number = 10) {
-    const cacheKey = `brands:search:${query}:${limit}`;
-    
+    const cacheKey = `organizations:search:${query}:${limit}`;
+
     return this.cache.get(
       cacheKey,
-      'brand',
-      () => this.prisma.brand.findMany({
-        where: {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { description: { contains: query, mode: 'insensitive' } },
-            { website: { contains: query, mode: 'insensitive' } }
-          ],
-          status: BrandStatus.ACTIVE
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          logo: true,
-          website: true,
-          status: true
-        },
-        take: limit,
-        orderBy: { name: 'asc' }
-      }),
-      { ttl: 600, tags: ['brands:search'] }
+      'organization',
+      () =>
+        this.prisma.organization.findMany({
+          where: {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { website: { contains: query, mode: 'insensitive' } },
+            ],
+            status: OrgStatus.ACTIVE,
+          },
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            website: true,
+            status: true,
+          },
+          take: limit,
+          orderBy: { name: 'asc' },
+        }),
+      { ttl: 600, tags: ['organizations:search'] },
     );
   }
 }

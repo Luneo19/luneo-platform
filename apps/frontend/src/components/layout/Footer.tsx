@@ -29,11 +29,10 @@ const footerLinks = {
   product: {
     titleKey: 'components.footer.product',
     links: [
-      { labelKey: 'components.footer.customizer', href: '/solutions/customizer' },
-      { labelKey: 'components.footer.configurator3d', href: '/solutions/configurator-3d' },
-      { labelKey: 'components.footer.virtualTryOn', href: '/solutions/virtual-try-on' },
-      { labelKey: 'components.footer.aiDesignHub', href: '/solutions/ai-design-hub' },
+      { label: 'Agents IA', href: '/features' },
       { labelKey: 'components.footer.pricing', href: '/pricing' },
+      { label: 'Enterprise', href: '/enterprise' },
+      { label: 'Calculateur ROI', href: '/roi-calculator' },
       { labelKey: 'components.footer.changelog', href: '/changelog' },
       { labelKey: 'components.footer.roadmap', href: '/roadmap', badgeKey: 'components.footer.new' },
     ],
@@ -42,22 +41,11 @@ const footerLinks = {
     titleKey: 'components.footer.integrations',
     links: [
       { label: 'Shopify', href: '/integrations/shopify' },
-      { label: 'WooCommerce', href: '/integrations/woocommerce' },
-      { label: 'Stripe', href: '/integrations/stripe' },
-      { label: 'Printful', href: '/integrations/printful' },
+      { label: 'Slack', href: '/help/documentation/integrations/slack' },
       { label: 'Zapier', href: '/integrations/zapier' },
+      { label: 'Make', href: '/integrations/make' },
+      { label: 'Stripe', href: '/integrations/stripe' },
       { label: 'API', href: '/help/documentation/api-reference' },
-    ],
-  },
-  industries: {
-    titleKey: 'components.footer.industries',
-    links: [
-      { labelKey: 'components.footer.fashion', href: '/industries/fashion' },
-      { labelKey: 'components.footer.furniture', href: '/industries/furniture' },
-      { labelKey: 'components.footer.automotive', href: '/industries/automotive' },
-      { labelKey: 'components.footer.jewelry', href: '/industries/jewelry' },
-      { labelKey: 'components.footer.sports', href: '/industries/sports' },
-      { labelKey: 'components.footer.electronics', href: '/industries/electronics' },
     ],
   },
   resources: {
@@ -68,7 +56,17 @@ const footerLinks = {
       { labelKey: 'components.footer.blog', href: '/blog' },
       { labelKey: 'components.footer.webinars', href: '/webinars' },
       { labelKey: 'components.footer.caseStudies', href: '/case-studies' },
-      { labelKey: 'components.footer.templates', href: '/templates/t-shirts' },
+      { label: 'Communauté', href: '/community' },
+    ],
+  },
+  developers: {
+    titleKey: 'components.footer.resources',
+    links: [
+      { label: 'API Reference', href: '/help/documentation/api-reference' },
+      { label: 'Webhooks', href: '/help/documentation/webhooks' },
+      { label: 'SDKs', href: '/developers' },
+      { label: 'Quick Start', href: '/help/quick-start' },
+      { label: 'Statut', href: '/status' },
     ],
   },
   company: {
@@ -243,11 +241,11 @@ function FooterContent() {
             </ul>
           </div>
 
-          {/* Industries */}
+          {/* Resources */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{t(footerLinks.industries.titleKey)}</h4>
+            <h4 className="font-semibold text-white mb-4">{t(footerLinks.resources.titleKey)}</h4>
             <ul className="space-y-2.5">
-              {footerLinks.industries.links.map((link) => (
+              {footerLinks.resources.links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -260,11 +258,11 @@ function FooterContent() {
             </ul>
           </div>
 
-          {/* Resources */}
+          {/* Developers */}
           <div>
-            <h4 className="font-semibold text-white mb-4">{t(footerLinks.resources.titleKey)}</h4>
+            <h4 className="font-semibold text-white mb-4">Développeurs</h4>
             <ul className="space-y-2.5">
-              {footerLinks.resources.links.map((link) => (
+              {footerLinks.developers.links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

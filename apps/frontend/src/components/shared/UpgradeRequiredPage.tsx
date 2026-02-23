@@ -28,12 +28,12 @@ export function UpgradeRequiredPage({
         </h2>
         <p className="mb-6 text-gray-600">
           {description ||
-            `${feature} est disponible a partir du plan ${planLabel}. Mettez a niveau votre abonnement pour debloquer cette fonctionnalite.`}
+            `${feature} est disponible à partir du plan ${planLabel}. Mettez à niveau votre abonnement pour débloquer cette fonctionnalité.`}
         </p>
         <div className="mb-6 rounded-lg border border-blue-100 bg-blue-50 p-4">
           <div className="flex items-center justify-center gap-2 text-sm font-medium text-blue-700">
             <Sparkles className="h-4 w-4" />
-            <span>Inclus dans le plan {planLabel} et superieur</span>
+            <span>Inclus dans le plan {planLabel} et supérieur</span>
           </div>
         </div>
         <Link href={`/pricing?plan=${requiredPlan}`}>

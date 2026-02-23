@@ -87,7 +87,7 @@ export function BuilderCanvas({
       <Controls className="bg-white rounded-lg shadow-md" />
       <MiniMap
         className="bg-white rounded-lg shadow-md"
-        nodeColor={(node) => (node.data as BlockNodeData)?.block?.color ?? '#999'}
+        nodeColor={(node) => (node.data as unknown as BlockNodeData)?.block?.color ?? '#999'}
       />
 
       {nodes.length === 0 && (

@@ -22,7 +22,7 @@ const TIMELINE = [
   { period: '2024 Q1', title: "L'idée naît", desc: "Née d'une vraie frustration." },
   { period: '2024 Q2', title: 'Premier prototype', desc: 'Des nuits blanches à construire le rêve.' },
   { period: '2024 Q3', title: '100 premiers utilisateurs', desc: 'Le moment de la validation.' },
-  { period: '2024 Q4', title: 'IA & 3D', desc: 'Le tournant.' },
+  { period: '2024 Q4', title: 'Agents IA conversationnels', desc: 'Le tournant.' },
   { period: '2025', title: 'Scale international', desc: "L'expansion internationale." },
   { period: '2026', title: 'Plateforme complète', desc: 'La vision réalisée.' },
 ] as const;
@@ -59,8 +59,8 @@ function AboutPageContent() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
             <ScrollReveal delay={0}>
               <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
-                <p className="text-2xl sm:text-3xl font-bold text-white">+50 000</p>
-                <p className="text-slate-400 text-sm mt-1">designs créés</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">+10 000</p>
+                <p className="text-slate-400 text-sm mt-1">agents IA déployés</p>
               </Card>
             </ScrollReveal>
             <ScrollReveal delay={100}>
@@ -91,7 +91,7 @@ function AboutPageContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title={t('public.about.valuesTitle')}
-            description={t('public.about.valuesSubtitle')}
+            subtitle={t('public.about.valuesSubtitle')}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((value, index) => (
@@ -100,8 +100,6 @@ function AboutPageContent() {
                 icon={value.icon}
                 title={t(`public.about.${value.titleKey}`)}
                 description={t(`public.about.${value.descKey}`)}
-                color={value.color}
-                delay={index * 100}
               />
             ))}
           </div>
@@ -114,7 +112,7 @@ function AboutPageContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title={t('public.about.historyTitle')}
-            description={t('public.about.historySubtitle')}
+            subtitle={t('public.about.historySubtitle')}
           />
           <div className="max-w-4xl mx-auto">
             <div className="space-y-8">
@@ -144,7 +142,7 @@ function AboutPageContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title={t('public.about.teamTitle')}
-            description="Des passionnés qui croient que chaque marque mérite les mêmes armes que les plus grandes. Nous construisons Luneo au quotidien, avec la même exigence que nous aimerions la trouver ailleurs."
+            subtitle="Des passionnés qui croient que chaque marque mérite les mêmes armes que les plus grandes. Nous construisons Luneo au quotidien, avec la même exigence que nous aimerions la trouver ailleurs."
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {TEAM_ROLE_KEYS.map((roleKey, i) => (
@@ -182,10 +180,7 @@ function AboutPageContent() {
         </div>
       </section>
 
-      <CTASectionNew
-        title={<span className="text-white">{'Rejoignez l\'aventure'}</span>}
-        subtitle={'Des milliers de marques nous font déjà confiance. La prochaine, c\'est peut-être vous.'}
-      />
+      <CTASectionNew />
     </>
   );
 }

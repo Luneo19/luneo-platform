@@ -1,13 +1,13 @@
 /**
- * PRICING CONSTANTS - Luneo (STATIC FALLBACK)
+ * PRICING CONSTANTS - Luneo V2 (Agents IA)
  *
  * The canonical source of truth is the backend API: GET /api/v1/plans/all
  * These static values are kept as fallback for SSR/initial render.
  *
  * To fetch live data, use: endpoints.billing.plans()
  *
- * Plans: FREE(0) | STARTER(19) | PROFESSIONAL(49) | BUSINESS(99) | ENTERPRISE(299)
- * Yearly discount: ~20% off (exact values from plan-config.ts)
+ * Plans: FREE(0) | PRO(49) | BUSINESS(149) | ENTERPRISE(sur devis)
+ * Yearly discount: ~20% off (2 mois offerts)
  */
 
 export const PRICING = {
@@ -15,120 +15,150 @@ export const PRICING = {
     monthly: 0,
     yearly: 0,
     yearlyMonthly: 0,
-    name: 'Free',
+    name: 'Gratuit',
   },
-  starter: {
-    monthly: 19,
-    yearly: 190, // From plan-config.ts yearlyPrice
-    yearlyMonthly: 15.83, // 190 / 12
-    name: 'Starter',
-  },
-  professional: {
+  pro: {
     monthly: 49,
-    yearly: 490, // From plan-config.ts yearlyPrice
-    yearlyMonthly: 40.83, // 490 / 12
-    name: 'Professional',
+    yearly: 468,
+    yearlyMonthly: 39,
+    name: 'Pro',
   },
   business: {
-    monthly: 99,
-    yearly: 990, // From plan-config.ts yearlyPrice
-    yearlyMonthly: 82.50, // 990 / 12
+    monthly: 149,
+    yearly: 1428,
+    yearlyMonthly: 119,
     name: 'Business',
   },
   enterprise: {
-    monthly: 299,
-    yearly: 2990, // From plan-config.ts yearlyPrice
-    yearlyMonthly: 249.17, // 2990 / 12
+    monthly: -1,
+    yearly: -1,
+    yearlyMonthly: -1,
     name: 'Enterprise',
+  },
+  /** @deprecated V1 alias — maps to pro */
+  starter: {
+    monthly: 49,
+    yearly: 468,
+    yearlyMonthly: 39,
+    name: 'Pro',
+  },
+  /** @deprecated V1 alias — maps to pro */
+  professional: {
+    monthly: 49,
+    yearly: 468,
+    yearlyMonthly: 39,
+    name: 'Pro',
   },
 } as const;
 
 /**
- * Plan limits - MUST match backend plan-config.ts (SINGLE SOURCE OF TRUTH)
+ * Plan limits — V2 Agents IA
+ * MUST match backend plan-config.ts (SINGLE SOURCE OF TRUTH)
  */
 export const PLAN_LIMITS = {
   free: {
-    designsPerMonth: 5,
+    agents: 1,
+    conversationsPerMonth: 50,
+    knowledgeBases: 1,
+    documentsPerKB: 10,
+    storageMB: 500,
     teamMembers: 1,
-    storageGB: 0.5,
-    maxProducts: 2,
-    aiGenerations: 3,
     apiAccess: false,
-    arEnabled: false,
-    whiteLabel: false,
+    visualBuilder: false,
+    emailChannel: false,
     advancedAnalytics: false,
-    customExport: false,
+    whiteLabel: false,
     prioritySupport: false,
   },
-  starter: {
-    designsPerMonth: 50,
-    teamMembers: 3,
-    storageGB: 5,
-    maxProducts: 10,
-    aiGenerations: 20,
-    apiAccess: false,
-    arEnabled: false,
-    whiteLabel: false,
-    advancedAnalytics: false,
-    customExport: false,
-    prioritySupport: false,
-  },
-  professional: {
-    designsPerMonth: 200,
-    teamMembers: 10,
-    storageGB: 25,
-    maxProducts: 50,
-    aiGenerations: 100,
+  pro: {
+    agents: 5,
+    conversationsPerMonth: 2_000,
+    knowledgeBases: 5,
+    documentsPerKB: 50,
+    storageMB: 5_000,
+    teamMembers: 5,
     apiAccess: true,
-    arEnabled: true,
-    whiteLabel: true,
-    advancedAnalytics: false,
-    customExport: false,
+    visualBuilder: true,
+    emailChannel: true,
+    advancedAnalytics: true,
+    whiteLabel: false,
     prioritySupport: true,
   },
   business: {
-    designsPerMonth: 1000,
-    teamMembers: 50,
-    storageGB: 100,
-    maxProducts: 500,
-    aiGenerations: 500,
+    agents: 20,
+    conversationsPerMonth: 10_000,
+    knowledgeBases: 20,
+    documentsPerKB: 200,
+    storageMB: 25_000,
+    teamMembers: 20,
     apiAccess: true,
-    arEnabled: true,
-    whiteLabel: true,
+    visualBuilder: true,
+    emailChannel: true,
     advancedAnalytics: true,
-    customExport: true,
+    whiteLabel: true,
     prioritySupport: true,
   },
   enterprise: {
-    designsPerMonth: -1, // unlimited
+    agents: -1,
+    conversationsPerMonth: -1,
+    knowledgeBases: -1,
+    documentsPerKB: -1,
+    storageMB: -1,
     teamMembers: -1,
-    storageGB: -1,
-    maxProducts: -1,
-    aiGenerations: -1,
     apiAccess: true,
-    arEnabled: true,
-    whiteLabel: true,
+    visualBuilder: true,
+    emailChannel: true,
     advancedAnalytics: true,
-    customExport: true,
+    whiteLabel: true,
+    prioritySupport: true,
+  },
+  /** @deprecated V1 alias — maps to pro */
+  starter: {
+    agents: 5,
+    conversationsPerMonth: 2_000,
+    knowledgeBases: 5,
+    documentsPerKB: 50,
+    storageMB: 5_000,
+    teamMembers: 5,
+    apiAccess: true,
+    visualBuilder: true,
+    emailChannel: true,
+    advancedAnalytics: true,
+    whiteLabel: false,
+    prioritySupport: true,
+  },
+  /** @deprecated V1 alias — maps to pro */
+  professional: {
+    agents: 5,
+    conversationsPerMonth: 2_000,
+    knowledgeBases: 5,
+    documentsPerKB: 50,
+    storageMB: 5_000,
+    teamMembers: 5,
+    apiAccess: true,
+    visualBuilder: true,
+    emailChannel: true,
+    advancedAnalytics: true,
+    whiteLabel: false,
     prioritySupport: true,
   },
 } as const;
 
 export const COMPETITOR_PRICING = {
-  canva: {
-    monthly: 42,
-    yearly: 504,
-    name: 'Canva Pro',
+  intercom: {
+    monthly: 74,
+    yearly: 888,
+    name: 'Intercom',
   },
-  zakeke: {
-    monthly: 84,
-    yearly: 1008,
-    name: 'Zakeke',
+  drift: {
+    monthly: 150,
+    yearly: 1800,
+    name: 'Drift',
   },
-  threekit: {
-    monthly: 210,
-    yearly: 2520,
-    name: '3DKit',
+  zendesk: {
+    monthly: 55,
+    yearly: 660,
+    name: 'Zendesk AI',
   },
 } as const;
 
@@ -136,13 +166,13 @@ export const COMPETITOR_PRICING = {
  * Calcule les économies par rapport à la concurrence
  */
 export const calculateSavings = () => {
-  const luneoYearly = PRICING.professional.yearlyMonthly;
+  const luneoYearly = PRICING.pro.yearlyMonthly;
   const competitorAvg = (
-    COMPETITOR_PRICING.canva.monthly +
-    COMPETITOR_PRICING.zakeke.monthly +
-    COMPETITOR_PRICING.threekit.monthly
+    COMPETITOR_PRICING.intercom.monthly +
+    COMPETITOR_PRICING.drift.monthly +
+    COMPETITOR_PRICING.zendesk.monthly
   ) / 3;
-  
+
   const savings = Math.round((1 - luneoYearly / competitorAvg) * 100);
   return {
     percentage: savings,
@@ -158,8 +188,8 @@ export const calculateSavings = () => {
 export const getYearlyDiscount = (plan: keyof typeof PRICING) => {
   const p = PRICING[plan];
   const monthly = p.monthly as number;
-  if (monthly === 0) return 0;
-  
+  if (monthly <= 0) return 0;
+
   const annualTotal = monthly * 12;
   const discount = ((annualTotal - p.yearly) / annualTotal) * 100;
   return Math.round(discount);

@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Luneo - Agents IA pour votre service client',
     short_name: 'Luneo',
-    description: 'Deployez des agents IA qui resolvent 80% des demandes clients.',
+    description: 'Déployez des agents IA qui résolvent 80% des demandes clients.',
     start_url: '/',
     display: 'standalone',
     background_color: '#0a0a0f',

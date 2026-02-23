@@ -160,7 +160,7 @@ export class AgentsController {
     return this.agentsService.saveFlow(id, user.organizationId!, body);
   }
 
-  @Post(':id/test')
+  @Post(':id/flow/test')
   @ApiOperation({ summary: 'Test agent flow in sandbox mode' })
   async testFlow(
     @CurrentUser() user: CurrentUserType,
@@ -170,7 +170,7 @@ export class AgentsController {
     return this.agentsService.testFlow(id, user.organizationId!, body.message, body.flow);
   }
 
-  @Post(':id/publish')
+  @Post(':id/flow/publish')
   @ApiOperation({ summary: 'Validate and publish agent flow' })
   async publishFlow(
     @CurrentUser() user: CurrentUserType,

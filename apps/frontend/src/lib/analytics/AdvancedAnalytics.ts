@@ -228,7 +228,7 @@ export class AdvancedAnalyticsService {
       // Query users matching criteria
       const whereClause: Record<string, unknown> = { brandId };
 
-      // Map criteria to Prisma where clause
+      // Build filter criteria for backend query
       if (criteria.email) whereClause.email = { contains: criteria.email };
       if (criteria.role) whereClause.role = criteria.role;
       const createdAtCriteria = criteria.createdAt as { gte?: string; lte?: string } | undefined;

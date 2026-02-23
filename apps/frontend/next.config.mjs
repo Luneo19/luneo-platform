@@ -19,13 +19,11 @@ if (process.env.ANALYZE === 'true') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // V2 migration: ignore type errors from V1 legacy code during build
-  // TODO: Fix all type errors and re-enable strict checking
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Note: 'standalone' output is not recommended for Vercel deployments
   // Only use standalone for Docker/Railway deployments
@@ -106,9 +104,9 @@ const nextConfig = {
 
   // Webpack optimizations
   webpack: (config, { isServer, dev }) => {
-    // In dev mode, stub out Sentry and Prisma instrumentation to save ~200MB RAM
-    // and eliminate "Critical dependency" warnings from @opentelemetry
-    if (dev) {
+    // Stub out Sentry and Prisma instrumentation when no DSN is configured
+    // to save ~200MB RAM and eliminate "Critical dependency" warnings from @opentelemetry
+    if (dev || !process.env.SENTRY_DSN) {
       config.resolve.alias = {
         ...config.resolve.alias,
         '@sentry/nextjs': false,
@@ -362,8 +360,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/manifest.json',
-        destination: '/manifest.webmanifest',
+        source: '/manifest.webmanifest',
+        destination: '/manifest.json',
       },
     ];
   },
@@ -377,18 +375,53 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/dashboard',
+        destination: '/overview',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
+      {
         source: '/produit',
-        destination: '/produits',
+        destination: '/features',
+        permanent: true,
+      },
+      {
+        source: '/produits',
+        destination: '/features',
         permanent: true,
       },
       {
         source: '/solution',
-        destination: '/solutions',
+        destination: '/features',
+        permanent: true,
+      },
+      {
+        source: '/solutions',
+        destination: '/features',
+        permanent: true,
+      },
+      {
+        source: '/solutions/:path*',
+        destination: '/features',
         permanent: true,
       },
       {
         source: '/industrie',
-        destination: '/industries',
+        destination: '/features',
+        permanent: true,
+      },
+      {
+        source: '/industries',
+        destination: '/features',
+        permanent: true,
+      },
+      {
+        source: '/industries/:path*',
+        destination: '/features',
         permanent: true,
       },
       {
@@ -411,10 +444,9 @@ const nextConfig = {
         destination: '/resources',
         permanent: true,
       },
-      // /features page exists — no redirect needed
       {
         source: '/app',
-        destination: '/dashboard',
+        destination: '/overview',
         permanent: true,
       },
       {
@@ -425,31 +457,6 @@ const nextConfig = {
       {
         source: '/signin',
         destination: '/login',
-        permanent: true,
-      },
-      {
-        source: '/analytics',
-        destination: '/dashboard/analytics',
-        permanent: true,
-      },
-      {
-        source: '/billing',
-        destination: '/dashboard/billing',
-        permanent: true,
-      },
-      {
-        source: '/integrations',
-        destination: '/dashboard/integrations',
-        permanent: true,
-      },
-      {
-        source: '/ai-studio',
-        destination: '/dashboard/ai-studio',
-        permanent: true,
-      },
-      {
-        source: '/ar-studio',
-        destination: '/dashboard/ar-studio',
         permanent: true,
       },
     ];

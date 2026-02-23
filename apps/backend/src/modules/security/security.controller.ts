@@ -1,20 +1,14 @@
-// @ts-nocheck
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { RequestWithUser } from '@/common/types/user.types';
 import { RBACService } from './services/rbac.service';
 import { AuditLogsService, AuditEventType } from './services/audit-logs.service';
-import { GDPRService } from './services/gdpr.service';
 import { Role, Permission } from './interfaces/rbac.interface';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RequirePermissions } from './decorators/require-permissions.decorator';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { ExportAuditLogsDto } from './dto/export-audit-logs.dto';
-import { DeleteUserDataDto } from './dto/delete-user-data.dto';
-import { DeleteAccountDto } from './dto/delete-account.dto';
-import { RecordConsentDto } from './dto/record-consent.dto';
-import { ScheduleDataRetentionDto } from './dto/schedule-data-retention.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { AuthService } from '@/modules/auth/auth.service';
@@ -30,7 +24,6 @@ export class SecurityController {
   constructor(
     private readonly rbacService: RBACService,
     private readonly auditLogs: AuditLogsService,
-    private readonly gdprService: GDPRService,
     private readonly authService: AuthService,
   ) {}
 
@@ -88,11 +81,11 @@ export class SecurityController {
   @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Get role statistics' })
   @ApiResponse({ status: 200, description: 'Stats retrieved' })
-  async getRoleStats(@Request() req: RequestWithUser, @Query('brandId') queryBrandId?: string) {
-    // SECURITY: Only PLATFORM_ADMIN can query arbitrary brandId; others are scoped to their brand
-    const brandId =
-      req.user?.role === UserRole.PLATFORM_ADMIN ? queryBrandId : req.user?.brandId ?? undefined;
-    return this.rbacService.getRoleStats(brandId);
+  async getRoleStats(@Request() req: RequestWithUser, @Query('organizationId') queryBrandId?: string) {
+    // SECURITY: Only PLATFORM_ADMIN can query arbitrary organizationId; others are scoped to their brand
+    const organizationId =
+      req.user?.role === PlatformRole.ADMIN ? queryBrandId : req.user?.organizationId ?? undefined;
+    return this.rbacService.getRoleStats(organizationId);
   }
 
   // ==================== AUDIT LOGS ====================
@@ -105,18 +98,18 @@ export class SecurityController {
   async searchAuditLogs(
     @Request() req: RequestWithUser,
     @Query('userId') userId?: string,
-    @Query('brandId') queryBrandId?: string,
+    @Query('organizationId') queryBrandId?: string,
     @Query('eventType') eventType?: AuditEventType,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    const brandId =
-      req.user?.role === UserRole.PLATFORM_ADMIN ? queryBrandId : req.user?.brandId ?? undefined;
+    const organizationId =
+      req.user?.role === PlatformRole.ADMIN ? queryBrandId : req.user?.organizationId ?? undefined;
     return this.auditLogs.search({
       userId,
-      brandId,
+      organizationId,
       eventType,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
@@ -164,12 +157,12 @@ export class SecurityController {
   @ApiResponse({ status: 200, description: 'Stats retrieved' })
   async getAuditStats(
     @Request() req: RequestWithUser,
-    @Query('brandId') queryBrandId?: string,
+    @Query('organizationId') queryBrandId?: string,
     @Query('days') days?: string,
   ) {
-    const brandId =
-      req.user?.role === UserRole.PLATFORM_ADMIN ? queryBrandId : req.user?.brandId ?? undefined;
-    return this.auditLogs.getStats(brandId, days ? parseInt(days, 10) : 30);
+    const organizationId =
+      req.user?.role === PlatformRole.ADMIN ? queryBrandId : req.user?.organizationId ?? undefined;
+    return this.auditLogs.getStats(organizationId, days ? parseInt(days, 10) : 30);
   }
 
   @Get('audit/export/csv')
@@ -178,11 +171,11 @@ export class SecurityController {
   @ApiOperation({ summary: 'Export audit logs to CSV' })
   @ApiResponse({ status: 200, description: 'CSV exported' })
   async exportAuditLogsCSV(@Request() req: RequestWithUser, @Query() dto: ExportAuditLogsDto) {
-    const brandId =
-      req.user?.role === UserRole.PLATFORM_ADMIN ? dto.brandId : req.user?.brandId ?? undefined;
+    const organizationId =
+      req.user?.role === PlatformRole.ADMIN ? dto.organizationId : req.user?.organizationId ?? undefined;
     const filters = {
       userId: dto.userId,
-      brandId,
+      organizationId,
       eventType: dto.eventType,
       resourceType: dto.resourceType,
       resourceId: dto.resourceId,
@@ -206,105 +199,5 @@ export class SecurityController {
     return { userId, alerts };
   }
 
-  // ==================== GDPR ====================
-
-  @Get('gdpr/export')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Export current user data (GDPR Right to Access)' })
-  @ApiResponse({ status: 200, description: 'User data exported' })
-  async exportMyData(@Request() req: RequestWithUser) {
-    return this.gdprService.exportUserData(req.user.id);
-  }
-
-  @Get('gdpr/export/:userId')
-  @UseGuards(PermissionsGuard)
-  @RequirePermissions(Permission.USER_READ)
-  @ApiOperation({ summary: 'Export all user data by userId (admin / support)' })
-  @ApiResponse({ status: 200, description: 'User data exported' })
-  async exportUserData(@Param('userId') userId: string) {
-    return this.gdprService.exportUserData(userId);
-  }
-
-  @Delete('gdpr/delete-account')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Delete current user account (GDPR Right to Erasure)' })
-  @ApiResponse({ status: 200, description: 'Account deleted' })
-  @ApiResponse({ status: 401, description: 'Invalid password' })
-  async deleteMyAccount(@Request() req: RequestWithUser, @Body() dto: DeleteAccountDto) {
-    const valid = await this.authService.verifyUserPassword(req.user.id, dto.password);
-    if (!valid) {
-      throw new UnauthorizedException('Invalid password');
-    }
-    return this.gdprService.deleteUserData(req.user.id, dto.reason);
-  }
-
-  @Delete('gdpr/delete/:userId')
-  @UseGuards(PermissionsGuard)
-  @RequirePermissions(Permission.USER_DELETE)
-  @ApiOperation({ summary: 'Delete all user data (GDPR Right to Erasure)' })
-  @ApiResponse({ status: 200, description: 'User data deleted' })
-  async deleteUserData(
-    @Param('userId') userId: string,
-    @Body() dto: DeleteUserDataDto,
-  ) {
-    return this.gdprService.deleteUserData(userId, dto.reason);
-  }
-
-  @Post('gdpr/anonymize/:userId')
-  @UseGuards(PermissionsGuard)
-  @RequirePermissions(Permission.USER_UPDATE)
-  @ApiOperation({ summary: 'Anonymize user data' })
-  @ApiResponse({ status: 200, description: 'User data anonymized' })
-  async anonymizeUserData(@Param('userId') userId: string) {
-    await this.gdprService.anonymizeUserData(userId);
-    return { success: true, userId };
-  }
-
-  @Post('gdpr/consent')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Record user consent' })
-  @ApiResponse({ status: 201, description: 'Consent recorded' })
-  async recordConsent(@Body() dto: RecordConsentDto) {
-    await this.gdprService.recordConsent(
-      dto.userId,
-      dto.consentType,
-      dto.given,
-    );
-    return {
-      success: true,
-      userId: dto.userId,
-      consentType: dto.consentType,
-      given: dto.given,
-      recordedAt: new Date().toISOString(),
-    };
-  }
-
-  @Get('gdpr/consent/:userId')
-  @UseGuards(PermissionsGuard)
-  @RequirePermissions(Permission.USER_READ)
-  @ApiOperation({ summary: 'Get consent history for a user' })
-  @ApiResponse({ status: 200, description: 'Consent history retrieved' })
-  async getConsentHistory(@Param('userId') userId: string) {
-    const history = await this.gdprService.getConsentHistory(userId);
-    return { userId, history };
-  }
-
-  @Get('gdpr/compliance/:brandId')
-  @UseGuards(PermissionsGuard)
-  @RequirePermissions(Permission.AUDIT_READ)
-  @ApiOperation({ summary: 'Generate GDPR compliance report' })
-  @ApiResponse({ status: 200, description: 'Compliance report generated' })
-  async getComplianceReport(@Param('brandId') brandId: string) {
-    return this.gdprService.generateComplianceReport(brandId);
-  }
-
-  @Post('gdpr/retention/schedule')
-  @UseGuards(PermissionsGuard)
-  @RequirePermissions(Permission.SETTINGS_UPDATE)
-  @ApiOperation({ summary: 'Schedule data retention cleanup' })
-  @ApiResponse({ status: 200, description: 'Retention scheduled' })
-  async scheduleDataRetention(@Body() dto: ScheduleDataRetentionDto) {
-    return this.gdprService.scheduleDataRetention(dto.days);
-  }
 }
 

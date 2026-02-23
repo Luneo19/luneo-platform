@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   BadRequestException,
   Controller,
@@ -102,7 +101,7 @@ export class KnowledgeController {
   uploadSource(
     @Request() req: ExpressRequest,
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
   ) {
     const user = req.user as CurrentUser;
     if (!file) {

@@ -13,7 +13,6 @@ import { ConfigService } from '@nestjs/config';
 import { Plan, OrgStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeClientService } from './services/stripe-client.service';
-import { StripeWebhookService } from './services/stripe-webhook.service';
 import { AuditLogsService, AuditEventType } from '@/modules/security/services/audit-logs.service';
 import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
@@ -32,7 +31,6 @@ export class BillingService {
     private configService: ConfigService,
     private prisma: PrismaService,
     private stripeClient: StripeClientService,
-    private webhookService: StripeWebhookService,
     private readonly auditLogsService: AuditLogsService,
     private readonly distributedLock: DistributedLockService,
   ) {}
@@ -1767,13 +1765,6 @@ export class BillingService {
   /**
    * Handle Stripe webhook events with idempotency protection
    */
-  async handleStripeWebhook(event: Stripe.Event): Promise<{ processed: boolean; result?: Record<string, unknown> }> {
-    return this.webhookService.handleStripeWebhook(event);
-  }
-
-  // NOTE: All webhook handling methods have been extracted to StripeWebhookService.
-  // See: apps/backend/src/modules/billing/services/stripe-webhook.service.ts
-
   /**
    * BIL-10: Get trial period days for a specific plan
    * Each plan can have a different trial period

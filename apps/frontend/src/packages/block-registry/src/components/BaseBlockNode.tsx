@@ -1,10 +1,10 @@
 'use client';
 
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { memo } from 'react';
 import type { BlockNodeData } from '../types';
 
-interface BaseBlockNodeProps extends NodeProps {
+export interface BaseBlockNodeProps {
   data: BlockNodeData;
 }
 

@@ -113,7 +113,7 @@ const Header = memo(function Header({
 
             {/* Density Toggle */}
             <div className="hidden md:flex items-center bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06]" role="group" aria-label={t('dashboard.header.densityLabel') || 'Densité de l\'interface'}>
-              {(['compact', 'comfort', 'spacious'] as const).map((mode) => (
+              {(['compact', 'comfortable'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setDensity(mode)}
@@ -123,9 +123,9 @@ const Header = memo(function Header({
                       : 'text-white/40 hover:text-white/60'
                   }`}
                   aria-pressed={density === mode}
-                  aria-label={mode === 'compact' ? t('dashboard.header.densityCompact') : mode === 'comfort' ? t('dashboard.header.densityComfort') : t('dashboard.header.densitySpacious')}
+                  aria-label={mode === 'compact' ? t('dashboard.header.densityCompact') : t('dashboard.header.densityComfort')}
                 >
-                  {mode === 'compact' ? t('dashboard.header.densityCompact') : mode === 'comfort' ? t('dashboard.header.densityComfort') : t('dashboard.header.densitySpacious')}
+                  {mode === 'compact' ? t('dashboard.header.densityCompact') : t('dashboard.header.densityComfort')}
                 </button>
               ))}
             </div>

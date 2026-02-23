@@ -93,7 +93,7 @@ describe('RBACService', () => {
       );
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u1',
-        role: 'BRAND_ADMIN', // Prisma UserRole, mapped to Role.ADMIN by mapUserRoleToRbac
+        role: 'ADMIN',
       });
       mockCache.set.mockResolvedValue(undefined);
 
@@ -122,7 +122,7 @@ describe('RBACService', () => {
         user: {
           id: 'u1',
           role: Role.VIEWER,
-          brandId: 'b1',
+          organizationId: 'org1',
           permissions: [],
         },
         action: Permission.BRAND_DELETE,
@@ -139,7 +139,7 @@ describe('RBACService', () => {
         user: {
           id: 'u1',
           role: Role.ADMIN,
-          brandId: 'b1',
+          organizationId: 'org1',
           permissions: [Permission.BRAND_READ],
         },
         action: Permission.BRAND_READ,
@@ -151,16 +151,16 @@ describe('RBACService', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false when cross-brand access and not super admin', async () => {
+    it('should return false when cross-organization access and not super admin', async () => {
       const context = {
         user: {
           id: 'u1',
           role: Role.ADMIN,
-          brandId: 'brand-1',
+          organizationId: 'org-1',
           permissions: [Permission.BRAND_READ],
         },
         action: Permission.BRAND_READ,
-        resource: { brandId: 'brand-2' },
+        resource: { organizationId: 'org-2' },
       };
 
       const result = await service.authorize(context as unknown);
@@ -175,7 +175,7 @@ describe('RBACService', () => {
         user: {
           id: 'u1',
           role: Role.VIEWER,
-          brandId: 'b1',
+          organizationId: 'org1',
           permissions: [],
         },
         action: Permission.BRAND_DELETE,
@@ -195,7 +195,7 @@ describe('RBACService', () => {
         user: {
           id: 'u1',
           role: Role.ADMIN,
-          brandId: 'b1',
+          organizationId: 'org1',
           permissions: [Permission.BRAND_READ],
         },
         action: Permission.BRAND_READ,
@@ -210,12 +210,12 @@ describe('RBACService', () => {
     it('should return role from DB', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u1',
-        role: 'BRAND_ADMIN', // Prisma UserRole mapped to Role.ADMIN
+        role: 'ADMIN',
       });
 
       const result = await service.getUserRole('u1');
 
-      expect(result).toBe(Role.ADMIN);
+      expect(result).toBe(Role.SUPER_ADMIN);
     });
 
     it('should return VIEWER when user not found', async () => {
@@ -229,14 +229,14 @@ describe('RBACService', () => {
 
   describe('assignRole', () => {
     it('should update user role and invalidate cache', async () => {
-      mockPrisma.user.update.mockResolvedValue({ id: 'u1', role: 'BRAND_USER' });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u1', role: 'USER' });
       mockCache.delSimple.mockResolvedValue(true);
 
       await service.assignRole('u1', Role.MANAGER);
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: 'u1' },
-        data: { role: 'BRAND_USER' }, // Role.MANAGER maps to UserRole.BRAND_USER
+        data: { role: 'USER' },
       });
     });
   });
@@ -245,7 +245,7 @@ describe('RBACService', () => {
     it('should return true when user is ADMIN', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u1',
-        role: 'BRAND_ADMIN', // Prisma UserRole mapped to Role.ADMIN
+        role: 'ADMIN',
       });
 
       const result = await service.isAdmin('u1');
@@ -256,7 +256,7 @@ describe('RBACService', () => {
     it('should return false when user is VIEWER', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u1',
-        role: 'CONSUMER', // Prisma UserRole mapped to Role.VIEWER
+        role: 'USER',
       });
 
       const result = await service.isAdmin('u1');

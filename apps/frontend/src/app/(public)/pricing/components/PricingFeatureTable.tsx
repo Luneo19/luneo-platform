@@ -6,8 +6,8 @@ import { useI18n } from '@/i18n/useI18n';
 import type { Feature, FeatureCategory } from '../data';
 
 const CATEGORY_IDS: Array<FeatureCategory | 'all'> = [
-  'all', 'platform', 'customization', 'ai', '3d', 'ar',
-  'export', 'integrations', 'collaboration', 'security', 'support',
+  'all', 'agents', 'conversations', 'knowledge', 'channels',
+  'analytics', 'security', 'support',
 ];
 
 export interface PricingFeatureTableProps {
@@ -74,13 +74,10 @@ export function PricingFeatureTable({
               {t('pricing.featureTable.feature')}
             </th>
             <th className="px-3 py-4 text-center text-sm font-semibold text-slate-300">
-              Free
-            </th>
-            <th className="px-3 py-4 text-center text-sm font-semibold text-slate-300">
-              Starter
+              Gratuit
             </th>
             <th className="px-3 py-4 text-center text-sm font-semibold text-purple-400">
-              Professional
+              Pro
             </th>
             <th className="px-3 py-4 text-center text-sm font-semibold text-slate-300">
               Business
@@ -94,7 +91,7 @@ export function PricingFeatureTable({
           {filteredFeatures.length === 0 ? (
             <tr>
               <td
-                colSpan={6}
+                colSpan={5}
                 className="px-6 py-8 text-center text-sm text-slate-300"
               >
                 {t('pricing.featureTable.noFeatures')}
@@ -125,10 +122,7 @@ export function PricingFeatureTable({
                   {formatCell(feature.free)}
                 </td>
                 <td className="px-3 py-4 text-center">
-                  {formatCell(feature.starter)}
-                </td>
-                <td className="px-3 py-4 text-center">
-                  {formatCell(feature.professional)}
+                  {formatCell(feature.pro)}
                 </td>
                 <td className="px-3 py-4 text-center">
                   {formatCell(feature.business)}

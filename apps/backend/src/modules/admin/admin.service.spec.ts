@@ -8,7 +8,7 @@ import { AdminService } from './admin.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -68,7 +68,7 @@ describe('AdminService', () => {
           email: 'u1@test.com',
           firstName: 'John',
           lastName: 'Doe',
-          role: UserRole.BRAND_ADMIN,
+          role: PlatformRole.ADMIN,
           emailVerified: true,
           isActive: true,
           createdAt: new Date(),
@@ -112,7 +112,7 @@ describe('AdminService', () => {
         email: 'c1@test.com',
         firstName: 'Jane',
         lastName: 'Doe',
-        role: UserRole.BRAND_ADMIN,
+        role: PlatformRole.ADMIN,
         emailVerified: true,
         isActive: true,
         createdAt: new Date(),
@@ -220,7 +220,7 @@ describe('AdminService', () => {
           email: 'u1@test.com',
           firstName: 'John',
           lastName: 'Doe',
-          role: UserRole.BRAND_ADMIN,
+          role: PlatformRole.ADMIN,
           createdAt: new Date(),
           brand: { name: 'Brand1', subscriptionPlan: 'STARTER' },
         },

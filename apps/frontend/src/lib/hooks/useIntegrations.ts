@@ -43,7 +43,7 @@ export function useIntegrations() {
 
   const integrationsQuery = useQuery({
     queryKey: ['integrations'],
-    queryFn: () => api.get<Record<string, unknown>[]>('/api/v1/integrations').then(r => (r as { data: unknown }).data ?? r ?? []),
+    queryFn: () => api.get<Record<string, unknown>[]>('/api/v1/integrations'),
   });
 
   const deleteMutation = useMutation({

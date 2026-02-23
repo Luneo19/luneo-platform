@@ -1,13 +1,8 @@
 /**
- * REST API Client - Public & Auth API Layer
+ * REST API Client - Unified API Layer
  *
- * ARCHITECTURE BOUNDARY:
- * - REST is used for public API, auth flows, Stripe, and external integrations.
- * - tRPC (@/lib/trpc/client.ts) is used for internal dashboard pages.
- *
- * RULE: Auth, billing, webhooks, and public API = REST.
- *       Dashboard CRUD, AI studio, editor = tRPC.
- *       Do NOT duplicate endpoints across both layers.
+ * All frontend API calls go through this REST client.
+ * Auth, billing, webhooks, dashboard CRUD, AI agents — everything is REST.
  */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import type { LoginCredentials, RegisterData, User } from '@/lib/types';

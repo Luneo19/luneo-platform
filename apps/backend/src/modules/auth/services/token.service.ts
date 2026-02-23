@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 
 @Injectable()
@@ -40,7 +40,7 @@ export class TokenService {
   /**
    * Generate access and refresh tokens
    */
-  async generateTokens(userId: string, email: string, role: UserRole) {
+  async generateTokens(userId: string, email: string, role: PlatformRole) {
     const payload = { sub: userId, email, role, jti: randomUUID() };
 
     const [accessToken, refreshToken] = await Promise.all([

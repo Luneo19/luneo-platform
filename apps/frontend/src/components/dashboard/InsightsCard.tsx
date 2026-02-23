@@ -18,8 +18,8 @@ export function InsightsCard() {
   const { data: insights, isLoading } = useQuery<Insight[]>({
     queryKey: ['insights'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/agent-analytics/insights');
-      return res.data;
+      const res = await api.get<{ data?: Insight[] } | Insight[]>('/api/v1/agent-analytics/insights');
+      return Array.isArray(res) ? res : (res as { data?: Insight[] })?.data ?? [];
     },
     staleTime: 1000 * 60 * 60,
     retry: 1,

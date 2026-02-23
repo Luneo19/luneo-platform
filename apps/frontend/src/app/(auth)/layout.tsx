@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 
 const STATS = [
-  { value: '2,450+', label: 'Agents deployes', icon: Brain },
-  { value: '1M+', label: 'Conversations traitees', icon: MessageSquare },
+  { value: '2,450+', label: 'Agents déployés', icon: Brain },
+  { value: '1M+', label: 'Conversations traitées', icon: MessageSquare },
   { value: '98%', label: 'Satisfaction client', icon: Heart },
 ];
 
@@ -37,7 +37,7 @@ function StatCard({
 }: {
   value: string;
   label: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   delay: number;
 }) {
   return (

@@ -2,8 +2,8 @@ import { Navigation, FooterNew } from '@/components/marketing/home';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CustomCursor } from '@/components/ui/premium/custom-cursor';
 import { ElectricGridCSS } from '@/components/ui/premium/electric-grid';
-// ISR: Revalidate public pages every hour
-export const revalidate = 3600; // 1 hour
+// Force dynamic rendering - i18n reads cookies at layout level
+export const dynamic = 'force-dynamic';
 
 /**
  * Public Layout - Unified layout for all public pages

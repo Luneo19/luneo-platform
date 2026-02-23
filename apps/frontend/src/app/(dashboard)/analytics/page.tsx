@@ -561,9 +561,9 @@ export default function AnalyticsPage() {
         showUpgradePrompt
         fallback={
           <UpgradeRequiredPage
-            feature="Analytics Avances"
+            feature="Analytics Avancés"
             requiredPlan="business"
-            description="Les analytics avances avec KPIs, graphiques et rapports detailles sont disponibles a partir du plan Business."
+            description="Les analytics avancés avec KPIs, graphiques et rapports détaillés sont disponibles à partir du plan Business."
           />
         }
       >

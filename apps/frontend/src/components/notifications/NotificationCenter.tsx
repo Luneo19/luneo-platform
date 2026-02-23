@@ -32,7 +32,7 @@ function NotificationCenterContent() {
 
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => api.get<{ notifications: Array<{ id: string; title: string; message: string; read: boolean; createdAt: string; actionUrl?: string; actionLabel?: string }>; unreadCount: number }>('/api/v1/notifications?limit=50').then(r => (r as { data: unknown }).data ?? r),
+    queryFn: () => api.get<{ notifications: Array<{ id: string; title: string; message: string; read: boolean; createdAt: string; actionUrl?: string; actionLabel?: string }>; unreadCount: number }>('/api/v1/notifications?limit=50'),
     refetchInterval: 60000,
     retry: 1,
     refetchOnWindowFocus: false,

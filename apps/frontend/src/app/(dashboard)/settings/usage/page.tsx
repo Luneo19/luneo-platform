@@ -69,7 +69,7 @@ function UsagePageContent() {
         logger.info('Subscription data loaded for usage page');
       } catch (err) {
         logger.error('Failed to load subscription data', { error: err });
-        setError('Impossible de charger les donnees d\'utilisation');
+        setError('Impossible de charger les données d\'utilisation');
       } finally {
         setLoading(false);
       }
@@ -85,13 +85,13 @@ function UsagePageContent() {
 
     return [
       {
-        label: 'Designs crees',
+        label: 'Designs créés',
         used: u.designs ?? 0,
         limit: l.designsPerMonth ?? 5,
         icon: <Palette className="w-4 h-4 text-purple-400" />,
       },
       {
-        label: 'Generations IA',
+        label: 'Générations IA',
         used: u.aiGenerations ?? 0,
         limit: l.aiGenerationsPerMonth ?? 3,
         icon: <Cpu className="w-4 h-4 text-blue-400" />,
@@ -122,7 +122,7 @@ function UsagePageContent() {
         icon: <Globe className="w-4 h-4 text-indigo-400" />,
       },
       {
-        label: 'Membres equipe',
+        label: 'Membres équipe',
         used: u.teamMembers ?? 0,
         limit: l.teamMembers ?? 1,
         icon: <Users className="w-4 h-4 text-pink-400" />,
@@ -180,7 +180,7 @@ function UsagePageContent() {
       <div>
         <h1 className="text-2xl font-bold text-white">Plan & Utilisation</h1>
         <p className="text-gray-400 text-sm mt-1">
-          Suivez votre consommation et gerez votre plan en temps reel
+          Suivez votre consommation et gérez votre plan en temps réel
         </p>
       </div>
 

@@ -10,7 +10,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { OAuthService, OAuthUser } from './oauth.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
 describe('OAuthService', () => {
   let service: OAuthService;
@@ -35,7 +35,7 @@ describe('OAuthService', () => {
     firstName: 'John',
     lastName: 'Doe',
     avatar: 'https://example.com/avatar.jpg',
-    role: UserRole.CONSUMER,
+    role: PlatformRole.USER,
     emailVerified: true,
     isActive: true,
     brand: null,
@@ -185,7 +185,7 @@ describe('OAuthService', () => {
           lastName: mockOAuthUser.lastName || '',
           avatar: mockOAuthUser.picture || undefined,
           emailVerified: true,
-          role: UserRole.CONSUMER,
+          role: PlatformRole.USER,
           oauthAccounts: {
             create: {
               provider: mockOAuthUser.provider,

@@ -82,6 +82,7 @@
     "**/playwright.config.*",
     "**/vitest.config.*",
     "**/vitest.setup.*",
-    "e2e/**"
+    "e2e/**",
+    "src/_archive/**"
   ]
 }

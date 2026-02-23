@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Controller, Post, Body, Get, InternalServerErrorException, Logger, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -8,7 +7,7 @@ import { MailgunService } from './mailgun.service';
 import { SendGridService } from './sendgrid.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Roles } from '@/common/guards/roles.guard';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { SendGridTemplateDto } from './dto/sendgrid-template.dto';
 import { SendGridScheduledDto } from './dto/sendgrid-scheduled.dto';
 
@@ -87,7 +86,7 @@ export class EmailController {
   }
 
   @Post('test/welcome')
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send welcome test email (admin only)' })
   @ApiBody({ type: TestEmailDto })
   @ApiResponse({ status: 200, description: 'Welcome email sent successfully' })
@@ -113,7 +112,7 @@ export class EmailController {
   }
 
   @Post('test/password-reset')
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send password reset test email (admin only)' })
   @ApiBody({ type: TestEmailDto })
   @ApiResponse({ status: 200, description: 'Password reset email sent successfully' })
@@ -145,7 +144,7 @@ export class EmailController {
   }
 
   @Post('test/confirmation')
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send email confirmation test email (admin only)' })
   @ApiBody({ type: TestEmailDto })
   @ApiResponse({ status: 200, description: 'Confirmation email sent successfully' })

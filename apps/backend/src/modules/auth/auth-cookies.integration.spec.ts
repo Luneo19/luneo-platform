@@ -10,7 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { describeIntegration } from '@/common/test/integration-test.helper';
 import { createIntegrationTestApp, closeIntegrationTestApp } from '@/common/test/test-app.module';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
 describeIntegration('Auth Cookies Integration', () => {
   let app: INestApplication;
@@ -83,7 +83,7 @@ describeIntegration('Auth Cookies Integration', () => {
           password: hashedPassword,
           firstName: 'Cookie',
           lastName: 'Login',
-          role: UserRole.CONSUMER,
+          role: PlatformRole.USER,
           emailVerified: true,
         },
       });
@@ -129,7 +129,7 @@ describeIntegration('Auth Cookies Integration', () => {
           password: hashedPassword,
           firstName: 'Bearer',
           lastName: 'Auth',
-          role: UserRole.CONSUMER,
+          role: PlatformRole.USER,
           emailVerified: true,
         },
       });
@@ -170,7 +170,7 @@ describeIntegration('Auth Cookies Integration', () => {
           password: hashedPassword,
           firstName: 'Logout',
           lastName: 'Test',
-          role: UserRole.CONSUMER,
+          role: PlatformRole.USER,
           emailVerified: true,
         },
       });
@@ -219,7 +219,7 @@ describeIntegration('Auth Cookies Integration', () => {
           password: hashedPassword,
           firstName: 'Logout',
           lastName: 'Reject',
-          role: UserRole.CONSUMER,
+          role: PlatformRole.USER,
           emailVerified: true,
         },
       });

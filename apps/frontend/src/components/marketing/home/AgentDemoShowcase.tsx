@@ -167,7 +167,7 @@ export function AgentDemoShowcase() {
           </div>
           <div className="flex-1 text-center">
             <span className="text-xs text-white/30 bg-white/[0.05] rounded-md px-3 py-1">
-              app.luneo.app/dashboard
+              luneo.app/dashboard
             </span>
           </div>
         </div>

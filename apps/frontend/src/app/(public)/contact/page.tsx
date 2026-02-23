@@ -161,7 +161,6 @@ function ContactPageContentInner() {
       <PageHero
         title={t('public.contact.title')}
         description={t('public.contact.description')}
-        badge={t('public.contact.badge')}
         gradient="from-blue-600 via-purple-600 to-pink-600"
       />
 
@@ -293,8 +292,6 @@ function ContactPageContentInner() {
                 icon={info.icon}
                 title={info.title}
                 description={`${info.details} - ${info.description}`}
-                color={info.color}
-                staggerIndex={i}
               />
             ))}
 

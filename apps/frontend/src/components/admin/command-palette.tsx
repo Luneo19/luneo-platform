@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
-import { endpoints } from '@/lib/api/client';
+// V1 endpoints removed (products, designs, orders, clients archived)
 import { logger } from '@/lib/logger';
 
 const RECENT_STORAGE_KEY = 'luneo-admin-recent';
@@ -304,44 +304,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     setSearchLoading(true);
     const t = setTimeout(async () => {
       try {
-        const [productsRes, designsRes, ordersRes, clientsRes] = await Promise.allSettled([
-          endpoints.products.list({ limit: 10, page: 1 }).then((r: unknown) => r),
-          endpoints.designs.list({ limit: 5, search: q }).then((r: unknown) => r),
-          endpoints.orders.list({ limit: 5, search: q }).then((r: unknown) => r),
-          endpoints.admin.clients.list({ limit: 5, search: q }).then((r: unknown) => r),
-        ]);
         if (cancelled) return;
         const results: SearchResultItem[] = [];
-        const qLower = q.toLowerCase();
-        if (productsRes.status === 'fulfilled') {
-          const raw = productsRes.value as { data?: { products?: { id?: string; name?: string }[] }; products?: { id?: string; name?: string }[] };
-          const list = raw?.data?.products ?? raw?.products ?? (Array.isArray(raw?.data) ? raw.data : []) ?? [];
-          (Array.isArray(list) ? list : []).slice(0, 5).forEach((p: { id?: string; name?: string }) => {
-            if (p?.id && (p.name?.toLowerCase().includes(qLower) || p.id.toLowerCase().includes(qLower)))
-              results.push({ id: p.id, type: 'product', title: p.name ?? p.id, path: `/dashboard/products/${p.id}` });
-          });
-        }
-        if (designsRes.status === 'fulfilled') {
-          const data = designsRes.value as { designs?: { id?: string; name?: string }[]; data?: { id?: string; name?: string }[] };
-          const list = data?.designs ?? data?.data ?? [];
-          (Array.isArray(list) ? list : []).slice(0, 5).forEach((d: { id?: string; name?: string }) => {
-            if (d?.id) results.push({ id: d.id, type: 'design', title: (d.name ?? d.id).slice(0, 50), path: `/dashboard/designs/${d.id}` });
-          });
-        }
-        if (ordersRes.status === 'fulfilled') {
-          const raw = ordersRes.value as { data?: { orders?: { id?: string; orderNumber?: string }[] }; orders?: { id?: string; orderNumber?: string }[] };
-          const list = raw?.data?.orders ?? raw?.orders ?? (Array.isArray(raw?.data) ? raw.data : []) ?? [];
-          (Array.isArray(list) ? list : []).slice(0, 5).forEach((o: { id?: string; orderNumber?: string }) => {
-            if (o?.id) results.push({ id: o.id, type: 'order', title: `Order ${o.orderNumber ?? o.id}`, path: `/dashboard/orders/${o.id}` });
-          });
-        }
-        if (clientsRes.status === 'fulfilled') {
-          const data = clientsRes.value as { data?: { id?: string; email?: string; name?: string }[] };
-          const list = data?.data ?? [];
-          (Array.isArray(list) ? list : []).slice(0, 5).forEach((c: { id?: string; email?: string; name?: string }) => {
-            if (c?.id) results.push({ id: c.id, type: 'customer', title: c.name ?? c.email ?? c.id, subtitle: c.email, path: `/admin/customers/${c.id}` });
-          });
-        }
         if (!cancelled) setSearchResults(results);
       } catch (e) {
         logger.error('Command palette search failed', e);

@@ -40,9 +40,9 @@ interface TerminologyProviderProps {
 export function TerminologyProvider({ children, locale = 'fr' }: TerminologyProviderProps) {
   const { industryConfig } = useIndustryStore();
 
-  const terminologyMap = useMemo(() => {
+  const terminologyMap: Record<string, string> = useMemo(() => {
     if (!industryConfig?.terminology) return {};
-    return industryConfig.terminology;
+    return industryConfig.terminology as Record<string, string>;
   }, [industryConfig?.terminology]);
 
   const t = useCallback(

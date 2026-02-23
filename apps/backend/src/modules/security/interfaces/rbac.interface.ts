@@ -224,15 +224,15 @@ export interface RequestUser {
   id: string;
   email: string;
   role: Role;
-  brandId?: string;
+  organizationId?: string;
   permissions: Permission[];
 }
 
 /**
- * Interface pour une ressource avec brandId (isolation par marque)
+ * Interface pour une ressource avec organizationId (isolation par organisation)
  */
 export interface ResourceWithBrand {
-  brandId?: string;
+  organizationId?: string;
 }
 
 /**

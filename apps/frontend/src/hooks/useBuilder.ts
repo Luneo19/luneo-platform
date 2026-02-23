@@ -116,7 +116,7 @@ export function useBuilder(agentId: string) {
             sources?: Array<{ title: string; content: string }>;
             executionTrace?: Array<{ nodeId: string; result: unknown; duration: number }>;
           };
-        }>(`/api/v1/agents/${agentId}/test`, { message, flow: { nodes, edges } });
+        }>(`/api/v1/agents/${agentId}/flow/test`, { message, flow: { nodes, edges } });
 
         const data = (res as { data: { response: string; sources?: Array<{ title: string; content: string }>; executionTrace?: Array<{ nodeId: string }> } }).data;
 
@@ -173,13 +173,13 @@ export function useBuilder(agentId: string) {
 
   const onPublish = useCallback(async () => {
     const hasTrigger = nodes.some(
-      (n) => (n.data as BlockNodeData)?.block?.category === 'TRIGGER'
+      (n) => (n.data as unknown as BlockNodeData)?.block?.category === 'TRIGGER'
     );
     if (!hasTrigger) {
       throw new Error('Your flow needs at least one Trigger block');
     }
 
-    await api.post(`/api/v1/agents/${agentId}/publish`, { flow: { nodes, edges } });
+    await api.post(`/api/v1/agents/${agentId}/flow/publish`, { flow: { nodes, edges } });
   }, [agentId, nodes, edges]);
 
   const onAddNode = useCallback(

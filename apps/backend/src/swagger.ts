@@ -1,6 +1,5 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
-import { PublicApiController } from './modules/public-api/public-api.controller';
 
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
@@ -177,7 +176,6 @@ Pour toute question, contactez l'équipe technique.
     .build();
 
   const publicDocument = SwaggerModule.createDocument(app, publicConfig, {
-    include: [PublicApiController],
     operationIdFactory: (_controllerKey: string, methodKey: string) => methodKey,
   });
 

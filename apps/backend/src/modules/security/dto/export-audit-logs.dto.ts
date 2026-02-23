@@ -16,12 +16,12 @@ export class ExportAuditLogsDto {
   userId?: string;
 
   @ApiPropertyOptional({
-    description: 'Brand ID filter',
-    example: 'brand_123',
+    description: 'Organization ID filter',
+    example: 'org_123',
   })
   @IsOptional()
   @IsString()
-  brandId?: string;
+  organizationId?: string;
 
   @ApiPropertyOptional({
     description: 'Event type filter',

@@ -19,13 +19,13 @@ export function useKeyboardShortcuts() {
 
       if (e.key === 'n' && !e.shiftKey) {
         e.preventDefault();
-        router.push('/dashboard/agents/new');
+        router.push('/agents/new');
         return;
       }
 
       if ((e.key === 'A' || e.key === 'a') && e.shiftKey) {
         e.preventDefault();
-        router.push('/dashboard/analytics');
+        router.push('/analytics');
       }
     }
 

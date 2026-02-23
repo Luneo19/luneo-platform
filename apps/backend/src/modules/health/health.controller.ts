@@ -1,6 +1,5 @@
 import { Public } from '@/common/decorators/public.decorator';
 import { SkipRateLimit } from '@/libs/rate-limit/rate-limit.decorator';
-import { PrometheusService } from '@/libs/metrics/prometheus.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
@@ -16,7 +15,6 @@ export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
     private readonly healthService: HealthService,
-    private readonly prometheus: PrometheusService,
     private readonly prisma: PrismaService,
     private readonly redis: RedisOptimizedService,
     private readonly cloudinary: CloudinaryService, // HEALTH-01
@@ -61,13 +59,7 @@ export class HealthController {
     },
   })
   async getEnriched(): Promise<EnrichedHealthResponse> {
-    const base = await this.healthService.getEnrichedHealth();
-    try {
-      const metrics = await this.prometheus.getRequestStats();
-      return { ...base, metrics };
-    } catch {
-      return base;
-    }
+    return this.healthService.getEnrichedHealth();
   }
 
   @Get('terminus')
@@ -211,8 +203,7 @@ export class HealthController {
     },
   })
   async getMetrics() {
-    const metrics = await this.prometheus.getMetrics();
-    return metrics;
+    return { message: 'Metrics endpoint - Prometheus module archived' };
   }
 
   @Get('detailed')

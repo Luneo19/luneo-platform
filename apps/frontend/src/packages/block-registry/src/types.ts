@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { ComponentType } from 'react';
-import type { NodeProps } from '@xyflow/react';
 
 export type BlockCategory = 'TRIGGER' | 'ACTION' | 'CONDITION' | 'AI' | 'INTEGRATION' | 'UTILITY';
 
@@ -21,7 +20,7 @@ export interface BlockDefinition<TConfig = Record<string, unknown>> {
   outputs: PortDefinition[];
   configSchema: z.ZodType<TConfig>;
   defaultConfig: TConfig;
-  component: ComponentType<NodeProps>;
+  component: ComponentType<{ data: BlockNodeData; [key: string]: unknown }>;
   configPanel?: ComponentType<BlockConfigProps<TConfig>>;
 }
 

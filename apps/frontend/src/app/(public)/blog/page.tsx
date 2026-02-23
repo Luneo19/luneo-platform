@@ -16,7 +16,7 @@ function BlogPageContent() {
         <div className="max-w-7xl mx-auto px-4 text-center">
           <BookOpen className="w-16 h-16 mx-auto mb-6" />
           <h1 className="text-5xl font-bold mb-4">Blog Luneo</h1>
-          <p className="text-xl text-blue-100">Articles, tutoriels et insights sur la 3D, l&apos;AR et la personnalisation produit</p>
+          <p className="text-xl text-blue-100">Articles, tutoriels et insights sur les agents IA, l&apos;automatisation et le service client intelligent</p>
         </div>
       </section>
 

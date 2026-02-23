@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { StripeClientService } from './services/stripe-client.service';
-import { StripeWebhookService } from './services/stripe-webhook.service';
 
 export type Plan = 'starter' | 'professional' | 'business' | 'enterprise';
 
@@ -13,7 +12,6 @@ export class StripeService {
   constructor(
     private readonly configService: ConfigService,
     private readonly stripeClient: StripeClientService,
-    private readonly stripeWebhookService: StripeWebhookService,
   ) {}
 
   async createCustomer(orgId: string, email: string, name: string): Promise<string> {
@@ -68,7 +66,7 @@ export class StripeService {
     const stripe = await this.stripeClient.getStripe();
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
-    await this.stripeWebhookService.handleStripeWebhook(event);
+    this.logger.log(`Stripe webhook event received: ${event.type}`);
   }
 
   private getPriceId(plan: Plan, interval: 'monthly' | 'yearly'): string {

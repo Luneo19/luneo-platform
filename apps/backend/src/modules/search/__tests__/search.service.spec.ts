@@ -4,7 +4,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SearchService } from '../search.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
 describe('SearchService', () => {
   let service: SearchService;
@@ -19,15 +19,15 @@ describe('SearchService', () => {
   const platformAdmin = {
     id: 'u1',
     email: 'admin@luneo.app',
-    role: UserRole.PLATFORM_ADMIN,
-    brandId: null,
+    role: PlatformRole.ADMIN,
+    organizationId: null,
   } as unknown;
 
   const brandUser = {
     id: 'u2',
     email: 'user@brand.com',
-    role: UserRole.BRAND_ADMIN,
-    brandId: 'brand-1',
+    role: PlatformRole.ADMIN,
+    organizationId: 'brand-1',
   } as unknown;
 
   beforeEach(async () => {
@@ -77,7 +77,7 @@ describe('SearchService', () => {
       });
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ brandId: 'brand-1' }),
+          where: expect.objectContaining({ organizationId: 'brand-1' }),
         }),
       );
     });

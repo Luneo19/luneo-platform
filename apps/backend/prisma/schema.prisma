@@ -208,6 +208,7 @@ model Organization {
   auditLogs            AuditLog[]
   usageRecords         UsageRecord[]
   tickets              Ticket[]
+  analyticsEvents      AnalyticsEvent[]
 
   @@index([slug])
   @@index([plan])
@@ -929,24 +930,26 @@ model AgentDailyAnalytics {
 // ═══════════════════════════════════════════════════════════════════
 
 model AnalyticsEvent {
-  id          String   @id @default(cuid())
-  eventType   String
-  userId      String?
-  sessionId   String?
-  properties  Json?
-  brandId     String?
-  page        String?
-  referrer    String?
-  userAgent   String?  @db.Text
-  ipAddress   String?
-  country     String?
-  device      String?
+  id               String        @id @default(cuid())
+  eventType        String
+  userId           String?
+  sessionId        String?
+  properties       Json?
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  page             String?
+  referrer         String?
+  userAgent        String?       @db.Text
+  ipAddress        String?
+  country          String?
+  device           String?
 
-  createdAt   DateTime @default(now())
+  createdAt        DateTime      @default(now())
 
   @@index([eventType])
   @@index([userId])
   @@index([sessionId])
+  @@index([organizationId])
   @@index([createdAt])
   @@map("analytics_events")
 }

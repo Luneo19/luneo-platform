@@ -163,7 +163,8 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
       const p3 = progressData?.step3UseCases as Record<string, unknown> | null;
       if (p3?.companySize) formData.step4 = { companySize: p3.companySize as string };
       const p4 = progressData?.step4Goals as Record<string, unknown> | null;
-      if (p4?.goals?.[0]) formData.step5 = { objective: (p4.goals as string[])[0] };
+      const goals = p4?.goals as string[] | undefined;
+      if (goals?.[0]) formData.step5 = { objective: goals[0] };
 
       set({
         progress: { currentStep, progress: progressData },

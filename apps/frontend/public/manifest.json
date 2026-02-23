@@ -1,53 +1,20 @@
 {
-  "name": "Luneo Platform - Personnalisation Produits",
+  "name": "Luneo — Agents IA",
   "short_name": "Luneo",
-  "description": "Créez et personnalisez vos produits avec notre plateforme complète : éditeur 2D, configurateur 3D, Virtual Try-On AR, export print-ready.",
-  "start_url": "/",
+  "description": "Créez et déployez des agents IA conversationnels pour automatiser votre service client, vos ventes et votre support.",
+  "start_url": "/overview",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7c3aed",
-  "orientation": "portrait-primary",
+  "background_color": "#0a0a1a",
+  "theme_color": "#8b5cf6",
+  "orientation": "any",
   "icons": [
-    {
-      "src": "/favicon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/favicon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/favicon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/favicon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
   ],
-  "categories": ["business", "productivity", "design"],
   "shortcuts": [
-    {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "Accéder au tableau de bord",
-      "url": "/dashboard",
-      "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Créer un design",
-      "short_name": "Créer",
-      "description": "Créer un nouveau design",
-      "url": "/dashboard/designs/new",
-      "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }]
-    }
-  ]
+    {"name": "Mes Agents", "url": "/agents", "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]},
+    {"name": "Conversations", "url": "/conversations", "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]},
+    {"name": "Analytics", "url": "/analytics", "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]}
+  ],
+  "categories": ["business", "productivity"]
 }

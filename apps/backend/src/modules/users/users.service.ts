@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { hashPassword, verifyPassword } from '@/libs/crypto/password-hasher';
@@ -31,7 +31,7 @@ export class UsersService {
    */
   async findOne(id: string, currentUser: CurrentUser) {
     // Check permissions first (before cache lookup)
-    if (currentUser.role !== UserRole.PLATFORM_ADMIN && currentUser.id !== id) {
+    if (currentUser.role !== PlatformRole.ADMIN && currentUser.id !== id) {
       throw new ForbiddenException('Access denied');
     }
 

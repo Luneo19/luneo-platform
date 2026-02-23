@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { endpoints } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { useI18n } from '@/i18n/useI18n';
 
@@ -65,7 +65,7 @@ function ReferralPageContent() {
 
   useEffect(() => {
     let cancelled = false;
-    endpoints.referral.stats()
+    api.get<{ referralCode: string; referralLink: string; totalReferrals: number; activeReferrals: number; totalEarnings: number; pendingEarnings: number }>('/api/v1/referral/stats')
       .then((res) => {
         if (!cancelled && res) setStats(res);
       })
@@ -90,7 +90,7 @@ function ReferralPageContent() {
 
     setIsSubmitting(true);
     try {
-      await endpoints.referral.join(email);
+      await api.post('/api/v1/referral/join', { email });
       setSubmitted(true);
     } catch (error) {
       logger.error('Error joining referral program', error);

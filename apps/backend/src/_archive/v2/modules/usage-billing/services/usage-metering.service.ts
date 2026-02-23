@@ -1,0 +1,425 @@
+import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { PrismaService } from '@/libs/prisma/prisma.service';
+import { InjectQueue } from '@nestjs/bull';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Queue } from 'bullmq';
+import Stripe from 'stripe';
+import { UsageMetric, UsageMetricType } from '../interfaces/usage.interface';
+
+/**
+ * Service de métering d'usage avec Stripe
+ * Enregistre et synchronise l'utilisation avec Stripe pour la facturation
+ */
+@Injectable()
+export class UsageMeteringService {
+  private readonly logger = new Logger(UsageMeteringService.name);
+  private stripe: Stripe;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: SmartCacheService,
+    @InjectQueue('usage-metering') private usageQueue: Queue,
+    private readonly configService: ConfigService,
+  ) {
+    this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2023-10-16',
+    });
+  }
+
+  /**
+   * Enregistrer une métrique d'usage
+   */
+  async recordUsage(
+    brandId: string,
+    metric: UsageMetricType,
+    value: number = 1,
+    metadata?: Record<string, unknown>,
+  ): Promise<UsageMetric> {
+    try {
+      // Créer l'enregistrement d'usage
+      const usageMetric: UsageMetric = {
+        id: `usage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        brandId,
+        metric,
+        value,
+        unit: this.getUnitForMetric(metric),
+        timestamp: new Date(),
+        metadata,
+      };
+
+      // ✅ FIX CRITICAL: Persister directement en DB (pas seulement via queue)
+      // La queue n'avait pas de processor, donc les métriques n'étaient jamais sauvegardées
+      try {
+        await this.prisma.usageMetric.create({
+          data: {
+            brand: { connect: { id: brandId } },
+            metric,
+            value,
+            unit: usageMetric.unit,
+            timestamp: usageMetric.timestamp,
+            metadata: (metadata || undefined) as unknown as import('@prisma/client').Prisma.InputJsonValue | undefined,
+          },
+        });
+      } catch (dbError: unknown) {
+        this.logger.error(`Failed to persist usage metric to DB: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+        // Continue - don't block the operation
+      }
+
+      // Queue pour le reporting Stripe async (non-bloquant)
+      try {
+        await this.usageQueue.add('record-usage', {
+          usageMetric,
+        });
+      } catch (queueError: unknown) {
+        // Queue peut ne pas être disponible - log mais ne pas bloquer
+        this.logger.warn(`Queue unavailable for usage metric: ${queueError instanceof Error ? queueError.message : String(queueError)}`);
+      }
+
+      // Envoyer à Stripe si applicable (async, non-bloquant)
+      this.reportToStripe(brandId, metric, value).catch(err => {
+        this.logger.warn(`Stripe usage reporting failed (non-blocking): ${err.message}`);
+      });
+
+      // Invalidate cache
+      await this.cache.delSimple(`usage:${brandId}:current`);
+
+      this.logger.log(
+        `Usage recorded: ${metric} = ${value} for brand ${brandId}`,
+      );
+
+      return usageMetric;
+    } catch (error: unknown) {
+      this.logger.error(`Failed to record usage: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Rapporter l'usage à Stripe
+   */
+  private async reportToStripe(
+    brandId: string,
+    metric: UsageMetricType,
+    quantity: number,
+  ): Promise<void> {
+    try {
+      // Récupérer la subscription Stripe du brand
+      const subscription = await this.getStripeSubscription(brandId);
+      if (!subscription) {
+        this.logger.warn(`No Stripe subscription found for brand ${brandId}`);
+        return;
+      }
+
+      // Trouver le subscription item correspondant à cette métrique
+      const subscriptionItem = this.findSubscriptionItemForMetric(
+        subscription,
+        metric,
+      );
+      if (!subscriptionItem) {
+        this.logger.warn(
+          `No subscription item for metric ${metric} on brand ${brandId}`,
+        );
+        return;
+      }
+
+      // Créer un usage record dans Stripe
+      const usageRecord = await this.stripe.subscriptionItems.createUsageRecord(
+        subscriptionItem.id,
+        {
+          quantity: Math.ceil(quantity), // Stripe nécessite un entier
+          timestamp: Math.floor(Date.now() / 1000),
+          action: 'increment', // ou 'set' selon le cas
+        },
+      );
+
+      this.logger.debug(
+        `Stripe usage record created: ${usageRecord.id} for ${metric}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to report to Stripe: ${error.message}`,
+        error.stack,
+      );
+      // Ne pas throw pour ne pas bloquer l'enregistrement local
+    }
+  }
+
+  /**
+   * Récupérer la subscription Stripe d'un brand
+   */
+  private async getStripeSubscription(brandId: string): Promise<Stripe.Subscription | null> {
+    try {
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: brandId },
+        select: { stripeSubscriptionId: true },
+      });
+
+      if (!brand?.stripeSubscriptionId) {
+        return null;
+      }
+
+      const subscription = await this.stripe.subscriptions.retrieve(
+        brand.stripeSubscriptionId,
+        {
+          expand: ['items.data.price.product'],
+        },
+      );
+
+      return subscription;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get Stripe subscription: ${error.message}`,
+        error.stack,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Trouver le subscription item pour une métrique
+   */
+  private findSubscriptionItemForMetric(subscription: Stripe.Subscription, metric: UsageMetricType): Stripe.SubscriptionItem | null {
+    if (!subscription?.items?.data) {
+      return null;
+    }
+
+    // Mapping entre nos métriques et les products Stripe
+    const metricToStripeProductMap: Record<UsageMetricType, string> = {
+      designs_created: 'prod_designs',
+      renders_2d: 'prod_renders_2d',
+      renders_3d: 'prod_renders_3d',
+      exports_gltf: 'prod_exports',
+      exports_usdz: 'prod_exports',
+      ai_generations: 'prod_ai',
+      storage_gb: 'prod_storage',
+      bandwidth_gb: 'prod_bandwidth',
+      api_calls: 'prod_api',
+      webhook_deliveries: 'prod_webhooks',
+      custom_domains: 'prod_domains',
+      team_members: 'prod_team',
+      virtual_tryons: 'prod_virtual_tryons',
+      try_on_screenshots: 'prod_tryon_screenshots',
+      ar_sessions: 'prod_ar_sessions',
+      ar_models: 'prod_ar_models',
+      ar_conversions_3d: 'prod_ar_conversions',
+      ar_qr_codes: 'prod_ar_qr_codes',
+      pce_orders_processed: 'prod_pce_orders',
+      pce_renders: 'prod_pce_renders',
+      pce_production_orders: 'prod_pce_production',
+      pce_fulfillments: 'prod_pce_fulfillments',
+    };
+
+    const targetProductId = metricToStripeProductMap[metric];
+
+    for (const item of subscription.items.data) {
+      const raw = item.price?.product;
+      const productId = typeof raw === 'string' ? raw : (raw as { id?: string })?.id;
+      if (productId === targetProductId) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Obtenir l'unité pour une métrique
+   */
+  private getUnitForMetric(metric: UsageMetricType): string {
+    const units: Record<UsageMetricType, string> = {
+      designs_created: 'designs',
+      renders_2d: 'renders',
+      renders_3d: 'renders',
+      exports_gltf: 'exports',
+      exports_usdz: 'exports',
+      ai_generations: 'generations',
+      storage_gb: 'GB',
+      bandwidth_gb: 'GB',
+      api_calls: 'calls',
+      webhook_deliveries: 'webhooks',
+      custom_domains: 'domains',
+      team_members: 'members',
+      virtual_tryons: 'sessions',
+      try_on_screenshots: 'screenshots',
+      ar_sessions: 'sessions',
+      ar_models: 'models',
+      ar_conversions_3d: 'conversions',
+      ar_qr_codes: 'codes',
+      pce_orders_processed: 'orders',
+      pce_renders: 'renders',
+      pce_production_orders: 'orders',
+      pce_fulfillments: 'fulfillments',
+    };
+
+    return units[metric] || 'units';
+  }
+
+  /**
+   * Récupérer l'usage actuel d'un brand
+   */
+  async getCurrentUsage(brandId: string): Promise<Record<UsageMetricType, number>> {
+    try {
+      // Check cache
+      const cached = await this.cache.getSimple<string>(`usage:${brandId}:current`);
+      if (cached) {
+        return JSON.parse(cached as string);
+      }
+
+      // BILLING FIX P3-5: Derive billing period from planExpiresAt instead of calendar month.
+      // planExpiresAt anchors the billing cycle day; we find the current monthly period containing "now".
+      let periodStart: Date;
+      try {
+        const brand = await this.prisma.brand.findUnique({
+          where: { id: brandId },
+          select: { planExpiresAt: true },
+        });
+        if (brand?.planExpiresAt) {
+          periodStart = this.derivePeriodStart(new Date(brand.planExpiresAt));
+        } else {
+          // No planExpiresAt → fall back to calendar month
+          periodStart = new Date();
+          periodStart.setDate(1);
+          periodStart.setHours(0, 0, 0, 0);
+        }
+      } catch {
+        // Fallback to calendar month if brand query fails
+        periodStart = new Date();
+        periodStart.setDate(1);
+        periodStart.setHours(0, 0, 0, 0);
+      }
+
+      const usageRecords = await this.prisma.usageMetric.findMany({
+        where: {
+          brandId,
+          timestamp: {
+            gte: periodStart,
+          },
+        },
+      });
+
+      // Agréger par métrique
+      const usage: Record<string, number> = {};
+      for (const record of usageRecords) {
+        usage[record.metric] = (usage[record.metric] || 0) + record.value;
+      }
+
+      // Cache pour 5 minutes
+      await this.cache.set(
+        `usage:${brandId}:current`,
+        JSON.stringify(usage),
+        300,
+      );
+
+      return usage as Record<UsageMetricType, number>;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get current usage: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer l'usage Stripe directement (source de vérité)
+   */
+  async getStripeUsage(
+    brandId: string,
+    metric: UsageMetricType,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    try {
+      const subscription = await this.getStripeSubscription(brandId);
+      if (!subscription) {
+        return 0;
+      }
+
+      const subscriptionItem = this.findSubscriptionItemForMetric(
+        subscription,
+        metric,
+      );
+      if (!subscriptionItem) {
+        return 0;
+      }
+
+      // Récupérer les usage records de Stripe
+      const usageRecords = await this.stripe.subscriptionItems.listUsageRecordSummaries(
+        subscriptionItem.id,
+        {
+          limit: 100,
+        },
+      );
+
+      // Sommer les quantités dans la période
+      let total = 0;
+      for (const record of usageRecords.data) {
+        const recordDate = new Date((record.period.start ?? 0) * 1000);
+        if (recordDate >= startDate && recordDate <= endDate) {
+          total += record.total_usage;
+        }
+      }
+
+      return total;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get Stripe usage: ${error.message}`,
+        error.stack,
+      );
+      return 0;
+    }
+  }
+
+  /**
+   * Derive the current billing period start from planExpiresAt.
+   * planExpiresAt anchors the billing cycle to a specific day-of-month.
+   * We find the monthly period that contains "now" by using that anchor day.
+   * Example: if planExpiresAt is March 15, billing periods are Jan 15-Feb 15, Feb 15-Mar 15, etc.
+   */
+  /**
+   * TIMEZONE FIX: Use UTC consistently to avoid mismatches between
+   * Stripe/Prisma timestamps (always UTC) and server local time.
+   */
+  private derivePeriodStart(planExpiresAt: Date): Date {
+    const now = new Date();
+    const anchorDay = Math.min(planExpiresAt.getUTCDate(), 28); // Cap at 28 to avoid month-end edge cases
+
+    // Try this month's anchor day (in UTC)
+    const thisMonthAnchor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), anchorDay, 0, 0, 0, 0));
+
+    if (thisMonthAnchor <= now) {
+      // We are past the anchor day this month → period started on this anchor day
+      return thisMonthAnchor;
+    } else {
+      // We haven't reached the anchor day → period started last month on anchor day
+      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, anchorDay, 0, 0, 0, 0));
+    }
+  }
+
+  /**
+   * Batch reporting pour optimisation
+   */
+  async batchRecordUsage(
+    brandId: string,
+    metrics: Array<{ metric: UsageMetricType; value: number }>,
+  ): Promise<void> {
+    try {
+      const promises = metrics.map((m) =>
+        this.recordUsage(brandId, m.metric, m.value),
+      );
+
+      await Promise.all(promises);
+
+      this.logger.log(
+        `Batch recorded ${metrics.length} usage metrics for brand ${brandId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to batch record usage: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+}

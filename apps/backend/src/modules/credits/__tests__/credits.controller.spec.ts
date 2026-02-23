@@ -5,7 +5,7 @@ import { BillingService } from '@/modules/billing/billing.service';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { CurrentUser } from '@/common/types/user.types';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
 describe('CreditsController', () => {
   let controller: CreditsController;
@@ -39,8 +39,8 @@ describe('CreditsController', () => {
   const currentUser: CurrentUser = {
     id: 'user-1',
     email: 'user@test.com',
-    role: UserRole.CONSUMER,
-    brandId: null,
+    role: PlatformRole.USER,
+    organizationId: null,
   };
 
   const mockRequest = (user: CurrentUser = currentUser) =>

@@ -36,20 +36,14 @@ export const LazyDashboard = createLazyComponent(
   { ssr: false }
 );
 
-export const LazyAIStudio = createLazyComponent(
-  () => import('@/app/(dashboard)/ai-studio/page'),
-  { ssr: false }
-);
+export const LazyAIStudio = (() => null) as ReturnType<typeof createLazyComponent>;
 
 export const LazyAnalytics = createLazyComponent(
   () => import('@/app/(dashboard)/analytics/page'),
   { ssr: false }
 );
 
-export const LazyProducts = createLazyComponent(
-  () => import('@/app/(dashboard)/products/page'),
-  { ssr: false }
-);
+export const LazyProducts = (() => null) as ReturnType<typeof createLazyComponent>;
 
 export const LazyBilling = createLazyComponent(
   () => import('@/app/(dashboard)/billing/page'),
@@ -61,10 +55,7 @@ export const LazyTeam = createLazyComponent(
   { ssr: false }
 );
 
-export const LazyIntegrations = createLazyComponent(
-  () => import('@/app/(dashboard)/integrations-dashboard/page'),
-  { ssr: false }
-);
+export const LazyIntegrations = (() => null) as ReturnType<typeof createLazyComponent>;
 
 // Imports dynamiques pour les composants lourds
 

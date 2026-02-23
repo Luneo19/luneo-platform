@@ -4,7 +4,6 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { OAuthController } from './controllers/oauth.controller';
-import { SSOEnterpriseController } from './controllers/sso-enterprise.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -14,7 +13,6 @@ import { BruteForceService } from './services/brute-force.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { CaptchaService } from './services/captcha.service';
 import { OAuthService } from './services/oauth.service';
-import { SSOEnterpriseService } from './services/sso-enterprise.service';
 import { TokenService } from './services/token.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
@@ -113,7 +111,7 @@ try {
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, OAuthController, SSOEnterpriseController],
+  controllers: [AuthController, OAuthController],
   providers: [
     AuthService,
     JwtStrategy,
@@ -125,12 +123,11 @@ try {
     TwoFactorService,
     CaptchaService,
     OAuthService,
-    SSOEnterpriseService,
     TokenService,
     RedisOptimizedService,
     TokenBlacklistService, // SECURITY FIX: Access token blacklist for immediate revocation
     TokenCleanupScheduler, // SEC-08: Nettoyage automatique des tokens
   ],
-  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService, SSOEnterpriseService, TokenBlacklistService],
+  exports: [AuthService, JwtStrategy, TwoFactorService, OAuthService, TokenBlacklistService],
 })
 export class AuthModule {}

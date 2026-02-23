@@ -23,6 +23,14 @@ interface PaymentMethod {
   expiryYear?: number;
   isDefault?: boolean;
 }
+
+interface Subscription {
+  plan: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+}
 import { endpoints, api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { formatDate, formatPrice, formatBytes } from '@/lib/utils/formatters';
@@ -195,10 +203,10 @@ function BillingPageContent() {
     );
   }
 
-  const subscription = subscriptionQuery.data;
+  const subscription = subscriptionQuery.data as Subscription | undefined;
   const usage = usageQuery.data;
   const limits = limitsQuery.data;
-  const rawInvoices = invoicesQuery.data?.invoices ?? invoicesQuery.data;
+  const rawInvoices = (invoicesQuery.data as { invoices?: unknown[] } | undefined)?.invoices ?? invoicesQuery.data;
   const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
   const rawPaymentMethods = (paymentMethodsQuery.data as { paymentMethods?: PaymentMethod[] } | undefined)?.paymentMethods ?? paymentMethodsQuery.data;
   const paymentMethods: PaymentMethod[] = Array.isArray(rawPaymentMethods) ? rawPaymentMethods as PaymentMethod[] : [];

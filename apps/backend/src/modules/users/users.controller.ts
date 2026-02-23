@@ -30,7 +30,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '@/common/guards/roles.guard';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
 
 type MulterFile = {
@@ -103,7 +103,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.PLATFORM_ADMIN)
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Obtenir un utilisateur par ID (Admin seulement)' })
   @ApiParam({ name: 'id', description: 'ID de l\'utilisateur' })
   @ApiResponse({

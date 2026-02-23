@@ -11,7 +11,7 @@ import { TokenService } from './token.service';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 
 describe('TokenService', () => {
   let service: TokenService;
@@ -21,7 +21,7 @@ describe('TokenService', () => {
 
   const userId = 'user-123';
   const email = 'test@example.com';
-  const role = UserRole.CONSUMER;
+  const role = PlatformRole.USER;
 
   const mockUser = {
     id: userId,
@@ -30,7 +30,7 @@ describe('TokenService', () => {
     lastName: 'User',
     role,
     isActive: true,
-    brandId: 'brand-123',
+    organizationId: 'brand-123',
     brand: {
       id: 'brand-123',
       name: 'Test Brand',

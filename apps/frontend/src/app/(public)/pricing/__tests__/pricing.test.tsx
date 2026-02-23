@@ -42,7 +42,7 @@ const mockMergedPlans = [
   {
     id: 'free',
     name: 'Free',
-    description: 'Essayez Luneo gratuitement avec des fonctionnalites de base',
+    description: 'Essayez Luneo gratuitement avec des fonctionnalités de base',
     priceMonthly: 0,
     priceYearly: 0,
     priceYearlyMonthly: 0,
@@ -62,12 +62,12 @@ const mockMergedPlans = [
   {
     id: 'starter',
     name: 'Starter',
-    description: 'Parfait pour les createurs independants et petits projets',
+    description: 'Parfait pour les créateurs indépendants et petits projets',
     priceMonthly: 19,
     priceYearly: 182.4,
     priceYearlyMonthly: 15.2,
     currency: 'EUR',
-    cta: 'Demarrer l\'essai gratuit',
+    cta: 'Démarrer l\'essai gratuit',
     ctaHref: '/register?plan=starter',
     features: ['50 designs/mois', 'Customizer 2D', '100 rendus 2D/mois'],
     limits: {
@@ -82,14 +82,14 @@ const mockMergedPlans = [
   {
     id: 'professional',
     name: 'Professional',
-    description: 'Pour les createurs et PME qui veulent passer a la vitesse superieure',
+    description: 'Pour les créateurs et PME qui veulent passer à la vitesse supérieure',
     priceMonthly: 49,
     priceYearly: 470.4,
     priceYearlyMonthly: 39.2,
     currency: 'EUR',
     popular: true,
     badge: 'LE PLUS POPULAIRE',
-    cta: 'Demarrer l\'essai gratuit',
+    cta: 'Démarrer l\'essai gratuit',
     ctaHref: '/register?plan=professional',
     features: ['250 designs/mois', 'Customizer 2D + 3D', '500 rendus 2D/mois'],
     limits: {
@@ -104,14 +104,14 @@ const mockMergedPlans = [
   {
     id: 'business',
     name: 'Business',
-    description: 'Pour les equipes qui ont besoin de collaboration et de volume',
+    description: 'Pour les équipes qui ont besoin de collaboration et de volume',
     priceMonthly: 99,
     priceYearly: 950.4,
     priceYearlyMonthly: 79.2,
     currency: 'EUR',
-    cta: 'Demarrer l\'essai gratuit',
+    cta: 'Démarrer l\'essai gratuit',
     ctaHref: '/register?plan=business',
-    features: ['1000 designs/mois', 'Toutes les fonctionnalites Pro'],
+    features: ['1000 designs/mois', 'Toutes les fonctionnalités Pro'],
     limits: {
       designs: 1000,
       renders2D: 2000,
@@ -131,14 +131,14 @@ const mockMergedPlans = [
     currency: 'EUR',
     cta: 'Contacter les ventes',
     ctaHref: '/contact?type=enterprise',
-    features: ['Designs illimites', 'Rendus illimites', 'Infrastructure dediee'],
+    features: ['Designs illimités', 'Rendus illimités', 'Infrastructure dédiée'],
     limits: {
-      designs: 'Illimite',
-      renders2D: 'Illimite',
-      renders3D: 'Illimite',
-      storage: 'Illimite',
-      teamMembers: 'Illimite',
-      apiCalls: 'Illimite',
+      designs: 'Illimité',
+      renders2D: 'Illimité',
+      renders3D: 'Illimité',
+      storage: 'Illimité',
+      teamMembers: 'Illimité',
+      apiCalls: 'Illimité',
     },
   },
 ];
@@ -269,7 +269,7 @@ describe('PricingPage', () => {
       const freeButtons = screen.queryAllByRole('button', { name: /commencer gratuitement/i });
       expect(freeButtons.length).toBeGreaterThan(0);
       
-      const trialButtons = screen.queryAllByRole('button', { name: /demarrer l'essai gratuit/i });
+      const trialButtons = screen.queryAllByRole('button', { name: /démarrer l'essai gratuit/i });
       expect(trialButtons.length).toBeGreaterThan(0);
       
       const contactButtons = screen.queryAllByRole('button', { name: /contacter les ventes/i });

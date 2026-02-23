@@ -4,12 +4,12 @@ import { generateFAQSchema } from '@/lib/seo/structured-data';
 import { FAQS } from './data';
 
 export const metadata: Metadata = {
-  title: 'Tarifs & Plans | Luneo - Personnalisation Produit',
-  description: 'Découvrez nos plans tarifaires flexibles. De Starter à Enterprise, trouvez la solution adaptée à vos besoins de personnalisation produit avec IA.',
-  keywords: ['tarifs', 'pricing', 'plans', 'personnalisation', 'IA', 'SaaS', 'e-commerce'],
+  title: 'Tarifs & Plans | Luneo - Agents IA',
+  description: 'Découvrez nos plans tarifaires flexibles. Gratuit, Pro, Business ou Enterprise : trouvez la solution agents IA adaptée à vos besoins.',
+  keywords: ['tarifs', 'pricing', 'plans', 'agents IA', 'chatbot', 'SaaS', 'automatisation'],
   openGraph: {
     title: 'Tarifs & Plans | Luneo',
-    description: 'Découvrez nos plans tarifaires flexibles. De Starter à Enterprise, trouvez la solution adaptée à vos besoins.',
+    description: 'Découvrez nos plans tarifaires flexibles pour vos agents IA. De Gratuit à Enterprise, trouvez la solution adaptée.',
     type: 'website',
     url: `${SEO_BASE_URL}/pricing`,
     siteName: 'Luneo',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Tarifs & Plans | Luneo',
-    description: 'Découvrez nos plans tarifaires flexibles pour la personnalisation produit avec IA.',
+    description: 'Découvrez nos plans tarifaires flexibles pour vos agents IA conversationnels.',
   },
   alternates: {
     canonical: `${SEO_BASE_URL}/pricing`,

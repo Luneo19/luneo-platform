@@ -158,12 +158,12 @@ export function useUpgradePrompt(requiredPlan: PlanTier) {
   const planMessages: Record<PlanTier, { title: string; description: string; cta: string }> = {
     free: {
       title: 'Plan Free',
-      description: 'Vous etes sur le plan gratuit. Passez a Starter pour debloquer plus de fonctionnalites.',
-      cta: 'Passer a Starter',
+      description: 'Vous êtes sur le plan gratuit. Passez à Starter pour débloquer plus de fonctionnalités.',
+      cta: 'Passer à Starter',
     },
     starter: {
-      title: 'Passer a Starter',
-      description: 'Debloquez plus de fonctionnalites avec le plan Starter',
+      title: 'Passer à Starter',
+      description: 'Débloquez plus de fonctionnalités avec le plan Starter',
       cta: 'Essayer Starter',
     },
     professional: {

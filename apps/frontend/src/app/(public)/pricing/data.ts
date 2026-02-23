@@ -1,16 +1,13 @@
 import { PRICING } from '@/lib/pricing-constants';
 
-export type PlanTier = 'free' | 'starter' | 'professional' | 'business' | 'enterprise';
+export type PlanTier = 'free' | 'pro' | 'business' | 'enterprise';
 
 export type FeatureCategory =
-  | 'platform'
-  | 'customization'
-  | 'ai'
-  | '3d'
-  | 'ar'
-  | 'export'
-  | 'integrations'
-  | 'collaboration'
+  | 'agents'
+  | 'conversations'
+  | 'knowledge'
+  | 'channels'
+  | 'analytics'
   | 'security'
   | 'support';
 
@@ -20,8 +17,7 @@ export type Feature = {
   description?: string;
   category: FeatureCategory;
   free: boolean | string;
-  starter: boolean | string;
-  professional: boolean | string;
+  pro: boolean | string;
   business: boolean | string;
   enterprise: boolean | string;
 };
@@ -40,14 +36,11 @@ export type Plan = {
   ctaHref?: string;
   features: string[];
   limits: {
-    designs: number | string;
-    renders2D: number | string;
-    renders3D: number | string;
-    virtualTryons: number | string;
-    tryOnScreenshots: number | string;
-    storage: string;
-    teamMembers: number | string;
-    apiCalls: number | string;
+    agents: number | string;
+    conversationsPerMonth: number | string;
+    knowledgeBases: number | string;
+    documentsPerKB: number | string;
+    storageMB: number | string;
   };
 };
 
@@ -73,60 +66,32 @@ export function getTranslatedPlans(t: TFn): Plan[] {
       ctaHref: '/register',
       features: getTranslatedPlanFeatures(t, 'free'),
       limits: {
-        designs: 5,
-        renders2D: 10,
-        renders3D: 0,
-        virtualTryons: 10,
-        tryOnScreenshots: 20,
-        storage: '0.5 GB',
-        teamMembers: 1,
-        apiCalls: 0,
+        agents: 1,
+        conversationsPerMonth: 50,
+        knowledgeBases: 1,
+        documentsPerKB: 10,
+        storageMB: 500,
       },
     },
     {
-      id: 'starter',
-      name: t('pricing.plans.starter.name'),
-      description: t('pricing.plans.starter.description'),
-      priceMonthly: PRICING.starter.monthly,
-      priceYearly: PRICING.starter.yearly,
-      priceYearlyMonthly: PRICING.starter.yearlyMonthly,
-      currency: 'EUR',
-      cta: t('pricing.plans.starter.cta'),
-      ctaHref: '/register?plan=starter',
-      features: getTranslatedPlanFeatures(t, 'starter'),
-      limits: {
-        designs: 50,
-        renders2D: 100,
-        renders3D: 10,
-        virtualTryons: 100,
-        tryOnScreenshots: 500,
-        storage: '5 GB',
-        teamMembers: 3,
-        apiCalls: 10000,
-      },
-    },
-    {
-      id: 'professional',
-      name: t('pricing.plans.professional.name'),
-      description: t('pricing.plans.professional.description'),
-      priceMonthly: PRICING.professional.monthly,
-      priceYearly: PRICING.professional.yearly,
-      priceYearlyMonthly: PRICING.professional.yearlyMonthly,
+      id: 'pro',
+      name: t('pricing.plans.pro.name'),
+      description: t('pricing.plans.pro.description'),
+      priceMonthly: PRICING.pro.monthly,
+      priceYearly: PRICING.pro.yearly,
+      priceYearlyMonthly: PRICING.pro.yearlyMonthly,
       currency: 'EUR',
       popular: true,
-      badge: t('pricing.plans.professional.badge'),
-      cta: t('pricing.plans.professional.cta'),
-      ctaHref: '/register?plan=professional',
-      features: getTranslatedPlanFeatures(t, 'professional'),
+      badge: t('pricing.plans.pro.badge'),
+      cta: t('pricing.plans.pro.cta'),
+      ctaHref: '/register?plan=pro',
+      features: getTranslatedPlanFeatures(t, 'pro'),
       limits: {
-        designs: 200,
-        renders2D: 500,
-        renders3D: 50,
-        virtualTryons: 1000,
-        tryOnScreenshots: 5000,
-        storage: '25 GB',
-        teamMembers: 10,
-        apiCalls: 50000,
+        agents: 5,
+        conversationsPerMonth: 2_000,
+        knowledgeBases: 5,
+        documentsPerKB: 50,
+        storageMB: 5_000,
       },
     },
     {
@@ -141,14 +106,11 @@ export function getTranslatedPlans(t: TFn): Plan[] {
       ctaHref: '/register?plan=business',
       features: getTranslatedPlanFeatures(t, 'business'),
       limits: {
-        designs: 1000,
-        renders2D: 2000,
-        renders3D: 200,
-        virtualTryons: 10000,
-        tryOnScreenshots: 50000,
-        storage: '100 GB',
-        teamMembers: 50,
-        apiCalls: 200000,
+        agents: 20,
+        conversationsPerMonth: 10_000,
+        knowledgeBases: 20,
+        documentsPerKB: 200,
+        storageMB: 25_000,
       },
     },
     {
@@ -163,14 +125,11 @@ export function getTranslatedPlans(t: TFn): Plan[] {
       ctaHref: '/contact?plan=enterprise&source=pricing',
       features: getTranslatedPlanFeatures(t, 'enterprise'),
       limits: {
-        designs: 'Unlimited',
-        renders2D: 'Unlimited',
-        renders3D: 'Unlimited',
-        virtualTryons: 'Unlimited',
-        tryOnScreenshots: 'Unlimited',
-        storage: 'Unlimited',
-        teamMembers: 'Unlimited',
-        apiCalls: 'Unlimited',
+        agents: 'Illimité',
+        conversationsPerMonth: 'Illimité',
+        knowledgeBases: 'Illimité',
+        documentsPerKB: 'Illimité',
+        storageMB: 'Illimité',
       },
     },
   ];
@@ -182,14 +141,10 @@ export function getTranslatedPlans(t: TFn): Plan[] {
  * Falls back to the key if translation is missing.
  */
 function getTranslatedPlanFeatures(t: TFn, tier: PlanTier): string[] {
-  // The features are stored as arrays in the translation file.
-  // The t() function only resolves strings, so we iterate over indexed keys.
-  // We know the max feature count per plan is ~14.
   const features: string[] = [];
   for (let i = 0; i < 20; i++) {
     const key = `pricing.plans.${tier}.features.${i}`;
     const value = t(key);
-    // If t() returns the key itself, the feature doesn't exist
     if (value === key) break;
     features.push(value);
   }
@@ -209,279 +164,120 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
   };
 
   return [
-    // ── PLATEFORME ──────────────────────────────────────────────
+    // ── AGENTS IA ─────────────────────────────────────────────────
     {
-      id: 'base-price',
-      name: fn('base-price'),
-      category: 'platform',
-      free: t('pricing.featureValues.free'),
-      starter: '19€/mois',
-      professional: '49€/mois',
-      business: '99€/mois',
-      enterprise: '299€/mois',
-    },
-    {
-      id: 'commission',
-      name: fn('commission'),
-      description: fd('commission'),
-      category: 'platform',
-      free: '10%',
-      starter: '5%',
-      professional: '3%',
-      business: '2%',
-      enterprise: '1%',
-    },
-    {
-      id: 'designs-monthly',
-      name: fn('designs-monthly'),
-      description: fd('designs-monthly'),
-      category: 'platform',
-      free: '5',
-      starter: '50',
-      professional: '200',
-      business: '1 000',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-    {
-      id: 'products',
-      name: fn('products'),
-      description: fd('products'),
-      category: 'platform',
-      free: '2',
-      starter: '10',
-      professional: '50',
-      business: '500',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-    {
-      id: 'storage',
-      name: fn('storage'),
-      description: fd('storage'),
-      category: 'platform',
-      free: '0.5 GB',
-      starter: '5 GB',
-      professional: '25 GB',
-      business: '100 GB',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-    {
-      id: 'team-members',
-      name: fn('team-members'),
-      description: fd('team-members'),
-      category: 'platform',
+      id: 'agents-count',
+      name: fn('agents-count'),
+      description: fd('agents-count'),
+      category: 'agents',
       free: '1',
-      starter: '3',
-      professional: '10',
-      business: '50',
+      pro: '5',
+      business: '20',
       enterprise: t('pricing.featureValues.unlimited'),
     },
     {
-      id: 'overage',
-      name: fn('overage'),
-      description: fd('overage'),
-      category: 'platform',
-      free: t('pricing.featureValues.blocked'),
-      starter: t('pricing.featureValues.usageBilling'),
-      professional: t('pricing.featureValues.usageBilling'),
-      business: t('pricing.featureValues.usageBilling'),
-      enterprise: t('pricing.featureValues.negotiable'),
+      id: 'agent-templates',
+      name: fn('agent-templates'),
+      description: fd('agent-templates'),
+      category: 'agents',
+      free: t('pricing.featureValues.basic'),
+      pro: t('pricing.featureValues.pro'),
+      business: t('pricing.featureValues.all'),
+      enterprise: t('pricing.featureValues.custom'),
     },
     {
-      id: 'addons',
-      name: fn('addons'),
-      description: fd('addons'),
-      category: 'platform',
+      id: 'visual-builder',
+      name: fn('visual-builder'),
+      description: fd('visual-builder'),
+      category: 'agents',
       free: false,
-      starter: true,
-      professional: true,
-      business: true,
-      enterprise: true,
+      pro: true,
+      business: t('pricing.featureValues.advanced'),
+      enterprise: t('pricing.featureValues.advanced'),
+    },
+
+    // ── CONVERSATIONS ─────────────────────────────────────────────
+    {
+      id: 'conversations-monthly',
+      name: fn('conversations-monthly'),
+      description: fd('conversations-monthly'),
+      category: 'conversations',
+      free: '50',
+      pro: '2 000',
+      business: '10 000',
+      enterprise: t('pricing.featureValues.unlimited'),
     },
     {
-      id: 'white-label',
-      name: fn('white-label'),
-      description: fd('white-label'),
-      category: 'platform',
+      id: 'conversation-history',
+      name: fn('conversation-history'),
+      description: fd('conversation-history'),
+      category: 'conversations',
+      free: t('pricing.featureValues.days7'),
+      pro: t('pricing.featureValues.days30'),
+      business: t('pricing.featureValues.unlimited'),
+      enterprise: t('pricing.featureValues.unlimited'),
+    },
+    {
+      id: 'multichannel',
+      name: fn('multichannel'),
+      description: fd('multichannel'),
+      category: 'conversations',
       free: false,
-      starter: false,
-      professional: true,
+      pro: false,
       business: true,
       enterprise: true,
     },
 
-    // ── PERSONNALISATION ────────────────────────────────────────
+    // ── BASES DE CONNAISSANCES ────────────────────────────────────
     {
-      id: 'customizer-2d',
-      name: fn('customizer-2d'),
-      description: fd('customizer-2d'),
-      category: 'customization',
-      free: true,
-      starter: true,
-      professional: true,
-      business: true,
-      enterprise: true,
+      id: 'knowledge-bases',
+      name: fn('knowledge-bases'),
+      description: fd('knowledge-bases'),
+      category: 'knowledge',
+      free: '1',
+      pro: '5',
+      business: '20',
+      enterprise: t('pricing.featureValues.unlimited'),
     },
     {
-      id: 'renders-2d',
-      name: fn('renders-2d'),
-      description: fd('renders-2d'),
-      category: 'customization',
+      id: 'documents-per-kb',
+      name: fn('documents-per-kb'),
+      description: fd('documents-per-kb'),
+      category: 'knowledge',
       free: '10',
-      starter: '100',
-      professional: '500',
-      business: '2 000',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-
-    // ── IA ──────────────────────────────────────────────────────
-    {
-      id: 'ai-generation',
-      name: fn('ai-generation'),
-      description: fd('ai-generation'),
-      category: 'ai',
-      free: '3',
-      starter: '20',
-      professional: '100',
-      business: '500',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-    {
-      id: 'ai-tokens',
-      name: fn('ai-tokens'),
-      description: fd('ai-tokens'),
-      category: 'ai',
-      free: '50K',
-      starter: '500K',
-      professional: '2M',
-      business: '5M',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-    {
-      id: 'ai-credits',
-      name: fn('ai-credits'),
-      description: fd('ai-credits'),
-      category: 'ai',
-      free: false,
-      starter: true,
-      professional: true,
-      business: true,
-      enterprise: true,
-    },
-
-    // ── 3D ──────────────────────────────────────────────────────
-    {
-      id: 'configurator-3d',
-      name: fn('configurator-3d'),
-      description: fd('configurator-3d'),
-      category: '3d',
-      free: false,
-      starter: false,
-      professional: true,
-      business: true,
-      enterprise: true,
-    },
-    {
-      id: 'renders-3d',
-      name: fn('renders-3d'),
-      description: fd('renders-3d'),
-      category: '3d',
-      free: false,
-      starter: '10',
-      professional: '50',
+      pro: '50',
       business: '200',
       enterprise: t('pricing.featureValues.unlimited'),
     },
-
-    // ── AR ──────────────────────────────────────────────────────
     {
-      id: 'virtual-try-on',
-      name: fn('virtual-try-on'),
-      description: fd('virtual-try-on'),
-      category: 'ar',
-      free: '10/mo',
-      starter: '100/mo',
-      professional: '1 000/mo',
-      business: '10 000/mo',
+      id: 'max-doc-size',
+      name: fn('max-doc-size'),
+      description: fd('max-doc-size'),
+      category: 'knowledge',
+      free: '5 MB',
+      pro: '25 MB',
+      business: '100 MB',
       enterprise: t('pricing.featureValues.unlimited'),
     },
-    {
-      id: 'try-on-screenshots',
-      name: fn('try-on-screenshots'),
-      description: fd('try-on-screenshots'),
-      category: 'ar',
-      free: '20/mo',
-      starter: '500/mo',
-      professional: '5 000/mo',
-      business: '50 000/mo',
-      enterprise: t('pricing.featureValues.unlimited'),
-    },
-    {
-      id: 'ar-webxr',
-      name: fn('ar-webxr'),
-      description: fd('ar-webxr'),
-      category: 'ar',
-      free: false,
-      starter: false,
-      professional: true,
-      business: true,
-      enterprise: true,
-    },
-    {
-      id: 'ar-quick-look',
-      name: fn('ar-quick-look'),
-      description: fd('ar-quick-look'),
-      category: 'ar',
-      free: false,
-      starter: false,
-      professional: true,
-      business: true,
-      enterprise: true,
-    },
 
-    // ── EXPORT ──────────────────────────────────────────────────
+    // ── CANAUX ────────────────────────────────────────────────────
     {
-      id: 'export-formats',
-      name: fn('export-formats'),
-      description: fd('export-formats'),
-      category: 'export',
-      free: 'PNG',
-      starter: 'PNG, PDF',
-      professional: t('pricing.featureValues.allFormats'),
-      business: t('pricing.featureValues.allFormatsHd'),
-      enterprise: t('pricing.featureValues.allFormatsCustom'),
-    },
-    {
-      id: 'custom-export',
-      name: fn('custom-export'),
-      description: fd('custom-export'),
-      category: 'export',
-      free: false,
-      starter: false,
-      professional: false,
-      business: true,
-      enterprise: true,
-    },
-
-    // ── INTEGRATIONS ────────────────────────────────────────────
-    {
-      id: 'shopify',
-      name: fn('shopify'),
-      description: fd('shopify'),
-      category: 'integrations',
-      free: false,
-      starter: false,
-      professional: true,
+      id: 'widget-chat',
+      name: fn('widget-chat'),
+      description: fd('widget-chat'),
+      category: 'channels',
+      free: true,
+      pro: true,
       business: true,
       enterprise: true,
     },
     {
-      id: 'woocommerce',
-      name: fn('woocommerce'),
-      description: fd('woocommerce'),
-      category: 'integrations',
+      id: 'email-channel',
+      name: fn('email-channel'),
+      description: fd('email-channel'),
+      category: 'channels',
       free: false,
-      starter: false,
-      professional: true,
+      pro: true,
       business: true,
       enterprise: true,
     },
@@ -489,45 +285,41 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       id: 'api-access',
       name: fn('api-access'),
       description: fd('api-access'),
-      category: 'integrations',
+      category: 'channels',
       free: false,
-      starter: false,
-      professional: '50K calls/mo',
-      business: '200K calls/mo',
-      enterprise: t('pricing.featureValues.unlimited'),
+      pro: true,
+      business: true,
+      enterprise: true,
     },
     {
-      id: 'webhooks',
-      name: fn('webhooks'),
-      description: fd('webhooks'),
-      category: 'integrations',
+      id: 'slack-channel',
+      name: fn('slack-channel'),
+      description: fd('slack-channel'),
+      category: 'channels',
       free: false,
-      starter: false,
-      professional: true,
+      pro: false,
+      business: true,
+      enterprise: true,
+    },
+    {
+      id: 'whatsapp-channel',
+      name: fn('whatsapp-channel'),
+      description: fd('whatsapp-channel'),
+      category: 'channels',
+      free: false,
+      pro: false,
       business: true,
       enterprise: true,
     },
 
-    // ── COLLABORATION ───────────────────────────────────────────
+    // ── ANALYTICS ─────────────────────────────────────────────────
     {
-      id: 'real-time-collab',
-      name: fn('real-time-collab'),
-      description: fd('real-time-collab'),
-      category: 'collaboration',
-      free: false,
-      starter: false,
-      professional: false,
-      business: true,
-      enterprise: true,
-    },
-    {
-      id: 'ab-testing',
-      name: fn('ab-testing'),
-      description: fd('ab-testing'),
-      category: 'collaboration',
-      free: false,
-      starter: false,
-      professional: false,
+      id: 'basic-analytics',
+      name: fn('basic-analytics'),
+      description: fd('basic-analytics'),
+      category: 'analytics',
+      free: true,
+      pro: true,
       business: true,
       enterprise: true,
     },
@@ -535,24 +327,62 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       id: 'advanced-analytics',
       name: fn('advanced-analytics'),
       description: fd('advanced-analytics'),
-      category: 'collaboration',
+      category: 'analytics',
       free: false,
-      starter: false,
-      professional: false,
+      pro: true,
+      business: true,
+      enterprise: true,
+    },
+    {
+      id: 'export-analytics',
+      name: fn('export-analytics'),
+      description: fd('export-analytics'),
+      category: 'analytics',
+      free: false,
+      pro: false,
+      business: true,
+      enterprise: true,
+    },
+    {
+      id: 'ai-insights',
+      name: fn('ai-insights'),
+      description: fd('ai-insights'),
+      category: 'analytics',
+      free: false,
+      pro: false,
       business: true,
       enterprise: true,
     },
 
-    // ── SECURITE ────────────────────────────────────────────────
+    // ── SÉCURITÉ ──────────────────────────────────────────────────
+    {
+      id: 'twofa',
+      name: fn('twofa'),
+      description: fd('twofa'),
+      category: 'security',
+      free: true,
+      pro: true,
+      business: true,
+      enterprise: true,
+    },
     {
       id: 'sso',
       name: fn('sso'),
       description: fd('sso'),
       category: 'security',
       free: false,
-      starter: false,
-      professional: false,
+      pro: false,
       business: false,
+      enterprise: true,
+    },
+    {
+      id: 'rbac',
+      name: fn('rbac'),
+      description: fd('rbac'),
+      category: 'security',
+      free: false,
+      pro: true,
+      business: true,
       enterprise: true,
     },
     {
@@ -561,32 +391,51 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       description: fd('audit-logs'),
       category: 'security',
       free: false,
-      starter: false,
-      professional: false,
+      pro: false,
       business: true,
       enterprise: true,
+    },
+
+    // ── SUPPORT ───────────────────────────────────────────────────
+    {
+      id: 'support-type',
+      name: fn('support-type'),
+      description: fd('support-type'),
+      category: 'support',
+      free: t('pricing.featureValues.community'),
+      pro: t('pricing.featureValues.priority'),
+      business: t('pricing.featureValues.dedicated'),
+      enterprise: t('pricing.featureValues.support247'),
     },
     {
       id: 'sla',
       name: fn('sla'),
       description: fd('sla'),
-      category: 'security',
+      category: 'support',
       free: false,
-      starter: false,
-      professional: false,
+      pro: false,
       business: '99.5%',
       enterprise: '99.99%',
     },
     {
-      id: 'support',
-      name: fn('support'),
-      description: fd('support'),
-      category: 'security',
-      free: t('pricing.featureValues.community'),
-      starter: t('pricing.featureValues.email'),
-      professional: t('pricing.featureValues.priority'),
-      business: t('pricing.featureValues.dedicated'),
-      enterprise: t('pricing.featureValues.support247'),
+      id: 'account-manager',
+      name: fn('account-manager'),
+      description: fd('account-manager'),
+      category: 'support',
+      free: false,
+      pro: false,
+      business: false,
+      enterprise: true,
+    },
+    {
+      id: 'onboarding',
+      name: fn('onboarding'),
+      description: fd('onboarding'),
+      category: 'support',
+      free: false,
+      pro: t('pricing.featureValues.selfService'),
+      business: t('pricing.featureValues.guided'),
+      enterprise: t('pricing.featureValues.dedicated'),
     },
   ];
 }
@@ -601,7 +450,6 @@ export function getTranslatedFaqs(t: TFn): { question: string; answer: string }[
     const aKey = `pricing.faq.items.${i}.answer`;
     const question = t(qKey);
     const answer = t(aKey);
-    // If t() returns the key itself, no more items
     if (question === qKey) break;
     faqs.push({ question, answer });
   }
@@ -609,15 +457,13 @@ export function getTranslatedFaqs(t: TFn): { question: string; answer: string }[
 }
 
 // ─── Legacy static exports (for backward compat / non-i18n usage) ───────────
-// These are kept for components that haven't been migrated yet.
-// Prefer getTranslatedPlans(t), getTranslatedFeatures(t), getTranslatedFaqs(t).
 
 /** @deprecated Use getTranslatedPlans(t) instead */
 export const PLANS: Plan[] = [
   {
     id: 'free',
-    name: 'Free',
-    description: 'Essayez Luneo gratuitement avec des fonctionnalites de base',
+    name: 'Gratuit',
+    description: 'Découvrez les agents IA Luneo gratuitement',
     priceMonthly: 0,
     priceYearly: 0,
     priceYearlyMonthly: 0,
@@ -625,74 +471,64 @@ export const PLANS: Plan[] = [
     cta: 'Commencer gratuitement',
     ctaHref: '/register',
     features: [
-      '5 designs/mois',
-      'Customizer 2D',
-      '10 rendus 2D/mois',
-      '3 generations IA/mois',
-      'Export PNG',
+      '1 agent IA',
+      '50 conversations/mois',
+      '1 base de connaissances',
+      'Widget chat basique',
+      'Historique 7 jours',
+      'Analytics basiques',
+      '2FA',
       'Support communautaire',
-      '1 membre',
-      '0.5 GB stockage',
-      'Commission 10%',
-      '10 sessions Virtual Try-On/mois',
     ],
-    limits: { designs: 5, renders2D: 10, renders3D: 0, virtualTryons: 10, tryOnScreenshots: 20, storage: '0.5 GB', teamMembers: 1, apiCalls: 0 },
+    limits: { agents: 1, conversationsPerMonth: 50, knowledgeBases: 1, documentsPerKB: 10, storageMB: 500 },
   },
   {
-    id: 'starter',
-    name: 'Starter',
-    description: 'Parfait pour les createurs independants et petits projets',
-    priceMonthly: PRICING.starter.monthly,
-    priceYearly: PRICING.starter.yearly,
-    priceYearlyMonthly: PRICING.starter.yearlyMonthly,
-    currency: 'EUR',
-    cta: 'Demarrer l\'essai gratuit',
-    ctaHref: '/register?plan=starter',
-    features: [
-      '50 designs/mois', 'Customizer 2D', '100 rendus 2D/mois', '10 rendus 3D/mois',
-      '20 generations IA/mois', 'Export PNG/PDF', 'Support email', '3 membres d\'equipe',
-      '5 GB stockage', 'Commission 5%', '100 sessions Virtual Try-On/mois', 'Add-ons disponibles',
-    ],
-    limits: { designs: 50, renders2D: 100, renders3D: 10, virtualTryons: 100, tryOnScreenshots: 500, storage: '5 GB', teamMembers: 3, apiCalls: 10000 },
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Pour les createurs et PME qui veulent passer a la vitesse superieure',
-    priceMonthly: PRICING.professional.monthly,
-    priceYearly: PRICING.professional.yearly,
-    priceYearlyMonthly: PRICING.professional.yearlyMonthly,
+    id: 'pro',
+    name: 'Pro',
+    description: 'Pour les équipes qui veulent des agents IA performants',
+    priceMonthly: PRICING.pro.monthly,
+    priceYearly: PRICING.pro.yearly,
+    priceYearlyMonthly: PRICING.pro.yearlyMonthly,
     currency: 'EUR',
     popular: true,
     badge: 'LE PLUS POPULAIRE',
-    cta: 'Demarrer l\'essai gratuit',
-    ctaHref: '/register?plan=professional',
+    cta: "Démarrer l'essai gratuit",
+    ctaHref: '/register?plan=pro',
     features: [
-      '200 designs/mois', 'Customizer 2D + 3D', '500 rendus 2D/mois', '50 rendus 3D/mois',
-      '100 generations IA/mois', 'Virtual Try-On AR', 'API access', 'Support prioritaire',
-      '10 membres d\'equipe', '25 GB stockage', 'White-label', 'Webhooks temps reel', 'Commission 3%',
-      '1 000 sessions Virtual Try-On/mois',
+      '5 agents IA',
+      '2 000 conversations/mois',
+      '5 bases de connaissances',
+      'Visual Builder',
+      'Canal email',
+      'Analytics avancés',
+      'Historique 30 jours',
+      'Support prioritaire',
     ],
-    limits: { designs: 200, renders2D: 500, renders3D: 50, virtualTryons: 1000, tryOnScreenshots: 5000, storage: '25 GB', teamMembers: 10, apiCalls: 50000 },
+    limits: { agents: 5, conversationsPerMonth: 2_000, knowledgeBases: 5, documentsPerKB: 50, storageMB: 5_000 },
   },
   {
     id: 'business',
     name: 'Business',
-    description: 'Pour les equipes qui ont besoin de collaboration et de volume',
+    description: 'Pour les entreprises avec des besoins avancés en IA',
     priceMonthly: PRICING.business.monthly,
     priceYearly: PRICING.business.yearly,
     priceYearlyMonthly: PRICING.business.yearlyMonthly,
     currency: 'EUR',
-    cta: 'Demarrer l\'essai gratuit',
+    cta: "Démarrer l'essai gratuit",
     ctaHref: '/register?plan=business',
     features: [
-      '1000 designs/mois', 'Toutes les fonctionnalites Pro', '2000 rendus 2D/mois',
-      '200 rendus 3D/mois', '500 generations IA/mois', 'White-label complet', 'API & SDKs',
-      'Analytics avances', 'A/B Testing', 'Support dedie', '50 membres d\'equipe',
-      '100 GB stockage', 'SLA 99.5%', 'Commission 2%',
-      '10 000 sessions Virtual Try-On/mois',
+      '20 agents IA',
+      '10 000 conversations/mois',
+      '20 bases de connaissances',
+      'Visual Builder avancé',
+      'Tous les canaux (Email, Slack, WhatsApp)',
+      'Analytics avancés + exports',
+      'White-label',
+      'API access',
+      'Historique illimité',
+      'Support dédié',
     ],
-    limits: { designs: 1000, renders2D: 2000, renders3D: 200, virtualTryons: 10000, tryOnScreenshots: 50000, storage: '100 GB', teamMembers: 50, apiCalls: 200000 },
+    limits: { agents: 20, conversationsPerMonth: 10_000, knowledgeBases: 20, documentsPerKB: 200, storageMB: 25_000 },
   },
   {
     id: 'enterprise',
@@ -705,13 +541,18 @@ export const PLANS: Plan[] = [
     cta: 'Contacter les ventes',
     ctaHref: '/contact?plan=enterprise&source=pricing',
     features: [
-      'Designs illimites', 'Rendus illimites', 'Generations IA illimitees',
-      'Infrastructure dediee', 'White-label complet', 'API illimitee', 'SSO/SAML',
-      'SLA 99.99%', 'Support 24/7', 'Account manager', 'Formation equipe',
-      'Integrations custom', 'Commission 1%',
-      'Virtual Try-On illimite',
+      'Agents IA illimités',
+      'Conversations illimitées',
+      'Bases de connaissances illimitées',
+      'SSO / SAML',
+      'SLA garanti 99.99%',
+      'Account manager dédié',
+      'Déploiement on-premise possible',
+      'Support 24/7',
+      'Audit logs',
+      'Intégrations personnalisées',
     ],
-    limits: { designs: 'Illimite', renders2D: 'Illimite', renders3D: 'Illimite', virtualTryons: 'Illimite', tryOnScreenshots: 'Illimite', storage: 'Illimite', teamMembers: 'Illimite', apiCalls: 'Illimite' },
+    limits: { agents: 'Illimité', conversationsPerMonth: 'Illimité', knowledgeBases: 'Illimité', documentsPerKB: 'Illimité', storageMB: 'Illimité' },
   },
 ];
 
@@ -721,9 +562,9 @@ export { PLANS as FEATURES_LEGACY };
 /** @deprecated Use getTranslatedFaqs(t) instead */
 export const FAQS: { question: string; answer: string }[] = [
   { question: 'Puis-je changer de plan à tout moment ?', answer: 'Oui, vous pouvez upgrader ou downgrader votre plan à tout moment. Les changements sont appliqués immédiatement et votre facturation est ajustée au prorata.' },
-  { question: 'Que se passe-t-il si je dépasse mes limites ?', answer: 'Sur le plan Free, l\'utilisation est bloquée à la limite. Sur les plans payants (Starter, Professional, Business), des frais de dépassement s\'appliquent automatiquement (ex. : 0,30€/session Virtual Try-On supplémentaire pour Starter, 0,20€ pour Professional, 0,10€ pour Business). Le dépassement est plafonné à 5× votre limite mensuelle pour éviter les surprises. Sur Enterprise, les limites sont flexibles et négociables.' },
-  { question: 'Y a-t-il un essai gratuit ?', answer: 'Oui, le plan Free est gratuit a vie avec 5 designs/mois. Les plans payants (Starter, Professional, Business) offrent un essai gratuit de 14 jours sans carte bancaire.' },
+  { question: 'Que se passe-t-il si je dépasse mes limites de conversations ?', answer: 'Sur le plan Gratuit, les conversations sont bloquées à la limite. Sur les plans Pro et Business, vous recevrez une notification et pourrez acheter des conversations supplémentaires. Sur Enterprise, les limites sont flexibles et négociables.' },
+  { question: 'Y a-t-il un essai gratuit ?', answer: 'Oui, le plan Gratuit est gratuit à vie avec 1 agent IA et 50 conversations/mois. Les plans Pro et Business offrent un essai gratuit de 14 jours sans carte bancaire.' },
   { question: 'Les prix incluent-ils la TVA ?', answer: 'Les prix affichés sont hors taxes. La TVA sera ajoutée lors du paiement selon votre localisation (20% en France).' },
-  { question: 'Puis-je exporter mes données ?', answer: 'Oui, vous pouvez exporter toutes vos données (designs, produits, configurations) à tout moment depuis les paramètres de votre compte.' },
+  { question: 'Puis-je exporter mes données ?', answer: 'Oui, vous pouvez exporter toutes vos données (historique de conversations, bases de connaissances, configurations d\'agents) à tout moment depuis les paramètres de votre compte.' },
   { question: 'Offrez-vous des remises pour les startups ?', answer: 'Oui, nous offrons des remises spéciales pour les startups éligibles (Y Combinator, Techstars, etc.). Contactez-nous pour plus d\'informations.' },
 ];

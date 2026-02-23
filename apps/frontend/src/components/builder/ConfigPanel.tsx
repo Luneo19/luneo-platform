@@ -11,7 +11,7 @@ interface ConfigPanelProps {
 }
 
 export function ConfigPanel({ node, onConfigChange, onClose }: ConfigPanelProps) {
-  const data = node.data as BlockNodeData;
+  const data = node.data as unknown as BlockNodeData;
   const block = data.block;
   const config = data.config;
 

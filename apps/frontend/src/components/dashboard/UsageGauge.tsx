@@ -34,7 +34,7 @@ function formatValue(value: number, unit?: string): string {
 }
 
 function formatLimit(limit: number, unit?: string): string {
-  if (limit < 0) return 'Illimite';
+  if (limit < 0) return 'Illimité';
   return formatValue(limit, unit);
 }
 
@@ -76,7 +76,7 @@ export function UsageGauge({ metric, className }: UsageGaugeProps) {
 
       {!isUnlimited && (
         <div className="flex justify-between text-xs text-gray-500">
-          <span>{Math.round(percent)}% utilise</span>
+          <span>{Math.round(percent)}% utilisé</span>
           <span>{formatValue(Math.max(0, metric.limit - metric.used), metric.unit)} restant</span>
         </div>
       )}

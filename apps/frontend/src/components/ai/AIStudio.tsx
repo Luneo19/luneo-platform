@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
-import { endpoints } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -80,7 +80,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
   const loadHistory = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
-      const data = await endpoints.designs.list({ limit: 50 }) as { designs?: Array<Record<string, unknown>> } | unknown[];
+      const data = await api.get('/api/v1/designs', { params: { limit: 50 } }) as { designs?: Array<Record<string, unknown>> } | unknown[];
       const designsList = Array.isArray(data) ? data : (data as { designs?: unknown[] })?.designs ?? [];
       const designs: GeneratedDesign[] = (designsList as Record<string, unknown>[]).map((d) => ({
         id: String(d.id ?? ''),
@@ -112,7 +112,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
 
     setIsGenerating(true);
     try {
-      const result = await endpoints.ai.generate({
+      const result = await api.post('/api/v1/ai/generate', {
         prompt: prompt.trim(),
         productId: '',
         options: { size, quality, style },
@@ -194,7 +194,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
 
   const handleDelete = async (designId: string) => {
     try {
-      await endpoints.designs.delete(designId);
+      await api.delete(`/api/v1/designs/${designId}`);
       setGeneratedImages(generatedImages.filter((d) => d.id !== designId));
       setHistory(history.filter((d) => d.id !== designId));
       toast({

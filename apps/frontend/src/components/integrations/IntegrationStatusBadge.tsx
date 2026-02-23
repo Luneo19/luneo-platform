@@ -37,8 +37,9 @@ export function IntegrationStatusBadge({ integrationType, className }: Integrati
     );
   }
 
-  const connectedIntegration = integrations?.find(
-    (integration) => integration.platform === integrationType && integration.status === 'active'
+  const integrationsList = Array.isArray(integrations) ? integrations : [];
+  const connectedIntegration = integrationsList.find(
+    (integration: { platform?: string; status?: string }) => integration.platform === integrationType && integration.status === 'active'
   );
 
   if (connectedIntegration) {

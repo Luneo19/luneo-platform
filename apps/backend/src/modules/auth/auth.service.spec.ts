@@ -19,7 +19,7 @@ import { ReferralService } from '../referral/referral.service';
 import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
 import { testFixtures } from '@/common/test/test-setup';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 import * as passwordHasher from '@/libs/crypto/password-hasher';
 
 // Mock password-hasher (Argon2id + bcrypt migration)
@@ -598,7 +598,7 @@ describe('AuthService', () => {
       const expectedResult = {
         accessToken: 'new_access_token',
         refreshToken: 'new_refresh_token',
-        user: { ...testFixtures.user, role: testFixtures.user.role as UserRole, brand: testFixtures.brand },
+        user: { ...testFixtures.user, role: testFixtures.user.role as PlatformRole, brand: testFixtures.brand },
       };
       tokenService.refreshToken.mockResolvedValue(expectedResult);
 

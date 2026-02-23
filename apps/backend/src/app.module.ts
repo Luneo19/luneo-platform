@@ -25,49 +25,22 @@ import {
 } from './config/configuration';
 
 // =============================================
-// MODULES GARDES TEL QUEL (16 modules core)
+// MODULES CORE FONCTIONNELS
 // =============================================
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { SecurityModule } from './modules/security/security.module';
 import { RbacModule } from './modules/security/rbac.module';
 import { SettingsModule } from './modules/settings/settings.module';
-import { TeamModule } from './modules/team/team.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { HealthModule } from './modules/health/health.module';
 import { EmailModule } from './modules/email/email.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
-import { CronJobsModule } from './modules/cron-jobs/cron-jobs.module';
-import { SearchModule } from './modules/search/search.module';
-import { SupportModule } from './modules/support/support.module';
-import { WebhooksModule } from './modules/webhooks/webhooks.module';
-
-// =============================================
-// MODULES A ADAPTER (10 modules)
-// =============================================
-import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { BillingModule } from './modules/billing/billing.module';
-import { PlansModule } from './modules/plans/plans.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { CreditsModule } from './modules/credits/credits.module';
-import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
-import { AnalyticsCleanModule } from './modules/analytics/analytics-clean.module';
-import { AnalyticsAdvancedModule } from './modules/analytics/analytics-advanced.module';
 import { AdminModule } from './modules/admin/admin.module';
-import { PublicApiModule } from './modules/public-api/public-api.module';
-import { IntegrationsModule } from './modules/integrations/integrations.module';
-
-// Public API sub-modules
-import { RateLimitModule as PublicApiRateLimitModule } from './modules/public-api/rate-limit/rate-limit.module';
-import { WebhooksModule as PublicApiWebhooksModule } from './modules/public-api/webhooks/webhooks.module';
-import { OAuthModule as PublicApiOAuthModule } from './modules/public-api/oauth/oauth.module';
-import { ApiKeysModule } from './modules/public-api/api-keys/api-keys.module';
-import { AnalyticsModule as PublicApiAnalyticsModule } from './modules/public-api/analytics/analytics.module';
-
-// Integration sub-modules (kept for V2 connectors)
-import { ShopifyModule } from './modules/integrations/shopify/shopify.module';
+import { CacheModule } from './modules/cache/cache.module';
 
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 
@@ -86,15 +59,6 @@ import { OrchestratorModule } from './modules/orchestrator/orchestrator.module';
 import { AgentAnalyticsModule } from './modules/agent-analytics/agent-analytics.module';
 
 // =============================================
-// MODULES SUPPLEMENTAIRES GARDES
-// =============================================
-import { EnterpriseModule } from './modules/enterprise/enterprise.module';
-import { ObservabilityModule } from './modules/observability/observability.module';
-import { MonitoringModule } from './modules/monitoring/monitoring.module';
-import { GrafanaModule } from './modules/monitoring/grafana/grafana.module';
-import { CacheModule } from './modules/cache/cache.module';
-
-// =============================================
 // LIBS INFRASTRUCTURE
 // =============================================
 import { CommonModule } from './common/common.module';
@@ -106,12 +70,6 @@ import { GlobalRateLimitGuard } from './common/guards/global-rate-limit.guard';
 
 import { I18nModule } from './libs/i18n/i18n.module';
 import { TimezoneModule } from './libs/timezone/timezone.module';
-import { JobsModule } from './jobs/jobs.module';
-import { WebSocketModule } from './websocket/websocket.module';
-import { DLQModule } from './jobs/dlq/dlq.module';
-import { BudgetModule } from './libs/budgets/budget.module';
-import { OutboxModule } from './libs/outbox/outbox.module';
-import { MetricsModule } from './libs/metrics/metrics.module';
 import { TracingModule } from './libs/tracing/tracing.module';
 import { ResilienceModule } from './libs/resilience/resilience.module';
 import { CryptoModule } from './libs/crypto/crypto.module';
@@ -209,46 +167,21 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
       inject: [ConfigService],
     }),
 
-    // --- Core modules (kept as-is) ---
+    // --- Core modules ---
     AuthModule,
     UsersModule,
     SecurityModule,
     RbacModule,
     SettingsModule,
-    TeamModule,
-    NotificationsModule,
     AuditModule,
     HealthModule,
     EmailModule,
     FeatureFlagsModule,
-    CronJobsModule,
-    SearchModule,
-    SupportModule,
-    WebhooksModule,
-
-    // --- Modules to adapt for V2 ---
-    OnboardingModule,
     BillingModule,
-    PlansModule,
     PricingModule,
     CreditsModule,
-    UsageBillingModule,
-    // AnalyticsModule, // V1 analytics (ML predictions, complex deps) - disabled
-    AnalyticsCleanModule,
-    // AnalyticsAdvancedModule, // V1 advanced analytics - disabled
     AdminModule,
-    PublicApiModule,
-    IntegrationsModule,
-
-    // Public API sub-modules
-    PublicApiRateLimitModule,
-    PublicApiWebhooksModule,
-    PublicApiOAuthModule,
-    ApiKeysModule,
-    PublicApiAnalyticsModule,
-
-    // Integration sub-modules
-    ShopifyModule,
+    CacheModule,
 
     // --- Organizations (renamed from brands) ---
     OrganizationsModule,
@@ -265,31 +198,14 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     OrchestratorModule,
     AgentAnalyticsModule,
 
-    // --- Supplementary modules ---
-    EnterpriseModule,
-    ObservabilityModule,
-    MonitoringModule,
-    GrafanaModule,
-    CacheModule,
-
     // --- Infrastructure ---
     CommonModule,
     ResilienceModule,
     CryptoModule,
     I18nModule,
     TimezoneModule,
-    OutboxModule,
-    BudgetModule,
-    DLQModule,
-    MetricsModule,
     TracingModule,
 
-    // Jobs & WebSocket (disabled on Vercel / in tests)
-    // JobsModule disabled — V1 workers (design, render, production) archived
-    // V2 queue processing handled by knowledge-indexing processor in KnowledgeModule
-    // ...(process.env.VERCEL || process.env.DISABLE_BULL === 'true' ? [] : [JobsModule]),
-    // WebSocket disabled for initial V2 startup — re-enable when needed
-    // ...(process.env.VERCEL || process.env.NODE_ENV === 'test' ? [] : [WebSocketModule]),
   ],
   controllers: [],
   providers: [

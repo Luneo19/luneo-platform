@@ -25,7 +25,6 @@ import {
   X,
   ChevronRight,
   ChevronDown,
-  Crown,
   Shield,
 } from 'lucide-react';
 
@@ -44,38 +43,38 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
     items: [
       {
         name: 'Overview',
-        href: '/dashboard',
+        href: '/overview',
         icon: LayoutDashboard,
         description: 'Vue d\'ensemble de la plateforme',
       },
       {
         name: 'Agents',
-        href: '/dashboard/agents',
+        href: '/agents',
         icon: Bot,
         description: 'Gérer vos agents IA',
       },
       {
         name: 'Conversations',
-        href: '/dashboard/conversations',
+        href: '/conversations',
         icon: MessageSquare,
         description: 'Historique des conversations',
       },
       {
         name: 'Knowledge',
-        href: '/dashboard/knowledge',
+        href: '/knowledge',
         icon: BookOpen,
         description: 'Base de connaissances',
         badge: 'Bientôt',
       },
       {
         name: 'Analytics',
-        href: '/dashboard/analytics',
+        href: '/analytics',
         icon: BarChart3,
         description: 'Performance et statistiques',
       },
       {
         name: 'Intégrations',
-        href: '/dashboard/integrations',
+        href: '/integrations',
         icon: Plug,
         description: 'Connexions et canaux',
       },
@@ -86,25 +85,25 @@ const navigationSections: Array<{ title: string; items: NavItem[] }> = [
     items: [
       {
         name: 'Facturation',
-        href: '/dashboard/billing',
+        href: '/billing',
         icon: CreditCard,
         description: 'Plans et abonnements',
       },
       {
         name: 'Paramètres',
-        href: '/dashboard/settings',
+        href: '/settings',
         icon: Settings,
         description: 'Configuration du compte',
       },
       {
         name: 'Équipe',
-        href: '/dashboard/team',
+        href: '/team',
         icon: Users,
         description: 'Membres et rôles',
       },
       {
         name: 'Support',
-        href: '/dashboard/support',
+        href: '/support',
         icon: HelpCircle,
         description: 'Aide et assistance',
       },
@@ -117,29 +116,29 @@ const SIDEBAR_SECTION_KEYS: Record<string, string> = {
 };
 
 const SIDEBAR_ITEM_KEYS: Record<string, string> = {
-  '/dashboard': 'dashboard.sidebar.overview',
-  '/dashboard/agents': 'dashboard.sidebar.agents',
-  '/dashboard/conversations': 'dashboard.sidebar.conversations',
-  '/dashboard/knowledge': 'dashboard.sidebar.knowledge',
-  '/dashboard/analytics': 'dashboard.sidebar.analytics',
-  '/dashboard/integrations': 'dashboard.sidebar.integrations',
-  '/dashboard/billing': 'dashboard.sidebar.billing',
-  '/dashboard/settings': 'dashboard.sidebar.settings',
-  '/dashboard/team': 'dashboard.sidebar.team',
-  '/dashboard/support': 'dashboard.sidebar.support',
+  '/overview': 'dashboard.sidebar.overview',
+  '/agents': 'dashboard.sidebar.agents',
+  '/conversations': 'dashboard.sidebar.conversations',
+  '/knowledge': 'dashboard.sidebar.knowledge',
+  '/analytics': 'dashboard.sidebar.analytics',
+  '/integrations': 'dashboard.sidebar.integrations',
+  '/billing': 'dashboard.sidebar.billing',
+  '/settings': 'dashboard.sidebar.settings',
+  '/team': 'dashboard.sidebar.team',
+  '/support': 'dashboard.sidebar.support',
 };
 
 const SIDEBAR_ITEM_DESC_KEYS: Record<string, string> = {
-  '/dashboard': 'dashboard.sidebar.overviewDesc',
-  '/dashboard/agents': 'dashboard.sidebar.agentsDesc',
-  '/dashboard/conversations': 'dashboard.sidebar.conversationsDesc',
-  '/dashboard/knowledge': 'dashboard.sidebar.knowledgeDesc',
-  '/dashboard/analytics': 'dashboard.sidebar.analyticsDesc',
-  '/dashboard/integrations': 'dashboard.sidebar.integrationsDesc',
-  '/dashboard/billing': 'dashboard.sidebar.billingDesc',
-  '/dashboard/settings': 'dashboard.sidebar.settingsDesc',
-  '/dashboard/team': 'dashboard.sidebar.teamDesc',
-  '/dashboard/support': 'dashboard.sidebar.supportDesc',
+  '/overview': 'dashboard.sidebar.overviewDesc',
+  '/agents': 'dashboard.sidebar.agentsDesc',
+  '/conversations': 'dashboard.sidebar.conversationsDesc',
+  '/knowledge': 'dashboard.sidebar.knowledgeDesc',
+  '/analytics': 'dashboard.sidebar.analyticsDesc',
+  '/integrations': 'dashboard.sidebar.integrationsDesc',
+  '/billing': 'dashboard.sidebar.billingDesc',
+  '/settings': 'dashboard.sidebar.settingsDesc',
+  '/team': 'dashboard.sidebar.teamDesc',
+  '/support': 'dashboard.sidebar.supportDesc',
 };
 
 interface SidebarProps {
@@ -176,7 +175,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
 
   const isItemActive = (item: NavItem) => {
     if (item.href === pathname) return true;
-    if (item.href !== '/dashboard' && pathname?.startsWith(item.href)) return true;
+    if (item.href !== '/overview' && pathname?.startsWith(item.href)) return true;
     if (item.children) {
       return item.children.some(child => child.href === pathname);
     }
@@ -200,7 +199,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
       <div className="p-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
           {!effectiveCollapsed && (
-            <Link href="/dashboard" className="flex items-center space-x-3" onClick={handleNavClick}>
+            <Link href="/overview" className="flex items-center space-x-3" onClick={handleNavClick}>
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
@@ -211,7 +210,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             </Link>
           )}
           {effectiveCollapsed && (
-            <Link href="/dashboard" className="flex items-center justify-center" onClick={handleNavClick}>
+            <Link href="/overview" className="flex items-center justify-center" onClick={handleNavClick}>
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">L</span>
               </div>
@@ -418,7 +417,6 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             <div className="flex-1">
               <div className="flex items-center">
                 <span className="text-sm font-medium text-white">{userDisplayName}</span>
-                <Crown className="w-4 h-4 ml-1 text-yellow-500" />
               </div>
               <p className="text-xs text-white/40">{user?.email || ''}</p>
             </div>

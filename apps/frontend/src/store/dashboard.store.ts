@@ -1,11 +1,33 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-import type { IndustryModuleConfig, IndustryWidgetConfig, IndustryKpiConfig } from './industry.store';
-
 // ========================================
 // TYPES
 // ========================================
+
+interface IndustryModuleConfig {
+  slug: string;
+  labelFr: string;
+  labelEn: string;
+  icon: string;
+  isCore: boolean;
+}
+
+interface IndustryWidgetConfig {
+  slug: string;
+  labelFr: string;
+  labelEn: string;
+  icon: string;
+  size: 'sm' | 'md' | 'lg';
+}
+
+interface IndustryKpiConfig {
+  slug: string;
+  labelFr: string;
+  labelEn: string;
+  icon: string;
+  format: string;
+}
 
 export interface SidebarItem {
   moduleSlug: string;

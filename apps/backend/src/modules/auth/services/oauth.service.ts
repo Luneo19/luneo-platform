@@ -9,7 +9,7 @@ import { Injectable, Logger, UnauthorizedException, InternalServerErrorException
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@/common/compat/v1-enums';
+import { PlatformRole } from '@prisma/client';
 import { EncryptionService } from '@/libs/crypto/encryption.service';
 
 export interface OAuthUser {
@@ -232,7 +232,7 @@ export class OAuthService {
           lastName: oauthUser.lastName || '',
           avatar: oauthUser.picture || undefined, // Use 'avatar' field instead of 'picture'
           emailVerified: true, // OAuth providers verify emails
-          role: UserRole.CONSUMER,
+          role: PlatformRole.USER,
           oauthAccounts: {
             create: {
               provider: oauthUser.provider,

@@ -54,16 +54,20 @@ function useOverviewStats(period: string) {
           api.get('/api/v1/agents'),
           api.get(`/api/v1/agent-analytics/overview?period=${period}`),
         ]);
-        const agents = agentsRes.data ?? [];
-        const analytics = analyticsRes.data ?? {};
+        const agentsRaw = agentsRes as Record<string, unknown> | unknown[];
+        const agents = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as Record<string, unknown>)?.data as unknown[] ?? []);
+        const analyticsRaw = analyticsRes as Record<string, unknown>;
+        const analytics: Record<string, unknown> = (typeof analyticsRaw?.data === 'object' && analyticsRaw.data !== null
+          ? analyticsRaw.data as Record<string, unknown>
+          : analyticsRaw) ?? {};
         return {
-          agentsActive: Array.isArray(agents) ? agents.filter((a: { status: string }) => a.status === 'ACTIVE').length : 0,
+          agentsActive: Array.isArray(agents) ? (agents as Array<{ status: string }>).filter((a) => a.status === 'ACTIVE').length : 0,
           agentsTotal: Array.isArray(agents) ? agents.length : 0,
-          conversationsTotal: analytics.totalConversations ?? 0,
-          conversationsThisPeriod: analytics.conversationsThisPeriod ?? 0,
-          conversationsTrend: analytics.conversationsTrend ?? 0,
-          resolutionRate: analytics.resolutionRate ?? 0,
-          avgSatisfaction: analytics.avgSatisfaction ?? 0,
+          conversationsTotal: Number(analytics.totalConversations) || 0,
+          conversationsThisPeriod: Number(analytics.conversationsThisPeriod) || 0,
+          conversationsTrend: Number(analytics.conversationsTrend) || 0,
+          resolutionRate: Number(analytics.resolutionRate) || 0,
+          avgSatisfaction: Number(analytics.avgSatisfaction) || 0,
         };
       } catch {
         return {
@@ -82,8 +86,8 @@ function useRecentConversations() {
     queryKey: ['recent-conversations'],
     queryFn: async () => {
       try {
-        const res = await api.get('/api/v1/conversations?limit=5&sort=createdAt:desc');
-        return res.data ?? [];
+        const res = await api.get('/api/v1/conversations?limit=5&sort=createdAt:desc') as Record<string, unknown> | unknown[];
+        return (Array.isArray(res) ? res : (res as Record<string, unknown>)?.data ?? []) as RecentConversation[];
       } catch {
         return [];
       }
@@ -156,7 +160,7 @@ function OverviewContent() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">
-            Bonjour{user?.name ? `, ${user.name.split(' ')[0]}` : ''} !
+            Bonjour{user?.firstName ? `, ${user.firstName}` : ''} !
           </h1>
           <p className="mt-1 text-sm text-white/50">
             Voici un aperçu de vos agents IA et conversations

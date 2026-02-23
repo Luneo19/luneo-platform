@@ -6,7 +6,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 import { BrandScopedGuard } from './brand-scoped.guard';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 
@@ -20,12 +20,12 @@ describe('BrandScopedGuard', () => {
   function createContext(overrides: {
     method?: string;
     path?: string;
-    user?: { id: string; brandId: string; role: UserRole };
+    user?: { id: string; brandId: string; role: PlatformRole };
     params?: Record<string, string>;
   } = {}): ExecutionContext {
     const method = overrides.method ?? 'GET';
     const path = overrides.path ?? '/api/designs';
-    const user = overrides.user ?? { id: 'u1', brandId: 'brand-1', role: UserRole.BRAND_ADMIN };
+    const user = overrides.user ?? { id: 'u1', organizationId: 'brand-1', role: PlatformRole.ADMIN };
     return {
       switchToHttp: () => ({
         getRequest: () => ({
@@ -33,7 +33,7 @@ describe('BrandScopedGuard', () => {
           route: { path },
           url: path,
           path,
-          params: overrides.params ?? { brandId: 'brand-1' },
+          params: overrides.params ?? { organizationId: 'brand-1' },
           user,
         }),
       }),
