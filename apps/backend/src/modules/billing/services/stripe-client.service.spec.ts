@@ -59,12 +59,8 @@ describe('StripeClientService', () => {
       const config: Record<string, unknown> = {
         'app.nodeEnv': 'test',
         'stripe.secretKey': 'sk_test_xxx',
-        'stripe.priceStarterMonthly': 'price_starter_monthly',
-        'stripe.priceStarterYearly': 'price_starter_yearly',
         'stripe.priceProMonthly': 'price_pro_monthly',
         'stripe.priceProYearly': 'price_pro_yearly',
-        'stripe.priceProfessionalMonthly': 'price_professional_monthly',
-        'stripe.priceProfessionalYearly': 'price_professional_yearly',
         'stripe.priceBusinessMonthly': 'price_business_monthly',
         'stripe.priceBusinessYearly': 'price_business_yearly',
         'stripe.priceEnterpriseMonthly': 'price_enterprise_monthly',
@@ -343,12 +339,8 @@ describe('StripeClientService', () => {
         const config: Record<string, unknown> = {
           'app.nodeEnv': 'development',
           'stripe.secretKey': 'sk_test_xxx',
-          'stripe.priceStarterMonthly': 'price_starter_monthly',
-          'stripe.priceStarterYearly': 'price_starter_yearly',
           'stripe.priceProMonthly': 'price_pro_monthly',
           'stripe.priceProYearly': 'price_pro_yearly',
-          'stripe.priceProfessionalMonthly': 'price_professional_monthly',
-          'stripe.priceProfessionalYearly': 'price_professional_yearly',
           'stripe.priceBusinessMonthly': 'price_business_monthly',
           'stripe.priceBusinessYearly': 'price_business_yearly',
           'stripe.priceEnterpriseMonthly': 'price_enterprise_monthly',
@@ -417,12 +409,8 @@ describe('StripeClientService', () => {
         const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
-          'stripe.priceStarterMonthly': 'price_starter_monthly',
-          'stripe.priceStarterYearly': 'price_starter_yearly',
           'stripe.priceProMonthly': 'price_pro_monthly',
           'stripe.priceProYearly': 'price_pro_yearly',
-          'stripe.priceProfessionalMonthly': 'price_professional_monthly',
-          'stripe.priceProfessionalYearly': 'price_professional_yearly',
           'stripe.priceBusinessMonthly': 'price_business_monthly',
           'stripe.priceBusinessYearly': 'price_business_yearly',
           'stripe.priceEnterpriseMonthly': 'price_enterprise_monthly',
@@ -435,7 +423,7 @@ describe('StripeClientService', () => {
       const mockStripe = {
         prices: {
           retrieve: jest.fn().mockResolvedValue({
-            id: 'price_starter_monthly',
+            id: 'price_pro_monthly',
             active: true,
           }),
         },
@@ -454,12 +442,8 @@ describe('StripeClientService', () => {
         const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
-          'stripe.priceStarterMonthly': 'price_starter_monthly',
-          'stripe.priceStarterYearly': 'price_starter_yearly',
           'stripe.priceProMonthly': 'price_pro_monthly',
           'stripe.priceProYearly': 'price_pro_yearly',
-          'stripe.priceProfessionalMonthly': 'price_professional_monthly',
-          'stripe.priceProfessionalYearly': 'price_professional_yearly',
           'stripe.priceBusinessMonthly': 'price_business_monthly',
           'stripe.priceBusinessYearly': 'price_business_yearly',
           'stripe.priceEnterpriseMonthly': 'price_enterprise_monthly',
@@ -486,12 +470,8 @@ describe('StripeClientService', () => {
         const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
-          'stripe.priceStarterMonthly': 'price_starter_monthly',
-          'stripe.priceStarterYearly': 'price_starter_yearly',
           'stripe.priceProMonthly': 'price_pro_monthly',
           'stripe.priceProYearly': 'price_pro_yearly',
-          'stripe.priceProfessionalMonthly': 'price_professional_monthly',
-          'stripe.priceProfessionalYearly': 'price_professional_yearly',
           'stripe.priceBusinessMonthly': 'price_business_monthly',
           'stripe.priceBusinessYearly': 'price_business_yearly',
           'stripe.priceEnterpriseMonthly': 'price_enterprise_monthly',
@@ -503,7 +483,7 @@ describe('StripeClientService', () => {
       const mockStripe = {
         prices: {
           retrieve: jest.fn().mockImplementation((priceId: string) => {
-            if (priceId === 'price_starter_monthly') {
+            if (priceId === 'price_pro_monthly') {
               return Promise.reject(new Error('Invalid price ID'));
             }
             return Promise.resolve({
@@ -526,12 +506,8 @@ describe('StripeClientService', () => {
         const config: Record<string, unknown> = {
           'app.nodeEnv': 'production',
           'stripe.secretKey': 'sk_test_xxx',
-          'stripe.priceStarterMonthly': 'price_starter_monthly',
-          'stripe.priceStarterYearly': 'price_starter_yearly',
           'stripe.priceProMonthly': 'price_pro_monthly',
           'stripe.priceProYearly': 'price_pro_yearly',
-          'stripe.priceProfessionalMonthly': 'price_professional_monthly',
-          'stripe.priceProfessionalYearly': 'price_professional_yearly',
           'stripe.priceBusinessMonthly': 'price_business_monthly',
           'stripe.priceBusinessYearly': 'price_business_yearly',
           'stripe.priceEnterpriseMonthly': 'price_enterprise_monthly',
@@ -543,7 +519,7 @@ describe('StripeClientService', () => {
       const mockStripe = {
         prices: {
           retrieve: jest.fn().mockResolvedValue({
-            id: 'price_starter_monthly',
+            id: 'price_pro_monthly',
             active: false,
           }),
         },
@@ -582,8 +558,8 @@ describe('StripeClientService', () => {
 
     it('should return validatedPriceIds', () => {
       const mockPriceIds = {
-        starter: { monthly: 'price_1', yearly: 'price_2' },
-        professional: { monthly: 'price_3', yearly: 'price_4' },
+        pro: { monthly: 'price_1', yearly: 'price_2' },
+        
         business: { monthly: 'price_5', yearly: 'price_6' },
         enterprise: { monthly: 'price_7', yearly: 'price_8' },
       };

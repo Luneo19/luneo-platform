@@ -318,11 +318,10 @@ export class BillingService {
 
         const addonsConfig = this.configService.get<Record<string, Record<string, string>>>('stripe.addons') || {};
         const addonTypeMap: Record<string, string> = {
-          'extra_designs': 'extraDesigns',
+          'extra_conversations': 'extraConversations',
+          'extra_agents': 'extraAgents',
           'extra_storage': 'extraStorage',
           'extra_team_members': 'extraTeamMembers',
-          'extra_api_calls': 'extraApiCalls',
-          'extra_renders_3d': 'extraRenders3d',
         };
 
         for (const addon of options.addOns) {

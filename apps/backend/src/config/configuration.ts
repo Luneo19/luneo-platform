@@ -481,12 +481,17 @@ export const stripeConfig = registerAs('stripe', () => ({
   pricePro: process.env.STRIPE_PRICE_PRO,
   priceBusiness: process.env.STRIPE_PRICE_BUSINESS,
   priceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE,
-  // Add-on Price IDs
+  // Add-on Price IDs (V2 - Agents IA)
   addons: {
-    extraDesigns: {
-      productId: process.env.STRIPE_ADDON_EXTRA_DESIGNS_PRODUCT_ID,
-      monthly: process.env.STRIPE_ADDON_EXTRA_DESIGNS_MONTHLY,
-      yearly: process.env.STRIPE_ADDON_EXTRA_DESIGNS_YEARLY,
+    extraConversations: {
+      productId: process.env.STRIPE_ADDON_EXTRA_CONVERSATIONS_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_CONVERSATIONS_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_CONVERSATIONS_YEARLY,
+    },
+    extraAgents: {
+      productId: process.env.STRIPE_ADDON_EXTRA_AGENTS_PRODUCT_ID,
+      monthly: process.env.STRIPE_ADDON_EXTRA_AGENTS_MONTHLY,
+      yearly: process.env.STRIPE_ADDON_EXTRA_AGENTS_YEARLY,
     },
     extraStorage: {
       productId: process.env.STRIPE_ADDON_EXTRA_STORAGE_PRODUCT_ID,
@@ -497,16 +502,6 @@ export const stripeConfig = registerAs('stripe', () => ({
       productId: process.env.STRIPE_ADDON_EXTRA_TEAM_MEMBERS_PRODUCT_ID,
       monthly: process.env.STRIPE_ADDON_EXTRA_TEAM_MEMBERS_MONTHLY,
       yearly: process.env.STRIPE_ADDON_EXTRA_TEAM_MEMBERS_YEARLY,
-    },
-    extraApiCalls: {
-      productId: process.env.STRIPE_ADDON_EXTRA_API_CALLS_PRODUCT_ID,
-      monthly: process.env.STRIPE_ADDON_EXTRA_API_CALLS_MONTHLY,
-      yearly: process.env.STRIPE_ADDON_EXTRA_API_CALLS_YEARLY,
-    },
-    extraRenders3d: {
-      productId: process.env.STRIPE_ADDON_EXTRA_RENDERS_3D_PRODUCT_ID,
-      monthly: process.env.STRIPE_ADDON_EXTRA_RENDERS_3D_MONTHLY,
-      yearly: process.env.STRIPE_ADDON_EXTRA_RENDERS_3D_YEARLY,
     },
   },
   // URLs

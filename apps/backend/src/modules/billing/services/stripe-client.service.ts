@@ -14,10 +14,9 @@ import { CircuitBreakerService } from '@/libs/resilience/circuit-breaker.service
 import { RetryService } from '@/libs/resilience/retry.service';
 import type Stripe from 'stripe';
 
-/** Validated price IDs for each plan/interval */
+/** Validated price IDs for each plan/interval (V2 - Agents IA) */
 export interface ValidatedPriceIds {
-  starter: { monthly: string; yearly: string };
-  professional: { monthly: string; yearly: string };
+  pro: { monthly: string; yearly: string };
   business: { monthly: string; yearly: string };
   enterprise: { monthly: string; yearly: string };
 }
@@ -73,11 +72,7 @@ export class StripeClientService implements OnModuleInit {
       }
 
       const priceIds = {
-        starter: {
-          monthly: this.configService.get<string>('stripe.priceStarterMonthly'),
-          yearly: this.configService.get<string>('stripe.priceStarterYearly'),
-        },
-        professional: {
+        pro: {
           monthly: this.configService.get<string>('stripe.priceProMonthly'),
           yearly: this.configService.get<string>('stripe.priceProYearly'),
         },
