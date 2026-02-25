@@ -3,7 +3,7 @@ import { SkipRateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Header } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
 import { HealthService, EnrichedHealthResponse } from './health.service';
@@ -190,6 +190,7 @@ export class HealthController {
   @Get('metrics')
   /** @Public: Prometheus scrape endpoint */
   @Public()
+  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
   @ApiOperation({ 
     summary: 'Prometheus metrics endpoint',
     description: 'Retourne les métriques Prometheus pour le monitoring. Format compatible avec Prometheus scraping.',
@@ -202,8 +203,59 @@ export class HealthController {
       example: '# HELP http_requests_total Total number of HTTP requests\n# TYPE http_requests_total counter\nhttp_requests_total{method="GET",status="200"} 1234',
     },
   })
-  async getMetrics() {
-    return { message: 'Metrics endpoint - Prometheus module archived' };
+  async getMetrics(): Promise<string> {
+    const now = Date.now();
+    const uptimeSeconds = Math.floor(process.uptime());
+    const memory = process.memoryUsage();
+
+    let dbUp = 0;
+    let redisUp = 0;
+    let dbLatencyMs = 0;
+    let redisLatencyMs = 0;
+
+    try {
+      const started = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - started;
+      dbUp = 1;
+    } catch {
+      dbUp = 0;
+    }
+
+    try {
+      if (this.redis) {
+        const started = Date.now();
+        const healthy = await this.redis.healthCheck();
+        redisLatencyMs = Date.now() - started;
+        redisUp = healthy ? 1 : 0;
+      }
+    } catch {
+      redisUp = 0;
+    }
+
+    return [
+      '# HELP luneo_process_uptime_seconds Process uptime in seconds',
+      '# TYPE luneo_process_uptime_seconds gauge',
+      `luneo_process_uptime_seconds ${uptimeSeconds}`,
+      '# HELP luneo_process_heap_used_bytes Process heap used bytes',
+      '# TYPE luneo_process_heap_used_bytes gauge',
+      `luneo_process_heap_used_bytes ${memory.heapUsed}`,
+      '# HELP luneo_process_heap_total_bytes Process heap total bytes',
+      '# TYPE luneo_process_heap_total_bytes gauge',
+      `luneo_process_heap_total_bytes ${memory.heapTotal}`,
+      '# HELP luneo_dependency_up Dependency health (1=up, 0=down)',
+      '# TYPE luneo_dependency_up gauge',
+      `luneo_dependency_up{name="database"} ${dbUp}`,
+      `luneo_dependency_up{name="redis"} ${redisUp}`,
+      '# HELP luneo_dependency_latency_ms Dependency latency in ms',
+      '# TYPE luneo_dependency_latency_ms gauge',
+      `luneo_dependency_latency_ms{name="database"} ${dbLatencyMs}`,
+      `luneo_dependency_latency_ms{name="redis"} ${redisLatencyMs}`,
+      '# HELP luneo_metrics_generated_at_ms Metrics generation timestamp',
+      '# TYPE luneo_metrics_generated_at_ms gauge',
+      `luneo_metrics_generated_at_ms ${now}`,
+      '',
+    ].join('\n');
   }
 
   @Get('detailed')

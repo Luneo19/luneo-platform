@@ -76,6 +76,19 @@ const LOCALE_COOKIE = 'luneo_locale';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Canonical host policy in production:
+  // - app.luneo.app -> luneo.app
+  // - www.luneo.app -> luneo.app
+  const requestHost = (request.nextUrl.hostname || request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+  if (process.env.NODE_ENV === 'production' && requestHost) {
+    if (requestHost === 'app.luneo.app' || requestHost === 'www.luneo.app') {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.protocol = 'https:';
+      redirectUrl.host = 'luneo.app';
+      return NextResponse.redirect(redirectUrl, 308);
+    }
+  }
   
   // Ignorer les fichiers statiques et assets pour éviter les 404
   if (
@@ -175,19 +188,15 @@ export async function middleware(request: NextRequest) {
     const accessToken = request.cookies.get('accessToken')?.value;
     if (accessToken) {
       try {
-        // Decode JWT payload (no verification - that's the backend's job)
-        // This is a lightweight client-side guard; full RBAC is enforced server-side
         const payload = JSON.parse(
           Buffer.from(accessToken.split('.')[1], 'base64').toString()
         );
         const userRole = payload.role || payload.userRole || '';
         if (userRole !== 'ADMIN' && userRole !== 'PLATFORM_ADMIN') {
-          // Non-admin user trying to access admin routes - redirect to dashboard
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }
       } catch {
         // If JWT decode fails, let the backend handle it
-        // Don't block - the layout/API will reject unauthorized access
       }
     }
   }

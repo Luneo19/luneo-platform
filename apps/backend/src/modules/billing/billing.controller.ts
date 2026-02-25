@@ -1,5 +1,5 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { BadRequestException, Body, Controller, Delete, Get, Headers, InternalServerErrorException, Logger, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpException, InternalServerErrorException, Logger, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -68,6 +68,9 @@ export class BillingController {
       };
     } catch (error: unknown) {
       this.logger.error('Checkout session creation failed', error instanceof Error ? error.stack : String(error));
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException('An error occurred while creating the checkout session');
     }
   }
@@ -97,6 +100,48 @@ export class BillingController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.billingService.getSubscription(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('usage')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Compat: usage agrégé pour dashboard billing frontend' })
+  async getUsage(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const subscription = (await this.billingService.getSubscription(req.user.id)) as unknown as {
+      currentUsage?: Record<string, number>;
+    };
+    const usage = subscription.currentUsage || {};
+
+    return {
+      messagesAi: Number(usage.aiGenerations || 0),
+      conversations: Number(usage.aiGenerations || 0),
+      documentsIndexed: Number(usage.designs || 0),
+      activeAgents: Number(usage.teamMembers || 0),
+      storageBytes: Math.round(Number(usage.storageGB || 0) * 1024 * 1024 * 1024),
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('limits')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Compat: limites agrégées pour dashboard billing frontend' })
+  async getLimits(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    const subscription = (await this.billingService.getSubscription(req.user.id)) as unknown as {
+      limits?: Record<string, number>;
+    };
+    const limits = subscription.limits || {};
+
+    return {
+      monthlyMessagesAi: Number(limits.aiGenerationsPerMonth || 0),
+      monthlyConversations: Number(limits.conversationsPerMonth || 0),
+      monthlyDocumentsIndexed: Number(limits.documentsLimit || 0),
+      maxActiveAgents: Number(limits.agentsLimit || 0),
+      storageBytes: Math.round(Number(limits.storageGB || 0) * 1024 * 1024 * 1024),
+    };
   }
 
   @UseGuards(JwtAuthGuard)

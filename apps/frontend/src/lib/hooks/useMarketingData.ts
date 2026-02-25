@@ -95,7 +95,9 @@ export function useMarketingData() {
       setLoading(true);
       setError(null);
 
-      const result = await api.get<{ success?: boolean; data?: MarketingData; stats?: unknown; testimonials?: Testimonial[]; integrations?: Integration[]; industries?: Industry[] }>('/api/v1/public/marketing');
+      // Use the Next.js public proxy route (not /api/v1 rewrite) to avoid backend 404
+      // when the aggregated marketing endpoint is not available server-side.
+      const result = await api.get<{ success?: boolean; data?: MarketingData; stats?: unknown; testimonials?: Testimonial[]; integrations?: Integration[]; industries?: Industry[] }>('/api/public/marketing');
 
       if (result && (result as { success?: boolean }).success === false) {
         setData({ testimonials: [], stats: [], integrations: [], industries: [] });

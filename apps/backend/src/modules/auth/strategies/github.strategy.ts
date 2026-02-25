@@ -14,6 +14,18 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
     private readonly configService: ConfigService,
     private readonly oauthService: OAuthService,
   ) {
+    const startupLogger = new Logger(GitHubStrategy.name);
+    const oauthStateRaw =
+      configService.get<string>('oauth.github.enableState') ??
+      configService.get<string>('OAUTH_GITHUB_ENABLE_STATE');
+    const oauthStateEnabled = (oauthStateRaw ?? 'false') === 'true';
+
+    if (oauthStateRaw == null) {
+      startupLogger.warn(
+        'GitHub OAuth state is not explicitly configured (default=false). Set OAUTH_GITHUB_ENABLE_STATE=true/false explicitly.',
+      );
+    }
+
     const clientID = configService.get<string>('oauth.github.clientId') ||
                      configService.get<string>('GITHUB_CLIENT_ID') ||
                      configService.get<string>('GITHUB_OAUTH_CLIENT_ID');
@@ -33,8 +45,8 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       clientSecret,
       callbackURL: callbackURL || '/api/v1/auth/github/callback',
       scope: ['user:email'],
-      // SECURITY FIX: Enable state parameter for CSRF protection on OAuth callbacks
-      state: true,
+      // Keep configurable to avoid hard failures in stateless deployments.
+      state: oauthStateEnabled,
     });
   }
 

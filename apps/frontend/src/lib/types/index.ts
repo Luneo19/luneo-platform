@@ -53,6 +53,7 @@ export interface DesignSummary {
 export interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterData {
@@ -62,6 +63,8 @@ export interface RegisterData {
   lastName?: string;
   name?: string;
   captchaToken?: string;
+  company?: string;
+  referralCode?: string;
 }
 
 export interface ApiKeySummary {

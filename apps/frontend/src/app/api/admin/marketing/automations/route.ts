@@ -7,18 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) (headers as Record<string, string>)['Authorization'] = auth;
-  return headers;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,8 +17,8 @@ export async function GET(request: NextRequest) {
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-    const res = await fetch(`${API_URL}/api/v1/orion/automations`, {
-      headers: forwardHeaders(request),
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations`, {
+      headers: buildAdminForwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -48,9 +39,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     const body = await request.json();
-    const res = await fetch(`${API_URL}/api/v1/orion/automations`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations`, {
       method: 'POST',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),
     });
     const raw = await res.json().catch(() => ({}));

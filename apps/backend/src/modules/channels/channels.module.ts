@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { PrismaOptimizedModule } from '@/libs/prisma/prisma-optimized.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
+import { IdempotencyModule } from '@/libs/idempotency/idempotency.module';
 import { OrchestratorModule } from '@/modules/orchestrator/orchestrator.module';
 import { EmailModule } from '@/modules/email/email.module';
 import { ChannelsController } from './channels.controller';
@@ -11,11 +13,45 @@ import { EmailParserService } from './email/email-parser.service';
 import { EmailOutboundService } from './email/email-outbound.service';
 import { EmailInboundService as EmailInboundV2Service } from './email/email-inbound.service';
 import { EmailWebhookController } from './email/email-webhook.controller';
+import {
+  WhatsAppProvider,
+  TelegramProvider,
+  MessengerProvider,
+  SmsProvider,
+  SlackProvider,
+} from './providers';
+import { ChannelRouterService } from './channel-router.service';
+import { ChannelReliabilityService } from './channel-reliability.service';
 
 @Module({
-  imports: [PrismaOptimizedModule, SmartCacheModule, OrchestratorModule, EmailModule],
+  imports: [
+    PrismaOptimizedModule,
+    SmartCacheModule,
+    IdempotencyModule,
+    OrchestratorModule,
+    EmailModule,
+    ConfigModule,
+  ],
   controllers: [ChannelsController, EmailInboundController, EmailWebhookController],
-  providers: [ChannelsService, EmailInboundService, EmailParserService, EmailOutboundService, EmailInboundV2Service],
-  exports: [ChannelsService, EmailOutboundService],
+  providers: [
+    ChannelsService,
+    EmailInboundService,
+    EmailParserService,
+    EmailOutboundService,
+    EmailInboundV2Service,
+    WhatsAppProvider,
+    TelegramProvider,
+    MessengerProvider,
+    SmsProvider,
+    SlackProvider,
+    ChannelRouterService,
+    ChannelReliabilityService,
+  ],
+  exports: [
+    ChannelsService,
+    EmailOutboundService,
+    ChannelRouterService,
+    ChannelReliabilityService,
+  ],
 })
 export class ChannelsModule {}

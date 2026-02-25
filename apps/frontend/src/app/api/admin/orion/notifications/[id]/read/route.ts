@@ -4,18 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['Authorization'] = auth;
-  return headers;
-}
 
 export async function PUT(
   request: NextRequest,
@@ -28,9 +19,9 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const res = await fetch(`${API_URL}/api/v1/orion/notifications/${id}/read`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/notifications/${id}/read`, {
       method: 'PUT',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
     const data = raw.data ?? raw;

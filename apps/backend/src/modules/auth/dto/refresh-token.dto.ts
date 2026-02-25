@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsJWT, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RefreshTokenDto {
@@ -8,6 +8,7 @@ export class RefreshTokenDto {
     required: false,
   })
   @IsString({ message: 'Refresh token must be a string' })
+  @IsJWT({ message: 'Refresh token must be a valid JWT' })
   @IsOptional() // ✅ Optional - backend reads from cookie if not in body
   refreshToken?: string;
 }

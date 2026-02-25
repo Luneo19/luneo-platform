@@ -1,0 +1,35 @@
+{
+  "name": "@luneo/widget-sdk",
+  "version": "2.0.0",
+  "description": "Luneo AI Agent Chat Widget SDK for React, Vue, and vanilla JavaScript",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.js",
+      "types": "./dist/react.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts src/react.tsx --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/react.tsx --format cjs,esm --dts --watch"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
+  },
+  "license": "MIT",
+  "keywords": ["luneo", "ai", "chatbot", "widget", "agent", "sdk"]
+}

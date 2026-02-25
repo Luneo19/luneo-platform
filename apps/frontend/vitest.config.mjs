@@ -16,6 +16,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      '**/_archive/**',
       '**/cypress/**',
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',

@@ -63,6 +63,8 @@ function validateRequiredEnvVars() {
   }
 }
 
+let appReady = false;
+
 async function bootstrap() {
   validateRequiredEnvVars();
 
@@ -440,6 +442,17 @@ async function bootstrap() {
   // The order of middleware registration is critical: /health must be registered
   // BEFORE NestJS adds its routing middleware during app.init()
   server.get('/health', (_req: Request, res: Response) => {
+    if (!appReady) {
+      res.status(503).json({
+        status: 'starting',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+      });
+      return;
+    }
+
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -468,6 +481,7 @@ async function bootstrap() {
   // The ExpressAdapter connects NestJS to the Express server, but app.listen() is required
   // to properly initialize and register all routes
   await app.listen(port, '0.0.0.0');
+  appReady = true;
   
   const apiPrefixFinal = configService.get('app.apiPrefix');
   logger.log(`🚀 Application is running on: http://0.0.0.0:${port}`);

@@ -141,10 +141,21 @@ export class AppErrorFilter implements ExceptionFilter {
       );
     }
 
-    // Add path to error response
-    const finalResponse = typeof errorResponse === 'object' && errorResponse !== null
-      ? { ...errorResponse, path: request.url }
-      : { message: errorResponse, path: request.url };
+    const timestamp = new Date().toISOString();
+
+    // Never expose technical details to clients on server-side failures.
+    const finalResponse = status >= 500
+      ? {
+          success: false,
+          error: ErrorCode.INTERNAL_SERVER_ERROR,
+          message: 'Internal server error',
+          statusCode: status,
+          timestamp,
+          path: request.url,
+        }
+      : typeof errorResponse === 'object' && errorResponse !== null
+        ? { ...errorResponse, path: request.url }
+        : { message: errorResponse, path: request.url, timestamp };
 
     response.status(status).json(finalResponse);
   }

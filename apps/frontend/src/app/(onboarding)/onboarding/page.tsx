@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { logger } from '@/lib/logger';
+import { appRoutes } from '@/lib/routes';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -79,6 +80,7 @@ function OnboardingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planFromUrl = searchParams.get('plan');
+  const isReminder = searchParams.get('reminder') === '1';
   const { user } = useAuth();
   const {
     formData,
@@ -156,11 +158,11 @@ function OnboardingPageContent() {
             }
           } catch (checkoutErr) {
             logger.error('Failed to create checkout session after onboarding', checkoutErr);
-            router.push(`/dashboard?onboarding=complete&plan=${planFromUrl}`);
+            router.push(`${appRoutes.overview}?onboarding=complete&plan=${planFromUrl}`);
             return;
           }
         }
-        router.push('/dashboard?onboarding=complete');
+        router.push(`${appRoutes.overview}?onboarding=complete`);
       } catch (err) {
         logger.error('Onboarding complete error', err);
       }
@@ -174,7 +176,7 @@ function OnboardingPageContent() {
   const handleSkip = useCallback(async () => {
     try {
       await skipOnboarding();
-      router.push('/dashboard');
+      router.push(appRoutes.overview);
     } catch (err) {
       logger.error('Onboarding skip error', err);
     }
@@ -202,6 +204,16 @@ function OnboardingPageContent() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
+        {isReminder && (
+          <motion
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white/70"
+          >
+            Finaliser l&apos;onboarding permet de personnaliser vos recommandations d&apos;agents IA.
+          </motion>
+        )}
+
         {storeError && (
           <motion
             initial={{ opacity: 0, y: -10 }}

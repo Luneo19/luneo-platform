@@ -266,7 +266,7 @@ Pour éviter de casser le code existant :
    ```typescript
    /**
     * Complex type that requires any due to dynamic structure
-    * TODO: Create proper interface in Phase 3
+    * Migration note: create a dedicated interface in Phase 3
     */
    const complexData: any = // ...
    ```

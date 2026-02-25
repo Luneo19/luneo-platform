@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
+import { ALL_QUEUE_NAMES } from '@/libs/queues/queues.constants';
 
 export interface DependencyStatus {
   status: 'ok' | 'degraded' | 'unavailable';
@@ -144,7 +145,7 @@ export class HealthService {
       return details;
     } catch (error) {
       return {
-        status: 'degraded',
+        status: 'unavailable',
         message: 'Service unavailable',
       };
     }
@@ -180,7 +181,7 @@ export class HealthService {
    * Returns waiting/active/failed/completed counts per queue
    */
   private async checkQueues(): Promise<QueueHealthStatus[]> {
-    const queueNames = ['ai-generation', 'design-generation', 'render-processing', 'production-processing', 'email'];
+    const queueNames = ALL_QUEUE_NAMES;
     const results: QueueHealthStatus[] = [];
 
     try {

@@ -11,6 +11,7 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useI18n } from '@/i18n/useI18n';
+import { appRoutes } from '@/lib/routes';
 
 interface SessionData {
   planName: string;
@@ -85,12 +86,12 @@ function BillingSuccessPageContent() {
           <h1 className="text-2xl font-bold text-white mb-4">{t('dashboard.billing.success.errorTitle')}</h1>
           <p className="text-white/60 mb-6">{error}</p>
           <div className="space-y-3">
-            <Link href="/dashboard/billing" className="block">
+            <Link href={appRoutes.billing} className="block">
               <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0" aria-label={t('dashboard.billing.success.viewBilling')}>
                 {t('dashboard.billing.success.viewBilling')}
               </Button>
             </Link>
-            <Link href="/contact" className="block">
+            <Link href={appRoutes.contact} className="block">
               <Button variant="outline" className="w-full border-white/[0.12] text-white/80 hover:bg-white/[0.04]" aria-label={t('dashboard.billing.success.contactSupport')}>
                 {t('dashboard.billing.success.contactSupport')}
               </Button>
@@ -202,7 +203,7 @@ function BillingSuccessPageContent() {
               transition={{ delay: 0.6 }}
               className="space-y-3"
             >
-              <Link href="/overview" className="block">
+              <Link href={appRoutes.overview} className="block">
                 <Button
                   size="lg"
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
@@ -212,7 +213,7 @@ function BillingSuccessPageContent() {
                   <ArrowRight className="w-5 h-5 ml-2" aria-hidden />
                 </Button>
               </Link>
-              <Link href="/help/documentation/quickstart" className="block">
+              <Link href={appRoutes.quickstart} className="block">
                 <Button variant="outline" size="lg" className="w-full border-white/[0.12] text-white/60 hover:bg-white/[0.04]" aria-label={t('dashboard.billing.success.quickStartGuide')}>
                   {t('dashboard.billing.success.quickStartGuide')}
                 </Button>

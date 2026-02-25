@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Body, UseGuards, Request, HttpCode, HttpS
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { OnboardingService } from './onboarding.service';
+import { PlaybooksService } from './playbooks.service';
 
 interface AuthRequest {
   user: { id: string };
@@ -12,7 +13,10 @@ interface AuthRequest {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class OnboardingController {
-  constructor(private readonly onboardingService: OnboardingService) {}
+  constructor(
+    private readonly onboardingService: OnboardingService,
+    private readonly playbooksService: PlaybooksService,
+  ) {}
 
   @Get('progress')
   @ApiOperation({ summary: 'Get onboarding progress for current user' })
@@ -49,5 +53,20 @@ export class OnboardingController {
   @ApiResponse({ status: 200, description: 'Onboarding skipped' })
   async skip(@Request() req: AuthRequest) {
     return this.onboardingService.skip(req.user.id);
+  }
+
+  @Get('playbooks')
+  @ApiOperation({ summary: 'Get all onboarding vertical playbooks' })
+  @ApiResponse({ status: 200, description: 'List of vertical playbooks' })
+  async getPlaybooks() {
+    return { data: this.playbooksService.getAll() };
+  }
+
+  @Get('playbooks/:industry')
+  @ApiOperation({ summary: 'Get playbook by industry' })
+  @ApiParam({ name: 'industry', type: String })
+  @ApiResponse({ status: 200, description: 'Vertical playbook' })
+  async getPlaybookByIndustry(@Param('industry') industry: string) {
+    return { data: this.playbooksService.getByIndustry(industry) };
   }
 }

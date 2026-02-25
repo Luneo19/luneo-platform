@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Ticket,
   Filter,
@@ -76,6 +77,7 @@ function getTicketNumber(ticket: AdminTicket): string {
 }
 
 export default function AdminTicketsPage() {
+  const router = useRouter();
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -285,7 +287,7 @@ export default function AdminTicketsPage() {
                         size="sm"
                         className="text-white/80 hover:text-white hover:bg-white/10"
                         onClick={() => {
-                          // TODO: navigation vers détail ticket
+                          router.push(`/support?ticketId=${encodeURIComponent(t.id)}`);
                         }}
                       >
                         <Eye className="w-4 h-4" />

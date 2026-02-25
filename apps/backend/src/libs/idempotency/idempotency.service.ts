@@ -4,7 +4,15 @@ import { PrismaService } from '@/libs/prisma/prisma.service';
 /** Delegate for idempotencyKey model (use when Prisma client does not yet include the model) */
 interface IdempotencyKeyDelegate {
   findUnique: (args: { where: { key: string } }) => Promise<{ key: string } | null>;
+  create: (args: {
+    data: { key: string; result: string | null; expiresAt: Date };
+  }) => Promise<unknown>;
+  update: (args: {
+    where: { key: string };
+    data: { result: string | null; expiresAt: Date };
+  }) => Promise<unknown>;
   upsert: (args: { where: { key: string }; create: { key: string; result: string | null; expiresAt: Date }; update: { result: string | null; expiresAt: Date } }) => Promise<unknown>;
+  delete: (args: { where: { key: string } }) => Promise<unknown>;
   deleteMany: (args: { where: { expiresAt: { lt: Date } } }) => Promise<{ count: number }>;
 }
 
@@ -67,6 +75,57 @@ export class IdempotencyService {
     } catch (error) {
       this.logger.error(`Failed to mark operation as processed: ${key}`, error);
       // Ne pas faire échouer l'opération principale
+    }
+  }
+
+  /**
+   * Acquire idempotency key atomically for "processing" phase.
+   * Returns false when key already exists (already processing or already processed).
+   */
+  async claimForProcessing(key: string, ttlSeconds: number = 300): Promise<boolean> {
+    try {
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+      await this.idempotencyKey.create({
+        data: {
+          key,
+          result: JSON.stringify({ status: 'PROCESSING' }),
+          expiresAt,
+        },
+      });
+      return true;
+    } catch (error: unknown) {
+      // Prisma unique constraint error code
+      const code = (error as { code?: string })?.code;
+      if (code === 'P2002') {
+        return false;
+      }
+      this.logger.warn(`Idempotency claim failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+  }
+
+  /**
+   * Complete an already-claimed idempotency key.
+   */
+  async completeProcessing(key: string, result?: unknown, ttlSeconds: number = 604800): Promise<void> {
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+    await this.idempotencyKey.update({
+      where: { key },
+      data: {
+        result: result ? JSON.stringify(result) : JSON.stringify({ status: 'PROCESSED' }),
+        expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Release claim on failure to allow safe retries.
+   */
+  async releaseClaim(key: string): Promise<void> {
+    try {
+      await this.idempotencyKey.delete({ where: { key } });
+    } catch (error: unknown) {
+      this.logger.warn(`Failed to release idempotency key ${key}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

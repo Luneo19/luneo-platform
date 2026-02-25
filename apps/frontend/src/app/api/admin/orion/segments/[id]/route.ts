@@ -6,17 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['Authorization'] = auth;
-  return headers;
-}
 
 export async function DELETE(
   _request: NextRequest,
@@ -29,9 +21,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const res = await fetch(`${API_URL}/api/v1/orion/segments/${id}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/segments/${id}`, {
       method: 'DELETE',
-      headers: forwardHeaders(_request),
+      headers: buildAdminForwardHeaders(_request),
     });
     const raw = await res.json().catch(() => ({}));
     if (!res.ok) {

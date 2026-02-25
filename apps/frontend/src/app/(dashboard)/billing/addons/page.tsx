@@ -208,12 +208,26 @@ function AddonsPageContent() {
     try {
       const selectedAddons = addons
         .filter((a) => (quantities[a.id] || 0) > 0)
-        .map((a) => ({ addOnId: a.id, quantity: quantities[a.id] }));
+        .map((a) => ({ type: a.id, quantity: quantities[a.id] }));
 
-      await api.post('/api/v1/billing/purchase-addons', { addons: selectedAddons });
+      const checkout = await api.post<{ success?: boolean; url?: string; error?: string }>(
+        '/api/v1/billing/create-checkout-session',
+        {
+          planId: currentPlan,
+          billingInterval: 'monthly',
+          addOns: selectedAddons,
+        },
+      );
+
+      const checkoutUrl = checkout?.url;
+      if (!checkoutUrl) {
+        throw new Error(checkout?.error || 'Impossible de créer la session de paiement');
+      }
+
       setPurchaseSuccess(true);
       setQuantities({});
-      logger.info('Add-ons purchased successfully', { addons: selectedAddons });
+      logger.info('Add-ons checkout session created', { addons: selectedAddons });
+      window.location.href = checkoutUrl;
     } catch (err) {
       logger.error('Failed to purchase add-ons', { error: err });
       setError('Erreur lors de l\'achat. Veuillez reessayer.');

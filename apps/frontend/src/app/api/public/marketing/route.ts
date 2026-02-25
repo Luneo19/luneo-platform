@@ -33,17 +33,17 @@ export async function GET(request: NextRequest) {
         industry,
         solution,
       });
-      // Return fallback data
+      // Return fallback data with HTTP 200 so public pages remain usable.
       return NextResponse.json({
-        success: false,
-        error: 'Erreur lors de la récupération des données',
+        success: true,
+        source: 'fallback',
         data: {
           testimonials: [],
           stats: [],
           integrations: [],
           industries: [],
         },
-      }, { status: 500 });
+      }, { status: 200 });
     }
 
     const result = await backendResponse.json();
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
     serverLogger.error('Error fetching marketing data', { error });
     return NextResponse.json(
       { 
-        success: false, 
-        error: 'Erreur lors de la récupération des données',
+        success: true,
+        source: 'fallback',
         data: {
           testimonials: [],
           stats: [],
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
           industries: [],
         }
       },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

@@ -23,11 +23,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
+import { endpoints } from '@/lib/api/client';
+import { getRoleBasedRedirect } from '@/lib/utils/role-redirect';
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -100,7 +102,6 @@ const checkPasswordStrength = (
 
 function RegisterPageContent() {
   const { t } = useI18n();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -128,6 +129,25 @@ function RegisterPageContent() {
     const ref = searchParams.get('ref') || searchParams.get('referralCode');
     if (ref) setReferralCode(ref);
   }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const me = await endpoints.auth.me().catch(() => null);
+        const role = (me as { role?: string } | null)?.role;
+        if (!role || cancelled) return;
+        window.location.replace(getRoleBasedRedirect(role));
+      } catch {
+        // Keep register page for unauthenticated users.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Password strength
   const passwordStrength = useMemo(() => 
@@ -211,43 +231,15 @@ function RegisterPageContent() {
           captchaToken = '';
         }
 
-        const signupResp = await fetch('/api/v1/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            firstName,
-            lastName,
-            captchaToken,
-            ...(formData.company && { company: formData.company }),
-            ...(referralCode && { referralCode }),
-          }),
-        });
-
-        if (!signupResp.ok) {
-          const errData = await signupResp.json().catch(() => ({}));
-          
-          if (signupResp.status === 409) {
-            setError(t('auth.register.errors.emailExists'));
-            setIsLoading(false);
-            return;
-          }
-          if (signupResp.status === 429) {
-            setError(t('auth.register.errors.tooManyAttempts'));
-            setIsLoading(false);
-            return;
-          }
-          if (signupResp.status === 400) {
-            setError(errData.message || t('auth.register.errors.generic'));
-            setIsLoading(false);
-            return;
-          }
-          throw new Error(errData.message || 'Registration failed');
-        }
-
-        const response = await signupResp.json();
+      const response = await endpoints.auth.signup({
+        email: formData.email,
+        password: formData.password,
+        firstName,
+        lastName,
+        captchaToken,
+        ...(formData.company && { company: formData.company }),
+        ...(referralCode && { referralCode }),
+      });
 
       // Success: user in body; tokens are in httpOnly cookies (set by backend via Set-Cookie)
       if (response.user) {
@@ -285,8 +277,13 @@ function RegisterPageContent() {
       
       // Handle specific error messages
       if (err instanceof Error) {
-        if (err.message.includes('already exists') || err.message.includes('409')) {
+        const errObj = err as { response?: { data?: { message?: string }; status?: number } };
+        if (errObj.response?.status === 409 || err.message.includes('already exists') || err.message.includes('409')) {
           setError(t('auth.register.errors.emailExists'));
+        } else if (errObj.response?.status === 429) {
+          setError(t('auth.register.errors.tooManyAttempts'));
+        } else if (errObj.response?.status === 400) {
+          setError(errObj.response?.data?.message || t('auth.register.errors.generic'));
         } else {
           setError(err.message || t('auth.register.errors.generic'));
         }

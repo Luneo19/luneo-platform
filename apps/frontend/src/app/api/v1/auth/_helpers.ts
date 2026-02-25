@@ -32,7 +32,7 @@ export function rawHttpRequest(
     const mod = isHttps ? require('https') : require('http');
 
     const reqOptions = {
-      hostname: urlObj.hostname,
+      hostname: urlObj.hostname === 'localhost' ? '127.0.0.1' : urlObj.hostname,
       port: urlObj.port || (isHttps ? 443 : 80),
       path: urlObj.pathname + urlObj.search,
       method: options.method || 'GET',

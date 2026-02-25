@@ -20,7 +20,7 @@
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"
   },
   "dependencies": {
     "react": "^18.0.0",

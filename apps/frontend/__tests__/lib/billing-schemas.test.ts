@@ -18,7 +18,7 @@ describe('Billing Schemas', () => {
   describe('CreateCheckoutSessionSchema', () => {
     it('should validate valid checkout session data', () => {
       const validData = {
-        planId: 'professional',
+        planId: 'pro',
         email: 'test@example.com',
         billing: 'monthly',
       };
@@ -27,14 +27,8 @@ describe('Billing Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept starter plan', () => {
-      const data = { planId: 'starter', billing: 'monthly' };
-      const result = CreateCheckoutSessionSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it('should accept professional plan', () => {
-      const data = { planId: 'professional', billing: 'monthly' };
+    it('should accept pro plan', () => {
+      const data = { planId: 'pro', billing: 'monthly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(true);
     });
@@ -58,25 +52,25 @@ describe('Billing Schemas', () => {
     });
 
     it('should accept monthly billing', () => {
-      const data = { planId: 'professional', billing: 'monthly' };
+      const data = { planId: 'pro', billing: 'monthly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(true);
     });
 
     it('should accept yearly billing', () => {
-      const data = { planId: 'professional', billing: 'yearly' };
+      const data = { planId: 'pro', billing: 'yearly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(true);
     });
 
     it('should reject invalid billing cycle', () => {
-      const data = { planId: 'professional', billing: 'weekly' };
+      const data = { planId: 'pro', billing: 'weekly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(false);
     });
 
     it('should default billing to monthly when not provided', () => {
-      const data = { planId: 'professional' };
+      const data = { planId: 'pro' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(true);
       if (result.success) {
@@ -85,19 +79,19 @@ describe('Billing Schemas', () => {
     });
 
     it('should allow optional email', () => {
-      const data = { planId: 'professional', billing: 'monthly' };
+      const data = { planId: 'pro', billing: 'monthly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(true);
     });
 
     it('should validate email format when provided', () => {
-      const data = { planId: 'professional', email: 'invalid-email', billing: 'monthly' };
+      const data = { planId: 'pro', email: 'invalid-email', billing: 'monthly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(false);
     });
 
     it('should accept valid email', () => {
-      const data = { planId: 'professional', email: 'test@example.com', billing: 'monthly' };
+      const data = { planId: 'pro', email: 'test@example.com', billing: 'monthly' };
       const result = CreateCheckoutSessionSchema.safeParse(data);
       expect(result.success).toBe(true);
     });
@@ -118,8 +112,8 @@ describe('Billing Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept professional plan', () => {
-      const data = { planId: 'professional' };
+    it('should accept pro plan', () => {
+      const data = { planId: 'pro' };
       const result = UpdateSubscriptionSchema.safeParse(data);
       expect(result.success).toBe(true);
     });

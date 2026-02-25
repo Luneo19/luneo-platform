@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Circle, ArrowRight, Package, Palette, ShoppingBag, FileText, Factory } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Bot, BookOpen, MessageSquare, BarChart3, Globe } from 'lucide-react';
 
 interface ChecklistStep {
   id: string;
@@ -14,58 +14,58 @@ interface ChecklistStep {
 }
 
 export function OverviewChecklist({
-  productCount = 0,
-  hasCustomizer = false,
+  agentCount = 0,
+  hasKnowledgeBase = false,
+  hasConversation = false,
   hasChannel = false,
-  orderCount = 0,
-  hasProduction = false,
+  hasAnalytics = false,
 }: {
-  productCount?: number;
-  hasCustomizer?: boolean;
+  agentCount?: number;
+  hasKnowledgeBase?: boolean;
+  hasConversation?: boolean;
   hasChannel?: boolean;
-  orderCount?: number;
-  hasProduction?: boolean;
+  hasAnalytics?: boolean;
 }) {
   const steps: ChecklistStep[] = [
     {
-      id: 'product',
-      label: 'Créez votre premier produit',
-      description: 'Ajoutez un produit à personnaliser',
-      href: '/dashboard/products',
-      icon: Package,
-      done: productCount > 0,
+      id: 'agent',
+      label: 'Créez votre premier agent IA',
+      description: 'Configurez un agent pour répondre à vos visiteurs',
+      href: '/agents/new',
+      icon: Bot,
+      done: agentCount > 0,
     },
     {
-      id: 'customize',
-      label: 'Ajoutez la personnalisation',
-      description: 'Configurez les zones du customizer',
-      href: productCount > 0 ? '/dashboard/products' : '/dashboard/customizer/new',
-      icon: Palette,
-      done: hasCustomizer,
+      id: 'knowledge',
+      label: 'Ajoutez une base de connaissances',
+      description: 'Importez vos FAQ, docs ou site web',
+      href: '/knowledge',
+      icon: BookOpen,
+      done: hasKnowledgeBase,
     },
     {
       id: 'channel',
-      label: 'Connectez un canal de vente',
-      description: 'Shopify, Widget, Storefront ou API',
-      href: '/dashboard/channels',
-      icon: ShoppingBag,
+      label: 'Installez le widget sur votre site',
+      description: 'Copiez le script ou utilisez un SDK',
+      href: '/agents',
+      icon: Globe,
       done: hasChannel,
     },
     {
-      id: 'order',
-      label: 'Recevez votre première commande',
-      description: 'Un client personnalise et achète',
-      href: '/dashboard/orders',
-      icon: FileText,
-      done: orderCount > 0,
+      id: 'conversation',
+      label: 'Première conversation',
+      description: 'Un visiteur interagit avec votre agent',
+      href: '/conversations',
+      icon: MessageSquare,
+      done: hasConversation,
     },
     {
-      id: 'production',
-      label: 'Configurez la production',
-      description: 'Connectez un fournisseur POD',
-      href: '/dashboard/production',
-      icon: Factory,
-      done: hasProduction,
+      id: 'analytics',
+      label: 'Consultez vos analytics',
+      description: 'Suivez les performances et l\'impact business',
+      href: '/analytics',
+      icon: BarChart3,
+      done: hasAnalytics,
     },
   ];
 
@@ -81,7 +81,7 @@ export function OverviewChecklist({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold text-white">Démarrage rapide</h2>
-          <p className="text-sm text-white/40 mt-0.5">Du design à la livraison en 5 étapes</p>
+          <p className="text-sm text-white/40 mt-0.5">Votre agent IA opérationnel en 5 étapes</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-white/60">{completedCount}/{steps.length}</span>

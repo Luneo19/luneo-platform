@@ -11,6 +11,9 @@ import { useI18n } from '@/i18n/useI18n';
 import { CommandPalette } from '@/components/CommandPalette';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { PageTransition } from '@/components/PageTransition';
+import { SkipToContent } from '@/components/ui/skip-to-content';
+
+const ONBOARDING_DISMISS_KEY = 'onboarding_dismissed_until';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -19,14 +22,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   useKeyboardShortcuts();
 
   return (
-    <div className="min-h-screen dash-bg dark flex overflow-x-hidden">
+    <div className="min-h-screen dash-bg flex overflow-x-hidden">
+      <SkipToContent />
+
       {/* Subtle gradient mesh background */}
-      <div className="fixed inset-0 dash-gradient-mesh pointer-events-none" />
+      <div className="fixed inset-0 dash-gradient-mesh pointer-events-none" aria-hidden="true" />
 
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block relative z-30">
+      <nav className="hidden lg:block relative z-30" aria-label={t('dashboard.sidebar.navigation') || 'Navigation principale'}>
         <Sidebar />
-      </div>
+      </nav>
 
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
@@ -34,10 +39,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
           />
-          <div id="mobile-sidebar-menu" className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50" role="navigation" aria-label="Menu principal">
+          <nav
+            id="mobile-sidebar-menu"
+            className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50"
+            role="navigation"
+            aria-label={t('dashboard.sidebar.mobileMenu') || 'Menu principal'}
+          >
             <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
-          </div>
+          </nav>
         </div>
       )}
 
@@ -52,7 +63,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         />
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden dash-scroll min-w-0">
+        <main
+          id="main-content"
+          role="main"
+          aria-label={t('dashboard.mainContent') || 'Contenu principal'}
+          className="flex-1 overflow-y-auto overflow-x-hidden dash-scroll min-w-0"
+        >
           <div
             className="transition-all duration-200 px-4 sm:px-6"
             style={{ paddingTop: 'var(--dash-padding)', paddingBottom: 'var(--dash-padding)' }}
@@ -106,11 +122,27 @@ export default function DashboardLayoutGroup({
             progress.completedAt ||
             progress.organization?.onboardingCompletedAt;
           if (!completed && (progress.currentStep ?? 0) < 6) {
+            const dismissedUntilRaw =
+              typeof window !== 'undefined'
+                ? window.localStorage.getItem(ONBOARDING_DISMISS_KEY)
+                : null;
+            const dismissedUntil = dismissedUntilRaw ? Number(dismissedUntilRaw) : 0;
+            const isDismissedActive = Number.isFinite(dismissedUntil) && dismissedUntil > Date.now();
+
+            if (isDismissedActive) {
+              document.cookie = 'onboarding_completed=dismissed; path=/; max-age=86400; SameSite=Lax';
+              setOnboardingChecked(true);
+              return;
+            }
+
             document.cookie = 'onboarding_completed=false; path=/; max-age=31536000; SameSite=Lax';
-            router.push('/onboarding');
+            router.push('/onboarding?reminder=1');
             return;
           } else {
             document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
+            if (typeof window !== 'undefined') {
+              window.localStorage.removeItem(ONBOARDING_DISMISS_KEY);
+            }
           }
         }
       } catch {
@@ -122,14 +154,14 @@ export default function DashboardLayoutGroup({
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center dash-bg">
+      <div className="min-h-screen flex items-center justify-center dash-bg" role="status" aria-label={t('dashboard.common.loading') || 'Chargement'}>
         <div className="text-center">
           <div className="relative w-14 h-14 mx-auto mb-5">
-            <div className="absolute inset-0 rounded-full border-2 border-white/[0.06]" />
+            <div className="absolute inset-0 rounded-full border-2 border-black/[0.06] dark:border-white/[0.06]" />
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" />
             <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-pink-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
           </div>
-          <p className="text-white/40 text-sm font-medium">{t('dashboard.common.loading')}</p>
+          <p className="text-muted-foreground text-sm font-medium">{t('dashboard.common.loading')}</p>
         </div>
       </div>
     );

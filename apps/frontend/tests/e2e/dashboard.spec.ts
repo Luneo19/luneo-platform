@@ -11,14 +11,8 @@ test.describe('Dashboard - Complete User Flow', () => {
     await setLocale(page, 'fr');
     await ensureCookieBannerClosed(page);
     
-    // Login (si nécessaire)
-    // Note: Adapter selon votre système d'auth
-    try {
-      await loginUser(page);
-    } catch (error) {
-      // Si login échoue, continuer quand même (tests peuvent être adaptés)
-      console.warn('Login skipped:', error);
-    }
+    // Login deterministe obligatoire pour fiabiliser le smoke.
+    await loginUser(page);
   });
 
   test('should navigate to dashboard after login', async ({ page }) => {

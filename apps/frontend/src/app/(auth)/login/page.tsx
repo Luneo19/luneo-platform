@@ -20,13 +20,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TwoFactorForm } from '@/components/auth/TwoFactorForm';
 import { getRoleBasedRedirect } from '@/lib/utils/role-redirect';
 import { memo } from 'react';
+import { endpoints } from '@/lib/api/client';
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -71,8 +71,22 @@ function LoginPageContent() {
     email: '',
     password: '',
   });
-  const router = useRouter();
 
+  const resolvePostAuthTarget = useCallback((role?: string, redirectTo?: string | null) => {
+    const safeRedirect =
+      redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
+    const isAdmin = role === 'ADMIN' || role === 'PLATFORM_ADMIN';
+    const fallback = getRoleBasedRedirect(role);
+
+    if (!safeRedirect) return fallback;
+    if (isAdmin) return safeRedirect.startsWith('/admin') ? safeRedirect : '/admin';
+    return safeRedirect.startsWith('/admin') ? '/overview' : safeRedirect;
+  }, []);
+
+  const currentQueryRedirect = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('redirect');
+  }, []);
   // Handle session=expired and redirect query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -84,6 +98,27 @@ function LoginPageContent() {
       window.history.replaceState({}, '', newUrl.toString());
     }
   }, [t]);
+
+  // If the user is already authenticated, avoid showing auth pages again.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const me = await endpoints.auth.me().catch(() => null);
+        const role = (me as { role?: string } | null)?.role;
+        if (!role || cancelled) return;
+        const targetUrl = resolvePostAuthTarget(role, currentQueryRedirect());
+        window.location.replace(targetUrl);
+      } catch {
+        // Ignore and keep login page for unauthenticated users.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvePostAuthTarget, currentQueryRedirect]);
 
   // Email validation
   const isValidEmail = (email: string) => {
@@ -114,25 +149,11 @@ function LoginPageContent() {
       // Use relative URL so the request goes through the Vercel proxy (same-origin).
       // This ensures httpOnly cookies from Set-Cookie are properly stored by the browser.
       // Vercel rewrites /api/* → https://api.luneo.app/api/*
-      const loginResp = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          rememberMe,
-        }),
+      const response = await endpoints.auth.login({
+        email: formData.email,
+        password: formData.password,
+        rememberMe,
       });
-
-      if (!loginResp.ok) {
-        const errData = await loginResp.json().catch(() => ({}));
-        throw Object.assign(new Error(errData.message || 'Login failed'), {
-          response: { data: errData, status: loginResp.status },
-        });
-      }
-
-      const response = await loginResp.json();
 
       // Si 2FA requis
       if (response.requires2FA && response.tempToken) {
@@ -149,10 +170,7 @@ function LoginPageContent() {
         // Verify cookies were actually stored by the browser before navigating.
         // Without this check, if the browser blocks cookies (extensions, settings),
         // the user enters an infinite redirect loop /admin → /login → /admin.
-        const params = new URLSearchParams(window.location.search);
-        const redirectTo = params.get('redirect');
-        const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
-        const targetUrl = safeRedirect || getRoleBasedRedirect(response.user?.role);
+        const targetUrl = resolvePostAuthTarget(response.user?.role, currentQueryRedirect());
         
         // Small delay to let browser process Set-Cookie headers
         await new Promise(r => setTimeout(r, 300));
@@ -209,7 +227,7 @@ function LoginPageContent() {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, rememberMe, router]);
+  }, [formData, rememberMe, resolvePostAuthTarget, currentQueryRedirect]);
 
   // OAuth login - ✅ Migré vers NestJS backend
   const handleOAuthLogin = useCallback(async (provider: 'google' | 'github') => {
@@ -289,12 +307,9 @@ function LoginPageContent() {
             setSuccess(t('auth.login.successRedirect'));
             const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
             const user = userJson ? (JSON.parse(userJson) as { role?: string }) : undefined;
-            const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-            const redirectTo = params.get('redirect');
-            const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
             setTimeout(() => {
               // Use window.location.href for full page reload so cookies are properly read server-side
-              window.location.href = safeRedirect || getRoleBasedRedirect(user?.role);
+              window.location.href = resolvePostAuthTarget(user?.role, currentQueryRedirect());
             }, 500);
           }}
           onError={(error) => setError(error)}

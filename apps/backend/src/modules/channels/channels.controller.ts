@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -24,6 +25,7 @@ import { CurrentUser as CurrentUserType } from '@/common/types/user.types';
 import { ChannelsService } from './channels.service';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
+import { ChannelReliabilityService } from './channel-reliability.service';
 
 @ApiTags('channels')
 @Controller('channels')
@@ -32,7 +34,10 @@ import { UpdateChannelDto } from './dto/update-channel.dto';
 export class ChannelsController {
   private readonly logger = new Logger(ChannelsController.name);
 
-  constructor(private readonly channelsService: ChannelsService) {}
+  constructor(
+    private readonly channelsService: ChannelsService,
+    private readonly channelReliabilityService: ChannelReliabilityService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Liste des canaux d\'un agent' })
@@ -76,5 +81,58 @@ export class ChannelsController {
     @CurrentUser() user: CurrentUserType,
   ) {
     return this.channelsService.delete(id, user);
+  }
+
+  @Get('reliability/sla')
+  @ApiOperation({ summary: 'Statistiques SLA par canal' })
+  @ApiQuery({ name: 'days', required: false, type: Number })
+  async getSla(
+    @CurrentUser() user: CurrentUserType,
+    @Query('days') days?: string,
+  ) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    return this.channelReliabilityService.getChannelSla(
+      user.organizationId,
+      days ? parseInt(days, 10) : 7,
+    );
+  }
+
+  @Get('reliability/dlq')
+  @ApiOperation({ summary: 'Dead-letter queue des envois canal' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getDlq(
+    @CurrentUser() user: CurrentUserType,
+    @Query('limit') limit?: string,
+  ) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    const items = this.channelReliabilityService.getDeadLetterQueue(
+      user.organizationId,
+      limit ? parseInt(limit, 10) : 50,
+    );
+    return {
+      data: items.map((item) => ({
+        id: item.id,
+        channelType: item.channelType,
+        recipientId: item.recipientId,
+        reason: item.reason,
+        failedAt: item.failedAt,
+      })),
+    };
+  }
+
+  @Post('reliability/dlq/:id/retry')
+  @ApiOperation({ summary: 'Rejouer un message depuis la dead-letter queue' })
+  async retryDlqItem(
+    @CurrentUser() user: CurrentUserType,
+    @Param('id') id: string,
+  ) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    return this.channelReliabilityService.retryDeadLetterItem(user.organizationId, id);
   }
 }

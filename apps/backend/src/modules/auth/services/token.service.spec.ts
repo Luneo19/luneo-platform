@@ -29,12 +29,18 @@ describe('TokenService', () => {
     firstName: 'Test',
     lastName: 'User',
     role,
-    isActive: true,
-    organizationId: 'brand-123',
-    brand: {
-      id: 'brand-123',
-      name: 'Test Brand',
-    },
+    deletedAt: null,
+    memberships: [
+      {
+        organizationId: 'org-123',
+        organization: {
+          id: 'org-123',
+          name: 'Test Organization',
+          slug: 'test-organization',
+          plan: 'FREE',
+        },
+      },
+    ],
   };
 
   beforeEach(async () => {
@@ -46,6 +52,9 @@ describe('TokenService', () => {
         updateMany: jest.fn(),
         deleteMany: jest.fn(),
         count: jest.fn().mockResolvedValue(0),
+      },
+      user: {
+        findUnique: jest.fn(),
       },
     };
 
@@ -116,7 +125,7 @@ describe('TokenService', () => {
       expect(jwtService.signAsync).toHaveBeenCalledTimes(2);
       expect(jwtService.signAsync).toHaveBeenNthCalledWith(
         1,
-        { sub: userId, email, role },
+        { sub: userId, email, role, jti: expect.any(String) },
         {
           secret: 'test-secret',
           expiresIn: '15m',
@@ -124,7 +133,7 @@ describe('TokenService', () => {
       );
       expect(jwtService.signAsync).toHaveBeenNthCalledWith(
         2,
-        { sub: userId, email, role },
+        { sub: userId, email, role, jti: expect.any(String) },
         {
           secret: 'test-refresh-secret',
           expiresIn: '7d',
@@ -147,7 +156,7 @@ describe('TokenService', () => {
 
       // Assert
       expect(jwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, email, role },
+        { sub: userId, email, role, jti: expect.any(String) },
         expect.any(Object),
       );
     });
@@ -174,8 +183,9 @@ describe('TokenService', () => {
       expect(prismaService.refreshToken.create).toHaveBeenCalledWith({
         data: {
           userId,
-          token,
+          token: expect.any(String),
           expiresAt: expect.any(Date),
+          deviceId: expect.any(String),
         },
       });
       const callArgs = (prismaService.refreshToken.create as jest.Mock).mock.calls[0][0];
@@ -201,14 +211,14 @@ describe('TokenService', () => {
       expect(prismaService.refreshToken.create).toHaveBeenCalledWith({
         data: {
           userId,
-          token,
+          token: expect.any(String),
           expiresAt: expect.any(Date),
-          family,
+          deviceId: family,
         },
       });
     });
 
-    it('should not include family when not provided', async () => {
+    it('should generate a family id when not provided', async () => {
       // Arrange
       const token = 'refresh-token-123';
       (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
@@ -218,7 +228,8 @@ describe('TokenService', () => {
 
       // Assert
       const callArgs = (prismaService.refreshToken.create as jest.Mock).mock.calls[0][0];
-      expect(callArgs.data).not.toHaveProperty('family');
+      expect(callArgs.data).toHaveProperty('deviceId');
+      expect(typeof callArgs.data.deviceId).toBe('string');
     });
   });
 
@@ -234,10 +245,10 @@ describe('TokenService', () => {
         token: 'valid-refresh-token',
         userId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        usedAt: null,
+        isRevoked: false,
         revokedAt: null,
-        family: 'family-123',
-        user: mockUser,
+        deviceId: 'family-123',
+        deviceName: 'test-agent',
       };
 
       (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
@@ -251,6 +262,7 @@ describe('TokenService', () => {
         .mockResolvedValueOnce('new-refresh-token');
       (prismaService.refreshToken.update as jest.Mock).mockResolvedValue({});
       (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({});
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
 
       // Act
       const result = await service.refreshToken(refreshTokenDto);
@@ -265,32 +277,25 @@ describe('TokenService', () => {
         firstName: mockUser.firstName,
         lastName: mockUser.lastName,
         role,
-        brandId: mockUser.brandId,
-        brand: mockUser.brand,
+        organizationId: 'org-123',
+        organization: mockUser.memberships[0].organization,
       });
       expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-refresh-token', {
         secret: 'test-refresh-secret',
       });
       expect(prismaService.refreshToken.findUnique).toHaveBeenCalledWith({
-        where: { token: 'valid-refresh-token' },
-        include: {
-          user: {
-            include: {
-              brand: true,
-            },
-          },
-        },
+        where: { token: expect.any(String) },
       });
       expect(prismaService.refreshToken.update).toHaveBeenCalledWith({
         where: { id: 'token-123' },
-        data: { usedAt: expect.any(Date) },
+        data: { isRevoked: true, revokedAt: expect.any(Date) },
       });
       expect(prismaService.refreshToken.create).toHaveBeenCalledWith({
         data: {
           userId,
-          token: 'new-refresh-token',
+          token: expect.any(String),
           expiresAt: expect.any(Date),
-          family: 'family-123',
+          deviceId: 'family-123',
         },
       });
     });
@@ -325,10 +330,9 @@ describe('TokenService', () => {
         token: 'expired-refresh-token',
         userId,
         expiresAt: new Date(Date.now() - 1000), // Expired
-        usedAt: null,
+        isRevoked: false,
         revokedAt: null,
-        family: 'family-123',
-        user: mockUser,
+        deviceId: 'family-123',
       };
 
       (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
@@ -350,10 +354,9 @@ describe('TokenService', () => {
         token: 'valid-refresh-token',
         userId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        usedAt: new Date(), // Already used - indicates reuse
-        revokedAt: null,
-        family: 'family-123',
-        user: mockUser,
+        isRevoked: true,
+        revokedAt: new Date(),
+        deviceId: 'family-123',
       };
 
       (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
@@ -370,8 +373,8 @@ describe('TokenService', () => {
         'Refresh token has been revoked. Please login again.',
       );
       expect(prismaService.refreshToken.updateMany).toHaveBeenCalledWith({
-        where: { family: 'family-123' },
-        data: { revokedAt: expect.any(Date) },
+        where: { userId, deviceId: 'family-123' },
+        data: { isRevoked: true, revokedAt: expect.any(Date) },
       });
     });
 
@@ -382,10 +385,9 @@ describe('TokenService', () => {
         token: 'valid-refresh-token',
         userId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        usedAt: null,
+        isRevoked: false,
         revokedAt: new Date(), // Revoked
-        family: 'family-123',
-        user: mockUser,
+        deviceId: 'family-123',
       };
 
       (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
@@ -456,11 +458,7 @@ describe('TokenService', () => {
           OR: [
             { expiresAt: { lt: expect.any(Date) } },
             { revokedAt: { not: null } },
-            {
-              usedAt: {
-                lt: expect.any(Date),
-              },
-            },
+            { isRevoked: true },
           ],
         },
       });
@@ -477,7 +475,7 @@ describe('TokenService', () => {
       expect(result).toBe(0);
     });
 
-    it('should delete tokens used more than 24 hours ago', async () => {
+    it('should include revoked tokens in cleanup criteria', async () => {
       // Arrange
       (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({ count: 2 });
 
@@ -486,11 +484,8 @@ describe('TokenService', () => {
 
       // Assert
       const callArgs = (prismaService.refreshToken.deleteMany as jest.Mock).mock.calls[0][0];
-      const usedAtCondition = callArgs.where.OR[2];
-      expect(usedAtCondition.usedAt.lt).toBeInstanceOf(Date);
-      const expectedDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const diff = Math.abs(usedAtCondition.usedAt.lt.getTime() - expectedDate.getTime());
-      expect(diff).toBeLessThan(1000); // Within 1 second
+      const revokedCondition = callArgs.where.OR[2];
+      expect(revokedCondition).toEqual({ isRevoked: true });
     });
   });
 });

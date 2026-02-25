@@ -232,6 +232,21 @@ apiClient.interceptors.response.use(
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
 
+function toDateRangeFromPeriod(period?: string): { from: string; to: string } | undefined {
+  if (!period) return undefined;
+  const now = new Date();
+  const from = new Date(now);
+  if (period === '24h') from.setDate(now.getDate() - 1);
+  else if (period === '7d') from.setDate(now.getDate() - 7);
+  else if (period === '30d') from.setDate(now.getDate() - 30);
+  else if (period === '90d') from.setDate(now.getDate() - 90);
+  else return undefined;
+  return {
+    from: from.toISOString().split('T')[0],
+    to: now.toISOString().split('T')[0],
+  };
+}
+
 async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -401,6 +416,18 @@ export const endpoints = {
     update: (data: Record<string, unknown>) => api.put('/api/v1/organizations/settings', data),
   },
 
+  // LLM Models
+  llm: {
+    models: () => api.get('/api/v1/llm/models'),
+  },
+
+  // Web Crawler & Persona Generation
+  webCrawler: {
+    crawl: (url: string) => api.post('/api/v1/web-crawler/crawl', { url }),
+    generatePersona: (url: string, industry?: string) =>
+      api.post('/api/v1/web-crawler/generate-persona', { url, industry }),
+  },
+
   // Agents V2
   agents: {
     list: (params?: { status?: string; page?: number; limit?: number }) =>
@@ -501,8 +528,15 @@ export const endpoints = {
 
   // Analytics (kept for dashboard-level metrics)
   analytics: {
-    overview: (params?: { period?: string }) =>
-      api.get('/api/v1/analytics/dashboard', { params }),
+    overview: (params?: { period?: string; from?: string; to?: string }) => {
+      const fromTo = toDateRangeFromPeriod(params?.period);
+      return api.get('/api/v1/agent-analytics/overview', {
+        params: {
+          from: params?.from ?? fromTo?.from,
+          to: params?.to ?? fromTo?.to,
+        },
+      });
+    },
     pipeline: () =>
       api.get<{ products: number; selling: number; orders: number; inProduction: number; delivered: number }>('/api/v1/analytics/pipeline'),
     designs: (params?: { startDate?: string; endDate?: string }) =>
@@ -742,14 +776,14 @@ export const endpoints = {
   // ORION Super Admin - Retention (ARTEMIS) + Admin Tools
   orion: {
     auditLog: (params?: { page?: number; pageSize?: number; action?: string; userId?: string; dateFrom?: string; dateTo?: string }) =>
-      api.get<{ items: Array<{ id: string; adminId: string; action: string; resource: string; resourceId: string | null; changes: unknown; ipAddress: string | null; createdAt: string; user: { email: string; name: string } }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/orion/audit-log', { params }),
+      api.get<{ items: Array<{ id: string; adminId: string; action: string; resource: string; resourceId: string | null; changes: unknown; ipAddress: string | null; createdAt: string; user: { email: string; name: string } }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/admin/orion/audit-log', { params }),
     notifications: (params?: { page?: number; pageSize?: number; type?: string; read?: boolean }) =>
-      api.get<{ items: Array<{ id: string; type: string; title: string; message: string; read: boolean; readAt: string | null; createdAt: string }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/orion/notifications', { params }),
-    notificationCount: () => api.get<{ count: number }>('/api/v1/orion/notifications/count'),
-    markNotificationRead: (id: string) => api.put<{ id: string; read: boolean }>(`/api/v1/orion/notifications/${id}/read`),
-    markAllNotificationsRead: () => api.put<{ success: boolean }>('/api/v1/orion/notifications/read-all'),
+      api.get<{ items: Array<{ id: string; type: string; title: string; message: string; read: boolean; readAt: string | null; createdAt: string }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/admin/orion/notifications', { params }),
+    notificationCount: () => api.get<{ count: number }>('/api/v1/admin/orion/notifications/count'),
+    markNotificationRead: (id: string) => api.put<{ id: string; read: boolean }>(`/api/v1/admin/orion/notifications/${id}/read`),
+    markAllNotificationsRead: () => api.put<{ success: boolean }>('/api/v1/admin/orion/notifications/read-all'),
     export: (type: string, params?: { format?: 'csv' | 'json'; dateFrom?: string; dateTo?: string; limit?: number }) =>
-      api.get<string | { data: unknown[] }>(`/api/v1/orion/export/${type}`, { params }),
+      api.get<string | { data: unknown[] }>(`/api/v1/admin/orion/export/${type}`, { params }),
     retention: {
       dashboard: () => api.get<{
         totalUsers: number;
@@ -758,7 +792,7 @@ export const endpoints = {
         atRiskPercent: number;
         distribution: Array<{ level: string; count: number }>;
         trend: Array<{ date: string; count: number; avgScore: number }>;
-      }>('/api/v1/orion/retention/dashboard'),
+      }>('/api/v1/admin/orion/retention/dashboard'),
       atRisk: (params?: { limit?: number }) =>
         api.get<Array<{
           id: string;
@@ -767,7 +801,7 @@ export const endpoints = {
           churnRisk: string;
           lastActivityAt: string | null;
           user: { id: string; email: string; firstName: string | null; lastName: string | null; lastLoginAt: string | null };
-        }>>('/api/v1/orion/retention/at-risk', { params }),
+        }>>('/api/v1/admin/orion/retention/at-risk', { params }),
       healthScore: (userId: string) =>
         api.get<{
           id: string;
@@ -776,9 +810,9 @@ export const endpoints = {
           churnRisk: string;
           lastActivityAt: string | null;
           user: { id: string; email: string; firstName: string | null; lastName: string | null; lastLoginAt: string | null };
-        }>(`/api/v1/orion/retention/health/${userId}`),
+        }>(`/api/v1/admin/orion/retention/health/${userId}`),
       calculate: (userId: string) =>
-        api.post<{ id: string; healthScore: number; churnRisk: string }>(`/api/v1/orion/retention/calculate/${userId}`),
+        api.post<{ id: string; healthScore: number; churnRisk: string }>(`/api/v1/admin/orion/retention/calculate/${userId}`),
       winBackCampaigns: () =>
         api.get<Array<{
           id: string;
@@ -788,9 +822,9 @@ export const endpoints = {
           status: string;
           stepsCount: number;
           runsCount: number;
-        }>>('/api/v1/orion/retention/win-back'),
+        }>>('/api/v1/admin/orion/retention/win-back'),
       triggerWinBack: (userIds: string[]) =>
-        api.post<{ triggered: number; runIds?: string[]; message?: string }>('/api/v1/orion/retention/win-back/trigger', { userIds }),
+        api.post<{ triggered: number; runIds?: string[]; message?: string }>('/api/v1/admin/orion/retention/win-back/trigger', { userIds }),
     },
     quickWins: {
       status: () =>
@@ -799,92 +833,92 @@ export const endpoints = {
           lowCreditsAlert: { usersAtRisk: number };
           churnAlert: { inactiveUsers: number };
           trialReminder: { trialEnding: number };
-        }>('/api/v1/orion/quick-wins/status'),
+        }>('/api/v1/admin/orion/quick-wins/status'),
       welcomeSetup: () =>
-        api.post<{ template: { id: string }; status: string }>('/api/v1/orion/quick-wins/welcome-setup'),
+        api.post<{ template: { id: string }; status: string }>('/api/v1/admin/orion/quick-wins/welcome-setup'),
       lowCredits: () =>
         api.get<{ usersAtRisk: number; users: Array<{ id: string; email: string; firstName: string | null; aiCredits: number }> }>(
-          '/api/v1/orion/quick-wins/low-credits'
+          '/api/v1/admin/orion/quick-wins/low-credits'
         ),
       inactive: (params?: { days?: number }) =>
         api.get<{
           inactiveUsers: number;
           users: Array<{ id: string; email: string; firstName: string | null; lastLoginAt: string | null }>;
           thresholdDays: number;
-        }>('/api/v1/orion/quick-wins/inactive', { params }),
+        }>('/api/v1/admin/orion/quick-wins/inactive', { params }),
       trialEnding: () =>
         api.get<{
           trialEnding: number;
           users: Array<{ id: string; email: string; firstName: string | null; trialEndsAt: Date | null; brandName: string }>;
           brands: number;
-        }>('/api/v1/orion/quick-wins/trial-ending'),
+        }>('/api/v1/admin/orion/quick-wins/trial-ending'),
     },
     prometheus: {
-      stats: () => api.get<unknown>('/api/v1/orion/prometheus/stats'),
-      analyzeTicket: (ticketId: string) => api.post<unknown>(`/api/v1/orion/prometheus/tickets/${ticketId}/analyze`),
-      generateResponse: (ticketId: string) => api.post<unknown>(`/api/v1/orion/prometheus/tickets/${ticketId}/generate`),
-      reviewQueue: (params?: { status?: string; page?: number; limit?: number }) => api.get<unknown>('/api/v1/orion/prometheus/review-queue', { params }),
-      reviewStats: () => api.get<unknown>('/api/v1/orion/prometheus/review-queue/stats'),
-      approveResponse: (responseId: string, body?: { notes?: string; editedContent?: string }) => api.post<unknown>(`/api/v1/orion/prometheus/review-queue/${responseId}/approve`, body),
-      rejectResponse: (responseId: string, body?: { notes?: string }) => api.post<unknown>(`/api/v1/orion/prometheus/review-queue/${responseId}/reject`, body),
-      bulkApprove: (responseIds: string[]) => api.post<unknown>('/api/v1/orion/prometheus/review-queue/bulk-approve', { responseIds }),
-      submitFeedback: (responseId: string, rating: number, comment?: string) => api.put<unknown>(`/api/v1/orion/prometheus/responses/${responseId}/feedback`, { rating, comment }),
+      stats: () => api.get<unknown>('/api/v1/admin/orion/prometheus/stats'),
+      analyzeTicket: (ticketId: string) => api.post<unknown>(`/api/v1/admin/orion/prometheus/tickets/${ticketId}/analyze`),
+      generateResponse: (ticketId: string) => api.post<unknown>(`/api/v1/admin/orion/prometheus/tickets/${ticketId}/generate`),
+      reviewQueue: (params?: { status?: string; page?: number; limit?: number }) => api.get<unknown>('/api/v1/admin/orion/prometheus/review-queue', { params }),
+      reviewStats: () => api.get<unknown>('/api/v1/admin/orion/prometheus/review-queue/stats'),
+      approveResponse: (responseId: string, body?: { notes?: string; editedContent?: string }) => api.post<unknown>(`/api/v1/admin/orion/prometheus/review-queue/${responseId}/approve`, body),
+      rejectResponse: (responseId: string, body?: { notes?: string }) => api.post<unknown>(`/api/v1/admin/orion/prometheus/review-queue/${responseId}/reject`, body),
+      bulkApprove: (responseIds: string[]) => api.post<unknown>('/api/v1/admin/orion/prometheus/review-queue/bulk-approve', { responseIds }),
+      submitFeedback: (responseId: string, rating: number, comment?: string) => api.put<unknown>(`/api/v1/admin/orion/prometheus/responses/${responseId}/feedback`, { rating, comment }),
     },
     zeus: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/zeus/dashboard'),
-      alerts: () => api.get<unknown>('/api/v1/orion/zeus/alerts'),
-      decisions: () => api.get<unknown>('/api/v1/orion/zeus/decisions'),
-      override: (actionId: string, approved: boolean) => api.post<unknown>(`/api/v1/orion/zeus/override/${actionId}`, { approved }),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/zeus/dashboard'),
+      alerts: () => api.get<unknown>('/api/v1/admin/orion/zeus/alerts'),
+      decisions: () => api.get<unknown>('/api/v1/admin/orion/zeus/decisions'),
+      override: (actionId: string, approved: boolean) => api.post<unknown>(`/api/v1/admin/orion/zeus/override/${actionId}`, { approved }),
     },
     athena: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/athena/dashboard'),
-      distribution: () => api.get<unknown>('/api/v1/orion/athena/distribution'),
-      customerHealth: (userId: string) => api.get<unknown>(`/api/v1/orion/athena/customer/${userId}`),
-      calculateHealth: (userId: string) => api.post<unknown>(`/api/v1/orion/athena/calculate/${userId}`),
-      generateInsights: () => api.post<unknown>('/api/v1/orion/athena/insights/generate'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/athena/dashboard'),
+      distribution: () => api.get<unknown>('/api/v1/admin/orion/athena/distribution'),
+      customerHealth: (userId: string) => api.get<unknown>(`/api/v1/admin/orion/athena/customer/${userId}`),
+      calculateHealth: (userId: string) => api.post<unknown>(`/api/v1/admin/orion/athena/calculate/${userId}`),
+      generateInsights: () => api.post<unknown>('/api/v1/admin/orion/athena/insights/generate'),
     },
     apollo: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/apollo/dashboard'),
-      services: () => api.get<unknown>('/api/v1/orion/apollo/services'),
-      incidents: (status?: string) => api.get<unknown>('/api/v1/orion/apollo/incidents', { params: { status } }),
-      metrics: (hours?: number) => api.get<unknown>('/api/v1/orion/apollo/metrics', { params: { hours } }),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/apollo/dashboard'),
+      services: () => api.get<unknown>('/api/v1/admin/orion/apollo/services'),
+      incidents: (status?: string) => api.get<unknown>('/api/v1/admin/orion/apollo/incidents', { params: { status } }),
+      metrics: (hours?: number) => api.get<unknown>('/api/v1/admin/orion/apollo/metrics', { params: { hours } }),
     },
     artemis: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/artemis/dashboard'),
-      threats: () => api.get<unknown>('/api/v1/orion/artemis/threats'),
-      resolveThreat: (id: string) => api.post<unknown>(`/api/v1/orion/artemis/threats/${id}/resolve`),
-      blockedIPs: () => api.get<unknown>('/api/v1/orion/artemis/blocked-ips'),
-      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) => api.post<unknown>('/api/v1/orion/artemis/block-ip', data),
-      unblockIP: (ip: string) => api.delete<unknown>(`/api/v1/orion/artemis/blocked-ips/${ip}`),
-      fraudChecks: () => api.get<unknown>('/api/v1/orion/artemis/fraud-checks'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/artemis/dashboard'),
+      threats: () => api.get<unknown>('/api/v1/admin/orion/artemis/threats'),
+      resolveThreat: (id: string) => api.post<unknown>(`/api/v1/admin/orion/artemis/threats/${id}/resolve`),
+      blockedIPs: () => api.get<unknown>('/api/v1/admin/orion/artemis/blocked-ips'),
+      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) => api.post<unknown>('/api/v1/admin/orion/artemis/block-ip', data),
+      unblockIP: (ip: string) => api.delete<unknown>(`/api/v1/admin/orion/artemis/blocked-ips/${ip}`),
+      fraudChecks: () => api.get<unknown>('/api/v1/admin/orion/artemis/fraud-checks'),
     },
     hermes: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/hermes/dashboard'),
-      pending: () => api.get<unknown>('/api/v1/orion/hermes/pending'),
-      campaigns: () => api.get<unknown>('/api/v1/orion/hermes/campaigns'),
-      stats: () => api.get<unknown>('/api/v1/orion/hermes/stats'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/hermes/dashboard'),
+      pending: () => api.get<unknown>('/api/v1/admin/orion/hermes/pending'),
+      campaigns: () => api.get<unknown>('/api/v1/admin/orion/hermes/campaigns'),
+      stats: () => api.get<unknown>('/api/v1/admin/orion/hermes/stats'),
     },
     hades: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/hades/dashboard'),
-      atRisk: () => api.get<unknown>('/api/v1/orion/hades/at-risk'),
-      winBack: () => api.get<unknown>('/api/v1/orion/hades/win-back'),
-      mrrAtRisk: () => api.get<unknown>('/api/v1/orion/hades/mrr-at-risk'),
-      actions: () => api.get<unknown>('/api/v1/orion/hades/actions'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/hades/dashboard'),
+      atRisk: () => api.get<unknown>('/api/v1/admin/orion/hades/at-risk'),
+      winBack: () => api.get<unknown>('/api/v1/admin/orion/hades/win-back'),
+      mrrAtRisk: () => api.get<unknown>('/api/v1/admin/orion/hades/mrr-at-risk'),
+      actions: () => api.get<unknown>('/api/v1/admin/orion/hades/actions'),
     },
-    insights: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/orion/insights', { params }),
-    actions: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/orion/actions', { params }),
-    activityFeed: (limit?: number) => api.get<unknown>('/api/v1/orion/activity-feed', { params: { limit } }),
+    insights: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/admin/orion/insights', { params }),
+    actions: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/admin/orion/actions', { params }),
+    activityFeed: (limit?: number) => api.get<unknown>('/api/v1/admin/orion/activity-feed', { params: { limit } }),
     automationsV2: {
-      list: (brandId?: string) => api.get<unknown>('/api/v1/orion/automations-v2', { params: { brandId } }),
-      get: (id: string) => api.get<unknown>(`/api/v1/orion/automations-v2/${id}`),
-      create: (data: Record<string, unknown>) => api.post<unknown>('/api/v1/orion/automations-v2', data),
-      update: (id: string, data: Record<string, unknown>) => api.put<unknown>(`/api/v1/orion/automations-v2/${id}`, data),
-      toggle: (id: string) => api.post<unknown>(`/api/v1/orion/automations-v2/${id}/toggle`),
-      delete: (id: string) => api.delete<unknown>(`/api/v1/orion/automations-v2/${id}`),
-      test: (id: string, testData: Record<string, unknown>) => api.post<unknown>(`/api/v1/orion/automations-v2/${id}/test`, { testData }),
-      runs: (id: string) => api.get<unknown>(`/api/v1/orion/automations-v2/${id}/runs`),
-      triggers: () => api.get<unknown>('/api/v1/orion/automations-v2/triggers'),
-      actions: () => api.get<unknown>('/api/v1/orion/automations-v2/actions'),
+      list: (brandId?: string) => api.get<unknown>('/api/v1/admin/orion/automations-v2', { params: { brandId } }),
+      get: (id: string) => api.get<unknown>(`/api/v1/admin/orion/automations-v2/${id}`),
+      create: (data: Record<string, unknown>) => api.post<unknown>('/api/v1/admin/orion/automations-v2', data),
+      update: (id: string, data: Record<string, unknown>) => api.put<unknown>(`/api/v1/admin/orion/automations-v2/${id}`, data),
+      toggle: (id: string) => api.post<unknown>(`/api/v1/admin/orion/automations-v2/${id}/toggle`),
+      delete: (id: string) => api.delete<unknown>(`/api/v1/admin/orion/automations-v2/${id}`),
+      test: (id: string, testData: Record<string, unknown>) => api.post<unknown>(`/api/v1/admin/orion/automations-v2/${id}/test`, { testData }),
+      runs: (id: string) => api.get<unknown>(`/api/v1/admin/orion/automations-v2/${id}/runs`),
+      triggers: () => api.get<unknown>('/api/v1/admin/orion/automations-v2/triggers'),
+      actions: () => api.get<unknown>('/api/v1/admin/orion/automations-v2/actions'),
     },
   },
 

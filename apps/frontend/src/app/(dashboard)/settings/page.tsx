@@ -42,6 +42,13 @@ interface NotificationSettings {
   securityAlerts: boolean;
 }
 
+type UserSettingsPayload = {
+  security?: Partial<SecuritySettings>;
+  notifications?: Partial<NotificationSettings>;
+  theme?: string;
+  language?: string;
+};
+
 function SettingsPageContent() {
   const { toast } = useToast();
   const { t } = useI18n();
@@ -139,11 +146,11 @@ function SettingsPageContent() {
 
   // Load settings from API
   useEffect(() => {
-    fetch('/api/v1/users/settings', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
+    api
+      .get<{ data?: UserSettingsPayload } | UserSettingsPayload>('/api/v1/users/settings')
       .then((data) => {
         if (data) {
-          const settings = data.data || data;
+          const settings: UserSettingsPayload = (data as { data?: UserSettingsPayload }).data ?? (data as UserSettingsPayload);
           if (settings.security) setSecurity((prev) => ({ ...prev, ...settings.security }));
           if (settings.notifications) setNotifications((prev) => ({ ...prev, ...settings.notifications }));
           if (settings.theme) setTheme(settings.theme);

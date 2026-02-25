@@ -1,28 +1,17 @@
 'use client';
 
-import React, { memo } from 'react';
-
-// =============================================================================
-// FIREFLY CTA - Orbiting luminous particles around CTA buttons
-// Inspired by madgicx.com - subtle glowing fireflies orbit continuously
-// Pure CSS animation, GPU-accelerated, respects prefers-reduced-motion
-// =============================================================================
+import React, { memo, useRef, useEffect, useState } from 'react';
 
 interface FireflyCTAProps {
   children: React.ReactNode;
-  /** Additional className for the outer wrapper */
   className?: string;
-  /** Color scheme for the fireflies */
   color?: 'purple' | 'cyan' | 'white' | 'rainbow';
-  /** Speed: 'slow' (10s) | 'normal' (7s) | 'fast' (4s) */
   speed?: 'slow' | 'normal' | 'fast';
-  /** Whether the animation is active (default: true) */
   active?: boolean;
 }
 
 const SPEEDS = { slow: 10, normal: 7, fast: 4 };
 
-// Each firefly has: color, glow, orbit delay offset, orbit direction
 const FIREFLY_CONFIGS = {
   purple: [
     { color: '#a855f7', glow: 'rgba(168,85,247,0.6)' },
@@ -55,50 +44,54 @@ function FireflyCTAInner({
 }: FireflyCTAProps) {
   const duration = SPEEDS[speed];
   const configs = FIREFLY_CONFIGS[color];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [orbitBase, setOrbitBase] = useState<{ rx: number; ry: number } | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const { width, height } = containerRef.current.getBoundingClientRect();
+    setOrbitBase({ rx: width / 2 + 18, ry: height / 2 + 12 });
+  }, []);
 
   if (!active) {
     return <div className={`relative inline-flex ${className}`}>{children}</div>;
   }
 
   return (
-    <div className={`firefly-cta group/firefly relative inline-flex ${className}`}>
-      {/* Firefly particles container — extends 24px beyond button edge */}
-      <div className="absolute inset-[-24px] pointer-events-none overflow-visible z-30" aria-hidden="true">
+    <div ref={containerRef} className={`firefly-cta group/firefly relative inline-flex ${className}`}>
+      <div className="absolute inset-[-20px] pointer-events-none overflow-visible z-30" aria-hidden="true">
         {configs.map((fly, i) => {
           const flyDuration = duration + i * 1.2;
           const delay = -(i * (duration / configs.length));
           const isReverse = i % 2 === 1;
-          const orbitPct = 48 + i * 2;
+          const rx = orbitBase ? orbitBase.rx + i * 8 : 60;
+          const ry = orbitBase ? orbitBase.ry + i * 4 : 30;
 
           return (
             <div
               key={i}
-              className="firefly-dot absolute inset-0 gpu-accelerated"
+              className="firefly-dot absolute"
               style={{
+                width: '4px',
+                height: '4px',
+                background: fly.color,
+                borderRadius: '50%',
+                boxShadow: `0 0 8px 3px ${fly.glow}, 0 0 16px 6px ${fly.glow}`,
+                top: '50%',
+                left: '50%',
+                marginTop: '-2px',
+                marginLeft: '-2px',
+                willChange: 'transform, opacity',
                 animation: `firefly-orbit ${flyDuration}s linear infinite${isReverse ? ' reverse' : ''}`,
                 animationDelay: `${delay}s`,
-                '--orbit-rx': `${orbitPct}%`,
-                '--orbit-ry': `${orbitPct}%`,
+                '--orbit-rx': `${rx}px`,
+                '--orbit-ry': `${ry}px`,
               } as React.CSSProperties}
-            >
-              <div
-                className="absolute top-1/2 left-1/2"
-                style={{
-                  width: '3px',
-                  height: '3px',
-                  marginTop: '-1.5px',
-                  marginLeft: '-1.5px',
-                  background: fly.color,
-                  borderRadius: '50%',
-                  boxShadow: `0 0 6px 2px ${fly.glow}, 0 0 12px 4px ${fly.glow}`,
-                }}
-              />
-            </div>
+            />
           );
         })}
       </div>
 
-      {/* The CTA button content */}
       <div className="relative z-20 w-full">
         {children}
       </div>

@@ -7,18 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['Authorization'] = auth;
-  return headers;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +22,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(`${API_URL}/api/v1/admin/webhooks`);
     searchParams.forEach((v, k) => url.searchParams.set(k, v));
 
-    const res = await fetch(url.toString(), { headers: forwardHeaders(request) });
+    const res = await fetch(url.toString(), { headers: buildAdminForwardHeaders(request) });
     const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
       return NextResponse.json(raw.error ?? { error: 'Failed to fetch webhooks' }, { status: res.status });
@@ -54,7 +45,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const res = await fetch(`${API_URL}/api/v1/admin/webhooks`, {
       method: 'POST',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),
     });
     const raw = await res.json().catch(() => ({}));

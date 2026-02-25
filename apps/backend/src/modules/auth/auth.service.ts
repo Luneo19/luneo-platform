@@ -57,7 +57,8 @@ export class AuthService {
   }
 
   async signup(signupDto: SignupDto) {
-    const { email, password, firstName, lastName, role, captchaToken, company, referralCode } = signupDto;
+    const { email, password, firstName, lastName, captchaToken, company, referralCode } = signupDto;
+    const normalizedEmail = email.trim().toLowerCase();
 
     // ✅ Verify CAPTCHA (if provided)
     if (captchaToken) {
@@ -78,7 +79,7 @@ export class AuthService {
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -91,7 +92,7 @@ export class AuthService {
     // Create user
     const user = await this.prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash: hashedPassword,
         firstName,
         lastName,
@@ -201,15 +202,16 @@ export class AuthService {
 
   async login(loginDto: LoginDto, ip?: string) {
     const { email, password } = loginDto;
+    const normalizedEmail = email.trim().toLowerCase();
     const clientIp = ip || 'unknown';
 
     // Protection brute force avec fail-open (timeouts intégrés dans le service)
     // Le service gère les erreurs Redis et les timeouts de manière transparente
-    await this.bruteForceService.checkAndThrow(email, clientIp);
+    await this.bruteForceService.checkAndThrow(normalizedEmail, clientIp);
 
     // Find user
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       include: {
         memberships: { where: { isActive: true }, include: { organization: true }, take: 1 },
       },
@@ -217,7 +219,7 @@ export class AuthService {
 
     if (!user || !user.passwordHash) {
       // Enregistrer tentative échouée (fail-safe, n'échoue pas si Redis a des problèmes)
-      await this.bruteForceService.recordFailedAttempt(email, clientIp);
+      await this.bruteForceService.recordFailedAttempt(normalizedEmail, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -225,7 +227,7 @@ export class AuthService {
     const { isValid: isPasswordValid, needsRehash } = await verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) {
       // Enregistrer tentative échouée (fail-safe)
-      await this.bruteForceService.recordFailedAttempt(email, clientIp);
+      await this.bruteForceService.recordFailedAttempt(normalizedEmail, clientIp);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -247,7 +249,7 @@ export class AuthService {
       const accountAge = Date.now() - new Date(user.createdAt).getTime();
       if (accountAge > gracePeriodMs) {
         // Reset brute force counter since password was correct
-        await this.bruteForceService.resetAttempts(email, clientIp);
+        await this.bruteForceService.resetAttempts(normalizedEmail, clientIp);
         throw new UnauthorizedException(
           'Email not verified. Please check your inbox and verify your email before logging in.',
         );
@@ -265,7 +267,7 @@ export class AuthService {
       );
 
       // Réinitialiser tentatives brute force après succès (fail-safe)
-      await this.bruteForceService.resetAttempts(email, clientIp);
+      await this.bruteForceService.resetAttempts(normalizedEmail, clientIp);
 
       return {
         requires2FA: true,
@@ -280,7 +282,7 @@ export class AuthService {
     }
 
     // Réinitialiser tentatives brute force après succès (fail-safe)
-    await this.bruteForceService.resetAttempts(email, clientIp);
+    await this.bruteForceService.resetAttempts(normalizedEmail, clientIp);
 
     // Update last login
     await this.prisma.user.update({
@@ -666,8 +668,11 @@ export class AuthService {
    * SEC-08: Rotation des refresh tokens avec détection de réutilisation
    * Delegates to TokenService
    */
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
-    return this.tokenService.refreshToken(refreshTokenDto);
+  async refreshToken(
+    refreshTokenDto: RefreshTokenDto,
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
+    return this.tokenService.refreshToken(refreshTokenDto, metadata);
   }
 
   /**

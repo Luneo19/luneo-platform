@@ -190,17 +190,17 @@ describe('Sidebar', () => {
       expect(dashboardLink).toHaveAttribute('href', '/overview');
       
       const aiStudioLink = screen.getByText('AI Studio').closest('a');
-      expect(aiStudioLink).toHaveAttribute('href', '/dashboard/ai-studio');
+      expect(aiStudioLink).toHaveAttribute('href', '/agents');
     });
 
     it('should render business links with correct hrefs', () => {
       render(<Sidebar {...defaultProps} />);
       
       const billingLink = screen.getByText('Facturation').closest('a');
-      expect(billingLink).toHaveAttribute('href', '/dashboard/billing');
+      expect(billingLink).toHaveAttribute('href', '/billing');
       
       const teamLink = screen.getByText('Équipe').closest('a');
-      expect(teamLink).toHaveAttribute('href', '/dashboard/team');
+      expect(teamLink).toHaveAttribute('href', '/team');
     });
   });
 

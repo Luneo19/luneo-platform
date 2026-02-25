@@ -1,5 +1,6 @@
 import { PrismaModule } from '@/libs/prisma/prisma.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
+import { IdempotencyModule } from '@/libs/idempotency/idempotency.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EmailModule } from '../email/email.module';
@@ -14,7 +15,7 @@ import { InvoiceTaxService } from './services/invoice-tax.service';
 import { BillingEnhancedService } from './services/billing-enhanced.service';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, RedisOptimizedModule, EmailModule, SecurityModule, ReferralModule],
+  imports: [ConfigModule, PrismaModule, RedisOptimizedModule, IdempotencyModule, EmailModule, SecurityModule, ReferralModule],
   controllers: [BillingController, StripeWebhookController],
   providers: [BillingService, StripeService, StripeClientService, InvoiceTaxService, BillingEnhancedService],
   exports: [BillingService, StripeService, StripeClientService, InvoiceTaxService, BillingEnhancedService],

@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { RagService, RagSource } from '@/modules/rag/rag.service';
 import { LlmService } from '@/libs/llm/llm.service';
+import { LlmProvider } from '@/libs/llm/llm.interface';
 
 export interface AgentExecutionResult {
   content: string;
@@ -89,6 +90,13 @@ export class OrchestratorService {
       messages,
       temperature: agent.temperature,
       maxTokens: agent.maxTokensPerReply,
+      timeoutMs: 20000,
+      retryCount: 1,
+      fallbackProviders: [
+        LlmProvider.OPENAI,
+        LlmProvider.ANTHROPIC,
+        LlmProvider.GOOGLE,
+      ],
     });
 
     // 6. Save assistant message to DB

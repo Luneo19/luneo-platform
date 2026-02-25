@@ -22,6 +22,7 @@ import { LocaleSwitcher } from '@/components/navigation/LocaleSwitcher';
 import { useTranslations } from '@/i18n/useI18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoutes } from '@/lib/routes';
 
 interface HeaderProps {
   title?: string;
@@ -168,14 +169,14 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                       </div>
                     </Link>
                     
-                    <Link href="/dashboard/billing">
+                    <Link href={appRoutes.billing}>
                       <div className="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/50">
                         <CreditCard className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         <span>{t('profileMenu.billing')}</span>
                       </div>
                     </Link>
                     
-                    <Link href="/dashboard/settings">
+                    <Link href={appRoutes.settings}>
                       <div className="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/50">
                         <Settings className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         <span>{t('profileMenu.settings')}</span>
@@ -195,7 +196,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                     
                     <div className="my-2 border-t border-border" />
                     
-                    <Link href="/dashboard/integrations">
+                    <Link href={appRoutes.integrations}>
                       <div className="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/50">
                         <span className="flex h-4 w-4 items-center justify-center text-muted-foreground" aria-hidden="true">
                           🌐

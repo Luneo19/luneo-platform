@@ -5,6 +5,7 @@ import { Plan, OrgStatus } from '@prisma/client';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { normalizePlanTier, getPlanConfig } from '@/libs/plans';
 import { StripeClientService } from './services/stripe-client.service';
+import { IdempotencyService } from '@/libs/idempotency/idempotency.service';
 
 export type PlanSlug = 'pro' | 'business' | 'enterprise';
 
@@ -44,6 +45,7 @@ export class StripeService {
     private readonly configService: ConfigService,
     private readonly stripeClient: StripeClientService,
     private readonly prisma: PrismaService,
+    private readonly idempotencyService: IdempotencyService,
   ) {}
 
   async createCustomer(orgId: string, email: string, name: string): Promise<string> {
@@ -97,37 +99,55 @@ export class StripeService {
     }
     const stripe = await this.stripeClient.getStripe();
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    const idempotencyKey = `stripe:webhook:${event.id}`;
 
-    this.logger.log(`Stripe webhook received: ${event.type}`);
+    const claimed = await this.idempotencyService.claimForProcessing(idempotencyKey, 300);
+    if (!claimed) {
+      this.logger.warn(`Duplicate Stripe webhook ignored: ${event.type} (${event.id})`);
+      return;
+    }
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        await this.onCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-        break;
+    try {
+      this.logger.log(`Stripe webhook received: ${event.type}`);
+
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          await this.onCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
+        }
+
+        case 'invoice.paid': {
+          await this.onInvoicePaid(event.data.object as Stripe.Invoice);
+          break;
+        }
+
+        case 'invoice.payment_failed': {
+          await this.onInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+        }
+
+        case 'customer.subscription.updated': {
+          await this.onSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          break;
+        }
+
+        case 'customer.subscription.deleted': {
+          await this.onSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
+        }
+
+        default:
+          this.logger.debug(`Unhandled Stripe event type: ${event.type}`);
       }
 
-      case 'invoice.paid': {
-        await this.onInvoicePaid(event.data.object as Stripe.Invoice);
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        await this.onInvoicePaymentFailed(event.data.object as Stripe.Invoice);
-        break;
-      }
-
-      case 'customer.subscription.updated': {
-        await this.onSubscriptionUpdated(event.data.object as Stripe.Subscription);
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        await this.onSubscriptionDeleted(event.data.object as Stripe.Subscription);
-        break;
-      }
-
-      default:
-        this.logger.debug(`Unhandled Stripe event type: ${event.type}`);
+      await this.idempotencyService.completeProcessing(
+        idempotencyKey,
+        { type: event.type, id: event.id },
+        60 * 60 * 24 * 30, // 30 days for webhook replay protection
+      );
+    } catch (error) {
+      await this.idempotencyService.releaseClaim(idempotencyKey);
+      throw error;
     }
   }
 
@@ -137,7 +157,7 @@ export class StripeService {
 
   private async onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
     const organizationId = session.metadata?.organizationId;
-    const planName = session.metadata?.plan;
+    const planName = session.metadata?.plan ?? session.metadata?.planId;
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
 

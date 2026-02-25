@@ -15,7 +15,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
     "typescript": "^5.3.0",

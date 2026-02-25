@@ -155,7 +155,7 @@ export class BillingService {
   ) {
     // Distributed lock to prevent double checkout for the same user
     const checkoutLockKey = `checkout:${userId}`;
-    const lockAcquired = await this.distributedLock.acquire(checkoutLockKey, 30);
+    const lockAcquired = await this.distributedLock.acquire(checkoutLockKey, 30, false);
     if (!lockAcquired) {
       throw new BadRequestException('Une session de paiement est déjà en cours de création. Veuillez patienter.');
     }
@@ -219,11 +219,42 @@ export class BillingService {
       },
     });
     const existingOrg = existingUser?.memberships?.[0]?.organization;
+    if (!existingOrg?.id) {
+      throw new NotFoundException('Organisation introuvable pour cet utilisateur.');
+    }
 
-    if (existingOrg?.stripeSubscriptionId && existingOrg.status === 'ACTIVE') {
-      throw new BadRequestException(
-        'Vous avez déjà un abonnement actif. Veuillez annuler votre abonnement actuel ou changer de plan depuis votre dashboard.',
+    if (existingOrg?.stripeSubscriptionId) {
+      // Conservative guard: block checkout when an existing subscription is still billable.
+      let hasBlockingSubscription = ['ACTIVE', 'TRIAL', 'SUSPENDED'].includes(
+        String(existingOrg.status || ''),
       );
+
+      try {
+        const stripe = await this.getStripe();
+        const currentSubscription = await stripe.subscriptions.retrieve(
+          existingOrg.stripeSubscriptionId,
+        );
+        const blockingStatuses: Stripe.Subscription.Status[] = [
+          'active',
+          'trialing',
+          'past_due',
+          'unpaid',
+          'incomplete',
+        ];
+        hasBlockingSubscription = blockingStatuses.includes(currentSubscription.status);
+      } catch (stripeError) {
+        this.logger.warn('Unable to verify existing Stripe subscription state during checkout guard', {
+          organizationId: existingOrg.id,
+          stripeSubscriptionId: existingOrg.stripeSubscriptionId,
+          error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+        });
+      }
+
+      if (hasBlockingSubscription) {
+        throw new BadRequestException(
+          'Un abonnement est déjà associé à votre organisation. Veuillez gérer votre plan depuis le dashboard pour éviter toute double facturation.',
+        );
+      }
     }
 
     if (planId === 'free') {
@@ -373,13 +404,22 @@ export class BillingService {
         locale: (options?.locale ? this.mapLocaleToStripe(options.locale) : undefined) as Stripe.Checkout.SessionCreateParams.Locale | undefined,
         metadata: {
           userId,
+          organizationId: existingOrg.id,
           planId,
+          plan: planId,
           billingInterval,
           addOns: options?.addOns ? JSON.stringify(options.addOns) : '',
           currency,
         },
             // BIL-10: Essai gratuit configurable par plan
         subscription_data: {
+              metadata: {
+                userId,
+                organizationId: existingOrg.id,
+                planId,
+                plan: planId,
+                billingInterval,
+              },
               trial_period_days: this.getTrialDaysForPlan(planId),
         },
       });
@@ -881,78 +921,85 @@ export class BillingService {
       throw new BadRequestException('User does not have an active subscription. Please subscribe first.');
     }
 
-    // 2. Récupérer l'abonnement Stripe actuel
-    const currentSubscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId!);
-    
-    if (currentSubscription.status === 'canceled' || currentSubscription.status === 'incomplete_expired') {
-      throw new BadRequestException('Cannot change plan for canceled subscription. Please create a new subscription.');
+    const changePlanLockKey = `billing:change-plan:${org.id}`;
+    const changePlanLockAcquired = await this.distributedLock.acquire(changePlanLockKey, 45, false);
+    if (!changePlanLockAcquired) {
+      throw new BadRequestException('Un changement de plan est déjà en cours. Veuillez réessayer dans quelques instants.');
     }
 
-    // 3. Déterminer le plan actuel et le nouveau plan
-    const currentPriceId = currentSubscription.items.data[0]?.price.id;
-    const currentPlanInfo = await this.getPlanFromPriceId(currentPriceId);
+    try {
+      // 2. Récupérer l'abonnement Stripe actuel
+      const currentSubscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId!);
     
-    // 4. Obtenir le nouveau Price ID depuis la configuration
-    const newPriceId = this.getPriceIdForPlan(newPlanId, billingInterval);
+      if (currentSubscription.status === 'canceled' || currentSubscription.status === 'incomplete_expired') {
+        throw new BadRequestException('Cannot change plan for canceled subscription. Please create a new subscription.');
+      }
+
+      // 3. Déterminer le plan actuel et le nouveau plan
+      const currentPriceId = currentSubscription.items.data[0]?.price.id;
+      const currentPlanInfo = await this.getPlanFromPriceId(currentPriceId);
     
-    if (!newPriceId) {
-      throw new BadRequestException(`Invalid plan ID or plan not configured: ${newPlanId}`);
-    }
-
-    // 5. Si le Price ID est le même, rien à faire
-    if (currentPriceId === newPriceId) {
-      return {
-        success: true,
-        type: 'same',
-        effectiveDate: new Date(),
-        message: 'You are already on this plan',
-        subscriptionId: currentSubscription.id,
-        previousPlan: currentPlanInfo.planName,
-        newPlan: newPlanId,
-      };
-    }
-
-    // 6. Récupérer les prix pour déterminer si c'est un upgrade ou downgrade
-    const [currentPrice, newPrice] = await Promise.all([
-      stripe.prices.retrieve(currentPriceId),
-      stripe.prices.retrieve(newPriceId),
-    ]);
-
-    const currentAmount = currentPrice.unit_amount || 0;
-    const newAmount = newPrice.unit_amount || 0;
+      // 4. Obtenir le nouveau Price ID depuis la configuration
+      const newPriceId = this.getPriceIdForPlan(newPlanId, billingInterval);
     
-    // Normaliser les montants si les intervalles sont différents
-    const normalizedCurrentAmount = this.normalizeToMonthly(currentAmount, currentPrice.recurring?.interval);
-    const normalizedNewAmount = this.normalizeToMonthly(newAmount, newPrice.recurring?.interval);
+      if (!newPriceId) {
+        throw new BadRequestException(`Invalid plan ID or plan not configured: ${newPlanId}`);
+      }
+
+      // 5. Si le Price ID est le même, rien à faire
+      if (currentPriceId === newPriceId) {
+        return {
+          success: true,
+          type: 'same',
+          effectiveDate: new Date(),
+          message: 'You are already on this plan',
+          subscriptionId: currentSubscription.id,
+          previousPlan: currentPlanInfo.planName,
+          newPlan: newPlanId,
+        };
+      }
+
+      // 6. Récupérer les prix pour déterminer si c'est un upgrade ou downgrade
+      const [currentPrice, newPrice] = await Promise.all([
+        stripe.prices.retrieve(currentPriceId),
+        stripe.prices.retrieve(newPriceId),
+      ]);
+
+      const currentAmount = currentPrice.unit_amount || 0;
+      const newAmount = newPrice.unit_amount || 0;
     
-    const isUpgrade = normalizedNewAmount > normalizedCurrentAmount;
-    const isDowngrade = normalizedNewAmount < normalizedCurrentAmount;
+      // Normaliser les montants si les intervalles sont différents
+      const normalizedCurrentAmount = this.normalizeToMonthly(currentAmount, currentPrice.recurring?.interval);
+      const normalizedNewAmount = this.normalizeToMonthly(newAmount, newPrice.recurring?.interval);
+    
+      const isUpgrade = normalizedNewAmount > normalizedCurrentAmount;
+      const isDowngrade = normalizedNewAmount < normalizedCurrentAmount;
 
-    // 7. Configurer les options de proration
-    let prorationBehavior: 'create_prorations' | 'none' | 'always_invoice';
-    let effectiveDate: Date;
+      // 7. Configurer les options de proration
+      let prorationBehavior: 'create_prorations' | 'none' | 'always_invoice';
+      let effectiveDate: Date;
 
-    if (isUpgrade) {
+      if (isUpgrade) {
       // Upgrade: Appliquer immédiatement avec prorata
       prorationBehavior = 'create_prorations';
       effectiveDate = new Date();
       this.logger.log(`Upgrade detected: ${currentPlanInfo.planName} -> ${newPlanId}, applying immediately with proration`);
-    } else if (isDowngrade && !immediateChange) {
+      } else if (isDowngrade && !immediateChange) {
       // Downgrade: Appliquer à la fin de la période (sauf si forcé)
       prorationBehavior = 'none';
       effectiveDate = new Date(currentSubscription.current_period_end * 1000);
       this.logger.log(`Downgrade detected: ${currentPlanInfo.planName} -> ${newPlanId}, scheduled for ${effectiveDate.toISOString()}`);
-    } else {
+      } else {
       // Downgrade immédiat forcé ou prix égal
       prorationBehavior = immediateChange ? 'create_prorations' : 'none';
       effectiveDate = immediateChange ? new Date() : new Date(currentSubscription.current_period_end * 1000);
     }
 
     // 8. Calculer le montant de prorata avant d'appliquer
-    let prorationAmount = 0;
-    let prorationAmountFormatted: string | undefined;
+      let prorationAmount = 0;
+      let prorationAmountFormatted: string | undefined;
     
-    if (prorationBehavior === 'create_prorations') {
+      if (prorationBehavior === 'create_prorations') {
       try {
         const preview = await stripe.invoices.retrieveUpcoming({
           customer: org.stripeCustomerId!,
@@ -987,7 +1034,7 @@ export class BillingService {
     }
 
     // 9. Mettre à jour l'abonnement Stripe
-    try {
+      try {
       const updateParams: Stripe.SubscriptionUpdateParams = {
         items: [
           {
@@ -1150,16 +1197,19 @@ export class BillingService {
         previousPlan: currentPlanInfo.planName,
         newPlan: newPlanId,
       };
-    } catch (stripeError: unknown) {
-      const message = stripeError instanceof Error ? stripeError.message : String(stripeError);
-      this.logger.error('Failed to change plan', {
-        userId,
-        newPlanId,
-        error: message,
-      });
-      throw new InternalServerErrorException(
-        `Failed to change plan: ${message}`
-      );
+      } catch (stripeError: unknown) {
+        const message = stripeError instanceof Error ? stripeError.message : String(stripeError);
+        this.logger.error('Failed to change plan', {
+          userId,
+          newPlanId,
+          error: message,
+        });
+        throw new InternalServerErrorException(
+          `Failed to change plan: ${message}`
+        );
+      }
+    } finally {
+      await this.distributedLock.release(changePlanLockKey);
     }
   }
 

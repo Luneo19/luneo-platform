@@ -16,6 +16,27 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly configService: ConfigService,
     private readonly oauthService: OAuthService,
   ) {
+    const startupLogger = new Logger(GoogleStrategy.name);
+    const oauthStateRaw =
+      configService.get<string>('oauth.google.enableState') ??
+      configService.get<string>('OAUTH_GOOGLE_ENABLE_STATE');
+    const oauthPkceRaw =
+      configService.get<string>('oauth.google.enablePkce') ??
+      configService.get<string>('OAUTH_GOOGLE_ENABLE_PKCE');
+    const oauthStateEnabled = (oauthStateRaw ?? 'false') === 'true';
+    const oauthPkceEnabled = (oauthPkceRaw ?? 'false') === 'true';
+
+    if (oauthStateRaw == null) {
+      startupLogger.warn(
+        'Google OAuth state is not explicitly configured (default=false). Set OAUTH_GOOGLE_ENABLE_STATE=true/false explicitly.',
+      );
+    }
+    if (oauthPkceRaw == null) {
+      startupLogger.warn(
+        'Google OAuth PKCE is not explicitly configured (default=false). Set OAUTH_GOOGLE_ENABLE_PKCE=true/false explicitly.',
+      );
+    }
+
     const clientID = configService.get<string>('oauth.google.clientId') ||
                      configService.get<string>('GOOGLE_CLIENT_ID') ||
                      configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
@@ -35,10 +56,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret,
       callbackURL: callbackURL || '/api/v1/auth/google/callback',
       scope: ['email', 'profile'],
-      // SECURITY FIX: Enable state parameter for CSRF protection on OAuth callbacks
-      state: true,
-      // SECURITY FIX: Enable PKCE (Proof Key for Code Exchange) to prevent authorization code interception
-      pkce: true,
+      // State/PKCE can require extra session setup with passport strategies.
+      // Keep them configurable to avoid hard prod failures when infra is stateless.
+      state: oauthStateEnabled,
+      pkce: oauthPkceEnabled,
       passReqToCallback: false,
     });
   }

@@ -47,13 +47,30 @@ const LANGUAGE_OPTIONS = [
   { value: 'it', label: 'Italien' },
 ] as const;
 
-const MODEL_OPTIONS = [
-  { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-  { value: 'gpt-4o', label: 'GPT-4o' },
-  { value: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet' },
-  { value: 'claude-3-haiku', label: 'Claude 3 Haiku' },
-  { value: 'mixtral-8x7b', label: 'Mixtral 8x7B' },
-] as const;
+interface LlmModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  maxTokens: number;
+  inputCostPer1M: number;
+  outputCostPer1M: number;
+}
+
+const FALLBACK_MODEL_OPTIONS: LlmModelInfo[] = [
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', maxTokens: 128000, inputCostPer1M: 0.15, outputCostPer1M: 0.6 },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', maxTokens: 128000, inputCostPer1M: 2.5, outputCostPer1M: 10 },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'anthropic', maxTokens: 200000, inputCostPer1M: 3, outputCostPer1M: 15 },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'google', maxTokens: 1048576, inputCostPer1M: 0.1, outputCostPer1M: 0.4 },
+  { id: 'mistral-small-latest', name: 'Mistral Small', provider: 'mistral', maxTokens: 128000, inputCostPer1M: 0.2, outputCostPer1M: 0.6 },
+];
+
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  google: 'Google',
+  groq: 'Groq',
+  mistral: 'Mistral',
+};
 
 interface AgentTemplate {
   id: string;
@@ -104,6 +121,22 @@ export default function AgentCreatePage() {
   const [templateLoading, setTemplateLoading] = useState(!!templateIdOrSlug);
   const [createLoading, setCreateLoading] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [availableModels, setAvailableModels] = useState<LlmModelInfo[]>(FALLBACK_MODEL_OPTIONS);
+
+  useEffect(() => {
+    api.get<{ models: LlmModelInfo[] }>('/api/v1/llm/models')
+      .then((res) => {
+        const models = (res as { data?: { models: LlmModelInfo[] } })?.data?.models ?? (res as { models: LlmModelInfo[] })?.models;
+        if (models?.length) setAvailableModels(models);
+      })
+      .catch(() => {});
+  }, []);
+
+  const modelsByProvider = availableModels.reduce<Record<string, LlmModelInfo[]>>((acc, m) => {
+    if (!acc[m.provider]) acc[m.provider] = [];
+    acc[m.provider].push(m);
+    return acc;
+  }, {});
 
   const fetchTemplate = useCallback(async () => {
     if (!templateIdOrSlug) return;
@@ -345,26 +378,41 @@ export default function AgentCreatePage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/80">Modèle</Label>
+              <Label className="text-white/80">Modèle IA</Label>
               <Select
                 value={form.model}
                 onValueChange={(v) => updateForm({ model: v })}
               >
                 <SelectTrigger className="border-white/[0.06] bg-white/[0.03] text-white">
-                  <SelectValue />
+                  <SelectValue placeholder="Sélectionner un modèle" />
                 </SelectTrigger>
-                <SelectContent className="border-white/[0.06] bg-gray-900">
-                  {MODEL_OPTIONS.map((opt) => (
-                    <SelectItem
-                      key={opt.value}
-                      value={opt.value}
-                      className="text-white focus:bg-white/[0.1]"
-                    >
-                      {opt.label}
-                    </SelectItem>
+                <SelectContent className="border-white/[0.06] bg-gray-900 max-h-[300px]">
+                  {Object.entries(modelsByProvider).map(([provider, models]) => (
+                    <div key={provider}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-white/40 uppercase tracking-wider">
+                        {PROVIDER_LABELS[provider] ?? provider}
+                      </div>
+                      {models.map((m) => (
+                        <SelectItem
+                          key={m.id}
+                          value={m.id}
+                          className="text-white focus:bg-white/[0.1]"
+                        >
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <span>{m.name}</span>
+                            <span className="text-[10px] text-white/30">${m.inputCostPer1M}/1M</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-white/30">
+                {availableModels.find((m) => m.id === form.model)?.name ?? form.model}
+                {' — '}
+                {PROVIDER_LABELS[availableModels.find((m) => m.id === form.model)?.provider ?? ''] ?? ''}
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -476,7 +524,12 @@ export default function AgentCreatePage() {
               </div>
               <div>
                 <p className="text-xs text-white/40">Modèle</p>
-                <p className="text-sm text-white/70">{form.model}</p>
+                <p className="text-sm text-white/70">
+                  {availableModels.find((m) => m.id === form.model)?.name ?? form.model}
+                  <span className="ml-2 text-white/30">
+                    ({PROVIDER_LABELS[availableModels.find((m) => m.id === form.model)?.provider ?? ''] ?? ''})
+                  </span>
+                </p>
               </div>
               <div>
                 <p className="text-xs text-white/40">Température</p>

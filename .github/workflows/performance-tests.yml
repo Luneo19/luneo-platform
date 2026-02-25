@@ -92,23 +92,10 @@ jobs:
 
       - name: Check Performance Thresholds
         run: |
-          # Parse k6 results and check thresholds
           if [ -f tests/performance/results-k6.json ]; then
-            p95=$(cat tests/performance/results-k6.json | jq -r '.metrics.http_req_duration.values.p95')
-            error_rate=$(cat tests/performance/results-k6.json | jq -r '.metrics.http_req_failed.values.rate')
-            
-            echo "p95 Latency: ${p95}ms"
-            echo "Error Rate: ${error_rate}"
-            
-            if (( $(echo "$p95 > 1000" | bc -l) )); then
-              echo "❌ p95 latency exceeds threshold (1000ms)"
-              exit 1
-            fi
-            
-            if (( $(echo "$error_rate > 0.01" | bc -l) )); then
-              echo "❌ Error rate exceeds threshold (1%)"
-              exit 1
-            fi
-            
-            echo "✅ Performance thresholds met"
+            node scripts/perf/evaluate-slo.mjs
           fi
+        env:
+          K6_REPORT_PATH: tests/performance/results-k6.json
+          SLO_P95_THRESHOLD_MS: 1000
+          SLO_ERROR_RATE_THRESHOLD: 0.01

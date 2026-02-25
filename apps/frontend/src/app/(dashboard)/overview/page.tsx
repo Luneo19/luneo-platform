@@ -22,6 +22,10 @@ import {
   Activity,
   Loader2,
   RefreshCw,
+  DollarSign,
+  Users,
+  Zap,
+  Target,
 } from 'lucide-react';
 
 interface OverviewStats {
@@ -32,6 +36,10 @@ interface OverviewStats {
   conversationsTrend: number;
   resolutionRate: number;
   avgSatisfaction: number;
+  leadsCaptured: number;
+  resolvedWithoutHuman: number;
+  estimatedRevenue: number;
+  costSavings: number;
 }
 
 interface RecentConversation {
@@ -50,9 +58,18 @@ function useOverviewStats(period: string) {
     queryKey: ['overview-stats', period],
     queryFn: async () => {
       try {
+        const now = new Date();
+        const from = new Date(now);
+        if (period === '24h') from.setDate(now.getDate() - 1);
+        else if (period === '7d') from.setDate(now.getDate() - 7);
+        else if (period === '30d') from.setDate(now.getDate() - 30);
+        else if (period === '90d') from.setDate(now.getDate() - 90);
+        const fromStr = from.toISOString().split('T')[0];
+        const toStr = now.toISOString().split('T')[0];
+
         const [agentsRes, analyticsRes] = await Promise.all([
           api.get('/api/v1/agents'),
-          api.get(`/api/v1/agent-analytics/overview?period=${period}`),
+          api.get(`/api/v1/agent-analytics/overview?from=${fromStr}&to=${toStr}`),
         ]);
         const agentsRaw = agentsRes as Record<string, unknown> | unknown[];
         const agents = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as Record<string, unknown>)?.data as unknown[] ?? []);
@@ -68,12 +85,17 @@ function useOverviewStats(period: string) {
           conversationsTrend: Number(analytics.conversationsTrend) || 0,
           resolutionRate: Number(analytics.resolutionRate) || 0,
           avgSatisfaction: Number(analytics.avgSatisfaction) || 0,
+          leadsCaptured: Number(analytics.leadsCaptured) || 0,
+          resolvedWithoutHuman: Number(analytics.resolvedWithoutHuman) || 0,
+          estimatedRevenue: Number(analytics.estimatedRevenue) || 0,
+          costSavings: Number(analytics.costSavings) || 0,
         };
       } catch {
         return {
           agentsActive: 0, agentsTotal: 0,
           conversationsTotal: 0, conversationsThisPeriod: 0, conversationsTrend: 0,
           resolutionRate: 0, avgSatisfaction: 0,
+          leadsCaptured: 0, resolvedWithoutHuman: 0, estimatedRevenue: 0, costSavings: 0,
         };
       }
     },
@@ -189,37 +211,60 @@ function OverviewContent() {
           ))}
         </div>
       ) : stats ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <KPICard
-            label="Agents actifs"
-            value={`${stats.agentsActive}/${stats.agentsTotal}`}
-            subtitle="agents déployés"
-            icon={Bot}
-            color="bg-purple-500/10 text-purple-400"
-          />
-          <KPICard
-            label="Conversations"
-            value={stats.conversationsThisPeriod.toLocaleString()}
-            subtitle="ce mois"
-            icon={MessageSquare}
-            trend={stats.conversationsTrend}
-            color="bg-blue-500/10 text-blue-400"
-          />
-          <KPICard
-            label="Taux de résolution"
-            value={`${Math.round(stats.resolutionRate * 100)}%`}
-            subtitle="résolues automatiquement"
-            icon={CheckCircle2}
-            color="bg-emerald-500/10 text-emerald-400"
-          />
-          <KPICard
-            label="Satisfaction"
-            value={stats.avgSatisfaction > 0 ? `${stats.avgSatisfaction.toFixed(1)}/5` : '—'}
-            subtitle="score moyen"
-            icon={Star}
-            color="bg-amber-500/10 text-amber-400"
-          />
-        </div>
+        <>
+          {/* Business Impact KPIs - Primary */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <KPICard
+              label="Revenus générés"
+              value={stats.estimatedRevenue > 0 ? `${stats.estimatedRevenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}` : '—'}
+              subtitle="attribués aux agents"
+              icon={DollarSign}
+              color="bg-emerald-500/10 text-emerald-400"
+            />
+            <KPICard
+              label="Leads capturés"
+              value={stats.leadsCaptured.toLocaleString()}
+              subtitle="contacts qualifiés"
+              icon={Users}
+              trend={stats.conversationsTrend}
+              color="bg-blue-500/10 text-blue-400"
+            />
+            <KPICard
+              label="Résolutions IA"
+              value={stats.resolvedWithoutHuman.toLocaleString()}
+              subtitle={`${Math.round(stats.resolutionRate * 100)}% sans humain`}
+              icon={Zap}
+              color="bg-purple-500/10 text-purple-400"
+            />
+            <KPICard
+              label="Économies"
+              value={stats.costSavings > 0 ? `${stats.costSavings.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}` : '—'}
+              subtitle="vs agents humains"
+              icon={Target}
+              color="bg-amber-500/10 text-amber-400"
+            />
+          </div>
+
+          {/* Operational KPIs - Secondary */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <p className="text-xs text-white/40">Agents actifs</p>
+              <p className="text-lg font-semibold text-white">{stats.agentsActive}/{stats.agentsTotal}</p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <p className="text-xs text-white/40">Conversations</p>
+              <p className="text-lg font-semibold text-white">{stats.conversationsThisPeriod.toLocaleString()}</p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <p className="text-xs text-white/40">Satisfaction</p>
+              <p className="text-lg font-semibold text-white">{stats.avgSatisfaction > 0 ? `${stats.avgSatisfaction.toFixed(1)}/5` : '—'}</p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <p className="text-xs text-white/40">Total conversations</p>
+              <p className="text-lg font-semibold text-white">{stats.conversationsTotal.toLocaleString()}</p>
+            </div>
+          </div>
+        </>
       ) : null}
 
       {/* Quick Actions */}

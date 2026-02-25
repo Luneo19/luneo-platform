@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { endpoints } from '@/lib/api/client';
+import { appRoutes } from '@/lib/routes';
 
 function BillingPortalPageContent() {
   const router = useRouter();
@@ -28,7 +29,7 @@ function BillingPortalPageContent() {
         window.location.href = data.url;
       } catch (err: unknown) {
         if ((err as { response?: { status?: number } })?.response?.status === 401) {
-          router.push('/login');
+          router.push(appRoutes.login);
           return;
         }
         const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -54,7 +55,7 @@ function BillingPortalPageContent() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 variant="outline"
-                onClick={() => router.push('/dashboard/billing')}
+                onClick={() => router.push(appRoutes.billing)}
                 className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -62,7 +63,7 @@ function BillingPortalPageContent() {
               </Button>
               {error.includes('abonnement') && (
                 <Button
-                  onClick={() => router.push('/dashboard/billing')}
+                  onClick={() => router.push(appRoutes.billing)}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
                 >
                   Voir les plans
@@ -79,7 +80,7 @@ function BillingPortalPageContent() {
             </div>
             <Button
               variant="outline"
-              onClick={() => router.push('/dashboard/billing')}
+              onClick={() => router.push(appRoutes.billing)}
               className="border-white/[0.12] text-white/80 hover:bg-white/[0.04] mt-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

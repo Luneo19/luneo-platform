@@ -6,8 +6,8 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
 
 /**
  * OrganizationsModule (renamed from BrandsModule for V2)
- * TODO: Rename all internal references from "brands" to "organizations"
- * when implementing the V2 schema (Etape 2)
+ * V2 note: internal symbols still use "brands" for backward compatibility.
+ * Public API remains organization-oriented.
  */
 @Module({
   imports: [PrismaOptimizedModule, SmartCacheModule],

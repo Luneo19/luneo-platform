@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePricingPlans } from '@/lib/hooks/useMarketingData';
 import { api, endpoints } from '@/lib/api/client';
+import { appRoutes } from '@/lib/routes';
 import { useI18n } from '@/i18n/useI18n';
 import { getTranslatedPlans, getTranslatedFeatures, getTranslatedFaqs } from '../data';
 import type { Plan, Feature } from '../data';
@@ -66,7 +67,7 @@ export function usePricingPage() {
         const plan = sub?.plan;
         const status = sub?.status;
         if (plan && status === 'active' && plan !== 'free') {
-          window.location.href = '/dashboard/billing';
+          window.location.href = appRoutes.billing;
           return;
         }
       } catch {

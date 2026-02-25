@@ -1,4 +1,4 @@
-export { Navigation } from './Navigation';
+export { Navigation } from './navigation';
 export { FooterNew } from './FooterNew';
 export { HeroSectionNew } from './HeroSectionNew';
 export { SocialProofSection } from './SocialProofSection';

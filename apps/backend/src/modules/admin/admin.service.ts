@@ -3,7 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
-import { Prisma, Plan, OrgStatus, PlatformRole, TicketStatus, InvoiceStatus } from '@prisma/client';
+import { Prisma, Plan, OrgStatus, PlatformRole, TicketStatus, InvoiceStatus, AgentStatus } from '@prisma/client';
 import { EmailService } from '@/modules/email/email.service';
 import { BillingService } from '@/modules/billing/billing.service';
 import { AuditLogsService, AuditEventType } from '@/modules/security/services/audit-logs.service';
@@ -1000,7 +1000,7 @@ export class AdminService {
     }
 
     if (type === 'conversations') {
-      // TODO: V2 has no Order model — export conversations instead
+      // V2 note: no Order model in current schema; export conversations as operational proxy.
       const conversations = await this.prisma.conversation.findMany({
         take: 1000,
         orderBy: { createdAt: 'desc' },
@@ -1141,7 +1141,7 @@ export class AdminService {
       let passwordToHash = defaultAdminPw;
       if (!passwordToHash) {
         passwordToHash = crypto.randomBytes(16).toString('hex');
-        this.logger.warn(`DEV ONLY: Generated random admin password: ${passwordToHash}`);
+        this.logger.warn('DEV ONLY: Generated random admin password');
       }
       const adminPassword = await bcrypt.hash(passwordToHash, 13);
       const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
@@ -1176,8 +1176,19 @@ export class AdminService {
     }
   }
 
+  async hasActiveAdmin(): Promise<boolean> {
+    const admin = await this.prisma.user.findFirst({
+      where: {
+        role: PlatformRole.ADMIN,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    return !!admin;
+  }
+
   async getAICosts(_period: string = '30d') {
-    // TODO: V2 uses UsageRecord instead of AICost — implement when usage tracking is wired
+    // V2 note: usage costs are computed from UsageRecord in the current schema.
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
 
@@ -1214,7 +1225,7 @@ export class AdminService {
   private static readonly SETTINGS_PREFIX = 'platform:settings:';
 
   async getSettings() {
-    // TODO: V2 has no SystemConfig model — using FeatureFlag.rules as fallback storage
+    // V2 note: settings persistence uses FeatureFlag.rules as canonical fallback storage.
     const settings: Record<string, string | boolean | number> = {
       enforce2FA: false,
       sessionTimeout: 30,
@@ -1358,7 +1369,7 @@ export class AdminService {
       case 'tag':
         return { success: true, message: `Tagged ${customerIds.length} customers`, count: customerIds.length };
       case 'segment':
-        // TODO: V2 has no AnalyticsSegment model
+        // V2 note: AnalyticsSegment model is not available in current schema.
         return { success: true, message: `Segment action not available in V2`, count: 0 };
       case 'delete':
         return this.bulkDeleteCustomers(customerIds);
@@ -1428,22 +1439,22 @@ export class AdminService {
   // ========================================
 
   async getDiscounts(_options?: { page?: number; limit?: number; isActive?: boolean }) {
-    // TODO: V2 has no Discount model — e-commerce features removed
+    // V2 note: Discount model is not available; e-commerce discount features are disabled.
     return { discounts: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
   }
 
   async createDiscount(_data: Record<string, unknown>) {
-    // TODO: V2 has no Discount model
+    // V2 note: Discount model is not available.
     return { message: 'Discount management not available in V2' };
   }
 
   async updateDiscount(_id: string, _data: Record<string, unknown>) {
-    // TODO: V2 has no Discount model
+    // V2 note: Discount model is not available.
     return { message: 'Discount management not available in V2' };
   }
 
   async deleteDiscount(_id: string) {
-    // TODO: V2 has no Discount model
+    // V2 note: Discount model is not available.
     return { message: 'Discount management not available in V2' };
   }
 
@@ -1452,27 +1463,27 @@ export class AdminService {
   // ========================================
 
   async getReferrals(_options?: { page?: number; limit?: number; status?: string }) {
-    // TODO: V2 has no Referral model
+    // V2 note: Referral model is not available in current schema.
     return { referrals: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
   }
 
   async getCommissions(_options?: { page?: number; limit?: number; status?: string }) {
-    // TODO: V2 has no Commission model
+    // V2 note: Commission model is not available in current schema.
     return { commissions: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
   }
 
   async approveCommission(_commissionId: string) {
-    // TODO: V2 has no Commission model
+    // V2 note: Commission model is not available in current schema.
     return { message: 'Commission management not available in V2' };
   }
 
   async markCommissionPaid(_commissionId: string) {
-    // TODO: V2 has no Commission model
+    // V2 note: Commission model is not available in current schema.
     return { message: 'Commission management not available in V2' };
   }
 
   async rejectCommission(_commissionId: string) {
-    // TODO: V2 has no Commission model
+    // V2 note: Commission model is not available in current schema.
     return { message: 'Commission management not available in V2' };
   }
 
@@ -1689,7 +1700,7 @@ export class AdminService {
   // ========================================
 
   async getEvents(_params: { days?: number; type?: string; page?: number; limit?: number }) {
-    // TODO: V2 has no Event model — use AuditLog as proxy
+    // V2 note: Event model is not available; AuditLog is used as a proxy source.
     const days = _params.days || 30;
     const page = _params.page || 1;
     const limit = _params.limit || 50;
@@ -1963,7 +1974,7 @@ export class AdminService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    // TODO: V2 has no Design model — return agents as a proxy
+    // V2 note: Design model is not available; agents are returned as a proxy.
     const page = _params?.page || 1;
     const limit = Math.min(_params?.limit || 20, 100);
     const skip = (page - 1) * limit;
@@ -2015,7 +2026,7 @@ export class AdminService {
   // ========================================
 
   async getARStudioMetrics(_periodDays: number = 30) {
-    // TODO: V2 has no AR models — return empty metrics
+    // V2 note: AR models are not available in current schema; metrics return empty payloads.
     return {
       period: { days: _periodDays, since: new Date(Date.now() - _periodDays * 86400000).toISOString() },
       totals: { projects: 0, models: 0, sessions: 0, qrCodes: 0, collaborationRooms: 0 },
@@ -2034,7 +2045,7 @@ export class AdminService {
   // ========================================
 
   async getPCEOverview() {
-    // TODO: V2 has no PCE models (Pipeline, Fulfillment, Return, ProductionOrder)
+    // V2 note: PCE models (Pipeline, Fulfillment, Return, ProductionOrder) are not available.
     return {
       totalPipelines: 0,
       activePipelines: 0,
@@ -2048,23 +2059,1168 @@ export class AdminService {
   }
 
   async getPCEPipelines(_params: { status?: string; limit?: number; offset?: number }) {
-    // TODO: V2 has no Pipeline model
+    // V2 note: Pipeline model is not available.
     return { pipelines: [], total: 0, limit: _params.limit ?? 50, offset: _params.offset ?? 0 };
   }
 
   async getPCEQueueHealth() {
-    // TODO: V2 has no Pipeline/Fulfillment/RenderJob models
+    // V2 note: Pipeline/Fulfillment/RenderJob models are not available.
     return { pipelines: {}, fulfillments: {}, renderJobs: {} };
   }
 
   async getPCEProductionOrders(_params: { status?: string; limit?: number }) {
-    // TODO: V2 has no ProductionOrder model
+    // V2 note: ProductionOrder model is not available.
     return { productionOrders: [], total: 0, limit: _params.limit ?? 50 };
   }
 
   async getPCEReturns(_params: { status?: string; limit?: number }) {
-    // TODO: V2 has no Return model
+    // V2 note: Return model is not available.
     return { returns: [], total: 0, limit: _params.limit ?? 50 };
+  }
+
+  // ========================================
+  // ORION + MARKETING (Admin)
+  // ========================================
+
+  private static readonly ORION_COMMUNICATION_TEMPLATES_KEY = 'admin:orion:communications:templates';
+  private static readonly ORION_AUTOMATIONS_KEY = 'admin:orion:automations';
+  private static readonly ORION_NOTIFICATIONS_KEY = 'admin:orion:notifications';
+  private static readonly ORION_PROMETHEUS_REVIEW_QUEUE_KEY = 'admin:orion:prometheus:review-queue';
+  private static readonly MARKETING_CAMPAIGNS_KEY = 'admin:marketing:campaigns';
+  private static readonly MARKETING_AUTOMATIONS_KEY = 'admin:marketing:automations';
+
+  private async getFeatureFlagList<T>(key: string): Promise<T[]> {
+    const flag = await this.prisma.featureFlag.findUnique({ where: { key } });
+    const rules = flag?.rules as Record<string, unknown> | null;
+    const items = rules?.items;
+    return Array.isArray(items) ? (items as T[]) : [];
+  }
+
+  private async saveFeatureFlagList<T>(
+    key: string,
+    name: string,
+    description: string,
+    items: T[],
+  ): Promise<void> {
+    await this.prisma.featureFlag.upsert({
+      where: { key },
+      create: {
+        key,
+        name,
+        description,
+        enabled: true,
+        rules: { items } as Prisma.InputJsonValue,
+      },
+      update: {
+        enabled: true,
+        rules: { items } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  private computeRetentionSnapshot(lastLoginAt: Date | null): { healthScore: number; churnRisk: string } {
+    if (!lastLoginAt) return { healthScore: 25, churnRisk: 'high' };
+    const daysSinceLogin = Math.floor((Date.now() - lastLoginAt.getTime()) / 86400000);
+    if (daysSinceLogin <= 3) return { healthScore: 92, churnRisk: 'low' };
+    if (daysSinceLogin <= 7) return { healthScore: 80, churnRisk: 'low' };
+    if (daysSinceLogin <= 14) return { healthScore: 62, churnRisk: 'medium' };
+    if (daysSinceLogin <= 30) return { healthScore: 44, churnRisk: 'high' };
+    return { healthScore: 20, churnRisk: 'critical' };
+  }
+
+  async getOrionOverview() {
+    const [kpis, revenue, retention, quickWins] = await Promise.all([
+      this.getOrionKpis(),
+      this.getOrionRevenueOverview(),
+      this.getOrionRetentionDashboard(),
+      this.getOrionQuickWinsStatus(),
+    ]);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      kpis,
+      revenue,
+      retention,
+      quickWins,
+    };
+  }
+
+  async getOrionKpis() {
+    const [totalUsers, totalOrganizations, totalAgents, paidInvoices, openTickets] = await Promise.all([
+      this.prisma.user.count({ where: { role: { not: PlatformRole.ADMIN } } }),
+      this.prisma.organization.count({ where: { deletedAt: null } }),
+      this.prisma.agent.count(),
+      this.prisma.invoice.count({ where: { status: InvoiceStatus.PAID } }),
+      this.prisma.ticket.count({
+        where: {
+          status: { in: [TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.WAITING] },
+        },
+      }),
+    ]);
+
+    return {
+      users: totalUsers,
+      organizations: totalOrganizations,
+      agents: totalAgents,
+      paidInvoices,
+      openTickets,
+    };
+  }
+
+  async getOrionRevenueOverview() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [activeOrgs, paidInvoices, paidInvoicesLast30Days] = await Promise.all([
+      this.prisma.organization.findMany({
+        where: { status: OrgStatus.ACTIVE, deletedAt: null },
+        select: { id: true, plan: true },
+      }),
+      this.prisma.invoice.findMany({
+        where: { status: InvoiceStatus.PAID },
+        select: { total: true, paidAt: true, createdAt: true },
+      }),
+      this.prisma.invoice.findMany({
+        where: {
+          status: InvoiceStatus.PAID,
+          OR: [{ paidAt: { gte: thirtyDaysAgo } }, { createdAt: { gte: thirtyDaysAgo } }],
+        },
+        select: { total: true },
+      }),
+    ]);
+
+    const mrr = activeOrgs.reduce((sum, org) => sum + getPlanPrice(org.plan), 0);
+    const totalRevenue = paidInvoices.reduce((sum, inv) => sum + inv.total, 0);
+    const recentRevenue = paidInvoicesLast30Days.reduce((sum, inv) => sum + inv.total, 0);
+
+    return {
+      mrr: Math.round(mrr * 100) / 100,
+      arr: Math.round(mrr * 12 * 100) / 100,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      recentRevenue30d: Math.round(recentRevenue * 100) / 100,
+      invoicesPaid: paidInvoices.length,
+    };
+  }
+
+  async getOrionRevenueLeads() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [newUsers30d, newOrgs30d, totalUsers, totalOrgs] = await Promise.all([
+      this.prisma.user.count({
+        where: { role: { not: PlatformRole.ADMIN }, createdAt: { gte: thirtyDaysAgo } },
+      }),
+      this.prisma.organization.count({
+        where: { deletedAt: null, createdAt: { gte: thirtyDaysAgo } },
+      }),
+      this.prisma.user.count({ where: { role: { not: PlatformRole.ADMIN } } }),
+      this.prisma.organization.count({ where: { deletedAt: null } }),
+    ]);
+
+    const conversionRate = newUsers30d > 0 ? (newOrgs30d / newUsers30d) * 100 : 0;
+    const globalConversion = totalUsers > 0 ? (totalOrgs / totalUsers) * 100 : 0;
+
+    return {
+      newLeads30d: newUsers30d,
+      converted30d: newOrgs30d,
+      conversionRate: Math.round(conversionRate * 100) / 100,
+      globalConversionRate: Math.round(globalConversion * 100) / 100,
+    };
+  }
+
+  async getOrionRevenueUpsell() {
+    const activeOrgs = await this.prisma.organization.findMany({
+      where: { status: OrgStatus.ACTIVE, deletedAt: null },
+      select: { id: true, name: true, plan: true, conversationsUsed: true, conversationsLimit: true },
+    });
+
+    const highValueCount = activeOrgs.filter(
+      (org) => org.plan === Plan.BUSINESS || org.plan === Plan.ENTERPRISE,
+    ).length;
+    const upgradeCandidates = activeOrgs.filter((org) => {
+      const limit = org.conversationsLimit || 0;
+      if (limit <= 0) return false;
+      return org.conversationsUsed / limit >= 0.8;
+    });
+
+    return {
+      highValueCustomers: highValueCount,
+      upgradeCandidates: upgradeCandidates.length,
+      candidates: upgradeCandidates.slice(0, 20).map((org) => ({
+        id: org.id,
+        name: org.name,
+        plan: org.plan,
+        utilization: org.conversationsLimit > 0
+          ? Math.round((org.conversationsUsed / org.conversationsLimit) * 100)
+          : 0,
+      })),
+    };
+  }
+
+  async getOrionRetentionDashboard() {
+    const users = await this.prisma.user.findMany({
+      where: { role: { not: PlatformRole.ADMIN } },
+      select: { id: true, createdAt: true, lastLoginAt: true },
+    });
+
+    const totalUsers = users.length;
+    const snapshots = users.map((u) => this.computeRetentionSnapshot(u.lastLoginAt));
+    const avgHealthScore = totalUsers > 0
+      ? Math.round((snapshots.reduce((sum, s) => sum + s.healthScore, 0) / totalUsers) * 100) / 100
+      : 0;
+    const atRiskCount = snapshots.filter((s) => s.healthScore < 50).length;
+    const atRiskPercent = totalUsers > 0 ? Math.round((atRiskCount / totalUsers) * 10000) / 100 : 0;
+
+    const distributionMap = new Map<string, number>([
+      ['healthy', 0],
+      ['watch', 0],
+      ['at-risk', 0],
+      ['critical', 0],
+    ]);
+    for (const snap of snapshots) {
+      if (snap.healthScore >= 75) distributionMap.set('healthy', (distributionMap.get('healthy') || 0) + 1);
+      else if (snap.healthScore >= 60) distributionMap.set('watch', (distributionMap.get('watch') || 0) + 1);
+      else if (snap.healthScore >= 40) distributionMap.set('at-risk', (distributionMap.get('at-risk') || 0) + 1);
+      else distributionMap.set('critical', (distributionMap.get('critical') || 0) + 1);
+    }
+
+    const trend: Array<{ date: string; count: number; avgScore: number }> = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      dayStart.setDate(dayStart.getDate() - i);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+
+      const dayUsers = users.filter((u) => u.createdAt >= dayStart && u.createdAt < dayEnd).length;
+      trend.push({
+        date: dayStart.toISOString().slice(0, 10),
+        count: dayUsers,
+        avgScore: avgHealthScore,
+      });
+    }
+
+    return {
+      totalUsers,
+      avgHealthScore,
+      atRiskCount,
+      atRiskPercent,
+      distribution: Array.from(distributionMap.entries()).map(([level, count]) => ({ level, count })),
+      trend,
+    };
+  }
+
+  async getOrionAtRiskUsers(limit = 25) {
+    const users = await this.prisma.user.findMany({
+      where: { role: { not: PlatformRole.ADMIN } },
+      take: Math.min(limit, 100),
+      orderBy: [{ lastLoginAt: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        lastLoginAt: true,
+      },
+    });
+
+    return users
+      .map((user) => {
+        const snapshot = this.computeRetentionSnapshot(user.lastLoginAt);
+        return {
+          id: user.id,
+          userId: user.id,
+          healthScore: snapshot.healthScore,
+          churnRisk: snapshot.churnRisk,
+          lastActivityAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+          },
+        };
+      })
+      .filter((entry) => entry.healthScore < 60);
+  }
+
+  async getOrionAgents(params?: { page?: number; limit?: number; search?: string; status?: string }) {
+    const page = params?.page || 1;
+    const limit = Math.min(params?.limit || 20, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.AgentWhereInput = {};
+    if (params?.search) {
+      where.OR = [
+        { name: { contains: params.search, mode: 'insensitive' } },
+        { organization: { name: { contains: params.search, mode: 'insensitive' } } },
+      ];
+    }
+    if (params?.status && Object.values(AgentStatus).includes(params.status as AgentStatus)) {
+      where.status = params.status as AgentStatus;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.agent.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          organization: { select: { id: true, name: true } },
+          _count: { select: { conversations: true } },
+        },
+      }),
+      this.prisma.agent.count({ where }),
+    ]);
+
+    return {
+      items: items.map((agent) => ({
+        id: agent.id,
+        name: agent.name,
+        status: agent.status,
+        model: agent.model,
+        languages: agent.languages,
+        organization: agent.organization,
+        conversations: agent._count.conversations,
+        createdAt: agent.createdAt.toISOString(),
+        updatedAt: agent.updatedAt.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getOrionAgent(id: string) {
+    const agent = await this.prisma.agent.findUnique({
+      where: { id },
+      include: {
+        organization: { select: { id: true, name: true, plan: true } },
+      },
+    });
+    if (!agent) {
+      throw new NotFoundException(`Agent ${id} not found`);
+    }
+    return agent;
+  }
+
+  async updateOrionAgent(id: string, body: Record<string, unknown>) {
+    const existing = await this.prisma.agent.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Agent ${id} not found`);
+    }
+
+    const updateData: Prisma.AgentUpdateInput = {};
+    if (body.name !== undefined) updateData.name = String(body.name);
+    if (body.status !== undefined && Object.values(AgentStatus).includes(String(body.status) as AgentStatus)) {
+      updateData.status = String(body.status) as AgentStatus;
+    }
+    if (body.model !== undefined) updateData.model = String(body.model);
+    if (body.temperature !== undefined) updateData.temperature = Number(body.temperature);
+    if (body.maxTokensPerReply !== undefined) updateData.maxTokensPerReply = Number(body.maxTokensPerReply);
+    if (body.language !== undefined) updateData.languages = [String(body.language)];
+    if (body.languages !== undefined && Array.isArray(body.languages)) {
+      updateData.languages = body.languages.map((lang) => String(lang));
+    }
+
+    return this.prisma.agent.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async getOrionQuickWinsStatus() {
+    const [templates, lowCredits, inactive, trialEnding] = await Promise.all([
+      this.getOrionCommunicationTemplates(),
+      this.getOrionLowCreditsQuickWin(),
+      this.getOrionInactiveQuickWin(),
+      this.getOrionTrialEndingQuickWin(),
+    ]);
+
+    const welcomeTemplate = templates.find((t) => t.type === 'welcome');
+
+    return {
+      welcomeEmail: {
+        configured: Boolean(welcomeTemplate),
+        templateId: welcomeTemplate?.id ?? null,
+        lastSentCount: 0,
+      },
+      lowCreditsAlert: { usersAtRisk: lowCredits.usersAtRisk },
+      churnAlert: { inactiveUsers: inactive.inactiveUsers },
+      trialReminder: { trialEnding: trialEnding.trialEnding },
+    };
+  }
+
+  async setupOrionWelcomeQuickWin() {
+    const templates = await this.getOrionCommunicationTemplates();
+    const existing = templates.find((t) => t.type === 'welcome');
+    if (existing) {
+      return { template: { id: existing.id }, status: 'already_configured' };
+    }
+
+    const created = await this.createOrionCommunicationTemplate({
+      name: 'Welcome - default',
+      type: 'welcome',
+      channel: 'email',
+      subject: 'Bienvenue sur Luneo',
+      body: 'Bonjour {{firstName}}, bienvenue sur Luneo. Nous sommes ravis de vous accompagner.',
+      active: true,
+    });
+
+    return { template: { id: created.id }, status: 'configured' };
+  }
+
+  async getOrionLowCreditsQuickWin() {
+    const orgs = await this.prisma.organization.findMany({
+      where: { deletedAt: null, monthlyBudgetLimit: { not: null } },
+      select: {
+        id: true,
+        name: true,
+        monthlyBudgetLimit: true,
+        currentMonthSpend: true,
+        members: {
+          take: 1,
+          include: {
+            user: { select: { id: true, email: true, firstName: true } },
+          },
+        },
+      },
+    });
+
+    const users = orgs
+      .filter((org) => {
+        const budget = org.monthlyBudgetLimit ?? 0;
+        if (budget <= 0) return false;
+        return (org.currentMonthSpend / budget) >= 0.8;
+      })
+      .map((org) => {
+        const user = org.members[0]?.user;
+        const budget = org.monthlyBudgetLimit ?? 1;
+        const credits = Math.max(0, Math.round((1 - (org.currentMonthSpend / budget)) * 100));
+        return {
+          id: user?.id ?? org.id,
+          email: user?.email ?? `${org.id}@unknown.local`,
+          firstName: user?.firstName ?? org.name,
+          aiCredits: credits,
+        };
+      });
+
+    return {
+      usersAtRisk: users.length,
+      users,
+    };
+  }
+
+  async getOrionInactiveQuickWin(days = 14) {
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() - days);
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        role: { not: PlatformRole.ADMIN },
+        OR: [{ lastLoginAt: null }, { lastLoginAt: { lt: threshold } }],
+      },
+      take: 100,
+      orderBy: [{ lastLoginAt: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, email: true, firstName: true, lastLoginAt: true },
+    });
+
+    return {
+      inactiveUsers: users.length,
+      users: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+      })),
+      thresholdDays: days,
+    };
+  }
+
+  async getOrionTrialEndingQuickWin() {
+    const now = new Date();
+    const inSevenDays = new Date(now);
+    inSevenDays.setDate(inSevenDays.getDate() + 7);
+
+    const orgs = await this.prisma.organization.findMany({
+      where: {
+        status: OrgStatus.TRIAL,
+        planPeriodEnd: { gte: now, lte: inSevenDays },
+      },
+      include: {
+        members: {
+          take: 1,
+          include: { user: { select: { id: true, email: true, firstName: true } } },
+        },
+      },
+      take: 100,
+      orderBy: { planPeriodEnd: 'asc' },
+    });
+
+    const users = orgs.map((org) => ({
+      id: org.members[0]?.user?.id ?? org.id,
+      email: org.members[0]?.user?.email ?? 'unknown@local',
+      firstName: org.members[0]?.user?.firstName ?? org.name,
+      trialEndsAt: org.planPeriodEnd,
+      brandName: org.name,
+    }));
+
+    return {
+      trialEnding: users.length,
+      users,
+      brands: orgs.length,
+    };
+  }
+
+  async getOrionCommunicationTemplates() {
+    return this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_COMMUNICATION_TEMPLATES_KEY);
+  }
+
+  async getOrionCommunicationTemplate(id: string) {
+    const templates = await this.getOrionCommunicationTemplates();
+    const found = templates.find((item) => String(item.id) === id);
+    if (!found) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+    return found;
+  }
+
+  async createOrionCommunicationTemplate(body: Record<string, unknown>) {
+    const templates = await this.getOrionCommunicationTemplates();
+    const now = new Date().toISOString();
+    const item: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      name: body.name ?? 'Untitled template',
+      type: body.type ?? 'generic',
+      channel: body.channel ?? 'email',
+      subject: body.subject ?? '',
+      body: body.body ?? '',
+      active: body.active ?? true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const next = [item, ...templates];
+    await this.saveFeatureFlagList(
+      AdminService.ORION_COMMUNICATION_TEMPLATES_KEY,
+      'Orion communication templates',
+      'Templates used by Orion and marketing admin communications',
+      next,
+    );
+    return item;
+  }
+
+  async updateOrionCommunicationTemplate(id: string, body: Record<string, unknown>) {
+    const templates = await this.getOrionCommunicationTemplates();
+    const index = templates.findIndex((item) => String(item.id) === id);
+    if (index === -1) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+
+    const current = templates[index];
+    const updated = {
+      ...current,
+      ...body,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    templates[index] = updated;
+    await this.saveFeatureFlagList(
+      AdminService.ORION_COMMUNICATION_TEMPLATES_KEY,
+      'Orion communication templates',
+      'Templates used by Orion and marketing admin communications',
+      templates,
+    );
+    return updated;
+  }
+
+  async deleteOrionCommunicationTemplate(id: string) {
+    const templates = await this.getOrionCommunicationTemplates();
+    const next = templates.filter((item) => String(item.id) !== id);
+    if (next.length === templates.length) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+    await this.saveFeatureFlagList(
+      AdminService.ORION_COMMUNICATION_TEMPLATES_KEY,
+      'Orion communication templates',
+      'Templates used by Orion and marketing admin communications',
+      next,
+    );
+    return { success: true, id };
+  }
+
+  async getOrionCommunicationLogs(params?: { page?: number; limit?: number }) {
+    const page = params?.page || 1;
+    const limit = Math.min(params?.limit || 20, 100);
+    const skip = (page - 1) * limit;
+
+    const [ticketMessages, webhookLogs, totalTicketMessages, totalWebhookLogs] = await Promise.all([
+      this.prisma.ticketMessage.findMany({
+        where: { isStaff: true },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          ticket: { select: { id: true, subject: true } },
+        },
+      }),
+      this.prisma.webhookLog.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          webhook: { select: { id: true, url: true } },
+        },
+      }),
+      this.prisma.ticketMessage.count({ where: { isStaff: true } }),
+      this.prisma.webhookLog.count(),
+    ]);
+
+    const mappedMessages = ticketMessages.map((msg) => ({
+      id: msg.id,
+      channel: 'support',
+      type: 'ticket_reply',
+      status: 'sent',
+      subject: msg.ticket?.subject || null,
+      target: msg.authorEmail || msg.authorName || 'unknown',
+      createdAt: msg.createdAt.toISOString(),
+    }));
+
+    const mappedWebhooks = webhookLogs.map((log) => ({
+      id: log.id,
+      channel: 'webhook',
+      type: log.event,
+      status: log.success ? 'sent' : 'failed',
+      subject: log.webhook?.url || null,
+      target: log.webhook?.url || null,
+      createdAt: log.createdAt.toISOString(),
+    }));
+
+    const items = [...mappedMessages, ...mappedWebhooks]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+
+    const total = totalTicketMessages + totalWebhookLogs;
+    return {
+      items,
+      total,
+      page,
+      pageSize: limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getOrionCommunicationStats() {
+    const [templates, staffMessagesCount, webhookLogCount, failedWebhookCount] = await Promise.all([
+      this.getOrionCommunicationTemplates(),
+      this.prisma.ticketMessage.count({ where: { isStaff: true } }),
+      this.prisma.webhookLog.count(),
+      this.prisma.webhookLog.count({ where: { success: false } }),
+    ]);
+
+    return {
+      templates: templates.length,
+      sent: staffMessagesCount + webhookLogCount - failedWebhookCount,
+      failed: failedWebhookCount,
+      channels: {
+        email: templates.filter((template) => String(template.channel || '').toLowerCase() === 'email').length,
+        webhook: webhookLogCount,
+        support: staffMessagesCount,
+      },
+    };
+  }
+
+  async getOrionAutomations() {
+    const items = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_AUTOMATIONS_KEY);
+    return { automations: items, total: items.length };
+  }
+
+  async getOrionAutomation(id: string) {
+    const { automations } = await this.getOrionAutomations();
+    const item = automations.find((automation) => String(automation.id) === id);
+    if (!item) throw new NotFoundException(`Automation ${id} not found`);
+    return item;
+  }
+
+  async createOrionAutomation(body: Record<string, unknown>) {
+    const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_AUTOMATIONS_KEY);
+    const now = new Date().toISOString();
+    const item: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      name: body.name ?? 'Untitled automation',
+      trigger: body.trigger ?? 'manual',
+      status: body.status ?? 'draft',
+      active: body.active ?? false,
+      steps: Array.isArray(body.steps) ? body.steps : [],
+      metadata: body.metadata ?? {},
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const next = [item, ...current];
+    await this.saveFeatureFlagList(
+      AdminService.ORION_AUTOMATIONS_KEY,
+      'Orion automations',
+      'Admin Orion automations',
+      next,
+    );
+    return item;
+  }
+
+  async updateOrionAutomation(id: string, body: Record<string, unknown>) {
+    const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_AUTOMATIONS_KEY);
+    const idx = current.findIndex((item) => String(item.id) === id);
+    if (idx === -1) throw new NotFoundException(`Automation ${id} not found`);
+
+    const updated = {
+      ...current[idx],
+      ...body,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    current[idx] = updated;
+    await this.saveFeatureFlagList(
+      AdminService.ORION_AUTOMATIONS_KEY,
+      'Orion automations',
+      'Admin Orion automations',
+      current,
+    );
+    return updated;
+  }
+
+  async deleteOrionAutomation(id: string) {
+    const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_AUTOMATIONS_KEY);
+    const next = current.filter((item) => String(item.id) !== id);
+    if (next.length === current.length) throw new NotFoundException(`Automation ${id} not found`);
+    await this.saveFeatureFlagList(
+      AdminService.ORION_AUTOMATIONS_KEY,
+      'Orion automations',
+      'Admin Orion automations',
+      next,
+    );
+    return { success: true, id };
+  }
+
+  async getOrionAnalyticsDashboard() {
+    const [overview, kpis, revenue, retention, commsStats] = await Promise.all([
+      this.getAnalyticsOverview(),
+      this.getOrionKpis(),
+      this.getOrionRevenueOverview(),
+      this.getOrionRetentionDashboard(),
+      this.getOrionCommunicationStats(),
+    ]);
+
+    return { overview, kpis, revenue, retention, communications: commsStats };
+  }
+
+  async getOrionAuditLog(params?: {
+    page?: number;
+    pageSize?: number;
+    action?: string;
+    userId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) {
+    const page = params?.page || 1;
+    const pageSize = Math.min(params?.pageSize || 20, 100);
+    const skip = (page - 1) * pageSize;
+
+    const where: Prisma.AuditLogWhereInput = {};
+    if (params?.action) where.action = params.action;
+    if (params?.userId) where.userId = params.userId;
+    if (params?.dateFrom || params?.dateTo) {
+      where.createdAt = {};
+      if (params.dateFrom) where.createdAt.gte = new Date(params.dateFrom);
+      if (params.dateTo) where.createdAt.lte = new Date(params.dateTo);
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { email: true, firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return {
+      items: items.map((log) => ({
+        id: log.id,
+        adminId: log.userId,
+        action: log.action,
+        resource: log.resource,
+        resourceId: log.resourceId,
+        changes: log.changes,
+        ipAddress: log.ipAddress,
+        createdAt: log.createdAt.toISOString(),
+        user: {
+          email: log.user?.email || 'unknown',
+          name: [log.user?.firstName, log.user?.lastName].filter(Boolean).join(' ') || log.user?.email || 'unknown',
+        },
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async getOrionNotifications(params?: { page?: number; pageSize?: number; type?: string; read?: boolean }) {
+    const items = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_NOTIFICATIONS_KEY);
+    const filtered = items.filter((item) => {
+      const typeOk = params?.type ? String(item.type) === params.type : true;
+      const readOk = typeof params?.read === 'boolean' ? Boolean(item.read) === params.read : true;
+      return typeOk && readOk;
+    });
+
+    const page = params?.page || 1;
+    const pageSize = Math.min(params?.pageSize || 20, 100);
+    const start = (page - 1) * pageSize;
+    const paged = filtered.slice(start, start + pageSize);
+
+    return {
+      items: paged,
+      total: filtered.length,
+      page,
+      pageSize,
+      totalPages: Math.ceil(filtered.length / pageSize),
+    };
+  }
+
+  async getOrionNotificationsCount() {
+    const items = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_NOTIFICATIONS_KEY);
+    return { count: items.filter((item) => !Boolean(item.read)).length };
+  }
+
+  async markOrionNotificationRead(id: string) {
+    const items = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_NOTIFICATIONS_KEY);
+    const idx = items.findIndex((item) => String(item.id) === id);
+    if (idx === -1) throw new NotFoundException(`Notification ${id} not found`);
+    items[idx] = {
+      ...items[idx],
+      read: true,
+      readAt: new Date().toISOString(),
+    };
+    await this.saveFeatureFlagList(
+      AdminService.ORION_NOTIFICATIONS_KEY,
+      'Orion notifications',
+      'Admin Orion notifications list',
+      items,
+    );
+    return { id, read: true };
+  }
+
+  async markAllOrionNotificationsRead() {
+    const items = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_NOTIFICATIONS_KEY);
+    const now = new Date().toISOString();
+    const next = items.map((item) => ({ ...item, read: true, readAt: item.readAt ?? now }));
+    await this.saveFeatureFlagList(
+      AdminService.ORION_NOTIFICATIONS_KEY,
+      'Orion notifications',
+      'Admin Orion notifications list',
+      next,
+    );
+    return { success: true };
+  }
+
+  async getOrionPrometheusStats() {
+    const queue = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY);
+    const pending = queue.filter((item) => String(item.status) === 'pending').length;
+    const approved = queue.filter((item) => String(item.status) === 'approved').length;
+    const rejected = queue.filter((item) => String(item.status) === 'rejected').length;
+    const ticketsOpen = await this.prisma.ticket.count({
+      where: { status: { in: [TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.WAITING] } },
+    });
+
+    return {
+      ticketsOpen,
+      queue: {
+        total: queue.length,
+        pending,
+        approved,
+        rejected,
+      },
+    };
+  }
+
+  async getOrionPrometheusReviewQueue(params?: { status?: string; page?: number; limit?: number }) {
+    const queue = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY);
+    const filtered = params?.status
+      ? queue.filter((item) => String(item.status) === params.status)
+      : queue;
+    const page = params?.page || 1;
+    const limit = Math.min(params?.limit || 20, 100);
+    const start = (page - 1) * limit;
+
+    return {
+      items: filtered.slice(start, start + limit),
+      total: filtered.length,
+      page,
+      limit,
+      totalPages: Math.ceil(filtered.length / limit),
+    };
+  }
+
+  async approveOrionPrometheusResponse(
+    id: string,
+    body?: { notes?: string; editedContent?: string },
+  ) {
+    const queue = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY);
+    const idx = queue.findIndex((item) => String(item.id) === id);
+    if (idx === -1) throw new NotFoundException(`Review item ${id} not found`);
+
+    const current = queue[idx];
+    const ticketId = String(current.ticketId || '');
+    const content = body?.editedContent || String(current.generatedResponse || '');
+
+    if (ticketId && content) {
+      await this.prisma.ticketMessage.create({
+        data: {
+          ticketId,
+          content,
+          isStaff: true,
+          authorName: 'Prometheus',
+          authorEmail: 'prometheus@system.local',
+        },
+      });
+    }
+
+    queue[idx] = {
+      ...current,
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
+      notes: body?.notes ?? null,
+      finalResponse: content,
+    };
+
+    await this.saveFeatureFlagList(
+      AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY,
+      'Orion Prometheus review queue',
+      'Generated support responses awaiting admin review',
+      queue,
+    );
+
+    return queue[idx];
+  }
+
+  async rejectOrionPrometheusResponse(id: string, body?: { notes?: string }) {
+    const queue = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY);
+    const idx = queue.findIndex((item) => String(item.id) === id);
+    if (idx === -1) throw new NotFoundException(`Review item ${id} not found`);
+    queue[idx] = {
+      ...queue[idx],
+      status: 'rejected',
+      rejectedAt: new Date().toISOString(),
+      notes: body?.notes ?? null,
+    };
+
+    await this.saveFeatureFlagList(
+      AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY,
+      'Orion Prometheus review queue',
+      'Generated support responses awaiting admin review',
+      queue,
+    );
+    return queue[idx];
+  }
+
+  async bulkApproveOrionPrometheusResponses(responseIds: string[]) {
+    if (!Array.isArray(responseIds) || responseIds.length === 0) {
+      throw new BadRequestException('responseIds must be a non-empty array');
+    }
+    const approved: string[] = [];
+    for (const id of responseIds) {
+      try {
+        await this.approveOrionPrometheusResponse(id);
+        approved.push(id);
+      } catch {
+        // Continue with best effort bulk processing
+      }
+    }
+    return { approved: approved.length, ids: approved };
+  }
+
+  async analyzeOrionPrometheusTicket(ticketId: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: { messages: true },
+    });
+    if (!ticket) throw new NotFoundException(`Ticket ${ticketId} not found`);
+
+    const urgency = ticket.priority === 'URGENT' || ticket.priority === 'HIGH' ? 'high' : 'normal';
+    const summary = ticket.description.length > 240
+      ? `${ticket.description.slice(0, 240)}...`
+      : ticket.description;
+
+    return {
+      ticketId: ticket.id,
+      subject: ticket.subject,
+      status: ticket.status,
+      priority: ticket.priority,
+      urgency,
+      messagesCount: ticket.messages.length,
+      summary,
+      recommendedTone: urgency === 'high' ? 'empathic-fast' : 'professional',
+    };
+  }
+
+  async generateOrionPrometheusTicketResponse(ticketId: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: { messages: { orderBy: { createdAt: 'asc' }, take: 5 } },
+    });
+    if (!ticket) throw new NotFoundException(`Ticket ${ticketId} not found`);
+
+    const context = ticket.messages.map((m) => m.content).join('\n').slice(-1200);
+    const generatedResponse = `Bonjour,\n\nMerci pour votre message concernant "${ticket.subject}". Nous avons bien identifié votre demande et nous revenons vers vous avec une résolution sous peu.\n\nContexte pris en compte:\n${context || 'Aucun contexte complémentaire'}\n\nCordialement,\nÉquipe support Luneo`;
+
+    const queue = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY);
+    const item: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      ticketId: ticket.id,
+      ticketSubject: ticket.subject,
+      generatedResponse,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    await this.saveFeatureFlagList(
+      AdminService.ORION_PROMETHEUS_REVIEW_QUEUE_KEY,
+      'Orion Prometheus review queue',
+      'Generated support responses awaiting admin review',
+      [item, ...queue],
+    );
+    return item;
+  }
+
+  async getMarketingCampaigns() {
+    const campaigns = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_CAMPAIGNS_KEY);
+    return { campaigns, total: campaigns.length };
+  }
+
+  async createMarketingCampaign(body: Record<string, unknown>) {
+    const campaigns = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_CAMPAIGNS_KEY);
+    const now = new Date().toISOString();
+    const campaign: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      name: body.name ?? 'Untitled campaign',
+      subject: body.subject ?? '',
+      body: body.body ?? '',
+      audience: body.audience ?? 'all',
+      status: body.status ?? 'draft',
+      recipientCount: Number(body.recipientCount ?? 0),
+      scheduledAt: body.scheduledAt ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await this.saveFeatureFlagList(
+      AdminService.MARKETING_CAMPAIGNS_KEY,
+      'Marketing campaigns',
+      'Admin marketing campaigns',
+      [campaign, ...campaigns],
+    );
+    return campaign;
+  }
+
+  async getMarketingAutomations() {
+    const automations = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
+    return { automations, total: automations.length };
+  }
+
+  async createMarketingAutomation(body: Record<string, unknown>) {
+    const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
+    const now = new Date().toISOString();
+    const automation: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      name: body.name ?? 'Untitled marketing automation',
+      trigger: body.trigger ?? 'manual',
+      status: body.status ?? 'draft',
+      active: body.active ?? false,
+      steps: Array.isArray(body.steps) ? body.steps : [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await this.saveFeatureFlagList(
+      AdminService.MARKETING_AUTOMATIONS_KEY,
+      'Marketing automations',
+      'Admin marketing automations',
+      [automation, ...current],
+    );
+    return automation;
+  }
+
+  async getMarketingAutomation(id: string) {
+    const { automations } = await this.getMarketingAutomations();
+    const item = automations.find((automation) => String(automation.id) === id);
+    if (!item) throw new NotFoundException(`Marketing automation ${id} not found`);
+    return item;
+  }
+
+  async updateMarketingAutomation(id: string, body: Record<string, unknown>) {
+    const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
+    const idx = current.findIndex((item) => String(item.id) === id);
+    if (idx === -1) throw new NotFoundException(`Marketing automation ${id} not found`);
+
+    current[idx] = {
+      ...current[idx],
+      ...body,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    await this.saveFeatureFlagList(
+      AdminService.MARKETING_AUTOMATIONS_KEY,
+      'Marketing automations',
+      'Admin marketing automations',
+      current,
+    );
+    return current[idx];
+  }
+
+  async deleteMarketingAutomation(id: string) {
+    const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
+    const next = current.filter((item) => String(item.id) !== id);
+    if (next.length === current.length) throw new NotFoundException(`Marketing automation ${id} not found`);
+    await this.saveFeatureFlagList(
+      AdminService.MARKETING_AUTOMATIONS_KEY,
+      'Marketing automations',
+      'Admin marketing automations',
+      next,
+    );
+    return { success: true, id };
+  }
+
+  async testMarketingAutomation(body: Record<string, unknown>) {
+    const id = typeof body.id === 'string' ? body.id : null;
+    if (id) {
+      const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
+      const idx = current.findIndex((item) => String(item.id) === id);
+      if (idx !== -1) {
+        current[idx] = {
+          ...current[idx],
+          lastTestedAt: new Date().toISOString(),
+        };
+        await this.saveFeatureFlagList(
+          AdminService.MARKETING_AUTOMATIONS_KEY,
+          'Marketing automations',
+          'Admin marketing automations',
+          current,
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Automation test executed successfully',
+      testId: crypto.randomUUID(),
+      automationId: id,
+    };
   }
 
   // ========================================

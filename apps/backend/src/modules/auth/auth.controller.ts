@@ -333,7 +333,14 @@ export class AuthController {
       });
     }
     
-    const result = await this.authService.refreshToken({ refreshToken });
+    const forwarded = req.headers['x-forwarded-for'];
+    const ipAddress = req.ip || (Array.isArray(forwarded) ? forwarded[0] : forwarded) || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    const result = await this.authService.refreshToken(
+      { refreshToken },
+      { ipAddress, userAgent: String(userAgent) },
+    );
     
     // Set new httpOnly cookies
     AuthCookiesHelper.setAuthCookies(
@@ -707,8 +714,12 @@ export class AuthController {
       // Generate tokens
       const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
       
-      // Save refresh token
-      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+      // Save refresh token with request metadata for reuse detection.
+      const metadata = {
+        ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown',
+        userAgent: String(req.headers['user-agent'] || 'unknown'),
+      };
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken, undefined, metadata);
 
       // Set httpOnly cookies
       AuthCookiesHelper.setAuthCookies(
@@ -753,8 +764,12 @@ export class AuthController {
       // Generate tokens
       const tokens = await this.authService.generateTokens(user.id, user.email, user.role);
       
-      // Save refresh token
-      await this.authService.saveRefreshToken(user.id, tokens.refreshToken);
+      // Save refresh token with request metadata for reuse detection.
+      const metadata = {
+        ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown',
+        userAgent: String(req.headers['user-agent'] || 'unknown'),
+      };
+      await this.authService.saveRefreshToken(user.id, tokens.refreshToken, undefined, metadata);
 
       // Set httpOnly cookies
       AuthCookiesHelper.setAuthCookies(

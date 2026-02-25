@@ -91,8 +91,8 @@ describe('Footer', () => {
       
       expect(screen.getByText('Produit')).toBeInTheDocument();
       expect(screen.getByText('Intégrations')).toBeInTheDocument();
-      expect(screen.getByText('Industries')).toBeInTheDocument();
       expect(screen.getByText('Ressources')).toBeInTheDocument();
+      expect(screen.getByText('Développeurs')).toBeInTheDocument();
       expect(screen.getByText('Entreprise')).toBeInTheDocument();
       expect(screen.getByText('Légal')).toBeInTheDocument();
     });
@@ -101,13 +101,12 @@ describe('Footer', () => {
       render(<Footer />);
       
       // Product links
-      expect(screen.getByText('Customizer')).toBeInTheDocument();
-      expect(screen.getByText('Configurateur 3D')).toBeInTheDocument();
+      expect(screen.getByText('Agents IA')).toBeInTheDocument();
       expect(screen.getByText('Tarifs')).toBeInTheDocument();
       
       // Integration links
       expect(screen.getByText('Shopify')).toBeInTheDocument();
-      expect(screen.getByText('WooCommerce')).toBeInTheDocument();
+      expect(screen.getByText('Slack')).toBeInTheDocument();
       
       // Legal links - use getAllByText since "CGU" and "Confidentialité" may appear multiple times
       const cguLinks = screen.getAllByText('CGU');
@@ -264,8 +263,8 @@ describe('Footer', () => {
     it('should have correct href attributes', () => {
       render(<Footer />);
       
-      const customizerLink = screen.getByText('Customizer');
-      expect(customizerLink.closest('a')).toHaveAttribute('href', '/solutions/customizer');
+      const agentsLink = screen.getByText('Agents IA');
+      expect(agentsLink.closest('a')).toHaveAttribute('href', '/features');
       
       const shopifyLink = screen.getByText('Shopify');
       expect(shopifyLink.closest('a')).toHaveAttribute('href', '/integrations/shopify');

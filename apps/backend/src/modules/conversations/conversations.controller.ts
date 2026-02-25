@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -20,6 +21,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CurrentUser as CurrentUserType } from '@/common/types/user.types';
 import { ConversationsService } from './conversations.service';
+import { HandoffService } from './handoff.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { AddMessageDto } from './dto/add-message.dto';
@@ -32,7 +34,10 @@ import { ConversationQueryDto } from './dto/conversation-query.dto';
 export class ConversationsController {
   private readonly logger = new Logger(ConversationsController.name);
 
-  constructor(private readonly conversationsService: ConversationsService) {}
+  constructor(
+    private readonly conversationsService: ConversationsService,
+    private readonly handoffService: HandoffService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Liste des conversations (inbox)' })
@@ -116,5 +121,53 @@ export class ConversationsController {
     @CurrentUser() user: CurrentUserType,
   ) {
     return this.conversationsService.resolve(id, user);
+  }
+
+  @Get('escalations/queue')
+  @ApiOperation({ summary: 'Queue opérationnelle des escalations' })
+  @ApiResponse({ status: 200, description: 'Liste priorisée des escalations' })
+  async getEscalationQueue(@CurrentUser() user: CurrentUserType) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    return this.handoffService.getEscalationQueue(user.organizationId);
+  }
+
+  @Get('escalations/metrics')
+  @ApiOperation({ summary: 'Métriques opérationnelles handoff' })
+  async getHandoffMetrics(
+    @CurrentUser() user: CurrentUserType,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    if (!user.organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    const now = new Date();
+    const fromDate = from
+      ? new Date(from)
+      : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const toDate = to ? new Date(to) : now;
+    return this.handoffService.getOperationalMetrics(user.organizationId, {
+      from: fromDate,
+      to: toDate,
+    });
+  }
+
+  @Post(':id/handoff-feedback')
+  @ApiOperation({ summary: 'Enregistrer feedback qualité handoff' })
+  async recordHandoffFeedback(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      feedbackType: 'false_positive' | 'good_escalation' | 'late_escalation';
+      note?: string;
+    },
+  ) {
+    return this.handoffService.recordHandoffFeedback({
+      conversationId: id,
+      feedbackType: body.feedbackType,
+      note: body.note,
+    });
   }
 }

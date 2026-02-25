@@ -1167,6 +1167,17 @@ model WebhookLog {
   @@map("webhook_logs")
 }
 
+model IdempotencyKey {
+  key       String   @id
+  result    String?  @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // AUDIT & SUPPORT
 // ═══════════════════════════════════════════════════════════════════

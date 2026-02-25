@@ -30,6 +30,14 @@ function StatusDot({ status, t }: { status: string; t: (key: string) => string }
   );
 }
 
+function mapHealthStatus(status?: string): string {
+  if (!status) return 'unknown';
+  if (status === 'ok' || status === 'operational' || status === 'healthy') return 'operational';
+  if (status === 'degraded' || status === 'warning') return 'degraded';
+  if (status === 'unavailable' || status === 'down' || status === 'outage') return 'outage';
+  return status;
+}
+
 function AdminHealthContent() {
   const { t } = useI18n();
   const [systemStatus, setSystemStatus] = useState<Array<{name: string; status: string; latency: string; icon: typeof Server}>>([]);
@@ -58,13 +66,13 @@ function AdminHealthContent() {
           const services = deps && typeof deps === 'object' && !Array.isArray(deps)
             ? (Object.entries(deps) as [string, { name?: string; status?: string; latencyMs?: number; latency?: number; service?: string }][]).map(([key, dep]) => ({
                 name: dep?.name ?? key.charAt(0).toUpperCase() + key.slice(1),
-                status: dep?.status ?? 'unknown',
+                status: mapHealthStatus(dep?.status),
                 latency: dep?.latencyMs != null ? `${dep.latencyMs}ms` : '-',
                 icon: iconByKey[key] ?? Server,
               }))
             : Array.isArray(deps) ? (deps as Array<{ name?: string; status?: string; latencyMs?: number; latency?: number; service?: string }>).map((d) => ({
                 name: d.name ?? d.service ?? 'Service',
-                status: d.status ?? 'unknown',
+                status: mapHealthStatus(d.status),
                 latency: d.latency != null ? String(d.latency) : d.latencyMs != null ? `${d.latencyMs}ms` : '-',
                 icon: Server,
               })) : [];

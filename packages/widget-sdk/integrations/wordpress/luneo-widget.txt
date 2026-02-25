@@ -1,0 +1,29 @@
+<?php
+/**
+ * Plugin Name: Luneo AI Chat Widget
+ * Description: Add your Luneo AI agent to your WordPress site
+ * Version: 2.0.0
+ * Author: Luneo
+ * License: MIT
+ */
+if (!defined('ABSPATH')) exit;
+
+add_action('admin_menu', function() {
+    add_options_page('Luneo AI Widget', 'Luneo AI Widget', 'manage_options', 'luneo-widget', 'luneo_options_page');
+});
+add_action('admin_init', function() {
+    register_setting('luneo_widget', 'luneo_widget_id');
+});
+add_action('wp_footer', function() {
+    $id = get_option('luneo_widget_id');
+    if (!empty($id)) {
+        echo '<script src="https://cdn.luneo.app/widget/v2/luneo-widget.js" data-widget-id="' . esc_attr($id) . '"></script>';
+    }
+});
+function luneo_options_page() {
+    echo '<div class="wrap"><h1>Luneo AI Widget</h1><form action="options.php" method="post">';
+    settings_fields('luneo_widget');
+    echo '<table class="form-table"><tr><th>Widget ID</th><td><input type="text" name="luneo_widget_id" value="' . esc_attr(get_option('luneo_widget_id','')) . '" class="regular-text" /></td></tr></table>';
+    submit_button();
+    echo '</form></div>';
+}

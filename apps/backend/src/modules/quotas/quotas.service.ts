@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
-import { normalizePlanTier, getPlanConfig, isUnlimited } from '@/libs/plans';
+import { PLAN_LIMITS } from './plan-limits.config';
 
 export type QuotaMetric = 'agents' | 'conversations' | 'documents' | 'team_members';
 
@@ -34,15 +34,13 @@ export class QuotasService {
 
     if (!org) throw new ForbiddenException('Organization not found');
 
-    const tier = normalizePlanTier(org.plan);
-    const config = getPlanConfig(tier);
-    const limits = config.limits;
+    const limits = PLAN_LIMITS[String(org.plan).toUpperCase()] ?? PLAN_LIMITS.FREE;
 
     switch (metric) {
       case 'agents': {
         const current = org._count.agents;
-        const limit = org.agentsLimit ?? limits.agentsLimit;
-        if (!isUnlimited(limit) && current + increment > limit) {
+        const limit = org.agentsLimit ?? limits.maxAgents;
+        if (!this.isUnlimited(limit) && current + increment > limit) {
           throw new ForbiddenException(
             `Limite d'agents atteinte (${current}/${limit}). Passez au plan supérieur pour créer plus d'agents.`,
           );
@@ -51,8 +49,8 @@ export class QuotasService {
       }
       case 'conversations': {
         const current = org.conversationsUsed ?? 0;
-        const limit = org.conversationsLimit ?? limits.conversationsPerMonth;
-        if (!isUnlimited(limit) && current + increment > limit) {
+        const limit = org.conversationsLimit ?? limits.maxMessagesPerMonth;
+        if (!this.isUnlimited(limit) && current + increment > limit) {
           throw new ForbiddenException(
             `Limite de conversations atteinte (${current}/${limit} ce mois). Passez au plan supérieur.`,
           );
@@ -60,17 +58,16 @@ export class QuotasService {
         break;
       }
       case 'documents': {
-        const limit = limits.documentsLimit;
-        if (!isUnlimited(limit)) {
-          const docCount = await this.prisma.knowledgeSource.count({
-            where: {
-              knowledgeBase: { organizationId },
-              deletedAt: null,
-            },
+        const limit = limits.maxSourcesPerKb;
+        if (!this.isUnlimited(limit)) {
+          const bases = await this.prisma.knowledgeBase.findMany({
+            where: { organizationId, deletedAt: null },
+            select: { sourcesCount: true },
           });
-          if (docCount + increment > limit) {
+          const current = bases.reduce((max, base) => Math.max(max, base.sourcesCount ?? 0), 0);
+          if (current + increment > limit) {
             throw new ForbiddenException(
-              `Limite de documents atteinte (${docCount}/${limit}). Passez au plan supérieur.`,
+              `Limite de sources par base atteinte (${current}/${limit}). Passez au plan supérieur.`,
             );
           }
         }
@@ -78,8 +75,8 @@ export class QuotasService {
       }
       case 'team_members': {
         const current = org._count.members;
-        const limit = org.teamMembersLimit ?? limits.teamMembers;
-        if (!isUnlimited(limit) && current + increment > limit) {
+        const limit = org.teamMembersLimit ?? limits.maxTeamMembers;
+        if (!this.isUnlimited(limit) && current + increment > limit) {
           throw new ForbiddenException(
             `Limite de membres atteinte (${current}/${limit}). Passez au plan supérieur.`,
           );
@@ -110,18 +107,26 @@ export class QuotasService {
 
     if (!org) return null;
 
-    const tier = normalizePlanTier(org.plan);
-    const config = getPlanConfig(tier);
+    const limits = PLAN_LIMITS[String(org.plan).toUpperCase()] ?? PLAN_LIMITS.FREE;
+    const bases = await this.prisma.knowledgeBase.findMany({
+      where: { organizationId, deletedAt: null },
+      select: { sourcesCount: true },
+    });
+    const sourcesPerKbUsed = bases.reduce((max, base) => Math.max(max, base.sourcesCount ?? 0), 0);
 
     return {
       plan: org.plan,
-      agents: { used: org._count.agents, limit: org.agentsLimit ?? config.limits.agentsLimit },
+      agents: { used: org._count.agents, limit: org.agentsLimit ?? limits.maxAgents },
       conversations: {
         used: org.conversationsUsed ?? 0,
-        limit: org.conversationsLimit ?? config.limits.conversationsPerMonth,
+        limit: org.conversationsLimit ?? limits.maxMessagesPerMonth,
       },
-      teamMembers: { used: org._count.members, limit: org.teamMembersLimit ?? config.limits.teamMembers },
-      documents: { used: org.knowledgeSourcesUsed ?? 0, limit: config.limits.documentsLimit },
+      teamMembers: { used: org._count.members, limit: org.teamMembersLimit ?? limits.maxTeamMembers },
+      documents: { used: sourcesPerKbUsed, limit: limits.maxSourcesPerKb },
     };
+  }
+
+  private isUnlimited(limit: number): boolean {
+    return limit < 0;
   }
 }

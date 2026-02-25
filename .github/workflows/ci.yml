@@ -7,91 +7,38 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Lint & Type Check
+  quality-release:
+    name: Quality Release Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: TypeScript check (backend)
-        run: cd apps/backend && pnpm exec tsc --noEmit
-        continue-on-error: true
-      - name: TypeScript check (frontend)
-        run: cd apps/frontend && pnpm exec tsc --noEmit
-        continue-on-error: true
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  test-backend:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: luneo_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-    env:
-      DATABASE_URL: postgresql://test:test@localhost:5432/luneo_test
-      REDIS_URL: redis://localhost:6379
-      JWT_SECRET: test-secret-32-chars-minimum-ok
-      JWT_REFRESH_SECRET: test-refresh-secret-32-chars-min
-      NODE_ENV: test
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Generate Prisma Client
-        run: cd apps/backend && npx prisma generate
-      - name: Run migrations
-        run: cd apps/backend && npx prisma migrate deploy
-        continue-on-error: true
-      - name: Run backend tests
-        run: cd apps/backend && pnpm test
-        continue-on-error: true
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Generate Prisma Client
-        run: cd apps/backend && npx prisma generate
-      - name: Build backend
-        run: cd apps/backend && pnpm build
-        continue-on-error: true
-      - name: Build widget
-        run: cd apps/widget && pnpm build
-        continue-on-error: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: cd apps/backend && pnpm exec prisma generate
+
+      - name: Run release quality gate
+        run: pnpm run quality:release
+
+      - name: Upload release gate metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-release-metadata
+          path: |
+            RELEASE_QUALITY_GATES.md

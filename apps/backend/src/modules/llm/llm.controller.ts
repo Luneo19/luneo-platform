@@ -52,9 +52,13 @@ export class LlmController {
 
   @Get('models')
   @ApiOperation({ summary: 'Lister les modèles LLM disponibles' })
-  @ApiResponse({ status: 200, description: 'Liste des modèles' })
+  @ApiResponse({ status: 200, description: 'Liste des modèles groupés par provider' })
   listModels() {
-    return { models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo'] };
+    return {
+      models: this.llmService.getAvailableModels(),
+      byProvider: this.llmService.getAvailableModelsByProvider(),
+      providers: this.llmService.getAvailableProviders(),
+    };
   }
 
   @Post('complete')

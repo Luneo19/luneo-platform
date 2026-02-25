@@ -9,6 +9,7 @@ import type { PlanDefinition } from './types';
 import { getQuotaLabel, getMetricUnit } from './utils';
 import { currencyFormatter } from './utils';
 import type { TopupHistoryEntry } from '@/lib/hooks/useTopupHistory';
+import { appRoutes } from '@/lib/routes';
 
 interface UsageQuotaTopupHistoryProps {
   topupHistory: TopupHistoryEntry[];
@@ -45,7 +46,7 @@ export function UsageQuotaTopupHistory({
             Actualiser
           </Button>
           <Button asChild size="sm" variant="outline" className="border-gray-700 text-gray-200">
-            <Link href="/dashboard/billing">Ouvrir la facturation</Link>
+            <Link href={appRoutes.billing}>Ouvrir la facturation</Link>
           </Button>
         </div>
       </div>

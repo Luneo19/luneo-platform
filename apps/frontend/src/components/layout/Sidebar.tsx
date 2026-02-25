@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoutes } from '@/lib/routes';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -40,28 +41,28 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
   const navigationItems = useMemo(() => [
   {
     title: 'Tableau de bord',
-    href: '/overview',
+    href: appRoutes.overview,
     icon: LayoutDashboard,
     badge: null,
     description: 'Vue d\'ensemble de votre activité'
   },
   {
     title: 'AI Studio',
-    href: '/dashboard/ai-studio',
+    href: appRoutes.agents,
     icon: Palette,
     badge: 'Nouveau',
     description: 'Création de designs avec l\'IA'
   },
   {
     title: 'Analytics',
-    href: '/dashboard/analytics',
+    href: appRoutes.analytics,
     icon: BarChart3,
     badge: null,
     description: 'Analyses et performances'
   },
   {
     title: 'Produits',
-    href: '/dashboard/products',
+    href: appRoutes.agents,
     icon: Package,
     badge: null,
     description: 'Gestion de vos designs'
@@ -71,28 +72,28 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
   const businessItems = useMemo(() => [
   {
     title: 'Facturation',
-    href: '/dashboard/billing',
+    href: appRoutes.billing,
     icon: CreditCard,
     badge: null,
     description: 'Gestion des abonnements'
   },
   {
     title: 'Équipe',
-    href: '/dashboard/team',
+    href: appRoutes.team,
     icon: Users,
     badge: null,
     description: 'Collaboration et permissions'
   },
   {
     title: 'Intégrations',
-    href: '/dashboard/integrations-dashboard',
+    href: appRoutes.integrations,
     icon: Globe,
     badge: null,
     description: 'Connexions externes'
   },
   {
     title: 'Sécurité',
-    href: '/dashboard/security',
+    href: appRoutes.settings,
     icon: Shield,
     badge: null,
     description: 'Paramètres de sécurité'
@@ -259,7 +260,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
               </span>
             </div>
             <p className="text-sm text-gray-600 mb-1">
-              <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+              <Link href={appRoutes.billing} className="text-blue-600 hover:underline">
                 Gérer l&apos;abonnement
               </Link>
             </p>
@@ -310,7 +311,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
             {/* Settings */}
             <NavItem item={{
               title: 'Paramètres',
-              href: '/settings',
+              href: appRoutes.settings,
               icon: Settings,
               badge: null,
               description: 'Configuration du compte'
@@ -318,7 +319,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
           </div>
         ) : (
           <div className="flex justify-center">
-            <Link href="/settings">
+            <Link href={appRoutes.settings}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <Settings className="h-4 w-4" />
               </Button>
