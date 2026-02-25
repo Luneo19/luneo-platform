@@ -2,6 +2,7 @@ import {
   HeroSectionNew,
   FeaturesSectionNew,
   HowItWorksNew,
+  ConversionNarrativeSection,
   PricingSectionNew,
   CTASectionNew,
   SocialProofSection,
@@ -73,6 +74,7 @@ export default function HomePage() {
         <SocialProofSection />
         <FeaturesSectionNew />
         <HowItWorksNew />
+        <ConversionNarrativeSection />
         <PricingSectionNew />
         <CTASectionNew />
       </main>

@@ -3,11 +3,12 @@ import { SEO_BASE_URL } from '@/lib/seo/constants';
 
 export const metadata: Metadata = {
   title: 'Carrières | Luneo - Rejoignez Notre Équipe',
-  description: 'Rejoignez Luneo et construisez le futur du commerce 3D/AR. Postes ouverts : Frontend, 3D, Product Design, Customer Success.',
-  keywords: ['carrières', 'emploi', 'recrutement', 'Luneo', 'startup', '3D', 'e-commerce', 'Paris', 'Remote'],
+  description:
+    'Rejoignez Luneo et construisez la nouvelle génération d’agents IA pour le support, les ventes et les opérations client.',
+  keywords: ['carrières', 'emploi', 'recrutement', 'Luneo', 'startup', 'agents IA', 'SaaS', 'support client', 'remote'],
   openGraph: {
     title: 'Carrières | Luneo - Rejoignez Notre Équipe',
-    description: 'Rejoignez Luneo et construisez le futur du commerce 3D/AR.',
+    description: 'Rejoignez Luneo et construisez la nouvelle génération d’agents IA pour les entreprises.',
     type: 'website',
     url: `${SEO_BASE_URL}/careers`,
     siteName: 'Luneo',

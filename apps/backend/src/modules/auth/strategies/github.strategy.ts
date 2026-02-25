@@ -10,6 +10,15 @@ import { Logger } from '@nestjs/common';
 export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
   private readonly logger = new Logger(GitHubStrategy.name);
 
+  private static normalizeGithubCallbackUrl(raw?: string): string | undefined {
+    if (!raw) return undefined;
+    // Backward compatibility: old envs sometimes use /api/auth/github/callback.
+    if (raw.includes('/api/auth/github/callback')) {
+      return raw.replace('/api/auth/github/callback', '/api/v1/auth/github/callback');
+    }
+    return raw;
+  }
+
   constructor(
     private readonly configService: ConfigService,
     private readonly oauthService: OAuthService,
@@ -32,9 +41,11 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
     const clientSecret = configService.get<string>('oauth.github.clientSecret') ||
                         configService.get<string>('GITHUB_CLIENT_SECRET') ||
                         configService.get<string>('GITHUB_OAUTH_CLIENT_SECRET');
-    const callbackURL = configService.get<string>('oauth.github.callbackUrl') ||
-                       configService.get<string>('GITHUB_CALLBACK_URL') ||
-                       configService.get<string>('GITHUB_OAUTH_CALLBACK_URL');
+    const callbackURL = GitHubStrategy.normalizeGithubCallbackUrl(
+      configService.get<string>('oauth.github.callbackUrl') ||
+        configService.get<string>('GITHUB_CALLBACK_URL') ||
+        configService.get<string>('GITHUB_OAUTH_CALLBACK_URL'),
+    );
 
     if (!clientID || !clientSecret) {
       throw new Error('GitHub OAuth clientID and clientSecret are required');

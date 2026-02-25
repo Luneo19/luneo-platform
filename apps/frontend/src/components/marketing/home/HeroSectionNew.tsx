@@ -6,21 +6,7 @@ import Link from 'next/link';
 import { ArrowRight, Play, Sparkles, Bot, Zap, Shield } from 'lucide-react';
 import { AgentDemoShowcase } from './AgentDemoShowcase';
 import { FireflyCTA } from '@/components/ui/firefly-cta';
-
-const ROTATING_WORDS = [
-  'votre Support Client',
-  'votre E-commerce',
-  'vos Ventes',
-  'votre Marketing',
-  'votre Support Technique',
-  'votre FAQ',
-];
-
-const STATS = [
-  { target: 2450, suffix: '+', label: 'Agents déployés', icon: Bot },
-  { target: 1000000, suffix: '+', label: 'Conversations', icon: Zap },
-  { target: 98, suffix: '%', label: 'Satisfaction', icon: Shield },
-];
+import { useI18n } from '@/i18n/useI18n';
 
 function AnimatedCounter({
   target,
@@ -64,17 +50,33 @@ function AnimatedCounter({
 }
 
 export function HeroSectionNew() {
+  const { locale } = useI18n();
+  const isEn = locale === 'en';
+  const rotatingWords = isEn
+    ? ['your Customer Support', 'your E-commerce', 'your Sales', 'your Marketing', 'your Technical Support', 'your FAQ']
+    : ['votre Support Client', 'votre E-commerce', 'vos Ventes', 'votre Marketing', 'votre Support Technique', 'votre FAQ'];
+  const stats = isEn
+    ? [
+        { target: 2450, suffix: '+', label: 'Agents deployed', icon: Bot },
+        { target: 1000000, suffix: '+', label: 'Conversations', icon: Zap },
+        { target: 98, suffix: '%', label: 'Satisfaction', icon: Shield },
+      ]
+    : [
+        { target: 2450, suffix: '+', label: 'Agents déployés', icon: Bot },
+        { target: 1000000, suffix: '+', label: 'Conversations', icon: Zap },
+        { target: 98, suffix: '%', label: 'Satisfaction', icon: Shield },
+      ];
   const [wordIndex, setWordIndex] = useState(0);
   const statsRef = useRef<HTMLDivElement>(null);
   const statsInView = useInView(statsRef, { once: true, margin: '-40px' });
 
   useEffect(() => {
     const interval = setInterval(
-      () => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length),
+      () => setWordIndex((i) => (i + 1) % rotatingWords.length),
       2500,
     );
     return () => clearInterval(interval);
-  }, []);
+  }, [rotatingWords.length]);
 
   return (
     <section className="relative min-h-screen flex flex-col items-center overflow-hidden bg-[#030014]">
@@ -110,7 +112,7 @@ export function HeroSectionNew() {
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-white/[0.08] to-cyan-500/0 animate-[text-shimmer_3s_linear_infinite] bg-[length:200%_100%]" />
             <Sparkles className="w-4 h-4 text-cyan-400 relative z-10" />
             <span className="text-sm text-white/70 font-medium relative z-10">
-              Nouveau — Agents IA multi-langues disponibles
+              {isEn ? 'New - Multilingual AI agents available' : 'Nouveau - Agents IA multi-langues disponibles'}
             </span>
           </div>
         </motion.div>
@@ -123,7 +125,7 @@ export function HeroSectionNew() {
           className="mb-6"
         >
           <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white leading-[1.1] tracking-tight">
-            <span className="block">Déployez des agents IA pour</span>
+            <span className="block">{isEn ? 'Deploy AI agents for' : 'Déployez des agents IA pour'}</span>
             <span className="block mt-2 h-[1.2em] relative">
               <AnimatePresence mode="wait">
                 <motion.span
@@ -134,7 +136,7 @@ export function HeroSectionNew() {
                   transition={{ duration: 0.4, ease: 'easeInOut' }}
                   className="absolute inset-x-0 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-emerald-400"
                 >
-                  {ROTATING_WORDS[wordIndex]}
+                  {rotatingWords[wordIndex]}
                 </motion.span>
               </AnimatePresence>
             </span>
@@ -148,8 +150,12 @@ export function HeroSectionNew() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-base sm:text-lg lg:text-xl text-white/50 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          Créez, entraînez et déployez des agents conversationnels alimentés par vos données.{' '}
-          <span className="text-white/80 font-medium">En 15 minutes, sans code.</span>
+          {isEn
+            ? 'Build, train and deploy conversational agents powered by your data. '
+            : 'Créez, entraînez et déployez des agents conversationnels alimentés par vos données. '}
+          <span className="text-white/80 font-medium">
+            {isEn ? 'In 15 minutes, without code.' : 'En 15 minutes, sans code.'}
+          </span>
         </motion.p>
 
         {/* CTAs */}
@@ -166,7 +172,7 @@ export function HeroSectionNew() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500" />
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10">Commencer gratuitement</span>
+              <span className="relative z-10">{isEn ? 'Start for free' : 'Commencer gratuitement'}</span>
               <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </FireflyCTA>
@@ -175,7 +181,7 @@ export function HeroSectionNew() {
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all duration-300"
           >
             <Play className="w-4 h-4" />
-            Voir une démo
+            {isEn ? 'View demo' : 'Voir une démo'}
           </Link>
         </motion.div>
 
@@ -187,7 +193,7 @@ export function HeroSectionNew() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-wrap justify-center gap-8 sm:gap-16"
         >
-          {STATS.map((stat, i) => (
+          {stats.map((stat, i) => (
             <div key={i} className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-white mb-1">
                 <AnimatedCounter target={stat.target} suffix={stat.suffix} inView={statsInView} />

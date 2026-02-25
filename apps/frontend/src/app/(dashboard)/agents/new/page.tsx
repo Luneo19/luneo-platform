@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -68,10 +69,10 @@ export default function AgentNewPage() {
     try {
       const params = new URLSearchParams();
       if (categoryFilter !== 'ALL') params.set('category', categoryFilter);
-      const res = await api.get<{ data: AgentTemplate[] }>(
+      const res = await api.get(
         `/api/v1/agent-templates?${params.toString()}`
       );
-      setTemplates(res.data ?? []);
+      setTemplates(normalizeListResponse<AgentTemplate>(res));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les templates');
     } finally {

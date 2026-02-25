@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { useAuth } from '@/hooks/useAuth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
@@ -71,15 +72,14 @@ function useOverviewStats(period: string) {
           api.get('/api/v1/agents'),
           api.get(`/api/v1/agent-analytics/overview?from=${fromStr}&to=${toStr}`),
         ]);
-        const agentsRaw = agentsRes as Record<string, unknown> | unknown[];
-        const agents = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as Record<string, unknown>)?.data as unknown[] ?? []);
+        const agents = normalizeListResponse<{ status: string }>(agentsRes);
         const analyticsRaw = analyticsRes as Record<string, unknown>;
         const analytics: Record<string, unknown> = (typeof analyticsRaw?.data === 'object' && analyticsRaw.data !== null
           ? analyticsRaw.data as Record<string, unknown>
           : analyticsRaw) ?? {};
         return {
-          agentsActive: Array.isArray(agents) ? (agents as Array<{ status: string }>).filter((a) => a.status === 'ACTIVE').length : 0,
-          agentsTotal: Array.isArray(agents) ? agents.length : 0,
+          agentsActive: agents.filter((a) => a.status === 'ACTIVE').length,
+          agentsTotal: agents.length,
           conversationsTotal: Number(analytics.totalConversations) || 0,
           conversationsThisPeriod: Number(analytics.conversationsThisPeriod) || 0,
           conversationsTrend: Number(analytics.conversationsTrend) || 0,
@@ -108,8 +108,8 @@ function useRecentConversations() {
     queryKey: ['recent-conversations'],
     queryFn: async () => {
       try {
-        const res = await api.get('/api/v1/conversations?limit=5&sort=createdAt:desc') as Record<string, unknown> | unknown[];
-        return (Array.isArray(res) ? res : (res as Record<string, unknown>)?.data ?? []) as RecentConversation[];
+        const res = await api.get('/api/v1/conversations?limit=5') as Record<string, unknown> | unknown[];
+        return normalizeListResponse<RecentConversation>(res);
       } catch {
         return [];
       }
@@ -320,7 +320,7 @@ function OverviewContent() {
                           {conv.visitorName || conv.visitorEmail || 'Visiteur anonyme'}
                         </p>
                         <p className="truncate text-xs text-white/40">
-                          {conv.agent.name} · {conv.messageCount} messages
+                          {(conv.agent?.name ?? 'Agent')} · {conv.messageCount} messages
                         </p>
                       </div>
                     </div>

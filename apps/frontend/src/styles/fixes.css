@@ -13,38 +13,39 @@ html, body {
   box-sizing: border-box;
 }
 
-/* 2. CORRECTION BOUTONS BLANCS ILLISIBLES */
-button.bg-white,
-.btn-white {
+/* 2. CORRECTION BOUTONS BLANCS ILLISIBLES
+   Scoped to legacy wrappers only to avoid breaking auth/dashboard themes. */
+.legacy-contrast-fix button.bg-white,
+.legacy-contrast-fix .btn-white {
   color: #1f2937 !important;
 }
 
-button.bg-white:hover {
+.legacy-contrast-fix button.bg-white:hover {
   color: #111827 !important;
 }
 
-button.border-white {
+.legacy-contrast-fix button.border-white {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: #ffffff !important;
 }
 
-button.border-white:hover {
+.legacy-contrast-fix button.border-white:hover {
   background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* 3. CORRECTION TEXTES ILLISIBLES */
-.text-white.bg-white,
-.bg-white .text-white {
+/* 3. CORRECTION TEXTES ILLISIBLES (legacy only) */
+.legacy-contrast-fix .text-white.bg-white,
+.legacy-contrast-fix .bg-white .text-white {
   color: #1f2937 !important;
 }
 
-.text-gray-100.bg-gray-100,
-.bg-gray-100 .text-gray-100 {
+.legacy-contrast-fix .text-gray-100.bg-gray-100,
+.legacy-contrast-fix .bg-gray-100 .text-gray-100 {
   color: #374151 !important;
 }
 
-.text-gray-200.bg-gray-200,
-.bg-gray-200 .text-gray-200 {
+.legacy-contrast-fix .text-gray-200.bg-gray-200,
+.legacy-contrast-fix .bg-gray-200 .text-gray-200 {
   color: #4b5563 !important;
 }
 

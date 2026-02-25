@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import type { AdminUser } from '@/lib/admin/permissions';
+import { ensureSession } from '@/lib/auth/session-client';
 
 interface AdminGuardProps {
   serverUser: AdminUser | null;
@@ -22,19 +23,35 @@ interface AdminGuardProps {
 export function AdminGuard({ serverUser, children }: AdminGuardProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const recoveringRef = useRef(false);
 
   useEffect(() => {
     if (serverUser) return;
     if (isLoading) return;
+    if (recoveringRef.current) return;
 
     if (!user) {
+      recoveringRef.current = true;
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/admin';
-      router.push('/login?redirect=' + encodeURIComponent(currentPath));
+
+      (async () => {
+        try {
+          if (await ensureSession()) {
+            recoveringRef.current = false;
+            router.refresh();
+            return;
+          }
+        } catch {
+          // Fall through to login redirect.
+        }
+
+        router.replace('/login?redirect=' + encodeURIComponent(currentPath));
+      })();
       return;
     }
 
     if (user.role !== 'PLATFORM_ADMIN' && user.role !== 'ADMIN') {
-      router.push('/login');
+      router.replace('/overview');
     }
   }, [serverUser, user, isLoading, router]);
 

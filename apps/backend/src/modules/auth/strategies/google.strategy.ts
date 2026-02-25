@@ -12,6 +12,15 @@ import { Logger } from '@nestjs/common';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   private readonly logger = new Logger(GoogleStrategy.name);
 
+  private static normalizeGoogleCallbackUrl(raw?: string): string | undefined {
+    if (!raw) return undefined;
+    // Backward compatibility: old envs sometimes use /api/auth/google/callback.
+    if (raw.includes('/api/auth/google/callback')) {
+      return raw.replace('/api/auth/google/callback', '/api/v1/auth/google/callback');
+    }
+    return raw;
+  }
+
   constructor(
     private readonly configService: ConfigService,
     private readonly oauthService: OAuthService,
@@ -43,9 +52,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientSecret = configService.get<string>('oauth.google.clientSecret') ||
                         configService.get<string>('GOOGLE_CLIENT_SECRET') ||
                         configService.get<string>('GOOGLE_OAUTH_CLIENT_SECRET');
-    const callbackURL = configService.get<string>('oauth.google.callbackUrl') ||
-                       configService.get<string>('GOOGLE_CALLBACK_URL') ||
-                       configService.get<string>('GOOGLE_OAUTH_CALLBACK_URL');
+    const callbackURL = GoogleStrategy.normalizeGoogleCallbackUrl(
+      configService.get<string>('oauth.google.callbackUrl') ||
+        configService.get<string>('GOOGLE_CALLBACK_URL') ||
+        configService.get<string>('GOOGLE_OAUTH_CALLBACK_URL'),
+    );
 
     if (!clientID || !clientSecret) {
       throw new Error('Google OAuth clientID and clientSecret are required');

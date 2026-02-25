@@ -39,16 +39,16 @@ function ContactPageContentInner() {
   const contactInfo = [
     {
       icon: <Mail className="w-6 h-6" />,
-      title: t('public.contact.contactInfo.supportEmail'),
-      details: 'support@luneo.app',
+      title: t('public.contact.contactInfo.primaryEmail'),
+      details: 'contact@luneo.app',
       description: t('public.contact.contactInfo.response24h'),
       color: 'blue' as const
     },
     {
-      icon: <Mail className="w-6 h-6" />,
-      title: t('public.contact.contactInfo.commercialEmail'),
-      details: 'contact@luneo.app',
-      description: t('public.contact.contactInfo.response24h'),
+      icon: <TicketIcon className="w-6 h-6" />,
+      title: t('public.contact.contactInfo.supportPortal'),
+      details: 'luneo.app/support',
+      description: t('public.contact.contactInfo.supportPortalDesc'),
       color: 'green' as const
     },
     {
@@ -69,9 +69,9 @@ function ContactPageContentInner() {
     name: '',
     email: '',
     company: '',
-    subject: isEnterprisePricing ? 'Demande de devis — Plan Enterprise' : '',
+    subject: isEnterprisePricing ? t('public.contact.enterprise.prefillSubject') : '',
     message: isEnterprisePricing
-      ? 'Bonjour,\n\nNous sommes intéressés par le plan Enterprise de Luneo. Pouvez-vous nous contacter pour discuter de nos besoins et obtenir un devis personnalisé ?\n\nMerci.'
+      ? t('public.contact.enterprise.prefillMessage')
       : '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,11 +82,11 @@ function ContactPageContentInner() {
     if (isEnterprisePricing && !formData.subject.includes('Enterprise')) {
       setFormData(prev => ({
         ...prev,
-        subject: 'Demande de devis — Plan Enterprise',
-        message: prev.message || 'Bonjour,\n\nNous sommes intéressés par le plan Enterprise de Luneo. Pouvez-vous nous contacter pour discuter de nos besoins et obtenir un devis personnalisé ?\n\nMerci.',
+        subject: t('public.contact.enterprise.prefillSubject'),
+        message: prev.message || t('public.contact.enterprise.prefillMessage'),
       }));
     }
-  }, [isEnterprisePricing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isEnterprisePricing, formData.subject, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,13 +175,15 @@ function ContactPageContentInner() {
                   <div>
                     <h3 className="text-sm font-semibold text-indigo-300">Plan Enterprise — Demande de devis</h3>
                     <p className="text-xs text-white/50 mt-1">
-                      Notre équipe commerciale vous contactera sous 24h pour discuter de vos besoins spécifiques, des prestations sur-mesure et des conditions tarifaires adaptées à votre organisation.
+                      {t('public.contact.enterprise.bannerDescription')}
                     </p>
                   </div>
                 </div>
               </div>
             )}
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">{isEnterprisePricing ? 'Demandez votre devis Enterprise' : t('public.contact.sendMessage')}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-white font-display">
+              {isEnterprisePricing ? t('public.contact.enterprise.bannerTitle') : t('public.contact.sendMessage')}
+            </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -299,13 +301,13 @@ function ContactPageContentInner() {
             <Card className="p-6 bg-dark-card/60 border-white/[0.04]">
               <h3 className="font-bold mb-2 flex items-center text-white">
                 <TicketIcon className="w-5 h-5 mr-2" />
-                Gestion des tickets
+                {t('public.contact.supportCard.title')}
               </h3>
               <p className="text-sm text-slate-400 mb-4">
-                Vous avez déjà une demande ? Consultez le suivi de vos tickets et la réponse de notre équipe.
+                {t('public.contact.supportCard.description')}
               </p>
               <Button asChild variant="outline" className="w-full border-white/10 text-slate-300 hover:bg-white/5 hover:text-white">
-                <Link href="/support">Voir mes tickets</Link>
+                <Link href="/support">{t('public.contact.supportCard.cta')}</Link>
               </Button>
             </Card>
 

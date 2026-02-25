@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Upload, Settings, Rocket } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 interface Step {
   number: string;
@@ -13,36 +14,6 @@ interface Step {
   gradient: string;
   iconColor: string;
 }
-
-const STEPS: Step[] = [
-  {
-    number: '01',
-    icon: Upload,
-    title: 'Importez vos données',
-    description:
-      "Chargez vos documents, connectez votre site web ou vos APIs. Notre moteur d'indexation vectorielle traite automatiquement vos données.",
-    gradient: 'from-indigo-500 to-cyan-500',
-    iconColor: 'text-indigo-400',
-  },
-  {
-    number: '02',
-    icon: Settings,
-    title: 'Configurez votre agent',
-    description:
-      'Choisissez un template ou créez votre agent depuis zéro. Définissez le ton, les langues et les règles de réponse.',
-    gradient: 'from-cyan-500 to-emerald-500',
-    iconColor: 'text-cyan-400',
-  },
-  {
-    number: '03',
-    icon: Rocket,
-    title: 'Déployez sur vos canaux',
-    description:
-      'Widget web, email, Slack, WhatsApp — déployez votre agent sur tous vos canaux en un clic. Votre support client est opérationnel.',
-    gradient: 'from-emerald-500 to-indigo-500',
-    iconColor: 'text-emerald-400',
-  },
-];
 
 function StepCard({ step, index }: { step: Step; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -88,6 +59,67 @@ function StepCard({ step, index }: { step: Step; index: number }) {
 }
 
 export function HowItWorksNew() {
+  const { locale } = useI18n();
+  const isEn = locale === 'en';
+  const steps: Step[] = isEn
+    ? [
+        {
+          number: '01',
+          icon: Upload,
+          title: 'Import your data',
+          description:
+            'Upload docs, connect your website or APIs. Our vector indexing pipeline processes your data automatically.',
+          gradient: 'from-indigo-500 to-cyan-500',
+          iconColor: 'text-indigo-400',
+        },
+        {
+          number: '02',
+          icon: Settings,
+          title: 'Configure your agent',
+          description:
+            'Pick a template or build from scratch. Define tone, languages and response guardrails.',
+          gradient: 'from-cyan-500 to-emerald-500',
+          iconColor: 'text-cyan-400',
+        },
+        {
+          number: '03',
+          icon: Rocket,
+          title: 'Deploy to your channels',
+          description:
+            'Web widget, email, Slack, WhatsApp - deploy in one click and go live.',
+          gradient: 'from-emerald-500 to-indigo-500',
+          iconColor: 'text-emerald-400',
+        },
+      ]
+    : [
+        {
+          number: '01',
+          icon: Upload,
+          title: 'Importez vos données',
+          description:
+            "Chargez vos documents, connectez votre site web ou vos APIs. Notre moteur d'indexation vectorielle traite automatiquement vos données.",
+          gradient: 'from-indigo-500 to-cyan-500',
+          iconColor: 'text-indigo-400',
+        },
+        {
+          number: '02',
+          icon: Settings,
+          title: 'Configurez votre agent',
+          description:
+            'Choisissez un template ou créez votre agent depuis zéro. Définissez le ton, les langues et les règles de réponse.',
+          gradient: 'from-cyan-500 to-emerald-500',
+          iconColor: 'text-cyan-400',
+        },
+        {
+          number: '03',
+          icon: Rocket,
+          title: 'Déployez sur vos canaux',
+          description:
+            'Widget web, email, Slack, WhatsApp - déployez votre agent sur tous vos canaux en un clic.',
+          gradient: 'from-emerald-500 to-indigo-500',
+          iconColor: 'text-emerald-400',
+        },
+      ];
   const headerRef = useRef<HTMLDivElement>(null);
   const headerInView = useInView(headerRef, { once: true, margin: '-60px' });
   const lineRef = useRef<HTMLDivElement>(null);
@@ -104,16 +136,18 @@ export function HowItWorksNew() {
           className="text-center mb-20"
         >
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium tracking-wide uppercase mb-6">
-            Comment ça marche
+            {isEn ? 'How it works' : 'Comment ça marche'}
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mt-4 mb-6">
-            Déployez votre premier agent en{' '}
+            {isEn ? 'Deploy your first agent in ' : 'Déployez votre premier agent en '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-              3 étapes
+              {isEn ? '3 steps' : '3 étapes'}
             </span>
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            De l&apos;import de vos données au déploiement sur vos canaux, en seulement 15 minutes.
+            {isEn
+              ? 'From data import to production deployment in just 15 minutes.'
+              : "De l'import de vos données au déploiement sur vos canaux, en seulement 15 minutes."}
           </p>
         </motion.div>
 
@@ -128,7 +162,7 @@ export function HowItWorksNew() {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-8">
-            {STEPS.map((step, i) => (
+            {steps.map((step, i) => (
               <StepCard key={i} step={step} index={i} />
             ))}
           </div>

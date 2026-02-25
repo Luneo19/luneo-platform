@@ -4,11 +4,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
 
 export const metadata: Metadata = {
   title: 'Contact | Luneo - Support & Équipe Commerciale',
-  description: 'Contactez l\'équipe Luneo pour toute question, demande de démo ou support technique. Nous sommes là pour vous aider.',
-  keywords: ['contact', 'support', 'aide', 'démo', 'commercial', 'Luneo'],
+  description:
+    "Contactez l'équipe Luneo pour déployer vos agents IA, demander une démo ou échanger sur votre stratégie support et opérations.",
+  keywords: ['contact', 'support', 'agents IA', 'démo', 'commercial', 'Luneo'],
   openGraph: {
     title: 'Contact | Luneo',
-    description: 'Contactez l\'équipe Luneo pour toute question, demande de démo ou support technique.',
+    description: "Contactez l'équipe Luneo pour vos projets d'agents IA, votre support technique ou votre plan Enterprise.",
     type: 'website',
     url: `${APP_URL}/contact`,
     siteName: 'Luneo',

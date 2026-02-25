@@ -17,6 +17,26 @@ export interface AuthUser {
   brandId?: string;
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const json = Buffer.from(padded, 'base64').toString('utf8');
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function isJwtExpired(payload: Record<string, unknown> | null): boolean {
+  if (!payload) return true;
+  const exp = payload.exp;
+  if (typeof exp !== 'number') return true;
+  return exp * 1000 <= Date.now();
+}
+
 /**
  * Récupère l'utilisateur depuis les cookies JWT (backend NestJS)
  * Appelle directement le backend /api/v1/auth/me avec les cookies
@@ -25,15 +45,35 @@ export async function getServerUser(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get('accessToken')?.value;
-    
-    if (!accessToken) {
+    const refreshToken = cookieStore.get('refreshToken')?.value || '';
+    if (!accessToken && !refreshToken) {
       return null;
     }
 
-    const refreshToken = cookieStore.get('refreshToken')?.value || '';
-    const cookieHeader = refreshToken
-      ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
-      : `accessToken=${accessToken}`;
+    // Fast-path for SSR/admin routes: decode access token locally to avoid
+    // transient backend /auth/me or /auth/refresh races causing redirect loops.
+    if (accessToken) {
+      const payload = decodeJwtPayload(accessToken);
+      if (!isJwtExpired(payload)) {
+        const sub = payload?.sub;
+        const email = payload?.email;
+        const role = payload?.role;
+        if (sub && email) {
+          return {
+            id: String(sub),
+            email: String(email),
+            role: role ? String(role) : undefined,
+            brandId: payload?.brandId ? String(payload.brandId) : undefined,
+          };
+        }
+      }
+    }
+
+    const cookieHeader = accessToken
+      ? (refreshToken
+          ? `accessToken=${accessToken}; refreshToken=${refreshToken}`
+          : `accessToken=${accessToken}`)
+      : `refreshToken=${refreshToken}`;
 
     const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}/api/v1/auth/me`, {

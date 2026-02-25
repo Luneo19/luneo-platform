@@ -4,16 +4,24 @@ import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight, Shield, Lock, Headphones } from 'lucide-react';
-
-const TRUST_BADGES = [
-  { icon: Shield, label: 'RGPD Conforme' },
-  { icon: Lock, label: 'Chiffrement AES-256' },
-  { icon: Headphones, label: 'Support 24/7' },
-];
+import { useI18n } from '@/i18n/useI18n';
 
 export function CTASectionNew() {
+  const { locale } = useI18n();
+  const isEn = locale === 'en';
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const trustBadges = isEn
+    ? [
+        { icon: Shield, label: 'GDPR compliant' },
+        { icon: Lock, label: 'AES-256 encryption' },
+        { icon: Headphones, label: '24/7 support' },
+      ]
+    : [
+        { icon: Shield, label: 'RGPD Conforme' },
+        { icon: Lock, label: 'Chiffrement AES-256' },
+        { icon: Headphones, label: 'Support 24/7' },
+      ];
 
   return (
     <section className="relative py-32 overflow-hidden">
@@ -56,16 +64,17 @@ export function CTASectionNew() {
           className="text-center"
         >
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-            Prêt à automatiser{' '}
+            {isEn ? 'Ready to automate ' : 'Prêt à automatiser '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400">
-              votre support
+              {isEn ? 'your support' : 'votre support'}
             </span>
             {' '}?
           </h2>
 
           <p className="text-lg sm:text-xl text-white/60 max-w-xl mx-auto mb-10">
-            Rejoignez 2,450+ entreprises qui utilisent Luneo pour offrir un support client
-            exceptionnel, 24/7.
+            {isEn
+              ? 'Join 2,450+ companies using Luneo to deliver exceptional customer support, 24/7.'
+              : 'Rejoignez 2,450+ entreprises qui utilisent Luneo pour offrir un support client exceptionnel, 24/7.'}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 mb-14">
@@ -75,7 +84,7 @@ export function CTASectionNew() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-cyan-600 to-emerald-600" />
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10">Créer mon premier agent</span>
+              <span className="relative z-10">{isEn ? 'Create my first agent' : 'Créer mon premier agent'}</span>
               <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
 
@@ -83,7 +92,7 @@ export function CTASectionNew() {
               href="/pricing"
               className="group inline-flex items-center gap-2 text-white/60 hover:text-white text-lg font-medium transition-colors duration-200"
             >
-              Voir la tarification
+              {isEn ? 'View pricing' : 'Voir la tarification'}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
           </div>
@@ -94,7 +103,7 @@ export function CTASectionNew() {
             transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
             className="flex flex-wrap items-center justify-center gap-6 sm:gap-8"
           >
-            {TRUST_BADGES.map((badge, i) => (
+            {trustBadges.map((badge, i) => (
               <div
                 key={i}
                 className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-sm text-white/50"

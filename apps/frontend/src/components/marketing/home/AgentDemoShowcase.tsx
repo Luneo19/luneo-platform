@@ -211,6 +211,7 @@ export function AgentDemoShowcase() {
 
   return (
     <motion.div
+      id="demo"
       ref={containerRef}
       initial={{ opacity: 0, y: 40 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}

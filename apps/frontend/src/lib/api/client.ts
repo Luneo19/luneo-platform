@@ -7,6 +7,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import type { LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { ensureSession } from '@/lib/auth/session-client';
 
 interface AuthSessionResponse {
   accessToken?: string;
@@ -129,8 +130,6 @@ apiClient.interceptors.request.use(
   }
 );
 
-let refreshPromise: Promise<Response> | null = null;
-
 /**
  * Response Interceptor
  * Handle errors, token refresh, and logging
@@ -154,30 +153,12 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        if (!refreshPromise) {
-          refreshPromise = fetch('/api/v1/auth/refresh', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
-          });
-        }
-
-        const refreshResp = await refreshPromise;
-        refreshPromise = null;
-
-        if (!refreshResp.ok) {
+        const recovered = await ensureSession();
+        if (!recovered) {
           throw new Error('Token refresh failed');
         }
-
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-        }
-        
         return apiClient(originalRequest);
       } catch (refreshError) {
-        refreshPromise = null;
         if (typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -622,8 +603,13 @@ export const endpoints = {
         api.post<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/connect', data),
       disconnect: () =>
         api.delete<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/disconnect'),
-      status: () =>
-        api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status'),
+      status: async () => {
+        try {
+          return await api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status');
+        } catch {
+          return api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify/status');
+        }
+      },
     },
     woocommerceStatus: () =>
       api.get<{ connected: boolean; siteUrl?: string; status: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/woocommerce/status'),

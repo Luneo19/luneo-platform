@@ -2575,25 +2575,28 @@ export const fr = {
     about: {
       badge: 'À propos',
       missionTitle: 'Notre Mission',
-      missionDescription: 'Démocratiser la création de designs professionnels grâce à l\'IA et rendre la personnalisation produit accessible à tous.',
+      missionDescription:
+        "Aider les équipes à déployer des agents IA utiles, fiables et mesurables pour le support, les ventes et les opérations.",
       missionCardTitle: 'Notre Mission',
-      missionCardDescription: 'Transformer le workflow créatif des marques en combinant l\'intelligence artificielle, la visualisation 3D et la réalité augmentée. Nous permettons à chaque entrepreneur de créer des expériences produits dignes des plus grandes marques.',
+      missionCardDescription:
+        "Transformer la connaissance métier en workflows automatisés qui répondent vite, avec précision, sur tous les canaux clients.",
       visionCardTitle: 'Notre Vision',
-      visionCardDescription: 'Un monde où chaque produit peut être personnalisé instantanément, visualisé en 3D photoréaliste, essayé en réalité augmentée, et commandé avec des fichiers print-ready automatiques. Zero friction. 100% automation.',
+      visionCardDescription:
+        "Un monde où chaque entreprise peut opérer avec des agents IA responsables, supervisables et réellement alignés avec ses objectifs business.",
       valuesTitle: 'Nos Valeurs',
       valuesSubtitle: 'Ce qui guide notre travail au quotidien',
       innovation: 'Innovation',
-      innovationDesc: 'Toujours à la pointe de la technologie IA, 3D et AR pour offrir les meilleures solutions',
+      innovationDesc: 'Innover utilement, avec un impact concret sur la performance des équipes.',
       simplicity: 'Simplicité',
-      simplicityDesc: 'Des outils puissants, mais intuitifs et accessibles pour tous les niveaux',
+      simplicityDesc: 'Des outils puissants mais clairs, pour aller de l’idée à la production sans friction.',
       reliability: 'Fiabilité',
-      reliabilityDesc: 'Infrastructure enterprise-grade avec 99.9% uptime SLA pour garantir votre succès',
+      reliabilityDesc: 'Fiabilité enterprise, gouvernance et sécurité intégrées dès la conception.',
       support: 'Support',
-      supportDesc: 'Accompagnement personnalisé pour vous aider à réussir avec Luneo',
+      supportDesc: 'Un accompagnement pragmatique pour obtenir des résultats rapidement.',
       historyTitle: 'Notre Histoire',
       historySubtitle: 'De l\'idée à des milliers d\'utilisateurs',
       teamTitle: 'L\'Équipe',
-      teamSubtitle: 'Experts en IA, 3D et E-commerce',
+      teamSubtitle: 'Experts IA, produit et opérations client',
       companyName: 'Luneo Tech',
       location: 'Neuchâtel, Suisse',
       milestones: {
@@ -2617,7 +2620,8 @@ export const fr = {
     },
     contact: {
       title: 'Contactez-nous',
-      description: "Nous sommes là pour vous aider. N'hésitez pas à nous contacter pour toute question ou pour discuter de vos besoins en design.",
+      description:
+        "Parlez-nous de vos enjeux support, ventes ou opérations. Nous vous aidons à cadrer, lancer et industrialiser vos agents IA.",
       badge: 'Contact',
       formHeader: 'Envoyez-nous un message',
       sendMessage: 'Envoyer le message',
@@ -2635,10 +2639,26 @@ export const fr = {
       successDesc: 'Nous vous répondrons dans les plus brefs délais.',
       error: "Erreur lors de l'envoi",
       captchaRequired: 'Vérification CAPTCHA requise. Veuillez réessayer.',
+      enterprise: {
+        bannerTitle: 'Demandez votre devis Enterprise',
+        bannerDescription:
+          'Notre équipe vous répond sous 24h pour définir une architecture, un niveau de sécurité et un plan de déploiement adaptés.',
+        prefillSubject: 'Demande de devis - Plan Enterprise',
+        prefillMessage:
+          "Bonjour,\n\nNous souhaitons déployer Luneo sur un périmètre Enterprise. Pouvez-vous nous recontacter pour cadrer le projet, la sécurité et le budget ?\n\nMerci.",
+      },
+      supportCard: {
+        title: 'Gestion des tickets',
+        description: 'Vous avez déjà une demande ? Suivez vos tickets et les réponses de notre équipe.',
+        cta: 'Voir mes tickets',
+      },
       contactInfo: {
         email: 'Email',
         supportEmail: 'Support',
         commercialEmail: 'Commercial',
+        primaryEmail: 'Email principal',
+        supportPortal: 'Portail support',
+        supportPortalDesc: 'Suivi des tickets et statut des demandes',
         response24h: 'Réponse sous 24h',
         phone: 'Téléphone',
         hours: 'Lun-Ven 9h-18h',
@@ -2647,12 +2667,12 @@ export const fr = {
         mainOffice: 'Bureau principal',
       },
       faq: {
-        q1: 'Comment puis-je commencer avec Luneo ?',
-        a1: 'Créez simplement un compte gratuit sur notre plateforme et commencez à créer vos premiers designs en quelques minutes.',
-        q2: 'Quels types de designs puis-je créer ?',
-        a2: 'Vous pouvez créer des logos, bannières, cartes de visite, posts pour réseaux sociaux, et bien plus encore.',
-        q3: "Y a-t-il une limite sur le plan gratuit ?",
-        a3: 'Le plan gratuit vous permet de créer 10 designs par mois avec accès aux templates de base.',
+        q1: 'Combien de temps pour lancer un premier agent IA ?',
+        a1: 'En général, quelques jours suffisent pour un premier cas d’usage avec vos contenus et vos règles métier.',
+        q2: 'Comment garantissez-vous la qualité des réponses ?',
+        a2: 'Vous configurez vos sources, vos règles de validation et les scénarios d’escalade vers un humain.',
+        q3: 'Puis-je connecter Luneo à mes outils existants ?',
+        a3: 'Oui, Luneo s’intègre à vos canaux client, CRM, helpdesk et base de connaissances.',
       },
     },
     checkout: {

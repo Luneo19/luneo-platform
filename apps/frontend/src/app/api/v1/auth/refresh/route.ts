@@ -42,6 +42,29 @@ export async function POST(req: NextRequest) {
 
     if (backendRes.statusCode >= 200 && backendRes.statusCode < 300) {
       forwardCookiesToResponse(backendRes.setCookieHeaders, nextRes);
+    } else if (backendRes.statusCode === 401) {
+      // Keep frontend and backend session state aligned when refresh is invalid/rotated.
+      nextRes.cookies.set('accessToken', '', {
+        path: '/',
+        maxAge: 0,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      });
+      nextRes.cookies.set('refreshToken', '', {
+        path: '/',
+        maxAge: 0,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      });
+      nextRes.cookies.set('csrf_token', '', {
+        path: '/',
+        maxAge: 0,
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      });
     }
 
     return nextRes;

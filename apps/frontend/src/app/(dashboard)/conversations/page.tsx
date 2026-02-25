@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
 import {
   Search,
@@ -83,10 +84,10 @@ export default function ConversationsPage() {
       const params = new URLSearchParams();
       if (filter !== 'ALL') params.set('status', filter);
       if (search) params.set('search', search);
-      const res = await api.get<{ data: Conversation[]; meta: { total: number; hasMore: boolean } }>(
+      const res = await api.get(
         `/api/v1/conversations?${params.toString()}`
       );
-      setConversations(res.data ?? []);
+      setConversations(normalizeListResponse<Conversation>(res));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les conversations');
     } finally {

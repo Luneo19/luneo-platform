@@ -181,14 +181,14 @@ function LoginPageContent() {
             setSuccess(t('auth.login.sessionVerified'));
             window.location.href = targetUrl;
           } else {
-            // Cookies were not stored — navigate anyway but warn
-            logger.warn('Cookie verification failed, navigating anyway', { status: verifyResp.status });
-            window.location.href = targetUrl;
+            // Do not navigate when session verification fails, otherwise /admin can loop.
+            logger.warn('Cookie verification failed, stopping redirect', { status: verifyResp.status });
+            setError(t('auth.login.errors.generic'));
           }
         } catch {
-          // Network error during verification — navigate anyway
-          logger.warn('Cookie verification fetch failed, navigating anyway');
-          window.location.href = targetUrl;
+          // Network error during verification — keep user on login to prevent loops.
+          logger.warn('Cookie verification fetch failed, stopping redirect');
+          setError(t('auth.login.errors.generic'));
         }
       } else {
         setError(t('auth.login.invalidResponse'));

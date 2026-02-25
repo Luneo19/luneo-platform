@@ -96,7 +96,7 @@ export default function DashboardLayoutGroup({
   useEffect(() => {
     if (!isLoading && !user) {
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
-      router.push('/login?redirect=' + encodeURIComponent(currentPath));
+      router.replace('/login?redirect=' + encodeURIComponent(currentPath));
     }
   }, [user, isLoading, router]);
 

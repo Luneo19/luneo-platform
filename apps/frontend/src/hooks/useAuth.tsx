@@ -3,6 +3,7 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { ensureSession } from '@/lib/auth/session-client';
 
 import type { AuthContextType, AuthUser } from './types';
 
@@ -157,42 +158,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true);
       try {
-        let response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
+        const hasSession = await ensureSession();
         if (!isMounted) return;
-
-        if (response.status === 401) {
-          try {
-            const refreshResp = await fetch(`${AUTH_BASE}/api/v1/auth/refresh`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({}),
-            });
-
-            if (!isMounted) return;
-
-            if (refreshResp.ok) {
-              response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
-                method: 'GET',
-                credentials: 'include',
-              });
-              if (!isMounted) return;
-            }
-          } catch {
-            // Refresh failed silently
-          }
+        if (!hasSession) {
+          setUser(null);
+          return;
         }
 
+        const response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (!isMounted) return;
         if (!response.ok) {
-          if (response.status === 401) {
-            setUser(null);
-            return;
-          }
-          throw new Error(`Failed to fetch user: ${response.statusText}`);
+          setUser(null);
+          return;
         }
 
         const data = await response.json();

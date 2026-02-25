@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -67,12 +68,13 @@ export default function AgentsPage() {
     try {
       const params = new URLSearchParams();
       if (filter !== 'ALL') params.set('status', filter);
-      const res = await api.get<{ data: Agent[]; meta: { total: number } }>(
+      const res = await api.get(
         `/api/v1/agents?${params.toString()}`
       );
-      setAgents(res.data ?? []);
+      setAgents(normalizeListResponse<Agent>(res));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les agents');
+      const message = err instanceof Error ? err.message : 'Impossible de charger les agents';
+      setError(message.includes('organisation') ? 'Aucune organisation active. Finalisez l’onboarding pour créer des agents.' : message);
     } finally {
       setLoading(false);
     }

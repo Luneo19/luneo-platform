@@ -2694,25 +2694,28 @@ const messages = {
     about: {
       badge: 'About',
       missionTitle: 'Our Mission',
-      missionDescription: 'Democratise professional design creation through AI and make product customisation accessible to everyone.',
+      missionDescription:
+        'Help teams deploy useful, reliable and measurable AI agents for support, sales and operations.',
       missionCardTitle: 'Our Mission',
-      missionCardDescription: 'Transform brands\' creative workflows by combining artificial intelligence, 3D visualisation and augmented reality. We enable every entrepreneur to create product experiences worthy of the biggest brands.',
+      missionCardDescription:
+        'Turn business knowledge into automated workflows that answer faster and more accurately across customer channels.',
       visionCardTitle: 'Our Vision',
-      visionCardDescription: 'A world where every product can be customised instantly, visualised in photorealistic 3D, tried in augmented reality, and ordered with automatic print-ready files. Zero friction. 100% automation.',
+      visionCardDescription:
+        'A world where every company can operate with responsible AI agents, fully supervised and aligned with business goals.',
       valuesTitle: 'Our Values',
       valuesSubtitle: 'What guides our daily work',
       innovation: 'Innovation',
-      innovationDesc: 'Always at the forefront of AI, 3D and AR technology to deliver the best solutions',
+      innovationDesc: 'Practical innovation with measurable impact on team performance.',
       simplicity: 'Simplicity',
-      simplicityDesc: 'Powerful yet intuitive tools accessible to all skill levels',
+      simplicityDesc: 'Powerful and clear tools, from idea to production without friction.',
       reliability: 'Reliability',
-      reliabilityDesc: 'Enterprise-grade infrastructure with 99.9% uptime SLA to ensure your success',
+      reliabilityDesc: 'Enterprise-grade reliability, governance and security by design.',
       support: 'Support',
-      supportDesc: 'Personalised support to help you succeed with Luneo',
+      supportDesc: 'Hands-on guidance to deliver results fast.',
       historyTitle: 'Our Story',
       historySubtitle: 'From idea to thousands of users',
       teamTitle: 'The Team',
-      teamSubtitle: 'Experts in AI, 3D and E-commerce',
+      teamSubtitle: 'Experts in AI, product and customer operations',
       companyName: 'Luneo Tech',
       location: 'Neuchâtel, Switzerland',
       milestones: {
@@ -2736,7 +2739,8 @@ const messages = {
     },
     contact: {
       title: 'Contact us',
-      description: "We're here to help. Feel free to contact us for any questions or to discuss your design needs.",
+      description:
+        'Tell us about your support, sales or operations goals. We help you design, launch and scale AI agents.',
       badge: 'Contact',
       formHeader: 'Send us a message',
       sendMessage: 'Send message',
@@ -2759,10 +2763,26 @@ const messages = {
       success: 'Message sent!',
       error: 'Error sending message',
       captchaRequired: 'CAPTCHA verification required. Please try again.',
+      enterprise: {
+        bannerTitle: 'Request your Enterprise quote',
+        bannerDescription:
+          'Our team replies within 24h to define architecture, security level and rollout plan that fit your organization.',
+        prefillSubject: 'Quote request - Enterprise plan',
+        prefillMessage:
+          'Hello,\n\nWe want to deploy Luneo at Enterprise scale. Could you contact us to scope the project, security requirements and budget?\n\nThank you.',
+      },
+      supportCard: {
+        title: 'Ticket management',
+        description: 'Already opened a request? Track your tickets and our team responses.',
+        cta: 'View my tickets',
+      },
       contactInfo: {
         email: 'Email',
         supportEmail: 'Support',
         commercialEmail: 'Commercial',
+        primaryEmail: 'Primary email',
+        supportPortal: 'Support portal',
+        supportPortalDesc: 'Track ticket progress and request status',
         response24h: 'Response within 24h',
         phone: 'Phone',
         hours: 'Mon-Fri 9am-6pm',
@@ -2771,12 +2791,12 @@ const messages = {
         mainOffice: 'Main office',
       },
       faq: {
-        q1: 'How can I get started with Luneo?',
-        a1: 'Simply create a free account on our platform and start creating your first designs in minutes.',
-        q2: 'What types of designs can I create?',
-        a2: 'You can create logos, banners, business cards, social media posts, and much more.',
-        q3: 'Is there a limit on the free plan?',
-        a3: 'The free plan allows you to create 10 designs per month with access to basic templates.',
+        q1: 'How long does it take to launch a first AI agent?',
+        a1: 'In most cases, a few days are enough for a first production use case.',
+        q2: 'How do you ensure answer quality?',
+        a2: 'You control sources, validation rules and handoff to human teams.',
+        q3: 'Can Luneo connect with our existing stack?',
+        a3: 'Yes, Luneo integrates with your customer channels, CRM, helpdesk and knowledge base.',
       },
     },
     checkout: {

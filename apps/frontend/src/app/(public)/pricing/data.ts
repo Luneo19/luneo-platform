@@ -125,11 +125,11 @@ export function getTranslatedPlans(t: TFn): Plan[] {
       ctaHref: '/contact?plan=enterprise&source=pricing',
       features: getTranslatedPlanFeatures(t, 'enterprise'),
       limits: {
-        agents: 'Illimité',
-        conversationsPerMonth: 'Illimité',
-        knowledgeBases: 'Illimité',
-        documentsPerKB: 'Illimité',
-        storageMB: 'Illimité',
+        agents: t('pricing.featureValues.unlimited'),
+        conversationsPerMonth: t('pricing.featureValues.unlimited'),
+        knowledgeBases: t('pricing.featureValues.unlimited'),
+        documentsPerKB: t('pricing.featureValues.unlimited'),
+        storageMB: t('pricing.featureValues.unlimited'),
       },
     },
   ];

@@ -18,17 +18,28 @@ import { useI18n } from '@/i18n/useI18n';
 const TEAM_ROLE_KEYS = ['ceo', 'cto', 'headOfDesign', 'leadEngineer', 'productManager', 'uxDesigner'] as const;
 const TEAM_COLORS = ['blue', 'purple', 'green', 'blue', 'purple', 'green'] as const;
 
-const TIMELINE = [
-  { period: '2024 Q1', title: "L'idée naît", desc: "Née d'une vraie frustration." },
-  { period: '2024 Q2', title: 'Premier prototype', desc: 'Des nuits blanches à construire le rêve.' },
-  { period: '2024 Q3', title: '100 premiers utilisateurs', desc: 'Le moment de la validation.' },
-  { period: '2024 Q4', title: 'Agents IA conversationnels', desc: 'Le tournant.' },
-  { period: '2025', title: 'Scale international', desc: "L'expansion internationale." },
-  { period: '2026', title: 'Plateforme complète', desc: 'La vision réalisée.' },
+const TIMELINE_FR = [
+  { period: '2024 Q1', title: "Le constat", desc: 'Des équipes support débordées, des délais qui explosent, des clients frustrés.' },
+  { period: '2024 Q2', title: 'Premier agent IA', desc: 'Un prototype simple qui répond plus vite et plus juste qu’un script classique.' },
+  { period: '2024 Q3', title: 'Premiers résultats client', desc: 'Des tickets résolus automatiquement et un vrai gain de temps pour les équipes.' },
+  { period: '2024 Q4', title: 'Plateforme Luneo', desc: 'Passage du prototype à une plateforme multi-canaux, prête pour la production.' },
+  { period: '2025', title: 'Scale B2B', desc: 'Déploiements sur plusieurs secteurs avec exigences sécurité et conformité.' },
+  { period: '2026', title: 'Agent IA OS', desc: 'Une orchestration complète : support, ventes, opérations et analytics.' },
+] as const;
+
+const TIMELINE_EN = [
+  { period: '2024 Q1', title: 'The trigger', desc: 'Support teams were overloaded, response time was growing, and customers were frustrated.' },
+  { period: '2024 Q2', title: 'First AI agent', desc: 'A simple prototype answering faster and more accurately than static scripts.' },
+  { period: '2024 Q3', title: 'First customer wins', desc: 'Automated ticket resolution with measurable time savings for teams.' },
+  { period: '2024 Q4', title: 'Luneo platform', desc: 'From prototype to multi-channel platform, ready for production workloads.' },
+  { period: '2025', title: 'B2B scale', desc: 'Rollouts across industries with enterprise security and governance requirements.' },
+  { period: '2026', title: 'AI Agent OS', desc: 'Full orchestration across support, sales, operations and analytics.' },
 ] as const;
 
 function AboutPageContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === 'en';
+  const timeline = isEn ? TIMELINE_EN : TIMELINE_FR;
 
   const values = [
     { icon: <Zap className="w-6 h-6" />, titleKey: 'innovation' as const, descKey: 'innovationDesc', color: 'orange' as const },
@@ -40,8 +51,16 @@ function AboutPageContent() {
   return (
     <>
       <PageHero
-        title="Chaque marque mérite les meilleurs outils"
-        description={'Quand nous avons lancé notre première entreprise, nous aurions tout donné pour avoir accès à des outils comme Luneo. Aujourd\'hui, nous offrons à des milliers de marques la possibilité d\'optimiser leur chiffre d\'affaires et de grandir sereinement.'}
+        title={
+          isEn
+            ? 'AI agents should create value, not complexity'
+            : 'Les agents IA doivent créer de la valeur, pas de la complexité'
+        }
+        description={
+          isEn
+            ? 'Luneo was built to help teams handle more requests with better quality, without emergency hiring. We turn internal knowledge into production-ready AI agents that resolve, assist and convert.'
+            : "Luneo est née d'un besoin simple : aider les équipes à absorber plus de demandes, avec une meilleure qualité, sans recruter en urgence. Nous transformons vos connaissances internes en agents IA opérationnels qui résolvent, assistent et convertissent."
+        }
         gradient="from-blue-600 via-purple-600 to-pink-600"
       />
 
@@ -52,33 +71,41 @@ function AboutPageContent() {
           <ScrollReveal>
             <div className="text-center max-w-3xl mx-auto mb-12">
               <Eye className="w-16 h-16 mx-auto mb-6 text-purple-400" />
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">Des milliers de marques font confiance à Luneo</h2>
-              <p className="text-slate-300 leading-relaxed">Notre plateforme accompagne les marques au quotidien avec des résultats concrets.</p>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">
+                {isEn ? 'A mission focused on business impact' : 'Une mission orientée impact business'}
+              </h2>
+              <p className="text-slate-300 leading-relaxed">
+                {isEn
+                  ? 'Our goal is not to replace teams, but to give them back time for high-value conversations.'
+                  : "Notre objectif n'est pas de remplacer les équipes, mais de leur redonner du temps pour les conversations à forte valeur."}
+              </p>
             </div>
           </ScrollReveal>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
             <ScrollReveal delay={0}>
               <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
-                <p className="text-2xl sm:text-3xl font-bold text-white">+10 000</p>
-                <p className="text-slate-400 text-sm mt-1">agents IA déployés</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">-63 %</p>
+                <p className="text-slate-400 text-sm mt-1">{isEn ? 'average resolution time' : 'temps moyen de résolution'}</p>
               </Card>
             </ScrollReveal>
             <ScrollReveal delay={100}>
               <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
-                <p className="text-2xl sm:text-3xl font-bold text-white">98,5 %</p>
-                <p className="text-slate-400 text-sm mt-1">uptime</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">+38 %</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  {isEn ? 'support team productivity' : 'productivité des équipes support'}
+                </p>
               </Card>
             </ScrollReveal>
             <ScrollReveal delay={200}>
               <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
-                <p className="text-2xl sm:text-3xl font-bold text-white">12</p>
-                <p className="text-slate-400 text-sm mt-1">pays</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">24/7</p>
+                <p className="text-slate-400 text-sm mt-1">{isEn ? 'customer support coverage' : 'couverture service client'}</p>
               </Card>
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <Card className="p-6 bg-dark-card/60 backdrop-blur-sm border border-white/[0.04] text-center" data-animate="fade-up">
-                <p className="text-2xl sm:text-3xl font-bold text-white">+40 %</p>
-                <p className="text-slate-400 text-sm mt-1">conversions</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">-28 %</p>
+                <p className="text-slate-400 text-sm mt-1">{isEn ? 'annual operational cost' : 'coût opérationnel annuel'}</p>
               </Card>
             </ScrollReveal>
           </div>
@@ -116,7 +143,7 @@ function AboutPageContent() {
           />
           <div className="max-w-4xl mx-auto">
             <div className="space-y-8">
-              {TIMELINE.map((milestone, i) => (
+              {timeline.map((milestone, i) => (
                 <ScrollReveal key={milestone.period + milestone.title} delay={i * 100}>
                   <div className="flex gap-6" data-animate="fade-right" data-delay={i * 100}>
                     <div className="flex-shrink-0">
@@ -142,7 +169,11 @@ function AboutPageContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader
             title={t('public.about.teamTitle')}
-            subtitle="Des passionnés qui croient que chaque marque mérite les mêmes armes que les plus grandes. Nous construisons Luneo au quotidien, avec la même exigence que nous aimerions la trouver ailleurs."
+            subtitle={
+              isEn
+                ? 'A product, AI and ops team with one obsession: measurable production outcomes, not just promises.'
+                : "Une équipe produit, IA et ops qui construit avec une obsession : des résultats mesurables en production, pas juste des promesses."
+            }
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {TEAM_ROLE_KEYS.map((roleKey, i) => (
@@ -156,7 +187,11 @@ function AboutPageContent() {
                     {roleKey.slice(0, 2).toUpperCase()}
                   </div>
                   <h3 className="text-xl font-bold mb-1 text-white">{t(`public.about.teamRoles.${roleKey}`)}</h3>
-                  <p className="text-slate-400 text-sm">Au service de votre réussite, chaque jour.</p>
+                  <p className="text-slate-400 text-sm">
+                    {isEn
+                      ? 'Focused on customer value, reliability and fast execution.'
+                      : "Focus sur la valeur client, la fiabilité et la vitesse d'exécution."}
+                  </p>
                 </Card>
               </ScrollReveal>
             ))}
@@ -171,9 +206,13 @@ function AboutPageContent() {
           <div className="max-w-3xl mx-auto text-center">
             <ScrollReveal>
               <Heart className="w-16 h-16 mx-auto mb-6 text-purple-400" />
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-white">Notre promesse</h2>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-white">
+                {isEn ? 'Our product promise' : 'Notre promesse produit'}
+              </h2>
               <p className="text-slate-300 text-lg leading-relaxed">
-                {'Nous ne vendons pas juste un outil. Nous construisons le pont entre votre vision et la réalité. Chaque fonctionnalité est pensée pour vous faire gagner du temps, de l\'argent, et de la tranquillité.'}
+                {isEn
+                  ? 'Give you a platform that understands your processes, integrates with your stack, and proves ROI in weeks. Fewer repetitive tickets, higher satisfaction, and teams focused on strategic work.'
+                  : "Vous donner une plateforme qui comprend vos processus, s'intègre à vos outils et prouve son ROI en quelques semaines. Moins de tickets répétitifs, plus de satisfaction client, et des équipes qui reprennent la main sur les sujets stratégiques."}
               </p>
             </ScrollReveal>
           </div>

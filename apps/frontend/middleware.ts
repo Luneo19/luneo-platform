@@ -40,6 +40,12 @@ const middlewareConfig = {
     '/admin',
     '/dashboard',
     '/overview',
+    '/agents',
+    '/conversations',
+    '/analytics',
+    '/integrations',
+    '/knowledge',
+    '/support',
     '/settings',
     '/billing',
     '/team',
@@ -73,6 +79,19 @@ const middlewareConfig = {
 
 const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'es', 'it'] as const;
 const LOCALE_COOKIE = 'luneo_locale';
+
+function parseJwtPayload(token?: string): Record<string, unknown> | null {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -165,18 +184,18 @@ export async function middleware(request: NextRequest) {
     // SECURITY FIX P1-5: Check JWT expiration (lightweight, no crypto verification).
     // If both tokens are expired, redirect to login. Backend does full verification.
     if (accessToken) {
-      try {
-        const payload = JSON.parse(
-          Buffer.from(accessToken.split('.')[1], 'base64').toString()
-        );
-        const isExpired = payload.exp && payload.exp * 1000 < Date.now();
-        if (isExpired && !refreshToken) {
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('redirect', pathname);
-          return NextResponse.redirect(loginUrl);
-        }
-      } catch {
+      const payload = parseJwtPayload(accessToken);
+      const exp = typeof payload?.exp === 'number' ? payload.exp : null;
+      if (exp && exp * 1000 <= Date.now() && !refreshToken) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      if (!payload && !refreshToken) {
         // Malformed token — let backend handle it
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
       }
     }
   }
@@ -186,17 +205,34 @@ export async function middleware(request: NextRequest) {
   // This prevents non-admin users from accessing /admin/* pages
   if (pathname.startsWith('/admin')) {
     const accessToken = request.cookies.get('accessToken')?.value;
+    const refreshToken = request.cookies.get('refreshToken')?.value;
+    if (!accessToken && !refreshToken) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
     if (accessToken) {
-      try {
-        const payload = JSON.parse(
-          Buffer.from(accessToken.split('.')[1], 'base64').toString()
-        );
+      const payload = parseJwtPayload(accessToken);
+      if (payload) {
+        const exp = typeof payload.exp === 'number' ? payload.exp : null;
+        if (exp && exp * 1000 <= Date.now() && !refreshToken) {
+          const loginUrl = new URL('/login', request.url);
+          loginUrl.searchParams.set('redirect', pathname);
+          return NextResponse.redirect(loginUrl);
+        }
         const userRole = payload.role || payload.userRole || '';
         if (userRole !== 'ADMIN' && userRole !== 'PLATFORM_ADMIN') {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
+          return NextResponse.redirect(new URL('/overview', request.url));
         }
-      } catch {
-        // If JWT decode fails, let the backend handle it
+      } else {
+        // If JWT decode fails but we still have a refresh token, avoid redirect loops
+        // and let server-side auth/refresh logic decide.
+        if (!refreshToken) {
+          const loginUrl = new URL('/login', request.url);
+          loginUrl.searchParams.set('redirect', pathname);
+          return NextResponse.redirect(loginUrl);
+        }
       }
     }
   }

@@ -117,8 +117,8 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
   }
 
   if (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN') {
-    serverLogger.debug('[Admin Permissions] Access denied, redirecting');
-    redirect('/login');
+    serverLogger.debug('[Admin Permissions] Access denied, redirecting to overview');
+    redirect('/overview');
   }
 
   serverLogger.debug('[Admin Permissions] Access granted');
