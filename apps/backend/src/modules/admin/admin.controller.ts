@@ -9,6 +9,7 @@ import {
   Query,
   Param,
   Headers,
+  Req,
   Res,
   BadRequestException,
   NotFoundException,
@@ -1459,8 +1460,14 @@ export class AdminController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Test a marketing automation' })
   @ApiResponse({ status: 200, description: 'Automation test result' })
-  async testMarketingAutomation(@Body() body: Record<string, unknown>) {
-    return this.adminService.testMarketingAutomation(body);
+  async testMarketingAutomation(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: { id?: string; email?: string } },
+  ) {
+    return this.adminService.testMarketingAutomation(body, {
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+    });
   }
 
   // ========================================

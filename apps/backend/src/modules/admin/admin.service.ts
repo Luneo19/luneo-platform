@@ -3955,14 +3955,19 @@ export class AdminService {
     return { success: true, id };
   }
 
-  async testMarketingAutomation(body: Record<string, unknown>) {
+  async testMarketingAutomation(
+    body: Record<string, unknown>,
+    actor?: { userId?: string; userEmail?: string },
+  ) {
     const id = typeof body.id === 'string' ? body.id : null;
+    let selectedAutomation: Record<string, unknown> | null = null;
     if (id) {
       const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
       const idx = current.findIndex((item) => String(item.id) === id);
       if (idx === -1) {
         throw new NotFoundException(`Marketing automation ${id} not found`);
       }
+      selectedAutomation = current[idx];
       current[idx] = {
         ...current[idx],
         lastTestedAt: new Date().toISOString(),
@@ -3975,11 +3980,64 @@ export class AdminService {
       );
     }
 
+    const testEmailCandidate =
+      (typeof body.testEmail === 'string' ? body.testEmail : null) ||
+      (typeof body.recipientEmail === 'string' ? body.recipientEmail : null);
+    let recipientEmail = testEmailCandidate?.trim() || actor?.userEmail || '';
+    if (!recipientEmail && actor?.userId) {
+      const requester = await this.prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { email: true },
+      });
+      recipientEmail = requester?.email || '';
+    }
+    if (!recipientEmail) {
+      throw new BadRequestException('No recipient email available for automation test');
+    }
+
+    const automationName =
+      (selectedAutomation && typeof selectedAutomation.name === 'string' ? selectedAutomation.name : null) ||
+      (typeof body.name === 'string' ? body.name : null) ||
+      'Marketing automation';
+    const automationTrigger =
+      (selectedAutomation && typeof selectedAutomation.trigger === 'string' ? selectedAutomation.trigger : null) ||
+      (typeof body.trigger === 'string' ? body.trigger : null) ||
+      'manual';
+    const steps =
+      (selectedAutomation && Array.isArray(selectedAutomation.steps) ? selectedAutomation.steps : null) ||
+      (Array.isArray(body.steps) ? body.steps : []);
+
+    await this.emailService.sendEmail({
+      to: recipientEmail,
+      subject: `[TEST] ${automationName}`,
+      html: `
+        <h2>Automation Test Email</h2>
+        <p>This is a real delivery test for your marketing automation.</p>
+        <ul>
+          <li><strong>Automation:</strong> ${String(automationName)}</li>
+          <li><strong>Trigger:</strong> ${String(automationTrigger)}</li>
+          <li><strong>Steps:</strong> ${steps.length}</li>
+          <li><strong>Tested at:</strong> ${new Date().toISOString()}</li>
+        </ul>
+      `,
+      text: [
+        'Automation Test Email',
+        '',
+        `Automation: ${String(automationName)}`,
+        `Trigger: ${String(automationTrigger)}`,
+        `Steps: ${steps.length}`,
+        `Tested at: ${new Date().toISOString()}`,
+      ].join('\n'),
+      tags: ['marketing-automation', 'test'],
+      provider: 'auto',
+    });
+
     return {
       success: true,
-      message: 'Automation test executed successfully',
+      message: `Automation test email sent to ${recipientEmail}`,
       testId: crypto.randomUUID(),
       automationId: id,
+      recipientEmail,
     };
   }
 
