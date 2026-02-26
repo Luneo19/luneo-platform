@@ -485,6 +485,13 @@ function shouldCheckCSRF(request: NextRequest, pathname: string): boolean {
     return false;
   }
 
+  // Admin API routes are proxied by Next handlers that already forward/repair CSRF
+  // and are enforced again by backend CsrfGuard. Skipping middleware-level CSRF
+  // here avoids false 403 from double validation with out-of-sync tokens.
+  if (pathname.startsWith('/api/admin/')) {
+    return false;
+  }
+
   return pathname.startsWith('/api/');
 }
 
