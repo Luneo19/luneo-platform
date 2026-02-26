@@ -23,6 +23,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { endpoints } from '@/lib/api/client';
 import Image from 'next/image';
 
+function toStringArray(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input.filter((item): item is string => typeof item === 'string');
+}
+
 function SecuritySettingsPageContent() {
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +68,7 @@ function SecuritySettingsPageContent() {
 
       setQrCodeUrl(response.qrCodeUrl ?? (response as { qrCode?: string }).qrCode);
       setSecret(response.secret);
-      setBackupCodes(response.backupCodes || []);
+      setBackupCodes(toStringArray(response.backupCodes));
     } catch (err) {
       logger.error('Error setting up 2FA', err);
       setError('Erreur lors de la configuration de la 2FA');
@@ -86,7 +91,7 @@ function SecuritySettingsPageContent() {
       setSuccess('2FA activée avec succès !');
       setIs2FAEnabled(true);
       setShowBackupCodes(true);
-      setBackupCodes(response.backupCodes || []);
+      setBackupCodes(toStringArray(response.backupCodes));
       setVerificationToken('');
       setQrCodeUrl('');
       setSecret('');

@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
@@ -692,9 +693,9 @@ export class BillingService {
           status: 'active' as const,
           limits: {
             ...freePlanConfig.limits,
-            renders2DPerMonth: freePlanConfig.quotas.find(q => q.metric === 'renders_2d')?.limit ?? 10,
-            renders3DPerMonth: freePlanConfig.quotas.find(q => q.metric === 'renders_3d')?.limit ?? 0,
-            aiGenerationsPerMonth: freePlanConfig.quotas.find(q => q.metric === 'ai_generations')?.limit ?? 3,
+            renders2DPerMonth: freePlanConfig.limits.conversationsPerMonth,
+            renders3DPerMonth: Math.floor(freePlanConfig.limits.conversationsPerMonth / 10),
+            aiGenerationsPerMonth: freePlanConfig.quotas.find(q => q.metric === 'messages_ai')?.limit ?? 1_000,
             apiCallsPerMonth: freePlanConfig.quotas.find(q => q.metric === 'api_calls')?.limit ?? 0,
             aiTokensPerMonth: freePlanConfig.agentLimits.monthlyTokens,
           },
@@ -812,9 +813,9 @@ export class BillingService {
         status,
         limits: {
           ...limits,
-          renders2DPerMonth: planConfig.quotas.find(q => q.metric === 'renders_2d')?.limit ?? 10,
-          renders3DPerMonth: planConfig.quotas.find(q => q.metric === 'renders_3d')?.limit ?? 0,
-          aiGenerationsPerMonth: planConfig.quotas.find(q => q.metric === 'ai_generations')?.limit ?? 3,
+          renders2DPerMonth: limits.conversationsPerMonth,
+          renders3DPerMonth: Math.floor(limits.conversationsPerMonth / 10),
+          aiGenerationsPerMonth: planConfig.quotas.find(q => q.metric === 'messages_ai')?.limit ?? 1_000,
           apiCallsPerMonth: planConfig.quotas.find(q => q.metric === 'api_calls')?.limit ?? 0,
           aiTokensPerMonth: planConfig.agentLimits.monthlyTokens,
         },
@@ -840,6 +841,159 @@ export class BillingService {
       this.logger.error('Error getting subscription', error, { userId });
       throw new InternalServerErrorException('Erreur lors de la récupération de l\'abonnement');
     }
+  }
+
+  async getBillingOverview(userId: string) {
+    const subscription = await this.getSubscription(userId) as {
+      plan?: string;
+      planName?: string;
+      status?: string;
+      currentUsage?: Record<string, unknown>;
+      limits?: Record<string, unknown>;
+      currentPeriodStart?: string;
+      currentPeriodEnd?: string;
+    };
+
+    const planTier = normalizePlanTier(subscription.plan || 'FREE');
+    const planConfig = getPlanConfig(planTier);
+    const usage = subscription.currentUsage || {};
+    const limits = subscription.limits || {};
+
+    const metrics = {
+      aiGenerations: {
+        current: Number(usage.aiGenerations || 0),
+        limit: Number(limits.aiGenerationsPerMonth || 0),
+      },
+      conversations: {
+        current: Number(usage.aiGenerations || 0),
+        limit: Number(limits.conversationsPerMonth || 0),
+      },
+      documentsIndexed: {
+        current: Number(usage.designs || 0),
+        limit: Number(limits.documentsLimit || 0),
+      },
+      activeAgents: {
+        current: Number(usage.teamMembers || 0),
+        limit: Number(limits.agentsLimit || 0),
+      },
+      storageGB: {
+        current: Number(usage.storageGB || 0),
+        limit: Number(limits.storageGB || 0),
+      },
+      apiCalls: {
+        current: Number(usage.apiCalls || 0),
+        limit: Number(limits.apiCallsPerMonth || 0),
+      },
+      aiTokens: {
+        current: Number(usage.aiTokens || 0),
+        limit: Number(limits.aiTokensPerMonth || 0),
+      },
+    };
+
+    return {
+      plan: {
+        tier: String(subscription.plan || 'free').toLowerCase(),
+        name: subscription.planName || planConfig.info.name,
+        status: subscription.status || 'active',
+        periodStart: subscription.currentPeriodStart ?? null,
+        periodEnd: subscription.currentPeriodEnd ?? null,
+      },
+      limits,
+      usage: Object.fromEntries(
+        Object.entries(metrics).map(([key, value]) => {
+          const limit = Number(value.limit || 0);
+          const current = Number(value.current || 0);
+          const remaining = limit > 0 ? Math.max(0, limit - current) : 0;
+          const percent = limit > 0 ? Math.min(100, Number(((current / limit) * 100).toFixed(2))) : 0;
+          return [key, { current, limit, remaining, percent }];
+        }),
+      ),
+      rateLimits: {
+        api: {
+          requestsPerMinute: planConfig.agentLimits.rateLimit.requests,
+          burst: planConfig.agentLimits.rateLimit.requests,
+        },
+      },
+      source: {
+        mode: 'hybrid',
+        details: {
+          usage: 'internal',
+          providers: 'pending_provider_connections',
+        },
+        lastSyncedAt: new Date().toISOString(),
+      },
+      alerts: Object.entries(metrics)
+        .map(([metric, value]) => {
+          const limit = Number(value.limit || 0);
+          const current = Number(value.current || 0);
+          if (limit <= 0) return null;
+          const ratio = current / limit;
+          if (ratio >= 1) return { metric, level: 'critical', message: `${metric} limit reached` };
+          if (ratio >= 0.8) return { metric, level: 'warning', message: `${metric} is nearing limit` };
+          return null;
+        })
+        .filter((entry): entry is { metric: string; level: string; message: string } => entry !== null),
+    };
+  }
+
+  async getOrganizationUsageForUser(userId: string, organizationId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
+    });
+    const org = user?.memberships?.[0]?.organization;
+    if (!org || org.id !== organizationId) {
+      throw new ForbiddenException('Organization access denied');
+    }
+
+    const overview = await this.getBillingOverview(userId) as {
+      usage?: Record<string, { current: number; limit: number }>;
+      plan?: { periodStart?: string | null; periodEnd?: string | null };
+    };
+    const usage = overview.usage || {};
+    const now = new Date();
+    const start = overview.plan?.periodStart ?? new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const end = overview.plan?.periodEnd ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+    const totalCents = 0;
+    const overageCents = 0;
+
+    return {
+      period: { start, end },
+      messagesAi: {
+        used: usage.aiGenerations?.current ?? 0,
+        limit: usage.aiGenerations?.limit ?? 0,
+        percentage: usage.aiGenerations?.limit ? (usage.aiGenerations.current / usage.aiGenerations.limit) * 100 : 0,
+      },
+      conversations: {
+        used: usage.conversations?.current ?? 0,
+        limit: usage.conversations?.limit ?? 0,
+        percentage: usage.conversations?.limit ? (usage.conversations.current / usage.conversations.limit) * 100 : 0,
+      },
+      documentsIndexed: {
+        used: usage.documentsIndexed?.current ?? 0,
+        limit: usage.documentsIndexed?.limit ?? 0,
+      },
+      agents: {
+        used: usage.activeAgents?.current ?? 0,
+        limit: usage.activeAgents?.limit ?? 0,
+      },
+      storageBytes: {
+        used: Math.round((usage.storageGB?.current ?? 0) * 1024 * 1024 * 1024),
+        limit: Math.round((usage.storageGB?.limit ?? 0) * 1024 * 1024 * 1024),
+      },
+      costs: {
+        subscription: totalCents,
+        overage: overageCents,
+        addons: 0,
+        total: totalCents + overageCents,
+        currency: 'EUR',
+      },
+      forecast: {
+        endOfMonth: totalCents + overageCents,
+        overageExpected: overageCents,
+      },
+    };
   }
 
   async createCustomerPortalSession(userId: string) {
@@ -869,6 +1023,70 @@ export class BillingService {
       this.logger.error('Erreur création session portal:', error);
       throw new InternalServerErrorException('Erreur lors de la création de la session du portail client');
     }
+  }
+
+  async reactivateSubscription(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
+    });
+    const org = user?.memberships?.[0]?.organization;
+    if (!org?.stripeSubscriptionId) {
+      throw new BadRequestException('No active subscription found');
+    }
+
+    const stripe = await this.getStripe();
+    const subscription = await stripe.subscriptions.update(org.stripeSubscriptionId, {
+      cancel_at_period_end: false,
+    });
+
+    return {
+      success: true,
+      status: subscription.status,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    };
+  }
+
+  async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
+    });
+    const org = user?.memberships?.[0]?.organization;
+    if (!org?.stripeCustomerId) {
+      throw new NotFoundException('Aucun compte de facturation trouvé');
+    }
+
+    const stripe = await this.getStripe();
+    await stripe.customers.update(org.stripeCustomerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    });
+
+    return { success: true, paymentMethodId };
+  }
+
+  async getInvoiceDownloadUrl(userId: string, invoiceId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { memberships: { where: { isActive: true }, include: { organization: true }, take: 1 } },
+    });
+    const org = user?.memberships?.[0]?.organization;
+    if (!org?.stripeCustomerId) {
+      throw new NotFoundException('Aucun compte de facturation trouvé');
+    }
+
+    const stripe = await this.getStripe();
+    const invoice = await stripe.invoices.retrieve(invoiceId);
+    if (invoice.customer !== org.stripeCustomerId) {
+      throw new NotFoundException('Facture introuvable');
+    }
+
+    return {
+      url: invoice.invoice_pdf || invoice.hosted_invoice_url || null,
+      invoiceId,
+    };
   }
 
   /**

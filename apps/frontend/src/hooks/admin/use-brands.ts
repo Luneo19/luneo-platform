@@ -4,6 +4,7 @@
  */
 import useSWR from 'swr';
 import { useState, useCallback } from 'react';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 class FetcherError extends Error {
   info?: unknown;
@@ -108,7 +109,7 @@ export function useBrands(options: UseBrandsOptions = {}) {
   }, []);
 
   return {
-    brands: data?.brands || [],
+    brands: normalizeListResponse<Brand>((data as Record<string, unknown> | undefined)?.brands ?? (data as Record<string, unknown> | undefined)?.data),
     pagination: data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
     isLoading,
     isError: !!error,

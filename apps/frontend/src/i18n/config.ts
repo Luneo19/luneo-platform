@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'es', 'it'] as const;
+export const SUPPORTED_LOCALES = ['en', 'fr'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = 'fr';
@@ -21,27 +21,6 @@ export const LOCALE_METADATA: Record<
     flag: '🇫🇷',
     currency: 'EUR',
     timezone: 'Europe/Paris',
-  },
-  de: {
-    label: 'Deutsch',
-    region: 'Deutschland',
-    flag: '🇩🇪',
-    currency: 'EUR',
-    timezone: 'Europe/Berlin',
-  },
-  es: {
-    label: 'Español',
-    region: 'España',
-    flag: '🇪🇸',
-    currency: 'EUR',
-    timezone: 'Europe/Madrid',
-  },
-  it: {
-    label: 'Italiano',
-    region: 'Italia',
-    flag: '🇮🇹',
-    currency: 'EUR',
-    timezone: 'Europe/Rome',
   },
 };
 

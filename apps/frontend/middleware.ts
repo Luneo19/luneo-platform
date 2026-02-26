@@ -77,7 +77,7 @@ const middlewareConfig = {
   ],
 };
 
-const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'es', 'it'] as const;
+const SUPPORTED_LOCALES = ['en', 'fr'] as const;
 const LOCALE_COOKIE = 'luneo_locale';
 
 function parseJwtPayload(token?: string): Record<string, unknown> | null {
@@ -95,6 +95,29 @@ function parseJwtPayload(token?: string): Record<string, unknown> | null {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Canonicalize malformed paths that can trigger auth/admin redirect loops:
+  // - duplicate slashes (e.g. //Admin)
+  // - case variants for known auth/admin entrypoints (e.g. /Admin)
+  const collapsedPath = pathname.replace(/\/{2,}/g, '/');
+  const lowerCollapsedPath = collapsedPath.toLowerCase();
+  const shouldCanonicalizeKnownPath =
+    lowerCollapsedPath === '/admin' ||
+    lowerCollapsedPath.startsWith('/admin/') ||
+    lowerCollapsedPath === '/login' ||
+    lowerCollapsedPath.startsWith('/login/') ||
+    lowerCollapsedPath === '/register' ||
+    lowerCollapsedPath.startsWith('/register/') ||
+    lowerCollapsedPath === '/forgot-password' ||
+    lowerCollapsedPath.startsWith('/forgot-password/') ||
+    lowerCollapsedPath === '/reset-password' ||
+    lowerCollapsedPath.startsWith('/reset-password/');
+  const canonicalPath = shouldCanonicalizeKnownPath ? lowerCollapsedPath : collapsedPath;
+  if (canonicalPath !== pathname) {
+    const url = request.nextUrl.clone();
+    url.pathname = canonicalPath;
+    return NextResponse.redirect(url, 308);
+  }
 
   // Canonical host policy in production:
   // - app.luneo.app -> luneo.app
@@ -200,44 +223,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 7. Admin role verification
-  // PRODUCTION FIX: Check user role from cookie/JWT for admin routes
-  // This prevents non-admin users from accessing /admin/* pages
-  if (pathname.startsWith('/admin')) {
-    const accessToken = request.cookies.get('accessToken')?.value;
-    const refreshToken = request.cookies.get('refreshToken')?.value;
-    if (!accessToken && !refreshToken) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    if (accessToken) {
-      const payload = parseJwtPayload(accessToken);
-      if (payload) {
-        const exp = typeof payload.exp === 'number' ? payload.exp : null;
-        if (exp && exp * 1000 <= Date.now() && !refreshToken) {
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('redirect', pathname);
-          return NextResponse.redirect(loginUrl);
-        }
-        const userRole = payload.role || payload.userRole || '';
-        if (userRole !== 'ADMIN' && userRole !== 'PLATFORM_ADMIN') {
-          return NextResponse.redirect(new URL('/overview', request.url));
-        }
-      } else {
-        // If JWT decode fails but we still have a refresh token, avoid redirect loops
-        // and let server-side auth/refresh logic decide.
-        if (!refreshToken) {
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('redirect', pathname);
-          return NextResponse.redirect(loginUrl);
-        }
-      }
-    }
-  }
-
-  // 8. Prevent CDN caching for admin routes
+  // 7. Prevent CDN caching for admin routes
   // Admin pages are dynamic (they read cookies and check roles server-side).
   // CDN must NEVER serve a cached redirect for these routes.
   if (pathname.startsWith('/admin')) {
@@ -246,7 +232,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Vercel-CDN-Cache-Control', 'private, no-store');
   }
 
-  // 9. Onboarding check — redirect to /onboarding if not completed
+  // 8. Onboarding check — redirect to /onboarding if not completed
   // This is a lightweight cookie-based check. Full validation is in the dashboard layout.
   const requiresOnboarding = middlewareConfig.onboardingRequiredRoutes.some(
     (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
@@ -441,8 +427,24 @@ async function handleRateLimit(
 
     return null; // Continue to next middleware
   } catch (error) {
-    // If rate limiting fails, log but allow request (fail open)
+    // If rate limiting fails, protect sensitive auth mutations (fail closed)
     logger.error('Rate limiting error', error instanceof Error ? error : undefined);
+    const failClosedPrefixes = ['/api/v1/auth/', '/api/auth/', '/api/v1/admin/', '/api/v1/billing/', '/api/v1/security/'];
+    const isSensitiveMutationPath = failClosedPrefixes.some((prefix) => pathname.startsWith(prefix));
+    const isMutationMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
+    if (isSensitiveMutationPath && isMutationMethod) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Service Unavailable',
+          message: 'Rate limit service is temporarily unavailable.',
+          code: 'RATE_LIMIT_UNAVAILABLE',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
     return null;
   }
 }
@@ -464,6 +466,18 @@ function shouldCheckCSRF(request: NextRequest, pathname: string): boolean {
     pathname.startsWith('/api/stripe') ||
     pathname.startsWith('/api/webhooks')
   ) {
+    return false;
+  }
+
+  // Auth mutation endpoints rely on secure httpOnly cookies and can be called
+  // before a CSRF cookie is available (session bootstrap/refresh flows).
+  const csrfExemptAuthMutations = [
+    '/api/v1/auth/login',
+    '/api/v1/auth/signup',
+    '/api/v1/auth/logout',
+    '/api/v1/auth/refresh',
+  ];
+  if (csrfExemptAuthMutations.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
     return false;
   }
 

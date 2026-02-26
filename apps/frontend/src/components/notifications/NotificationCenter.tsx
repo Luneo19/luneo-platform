@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { formatRelativeDate } from '@/lib/utils/formatters';
 import { Bell, Check, CheckCheck, ExternalLink, Settings, X } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -58,8 +59,8 @@ function NotificationCenterContent() {
   // ========================================
 
   const unreadCount = useMemo(() => {
-    const data = notificationsQuery.data;
-    return data && 'unreadCount' in data ? (data.unreadCount as number) : 0;
+    const data = notificationsQuery.data as Record<string, unknown> | undefined;
+    return typeof data?.unreadCount === 'number' ? data.unreadCount : 0;
   }, [notificationsQuery.data]);
 
   // ========================================
@@ -94,7 +95,19 @@ function NotificationCenterContent() {
   // RENDER
   // ========================================
 
-  const notifications = notificationsQuery.data?.notifications || [];
+  const notifications = useMemo(
+    () =>
+      normalizeListResponse<{
+        id: string;
+        title: string;
+        message: string;
+        read: boolean;
+        createdAt: string;
+        actionUrl?: string;
+        actionLabel?: string;
+      }>((notificationsQuery.data as Record<string, unknown> | undefined)?.notifications),
+    [notificationsQuery.data],
+  );
 
   return (
     <>

@@ -14,7 +14,7 @@
     "type-check": "tsc --noEmit -p tsconfig.build.json",
     "vercel-build": "nest build",
     "postinstall": "prisma generate || true",
-    "start": "node dist/src/main.js",
+    "start": "npm run migrate:deploy && node dist/src/main.js",
     "start:dev": "nest start --watch",
     "dev": "nest start --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
@@ -31,7 +31,8 @@
     "test:e2e": "pnpm run test:integration:setup && pnpm run test:integration && pnpm run test:integration:teardown",
     "test:mutation": "stryker run stryker.conf.json",
     "test:mutation:auth": "stryker run stryker.conf.json --mutate src/modules/auth/**/*.ts",
-    "test:load": "k6 run test/load/k6-config.js"
+    "test:load": "k6 run test/load/k6-config.js",
+    "migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.76.0",

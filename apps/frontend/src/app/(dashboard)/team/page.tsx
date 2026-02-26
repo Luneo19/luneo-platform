@@ -17,6 +17,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { endpoints } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface TeamMember {
   id: string;
@@ -35,6 +36,12 @@ interface PendingInvite {
   role: string;
   sentAt: string;
   expiresAt: string;
+}
+
+function toIsoDate(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  return new Date().toISOString();
 }
 
 function TeamPageContent() {
@@ -103,23 +110,26 @@ function TeamPageContent() {
   });
 
   type MemberRole = 'owner' | 'admin' | 'member' | 'viewer';
-  const members: TeamMember[] = (teamQuery.data?.members || []).map((m: Record<string, unknown>) => ({
+  const membersRaw = normalizeListResponse<Record<string, unknown>>((teamQuery.data as Record<string, unknown> | undefined)?.members);
+  const invitesRaw = normalizeListResponse<Record<string, unknown>>((teamQuery.data as Record<string, unknown> | undefined)?.pendingInvites);
+
+  const members: TeamMember[] = membersRaw.map((m: Record<string, unknown>) => ({
     id: m.id as string,
     name: (m.name as string) || (m.email as string),
     email: m.email as string,
     role: (m.role as string).toLowerCase() as MemberRole,
     status: 'active' as const,
     avatar: (m.avatar as string) || '',
-    joinedAt: (m.joinedAt as Date).toISOString(),
-    lastActive: m.lastActive ? formatRelativeTime((m.lastActive as Date).toISOString()) : 'Jamais',
+    joinedAt: toIsoDate(m.joinedAt),
+    lastActive: m.lastActive ? formatRelativeTime(toIsoDate(m.lastActive)) : 'Jamais',
   }));
 
-  const pendingInvites: PendingInvite[] = (teamQuery.data?.pendingInvites || []).map((i: Record<string, unknown>) => ({
+  const pendingInvites: PendingInvite[] = invitesRaw.map((i: Record<string, unknown>) => ({
     id: i.id as string,
     email: i.email as string,
     role: (i.role as string).toLowerCase() as MemberRole,
-    sentAt: (i.invitedAt as Date).toISOString().split('T')[0],
-    expiresAt: (i.expiresAt as Date).toISOString().split('T')[0],
+    sentAt: toIsoDate(i.invitedAt).split('T')[0],
+    expiresAt: toIsoDate(i.expiresAt).split('T')[0],
   }));
 
   const roles = [

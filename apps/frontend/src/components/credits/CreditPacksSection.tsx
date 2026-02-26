@@ -29,7 +29,7 @@ interface CreditPacksSectionProps {
 }
 
 export function CreditPacksSection({ className }: CreditPacksSectionProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -113,18 +113,26 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6">
             <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-medium text-purple-400">Crédits IA à la carte</span>
+            <span className="text-sm font-medium text-purple-400">
+              {locale === 'en' ? 'On-demand AI credits' : 'Credits IA a la carte'}
+            </span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Rechargez vos{' '}
+            {locale === 'en' ? 'Top up your ' : 'Rechargez vos '}
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              crédits IA
+              {locale === 'en' ? 'AI credits' : 'credits IA'}
             </span>
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Besoin de plus de crédits ? Achetez des packs supplémentaires à tout moment.
+            {locale === 'en'
+              ? 'Need more credits? Buy additional packs at any time.'
+              : 'Besoin de plus de credits ? Achetez des packs supplementaires a tout moment.'}
             <br />
-            <span className="text-purple-400 font-semibold">Parfait pour compléter votre abonnement.</span>
+            <span className="text-purple-400 font-semibold">
+              {locale === 'en'
+                ? 'Perfect for extending your subscription.'
+                : 'Parfait pour completer votre abonnement.'}
+            </span>
           </p>
         </motion>
 
@@ -160,7 +168,7 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                     <Zap className="w-8 h-8" />
                   </div>
                   <h3 className="text-3xl sm:text-4xl font-bold text-white mb-2">{pack.credits}</h3>
-                  <p className="text-sm text-gray-400">Crédits IA</p>
+                  <p className="text-sm text-gray-400">{locale === 'en' ? 'AI Credits' : 'Credits IA'}</p>
                 </div>
 
                 {/* Price */}
@@ -173,11 +181,11 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                   {pack.savings && pack.savings > 0 && (
                     <p className="text-sm text-green-400 font-semibold mt-2 flex items-center justify-center gap-1">
                       <TrendingUp className="w-4 h-4" />
-                      Économisez {pack.savings}%
+                      {locale === 'en' ? 'Save' : 'Economisez'} {pack.savings}%
                     </p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
-                    {(pack.price / pack.credits).toFixed(3)}€ par crédit
+                    {(pack.price / pack.credits).toFixed(3)}€ {locale === 'en' ? 'per credit' : 'par credit'}
                   </p>
                 </div>
 
@@ -194,11 +202,11 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                   {purchasing === pack.id ? (
                     <div className="flex items-center">
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      Chargement...
+                      {locale === 'en' ? 'Loading...' : 'Chargement...'}
                     </div>
                   ) : (
                     <>
-                      Acheter maintenant
+                      {locale === 'en' ? 'Buy now' : 'Acheter maintenant'}
                     </>
                   )}
                 </Button>
@@ -206,20 +214,24 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                 {/* What you can do */}
                 <div className="mt-6 pt-6 border-t border-gray-700/50">
                   <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">
-                    Avec ce pack
+                    {locale === 'en' ? 'With this pack' : 'Avec ce pack'}
                   </p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-gray-300">
                       <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>{Math.floor(pack.credits / 5)} générations IA</span>
+                      <span>
+                        {Math.floor(pack.credits / 5)} {locale === 'en' ? 'AI generations' : 'generations IA'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-300">
                       <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>{Math.floor(pack.credits / 8)} rendus 3D HD</span>
+                      <span>
+                        {Math.floor(pack.credits / 8)} {locale === 'en' ? 'HD 3D renders' : 'rendus 3D HD'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-300">
                       <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Crédits valables à vie</span>
+                      <span>{locale === 'en' ? 'Credits valid for life' : 'Credits valables a vie'}</span>
                     </div>
                   </div>
                 </div>
@@ -236,7 +248,9 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
           className="mt-10 text-center"
         >
           <p className="text-sm text-gray-400">
-            💳 Paiement sécurisé par Stripe · 🔒 Vos crédits sont valables à vie · ⚡ Ajout instantané après paiement
+            {locale === 'en'
+              ? 'Secure payment with Stripe · Lifetime credits · Instant top-up after payment'
+              : 'Paiement securise par Stripe · Credits valables a vie · Ajout instantane apres paiement'}
           </p>
         </motion>
       </div>

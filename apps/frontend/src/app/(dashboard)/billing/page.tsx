@@ -99,8 +99,8 @@ function BillingPageContent() {
   });
 
   const removePaymentMethodMutation = useMutation({
-    mutationFn: (_params: { paymentMethodId: string }) =>
-      endpoints.billing.removePaymentMethod(),
+    mutationFn: (params: { paymentMethodId: string }) =>
+      endpoints.billing.removePaymentMethod(params.paymentMethodId),
     onSuccess: () => {
       paymentMethodsQuery.refetch();
       logger.info('Payment method removed');
@@ -448,7 +448,7 @@ function BillingPageContent() {
                     {invoices.map((invoice) => (
                       <TableRow key={invoice.id} className="border-white/[0.06] hover:bg-white/[0.04]">
                         <TableCell className="font-medium text-white">{invoice.number ?? '-'}</TableCell>
-                        <TableCell className="text-white/60">{invoice.createdAt ? formatDate(invoice.createdAt) : '-'}</TableCell>
+                        <TableCell className="text-white/60">{(invoice.createdAt ?? invoice.created) ? formatDate(invoice.createdAt ?? invoice.created) : '-'}</TableCell>
                         <TableCell className="text-white">{formatPrice(invoice.amount ?? 0, invoice.currency ?? 'EUR')}</TableCell>
                         <TableCell>
                           <span

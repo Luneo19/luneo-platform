@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface Clipart {
   id: string;
@@ -94,10 +95,11 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
         '/api/v1/cliparts',
         { params }
       );
-      setCliparts(data?.cliparts || []);
+      const normalizedCliparts = normalizeListResponse<Clipart>((data as Record<string, unknown> | undefined)?.cliparts);
+      setCliparts(normalizedCliparts);
       setTotalPages(data?.pagination?.totalPages || 1);
       const uniqueCategories = Array.from(
-        new Set((data?.cliparts || []).map((c: Clipart) => c.category).filter(Boolean))
+        new Set(normalizedCliparts.map((c: Clipart) => c.category).filter(Boolean))
       ) as string[];
       setCategories(uniqueCategories);
     } catch (error) {

@@ -5,7 +5,27 @@ import { endpoints } from '@/lib/api/client';
 
 const fetchStats = async () => {
   const res = await endpoints.orion.prometheus.stats();
-  return (res as { data?: unknown })?.data ?? res;
+  const raw = (res as { data?: unknown })?.data ?? res;
+  const stats = (raw ?? {}) as {
+    ticketsOpen?: number;
+    queue?: { total?: number; pending?: number; approved?: number; rejected?: number };
+  };
+  const queue = stats.queue ?? {};
+  const total = Number(queue.total ?? 0);
+  const approved = Number(queue.approved ?? 0);
+  const pending = Number(queue.pending ?? 0);
+  const rejected = Number(queue.rejected ?? 0);
+  return {
+    totalResponses: total,
+    pendingReview: pending,
+    autoApproved: approved,
+    rejected,
+    approvalRate: total > 0 ? approved / total : 0,
+    avgConfidence: null,
+    avgLatencyMs: null,
+    ticketsOpen: Number(stats.ticketsOpen ?? 0),
+    providers: [],
+  };
 };
 
 export function usePrometheus() {

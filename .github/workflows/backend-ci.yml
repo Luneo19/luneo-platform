@@ -16,6 +16,9 @@ env:
   NODE_VERSION: '22'
   PNPM_VERSION: '9'
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint & Type Check

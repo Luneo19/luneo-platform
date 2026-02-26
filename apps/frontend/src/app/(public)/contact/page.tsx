@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PageHero, FeatureCard } from '@/components/marketing/shared';
 import { useI18n } from '@/i18n/useI18n';
+import { SUPPORT_CONFIG } from '@/lib/support-config';
 
 /** Get CSRF token from cookie or fetch from API (cookie is httpOnly in prod). */
 async function getCSRFTokenForRequest(): Promise<string | null> {
@@ -40,14 +41,14 @@ function ContactPageContentInner() {
     {
       icon: <Mail className="w-6 h-6" />,
       title: t('public.contact.contactInfo.primaryEmail'),
-      details: 'contact@luneo.app',
+      details: SUPPORT_CONFIG.email,
       description: t('public.contact.contactInfo.response24h'),
       color: 'blue' as const
     },
     {
       icon: <TicketIcon className="w-6 h-6" />,
       title: t('public.contact.contactInfo.supportPortal'),
-      details: 'luneo.app/support',
+      details: `luneo.app${SUPPORT_CONFIG.supportPortalPath}`,
       description: t('public.contact.contactInfo.supportPortalDesc'),
       color: 'green' as const
     },
@@ -161,7 +162,7 @@ function ContactPageContentInner() {
       <PageHero
         title={t('public.contact.title')}
         description={t('public.contact.description')}
-        gradient="from-blue-600 via-purple-600 to-pink-600"
+        gradient="from-blue-700 via-blue-600 to-indigo-600"
       />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 md:py-24">
@@ -169,7 +170,7 @@ function ContactPageContentInner() {
           {/* Form */}
           <Card className="p-5 sm:p-8 bg-dark-card/60 border-white/[0.04]">
             {isEnterprisePricing && (
-              <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-purple-500/10 border border-indigo-500/20">
+              <div className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
                 <div className="flex items-start gap-3">
                   <Building2 className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
                   <div>
@@ -264,7 +265,7 @@ function ContactPageContentInner() {
               <Button
                 type="submit"
                 disabled={isSubmitting || isSubmitted}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold h-12 shadow-lg shadow-purple-500/25 disabled:opacity-50 transition-all duration-200"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 shadow-lg shadow-blue-500/20 disabled:opacity-50 transition-all duration-200"
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center">
@@ -307,12 +308,12 @@ function ContactPageContentInner() {
                 {t('public.contact.supportCard.description')}
               </p>
               <Button asChild variant="outline" className="w-full border-white/10 text-slate-300 hover:bg-white/5 hover:text-white">
-                <Link href="/support">{t('public.contact.supportCard.cta')}</Link>
+                <Link href={SUPPORT_CONFIG.supportPortalPath}>{t('public.contact.supportCard.cta')}</Link>
               </Button>
             </Card>
 
             {/* FAQ Card */}
-            <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-white/[0.04]">
+            <Card className="p-6 bg-blue-500/10 border-white/[0.04]">
               <h3 className="font-bold mb-4 flex items-center text-white">
                 <MessageSquare className="w-5 h-5 mr-2" />
                 {t('public.contact.faqTitle')}
@@ -320,7 +321,7 @@ function ContactPageContentInner() {
               <div className="space-y-3">
                 {faqs.map((faq, i) => (
                   <details key={i} className="group">
-                    <summary className="cursor-pointer text-sm font-medium text-slate-300 hover:text-purple-400 transition-colors">
+                    <summary className="cursor-pointer text-sm font-medium text-slate-300 hover:text-blue-400 transition-colors">
                       {faq.question}
                     </summary>
                     <p className="mt-2 text-xs text-slate-300 pl-4">{faq.answer}</p>

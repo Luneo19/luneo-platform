@@ -14,6 +14,10 @@ on:
           - frontend
           - widget
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   verify-ci-status:
     name: Verify CI green on commit
@@ -77,3 +81,48 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  post-deploy-smoke:
+    name: Post-deploy critical smoke
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    if: |
+      (inputs.target == 'all' && needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success') ||
+      (inputs.target == 'backend' && needs.deploy-backend.result == 'success') ||
+      (inputs.target == 'frontend' && needs.deploy-frontend.result == 'success')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate smoke credentials
+        run: |
+          if [ -z "${SMOKE_ADMIN_EMAIL}" ] || [ -z "${SMOKE_ADMIN_PASSWORD}" ]; then
+            echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD must be configured in repository secrets."
+            exit 1
+          fi
+        env:
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+
+      - name: Run critical smoke
+        run: pnpm run smoke:critical
+        env:
+          SMOKE_BASE_URL: https://luneo.app
+          SMOKE_REQUIRE_SERVER: true
+          SMOKE_RUN_AUTH_CHECKS: true
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}

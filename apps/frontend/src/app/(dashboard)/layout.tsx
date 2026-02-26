@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { Header } from '@/components/dashboard/Header';
@@ -12,6 +12,7 @@ import { CommandPalette } from '@/components/CommandPalette';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { PageTransition } from '@/components/PageTransition';
 import { SkipToContent } from '@/components/ui/skip-to-content';
+import { ensureSession } from '@/lib/auth/session-client';
 
 const ONBOARDING_DISMISS_KEY = 'onboarding_dismissed_until';
 
@@ -92,10 +93,33 @@ export default function DashboardLayoutGroup({
   const router = useRouter();
   const { t } = useI18n();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const attemptedRecoveryRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
+      const hasSessionCookies = typeof document !== 'undefined' &&
+        (document.cookie.includes('accessToken=') || document.cookie.includes('refreshToken='));
+
+      // Avoid immediate login bounce when the browser still has cookies but
+      // useAuth is briefly null because of transient /auth/me failures.
+      if (hasSessionCookies && !attemptedRecoveryRef.current) {
+        attemptedRecoveryRef.current = true;
+        (async () => {
+          try {
+            const recovered = await ensureSession();
+            if (recovered) {
+              router.refresh();
+              return;
+            }
+          } catch {
+            // Fall through to login redirect below.
+          }
+          router.replace('/login?redirect=' + encodeURIComponent(currentPath));
+        })();
+        return;
+      }
+
       router.replace('/login?redirect=' + encodeURIComponent(currentPath));
     }
   }, [user, isLoading, router]);

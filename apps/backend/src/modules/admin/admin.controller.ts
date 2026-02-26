@@ -759,6 +759,40 @@ export class AdminController {
     return this.adminService.getOrionOverview();
   }
 
+  @Get('orion/insights')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion insights' })
+  async getOrionInsights(@Query('limit') limit?: number, @Query('isRead') isRead?: string) {
+    return this.adminService.getOrionInsights({
+      limit: limit ? Number(limit) : undefined,
+      isRead: isRead == null ? undefined : isRead === 'true',
+    });
+  }
+
+  @Get('orion/actions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion actions' })
+  async getOrionActions(@Query('limit') limit?: number, @Query('status') status?: string) {
+    return this.adminService.getOrionActions({
+      limit: limit ? Number(limit) : undefined,
+      status,
+    });
+  }
+
+  @Post('orion/actions/:id/execute')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Execute Orion action' })
+  async executeOrionAction(@Param('id') id: string) {
+    return this.adminService.executeOrionAction(id);
+  }
+
+  @Get('orion/activity-feed')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion activity feed' })
+  async getOrionActivityFeed(@Query('limit') limit?: number) {
+    return this.adminService.getOrionActivityFeed(limit ? Number(limit) : undefined);
+  }
+
   @Get('orion/metrics/kpis')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Orion KPI metrics' })
@@ -802,6 +836,34 @@ export class AdminController {
     return this.adminService.getOrionAtRiskUsers(limit ? Number(limit) : undefined);
   }
 
+  @Get('orion/retention/health/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion retention health score for a user' })
+  async getOrionRetentionHealth(@Param('id') id: string) {
+    return this.adminService.getOrionRetentionHealth(id);
+  }
+
+  @Post('orion/retention/calculate/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Recalculate Orion retention health score for a user' })
+  async calculateOrionRetentionHealth(@Param('id') id: string) {
+    return this.adminService.calculateOrionRetentionHealth(id);
+  }
+
+  @Get('orion/retention/win-back')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion retention win-back campaigns' })
+  async getOrionRetentionWinBackCampaigns() {
+    return this.adminService.getOrionRetentionWinBackCampaigns();
+  }
+
+  @Post('orion/retention/win-back/trigger')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Trigger Orion retention win-back campaigns' })
+  async triggerOrionRetentionWinBack(@Body('userIds') userIds: string[]) {
+    return this.adminService.triggerOrionRetentionWinBack(userIds);
+  }
+
   @Get('orion/agents')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List agents for Orion admin' })
@@ -817,6 +879,48 @@ export class AdminController {
       search,
       status,
     });
+  }
+
+  @Post('orion/seed')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Seed default ORION agents' })
+  async seedOrionAgents() {
+    return this.adminService.seedOrionAgents();
+  }
+
+  @Get('orion/segments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion segments' })
+  async getOrionSegments() {
+    return this.adminService.getOrionSegments();
+  }
+
+  @Post('orion/segments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Orion segment' })
+  async createOrionSegment(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionSegment(body);
+  }
+
+  @Delete('orion/segments/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete Orion segment' })
+  async deleteOrionSegment(@Param('id') id: string) {
+    return this.adminService.deleteOrionSegment(id);
+  }
+
+  @Get('orion/experiments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion experiments' })
+  async getOrionExperiments() {
+    return this.adminService.getOrionExperiments();
+  }
+
+  @Post('orion/experiments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Orion experiment' })
+  async createOrionExperiment(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionExperiment(body);
   }
 
   @Get('orion/agents/:id')
@@ -1044,6 +1148,212 @@ export class AdminController {
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     });
+  }
+
+  @Get('orion/zeus/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Zeus dashboard' })
+  async getOrionZeusDashboard() {
+    return this.adminService.getOrionZeusDashboard();
+  }
+
+  @Get('orion/zeus/alerts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Zeus alerts' })
+  async getOrionZeusAlerts() {
+    return this.adminService.getOrionZeusAlerts();
+  }
+
+  @Get('orion/zeus/decisions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Zeus decisions' })
+  async getOrionZeusDecisions() {
+    return this.adminService.getOrionZeusDecisions();
+  }
+
+  @Post('orion/zeus/override/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Override Zeus decision' })
+  async overrideOrionZeusDecision(
+    @Param('id') id: string,
+    @Body() body?: { approved?: boolean },
+  ) {
+    return this.adminService.overrideOrionZeusDecision(id, body?.approved !== false);
+  }
+
+  @Get('orion/athena/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Athena dashboard' })
+  async getOrionAthenaDashboard() {
+    return this.adminService.getOrionAthenaDashboard();
+  }
+
+  @Get('orion/athena/distribution')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Athena distribution' })
+  async getOrionAthenaDistribution() {
+    return this.adminService.getOrionAthenaDistribution();
+  }
+
+  @Get('orion/athena/customer/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Athena customer health' })
+  async getOrionAthenaCustomer(@Param('id') id: string) {
+    return this.adminService.getOrionAthenaCustomerHealth(id);
+  }
+
+  @Post('orion/athena/calculate/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Calculate Athena customer health' })
+  async calculateOrionAthenaCustomer(@Param('id') id: string) {
+    return this.adminService.calculateOrionAthenaHealth(id);
+  }
+
+  @Post('orion/athena/insights/generate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate Athena insights' })
+  async generateOrionAthenaInsights() {
+    return this.adminService.generateOrionAthenaInsights();
+  }
+
+  @Get('orion/apollo/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo dashboard' })
+  async getOrionApolloDashboard() {
+    return this.adminService.getOrionApolloDashboard();
+  }
+
+  @Get('orion/apollo/services')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo services status' })
+  async getOrionApolloServices() {
+    return this.adminService.getOrionApolloServices();
+  }
+
+  @Get('orion/apollo/incidents')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo incidents' })
+  async getOrionApolloIncidents(@Query('status') status?: string) {
+    return this.adminService.getOrionApolloIncidents(status);
+  }
+
+  @Get('orion/apollo/metrics')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo metrics' })
+  async getOrionApolloMetrics(@Query('hours') hours?: number) {
+    return this.adminService.getOrionApolloMetrics(hours ? Number(hours) : undefined);
+  }
+
+  @Get('orion/artemis/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Artemis dashboard' })
+  async getOrionArtemisDashboard() {
+    return this.adminService.getOrionArtemisDashboard();
+  }
+
+  @Get('orion/artemis/threats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Artemis threats' })
+  async getOrionArtemisThreats() {
+    return this.adminService.getOrionArtemisThreats();
+  }
+
+  @Post('orion/artemis/threats/:id/resolve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resolve Artemis threat' })
+  async resolveOrionArtemisThreat(@Param('id') id: string) {
+    return this.adminService.resolveOrionArtemisThreat(id);
+  }
+
+  @Get('orion/artemis/blocked-ips')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Artemis blocked IPs' })
+  async getOrionArtemisBlockedIps() {
+    return this.adminService.getOrionArtemisBlockedIps();
+  }
+
+  @Post('orion/artemis/block-ip')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Block IP in Artemis' })
+  async blockOrionArtemisIp(@Body() body: { ipAddress: string; reason: string; expiresAt?: string }) {
+    return this.adminService.blockOrionArtemisIp(body);
+  }
+
+  @Delete('orion/artemis/blocked-ips/:ipAddress')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unblock IP in Artemis' })
+  async unblockOrionArtemisIp(@Param('ipAddress') ipAddress: string) {
+    return this.adminService.unblockOrionArtemisIp(ipAddress);
+  }
+
+  @Get('orion/artemis/fraud-checks')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Artemis fraud checks' })
+  async getOrionArtemisFraudChecks() {
+    return this.adminService.getOrionArtemisFraudChecks();
+  }
+
+  @Get('orion/hermes/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hermes dashboard' })
+  async getOrionHermesDashboard() {
+    return this.adminService.getOrionHermesDashboard();
+  }
+
+  @Get('orion/hermes/pending')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hermes pending actions' })
+  async getOrionHermesPending() {
+    return this.adminService.getOrionHermesPending();
+  }
+
+  @Get('orion/hermes/campaigns')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hermes campaigns' })
+  async getOrionHermesCampaigns() {
+    return this.adminService.getOrionHermesCampaigns();
+  }
+
+  @Get('orion/hermes/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hermes stats' })
+  async getOrionHermesStats() {
+    return this.adminService.getOrionHermesStats();
+  }
+
+  @Get('orion/hades/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hades dashboard' })
+  async getOrionHadesDashboard() {
+    return this.adminService.getOrionHadesDashboard();
+  }
+
+  @Get('orion/hades/at-risk')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hades at-risk accounts' })
+  async getOrionHadesAtRisk() {
+    return this.adminService.getOrionHadesAtRisk();
+  }
+
+  @Get('orion/hades/win-back')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hades win-back campaigns' })
+  async getOrionHadesWinBack() {
+    return this.adminService.getOrionHadesWinBack();
+  }
+
+  @Get('orion/hades/mrr-at-risk')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hades MRR at risk' })
+  async getOrionHadesMrrAtRisk() {
+    return this.adminService.getOrionHadesMrrAtRisk();
+  }
+
+  @Get('orion/hades/actions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hades actions' })
+  async getOrionHadesActions() {
+    return this.adminService.getOrionHadesActions();
   }
 
   @Post('orion/prometheus/review-queue/:id/approve')

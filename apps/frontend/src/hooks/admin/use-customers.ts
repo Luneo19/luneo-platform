@@ -9,6 +9,7 @@
 
 import useSWR from 'swr';
 import { useState, useCallback } from 'react';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 export interface UseCustomersOptions {
   page?: number;
@@ -114,7 +115,7 @@ export function useCustomers(options: UseCustomersOptions = {}) {
   }, []);
 
   return {
-    customers: data?.customers || [],
+    customers: normalizeListResponse<Customer>((data as Record<string, unknown> | undefined)?.customers ?? (data as Record<string, unknown> | undefined)?.data),
     pagination: data?.pagination || {
       page: 1,
       limit: 50,

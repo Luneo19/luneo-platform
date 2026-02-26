@@ -87,6 +87,30 @@ export function I18nProvider({
 }
 
 function translate(messages: TranslationMessages, key: string, values?: TranslationValues): string {
+  const resolveValue = (inputKey: string): unknown => {
+    const segments = inputKey.split('.');
+    let current: unknown = messages;
+
+    for (const segment of segments) {
+      if (current && typeof current === 'object' && segment in (current as Record<string, unknown>)) {
+        current = (current as Record<string, unknown>)[segment];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
+  };
+
+  const toReadableFallback = (missingKey: string): string => {
+    const token = missingKey.split('.').pop() || missingKey;
+    const normalized = token.replace(/[-_]/g, ' ').trim();
+    if (!normalized) return missingKey;
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  };
+
+  const aliasKey = key.replace('pricing.plans.pro.', 'pricing.plans.professional.');
+
   const segments = key.split('.');
   let current: unknown = messages;
 
@@ -94,12 +118,13 @@ function translate(messages: TranslationMessages, key: string, values?: Translat
     if (current && typeof current === 'object' && segment in (current as Record<string, unknown>)) {
       current = (current as Record<string, unknown>)[segment];
     } else {
-      return key;
+      current = resolveValue(aliasKey);
+      break;
     }
   }
 
   if (typeof current !== 'string') {
-    return key;
+    return toReadableFallback(key);
   }
 
   if (!values) {

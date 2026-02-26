@@ -100,57 +100,6 @@ export async function getServerUser(): Promise<AuthUser | null> {
       }
     }
 
-    // If access token expired (401), try server-side refresh with refreshToken
-    if (response.status === 401 && refreshToken) {
-      serverLogger.debug('[getServerUser] Access token expired, attempting server-side refresh');
-      try {
-        const refreshResp = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
-          method: 'POST',
-          headers: {
-            Cookie: `refreshToken=${refreshToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-          cache: 'no-store',
-        });
-
-        if (refreshResp.ok) {
-          // Extract new cookies from refresh response Set-Cookie headers
-          const setCookies = refreshResp.headers.getSetCookie?.() || [];
-          const newCookieHeader = setCookies.length > 0
-            ? setCookies.map(c => c.split(';')[0]).join('; ')
-            : cookieHeader;
-
-          // Retry /auth/me with new cookies
-          const retryResp = await fetch(`${backendUrl}/api/v1/auth/me`, {
-            method: 'GET',
-            headers: {
-              Cookie: newCookieHeader,
-              'Content-Type': 'application/json',
-            },
-            cache: 'no-store',
-          });
-
-          if (retryResp.ok) {
-            const data = await retryResp.json();
-            // Handle wrapped response format
-            const user = data?.data || data;
-            if (user && user.id) {
-              serverLogger.debug('[getServerUser] Server-side refresh successful');
-              return {
-                id: user.id,
-                email: user.email,
-                role: user.role || undefined,
-                brandId: user.brandId || undefined,
-              };
-            }
-          }
-        }
-      } catch (refreshError) {
-        serverLogger.error('[getServerUser] Server-side refresh failed', refreshError);
-      }
-    }
-
     return null;
   } catch (error) {
     serverLogger.error('[getServerUser] Error getting server user', error);

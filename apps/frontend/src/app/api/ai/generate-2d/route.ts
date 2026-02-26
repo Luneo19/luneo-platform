@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
       const data = (raw && typeof raw === 'object' && 'data' in raw) ? (raw as { data?: unknown }).data : raw;
 
       if (!res.ok) {
+        if (res.status === 404) {
+          return NextResponse.json(
+            { error: 'AI 2D generation endpoint is not available in this environment.' },
+            { status: 501 }
+          );
+        }
         return NextResponse.json(data || { error: 'Failed to generate image' }, { status: res.status });
       }
 

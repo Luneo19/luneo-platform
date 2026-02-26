@@ -80,15 +80,12 @@ export class WidgetApiService {
 
     await this.quotasService.enforceQuota(channel.agent.organizationId, 'conversations');
 
-    // Validate origin against allowed domains
+    // Validate origin against allowed domains (strict hostname matching)
     const allowedOrigins = channel.widgetAllowedOrigins ?? [];
     if (allowedOrigins.length > 0 && context.origin) {
-      const allowed = allowedOrigins.some((domain: string) => {
-        if (domain.startsWith('*.')) {
-          return context.origin.endsWith(domain.slice(1));
-        }
-        return context.origin.includes(domain);
-      });
+      const allowed = allowedOrigins.some((domain: string) =>
+        this.isOriginAllowed(context.origin, domain)
+      );
       if (!allowed) {
         throw new BadRequestException('Origin not allowed');
       }
@@ -315,6 +312,26 @@ export class WidgetApiService {
     const subject = this.streamSubjects.get(conversationId);
     if (subject) {
       subject.next(event);
+    }
+  }
+
+  private isOriginAllowed(origin: string, allowedDomain: string): boolean {
+    try {
+      const originUrl = new URL(origin);
+      const originHost = originUrl.hostname.toLowerCase();
+      const normalizedAllowed = allowedDomain
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/+$/, '')
+        .toLowerCase();
+
+      if (normalizedAllowed.startsWith('*.')) {
+        const suffix = normalizedAllowed.slice(2);
+        return originHost === suffix || originHost.endsWith(`.${suffix}`);
+      }
+
+      return originHost === normalizedAllowed;
+    } catch {
+      return false;
     }
   }
 }

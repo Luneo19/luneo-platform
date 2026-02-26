@@ -84,8 +84,8 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
   });
   
   if (!user) {
-    serverLogger.debug('[Admin Permissions] No user — redirecting to login with admin intent');
-    redirect('/login?redirect=%2Fadmin');
+    serverLogger.debug('[Admin Permissions] No user during SSR check, deferring to client guard');
+    return null;
   }
 
   serverLogger.debug('[Admin Permissions] User role from JWT', { role: user.role });
@@ -112,8 +112,8 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
   });
 
   if (!dbUser || dbUser.isActive === false) {
-    serverLogger.debug('[Admin Permissions] No active DB user, redirecting to login with admin intent');
-    redirect('/login?redirect=%2Fadmin');
+    serverLogger.debug('[Admin Permissions] No active DB user during SSR check, deferring to client guard');
+    return null;
   }
 
   if (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN') {

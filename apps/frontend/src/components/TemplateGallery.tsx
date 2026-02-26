@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface Template {
   id: string;
@@ -114,10 +115,11 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
         '/api/v1/templates',
         { params }
       );
-      setTemplates(data?.templates || []);
+      const normalizedTemplates = normalizeListResponse<Template>((data as Record<string, unknown> | undefined)?.templates);
+      setTemplates(normalizedTemplates);
       setTotalPages(data?.pagination?.totalPages || 1);
       const uniqueCategories = Array.from(
-        new Set((data?.templates || []).map((t: Template) => t.category).filter(Boolean))
+        new Set(normalizedTemplates.map((t: Template) => t.category).filter(Boolean))
       ) as string[];
       setCategories(uniqueCategories);
     } catch (error) {

@@ -31,7 +31,7 @@ interface HeaderProps {
 
 function HeaderContent({ title, subtitle }: HeaderProps) {
   const t = useTranslations('header');
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,6 +49,11 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
   const closeProfile = useCallback(() => {
     setIsProfileOpen(false);
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    closeProfile();
+    await logout();
+  }, [closeProfile, logout]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -210,7 +215,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                     <button
                       type="button"
                       className="flex w-full items-center gap-3 px-4 py-2 text-sm text-danger transition-colors hover:bg-accent/30"
-                      onClick={closeProfile}
+                      onClick={handleLogout}
                       data-testid="logout-button"
                     >
                       <LogOut className="h-4 w-4" aria-hidden="true" />

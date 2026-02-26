@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     canonical: `${SEO_BASE_URL}/about`,
     languages: {
       fr: `${SEO_BASE_URL}/about`,
-      en: `${SEO_BASE_URL}/en/about`,
     },
   },
 };

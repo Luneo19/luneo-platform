@@ -2,7 +2,7 @@ import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerOptions } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
-import { RATE_LIMIT_SKIP_METADATA } from '@/libs/rate-limit/rate-limit.decorator';
+import { RATE_LIMIT_METADATA, RATE_LIMIT_SKIP_METADATA } from '@/libs/rate-limit/rate-limit.decorator';
 import { getPlanConfig, normalizePlanTier } from '@/libs/plans/plan-config';
 
 /**
@@ -73,9 +73,9 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
 
     // Get custom rate limit from metadata
     const customLimit = this.reflector.get<ThrottlerOptions>(
-      'rateLimit',
+      RATE_LIMIT_METADATA,
       handler,
-    ) || this.reflector.get<ThrottlerOptions>('rateLimit', controller);
+    ) || this.reflector.get<ThrottlerOptions>(RATE_LIMIT_METADATA, controller);
 
     if (customLimit) {
       return customLimit;
@@ -97,10 +97,11 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
     }
 
     // SECURITY FIX: Plan-based rate limiting for authenticated users
-    const user = (request as Request & { user?: { brandPlan?: string; role?: string } }).user;
-    if (user?.brandPlan) {
+    const user = (request as Request & { user?: { brandPlan?: string; organization?: { plan?: string }; role?: string } }).user;
+    const resolvedPlan = user?.brandPlan || user?.organization?.plan;
+    if (resolvedPlan) {
       try {
-        const tier = normalizePlanTier(user.brandPlan);
+        const tier = normalizePlanTier(resolvedPlan);
         const planConfig = getPlanConfig(tier);
         if (planConfig.agentLimits?.rateLimit) {
           const planRate = planConfig.agentLimits.rateLimit;

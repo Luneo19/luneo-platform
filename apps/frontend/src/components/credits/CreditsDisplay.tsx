@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
 
 interface CreditsDisplayProps {
   userId: string;
@@ -27,6 +28,7 @@ export function CreditsDisplay({
   showBuyButton = true,
   className 
 }: CreditsDisplayProps) {
+  const { locale } = useI18n();
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function CreditsDisplay({
         component: 'CreditsDisplay',
         userId,
       });
-      setError('Erreur de chargement');
+      setError(locale === 'en' ? 'Loading error' : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,9 @@ export function CreditsDisplay({
             isCritical ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-yellow-500'
           )} 
         />
-        <span className="text-sm font-medium">{balance} crédits</span>
+        <span className="text-sm font-medium">
+          {balance} {locale === 'en' ? 'credits' : 'credits'}
+        </span>
         {isLow && showBuyButton && (
           <Button 
             size="sm" 
@@ -97,7 +101,7 @@ export function CreditsDisplay({
             onClick={() => router.push('/dashboard/credits')}
             className="h-7 text-xs"
           >
-            Recharger
+            {locale === 'en' ? 'Top up' : 'Recharger'}
           </Button>
         )}
       </div>
@@ -141,7 +145,9 @@ export function CreditsDisplay({
           </div>
           <div>
             <p className="text-2xl font-bold text-white">{balance}</p>
-            <p className="text-sm text-white/60">Crédits IA restants</p>
+            <p className="text-sm text-white/60">
+              {locale === 'en' ? 'Remaining AI credits' : 'Credits IA restants'}
+            </p>
           </div>
         </div>
         
@@ -151,7 +157,7 @@ export function CreditsDisplay({
             variant={isCritical ? 'destructive' : 'default'}
           >
             <Zap className="w-4 h-4 mr-2" />
-            Recharger
+            {locale === 'en' ? 'Top up' : 'Recharger'}
           </Button>
         )}
       </div>
@@ -160,14 +166,20 @@ export function CreditsDisplay({
         <div className="mt-3 flex items-start gap-2 text-sm text-red-400">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <p>
-            Crédits presque épuisés! Rechargez maintenant pour continuer à utiliser l'IA.
+            {locale === 'en'
+              ? 'Credits are almost depleted. Top up now to continue using AI.'
+              : "Credits presque epuises ! Rechargez maintenant pour continuer a utiliser l'IA."}
           </p>
         </div>
       )}
       
       {isLow && !isCritical && (
         <div className="mt-3 text-sm text-orange-400">
-          <p>Pensez à recharger vos crédits pour éviter toute interruption.</p>
+          <p>
+            {locale === 'en'
+              ? 'Consider topping up your credits to avoid interruptions.'
+              : 'Pensez a recharger vos credits pour eviter toute interruption.'}
+          </p>
         </div>
       )}
     </div>

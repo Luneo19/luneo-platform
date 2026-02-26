@@ -87,6 +87,7 @@ function CookieBannerContent() {
   const savePreferences = useCallback((prefs: CookiePreferences) => {
     localStorage.setItem('cookie-preferences', JSON.stringify(prefs));
     localStorage.setItem('cookie-consent-date', new Date().toISOString());
+    window.dispatchEvent(new CustomEvent('cookie-preferences-updated', { detail: prefs }));
     
     // Implémenter les préférences
     if (prefs.analytics) {

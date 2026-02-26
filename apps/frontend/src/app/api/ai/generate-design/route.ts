@@ -46,6 +46,12 @@ export async function POST(req: NextRequest) {
       const data = (raw && typeof raw === 'object' && 'data' in raw) ? (raw as { data?: unknown }).data : raw;
 
       if (!res.ok) {
+        if (res.status === 404) {
+          return NextResponse.json(
+            { error: 'AI generation endpoint is not available in this environment.' },
+            { status: 501 }
+          );
+        }
         const errorMessage = (data && typeof data === 'object' && ('message' in data || 'error' in data))
           ? ((data as { message?: string; error?: string }).message || (data as { message?: string; error?: string }).error)
           : 'Failed to create generation';

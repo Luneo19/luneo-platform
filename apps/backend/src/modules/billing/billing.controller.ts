@@ -1,5 +1,5 @@
 import { CurrentUser } from '@/common/types/user.types';
-import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpException, InternalServerErrorException, Logger, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpException, InternalServerErrorException, Logger, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -100,6 +100,16 @@ export class BillingController {
     @Request() req: ExpressRequest & { user: CurrentUser }
   ) {
     return this.billingService.getSubscription(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('overview')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Vue unifiée plan/usage/rate-limit pour le dashboard billing' })
+  async getOverview(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    return this.billingService.getBillingOverview(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -235,6 +245,43 @@ export class BillingController {
       throw new BadRequestException('Payment method ID is required');
     }
     return this.billingService.removePaymentMethod(req.user.id, paymentMethodId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('set-default-payment-method')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Définir la méthode de paiement par défaut' })
+  async setDefaultPaymentMethod(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Body() body: { paymentMethodId?: string },
+  ) {
+    if (!body?.paymentMethodId) {
+      throw new BadRequestException('paymentMethodId is required');
+    }
+    return this.billingService.setDefaultPaymentMethod(req.user.id, body.paymentMethodId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('reactivate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Réactiver un abonnement planifié pour annulation' })
+  async reactivateSubscription(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+  ) {
+    return this.billingService.reactivateSubscription(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('invoices/:id/download')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Récupérer un lien de téléchargement de facture' })
+  async getInvoiceDownloadUrl(
+    @Request() req: ExpressRequest & { user: CurrentUser },
+    @Param('id') invoiceId: string,
+  ) {
+    return this.billingService.getInvoiceDownloadUrl(req.user.id, invoiceId);
   }
 
   @UseGuards(JwtAuthGuard)

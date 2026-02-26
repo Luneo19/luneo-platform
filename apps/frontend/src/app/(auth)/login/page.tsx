@@ -352,8 +352,8 @@ function LoginPageContent() {
               </Label>
             <Link 
               href="/forgot-password" 
+              prefetch={false}
               className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
-              tabIndex={-1}
             >
               {t('auth.login.forgotPassword')}
             </Link>
@@ -375,7 +375,6 @@ function LoginPageContent() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
-              tabIndex={-1}
                   data-testid="login-toggle-password"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -488,6 +487,7 @@ function LoginPageContent() {
               {t('auth.login.noAccount')}{' '}
               <Link
                 href="/register"
+                prefetch={false}
             className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 data-testid="login-switch-register"
               >

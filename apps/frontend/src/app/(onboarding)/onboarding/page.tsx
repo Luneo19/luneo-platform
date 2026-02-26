@@ -89,6 +89,8 @@ function OnboardingPageContent() {
     isSubmitting,
     isLoading,
     error: storeError,
+    isCrawling,
+    crawlError,
     fetchProgress,
     saveStep,
     nextStep,
@@ -96,6 +98,8 @@ function OnboardingPageContent() {
     setStepData,
     completeOnboarding,
     skipOnboarding,
+    scanWebsite,
+    createAgentFromOnboarding,
   } = useOnboardingStore();
 
   useEffect(() => {
@@ -458,10 +462,18 @@ function OnboardingPageContent() {
                 </div>
                 <Button
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white h-12"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isCrawling}
                   onClick={async () => {
                     try {
+                      if (formData.step2.website?.trim()) {
+                        await scanWebsite(formData.step2.website.trim(), formData.step2.industry || formData.step3.sector);
+                      }
+                      const createdAgentId = await createAgentFromOnboarding();
                       await completeOnboarding();
+                      if (createdAgentId) {
+                        router.push(`/agents/${createdAgentId}`);
+                        return;
+                      }
                       router.push(getCreateAgentUrl());
                     } catch (err) {
                       logger.error('Failed to complete onboarding before agent creation', err);
@@ -470,8 +482,11 @@ function OnboardingPageContent() {
                   }}
                 >
                   <Bot className="w-5 h-5 mr-2" />
-                  {isSubmitting ? 'Chargement...' : 'Créer mon premier agent'}
+                  {isSubmitting || isCrawling ? 'Chargement...' : 'Créer mon premier agent'}
                 </Button>
+                {crawlError && (
+                  <p className="text-center text-amber-400/80 text-sm">{crawlError}</p>
+                )}
                 <p className="text-center text-white/40 text-sm">
                   Vous pourrez aussi le faire plus tard depuis le dashboard
                 </p>

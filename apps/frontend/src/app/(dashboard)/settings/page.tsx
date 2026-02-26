@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
+import type { Locale } from '@/i18n';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api/client';
@@ -51,7 +52,7 @@ type UserSettingsPayload = {
 
 function SettingsPageContent() {
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale, setLocale, supportedLocales } = useI18n();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
@@ -154,7 +155,13 @@ function SettingsPageContent() {
           if (settings.security) setSecurity((prev) => ({ ...prev, ...settings.security }));
           if (settings.notifications) setNotifications((prev) => ({ ...prev, ...settings.notifications }));
           if (settings.theme) setTheme(settings.theme);
-          if (settings.language) setLanguage(settings.language);
+          if (
+            settings.language &&
+            (supportedLocales as readonly string[]).includes(settings.language) &&
+            settings.language !== locale
+          ) {
+            setLocale(settings.language as Locale);
+          }
         }
       })
       .catch((err: unknown) => {
@@ -177,7 +184,6 @@ function SettingsPageContent() {
   });
 
   const [theme, setTheme] = useState('dark');
-  const [language, setLanguage] = useState('fr');
 
   const handleSaveProfile = useCallback(() => {
     setSaving(true);
@@ -592,13 +598,20 @@ function SettingsPageContent() {
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-3">{t('settings.security.language')}</label>
                 <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
+                  value={locale}
+                  onChange={(e) => {
+                    const nextLocale = e.target.value as Locale;
+                    if ((supportedLocales as readonly string[]).includes(nextLocale)) {
+                      setLocale(nextLocale);
+                    }
+                  }}
                   className="dash-input w-full px-4 py-2"
                 >
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                  <option value="es">Español</option>
+                  {supportedLocales.map((code) => (
+                    <option key={code} value={code}>
+                      {code === 'fr' ? 'Français' : 'English'}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

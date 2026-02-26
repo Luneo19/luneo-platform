@@ -22,6 +22,8 @@ import {
   Copy,
   Check,
   Workflow,
+  Play,
+  Pause,
 } from 'lucide-react';
 
 interface Agent {
@@ -56,6 +58,7 @@ export default function AgentDetailPage() {
   const [kbLoading, setKbLoading] = useState<string | null>(null);
   const [channelLoading, setChannelLoading] = useState(false);
   const [copiedWidgetId, setCopiedWidgetId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<'publish' | 'pause' | 'duplicate' | 'delete' | null>(null);
 
   const fetchAgent = useCallback(async () => {
     if (!id) return;
@@ -169,6 +172,64 @@ export default function AgentDetailPage() {
     });
   };
 
+  const handlePublish = async () => {
+    if (!agent) return;
+    setActionLoading('publish');
+    try {
+      await endpoints.agents.publish(agent.id);
+      await fetchAgent();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de publication');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePause = async () => {
+    if (!agent) return;
+    setActionLoading('pause');
+    try {
+      await endpoints.agents.pause(agent.id);
+      await fetchAgent();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de pause');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!agent) return;
+    setActionLoading('duplicate');
+    try {
+      const res = await endpoints.agents.duplicate(agent.id);
+      const duplicatedId = (res as { id?: string; data?: { id?: string } })?.id ?? (res as { data?: { id?: string } })?.data?.id;
+      if (duplicatedId) {
+        router.push(`/agents/${duplicatedId}`);
+        return;
+      }
+      await fetchAgent();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de duplication');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!agent) return;
+    if (!confirm(`Supprimer l'agent "${agent.name}" ?`)) return;
+    setActionLoading('delete');
+    try {
+      await endpoints.agents.delete(agent.id);
+      router.push('/agents');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de suppression');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -213,6 +274,45 @@ export default function AgentDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handleDuplicate}
+              disabled={actionLoading !== null}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              {actionLoading === 'duplicate' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
+              Dupliquer
+            </Button>
+            {agent.status === 'ACTIVE' ? (
+              <Button
+                variant="outline"
+                onClick={handlePause}
+                disabled={actionLoading !== null}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                {actionLoading === 'pause' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Pause className="mr-2 h-4 w-4" />}
+                Pause
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={handlePublish}
+                disabled={actionLoading !== null}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                {actionLoading === 'publish' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                Publier
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              disabled={actionLoading !== null}
+              className="border-red-500/30 text-red-300 hover:bg-red-500/10"
+            >
+              {actionLoading === 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Supprimer
+            </Button>
             <Button
               onClick={() => router.push(`/agents/${agent.id}/builder`)}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, RefreshCw, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface CommunicationLog {
   id: string;
@@ -74,7 +75,7 @@ export default function CommunicationsPage() {
     fetcher
   );
 
-  const communicationLogs = logs || [];
+  const communicationLogs = normalizeListResponse<CommunicationLog>(logs);
 
   return (
     <div className="space-y-6">

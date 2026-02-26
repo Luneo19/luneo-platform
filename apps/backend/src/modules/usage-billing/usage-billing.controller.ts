@@ -53,6 +53,59 @@ export class UsageBillingController {
     return this.usageMeteringService.getUsageLedger(organizationId, range);
   }
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Résumé d’usage mensuel (frontend-compatible)' })
+  async summary(@CurrentUser() user: CurrentUserType) {
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const ledger = await this.usageMeteringService.getUsageLedger(organizationId, { from, to });
+    return {
+      period: { from: from.toISOString(), to: to.toISOString() },
+      totals: ledger.totals,
+      entriesCount: Array.isArray(ledger.entries) ? ledger.entries.length : 0,
+    };
+  }
+
+  @Get('topups/history')
+  @ApiOperation({ summary: 'Historique topups (placeholder data model)' })
+  async topupsHistory(@CurrentUser() user: CurrentUserType) {
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    return {
+      items: [],
+      total: 0,
+      organizationId,
+    };
+  }
+
+  @Post('topups/simulate')
+  @ApiOperation({ summary: 'Simulation coût topup' })
+  async simulateTopup(
+    @CurrentUser() user: CurrentUserType,
+    @Body() body: { units?: number; unitPriceCents?: number },
+  ) {
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException('Organisation requise');
+    }
+    const units = Math.max(1, Math.floor(Number(body?.units ?? 1)));
+    const unitPriceCents = Math.max(0, Math.floor(Number(body?.unitPriceCents ?? 0)));
+    return {
+      organizationId,
+      units,
+      unitPriceCents,
+      totalCents: units * unitPriceCents,
+      currency: 'EUR',
+    };
+  }
+
   @Post('reconcile')
   @ApiOperation({ summary: 'Réconcilier facture Stripe vs usage mesuré' })
   async reconcile(

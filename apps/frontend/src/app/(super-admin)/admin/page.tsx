@@ -53,40 +53,40 @@ export default function AdminOverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="MRR"
-          value={data?.kpis.mrr.value || 0}
-          change={data?.kpis.mrr.change}
-          changePercent={data?.kpis.mrr.changePercent}
-          trend={data?.kpis.mrr.trend || 'neutral'}
+          value={data?.kpis?.mrr?.value || 0}
+          change={data?.kpis?.mrr?.change}
+          changePercent={data?.kpis?.mrr?.changePercent}
+          trend={data?.kpis?.mrr?.trend || 'neutral'}
           icon={DollarSign}
           description="Monthly Recurring Revenue"
-          sparkline={data?.revenueChart.map(d => d.mrr) || []}
+          sparkline={Array.isArray(data?.revenueChart) ? data.revenueChart.map((d) => d.mrr) : []}
           isLoading={isLoading}
         />
         <KPICard
           title="Customers"
-          value={data?.kpis.customers.value || 0}
-          change={data?.kpis.customers.new}
-          trend={data?.kpis.customers.trend || 'neutral'}
+          value={data?.kpis?.customers?.value || 0}
+          change={data?.kpis?.customers?.new}
+          trend={data?.kpis?.customers?.trend || 'neutral'}
           icon={Users}
-          description={`${data?.kpis.customers.new || 0} new this period`}
+          description={`${data?.kpis?.customers?.new || 0} new this period`}
           isLoading={isLoading}
         />
         <KPICard
           title="Churn Rate"
-          value={`${(data?.kpis.churnRate.value || 0).toFixed(1)}%`}
-          change={data?.kpis.churnRate.change}
-          trend={data?.kpis.churnRate.trend || 'neutral'}
+          value={`${(data?.kpis?.churnRate?.value || 0).toFixed(1)}%`}
+          change={data?.kpis?.churnRate?.change}
+          trend={data?.kpis?.churnRate?.trend || 'neutral'}
           icon={TrendingDown}
           description="Monthly churn rate"
           isLoading={isLoading}
         />
         <KPICard
           title="LTV"
-          value={data?.kpis.ltv.value || 0}
-          change={data?.kpis.ltv.projected}
-          trend={data?.kpis.ltv.trend || 'neutral'}
+          value={data?.kpis?.ltv?.value || 0}
+          change={data?.kpis?.ltv?.projected}
+          trend={data?.kpis?.ltv?.trend || 'neutral'}
           icon={TrendingUp}
-          description={`Projected: €${(data?.kpis.ltv.projected || 0).toFixed(0)}`}
+          description={`Projected: €${(data?.kpis?.ltv?.projected || 0).toFixed(0)}`}
           isLoading={isLoading}
         />
       </div>
@@ -105,7 +105,7 @@ export default function AdminOverviewPage() {
 
       {/* Distribution & Acquisition */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {data?.planDistribution && data.planDistribution.length > 0 && (
+        {Array.isArray(data?.planDistribution) && data.planDistribution.length > 0 && (
           <PieChartWidget
             title="Revenue by Plan"
             data={data.planDistribution.map(p => ({
@@ -116,7 +116,7 @@ export default function AdminOverviewPage() {
             innerRadius={60}
           />
         )}
-        {data?.acquisitionChannels && data.acquisitionChannels.length > 0 && (
+        {Array.isArray(data?.acquisitionChannels) && data.acquisitionChannels.length > 0 && (
           <BarChartWidget
             title="Acquisition Channels"
             data={data.acquisitionChannels.map(ch => ({

@@ -13,7 +13,7 @@ const inter = Inter({
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: 'swap',
-  preload: true,
+  preload: false,
   variable: '--font-display',
   weight: ['400', '500', '600', '700', '800'],
 });
@@ -21,7 +21,7 @@ const jakarta = Plus_Jakarta_Sans({
 const playfair = Playfair_Display({
   subsets: ["latin"],
   display: 'swap',
-  preload: true,
+  preload: false,
   variable: '--font-editorial',
   weight: ['400', '500', '600', '700', '800', '900'],
   style: ['normal', 'italic'],
@@ -29,8 +29,6 @@ const playfair = Playfair_Display({
 import "./globals.css";
 import { Providers } from "./providers";
 import { CookieBanner } from "@/components/CookieBanner";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 import { LazyAnalytics } from "@/components/LazyAnalytics";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
@@ -165,9 +163,6 @@ export default async function RootLayout({
     availableLocales = [
       { locale: 'en', label: 'English', region: 'United States', flag: '🇺🇸' },
       { locale: 'fr', label: 'Français', region: 'France', flag: '🇫🇷' },
-      { locale: 'de', label: 'Deutsch', region: 'Deutschland', flag: '🇩🇪' },
-      { locale: 'es', label: 'Español', region: 'España', flag: '🇪🇸' },
-      { locale: 'it', label: 'Italiano', region: 'Italia', flag: '🇮🇹' },
     ];
   }
 
@@ -239,16 +234,12 @@ export default async function RootLayout({
             <Suspense fallback={null}>
               <CookieBanner />
             </Suspense>
-            <Analytics />
-            <SpeedInsights />
             <Suspense fallback={null}>
               <LazyAnalytics />
             </Suspense>
-            {process.env.NODE_ENV !== 'production' && (
-              <Suspense fallback={null}>
-                <WebVitalsReporter />
-              </Suspense>
-            )}
+            <Suspense fallback={null}>
+              <WebVitalsReporter />
+            </Suspense>
           </AnalyticsProvider>
         </Providers>
       </body>

@@ -1,3 +1,6 @@
+import { PLAN_CONFIGS } from '@/libs/plans/plan-config';
+import { PlanTier } from '@/libs/plans/plan-config.types';
+
 export interface PlanLimits {
   maxAgents: number;
   maxMessagesPerMonth: number;
@@ -24,160 +27,71 @@ export interface PlanLimits {
   };
 }
 
+const CHANNELS = {
+  free: ['WIDGET'],
+  pro: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+  business: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+  enterprise: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+} as const;
+
+const ANALYTICS_RETENTION_DAYS = {
+  free: 7,
+  pro: 90,
+  business: 90,
+  enterprise: 365,
+} as const;
+
+const MAX_UPLOAD_MB = {
+  free: 5,
+  pro: 25,
+  business: 100,
+  enterprise: 500,
+} as const;
+
+function createPlanLimits(tier: PlanTier): PlanLimits {
+  const config = PLAN_CONFIGS[tier];
+  const isUnlimited = tier === PlanTier.ENTERPRISE;
+  const key =
+    tier === PlanTier.FREE
+      ? 'free'
+      : tier === PlanTier.PRO
+        ? 'pro'
+        : tier === PlanTier.BUSINESS
+          ? 'business'
+          : 'enterprise';
+
+  return {
+    maxAgents: config.limits.agentsLimit,
+    maxMessagesPerMonth: config.limits.conversationsPerMonth,
+    maxKnowledgeBases: config.limits.knowledgeBasesLimit,
+    // Legacy name kept for compatibility; maps to document capacity.
+    maxSourcesPerKb: config.limits.documentsLimit,
+    maxFileUploadMb: MAX_UPLOAD_MB[key],
+    maxChannels: isUnlimited ? -1 : CHANNELS[key].length,
+    allowedChannels: [...CHANNELS[key]],
+    maxTeamMembers: config.limits.teamMembers,
+    analyticsRetentionDays: ANALYTICS_RETENTION_DAYS[key],
+    features: {
+      advancedAnalytics: config.limits.advancedAnalytics,
+      customActions: tier !== PlanTier.FREE,
+      apiAccess: config.limits.apiAccess,
+      whiteLabel: config.limits.whiteLabel,
+      ssoSaml: tier === PlanTier.ENTERPRISE,
+      prioritySupport: config.limits.prioritySupport,
+      customIntegrations: tier !== PlanTier.FREE,
+      workflowBuilder: config.limits.visualBuilder,
+      abTesting: tier === PlanTier.ENTERPRISE,
+      multiModelChoice: tier !== PlanTier.FREE,
+      sentimentAnalysis: tier !== PlanTier.FREE,
+      autoImprovement: tier !== PlanTier.FREE,
+    },
+  };
+}
+
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
-  FREE: {
-    maxAgents: 1,
-    maxMessagesPerMonth: 100,
-    maxKnowledgeBases: 1,
-    maxSourcesPerKb: 3,
-    maxFileUploadMb: 5,
-    maxChannels: 1,
-    allowedChannels: ['WIDGET'],
-    maxTeamMembers: 1,
-    analyticsRetentionDays: 7,
-    features: {
-      advancedAnalytics: false,
-      customActions: false,
-      apiAccess: false,
-      whiteLabel: false,
-      ssoSaml: false,
-      prioritySupport: false,
-      customIntegrations: false,
-      workflowBuilder: false,
-      abTesting: false,
-      multiModelChoice: false,
-      sentimentAnalysis: false,
-      autoImprovement: false,
-    },
-  },
-  STARTER: {
-    maxAgents: 3,
-    maxMessagesPerMonth: 1000,
-    maxKnowledgeBases: 3,
-    maxSourcesPerKb: 10,
-    maxFileUploadMb: 25,
-    maxChannels: 3,
-    allowedChannels: ['WIDGET', 'EMAIL', 'TELEGRAM'],
-    maxTeamMembers: 3,
-    analyticsRetentionDays: 30,
-    features: {
-      advancedAnalytics: false,
-      customActions: false,
-      apiAccess: false,
-      whiteLabel: false,
-      ssoSaml: false,
-      prioritySupport: false,
-      customIntegrations: false,
-      workflowBuilder: true,
-      abTesting: false,
-      multiModelChoice: true,
-      sentimentAnalysis: false,
-      autoImprovement: false,
-    },
-  },
-  PRO: {
-    maxAgents: 10,
-    maxMessagesPerMonth: 10000,
-    maxKnowledgeBases: 10,
-    maxSourcesPerKb: 50,
-    maxFileUploadMb: 100,
-    maxChannels: 9,
-    allowedChannels: [
-      'WIDGET',
-      'EMAIL',
-      'SLACK',
-      'WHATSAPP',
-      'MESSENGER',
-      'INSTAGRAM',
-      'TELEGRAM',
-      'SMS',
-      'API',
-    ],
-    maxTeamMembers: 10,
-    analyticsRetentionDays: 90,
-    features: {
-      advancedAnalytics: true,
-      customActions: true,
-      apiAccess: true,
-      whiteLabel: false,
-      ssoSaml: false,
-      prioritySupport: true,
-      customIntegrations: true,
-      workflowBuilder: true,
-      abTesting: false,
-      multiModelChoice: true,
-      sentimentAnalysis: true,
-      autoImprovement: true,
-    },
-  },
-  BUSINESS: {
-    maxAgents: 25,
-    maxMessagesPerMonth: 25000,
-    maxKnowledgeBases: 10,
-    maxSourcesPerKb: 50,
-    maxFileUploadMb: 100,
-    maxChannels: 9,
-    allowedChannels: [
-      'WIDGET',
-      'EMAIL',
-      'SLACK',
-      'WHATSAPP',
-      'MESSENGER',
-      'INSTAGRAM',
-      'TELEGRAM',
-      'SMS',
-      'API',
-    ],
-    maxTeamMembers: 25,
-    analyticsRetentionDays: 90,
-    features: {
-      advancedAnalytics: true,
-      customActions: true,
-      apiAccess: true,
-      whiteLabel: false,
-      ssoSaml: false,
-      prioritySupport: true,
-      customIntegrations: true,
-      workflowBuilder: true,
-      abTesting: false,
-      multiModelChoice: true,
-      sentimentAnalysis: true,
-      autoImprovement: true,
-    },
-  },
-  ENTERPRISE: {
-    maxAgents: -1,
-    maxMessagesPerMonth: -1,
-    maxKnowledgeBases: -1,
-    maxSourcesPerKb: -1,
-    maxFileUploadMb: 500,
-    maxChannels: -1,
-    allowedChannels: [
-      'WIDGET',
-      'EMAIL',
-      'SLACK',
-      'WHATSAPP',
-      'MESSENGER',
-      'INSTAGRAM',
-      'TELEGRAM',
-      'SMS',
-      'API',
-    ],
-    maxTeamMembers: -1,
-    analyticsRetentionDays: 365,
-    features: {
-      advancedAnalytics: true,
-      customActions: true,
-      apiAccess: true,
-      whiteLabel: true,
-      ssoSaml: true,
-      prioritySupport: true,
-      customIntegrations: true,
-      workflowBuilder: true,
-      abTesting: true,
-      multiModelChoice: true,
-      sentimentAnalysis: true,
-      autoImprovement: true,
-    },
-  },
+  FREE: createPlanLimits(PlanTier.FREE),
+  STARTER: createPlanLimits(PlanTier.PRO), // Backward compatibility alias
+  PRO: createPlanLimits(PlanTier.PRO),
+  BUSINESS: createPlanLimits(PlanTier.BUSINESS),
+  ENTERPRISE: createPlanLimits(PlanTier.ENTERPRISE),
 };

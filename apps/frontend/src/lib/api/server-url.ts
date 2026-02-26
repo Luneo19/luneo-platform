@@ -22,6 +22,17 @@ export function getBackendUrl(): string {
   if (publicUrl) {
     // In production/serverless environments, always respect the explicit public API URL.
     if (process.env.NODE_ENV === 'production') {
+      try {
+        const parsed = new URL(publicUrl);
+        // Guard against accidental frontend URL configuration that creates proxy loops.
+        if (parsed.hostname === 'luneo.app' || parsed.hostname === 'www.luneo.app') {
+          logger.error('[CRITICAL] NEXT_PUBLIC_API_URL points to frontend host in production; forcing api.luneo.app');
+          return 'https://api.luneo.app';
+        }
+      } catch {
+        logger.error('[CRITICAL] NEXT_PUBLIC_API_URL is invalid in production; forcing api.luneo.app');
+        return 'https://api.luneo.app';
+      }
       return publicUrl;
     }
 

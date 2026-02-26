@@ -55,17 +55,36 @@ interface SubscriptionData {
   commissionPercent?: number;
 }
 
+interface BillingOverviewData {
+  rateLimits?: {
+    api?: {
+      requestsPerMinute?: number;
+      burst?: number;
+    };
+  };
+  source?: {
+    mode?: string;
+    lastSyncedAt?: string;
+  };
+}
+
 function UsagePageContent() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<SubscriptionData | null>(null);
+  const [overview, setOverview] = useState<BillingOverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSubscription() {
       try {
-        const res = await api.get<SubscriptionData>('/api/v1/billing/subscription');
-        const result = (res as { data?: SubscriptionData })?.data ?? res;
-        setData(result);
+        const [subscriptionRes, overviewRes] = await Promise.all([
+          api.get<SubscriptionData>('/api/v1/billing/subscription'),
+          api.get<BillingOverviewData>('/api/v1/billing/overview'),
+        ]);
+        const subscriptionResult = (subscriptionRes as { data?: SubscriptionData })?.data ?? subscriptionRes;
+        const overviewResult = (overviewRes as { data?: BillingOverviewData })?.data ?? overviewRes;
+        setData(subscriptionResult);
+        setOverview(overviewResult);
         logger.info('Subscription data loaded for usage page');
       } catch (err) {
         logger.error('Failed to load subscription data', { error: err });
@@ -242,6 +261,24 @@ function UsagePageContent() {
           </Button>
         </Link>
       </div>
+
+      {/* Rate-limit visibility */}
+      <Card className="bg-dark-card border-white/[0.06]">
+        <CardHeader>
+          <CardTitle className="text-white">Rate limits API</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm text-gray-300">
+          <p>
+            Limite/minute: <span className="text-white font-medium">{overview?.rateLimits?.api?.requestsPerMinute ?? 0}</span>
+          </p>
+          <p>
+            Burst: <span className="text-white font-medium">{overview?.rateLimits?.api?.burst ?? 0}</span>
+          </p>
+          <p>
+            Source d&apos;usage: <span className="text-white font-medium">{overview?.source?.mode ?? 'hybrid'}</span>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

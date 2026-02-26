@@ -177,6 +177,9 @@ export async function POST(request: NextRequest) {
       type,
       messageLength: message.length,
     });
+    const targetSupportEmail =
+      process.env.SUPPORT_EMAIL || process.env.CONTACT_EMAIL || 'support@luneo.app';
+    const trackingId = `ctc_${Date.now().toString(36)}`;
 
     // Option 1: Envoyer via SendGrid si configuré
     if (process.env.SENDGRID_API_KEY) {
@@ -189,8 +192,8 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             personalizations: [{
-              to: [{ email: process.env.CONTACT_EMAIL || 'contact@luneo.app' }],
-              subject: `[Contact ${type}] ${subject}`,
+              to: [{ email: targetSupportEmail }],
+              subject: `[Contact ${type}] ${subject} (${trackingId})`,
             }],
             from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app', name: 'Luneo Contact' },
             reply_to: { email: email, name: name },
@@ -220,7 +223,7 @@ export async function POST(request: NextRequest) {
           const errorText = await response.text();
           serverLogger.warn('SendGrid API error', { status: response.status, error: errorText });
         } else {
-          serverLogger.info('Contact email sent via SendGrid', { to: 'contact@luneo.app', from: email });
+          serverLogger.info('Contact email sent via SendGrid', { to: targetSupportEmail, from: email, trackingId });
         }
       } catch (emailError) {
         serverLogger.error('Email sending failed', emailError instanceof Error ? emailError : undefined, { error: emailError });
@@ -234,7 +237,7 @@ export async function POST(request: NextRequest) {
       await fetch(`${backendUrl}/api/v1/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, company, subject, message, type }),
+        body: JSON.stringify({ name, email, company, subject, message, type, trackingId }),
       });
     } catch (dbError) {
       serverLogger.warn('Backend contact storage failed', { error: dbError });
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest) {
 
     return {
       success: true,
+      trackingId,
       message: 'Message envoyé avec succès. Nous vous répondrons sous 24h.',
     };
   }, '/api/contact', 'POST');

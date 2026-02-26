@@ -18,6 +18,7 @@ const express = require('express');
 const helmet = require('helmet');
 import type { Application, Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { csrfTokenMiddleware } from './common/middleware/csrf-token.middleware';
 
 const logger = new Logger('ServerlessHandler');
 
@@ -87,6 +88,7 @@ async function createApp(): Promise<Application> {
 
   // Cookie parser
   app.use(cookieParser());
+  app.use(csrfTokenMiddleware);
 
   // CORS - Configuration sécurisée alignée avec main.ts
   // IMPORTANT: Ne JAMAIS utiliser '*' en production avec credentials
@@ -159,7 +161,7 @@ async function createApp(): Promise<Application> {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Request-Time, x-request-time');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, X-Request-Time, x-request-time, X-Request-Id, X-CSRF-Token, x-csrf-token');
       res.setHeader('Access-Control-Max-Age', '86400');
     }
     
@@ -174,6 +176,10 @@ async function createApp(): Promise<Application> {
   
   // IMPORTANT: Ne PAS appeler app.enableCors() car CORS est géré manuellement avec Express
   // Cela évite les conflits et les doublons de headers
+
+  // Keep API route behavior consistent with main.ts runtime
+  const apiPrefix = configService.get('app.apiPrefix') || '/api/v1';
+  app.setGlobalPrefix(apiPrefix);
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -197,7 +203,7 @@ async function createApp(): Promise<Application> {
       .addApiKey({ type: 'apiKey', in: 'header', name: 'X-API-Key' })
       .build();
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
+    SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
   }
 
   // Health check endpoint optimisé

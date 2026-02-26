@@ -431,6 +431,7 @@ export const endpoints = {
     delete: (id: string) => api.delete(`/api/v1/agents/${id}`),
     publish: (id: string) => api.post(`/api/v1/agents/${id}/publish`),
     pause: (id: string) => api.post(`/api/v1/agents/${id}/pause`),
+    duplicate: (id: string) => api.post<{ id?: string; data?: { id?: string } }>(`/api/v1/agents/${id}/duplicate`),
     test: (id: string, data: { message: string; context?: { visitorName?: string; visitorEmail?: string } }) =>
       api.post<{ response: string; sources?: Array<{ title: string; url?: string; score?: number; preview?: string }>; metadata?: { model?: string; tokensIn?: number; tokensOut?: number; costUsd?: number; latencyMs?: number; confidence?: number } }>(`/api/v1/agents/${id}/test`, data),
     attachKnowledgeBase: (agentId: string, knowledgeBaseId: string) =>
@@ -551,6 +552,7 @@ export const endpoints = {
   // Billing (list plans: GET /plans/all; current: GET /plans/current)
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
+    overview: () => api.get('/api/v1/billing/overview'),
     plans: () => api.get('/api/v1/plans/all'),
     subscribe: (planId: string, email?: string, billingInterval?: 'monthly' | 'yearly') =>
       api.post('/api/v1/billing/create-checkout-session', { planId, email, billingInterval: billingInterval || 'monthly' }),
@@ -561,7 +563,8 @@ export const endpoints = {
     exportInvoicesCSV: () => api.get<{ csv: string; filename: string }>('/api/v1/billing/invoices/export/csv'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
     addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
-    removePaymentMethod: () => api.delete('/api/v1/billing/payment-methods'),
+    removePaymentMethod: (paymentMethodId: string) =>
+      api.delete('/api/v1/billing/payment-methods', { params: { id: paymentMethodId } }),
     customerPortal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
     portal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
     changePlan: (data: { planId: string; billingInterval?: string }) => api.post('/api/v1/billing/change-plan', data),
@@ -844,7 +847,7 @@ export const endpoints = {
       analyzeTicket: (ticketId: string) => api.post<unknown>(`/api/v1/admin/orion/prometheus/tickets/${ticketId}/analyze`),
       generateResponse: (ticketId: string) => api.post<unknown>(`/api/v1/admin/orion/prometheus/tickets/${ticketId}/generate`),
       reviewQueue: (params?: { status?: string; page?: number; limit?: number }) => api.get<unknown>('/api/v1/admin/orion/prometheus/review-queue', { params }),
-      reviewStats: () => api.get<unknown>('/api/v1/admin/orion/prometheus/review-queue/stats'),
+      reviewStats: () => api.get<unknown>('/api/v1/admin/orion/prometheus/stats'),
       approveResponse: (responseId: string, body?: { notes?: string; editedContent?: string }) => api.post<unknown>(`/api/v1/admin/orion/prometheus/review-queue/${responseId}/approve`, body),
       rejectResponse: (responseId: string, body?: { notes?: string }) => api.post<unknown>(`/api/v1/admin/orion/prometheus/review-queue/${responseId}/reject`, body),
       bulkApprove: (responseIds: string[]) => api.post<unknown>('/api/v1/admin/orion/prometheus/review-queue/bulk-approve', { responseIds }),
@@ -854,7 +857,8 @@ export const endpoints = {
       dashboard: () => api.get<unknown>('/api/v1/admin/orion/zeus/dashboard'),
       alerts: () => api.get<unknown>('/api/v1/admin/orion/zeus/alerts'),
       decisions: () => api.get<unknown>('/api/v1/admin/orion/zeus/decisions'),
-      override: (actionId: string, approved: boolean) => api.post<unknown>(`/api/v1/admin/orion/zeus/override/${actionId}`, { approved }),
+      override: (actionId: string, approved: boolean) =>
+        api.post<unknown>(`/api/v1/admin/orion/zeus/override/${actionId}`, { approved }),
     },
     athena: {
       dashboard: () => api.get<unknown>('/api/v1/admin/orion/athena/dashboard'),
@@ -874,7 +878,8 @@ export const endpoints = {
       threats: () => api.get<unknown>('/api/v1/admin/orion/artemis/threats'),
       resolveThreat: (id: string) => api.post<unknown>(`/api/v1/admin/orion/artemis/threats/${id}/resolve`),
       blockedIPs: () => api.get<unknown>('/api/v1/admin/orion/artemis/blocked-ips'),
-      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) => api.post<unknown>('/api/v1/admin/orion/artemis/block-ip', data),
+      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) =>
+        api.post<unknown>('/api/v1/admin/orion/artemis/block-ip', data),
       unblockIP: (ip: string) => api.delete<unknown>(`/api/v1/admin/orion/artemis/blocked-ips/${ip}`),
       fraudChecks: () => api.get<unknown>('/api/v1/admin/orion/artemis/fraud-checks'),
     },
@@ -891,8 +896,10 @@ export const endpoints = {
       mrrAtRisk: () => api.get<unknown>('/api/v1/admin/orion/hades/mrr-at-risk'),
       actions: () => api.get<unknown>('/api/v1/admin/orion/hades/actions'),
     },
-    insights: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/admin/orion/insights', { params }),
-    actions: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/admin/orion/actions', { params }),
+    insights: (params?: Record<string, string | number | boolean | undefined>) =>
+      api.get<unknown>('/api/v1/admin/orion/insights', { params }),
+    actions: (params?: Record<string, string | number | boolean | undefined>) =>
+      api.get<unknown>('/api/v1/admin/orion/actions', { params }),
     activityFeed: (limit?: number) => api.get<unknown>('/api/v1/admin/orion/activity-feed', { params: { limit } }),
     automationsV2: {
       list: (brandId?: string) => api.get<unknown>('/api/v1/admin/orion/automations-v2', { params: { brandId } }),

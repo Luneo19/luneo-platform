@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { BrandsController } from './brands.controller';
+import { OrganizationsController } from './organizations.controller';
 import { BrandsService } from './brands.service';
 import { PrismaOptimizedModule } from '@/libs/prisma/prisma-optimized.module';
 import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
+import { BillingModule } from '@/modules/billing/billing.module';
 
 /**
  * OrganizationsModule (renamed from BrandsModule for V2)
@@ -10,8 +12,8 @@ import { SmartCacheModule } from '@/libs/cache/smart-cache.module';
  * Public API remains organization-oriented.
  */
 @Module({
-  imports: [PrismaOptimizedModule, SmartCacheModule],
-  controllers: [BrandsController],
+  imports: [PrismaOptimizedModule, SmartCacheModule, BillingModule],
+  controllers: [BrandsController, OrganizationsController],
   providers: [BrandsService],
   exports: [BrandsService],
 })

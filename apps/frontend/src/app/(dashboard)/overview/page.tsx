@@ -170,10 +170,10 @@ function OverviewContent() {
   const { data: conversations = [] } = useRecentConversations();
 
   const quickActions = [
-    { label: 'Créer un agent', href: '/agents/new', icon: Plus, color: 'from-purple-600 to-pink-600' },
-    { label: 'Voir les conversations', href: '/conversations', icon: MessageSquare, color: 'from-blue-600 to-cyan-600' },
-    { label: 'Gérer le knowledge', href: '/knowledge', icon: BookOpen, color: 'from-amber-600 to-orange-600' },
-    { label: 'Visual Builder', href: '/agents', icon: Workflow, color: 'from-emerald-600 to-teal-600' },
+    { label: 'Créer un agent', href: '/agents/new', icon: Plus, color: 'from-blue-700 to-blue-600' },
+    { label: 'Voir les conversations', href: '/conversations', icon: MessageSquare, color: 'from-slate-700 to-slate-600' },
+    { label: 'Gérer le knowledge', href: '/knowledge', icon: BookOpen, color: 'from-indigo-700 to-indigo-600' },
+    { label: 'Visual Builder', href: '/agents', icon: Workflow, color: 'from-sky-700 to-sky-600' },
   ];
 
   return (
@@ -340,9 +340,9 @@ function OverviewContent() {
         </div>
 
         {/* Getting Started / Suggestions */}
-        <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 p-6">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-amber-400" />
+            <Sparkles className="h-5 w-5 text-blue-400" />
             Pour bien démarrer
           </h2>
           <div className="space-y-3">
@@ -373,7 +373,7 @@ function OverviewContent() {
             <p className="text-xs text-white/40">
               Consultez notre documentation ou contactez le support pour démarrer rapidement.
             </p>
-            <Link href="/help/documentation" className="mt-2 inline-flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300">
+            <Link href="/help/documentation" className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
               Documentation <ArrowRight className="h-3 w-3" />
             </Link>
           </div>

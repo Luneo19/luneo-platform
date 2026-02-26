@@ -40,7 +40,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
-import { endpoints } from '@/lib/api/client';
+import { api, endpoints } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 const QUICK_LINKS = [
   { title: 'Agents', href: '/admin/orion/agents', icon: Bot, description: 'Gestion des agents AI' },
@@ -107,17 +108,17 @@ function OrionCommandCenterContent() {
 
   const { data: insightsData } = useSWR('orion-insights', async () => {
     const res = await endpoints.orion.insights({ limit: 5, isRead: false });
-    return ((res as { data?: unknown[] })?.data ?? []) as OrionInsight[];
+    return normalizeListResponse<OrionInsight>((res as { data?: unknown })?.data);
   }, { refreshInterval: 60000 });
 
   const { data: actionsData, mutate: mutateActions } = useSWR('orion-actions', async () => {
     const res = await endpoints.orion.actions({ limit: 5, status: 'pending' });
-    return ((res as { data?: unknown[] })?.data ?? []) as OrionAction[];
+    return normalizeListResponse<OrionAction>((res as { data?: unknown })?.data);
   }, { refreshInterval: 60000 });
 
   const { data: activityData } = useSWR('orion-activity', async () => {
     const res = await endpoints.orion.activityFeed(15);
-    return ((res as { data?: unknown[] })?.data ?? []) as ActivityEntry[];
+    return normalizeListResponse<ActivityEntry>((res as { data?: unknown })?.data);
   }, { refreshInterval: 30000 });
 
   const agents = overview?.agents ?? [];
@@ -528,7 +529,7 @@ function OrionCommandCenterContent() {
                     className="border-zinc-600 text-zinc-200 shrink-0"
                     onClick={async () => {
                       try {
-                        await endpoints.orion.actions({ status: 'executed' });
+                        await api.post(`/api/v1/admin/orion/actions/${action.id}/execute`);
                         await mutateActions();
                         toast({ title: 'Action exécutée' });
                       } catch {

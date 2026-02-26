@@ -31,7 +31,6 @@ export const metadata: Metadata = {
     canonical: `${SEO_BASE_URL}/pricing`,
     languages: {
       fr: `${SEO_BASE_URL}/tarifs`,
-      en: `${SEO_BASE_URL}/pricing`,
     },
   },
 };

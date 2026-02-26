@@ -24,7 +24,6 @@ export const metadata: Metadata = {
     canonical: `${SEO_BASE_URL}/enterprise`,
     languages: {
       fr: `${SEO_BASE_URL}/enterprise`,
-      en: `${SEO_BASE_URL}/en/enterprise`,
     },
   },
 };

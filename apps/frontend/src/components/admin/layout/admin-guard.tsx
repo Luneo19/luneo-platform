@@ -45,6 +45,7 @@ export function AdminGuard({ serverUser, children }: AdminGuardProps) {
           // Fall through to login redirect.
         }
 
+        recoveringRef.current = false;
         router.replace('/login?redirect=' + encodeURIComponent(currentPath));
       })();
       return;

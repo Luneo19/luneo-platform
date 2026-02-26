@@ -166,7 +166,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         />
 
         {/* Logo */}
-        <Link href="/" className="relative z-10 flex items-center gap-2">
+        <Link href="/" prefetch={false} className="relative z-10 flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500">
             <Brain className="h-5 w-5 text-white" />
           </div>

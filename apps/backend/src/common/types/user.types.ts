@@ -24,6 +24,7 @@ export interface CurrentUser {
     plan: string;
     logo?: string | null;
   } | null;
+  brandPlan?: string | null;
   /** @deprecated Use organizationId instead */
   brandId?: string | null;
 }

@@ -9,7 +9,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTranslatedPlans } from '@/app/(public)/pricing/data';
 
 export function PricingSectionNew() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [yearly, setYearly] = useState(false);
   const plans = getTranslatedPlans(t);
 
@@ -32,7 +32,7 @@ export function PricingSectionNew() {
                 type="button"
                 onClick={() => setYearly(!yearly)}
                 className={`relative w-14 h-7 rounded-full transition-colors ${yearly ? 'bg-violet-600' : 'bg-white/10'}`}
-                aria-label={yearly ? 'Passer au mensuel' : 'Passer à l\'annuel'}
+                aria-label={yearly ? (locale === 'en' ? 'Switch to monthly billing' : 'Passer au mensuel') : (locale === 'en' ? 'Switch to yearly billing' : "Passer a l'annuel")}
               >
                 <div
                   className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${yearly ? 'translate-x-7' : 'translate-x-1'}`}
@@ -57,7 +57,7 @@ export function PricingSectionNew() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-xs font-semibold text-white flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> {plan.badge || t('pricing.plans.pro.badge')}
+                    <Sparkles className="w-3 h-3" /> {plan.badge || (locale === 'en' ? 'Most Popular' : 'Le plus populaire')}
                   </div>
                 )}
                 <h3 className="text-lg font-bold text-white mb-2">{plan.name}</h3>

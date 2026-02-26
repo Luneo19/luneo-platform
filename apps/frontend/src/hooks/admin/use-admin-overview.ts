@@ -44,6 +44,86 @@ async function fetcher(url: string) {
   return data ?? null;
 }
 
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function asTrend(value: unknown): 'up' | 'down' | 'neutral' {
+  return value === 'up' || value === 'down' || value === 'neutral' ? value : 'neutral';
+}
+
+function normalizeOverview(data: unknown): AdminOverviewData {
+  const raw = (data ?? {}) as Record<string, unknown>;
+  const rawKpis = (raw.kpis ?? {}) as Record<string, unknown>;
+  const mrr = (rawKpis.mrr ?? {}) as Record<string, unknown>;
+  const customers = (rawKpis.customers ?? {}) as Record<string, unknown>;
+  const churnRate = (rawKpis.churnRate ?? {}) as Record<string, unknown>;
+  const ltv = (rawKpis.ltv ?? {}) as Record<string, unknown>;
+
+  const revenueChart = Array.isArray(raw.revenueChart) ? raw.revenueChart : [];
+  const recentActivity = Array.isArray(raw.recentActivity) ? raw.recentActivity : [];
+  const recentCustomers = Array.isArray(raw.recentCustomers) ? raw.recentCustomers : [];
+  const planDistribution = Array.isArray(raw.planDistribution) ? raw.planDistribution : [];
+  const acquisitionChannels = Array.isArray(raw.acquisitionChannels) ? raw.acquisitionChannels : [];
+
+  return {
+    kpis: {
+      mrr: {
+        value: asNumber(mrr.value),
+        change: asNumber(mrr.change),
+        changePercent: asNumber(mrr.changePercent),
+        trend: asTrend(mrr.trend),
+      },
+      customers: {
+        value: asNumber(customers.value),
+        new: asNumber(customers.new),
+        trend: asTrend(customers.trend),
+      },
+      churnRate: {
+        value: asNumber(churnRate.value),
+        change: asNumber(churnRate.change),
+        trend: asTrend(churnRate.trend),
+      },
+      ltv: {
+        value: asNumber(ltv.value),
+        projected: asNumber(ltv.projected),
+        trend: asTrend(ltv.trend),
+      },
+    },
+    revenue: {
+      mrr: asNumber((raw.revenue as Record<string, unknown> | undefined)?.mrr),
+      arr: asNumber((raw.revenue as Record<string, unknown> | undefined)?.arr),
+      mrrGrowth: asNumber((raw.revenue as Record<string, unknown> | undefined)?.mrrGrowth),
+      mrrGrowthPercent: asNumber((raw.revenue as Record<string, unknown> | undefined)?.mrrGrowthPercent),
+      totalRevenue: asNumber((raw.revenue as Record<string, unknown> | undefined)?.totalRevenue),
+      avgRevenuePerUser: asNumber((raw.revenue as Record<string, unknown> | undefined)?.avgRevenuePerUser),
+    },
+    churn: {
+      rate: asNumber((raw.churn as Record<string, unknown> | undefined)?.rate),
+      count: asNumber((raw.churn as Record<string, unknown> | undefined)?.count),
+      revenueChurn: asNumber((raw.churn as Record<string, unknown> | undefined)?.revenueChurn),
+      netRevenueRetention: asNumber((raw.churn as Record<string, unknown> | undefined)?.netRevenueRetention),
+    },
+    ltv: {
+      average: asNumber((raw.ltv as Record<string, unknown> | undefined)?.average),
+      median: asNumber((raw.ltv as Record<string, unknown> | undefined)?.median),
+      byPlan: ((raw.ltv as Record<string, unknown> | undefined)?.byPlan as Record<string, number>) ?? {},
+      projected: asNumber((raw.ltv as Record<string, unknown> | undefined)?.projected),
+    },
+    acquisition: {
+      cac: asNumber((raw.acquisition as Record<string, unknown> | undefined)?.cac),
+      paybackPeriod: asNumber((raw.acquisition as Record<string, unknown> | undefined)?.paybackPeriod),
+      ltvCacRatio: asNumber((raw.acquisition as Record<string, unknown> | undefined)?.ltvCacRatio),
+      byChannel: ((raw.acquisition as Record<string, unknown> | undefined)?.byChannel as Record<string, { count: number; cac: number }>) ?? {},
+    },
+    recentActivity: recentActivity as AdminOverviewData['recentActivity'],
+    recentCustomers: recentCustomers as AdminOverviewData['recentCustomers'],
+    revenueChart: revenueChart as AdminOverviewData['revenueChart'],
+    planDistribution: planDistribution as AdminOverviewData['planDistribution'],
+    acquisitionChannels: acquisitionChannels as AdminOverviewData['acquisitionChannels'],
+  };
+}
+
 export interface UseAdminOverviewOptions {
   period?: number; // jours (défaut: 30)
 }
@@ -152,7 +232,7 @@ export function useAdminOverview(options: UseAdminOverviewOptions = {}) {
   );
 
   return {
-    data,
+    data: normalizeOverview(data),
     isLoading,
     isError: !!error,
     error,

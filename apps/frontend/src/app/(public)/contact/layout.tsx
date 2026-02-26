@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}/contact`,
     languages: {
       fr: `${APP_URL}/contact`,
-      en: `${APP_URL}/en/contact`,
     },
   },
 };

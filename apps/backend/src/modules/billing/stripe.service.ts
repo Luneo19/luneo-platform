@@ -157,12 +157,35 @@ export class StripeService {
 
   private async onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
     const organizationId = session.metadata?.organizationId;
+    const checkoutKind = session.metadata?.kind;
     const planName = session.metadata?.plan ?? session.metadata?.planId;
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
 
     if (!organizationId) {
       this.logger.warn('checkout.session.completed: missing organizationId in metadata');
+      return;
+    }
+
+    // One-time credit pack purchase: increase available conversation quota.
+    if (checkoutKind === 'credits_pack') {
+      const credits = Math.max(0, Number(session.metadata?.credits || 0));
+      if (!credits) {
+        this.logger.warn(`Credit pack checkout missing valid credits amount (session=${session.id})`);
+        return;
+      }
+
+      await this.prisma.organization.update({
+        where: { id: organizationId },
+        data: {
+          stripeCustomerId: customerId || undefined,
+          conversationsLimit: { increment: credits },
+        },
+      });
+
+      this.logger.log(
+        `Credits top-up applied: org=${organizationId}, credits=${credits}, session=${session.id}`,
+      );
       return;
     }
 
