@@ -98,12 +98,9 @@ export default function DashboardLayoutGroup({
   useEffect(() => {
     if (!isLoading && !user) {
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
-      const hasSessionCookies = typeof document !== 'undefined' &&
-        (document.cookie.includes('accessToken=') || document.cookie.includes('refreshToken='));
-
-      // Avoid immediate login bounce when the browser still has cookies but
-      // useAuth is briefly null because of transient /auth/me failures.
-      if (hasSessionCookies && !attemptedRecoveryRef.current) {
+      // httpOnly auth cookies are not readable from document.cookie, so we always
+      // try one recovery cycle before redirecting to login.
+      if (!attemptedRecoveryRef.current) {
         attemptedRecoveryRef.current = true;
         (async () => {
           try {

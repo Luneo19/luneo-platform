@@ -115,14 +115,25 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
 
   return (
     <div className="space-y-4">
-      {automations.map((automation) => (
-        <Card
-          key={automation.id}
-          className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
-        >
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
+      {automations.map((automation) => {
+        const stats = automation.stats ?? {
+          sent: 0,
+          opened: 0,
+          clicked: 0,
+          converted: 0,
+          openRate: 0,
+          clickRate: 0,
+          conversionRate: 0,
+        };
+
+        return (
+          <Card
+            key={automation.id}
+            className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-lg font-semibold text-white">{automation.name}</h3>
                   <Badge
@@ -141,24 +152,24 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <span className="text-xs text-zinc-500">Sent (30d)</span>
-                    <p className="text-lg font-semibold text-white">{automation.stats.sent}</p>
+                    <p className="text-lg font-semibold text-white">{stats.sent}</p>
                   </div>
                   <div>
                     <span className="text-xs text-zinc-500">Open Rate</span>
                     <p className="text-lg font-semibold text-white">
-                      {automation.stats.openRate.toFixed(1)}%
+                      {stats.openRate.toFixed(1)}%
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-zinc-500">Click Rate</span>
                     <p className="text-lg font-semibold text-white">
-                      {automation.stats.clickRate.toFixed(1)}%
+                      {stats.clickRate.toFixed(1)}%
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-zinc-500">Conversions</span>
                     <p className="text-lg font-semibold text-green-400">
-                      {automation.stats.converted}
+                      {stats.converted}
                     </p>
                   </div>
                 </div>
@@ -225,8 +236,9 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
               </div>
             </div>
           </CardContent>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }

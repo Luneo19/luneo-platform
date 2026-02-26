@@ -9,9 +9,11 @@ export function normalizeListResponse<T>(input: unknown): T[] {
     const nested = record.data as Record<string, unknown>;
     if (Array.isArray(nested.items)) return nested.items as T[];
     if (Array.isArray(nested.data)) return nested.data as T[];
+    if (Array.isArray(nested.automations)) return nested.automations as T[];
   }
 
   if (Array.isArray(record.items)) return record.items as T[];
   if (Array.isArray(record.results)) return record.results as T[];
+  if (Array.isArray(record.automations)) return record.automations as T[];
   return [];
 }

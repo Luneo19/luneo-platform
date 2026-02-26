@@ -1,6 +1,6 @@
 /**
  * ADMIN MARKETING AUTOMATIONS BY ID API
- * Proxies to NestJS backend GET + PUT + DELETE /api/v1/admin/orion/automations/:id
+ * Proxies to NestJS backend GET + PUT + DELETE /api/v1/admin/marketing/automations/:id
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { serverLogger } from '@/lib/logger-server';
@@ -15,7 +15,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations/${id}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations/${id}`, {
       headers: buildAdminForwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
@@ -37,7 +37,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations/${id}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations/${id}`, {
       method: 'PUT',
       headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),
@@ -60,7 +60,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations/${id}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations/${id}`, {
       method: 'DELETE',
       headers: buildAdminForwardHeaders(request),
     });

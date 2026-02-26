@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
@@ -301,13 +300,9 @@ function RegisterPageContent() {
     try {
       setOauthLoading(provider);
       setError('');
-      
-      // Redirect to backend OAuth endpoint
-      const apiUrl = getBackendUrl();
-      const oauthUrl = `${apiUrl}/api/v1/auth/${provider}`;
-      
-      // Redirect to backend OAuth
-      window.location.href = oauthUrl;
+
+      // Keep OAuth on same-origin to avoid cross-domain cookie issues.
+      window.location.href = `/api/v1/auth/${provider}`;
     } catch (err: unknown) {
       logger.error('OAuth registration error', {
         error: err,

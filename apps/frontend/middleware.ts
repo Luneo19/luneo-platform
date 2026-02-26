@@ -195,8 +195,12 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isProtectedRoute) {
-    const accessToken = request.cookies.get('accessToken')?.value;
-    const refreshToken = request.cookies.get('refreshToken')?.value;
+    const accessToken =
+      request.cookies.get('accessToken')?.value ||
+      request.cookies.get('access_token')?.value;
+    const refreshToken =
+      request.cookies.get('refreshToken')?.value ||
+      request.cookies.get('refresh_token')?.value;
 
     if (!accessToken && !refreshToken) {
       const loginUrl = new URL('/login', request.url);

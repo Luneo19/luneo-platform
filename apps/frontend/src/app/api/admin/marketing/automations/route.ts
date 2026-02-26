@@ -12,7 +12,7 @@ const API_URL = getBackendUrl();
 
 export async function GET(request: NextRequest) {
   try {
-    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations`, {
       headers: buildAdminForwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const res = await fetch(`${API_URL}/api/v1/admin/orion/automations`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/marketing/automations`, {
       method: 'POST',
       headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),

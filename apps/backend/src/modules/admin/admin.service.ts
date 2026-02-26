@@ -3893,6 +3893,15 @@ export class AdminService {
       status: body.status ?? 'draft',
       active: body.active ?? false,
       steps: Array.isArray(body.steps) ? body.steps : [],
+      stats: {
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+        converted: 0,
+        openRate: 0,
+        clickRate: 0,
+        conversionRate: 0,
+      },
       createdAt: now,
       updatedAt: now,
     };
@@ -3951,18 +3960,19 @@ export class AdminService {
     if (id) {
       const current = await this.getFeatureFlagList<Record<string, unknown>>(AdminService.MARKETING_AUTOMATIONS_KEY);
       const idx = current.findIndex((item) => String(item.id) === id);
-      if (idx !== -1) {
-        current[idx] = {
-          ...current[idx],
-          lastTestedAt: new Date().toISOString(),
-        };
-        await this.saveFeatureFlagList(
-          AdminService.MARKETING_AUTOMATIONS_KEY,
-          'Marketing automations',
-          'Admin marketing automations',
-          current,
-        );
+      if (idx === -1) {
+        throw new NotFoundException(`Marketing automation ${id} not found`);
       }
+      current[idx] = {
+        ...current[idx],
+        lastTestedAt: new Date().toISOString(),
+      };
+      await this.saveFeatureFlagList(
+        AdminService.MARKETING_AUTOMATIONS_KEY,
+        'Marketing automations',
+        'Admin marketing automations',
+        current,
+      );
     }
 
     return {
