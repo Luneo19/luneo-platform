@@ -4042,8 +4042,14 @@ export class AdminService {
     } catch (error) {
       if (error instanceof ServiceUnavailableException) {
         const providers = this.emailService.getProviderStatus();
+        const reason = error.message || 'Email provider unavailable';
+        if (!providers.sendgrid && !providers.mailgun) {
+          throw new BadRequestException(
+            `No email provider configured for test delivery (sendgrid=${providers.sendgrid}, mailgun=${providers.mailgun}). Configure SENDGRID_API_KEY or Mailgun credentials.`,
+          );
+        }
         throw new BadRequestException(
-          `No email provider configured for test delivery (sendgrid=${providers.sendgrid}, mailgun=${providers.mailgun}). Configure SENDGRID_API_KEY or Mailgun credentials.`,
+          `Email delivery failed with configured provider(s). ${reason}. Check SendGrid sender identity/domain authentication and API key permissions (Mail Send).`,
         );
       }
       throw error;

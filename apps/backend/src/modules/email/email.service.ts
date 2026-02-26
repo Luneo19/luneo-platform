@@ -178,6 +178,8 @@ export class EmailService {
    * Envoyer avec le provider automatique (fallback)
    */
   private async sendWithAutoProvider(options: EmailOptions): Promise<unknown> {
+    let primaryProviderError: unknown = null;
+
     // Essayer d'abord le provider par défaut
     try {
       if (this.defaultProvider === 'sendgrid' && this.sendgridAvailable) {
@@ -186,6 +188,7 @@ export class EmailService {
         return await this.sendWithMailgun(options);
       }
     } catch (error) {
+      primaryProviderError = error;
       this.logger.warn(`Default provider failed, trying alternative...`);
     }
 
@@ -194,6 +197,12 @@ export class EmailService {
       return await this.sendWithMailgun(options);
     } else if (this.defaultProvider === 'mailgun' && this.sendgridAvailable) {
       return await this.sendWithSendGrid(options);
+    }
+
+    if (primaryProviderError instanceof Error) {
+      throw new ServiceUnavailableException(
+        `No fallback provider available. Primary provider "${this.defaultProvider}" failed: ${primaryProviderError.message}`,
+      );
     }
 
     throw new ServiceUnavailableException('No email provider available');
