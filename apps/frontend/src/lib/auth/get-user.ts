@@ -44,8 +44,13 @@ function isJwtExpired(payload: Record<string, unknown> | null): boolean {
 export async function getServerUser(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
-    const accessToken = cookieStore.get('accessToken')?.value;
-    const refreshToken = cookieStore.get('refreshToken')?.value || '';
+    const accessToken =
+      cookieStore.get('accessToken')?.value ||
+      cookieStore.get('access_token')?.value;
+    const refreshToken =
+      cookieStore.get('refreshToken')?.value ||
+      cookieStore.get('refresh_token')?.value ||
+      '';
     if (!accessToken && !refreshToken) {
       return null;
     }
