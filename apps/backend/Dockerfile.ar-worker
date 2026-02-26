@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Blender, Node, pnpm, npm tools, meshoptimizer
 # -----------------------------------------------------------------------------
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:24.04 AS builder
 
 ARG BLENDER_VERSION=3.6.23
 ARG NODE_VERSION=22
@@ -85,7 +85,7 @@ RUN cd apps/backend && pnpm exec prisma generate && pnpm run build
 # -----------------------------------------------------------------------------
 # Stage 4: Production - minimal image
 # -----------------------------------------------------------------------------
-FROM ubuntu:22.04 AS production
+FROM ubuntu:24.04 AS production
 
 ARG BLENDER_VERSION=3.6.23
 ENV DEBIAN_FRONTEND=noninteractive
