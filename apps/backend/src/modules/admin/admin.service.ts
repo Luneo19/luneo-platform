@@ -1,6 +1,13 @@
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
-import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import {
@@ -4007,30 +4014,40 @@ export class AdminService {
       (selectedAutomation && Array.isArray(selectedAutomation.steps) ? selectedAutomation.steps : null) ||
       (Array.isArray(body.steps) ? body.steps : []);
 
-    await this.emailService.sendEmail({
-      to: recipientEmail,
-      subject: `[TEST] ${automationName}`,
-      html: `
-        <h2>Automation Test Email</h2>
-        <p>This is a real delivery test for your marketing automation.</p>
-        <ul>
-          <li><strong>Automation:</strong> ${String(automationName)}</li>
-          <li><strong>Trigger:</strong> ${String(automationTrigger)}</li>
-          <li><strong>Steps:</strong> ${steps.length}</li>
-          <li><strong>Tested at:</strong> ${new Date().toISOString()}</li>
-        </ul>
-      `,
-      text: [
-        'Automation Test Email',
-        '',
-        `Automation: ${String(automationName)}`,
-        `Trigger: ${String(automationTrigger)}`,
-        `Steps: ${steps.length}`,
-        `Tested at: ${new Date().toISOString()}`,
-      ].join('\n'),
-      tags: ['marketing-automation', 'test'],
-      provider: 'auto',
-    });
+    try {
+      await this.emailService.sendEmail({
+        to: recipientEmail,
+        subject: `[TEST] ${automationName}`,
+        html: `
+          <h2>Automation Test Email</h2>
+          <p>This is a real delivery test for your marketing automation.</p>
+          <ul>
+            <li><strong>Automation:</strong> ${String(automationName)}</li>
+            <li><strong>Trigger:</strong> ${String(automationTrigger)}</li>
+            <li><strong>Steps:</strong> ${steps.length}</li>
+            <li><strong>Tested at:</strong> ${new Date().toISOString()}</li>
+          </ul>
+        `,
+        text: [
+          'Automation Test Email',
+          '',
+          `Automation: ${String(automationName)}`,
+          `Trigger: ${String(automationTrigger)}`,
+          `Steps: ${steps.length}`,
+          `Tested at: ${new Date().toISOString()}`,
+        ].join('\n'),
+        tags: ['marketing-automation', 'test'],
+        provider: 'auto',
+      });
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        const providers = this.emailService.getProviderStatus();
+        throw new BadRequestException(
+          `No email provider configured for test delivery (sendgrid=${providers.sendgrid}, mailgun=${providers.mailgun}). Configure SENDGRID_API_KEY or Mailgun credentials.`,
+        );
+      }
+      throw error;
+    }
 
     return {
       success: true,

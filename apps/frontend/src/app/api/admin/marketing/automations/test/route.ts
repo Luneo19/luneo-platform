@@ -19,7 +19,11 @@ export async function POST(request: NextRequest) {
     });
     const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return NextResponse.json(raw.error ?? { error: 'Failed to test automation' }, { status: res.status });
+      const payload =
+        raw && typeof raw === 'object'
+          ? raw
+          : { error: typeof raw === 'string' ? raw : 'Failed to test automation' };
+      return NextResponse.json(payload, { status: res.status });
     }
     const data = raw.data ?? raw;
     return NextResponse.json(data);
