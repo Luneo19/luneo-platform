@@ -20,14 +20,21 @@ function getCsrfSecret(): string {
  * Générer un token CSRF
  */
 export async function generateCSRFToken(): Promise<string> {
-  const token = crypto.randomBytes(32).toString('hex');
-  
-  // Stocker le token dans un cookie HTTP-only
   const cookieStore = await cookies();
+  const existing = cookieStore.get(CSRF_TOKEN_NAME)?.value;
+
+  // Reuse current token to avoid rotating on every mutation request.
+  if (existing) {
+    return existing;
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+
+  // Double-submit CSRF requires a JS-readable cookie to mirror token in header.
   cookieStore.set(CSRF_TOKEN_NAME, token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
     maxAge: 60 * 60 * 24, // 24h
     path: '/',
   });
