@@ -92,12 +92,41 @@ const apiClient: AxiosInstance = axios.create({
   withCredentials: true, // ✅ IMPORTANT: Required for httpOnly cookies
 });
 
+let csrfBootstrapInFlight: Promise<string | null> | null = null;
+
+async function ensureBrowserCsrfToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  const existing = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf_token='))
+    ?.split('=')[1];
+  if (existing) return decodeURIComponent(existing);
+
+  if (!csrfBootstrapInFlight) {
+    csrfBootstrapInFlight = (async () => {
+      try {
+        const resp = await fetch('/api/csrf/token', { credentials: 'include' });
+        if (!resp.ok) return null;
+        const json = await resp.json().catch(() => null) as { token?: string } | null;
+        return json?.token ? String(json.token) : null;
+      } catch {
+        return null;
+      } finally {
+        csrfBootstrapInFlight = null;
+      }
+    })();
+  }
+
+  return csrfBootstrapInFlight;
+}
+
 /**
  * Request Interceptor
  * Add authentication token and common headers
  */
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     config.headers['X-Request-Time'] = new Date().toISOString();
 
     if (typeof window !== 'undefined') {
@@ -108,10 +137,14 @@ apiClient.interceptors.request.use(
       // The backend CsrfGuard compares X-CSRF-Token header with the csrf_token cookie.
       const method = (config.method || '').toUpperCase();
       if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
-        const csrfToken = document.cookie
+        let csrfToken = document.cookie
           .split('; ')
           .find(row => row.startsWith('csrf_token='))
           ?.split('=')[1];
+        if (!csrfToken) {
+          const bootstrapped = await ensureBrowserCsrfToken();
+          csrfToken = bootstrapped ? encodeURIComponent(bootstrapped) : undefined;
+        }
         if (csrfToken) {
           config.headers['X-CSRF-Token'] = decodeURIComponent(csrfToken);
         }
