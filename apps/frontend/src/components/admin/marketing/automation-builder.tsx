@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -41,6 +41,10 @@ export function AutomationBuilder({
   const [steps, setSteps] = useState<AutomationStep[]>(initialSteps);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [editingStep, setEditingStep] = useState<AutomationStep | null>(null);
+
+  useEffect(() => {
+    setSteps(initialSteps);
+  }, [initialSteps]);
 
   const addStep = useCallback(
     (type: AutomationStep['type']) => {

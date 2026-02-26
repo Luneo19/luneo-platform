@@ -7,16 +7,21 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Play, Pause, Edit, Copy, MoreVertical } from 'lucide-react';
+import { Plus, Play, Pause, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Automation } from '@/hooks/admin/use-automations';
+import { api } from '@/lib/api/client';
+import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { logger } from '@/lib/logger';
 
 export interface AutomationsListProps {
   automations: Automation[];
   isLoading?: boolean;
+  onRefresh?: () => Promise<unknown>;
 }
 
 const statusColors: Record<string, string> = {
@@ -25,7 +30,59 @@ const statusColors: Record<string, string> = {
   draft: 'bg-zinc-500/20 text-zinc-400',
 };
 
-export function AutomationsList({ automations, isLoading }: AutomationsListProps) {
+export function AutomationsList({ automations, isLoading, onRefresh }: AutomationsListProps) {
+  const [loadingId, setLoadingId] = React.useState<string | null>(null);
+  const { toast } = useToast();
+
+  const toggleStatus = React.useCallback(async (automation: Automation) => {
+    const nextStatus = automation.status === 'active' ? 'paused' : 'active';
+    setLoadingId(automation.id);
+    try {
+      await api.put(`/api/admin/marketing/automations/${automation.id}`, {
+        status: nextStatus,
+        active: nextStatus === 'active',
+      });
+      await onRefresh?.();
+      toast({
+        title: 'Automation updated',
+        description:
+          nextStatus === 'active'
+            ? 'Automation activated successfully'
+            : 'Automation paused successfully',
+      });
+    } catch (error) {
+      logger.error('Failed to toggle automation status', error);
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: getErrorDisplayMessage(error),
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  }, [onRefresh, toast]);
+
+  const testAutomation = React.useCallback(async (automationId: string) => {
+    setLoadingId(automationId);
+    try {
+      const result = await api.post<{ message?: string }>('/api/admin/marketing/automations/test', { id: automationId });
+      toast({
+        title: 'Automation test sent',
+        description: result?.message || 'Test workflow executed successfully',
+      });
+      await onRefresh?.();
+    } catch (error) {
+      logger.error('Failed to test automation', error);
+      toast({
+        variant: 'destructive',
+        title: 'Test failed',
+        description: getErrorDisplayMessage(error),
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  }, [onRefresh, toast]);
+
   if (isLoading) {
     return (
       <Card className="bg-zinc-800 border-zinc-700">
@@ -130,14 +187,24 @@ export function AutomationsList({ automations, isLoading }: AutomationsListProps
               {/* Actions */}
               <div className="flex items-center gap-2 ml-4">
                 {automation.status === 'active' ? (
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loadingId === automation.id}
+                    onClick={() => toggleStatus(automation)}
+                  >
                     <Pause className="w-4 h-4 mr-2" />
-                    Pause
+                    {loadingId === automation.id ? 'Updating...' : 'Pause'}
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loadingId === automation.id}
+                    onClick={() => toggleStatus(automation)}
+                  >
                     <Play className="w-4 h-4 mr-2" />
-                    Activate
+                    {loadingId === automation.id ? 'Updating...' : 'Activate'}
                   </Button>
                 )}
                 <Link href={`/admin/marketing/automations/${automation.id}/edit`}>
@@ -146,8 +213,14 @@ export function AutomationsList({ automations, isLoading }: AutomationsListProps
                     Edit
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="w-4 h-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={loadingId === automation.id}
+                  onClick={() => testAutomation(automation.id)}
+                  title="Run test"
+                >
+                  <Play className="w-4 h-4" />
                 </Button>
               </div>
             </div>

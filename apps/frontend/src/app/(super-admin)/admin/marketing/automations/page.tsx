@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 export default function AutomationsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { automations, isLoading } = useAutomations();
+  const { automations, isLoading, refresh } = useAutomations();
 
   const filteredAutomations = React.useMemo(() => {
     if (statusFilter === 'all') return automations;
@@ -99,7 +99,7 @@ export default function AutomationsPage() {
       </div>
 
       {/* Automations List */}
-      <AutomationsList automations={filteredAutomations} isLoading={isLoading} />
+      <AutomationsList automations={filteredAutomations} isLoading={isLoading} onRefresh={refresh} />
     </div>
   );
 }
