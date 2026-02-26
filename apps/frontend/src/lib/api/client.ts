@@ -268,6 +268,13 @@ async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promis
     } catch (error) {
       const isAxiosErr = axios.isAxiosError(error);
       const status = isAxiosErr ? error.response?.status : undefined;
+      const requestUrl = isAxiosErr ? (error.config?.url || '') : '';
+
+      // Do not retry automation test delivery: backend returns actionable errors
+      // (provider unavailable, configuration missing) that retries cannot fix.
+      if (requestUrl.includes('/api/admin/marketing/automations/test')) {
+        throw error;
+      }
 
       // Don't retry client errors (4xx)
       if (status && status >= 400 && status < 500) {
