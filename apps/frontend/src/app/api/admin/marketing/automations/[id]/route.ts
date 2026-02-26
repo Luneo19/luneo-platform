@@ -3,7 +3,6 @@
  * Proxies to NestJS backend GET + PUT + DELETE /api/v1/admin/orion/automations/:id
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
@@ -15,11 +14,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminUser = await getAdminUser();
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
     const { id } = await params;
     const res = await fetch(`${API_URL}/api/v1/admin/orion/automations/${id}`, {
       headers: buildAdminForwardHeaders(request),
@@ -41,11 +35,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminUser = await getAdminUser();
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const res = await fetch(`${API_URL}/api/v1/admin/orion/automations/${id}`, {
@@ -70,11 +59,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminUser = await getAdminUser();
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
     const { id } = await params;
     const res = await fetch(`${API_URL}/api/v1/admin/orion/automations/${id}`, {
       method: 'DELETE',
