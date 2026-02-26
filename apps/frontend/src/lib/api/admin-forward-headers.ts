@@ -16,9 +16,11 @@ export function buildAdminForwardHeaders(
     includeCsrf = true,
   } = options;
 
+  let cookieHeader = request.headers.get('cookie') || '';
+
   const headers: HeadersInit = {
     'Content-Type': contentType,
-    Cookie: request.headers.get('cookie') || '',
+    Cookie: cookieHeader,
   };
 
   if (includeAuthorization) {
@@ -30,6 +32,13 @@ export function buildAdminForwardHeaders(
     const csrfHeader = request.headers.get('x-csrf-token');
     if (csrfHeader) {
       headers['x-csrf-token'] = csrfHeader;
+
+      // Ensure backend receives the csrf_token cookie expected by CsrfGuard
+      // even if the browser has not persisted it yet.
+      if (!/(\b|;\s*)csrf_token=/.test(cookieHeader)) {
+        cookieHeader = cookieHeader ? `${cookieHeader}; csrf_token=${csrfHeader}` : `csrf_token=${csrfHeader}`;
+        headers.Cookie = cookieHeader;
+      }
     } else {
       // Fallback: if the browser sent csrf_token cookie but omitted the header,
       // rebuild the double-submit header so backend CSRF guard can validate.
