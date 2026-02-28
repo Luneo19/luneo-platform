@@ -9,7 +9,7 @@
  * - Métriques de cache hit/miss
  */
 
-import type { Redis as RedisType } from '@upstash/redis';
+import { Redis, type Redis as RedisType } from '@upstash/redis';
 import { logger } from '@/lib/logger';
 
 // Lazy initialization to avoid build-time errors
@@ -29,8 +29,6 @@ function getRedis(): RedisType | null {
   }
 
   try {
-    // Dynamic import to avoid build-time initialization
-    const { Redis } = require('@upstash/redis');
     const instance = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
       token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),

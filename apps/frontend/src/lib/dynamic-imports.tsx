@@ -18,16 +18,16 @@ const DefaultFallback = () => (
 );
 
 // Helper pour créer des imports dynamiques optimisés
-export const createLazyComponent = <T extends ComponentType<any>>(
+export const createLazyComponent = <T,>(
   importFn: () => Promise<{ default: T }>,
   options: LazyComponentProps = {}
 ): T => {
   const { fallback = DefaultFallback, ssr = false } = options;
 
-  return dynamic(importFn, {
+  return dynamic(importFn as unknown as () => Promise<{ default: ComponentType<object> }>, {
     loading: () => React.createElement(fallback),
     ssr,
-  }) as T;
+  }) as unknown as T;
 };
 
 // Imports dynamiques pour les pages principales

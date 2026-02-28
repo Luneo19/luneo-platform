@@ -1,5 +1,3 @@
-import OptimizedImage from '../components/optimized/OptimizedImage';
-
 /**
  * EMAIL TEMPLATES PROFESSIONNELS
  * Templates HTML pour emails transactionnels Luneo
@@ -383,7 +381,7 @@ export function designCompletedEmail(params: {
         previewUrl
           ? `
       <center>
-        <OptimizedImage src="${previewUrl}" alt="Design preview" style={max-width: 100%; border-radius: 8px; margin: 24px 0;} />
+        <img src="${previewUrl}" alt="Design preview" style="max-width: 100%; border-radius: 8px; margin: 24px 0;" />
       </center>
       `
           : ''

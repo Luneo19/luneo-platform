@@ -26,8 +26,10 @@ export function initGoogleAnalytics(): void {
 
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag() {
-    window.dataLayer.push(arguments);
+  window.gtag = function gtag(
+    ...args: [command: 'config' | 'event' | 'set' | 'js', targetId: string | Date, config?: Record<string, unknown>]
+  ) {
+    window.dataLayer.push(args);
   };
 
   window.gtag('js', new Date());

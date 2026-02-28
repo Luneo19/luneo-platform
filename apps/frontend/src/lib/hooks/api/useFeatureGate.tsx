@@ -5,7 +5,6 @@
 
 import { ReactNode } from 'react';
 import { useSubscription, useHasFeature, useHasMinimumPlan, type PlanTier } from './useSubscription';
-import { logger } from '@/lib/logger';
 
 /**
  * Hook pour vérifier si une fonctionnalité est accessible
@@ -116,7 +115,7 @@ interface FeatureGateProps {
 }
 
 export function FeatureGate({ feature, fallback = null, children, showUpgradePrompt = false }: FeatureGateProps) {
-  const { hasAccess, isUpgradeRequired, upgradePlan } = useFeatureGate(feature);
+  const { hasAccess, isUpgradeRequired } = useFeatureGate(feature);
 
   if (!hasAccess && isUpgradeRequired) {
     if (showUpgradePrompt && fallback) {
