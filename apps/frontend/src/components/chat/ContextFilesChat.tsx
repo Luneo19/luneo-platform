@@ -21,7 +21,6 @@ import {
   Loader2,
   Bot,
   User,
-  Paperclip,
   X,
   Search,
   FileSearch,

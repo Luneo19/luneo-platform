@@ -7,9 +7,8 @@ import { useI18n } from '@/i18n/useI18n';
 import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Check, Gift, Loader2, Sparkles, TrendingUp, Zap } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface Pack {
@@ -33,7 +32,6 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     fetchPacks();
@@ -105,7 +103,7 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
     <section className={`py-16 sm:py-20 bg-gradient-to-br from-transparent via-purple-950/20 to-blue-950/20 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion
+        <Motion
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -134,12 +132,12 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                 : 'Parfait pour completer votre abonnement.'}
             </span>
           </p>
-        </motion>
+        </Motion>
 
         {/* Packs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {packs.map((pack, index) => (
-            <motion
+            <Motion
               key={pack.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -236,12 +234,12 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
                   </div>
                 </div>
               </Card>
-            </motion>
+            </Motion>
           ))}
         </div>
 
         {/* Trust Message */}
-        <motion
+        <Motion
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -252,7 +250,7 @@ export function CreditPacksSection({ className }: CreditPacksSectionProps) {
               ? 'Secure payment with Stripe · Lifetime credits · Instant top-up after payment'
               : 'Paiement securise par Stripe · Credits valables a vie · Ajout instantane apres paiement'}
           </p>
-        </motion>
+        </Motion>
       </div>
     </section>
   );

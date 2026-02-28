@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Zap, Check, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { logger } from '@/lib/logger';
@@ -39,7 +38,6 @@ export function UpsellModal({
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (open) {
