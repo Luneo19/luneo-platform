@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Building, Shield, Users, Zap, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ function EntreprisePageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
               Luneo Enterprise
               <br />
@@ -41,7 +41,7 @@ function EntreprisePageContent() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-          </motion>
+          </Motion>
         </div>
       </section>
 

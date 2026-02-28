@@ -289,7 +289,7 @@ function ContactPageContentInner() {
 
           {/* Contact Info */}
           <div className="space-y-4 sm:space-y-6">
-            {contactInfo.map((info, i) => (
+            {contactInfo.map((info) => (
               <FeatureCard
                 key={info.title}
                 icon={info.icon}

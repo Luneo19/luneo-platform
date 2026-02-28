@@ -5,7 +5,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import { ArrowLeft, Award, TrendingUp, Users, Zap, CheckCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
 
 // Données des case studies (en production, viendrait d'une API ou CMS)
 const caseStudies: Record<string, {

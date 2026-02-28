@@ -7,7 +7,7 @@
 import React, { useCallback, memo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
-  LazyMotionDiv as motion,
+  LazyMotionDiv as Motion,
   LazyAnimatePresence as AnimatePresence,
 } from '@/lib/performance/dynamic-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -209,27 +209,27 @@ function OnboardingPageContent() {
     <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         {isReminder && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-4 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white/70"
           >
             Finaliser l&apos;onboarding permet de personnaliser vos recommandations d&apos;agents IA.
-          </motion>
+          </Motion>
         )}
 
         {storeError && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3"
           >
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-400">{storeError}</p>
-          </motion>
+          </Motion>
         )}
 
-        <motion
+        <Motion
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
@@ -269,13 +269,13 @@ function OnboardingPageContent() {
             className="h-2 bg-white/[0.06] rounded-full"
             indicatorClassName="bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"
           />
-        </motion>
+        </Motion>
 
         <Card className="dash-card bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Bienvenue */}
             {currentStep === 1 && (
-              <motion
+              <Motion
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -306,12 +306,12 @@ function OnboardingPageContent() {
                     />
                   </div>
                 </div>
-              </motion>
+              </Motion>
             )}
 
             {/* Step 2: Organisation */}
             {currentStep === 2 && (
-              <motion
+              <Motion
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -342,12 +342,12 @@ function OnboardingPageContent() {
                     />
                   </div>
                 </div>
-              </motion>
+              </Motion>
             )}
 
             {/* Step 3: Secteur */}
             {currentStep === 3 && (
-              <motion
+              <Motion
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -373,12 +373,12 @@ function OnboardingPageContent() {
                     ))}
                   </SelectContent>
                 </Select>
-              </motion>
+              </Motion>
             )}
 
             {/* Step 4: Taille */}
             {currentStep === 4 && (
-              <motion
+              <Motion
                 key="step4"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -404,12 +404,12 @@ function OnboardingPageContent() {
                     ))}
                   </SelectContent>
                 </Select>
-              </motion>
+              </Motion>
             )}
 
             {/* Step 5: Objectif */}
             {currentStep === 5 && (
-              <motion
+              <Motion
                 key="step5"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -424,7 +424,7 @@ function OnboardingPageContent() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   {OBJECTIVES.map((obj) => (
-                    <motion
+                    <Motion
                       key={obj.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -439,15 +439,15 @@ function OnboardingPageContent() {
                       {formData.step5.objective === obj.id && (
                         <Check className="w-5 h-5 text-[#8b5cf6] mt-2" />
                       )}
-                    </motion>
+                    </Motion>
                   ))}
                 </div>
-              </motion>
+              </Motion>
             )}
 
             {/* Step 6: Premier agent */}
             {currentStep === 6 && (
-              <motion
+              <Motion
                 key="step6"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -490,26 +490,26 @@ function OnboardingPageContent() {
                 <p className="text-center text-white/40 text-sm">
                   Vous pourrez aussi le faire plus tard depuis le dashboard
                 </p>
-              </motion>
+              </Motion>
             )}
 
             {/* Step 7: Terminé */}
             {currentStep === 7 && (
-              <motion
+              <Motion
                 key="step7"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
                 className="text-center py-8"
               >
-                <motion
+                <Motion
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.2 }}
                   className="w-24 h-24 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6"
                 >
                   <Rocket className="w-12 h-12 text-white" />
-                </motion>
+                </Motion>
                 <h1 className="text-3xl font-bold mb-4 text-white">Tout est prêt !</h1>
                 <p className="text-white/60 mb-8 max-w-md mx-auto">
                   {planFromUrl && PAID_PLANS.includes(planFromUrl)
@@ -526,7 +526,7 @@ function OnboardingPageContent() {
                     <p className="text-xs text-white/60">Support</p>
                   </div>
                 </div>
-              </motion>
+              </Motion>
             )}
           </AnimatePresence>
 
@@ -589,7 +589,7 @@ function OnboardingPageContent() {
         </Card>
 
         {currentStep < 7 && currentStep !== 6 && (
-          <motion
+          <Motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -601,7 +601,7 @@ function OnboardingPageContent() {
             >
               Configurer plus tard
             </button>
-          </motion>
+          </Motion>
         )}
       </div>
     </div>
