@@ -5,6 +5,10 @@
 
 import { test, expect } from '@playwright/test';
 
+interface HttpRequestResult {
+  status(): number;
+}
+
 test.describe('Rate Limiting', () => {
   test('should enforce rate limits on API endpoints', async ({ page }) => {
     // Make multiple rapid requests to trigger rate limiting
@@ -18,7 +22,7 @@ test.describe('Rate Limiting', () => {
 
     const responses = await Promise.allSettled(requests);
     const fulfilledResponses = responses
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .filter((result): result is PromiseFulfilledResult<HttpRequestResult> => result.status === 'fulfilled')
       .map((result) => result.value);
 
     // Check for rate limit responses (429)

@@ -3,13 +3,13 @@
  * T-016: Tests E2E inscription utilisateur
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from './utils/locale';
 
 // Générateur d'email unique pour les tests
 const generateTestEmail = () => `test-e2e-${Date.now()}-${Math.random().toString(36).substring(7)}@test-luneo.app`;
 
-async function isPresentAndVisible(locator: any): Promise<boolean> {
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
   return (await locator.count()) > 0 && (await locator.first().isVisible());
 }
 

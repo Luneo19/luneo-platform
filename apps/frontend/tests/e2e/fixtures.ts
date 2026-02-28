@@ -3,7 +3,7 @@
  * Ces fixtures étendent les fonctionnalités de base de Playwright
  */
 
-import { test as base, expect, Page } from '@playwright/test';
+import { test as base, expect, Page, type Locator } from '@playwright/test';
 
 // Types pour les fixtures
 interface CustomFixtures {
@@ -15,7 +15,7 @@ interface CustomFixtures {
   takeNamedScreenshot: (name: string) => Promise<void>;
 }
 
-async function isPresentAndVisible(locator: any): Promise<boolean> {
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
   return (await locator.count()) > 0 && (await locator.first().isVisible());
 }
 

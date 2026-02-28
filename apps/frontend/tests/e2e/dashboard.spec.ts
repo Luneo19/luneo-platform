@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from './utils/locale';
 import { loginUser } from './utils/auth';
 
@@ -7,7 +7,7 @@ import { loginUser } from './utils/auth';
  * TODO-054: Tests E2E Dashboard complets (200+ lignes)
  */
 
-async function isPresentAndVisible(locator: any): Promise<boolean> {
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
   return (await locator.count()) > 0 && (await locator.first().isVisible());
 }
 test.describe('Dashboard - Complete User Flow', () => {
