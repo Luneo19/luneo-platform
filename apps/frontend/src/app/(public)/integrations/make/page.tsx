@@ -559,23 +559,25 @@ Pour améliorer:
                 <Workflow className="w-12 h-12 text-white" />
               </Motion>
             </div>
-            <Motion as="h1"
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
             >
-              Intégration Make
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                Intégration Make
+              </h1>
             </Motion>
-            <Motion as="p"
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-xl sm:text-2xl md:text-3xl text-purple-100 mb-8 max-w-4xl mx-auto leading-relaxed"
             >
-              Automatisez vos workflows Luneo avec Make. Scénarios visuels avancés,
-              <br />
-              <span className="font-semibold text-white">1000+ applications, performance optimisée.</span>
+              <p className="text-xl sm:text-2xl md:text-3xl text-purple-100 mb-8 max-w-4xl mx-auto leading-relaxed">
+                Automatisez vos workflows Luneo avec Make. Scénarios visuels avancés,
+                <br />
+                <span className="font-semibold text-white">1000+ applications, performance optimisée.</span>
+              </p>
             </Motion>
             <Motion
               initial={{ opacity: 0, y: 20 }}
