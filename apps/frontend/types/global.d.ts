@@ -10,41 +10,41 @@ import 'react';declare global {
       // This allows TypeScript to recognize <motion> and <motion.*> elements without explicit imports
       // The actual motion component should be imported from framer-motion or lazy-loaded
       motion: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        initial?: any;
-        animate?: any;
-        exit?: any;
-        transition?: any;
-        whileHover?: any;
-        whileTap?: any;
-        whileFocus?: any;
-        whileInView?: any;
-        variants?: any;
-        [key: string]: any;
+        initial?: unknown;
+        animate?: unknown;
+        exit?: unknown;
+        transition?: unknown;
+        whileHover?: unknown;
+        whileTap?: unknown;
+        whileFocus?: unknown;
+        whileInView?: unknown;
+        variants?: unknown;
+        [key: string]: unknown;
       };
       // Support for motion.button, motion.div, motion.p, etc.
       'motion.button': React.DetailedHTMLProps<React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & {
-        initial?: any;
-        animate?: any;
-        exit?: any;
-        transition?: any;
-        whileHover?: any;
-        whileTap?: any;
-        whileFocus?: any;
-        whileInView?: any;
-        variants?: any;
-        [key: string]: any;
+        initial?: unknown;
+        animate?: unknown;
+        exit?: unknown;
+        transition?: unknown;
+        whileHover?: unknown;
+        whileTap?: unknown;
+        whileFocus?: unknown;
+        whileInView?: unknown;
+        variants?: unknown;
+        [key: string]: unknown;
       };
       'motion.p': React.DetailedHTMLProps<React.HTMLAttributes<HTMLParagraphElement>, HTMLParagraphElement> & {
-        initial?: any;
-        animate?: any;
-        exit?: any;
-        transition?: any;
-        whileHover?: any;
-        whileTap?: any;
-        whileFocus?: any;
-        whileInView?: any;
-        variants?: any;
-        [key: string]: any;
+        initial?: unknown;
+        animate?: unknown;
+        exit?: unknown;
+        transition?: unknown;
+        whileHover?: unknown;
+        whileTap?: unknown;
+        whileFocus?: unknown;
+        whileInView?: unknown;
+        variants?: unknown;
+        [key: string]: unknown;
       };
     }
   }
