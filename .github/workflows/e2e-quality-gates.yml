@@ -37,6 +37,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright Chromium
+        run: |
+          cd apps/frontend
+          pnpm exec playwright install --with-deps chromium
+
       - name: Run critical E2E batch
         run: |
           mkdir -p artifacts/e2e
@@ -88,6 +93,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: |
+          cd apps/frontend
+          pnpm exec playwright install --with-deps chromium
 
       - name: Run domain E2E batch
         run: |
