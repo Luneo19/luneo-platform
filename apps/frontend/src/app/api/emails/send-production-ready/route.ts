@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const result = await backendResponse.json();
+    await backendResponse.json();
     serverLogger.info('Production ready email sent', {
       userId: user.id,
       orderId,

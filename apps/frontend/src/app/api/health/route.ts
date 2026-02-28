@@ -3,11 +3,11 @@
  * Endpoint pour vérifier la santé de l'application
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { healthCheckService } from '@/lib/monitoring/health-check';
 import { ApiResponseBuilder } from '@/lib/api-response';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const health = await healthCheckService.checkHealth();
     return ApiResponseBuilder.success(health);
