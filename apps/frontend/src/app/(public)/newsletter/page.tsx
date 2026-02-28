@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Mail, CheckCircle, Loader2, AlertCircle, Sparkles, Gift, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,23 +45,23 @@ function NewsletterPageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/30 to-gray-900 flex items-center justify-center px-4 py-12">
       <div className="max-w-2xl w-full">
-        <motion
+        <Motion
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gray-800/50 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-12 border border-gray-700"
         >
           {/* Icon */}
-          <motion
+          <Motion
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring' }}
             className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-500/25"
           >
             <Mail className="w-10 h-10 text-white" />
-          </motion>
+          </Motion>
 
           {/* Title */}
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -73,10 +73,10 @@ function NewsletterPageContent() {
             <p className="text-lg text-gray-300">
               Recevez nos dernières actualités, tutorials, et offres exclusives
             </p>
-          </motion>
+          </Motion>
 
           {/* Benefits */}
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -94,11 +94,11 @@ function NewsletterPageContent() {
               <Bell className="w-5 h-5 text-cyan-400 flex-shrink-0" />
               <span className="text-sm text-gray-300">Tips & tutorials</span>
             </div>
-          </motion>
+          </Motion>
 
           {/* Form */}
           {isSubscribed ? (
-            <motion
+            <Motion
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-8"
@@ -115,16 +115,14 @@ function NewsletterPageContent() {
                   Retour à l'accueil
                 </Button>
               </Link>
-            </motion>
+            </Motion>
           ) : (
-            <motion
-              as="form"
+            <Motion
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              onSubmit={handleSubmit}
-              className="space-y-4"
             >
+              <form onSubmit={handleSubmit} className="space-y-4">
               {/* Error message */}
               {error && (
                 <div className="p-4 bg-red-900/30 border border-red-500/50 rounded-xl flex items-start gap-3">
@@ -165,11 +163,12 @@ function NewsletterPageContent() {
               <p className="text-sm text-gray-500 text-center">
                 Pas de spam. Désabonnement en 1 clic. Nous respectons votre vie privée.
               </p>
-            </motion>
+              </form>
+            </Motion>
           )}
 
           {/* Footer links */}
-          <motion
+          <Motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
@@ -181,8 +180,8 @@ function NewsletterPageContent() {
                 politique de confidentialité
               </Link>
             </p>
-          </motion>
-        </motion>
+          </Motion>
+        </Motion>
       </div>
     </div>
   );

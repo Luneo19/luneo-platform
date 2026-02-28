@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 import PricingPage from '../page';
 
 // Mock next/navigation
@@ -138,7 +139,9 @@ vi.mock('../hooks/usePricingPage', () => ({
 
 // Mock dynamic motion components
 vi.mock('@/lib/performance/dynamic-motion', () => ({
-  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  LazyMotionDiv: ({ children, ...props }: { children: ReactNode } & ComponentProps<'div'>) => (
+    <div {...props}>{children}</div>
+  ),
 }));
 
 // Mock ErrorBoundary
@@ -148,7 +151,7 @@ vi.mock('@/components/ErrorBoundary', () => ({
 
 // Mock pricing components
 vi.mock('../components/PricingHero', () => ({
-  PricingHero: ({ isYearly, onYearlyChange }: any) => (
+  PricingHero: ({ isYearly, onYearlyChange }: { isYearly: boolean; onYearlyChange: (value: boolean) => void }) => (
     <div data-testid="pricing-hero">
       <h1>Tarification qui évolue avec vous</h1>
       <button onClick={() => onYearlyChange(!isYearly)}>
@@ -159,7 +162,11 @@ vi.mock('../components/PricingHero', () => ({
 }));
 
 vi.mock('../components/PricingPlanCard', () => ({
-  PricingPlanCard: ({ plan, isYearly, onCheckout }: any) => (
+  PricingPlanCard: ({ plan, isYearly: _isYearly, onCheckout }: {
+    plan: { id: string; name: string; description: string; badge?: string; cta: string };
+    isYearly: boolean;
+    onCheckout: (planId: string) => void;
+  }) => (
     <div data-testid={`plan-card-${plan.id}`}>
       <h3>{plan.name}</h3>
       <p>{plan.description}</p>
@@ -170,7 +177,7 @@ vi.mock('../components/PricingPlanCard', () => ({
 }));
 
 vi.mock('../components/PricingFeatureTable', () => ({
-  PricingFeatureTable: ({ features }: any) => (
+  PricingFeatureTable: ({ features: _features }: { features: string[] }) => (
     <div data-testid="pricing-feature-table">
       <h2>Features</h2>
     </div>
@@ -178,7 +185,7 @@ vi.mock('../components/PricingFeatureTable', () => ({
 }));
 
 vi.mock('../components/PricingFAQ', () => ({
-  PricingFAQ: ({ items }: any) => (
+  PricingFAQ: ({ items: _items }: { items: Array<{ question: string; answer: string }> }) => (
     <div data-testid="pricing-faq">
       <h2>FAQ</h2>
     </div>

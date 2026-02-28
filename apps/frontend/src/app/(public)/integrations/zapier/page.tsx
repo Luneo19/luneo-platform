@@ -23,8 +23,6 @@ function ZapierIntegrationPageContent() {
     return () => clearTimeout(timer);
   }, []);
 
-;
-
   const handleTestConnection = useCallback(async () => {
     setTestConnectionLoading(true);
     setTestConnectionResult(null);
@@ -413,23 +411,25 @@ Pour résoudre:
                 <Zap className="w-12 h-12 text-white" />
               </Motion>
             </div>
-            <Motion as="h1"
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
             >
-              Intégration Zapier
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                Intégration Zapier
+              </h1>
             </Motion>
-            <Motion as="p"
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-xl sm:text-2xl md:text-3xl text-yellow-100 mb-8 max-w-4xl mx-auto leading-relaxed"
             >
-              Automatisez vos workflows Luneo avec 5000+ applications.
-              <br />
-              <span className="font-semibold text-white">Connectez, automatisez, optimisez.</span>
+              <p className="text-xl sm:text-2xl md:text-3xl text-yellow-100 mb-8 max-w-4xl mx-auto leading-relaxed">
+                Automatisez vos workflows Luneo avec 5000+ applications.
+                <br />
+                <span className="font-semibold text-white">Connectez, automatisez, optimisez.</span>
+              </p>
             </Motion>
             <Motion
               initial={{ opacity: 0, y: 20 }}
