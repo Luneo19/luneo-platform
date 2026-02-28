@@ -6,21 +6,18 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Search,
-  Filter,
   Grid3x3,
   List,
   Eye,
-  Download,
   Star,
   Tag,
   Layers,
   TrendingUp,
-  Clock,
   Sparkles,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -28,7 +25,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
@@ -258,7 +254,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence>
                 {filteredTemplates.map((template, i) => (
-                  <motion
+                  <Motion
                     key={template.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -343,7 +339,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
                         </div>
                       </div>
                     </Card>
-                  </motion>
+                  </Motion>
                 ))}
               </AnimatePresence>
             </div>

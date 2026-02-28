@@ -115,7 +115,7 @@ export function AreaChart({
             />
             <Tooltip content={<CustomTooltip />} />
             {showLegend && <Legend />}
-            {dataKeys.map(({ key, name, color }, index) => (
+            {dataKeys.map(({ key, name, color }) => (
               <Area
                 key={key}
                 type="monotone"
