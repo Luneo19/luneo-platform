@@ -1,7 +1,6 @@
 'use client';
 
 import React, { memo, useCallback, useMemo } from 'react';
-import Link from 'next/link';
 import { Copy, CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -25,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: npm install -g @luneo/cli
-      - run: luneo login --token $\{\{ secrets.LUNEO_TOKEN \}\}
+      - run: luneo login --token $${'{{ secrets.LUNEO_TOKEN }}'}
       - run: luneo build
       - run: luneo deploy --prod`, []);
 
