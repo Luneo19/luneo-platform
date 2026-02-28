@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { api, endpoints } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
@@ -109,7 +108,6 @@ const DEFAULT_FORM: FormData = {
 };
 
 export default function AgentCreatePage() {
-  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();

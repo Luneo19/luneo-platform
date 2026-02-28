@@ -3,11 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
 import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Search,
@@ -55,7 +53,6 @@ const CATEGORY_FILTERS: { value: TemplateCategory | 'ALL'; label: string }[] = [
 ];
 
 export default function AgentNewPage() {
-  const { user } = useAuth();
   const router = useRouter();
   const [templates, setTemplates] = useState<AgentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
