@@ -15,7 +15,9 @@ test.describe('Analytics Flows', () => {
     // Login when possible; protected route fallback is acceptable in prod-like envs.
     try {
       await loginUser(page);
-    } catch {}
+    } catch {
+      // Optional auth bootstrap in prod-like environments.
+    }
   });
 
   test('should display analytics dashboard', async ({ page }) => {

@@ -14,7 +14,9 @@ test.describe('Product Management Flows', () => {
   test.beforeEach(async ({ page }) => {
     try {
       await loginUser(page);
-    } catch {}
+    } catch {
+      // Optional auth bootstrap in prod-like environments.
+    }
   });
 
   test('should display products list', async ({ page }) => {
