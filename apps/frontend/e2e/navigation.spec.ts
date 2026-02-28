@@ -37,12 +37,12 @@ test.describe('Homepage', () => {
 
 test.describe('Public Pages', () => {
   const publicPages = [
-    { path: '/pricing', title: /tarif|pricing/i },
-    { path: '/contact', title: /contact/i },
-    { path: '/marketplace', title: /marketplace|template/i },
+    { path: '/pricing' },
+    { path: '/contact' },
+    { path: '/marketplace' },
   ];
 
-  for (const { path, title } of publicPages) {
+  for (const { path } of publicPages) {
     test(`should load ${path} page`, async ({ page }) => {
       await page.goto(path);
       
@@ -133,8 +133,7 @@ test.describe('Accessibility', () => {
     // Focus on body to trigger skip link visibility
     await page.keyboard.press('Tab');
     
-    const skipLink = page.getByText(/aller au contenu|skip to content/i);
-    // Skip link should be focusable
+    await expect(page.getByText(/aller au contenu|skip to content/i)).toBeVisible();
   });
 
   test('should have proper heading hierarchy', async ({ page }) => {

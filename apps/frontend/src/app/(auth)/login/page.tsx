@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useI18n } from '@/i18n/useI18n';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import { 
   Eye, 
@@ -228,7 +228,7 @@ function LoginPageContent() {
   }, []);
 
   return (
-      <motion
+      <Motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -236,14 +236,14 @@ function LoginPageContent() {
       >
       {/* Header */}
           <div className="text-center mb-8">
-        <motion
+        <Motion
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
           className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl mb-6 shadow-lg shadow-purple-500/25 lg:hidden"
         >
           <span className="text-white font-bold text-2xl">L</span>
-        </motion>
+        </Motion>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display" data-testid="login-title">
           {t('auth.login.welcomeBack')}
             </h1>
@@ -492,7 +492,7 @@ function LoginPageContent() {
         </FadeIn>
         </>
       )}
-      </motion>
+      </Motion>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useI18n } from '@/i18n/useI18n';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import {
   Eye,
@@ -301,7 +301,7 @@ function RegisterPageContent() {
   }, []);
 
   return (
-      <motion
+      <Motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -467,7 +467,7 @@ function RegisterPageContent() {
 
           {/* Password Strength Indicator */}
           {formData.password && (
-            <motion
+            <Motion
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="space-y-2"
@@ -519,7 +519,7 @@ function RegisterPageContent() {
                   </div>
                 ))}
               </div>
-            </motion>
+            </Motion>
           )}
             </div>
         </SlideUp>
@@ -703,7 +703,7 @@ function RegisterPageContent() {
         </div>
       </div>
         </FadeIn>
-      </motion>
+      </Motion>
   );
 }
 

@@ -11,7 +11,6 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
-  CheckCircle,
   AlertCircle,
   Loader2,
   KeyRound,
