@@ -18,7 +18,7 @@ const ONBOARDING_DISMISS_KEY = 'onboarding_dismissed_until';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { sidebarCollapsed } = useDensity();
+  useDensity();
   const { t } = useI18n();
   useKeyboardShortcuts();
 

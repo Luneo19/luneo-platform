@@ -225,9 +225,8 @@ function BillingSuccessPageContent() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
               className="text-sm text-white/40 mt-8"
-              as="p"
             >
-              {t('dashboard.billing.success.confirmationEmail', { email: sessionData?.customerEmail ?? '' })}
+              <p>{t('dashboard.billing.success.confirmationEmail', { email: sessionData?.customerEmail ?? '' })}</p>
             </Motion>
           </Card>
         </Motion>
