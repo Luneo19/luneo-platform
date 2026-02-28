@@ -1,7 +1,6 @@
 'use client';
 
 import React, { memo, useCallback, useMemo } from 'react';
-import Link from 'next/link';
 import { ArrowRight, Key, Settings, CheckCircle, Copy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

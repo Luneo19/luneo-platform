@@ -1,7 +1,7 @@
 'use client';
 
-import React, { memo, useMemo, useCallback } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import React, { memo, useMemo } from 'react';
+
 import { CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';

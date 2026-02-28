@@ -2,11 +2,8 @@
 
 import React, { memo, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
-import { 
-  ArrowRight, Book, Code, Zap, Bot, MessageSquare, Brain, Globe,
-  Package, Lock, Webhook, FileCode, BarChart, Plug
-} from 'lucide-react';
+
+import { ArrowRight, Book, Code, Zap, Bot, MessageSquare, Brain, Package, Lock, Webhook, FileCode, BarChart, Plug } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
