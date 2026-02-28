@@ -2,7 +2,6 @@
 
 import React, { memo, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 
