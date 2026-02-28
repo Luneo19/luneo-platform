@@ -7,8 +7,6 @@
  * - Helpers généraux
  */
 
-import { logger } from '@/lib/logger';
-
 // ========================================
 // TYPES
 // ========================================
@@ -102,7 +100,7 @@ export function formatForEngraving(
 export function estimateTextWidth(
   text: string,
   fontSize: number,
-  fontFamily: string = 'Arial'
+  _fontFamily: string = 'Arial'
 ): number {
   // Estimation basique (peut être améliorée avec Canvas API)
   const avgCharWidth = fontSize * 0.6;

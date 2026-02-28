@@ -123,7 +123,7 @@ export function detectDeviceInfo(): ARDeviceInfo {
  */
 export function calculatePlacement(
   productType: 'glasses' | 'jewelry' | 'watch' | 'ring' | 'earrings' | 'necklace',
-  landmarks?: Record<string, unknown>
+  _landmarks?: Record<string, unknown>
 ): ARPlacement {
   const defaultPlacement: ARPlacement = {
     position: { x: 0, y: 0, z: 0 },

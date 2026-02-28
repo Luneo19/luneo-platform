@@ -84,7 +84,7 @@ export function validatePassword(password: string): ValidationResult {
  */
 export function validatePhone(phone: string): boolean {
   const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-  return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+  return phoneRegex.test(phone.replace(/[\s\-()]/g, ''));
 }
 
 /**

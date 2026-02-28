@@ -236,19 +236,24 @@ export function handleError(error: unknown, context?: string): AppError {
     } else if (typeof process !== 'undefined' && (process as NodeJS.Process).env?.SENTRY_DSN) {
       // Server-side Sentry
       try {
-        const Sentry = require('@sentry/nextjs');
-        Sentry.captureException(error, {
-          level: appError.severity === 'critical' ? 'fatal' : appError.severity === 'high' ? 'error' : 'warning',
-          tags: {
-            errorType: appError.type,
-            errorCode: appError.code,
-            context,
-          },
-          extra: {
-            appError,
-            metadata: appError.metadata,
-          },
-        });
+        void import('@sentry/nextjs')
+          .then((sentryModule) => {
+            sentryModule.captureException(error, {
+              level: appError.severity === 'critical' ? 'fatal' : appError.severity === 'high' ? 'error' : 'warning',
+              tags: {
+                errorType: appError.type,
+                errorCode: appError.code,
+                context,
+              },
+              extra: {
+                appError,
+                metadata: appError.metadata,
+              },
+            });
+          })
+          .catch((sentryError) => {
+            logger.error('Sentry not available', { sentryError });
+          });
       } catch (sentryError) {
         // Sentry not available, log only
         logger.error('Sentry not available', { sentryError });

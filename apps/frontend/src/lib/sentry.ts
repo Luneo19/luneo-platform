@@ -37,9 +37,9 @@ export function initSentry(): void {
       ],
     
     // Filtering
-    beforeSend(event, hint) {
+    beforeSend(event, _hint) {
       // Filter out common non-issues
-      const error = hint.originalException;
+      const error = _hint.originalException;
       
       if (error instanceof Error) {
         // Ignore network errors from external services
