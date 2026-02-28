@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode, useEffect, useState, useCallback } from 'react';
-import { AlertCircle, RefreshCw, Home, Copy, Wifi, WifiOff, AlertTriangle, HelpCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw, Home, Copy, WifiOff, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { logger } from '@/lib/logger';

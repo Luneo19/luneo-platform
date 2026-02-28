@@ -28,9 +28,9 @@ function GoogleAnalyticsContent() {
     // Initialize dataLayer and gtag function
     window.dataLayer = window.dataLayer || [];
     // gtag pushes all its arguments as a single array entry into dataLayer
-    window.gtag = function gtag(command: string, targetId: string | Date, config?: Record<string, unknown>) {
-      window.dataLayer.push(arguments);
-    } as Window['gtag'];
+    window.gtag = ((...args: unknown[]) => {
+      window.dataLayer.push(args);
+    }) as Window['gtag'];
     window.gtag('js', new Date());
     window.gtag('config', GA_MEASUREMENT_ID);
 
