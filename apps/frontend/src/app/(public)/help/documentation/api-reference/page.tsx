@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Code, Book, ArrowRight, Bot, MessageSquare, Brain, Globe, BarChart, Puzzle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
@@ -62,7 +62,7 @@ function APIReferencePageContent() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-5xl mx-auto">
-        <motion
+        <Motion
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -92,7 +92,7 @@ function APIReferencePageContent() {
 
           <div className="grid md:grid-cols-2 gap-4">
             {sections.map((section, index) => (
-              <motion
+              <Motion
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ function APIReferencePageContent() {
                     </div>
                   </Card>
                 </Link>
-              </motion>
+              </Motion>
             ))}
           </div>
 
@@ -128,7 +128,7 @@ function APIReferencePageContent() {
               </button>
             </Link>
           </div>
-        </motion>
+        </Motion>
       </div>
     </div>
   );

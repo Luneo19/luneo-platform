@@ -1,10 +1,8 @@
 'use client';
 
 import React, { memo, useCallback, useMemo } from 'react';
-import Link from 'next/link';
-import { Webhook, Copy, CheckCircle, Zap } from 'lucide-react';
+import { Copy, CheckCircle, Zap } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 

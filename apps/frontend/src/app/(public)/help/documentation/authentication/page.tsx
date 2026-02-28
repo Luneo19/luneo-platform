@@ -1,8 +1,7 @@
 'use client';
 
 import React, { memo, useCallback, useMemo } from 'react';
-import Link from 'next/link';
-import { Key, Copy, CheckCircle } from 'lucide-react';
+import { Copy, CheckCircle } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 
