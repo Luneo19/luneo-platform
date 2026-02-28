@@ -43,20 +43,19 @@ export function renderWithProviders(
 /**
  * Factory pour créer des mocks de service
  */
-export function createMockService<T extends Record<string, any>>(
+export function createMockService<T extends Record<string, unknown>>(
   defaults: Partial<T> = {}
 ): T {
-  return {
-    ...Object.keys(defaults).reduce((acc, key) => {
-      const value = defaults[key];
-      if (typeof value === 'function') {
-        acc[key] = vi.fn().mockImplementation(value);
-      } else {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as any),
-  } as T;
+  const mocked = Object.keys(defaults).reduce<Record<string, unknown>>((acc, key) => {
+    const value = defaults[key as keyof T];
+    if (typeof value === 'function') {
+      acc[key] = vi.fn().mockImplementation(value);
+    } else {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+  return mocked as T;
 }
 
 /**
@@ -90,11 +89,11 @@ export async function waitForElement(
  * Helper pour créer un mock de fetch
  */
 export function createMockFetch(
-  responses: Record<string, any> = {}
+  responses: Record<string, unknown> = {}
 ): typeof fetch {
-  return vi.fn((url: string | URL | Request, init?: RequestInit) => {
+  return vi.fn((url: string | URL | Request, _init?: RequestInit) => {
     const urlString = typeof url === 'string' ? url : url.toString();
-    const response = responses[urlString] || responses['*'] || { data: {} };
+    const response = responses[urlString] ?? responses['*'] ?? { data: {} };
     
     return Promise.resolve({
       ok: true,
@@ -103,7 +102,7 @@ export function createMockFetch(
       text: async () => JSON.stringify(response),
       headers: new Headers(),
     } as Response);
-  }) as any;
+  }) as unknown as typeof fetch;
 }
 
 /**

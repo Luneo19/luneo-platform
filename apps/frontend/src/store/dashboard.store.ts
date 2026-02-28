@@ -5,14 +5,6 @@ import { logger } from '@/lib/logger';
 // TYPES
 // ========================================
 
-interface IndustryModuleConfig {
-  slug: string;
-  labelFr: string;
-  labelEn: string;
-  icon: string;
-  isCore: boolean;
-}
-
 interface IndustryWidgetConfig {
   slug: string;
   labelFr: string;

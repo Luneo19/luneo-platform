@@ -351,7 +351,7 @@ test.describe('Cross-Browser Compatibility', () => {
 // ============================================
 
 test.describe('Browser-Specific Features', () => {
-  test('should handle WebGL on Chrome', async ({ page, browserName }) => {
+  test('should handle WebGL on Chrome', async ({ page, browserName: _browserName }) => {
     await page.goto('/configure-3d/test-product-123');
     await page.waitForLoadState('domcontentloaded');
     
@@ -365,7 +365,7 @@ test.describe('Browser-Specific Features', () => {
     console.log('✅ WebGL available on Chrome');
   });
 
-  test('should handle WebGL on Firefox', async ({ page, browserName }) => {
+  test('should handle WebGL on Firefox', async ({ page, browserName: _browserName }) => {
     await page.goto('/configure-3d/test-product-123');
     await page.waitForLoadState('domcontentloaded');
     
@@ -378,7 +378,7 @@ test.describe('Browser-Specific Features', () => {
     console.log('✅ WebGL available on Firefox');
   });
 
-  test('should handle WebGL on Safari', async ({ page, browserName }) => {
+  test('should handle WebGL on Safari', async ({ page, browserName: _browserName }) => {
     await page.goto('/configure-3d/test-product-123');
     await page.waitForLoadState('domcontentloaded');
     

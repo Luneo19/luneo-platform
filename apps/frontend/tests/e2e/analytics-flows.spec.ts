@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { loginUser } from './utils/auth';
 import { expectRouteOutcome, isPresentAndVisible } from './utils/assertions';
 
-async function stopIfProtectedRoute(page: any): Promise<boolean> {
+async function stopIfProtectedRoute(page: Page): Promise<boolean> {
   if (page.url().includes('/login')) {
     await expect(page).toHaveURL(/.*login/);
     return true;

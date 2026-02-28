@@ -3,12 +3,12 @@
  * Tests for admin dashboard functionality
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from './utils/locale';
 import { loginUser } from './utils/auth';
 import { expectRouteOutcome, isPresentAndVisible } from './utils/assertions';
 
-async function isProtectedOrAccessible(page: any): Promise<boolean> {
+async function isProtectedOrAccessible(page: Page): Promise<boolean> {
   const url = page.url();
   if (url.includes('/login') || url.includes('/dashboard') || url.includes('/admin')) {
     return true;
