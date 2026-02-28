@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { Header } from '../Header';
 
 // Mock dependencies
@@ -35,7 +36,7 @@ vi.mock('@/components/theme/ThemeToggle', () => ({
 }));
 
 vi.mock('@/components/notifications/NotificationBell', () => ({
-  NotificationBell: ({ variant, size }: any) => (
+  NotificationBell: ({ variant, size }: { variant?: string; size?: string }) => (
     <div data-testid="notification-bell" data-variant={variant} data-size={size}>
       Notification Bell
     </div>
@@ -43,7 +44,7 @@ vi.mock('@/components/notifications/NotificationBell', () => ({
 }));
 
 vi.mock('@/components/navigation/LocaleSwitcher', () => ({
-  LocaleSwitcher: ({ className }: any) => (
+  LocaleSwitcher: ({ className }: { className?: string }) => (
     <div data-testid="locale-switcher" className={className}>
       Locale Switcher
     </div>
@@ -51,8 +52,10 @@ vi.mock('@/components/navigation/LocaleSwitcher', () => ({
 }));
 
 vi.mock('@/lib/performance/dynamic-motion', () => ({
-  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  LazyAnimatePresence: ({ children }: any) => <>{children}</>,
+  LazyMotionDiv: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
+    <div {...props}>{children}</div>
+  ),
+  LazyAnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -71,7 +74,7 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/components/ErrorBoundary', () => ({
-  ErrorBoundary: ({ children }: any) => <>{children}</>,
+  ErrorBoundary: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 describe('Header', () => {

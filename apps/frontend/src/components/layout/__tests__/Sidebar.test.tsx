@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 
 // Mock dependencies BEFORE importing Sidebar
 let mockPathname = '/dashboard';
@@ -19,7 +20,17 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/components/Logo', () => ({
-  Logo: ({ href, size, showText, variant }: any) => (
+  Logo: ({
+    href,
+    size,
+    showText,
+    variant,
+  }: {
+    href?: string;
+    size?: string;
+    showText?: boolean;
+    variant?: string;
+  }) => (
     <div data-testid="logo" data-href={href} data-size={size} data-show-text={showText} data-variant={variant}>
       Logo
     </div>
@@ -27,7 +38,9 @@ vi.mock('@/components/Logo', () => ({
 }));
 
 vi.mock('@/lib/performance/dynamic-motion', () => ({
-  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  LazyMotionDiv: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
+    <div {...props}>{children}</div>
+  ),
 }));
 
 // Mock React.useMemo to work at module level
@@ -35,7 +48,7 @@ vi.mock('react', async () => {
   const actual = await vi.importActual('react');
   return {
     ...actual,
-    useMemo: (fn: any) => fn(),
+    useMemo: <T,>(fn: () => T) => fn(),
   };
 });
 
