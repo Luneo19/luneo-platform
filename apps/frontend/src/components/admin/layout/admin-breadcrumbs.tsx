@@ -9,7 +9,6 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function AdminBreadcrumbs() {
   const pathname = usePathname();
@@ -24,7 +23,7 @@ export function AdminBreadcrumbs() {
 
     // Construire les segments
     let currentPath = '';
-    segments.forEach((segment, index) => {
+    segments.forEach((segment) => {
       if (segment === 'admin') {
         return; // Skip 'admin' car déjà ajouté
       }

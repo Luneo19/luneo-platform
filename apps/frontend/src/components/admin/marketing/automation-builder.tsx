@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AutomationNode } from './automation-node';
-import { Plus, Save, Play, ArrowDown, Trash2 } from 'lucide-react';
+import { Save, Play, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AutomationStep } from '@/hooks/admin/use-automations';
 
@@ -40,7 +40,7 @@ export function AutomationBuilder({
 }: AutomationBuilderProps) {
   const [steps, setSteps] = useState<AutomationStep[]>(initialSteps);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
-  const [editingStep, setEditingStep] = useState<AutomationStep | null>(null);
+  const [, setEditingStep] = useState<AutomationStep | null>(null);
 
   useEffect(() => {
     setSteps(initialSteps);
