@@ -6,7 +6,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { usePreloader, useHomepagePreloader, useInteractionPreloader } from '../usePreloader';
-import { logger } from '@/lib/logger';
 
 // Mock logger
 vi.mock('@/lib/logger', () => ({
@@ -29,7 +28,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('usePreloader', () => {
-  let appendChildSpy: any;
+  let appendChildSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,7 +43,7 @@ describe('usePreloader', () => {
       // Execute immediately in test environment
       Promise.resolve().then(() => callback({} as IdleDeadline));
       return 1;
-    }) as any;
+    }) as unknown as typeof requestIdleCallback;
   });
 
   afterEach(() => {
@@ -70,7 +69,7 @@ describe('usePreloader', () => {
       const { result } = renderHook(() => usePreloader());
 
       await result.current.preloadRoute('/dashboard');
-      const firstCallCount = mockPrefetch.mock.calls.length;
+      const _firstCallCount = mockPrefetch.mock.calls.length;
       
       await result.current.preloadRoute('/dashboard');
       
@@ -112,14 +111,18 @@ describe('usePreloader', () => {
       const { result } = renderHook(() => usePreloader());
 
       // Mock Image constructor
-      const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+      const mockImage: {
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        src: string;
+        fetchPriority: string;
+      } = {
+        onload: null,
+        onerror: null,
         src: '',
         fetchPriority: '',
       };
-
-      global.Image = vi.fn(() => mockImage) as any;
+      global.Image = vi.fn(() => mockImage) as unknown as typeof Image;
 
       const preloadPromise = result.current.preloadImage('https://example.com/image.jpg', { timeout: 10000 });
 
@@ -141,14 +144,18 @@ describe('usePreloader', () => {
     it('should handle image load error', async () => {
       const { result } = renderHook(() => usePreloader());
 
-      const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+      const mockImage: {
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        src: string;
+        fetchPriority: string;
+      } = {
+        onload: null,
+        onerror: null,
         src: '',
         fetchPriority: '',
       };
-
-      global.Image = vi.fn(() => mockImage) as any;
+      global.Image = vi.fn(() => mockImage) as unknown as typeof Image;
 
       const preloadPromise = result.current.preloadImage('https://example.com/bad-image.jpg', { timeout: 10000 });
 
@@ -168,14 +175,18 @@ describe('usePreloader', () => {
     it('should set high priority when specified', async () => {
       const { result } = renderHook(() => usePreloader());
 
-      const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+      const mockImage: {
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        src: string;
+        fetchPriority: string;
+      } = {
+        onload: null,
+        onerror: null,
         src: '',
         fetchPriority: '',
       };
-
-      global.Image = vi.fn(() => mockImage) as any;
+      global.Image = vi.fn(() => mockImage) as unknown as typeof Image;
 
       const preloadPromise = result.current.preloadImage('https://example.com/image.jpg', {
         priority: 'high',
@@ -231,7 +242,7 @@ describe('usePreloader', () => {
         
         // The hook sets onload as a function, call it directly
         if (typeof link.onload === 'function') {
-          (link.onload as any)();
+          link.onload();
         }
       }
 
@@ -248,7 +259,7 @@ describe('usePreloader', () => {
       setTimeout(() => {
         const link = document.head.querySelector('link[rel="preload"]');
         if (link) {
-          (link as HTMLLinkElement).onerror?.(new Event('error') as any);
+          (link as HTMLLinkElement).onerror?.(new Event('error'));
         }
       }, 0);
 
@@ -289,7 +300,7 @@ describe('usePreloader', () => {
         
         // The hook sets onload as a function, call it directly
         if (typeof link.onload === 'function') {
-          (link.onload as any)();
+          link.onload();
         }
       }
 
@@ -302,13 +313,18 @@ describe('usePreloader', () => {
       const { result } = renderHook(() => usePreloader());
 
       // Mock Image for image preload
-      const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+      const mockImage: {
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        src: string;
+        fetchPriority: string;
+      } = {
+        onload: null,
+        onerror: null,
         src: '',
         fetchPriority: '',
       };
-      global.Image = vi.fn(() => mockImage) as any;
+      global.Image = vi.fn(() => mockImage) as unknown as typeof Image;
 
       const resources = [
         { href: '/dashboard', type: 'route' as const },
@@ -337,13 +353,18 @@ describe('usePreloader', () => {
       mockPrefetch.mockResolvedValue(undefined);
       const { result } = renderHook(() => usePreloader());
 
-      const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+      const mockImage: {
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        src: string;
+        fetchPriority: string;
+      } = {
+        onload: null,
+        onerror: null,
         src: '',
         fetchPriority: '',
       };
-      global.Image = vi.fn(() => mockImage) as any;
+      global.Image = vi.fn(() => mockImage) as unknown as typeof Image;
 
       const resources = [
         { href: '/dashboard', type: 'route' as const },
@@ -400,17 +421,22 @@ describe('usePreloader', () => {
     it('should preload multiple images with high priority', async () => {
       const { result } = renderHook(() => usePreloader());
 
-      const mockImages: Array<{ onload: any; onerror: any; src: string; fetchPriority: string }> = [];
+      const mockImages: Array<{
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        src: string;
+        fetchPriority: string;
+      }> = [];
       global.Image = vi.fn(() => {
         const mockImage = {
-          onload: null as any,
-          onerror: null as any,
+          onload: null as (() => void) | null,
+          onerror: null as (() => void) | null,
           src: '',
           fetchPriority: '',
         };
         mockImages.push(mockImage);
         return mockImage;
-      }) as any;
+      }) as unknown as typeof Image;
 
       const images = [
         'https://example.com/image1.jpg',
