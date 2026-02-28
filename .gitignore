@@ -165,3 +165,9 @@ env.production.example
 
 # Local development scripts (note: root package.json "setup" uses scripts/setup.js — ensure scripts/ is tracked if needed)
 scripts/
+!scripts/
+scripts/*
+!scripts/smoke/
+scripts/smoke/*
+!scripts/smoke/critical-smoke.mjs
+!scripts/smoke/post-login-tunnel-smoke.mjs
