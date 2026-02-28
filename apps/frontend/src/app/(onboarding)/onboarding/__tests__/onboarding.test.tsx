@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 import OnboardingPage from '../page';
 
 // Mock next/navigation
@@ -37,7 +38,6 @@ const mockSaveStep = vi.fn().mockResolvedValue(undefined);
 const mockCompleteOnboarding = vi.fn().mockResolvedValue(undefined);
 const mockSkipOnboarding = vi.fn().mockResolvedValue(undefined);
 const mockSetStepData = vi.fn();
-const mockSetSelectedIndustry = vi.fn();
 const mockFetchProgress = vi.fn();
 
 vi.mock('@/store/onboarding.store', () => ({
@@ -67,7 +67,13 @@ vi.mock('@/hooks/useAuth', () => ({
 // Mock industry store
 const mockFetchAllIndustries = vi.fn().mockResolvedValue([]);
 vi.mock('@/store/industry.store', () => ({
-  useIndustryStore: (selector?: (state: any) => any) => {
+  useIndustryStore: (
+    selector?: (state: {
+      fetchAllIndustries: () => Promise<unknown[]>;
+      industries: unknown[];
+      isLoading: boolean;
+    }) => unknown
+  ) => {
     const state = {
       fetchAllIndustries: mockFetchAllIndustries,
       industries: [],
@@ -79,8 +85,10 @@ vi.mock('@/store/industry.store', () => ({
 
 // Mock dynamic motion components
 vi.mock('@/lib/performance/dynamic-motion', () => ({
-  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  LazyAnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LazyMotionDiv: ({ children, ...props }: { children: ReactNode } & ComponentProps<'div'>) => (
+    <div {...props}>{children}</div>
+  ),
+  LazyAnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 // Mock ErrorBoundary
@@ -90,7 +98,10 @@ vi.mock('@/components/ErrorBoundary', () => ({
 
 // Mock Step2Industry component
 vi.mock('../components/Step2Industry', () => ({
-  Step2Industry: ({ selectedIndustry, onSelectIndustry }: any) => (
+  Step2Industry: ({ selectedIndustry: _selectedIndustry, onSelectIndustry: _onSelectIndustry }: {
+    selectedIndustry: unknown;
+    onSelectIndustry: (industry: unknown) => void;
+  }) => (
     <div data-testid="step2-industry">
       <h1>Secteur d&apos;activité</h1>
       <p>Sélectionnez votre secteur</p>

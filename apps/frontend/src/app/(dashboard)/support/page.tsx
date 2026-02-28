@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import {
-  TicketIcon, Plus, Search, Filter, Clock, CheckCircle, AlertCircle,
-  MessageSquare, ChevronRight, Loader2, Send, Paperclip, X
+  TicketIcon, Plus, Search, Clock,
+  MessageSquare, ChevronRight, Loader2, Send, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -216,7 +216,7 @@ function SupportPageContent() {
       ) : (
         <div className="space-y-3">
           {filteredTickets.map((ticket, index) => (
-            <motion
+            <Motion
               key={ticket.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -247,7 +247,7 @@ function SupportPageContent() {
                   <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                 </div>
               </Card>
-            </motion>
+            </Motion>
           ))}
         </div>
       )}
@@ -255,7 +255,7 @@ function SupportPageContent() {
       {/* New Ticket Modal */}
       {showNewTicket && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <motion
+          <Motion
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-lg bg-card rounded-2xl border border-border p-6"
@@ -347,7 +347,7 @@ function SupportPageContent() {
                 </Button>
               </div>
             </form>
-          </motion>
+          </Motion>
         </div>
       )}
     </div>

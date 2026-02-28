@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import React, { useState, memo, useCallback } from 'react';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -304,7 +304,7 @@ function TeamPageContent() {
           <h3 className="text-lg font-bold text-white mb-4">Invitations en attente</h3>
           <div className="space-y-3">
             {pendingInvites.map((invite) => (
-              <motion
+              <Motion
                 key={invite.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -340,7 +340,7 @@ function TeamPageContent() {
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
-              </motion>
+              </Motion>
             ))}
           </div>
         </Card>
@@ -351,7 +351,7 @@ function TeamPageContent() {
           {filteredMembers.map((member) => {
             const roleInfo = getRoleInfo(member.role);
             return (
-              <motion
+              <Motion
                 key={member.id}
                 layout
                 initial={{ opacity: 0 }}
@@ -427,7 +427,7 @@ function TeamPageContent() {
                     </>
                   )}
                 </div>
-              </motion>
+              </Motion>
             );
           })}
         </div>
@@ -457,14 +457,14 @@ function TeamPageContent() {
 
       <AnimatePresence>
         {showInviteModal && (
-          <motion
+          <Motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowInviteModal(false)}
           >
-            <motion
+            <Motion
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -518,8 +518,8 @@ function TeamPageContent() {
                   </Button>
                 </div>
               </div>
-            </motion>
-          </motion>
+            </Motion>
+          </Motion>
         )}
       </AnimatePresence>
     </div>
