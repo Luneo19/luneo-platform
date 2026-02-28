@@ -162,7 +162,6 @@ async function deleteFromS3(
 
     // Create signature for S3 DELETE request
     const s3Endpoint = endpoint || `https://${bucket}.s3.${region}.amazonaws.com`;
-    const deleteUrl = `${s3Endpoint}/${key}`;
 
     // For production, use AWS SDK (@aws-sdk/client-s3)
     // For now, we'll use a simple fetch with signed request

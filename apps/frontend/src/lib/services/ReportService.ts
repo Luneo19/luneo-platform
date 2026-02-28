@@ -284,13 +284,38 @@ export class ReportService {
   /**
    * Génère un PDF à partir des données
    */
-  private async generatePDF(data: unknown, options: { includeCharts?: boolean }): Promise<Buffer> {
+  private async generatePDF(data: unknown, _options: { includeCharts?: boolean }): Promise<Buffer> {
     try {
-      // Use pdfkit for PDF generation
-      const PDFDocument = require('pdfkit');
-      
+      interface PDFDocInstance {
+        on(event: 'data', handler: (chunk: Buffer) => void): void;
+        on(event: 'end', handler: () => void): void;
+        on(event: 'error', handler: (error: Error) => void): void;
+        fontSize(size: number): PDFDocInstance;
+        font(fontName: string): PDFDocInstance;
+        text(
+          text: string,
+          xOrOptions?: number | { align?: string; underline?: boolean; continued?: boolean; indent?: number },
+          y?: number,
+          options?: { align?: string; underline?: boolean; continued?: boolean; indent?: number }
+        ): PDFDocInstance;
+        moveDown(lines?: number): PDFDocInstance;
+        end(): void;
+        page: { height: number };
+      }
+
+      const dynamicImport = new Function('moduleName', 'return import(moduleName)') as (
+        moduleName: string
+      ) => Promise<unknown>;
+      const pdfkitModule = (await dynamicImport('pdfkit')) as {
+        default?: new (options?: { margin?: number; size?: string }) => PDFDocInstance;
+      };
+      const PDFDocument = pdfkitModule.default;
+      if (!PDFDocument) {
+        throw new Error('pdfkit module is unavailable');
+      }
+
       return new Promise((resolve, reject) => {
-        const doc = new PDFDocument({
+        const doc: PDFDocInstance = new PDFDocument({
           margin: 50,
           size: 'A4',
         });
