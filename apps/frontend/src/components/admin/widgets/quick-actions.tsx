@@ -13,8 +13,6 @@ import {
   Download,
   Users,
   TrendingUp,
-  Settings,
-  FileText,
   Zap,
   BarChart3,
 } from 'lucide-react';

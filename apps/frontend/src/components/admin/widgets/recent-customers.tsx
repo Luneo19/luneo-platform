@@ -118,10 +118,6 @@ function RecentCustomerRow({ customer }: { customer: RecentCustomer }) {
     .toUpperCase()
     .slice(0, 2);
 
-  const customerSince = typeof customer.customerSince === 'string'
-    ? new Date(customer.customerSince)
-    : customer.customerSince;
-
   return (
     <Link
       href={`/admin/customers/${customer.id}`}
