@@ -1,9 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
-import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 
