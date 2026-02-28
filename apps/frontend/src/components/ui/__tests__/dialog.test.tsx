@@ -5,7 +5,7 @@
  * Les tests sont simplifiés pour éviter les problèmes de compatibilité
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
   Dialog,
@@ -41,7 +41,7 @@ describe('Dialog Component', () => {
 
     it.skip('should render dialog content when open', async () => {
       // Skip: Radix UI Dialog nécessite des mocks complexes
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(
         <Dialog defaultOpen>
           <DialogContent>

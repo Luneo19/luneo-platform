@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback, memo } from 'react';
 import { Bell, Check, X, Loader2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { endpoints } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -201,14 +201,11 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <motion
-            as="div"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </motion>
+          <Motion initial={{ scale: 0 }} animate={{ scale: 1 }}>
+            <div className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </div>
+          </Motion>
         )}
       </Button>
 
@@ -216,7 +213,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
         {isOpen && (
           <>
             {/* Backdrop */}
-            <motion
+            <Motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -225,7 +222,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
             />
 
             {/* Dropdown */}
-            <motion
+            <Motion
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -283,7 +280,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                       const iconColor = typeColors[notification.type];
 
                       return (
-                        <motion
+                        <Motion
                           key={notification.id}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -363,7 +360,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                           {!notification.is_read && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
                           )}
-                        </motion>
+                        </Motion>
                       );
                     })}
                   </div>
@@ -383,7 +380,7 @@ function NotificationBellComponent({ className, variant = 'ghost', size = 'md' }
                   </Button>
                 </div>
               )}
-            </motion>
+            </Motion>
           </>
         )}
       </AnimatePresence>

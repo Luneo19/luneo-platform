@@ -28,7 +28,6 @@ import { memo, useCallback, useMemo, useState } from 'react';
 
 function NotificationCenterContent() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
   const queryClient = useQueryClient();
 
   const notificationsQuery = useQuery({
@@ -158,7 +157,6 @@ function NotificationCenterContent() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowPreferences(true)}
                   aria-label="Préférences des notifications"
                 >
                   <Settings className="h-4 w-4" aria-hidden />

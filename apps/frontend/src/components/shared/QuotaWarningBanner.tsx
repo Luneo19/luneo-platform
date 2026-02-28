@@ -28,7 +28,7 @@ export function QuotaWarningBanner({
   threshold = 0.2,
   className = '',
 }: QuotaWarningBannerProps) {
-  const { hasQuota, limit, currentUsage, remaining, isLoading } = useQuotaGate(metric);
+  const { limit, currentUsage, remaining, isLoading } = useQuotaGate(metric);
 
   if (isLoading || limit === Infinity || limit === 0) return null;
 
