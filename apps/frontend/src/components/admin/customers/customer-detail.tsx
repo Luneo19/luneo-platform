@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { KPICard } from '@/components/admin/widgets/kpi-card';
 import { formatCurrency, getInitials } from '@/lib/utils';
 import type { CustomerDetail, CustomerActivity } from '@/hooks/admin/use-customer-detail';

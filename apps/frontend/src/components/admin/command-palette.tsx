@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -105,7 +105,6 @@ function pushRecent(path: string, title: string) {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { setTheme, resolvedTheme } = useTheme();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -413,15 +412,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   useEffect(() => {
     setSelectedIndex((i) => Math.min(i, Math.max(0, flatList.length - 1)));
   }, [flatList.length]);
-
-  // Group commands by category (for display only)
-  const groupedCommands = filteredCommands.reduce((acc, cmd) => {
-    if (!acc[cmd.category]) {
-      acc[cmd.category] = [];
-    }
-    acc[cmd.category].push(cmd);
-    return acc;
-  }, {} as Record<string, Command[]>);
 
   const typeIcon = (type: SearchResultItem['type']) => {
     switch (type) {

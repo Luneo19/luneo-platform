@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -31,13 +31,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logger } from '@/lib/logger';
 import {
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
   Mail,
   Download,
-  Users,
   ArrowUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
