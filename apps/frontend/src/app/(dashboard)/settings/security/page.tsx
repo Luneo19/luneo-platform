@@ -1,17 +1,14 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import {
   Shield,
   CheckCircle,
   AlertCircle,
   Loader2,
-  QrCode,
   KeyRound,
-  Eye,
-  EyeOff,
   Copy,
   Download,
 } from 'lucide-react';
@@ -49,7 +46,7 @@ function SecuritySettingsPageContent() {
   const check2FAStatus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const user = await endpoints.auth.me();
+      await endpoints.auth.me();
       // Note: L'API devrait retourner is2FAEnabled dans le user
       // Pour l'instant, on suppose que c'est false par défaut
       setIs2FAEnabled(false);
@@ -149,7 +146,7 @@ function SecuritySettingsPageContent() {
   }
 
   return (
-    <motion
+    <Motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-4xl mx-auto"
@@ -316,7 +313,7 @@ function SecuritySettingsPageContent() {
           )}
         </div>
       </SlideUp>
-    </motion>
+    </Motion>
   );
 }
 

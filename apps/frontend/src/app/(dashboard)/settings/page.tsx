@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,18 +43,10 @@ interface NotificationSettings {
   securityAlerts: boolean;
 }
 
-type UserSettingsPayload = {
-  security?: Partial<SecuritySettings>;
-  notifications?: Partial<NotificationSettings>;
-  theme?: string;
-  language?: string;
-};
-
 function SettingsPageContent() {
   const { toast } = useToast();
   const { t, locale, setLocale, supportedLocales } = useI18n();
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -125,11 +117,7 @@ function SettingsPageContent() {
         website: String(d.website ?? ''),
         timezone: String(d.timezone ?? 'Europe/Paris'),
       });
-      setLoading(false);
-    } else if (profileQuery.isLoading) {
-      setLoading(true);
     } else if (profileQuery.isError) {
-      setLoading(false);
       toast({
         title: t('common.error'),
         description: profileQuery.error?.message || t('common.somethingWentWrong'),
