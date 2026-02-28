@@ -163,7 +163,15 @@ function renderMarkdown(results) {
 async function main() {
   const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
   if (missing.length > 0) {
-    throw new Error(`Missing required smoke credentials: ${missing.join(', ')}`);
+    if (process.env.SMOKE_REQUIRE_CREDENTIALS === 'true') {
+      throw new Error(`Missing required smoke credentials: ${missing.join(', ')}`);
+    }
+    console.log(
+      `SKIP post-login tunnel smoke: missing credentials (${missing.join(
+        ', '
+      )}). Set SMOKE_REQUIRE_CREDENTIALS=true to fail instead.`
+    );
+    return;
   }
 
   await fs.mkdir(OUT_DIR, { recursive: true });
