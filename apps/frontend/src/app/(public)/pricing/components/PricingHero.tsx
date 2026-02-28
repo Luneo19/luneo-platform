@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n/useI18n';
-import { CreditCard, Zap, Shield, Star, Crown, Gem } from 'lucide-react';
+import { CreditCard, Shield, Crown, Gem } from 'lucide-react';
 import { OrbitingCircles, OrbitIcon } from '@/components/ui/premium';
 
 export function PricingHero({

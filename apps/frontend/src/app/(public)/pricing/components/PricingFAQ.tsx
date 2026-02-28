@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ChevronDown } from 'lucide-react';
 
 export interface FAQItem {
@@ -58,14 +58,14 @@ function FAQAccordionItem({
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion
+          <Motion
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
             <p className="mt-4 text-white/90">{answer}</p>
-          </motion>
+          </Motion>
         )}
       </AnimatePresence>
     </div>

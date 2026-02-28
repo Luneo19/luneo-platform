@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
@@ -148,7 +148,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
   );
 
   return (
-    <motion
+    <Motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative h-full"
@@ -162,6 +162,6 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
       >
         {cardContent}
       </div>
-    </motion>
+    </Motion>
   );
 }
