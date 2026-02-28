@@ -89,7 +89,12 @@ describe('Security Configuration', () => {
           password: 'secret',
         },
       };
-      const result = redactSensitiveData(data) as Record<string, any>;
+      const result = redactSensitiveData(data) as {
+        user: {
+          email: string;
+          password: string;
+        };
+      };
       expect(result.user.email).toBe('test@example.com');
       expect(result.user.password).toBe('[REDACTED]');
     });
