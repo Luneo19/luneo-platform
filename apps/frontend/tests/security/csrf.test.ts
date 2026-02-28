@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { validateCSRFFromRequest, generateCSRFToken, validateCSRFToken } from '@/lib/csrf';
+import { generateCSRFToken, validateCSRFToken } from '@/lib/csrf';
 import { csrfMiddleware } from '@/lib/csrf-middleware';
 
 // Mock Next.js cookies

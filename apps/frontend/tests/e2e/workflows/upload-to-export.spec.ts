@@ -9,11 +9,10 @@
  * 4. Export du modèle (GLB, USDZ, PNG)
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
-import path from 'path';
 
-async function isPresentAndVisible(locator: any): Promise<boolean> {
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
   return (await locator.count()) > 0 && (await locator.first().isVisible());
 }
 

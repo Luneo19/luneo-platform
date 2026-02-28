@@ -4,7 +4,6 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createTestUser, TEST_USER } from '../utils/auth';
 
 test.describe('Complete User Journey', () => {
   test.beforeEach(async ({ page }) => {

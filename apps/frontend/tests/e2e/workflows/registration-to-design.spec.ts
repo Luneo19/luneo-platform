@@ -8,14 +8,14 @@
  * 3. Création d'un design
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
 import { isPresentAndVisible } from '../utils/assertions';
 
 // Générateur d'email unique pour les tests
 const generateTestEmail = () => `e2e-${Date.now()}-${Math.random().toString(36).substring(7)}@test-luneo.app`;
 
-async function satisfyRegistrationPrerequisites(page: any, testName: string): Promise<void> {
+async function satisfyRegistrationPrerequisites(page: Page, testName: string): Promise<void> {
   const nameField = page.getByTestId('register-name');
   const firstNameField = page.locator('input[name="firstName"]').first();
   const lastNameField = page.locator('input[name="lastName"]').first();

@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
 
-async function isPresentAndVisible(locator: any): Promise<boolean> {
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
   return (await locator.count()) > 0 && (await locator.first().isVisible());
 }
 
@@ -29,8 +29,6 @@ test.describe('Workflow: WooCommerce Integration', () => {
     await page.goto('/integrations');
 
     // Chercher l'option WooCommerce
-    const wooCommerceOption = page.getByText(/woocommerce|woo commerce/i).first();
-    
     // Vérifier que WooCommerce est mentionné quelque part sur la page
     const pageContent = await page.textContent('body');
     expect(pageContent?.toLowerCase()).toContain('woocommerce');

@@ -39,13 +39,11 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     // Vérifier qu'au moins un plan est visible
     const planNames = ['Starter', 'Professional', 'Business', 'Enterprise'];
     let foundPlan = false;
-    let selectedPlanName = '';
     
     for (const planName of planNames) {
       const planElement = page.getByText(new RegExp(planName, 'i')).first();
       if (await isPresentAndVisible(planElement)) {
         foundPlan = true;
-        selectedPlanName = planName;
         console.log(`✅ Plan ${planName} trouvé`);
         break;
       }
