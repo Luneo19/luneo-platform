@@ -12,7 +12,6 @@ import React from 'react';
 const Loading3D = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement du configurateur 3D...');
 const LoadingChart = () => React.createElement('div', { className: 'flex items-center justify-center p-4' }, 'Chargement du graphique...');
 const LoadingAnalytics = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement des analytics...');
-const LoadingAR = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement de la vue AR...');
 const LoadingEditor = () => React.createElement('div', { className: 'flex items-center justify-center p-8' }, 'Chargement de l\'éditeur...');
 const LoadingForm = () => React.createElement('div', { className: 'flex items-center justify-center p-4' }, 'Chargement du formulaire...');
 

@@ -8,7 +8,6 @@ import type {
   WooCommerceProduct,
   WooCommerceOrder,
   WooCommerceCategory,
-  SyncResult,
 } from './types';
 
 interface WooCommerceConfig {

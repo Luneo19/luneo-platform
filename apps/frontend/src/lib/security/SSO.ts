@@ -6,7 +6,6 @@
  * - OAuth 2.0
  */
 
-import { endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 
@@ -135,7 +134,7 @@ export class SSOService {
   /**
    * Génère une requête SAML AuthnRequest
    */
-  private generateSAMLRequest(config: SSOConfig, relayState?: string): string {
+  private generateSAMLRequest(config: SSOConfig, _relayState?: string): string {
     // Generate SAML 2.0 AuthnRequest XML
     // In production, use a library like saml2-js or xmlbuilder
     const requestId = `_${crypto.randomBytes(16).toString('hex')}`;
