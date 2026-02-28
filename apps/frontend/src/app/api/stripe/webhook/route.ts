@@ -1,21 +1,9 @@
-import Stripe from 'stripe';
 import { ApiResponseBuilder } from '@/lib/api-response';
 import { serverLogger } from '@/lib/logger-server';
 import { NextRequest } from 'next/server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
-
-// Initialisation paresseuse de Stripe
-let stripeInstance: Stripe | null = null;
-function getStripe(): Stripe {
-  if (!stripeInstance) {
-    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-      apiVersion: '2025-10-29.clover' as Stripe.LatestApiVersion,
-    });
-  }
-  return stripeInstance;
-}
 
 /**
  * POST /api/stripe/webhook

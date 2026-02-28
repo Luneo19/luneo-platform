@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     // Si Stripe est configuré, récupérer les prix réels
     if (process.env.STRIPE_SECRET_KEY) {
       try {
-        const Stripe = require('stripe');
+        const { default: Stripe } = await import('stripe');
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
         // Récupérer tous les produits actifs

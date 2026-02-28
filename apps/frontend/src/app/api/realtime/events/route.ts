@@ -309,7 +309,7 @@ export async function GET(request: NextRequest) {
 // Broadcast event to all connections (for use by other API routes)
 export function broadcastEvent(
   event: Record<string, unknown>,
-  channelFilter?: string[]
+  _channelFilter?: string[]
 ) {
   const encoded = encodeSSE(event);
   const bytes = new TextEncoder().encode(encoded);

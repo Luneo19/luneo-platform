@@ -1,6 +1,6 @@
 import { getUserFromRequest } from '@/lib/auth/get-user';
-import { NextRequest, NextResponse } from 'next/server';
-import { ApiResponseBuilder, validateRequest, validateWithZodSchema } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import { ApiResponseBuilder, validateWithZodSchema } from '@/lib/api-response';
 import { serverLogger } from '@/lib/logger-server';
 import { changePasswordSchema } from '@/lib/validation/zod-schemas';
 import { getBackendUrl } from '@/lib/api/server-url';
