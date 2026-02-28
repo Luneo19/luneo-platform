@@ -12,10 +12,8 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
-import { endpoints, api } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import type {
-  AIOperation,
-  AIOperationStatus,
   AIRequest,
   BackgroundRemovalRequest,
   UpscaleRequest,

@@ -9,7 +9,6 @@ import { useState, useCallback } from 'react';
 import { aiService } from './AIService';
 import type {
   AIOperation,
-  AIOperationStatus,
   BackgroundRemovalRequest,
   UpscaleRequest,
   ColorExtractionRequest,

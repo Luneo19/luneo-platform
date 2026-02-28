@@ -13,13 +13,27 @@ import { logger } from '@/lib/logger';
 
 // Conditional import - google-ads-api is optional
 let GoogleAdsApi: { new(config: Record<string, string>): { Customer(config: Record<string, string>): GoogleAdsCustomer } } | undefined;
-let Customer: Record<string, unknown> | undefined;
-try {
-  const googleAdsApi = require('google-ads-api');
-  GoogleAdsApi = googleAdsApi.GoogleAdsApi;
-  Customer = googleAdsApi.Customer;
-} catch {
-  // google-ads-api not installed
+
+type GoogleAdsApiModule = {
+  GoogleAdsApi?: new (config: Record<string, string>) => {
+    Customer(config: Record<string, string>): GoogleAdsCustomer;
+  };
+};
+
+async function ensureGoogleAdsSdkLoaded(): Promise<void> {
+  if (GoogleAdsApi) return;
+
+  try {
+    const dynamicImport = new Function('moduleName', 'return import(moduleName)') as (
+      moduleName: string
+    ) => Promise<unknown>;
+    const sdk = (await dynamicImport('google-ads-api')) as GoogleAdsApiModule;
+    if (sdk.GoogleAdsApi) {
+      GoogleAdsApi = sdk.GoogleAdsApi;
+    }
+  } catch {
+    // google-ads-api not installed
+  }
 }
 
 
@@ -79,6 +93,7 @@ export interface GoogleInsights {
 export class GoogleAdsClient {
   private client: { Customer(config: Record<string, string>): GoogleAdsCustomer } | null = null;
   private customer: GoogleAdsCustomer | null = null;
+  private initPromise: Promise<void>;
   private accessToken: string;
   private customerId: string;
   private developerToken: string;
@@ -101,25 +116,29 @@ export class GoogleAdsClient {
     this.clientSecret = clientSecret;
     this.refreshToken = refreshToken;
 
-    // Initialize Google Ads API client
-    if (GoogleAdsApi) {
-      try {
-        this.client = new GoogleAdsApi({
-          client_id: clientId,
-          client_secret: clientSecret,
-          developer_token: developerToken,
-        });
+    this.initPromise = this.initializeClient();
+  }
 
-        this.customer = this.client.Customer({
-          customer_id: customerId,
-          refresh_token: refreshToken,
-        });
-      } catch (error) {
-        logger.error(
-          'Failed to initialize Google Ads client',
-          error instanceof Error ? error : new Error(String(error))
-        );
-      }
+  private async initializeClient(): Promise<void> {
+    await ensureGoogleAdsSdkLoaded();
+    if (!GoogleAdsApi) return;
+
+    try {
+      this.client = new GoogleAdsApi({
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        developer_token: this.developerToken,
+      });
+
+      this.customer = this.client.Customer({
+        customer_id: this.customerId,
+        refresh_token: this.refreshToken,
+      });
+    } catch (error) {
+      logger.error(
+        'Failed to initialize Google Ads client',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 
@@ -134,6 +153,7 @@ export class GoogleAdsClient {
     status?: string;
     limit?: number;
   }): Promise<GoogleCampaign[]> {
+    await this.initPromise;
     if (!this.customer) {
       throw new Error('Google Ads client not initialized');
     }
@@ -188,6 +208,7 @@ export class GoogleAdsClient {
     dateTo: string;
     level?: 'customer' | 'campaign' | 'ad_group' | 'ad';
   }): Promise<GoogleInsights> {
+    await this.initPromise;
     if (!this.customer) {
       throw new Error('Google Ads client not initialized');
     }
