@@ -15,18 +15,24 @@ function CLIWorkflowsPageContent() {
     setTimeout(() => setCopied(''), 2000);
   }, []);
 
-  const cicdExample = useMemo(() => `# .github/workflows/deploy.yml
-name: Deploy Luneo
-on: [push]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: npm install -g @luneo/cli
-      - run: luneo login --token $${'{{ secrets.LUNEO_TOKEN }}'}
-      - run: luneo build
-      - run: luneo deploy --prod`, []);
+  const cicdExample = useMemo(
+    () =>
+      [
+        '# .github/workflows/deploy.yml',
+        'name: Deploy Luneo',
+        'on: [push]',
+        'jobs:',
+        '  deploy:',
+        '    runs-on: ubuntu-latest',
+        '    steps:',
+        '      - uses: actions/checkout@v3',
+        '      - run: npm install -g @luneo/cli',
+        '      - run: luneo login --token ${{ secrets.LUNEO_TOKEN }}',
+        '      - run: luneo build',
+        '      - run: luneo deploy --prod',
+      ].join('\n'),
+    []
+  );
 
   return (
     <DocPageTemplate
