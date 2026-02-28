@@ -12,7 +12,7 @@ import { AreaChart } from '@/components/admin/analytics/area-chart';
 import { LineChart } from '@/components/admin/analytics/line-chart';
 import { ComboChart } from '@/components/admin/analytics/combo-chart';
 import { RadarChart } from '@/components/admin/analytics/radar-chart';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { logger } from '@/lib/logger';
@@ -41,7 +41,7 @@ interface AreaDataPoint {
 
 export default function AdvancedAnalyticsPage() {
   const { data: overviewData, isLoading: overviewLoading } = useAdminOverview();
-  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [selectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
   const [isLoading, setIsLoading] = useState(true);
   const [usingPlaceholder, setUsingPlaceholder] = useState(false);
   

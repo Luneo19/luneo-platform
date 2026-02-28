@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -43,7 +43,7 @@ function SuccessStoriesPageContent() {
         </div>
 
         <div className="relative max-w-7xl mx-auto text-center">
-          <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
               Success Stories
               <br />
@@ -54,7 +54,7 @@ function SuccessStoriesPageContent() {
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
               Découvrez comment nos clients ont transformé leur business avec Luneo
             </p>
-          </motion>
+          </Motion>
         </div>
       </section>
 

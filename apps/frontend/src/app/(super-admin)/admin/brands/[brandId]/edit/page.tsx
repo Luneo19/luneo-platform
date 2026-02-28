@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useBrandDetail, type BrandDetail } from '@/hooks/admin/use-brand-detail';
+import { useBrandDetail } from '@/hooks/admin/use-brand-detail';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 
