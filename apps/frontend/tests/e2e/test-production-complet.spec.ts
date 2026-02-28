@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, Page, type Locator } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -38,11 +38,11 @@ async function snap(page: Page, name: string): Promise<string> {
 
 async function waitStable(page: Page, ms = 3000) { await page.waitForTimeout(ms); }
 
-async function isPresentAndVisible(locator: any): Promise<boolean> {
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
   return (await locator.count()) > 0 && (await locator.first().isVisible());
 }
 
-async function isEnabledSafe(locator: any): Promise<boolean> {
+async function isEnabledSafe(locator: Locator): Promise<boolean> {
   try {
     return await locator.isEnabled();
   } catch {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 
 /**
  * Tunnel Client Final — De la personnalisation à l'achat
@@ -10,7 +10,7 @@ test.describe('Tunnel Client Final — Personnalisation et achat', () => {
   test.setTimeout(90_000);
   const DEMO_URL = '/demo/customizer';
 
-  async function isPresentAndVisible(locator: any): Promise<boolean> {
+  async function isPresentAndVisible(locator: Locator): Promise<boolean> {
     return (await locator.count()) > 0 && (await locator.first().isVisible());
   }
 
@@ -88,7 +88,7 @@ test.describe('Tunnel Client Final — Personnalisation et achat', () => {
   });
 
   test('ÉTAPE 6 — Checkout accessible', async ({ page }) => {
-    const response = await page.goto('/checkout', {
+    await page.goto('/checkout', {
       waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });

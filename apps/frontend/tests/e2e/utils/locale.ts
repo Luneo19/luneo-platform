@@ -1,9 +1,9 @@
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 
 const SUPPORTED_LOCALES = ['en', 'fr', 'de'] as const;
 export type SupportedTestLocale = (typeof SUPPORTED_LOCALES)[number];
 
-async function safeIsVisible(locator: any): Promise<boolean> {
+async function safeIsVisible(locator: Locator): Promise<boolean> {
   try {
     return (await locator.count()) > 0 && (await locator.first().isVisible());
   } catch {

@@ -157,7 +157,7 @@ export async function waitForAPIRequest(
  * Vérifie qu'une page est accessible (pas de 404/500)
  */
 export async function verifyPageAccessible(page: Page): Promise<boolean> {
-  const statusCode = page.url().includes('localhost') ? 200 : null;
+  const _statusCode = page.url().includes('localhost') ? 200 : null;
   
   // Vérifier qu'il n'y a pas de message d'erreur
   const errorMessages = [

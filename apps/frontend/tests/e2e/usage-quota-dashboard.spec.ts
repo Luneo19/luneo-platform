@@ -128,7 +128,7 @@ const mockTopupHistory = [
 
 const SHARE_SECRET = process.env.QUOTA_SHARE_SECRET ?? 'luneo-share-secret';
 
-function buildShareToken(payload: any): string {
+function buildShareToken(payload: Record<string, unknown>): string {
   const encoded = Buffer.from(
     JSON.stringify({
       ...payload,
