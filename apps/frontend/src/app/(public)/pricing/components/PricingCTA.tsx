@@ -22,7 +22,7 @@ export function PricingCTA() {
           </span>
           {' '}{t('pricing.cta.titleEnd')}
         </h2>
-        <p className="mt-4 text-base sm:text-lg text-white/50 leading-relaxed">
+        <p className="mt-4 text-base sm:text-lg text-white/90 leading-relaxed">
           {t('pricing.cta.subtitle')}
         </p>
         <Link href="/contact?plan=enterprise&source=pricing" className="mt-8 inline-block">

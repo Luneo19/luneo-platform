@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
 
+async function isPresentAndVisible(locator: any): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
+
 /**
  * Test E2E du workflow d'intégration WooCommerce
  * 
@@ -42,10 +46,12 @@ test.describe('Workflow: WooCommerce Integration', () => {
     const wooCommerceLink = page.getByRole('link', { name: /woocommerce/i }).first();
 
     // Si un bouton existe, vérifier qu'il est visible
-    if (await connectButton.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(connectButton)) {
       await expect(connectButton).toBeVisible();
-    } else if (await wooCommerceLink.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(wooCommerceLink)) {
       await expect(wooCommerceLink).toBeVisible();
+    } else {
+      throw new Error('No WooCommerce connection entry point found');
     }
   });
 
@@ -60,14 +66,17 @@ test.describe('Workflow: WooCommerce Integration', () => {
       /statut|status/i,
     ];
 
+    let foundStatus = false;
     for (const indicator of statusIndicators) {
       const element = page.getByText(indicator).first();
-      const isVisible = await element.isVisible().catch(() => false);
+      const isVisible = await isPresentAndVisible(element);
       if (isVisible) {
+        foundStatus = true;
         await expect(element).toBeVisible();
         break; // Trouvé au moins un indicateur
       }
     }
+    expect(foundStatus).toBeTruthy();
   });
 });
 

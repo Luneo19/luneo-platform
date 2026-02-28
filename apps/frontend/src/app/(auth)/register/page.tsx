@@ -28,7 +28,6 @@ import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import { endpoints } from '@/lib/api/client';
-import { getRoleBasedRedirect } from '@/lib/utils/role-redirect';
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -129,25 +128,6 @@ function RegisterPageContent() {
     if (ref) setReferralCode(ref);
   }, [searchParams]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const me = await endpoints.auth.me().catch(() => null);
-        const role = (me as { role?: string } | null)?.role;
-        if (!role || cancelled) return;
-        window.location.replace(getRoleBasedRedirect(role));
-      } catch {
-        // Keep register page for unauthenticated users.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Password strength
   const passwordStrength = useMemo(() => 
     checkPasswordStrength(formData.password, t), 
@@ -166,15 +146,20 @@ function RegisterPageContent() {
   );
 
   // Form validation
+  const hasStrongPassword = useMemo(
+    () => Object.values(passwordStrength.requirements).every(Boolean),
+    [passwordStrength.requirements],
+  );
+
   const isFormValid = useMemo(() => {
     return (
       formData.fullName.length >= 2 &&
       isValidEmail(formData.email) &&
-      passwordStrength.score >= 2 &&
+      hasStrongPassword &&
       passwordsMatch &&
       acceptedTerms
     );
-  }, [formData, passwordStrength.score, passwordsMatch, acceptedTerms]);
+  }, [formData, hasStrongPassword, passwordsMatch, acceptedTerms]);
 
   // Register with email/password
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -196,7 +181,7 @@ function RegisterPageContent() {
       return;
     }
 
-    if (passwordStrength.score < 2) {
+    if (!hasStrongPassword) {
       setError(t('auth.register.errors.weakPassword'));
       setIsLoading(false);
       return;
@@ -293,7 +278,7 @@ function RegisterPageContent() {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, passwordStrength.score, acceptedTerms, planFromUrl]);
+  }, [formData, hasStrongPassword, acceptedTerms, planFromUrl]);
 
   // OAuth register - ✅ Migré vers NestJS backend
   const handleOAuthRegister = useCallback(async (provider: 'google' | 'github') => {
@@ -335,7 +320,7 @@ function RegisterPageContent() {
           </h1>
         </SlideUp>
         <FadeIn delay={0.3}>
-          <p className="text-slate-500">
+          <p className="text-slate-300">
             {t('auth.register.subtitle')}
           </p>
         </FadeIn>
@@ -382,17 +367,17 @@ function RegisterPageContent() {
         {/* Full Name */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm font-medium text-slate-300 block mb-1.5">
+          <Label htmlFor="fullName" className="text-sm font-medium text-slate-200 block mb-1.5">
             {t('auth.register.name')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="fullName"
                   data-testid="register-name"
                   type="text"
                   placeholder={t('auth.register.namePlaceholder')}
-              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
+              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
@@ -408,17 +393,17 @@ function RegisterPageContent() {
         {/* Email */}
         <SlideUp delay={0.5}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-300 block mb-1.5">
+          <Label htmlFor="email" className="text-sm font-medium text-slate-200 block mb-1.5">
             {t('auth.register.email')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="email"
                   data-testid="register-email"
                   type="email"
               placeholder={t('auth.register.emailPlaceholder')}
-              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
+              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -434,16 +419,16 @@ function RegisterPageContent() {
         {/* Company */}
         <SlideUp delay={0.6}>
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-sm font-medium text-slate-300 block mb-1.5">
-            {t('auth.register.company')} <span className="text-gray-500">{t('auth.register.companyOptional')}</span>
+          <Label htmlFor="company" className="text-sm font-medium text-slate-200 block mb-1.5">
+            {t('auth.register.company')} <span className="text-slate-400">{t('auth.register.companyOptional')}</span>
               </Label>
           <div className="relative">
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
+            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="company"
                   type="text"
                   placeholder={t('auth.register.company')}
-              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
+              className="pl-10 bg-dark-surface border border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               disabled={isLoading}
@@ -455,17 +440,17 @@ function RegisterPageContent() {
         {/* Password */}
         <SlideUp delay={0.7}>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-slate-300 block mb-1.5">
+          <Label htmlFor="password" className="text-sm font-medium text-slate-200 block mb-1.5">
             {t('auth.register.password')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="password"
                   data-testid="register-password"
                   type={showPassword ? 'text' : 'password'}
               placeholder={t('auth.register.passwordPlaceholder')}
-              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12 text-base"
+              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-purple-500/20 h-12 text-base"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -474,7 +459,7 @@ function RegisterPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors z-10"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors z-10"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -515,13 +500,14 @@ function RegisterPageContent() {
                   { key: 'uppercase', labelKey: 'auth.register.requirements.uppercase' },
                   { key: 'lowercase', labelKey: 'auth.register.requirements.lowercase' },
                   { key: 'number', labelKey: 'auth.register.requirements.number' },
+                  { key: 'special', labelKey: 'auth.register.requirements.special' },
                 ].map(({ key, labelKey }) => (
                   <div 
                     key={key} 
                     className={`flex items-center gap-1 ${
                       passwordStrength.requirements[key as keyof typeof passwordStrength.requirements]
                         ? 'text-green-400'
-                        : 'text-slate-500'
+                        : 'text-slate-300'
                     }`}
                   >
                     {passwordStrength.requirements[key as keyof typeof passwordStrength.requirements] ? (
@@ -541,17 +527,17 @@ function RegisterPageContent() {
         {/* Confirm Password */}
         <SlideUp delay={0.8}>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300 block mb-1.5">
+          <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-200 block mb-1.5">
             {t('auth.register.confirmPassword')} <span className="text-red-400">*</span>
               </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5 z-10" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
                 <Input
                   id="confirmPassword"
                   data-testid="register-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder={t('auth.register.confirmPasswordPlaceholder')}
-              className={`pl-10 pr-12 bg-dark-surface border text-white placeholder:text-slate-600 focus:ring-1 focus:ring-purple-500/20 h-12 text-base ${
+              className={`pl-10 pr-12 bg-dark-surface border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:ring-1 focus:ring-purple-500/20 h-12 text-base ${
                 formData.confirmPassword && !passwordsMatch 
                   ? 'border-red-500/50 focus:border-red-500/50' 
                   : 'border-dark-border focus:border-purple-500/50'
@@ -564,7 +550,7 @@ function RegisterPageContent() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors z-10"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors z-10"
             >
               {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -591,7 +577,7 @@ function RegisterPageContent() {
             className="w-5 h-5 mt-0.5 rounded border border-dark-border bg-dark-surface text-purple-500 focus:ring-1 focus:ring-purple-500/20 focus:ring-offset-0 cursor-pointer"
                 required
               />
-          <Label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer leading-relaxed flex-1">
+          <Label htmlFor="terms" className="text-sm text-slate-300 cursor-pointer leading-relaxed flex-1">
             {t('auth.register.acceptPrefix')}
             <Link href="/legal/terms" className="text-purple-400 hover:text-purple-300 underline font-medium">
               {t('auth.register.termsAndPrivacy')}
@@ -634,7 +620,7 @@ function RegisterPageContent() {
           <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-dark-bg text-slate-600">{t('auth.register.orRegisterWith')}</span>
+          <span className="px-4 bg-dark-bg text-slate-300">{t('auth.register.orRegisterWith')}</span>
             </div>
           </div>
         </FadeIn>
@@ -647,7 +633,7 @@ function RegisterPageContent() {
               variant="outline"
               data-testid="register-oauth-google"
               aria-label={t('auth.register.signUpWithGoogle')}
-          className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12 text-sm sm:text-base"
+          className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-200 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -666,7 +652,7 @@ function RegisterPageContent() {
               variant="outline"
               data-testid="register-oauth-github"
               aria-label={t('auth.register.signUpWithGithub')}
-          className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12 text-sm sm:text-base"
+          className="bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-200 h-12 text-sm sm:text-base"
               onClick={() => handleOAuthRegister('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -685,7 +671,7 @@ function RegisterPageContent() {
           {/* Sign in link */}
         <FadeIn delay={1.3}>
       <div className="mt-6 text-center">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-300">
               {t('auth.register.hasAccount')}{' '}
           <Link
             href="/login"
@@ -701,7 +687,7 @@ function RegisterPageContent() {
       {/* Trial info */}
         <FadeIn delay={1.4}>
       <div className="mt-6 pt-4 border-t border-white/[0.06]">
-        <div className="flex items-center justify-center gap-4 text-xs text-slate-600">
+        <div className="flex items-center justify-center gap-4 text-xs text-slate-300">
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-400" />
             <span>{t('auth.register.freePlanIncluded')}</span>

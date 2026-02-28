@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CrmProviderInterface } from './integration-provider.interface';
+import { IntegrationHttpClient } from './integration-http.client';
 
 const HUBSPOT_API_BASE = 'https://api.hubapi.com/crm/v3';
 
@@ -7,6 +8,8 @@ const HUBSPOT_API_BASE = 'https://api.hubapi.com/crm/v3';
 export class HubSpotProvider implements CrmProviderInterface {
   readonly integrationType = 'hubspot';
   private readonly logger = new Logger(HubSpotProvider.name);
+
+  constructor(private readonly http: IntegrationHttpClient) {}
 
   isConfigured(): boolean {
     return true;
@@ -16,15 +19,11 @@ export class HubSpotProvider implements CrmProviderInterface {
     config: Record<string, string>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${HUBSPOT_API_BASE}/objects/contacts?limit=1`, {
+      await this.http.requestJson(`${HUBSPOT_API_BASE}/objects/contacts?limit=1`, {
         headers: this.buildHeaders(config),
+        timeoutMs: 10000,
+        retries: 1,
       });
-
-      if (!response.ok) {
-        const body = await response.text();
-        return { success: false, error: `HubSpot API error ${response.status}: ${body}` };
-      }
-
       return { success: true };
     } catch (error) {
       this.logger.error('HubSpot connection test failed', error);
@@ -51,19 +50,14 @@ export class HubSpotProvider implements CrmProviderInterface {
     if (data.lastName) properties.lastname = data.lastName;
     if (data.phone) properties.phone = data.phone;
 
-    const response = await fetch(`${HUBSPOT_API_BASE}/objects/contacts`, {
+    const result = await this.http.requestJson<{ id: string }>(`${HUBSPOT_API_BASE}/objects/contacts`, {
       method: 'POST',
       headers: this.buildHeaders(config),
-      body: JSON.stringify({ properties }),
+      body: { properties },
+      timeoutMs: 10000,
+      retries: 1,
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`HubSpot createContact failed: ${response.status} ${body}`);
-      throw new Error(`HubSpot createContact failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     return { id: result.id };
   }
 
@@ -71,27 +65,25 @@ export class HubSpotProvider implements CrmProviderInterface {
     config: Record<string, string>,
     email: string,
   ): Promise<Record<string, unknown> | null> {
-    const response = await fetch(`${HUBSPOT_API_BASE}/objects/contacts/search`, {
-      method: 'POST',
-      headers: this.buildHeaders(config),
-      body: JSON.stringify({
-        filterGroups: [
-          {
-            filters: [
-              { propertyName: 'email', operator: 'EQ', value: email },
-            ],
-          },
-        ],
-      }),
-    });
+    const result = await this.http.requestJson<{ total: number; results: Array<{ id: string; properties: Record<string, unknown> }> }>(
+      `${HUBSPOT_API_BASE}/objects/contacts/search`,
+      {
+        method: 'POST',
+        headers: this.buildHeaders(config),
+        body: {
+          filterGroups: [
+            {
+              filters: [
+                { propertyName: 'email', operator: 'EQ', value: email },
+              ],
+            },
+          ],
+        },
+        timeoutMs: 10000,
+        retries: 1,
+      },
+    );
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`HubSpot getContact failed: ${response.status} ${body}`);
-      throw new Error(`HubSpot getContact failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     if (result.total === 0) return null;
 
     const contact = result.results[0];
@@ -114,19 +106,13 @@ export class HubSpotProvider implements CrmProviderInterface {
     if (data.amount !== undefined) properties.amount = String(data.amount);
     if (data.stage) properties.dealstage = data.stage;
 
-    const response = await fetch(`${HUBSPOT_API_BASE}/objects/deals`, {
+    const result = await this.http.requestJson<{ id: string }>(`${HUBSPOT_API_BASE}/objects/deals`, {
       method: 'POST',
       headers: this.buildHeaders(config),
-      body: JSON.stringify({ properties }),
+      body: { properties },
+      timeoutMs: 10000,
+      retries: 1,
     });
-
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`HubSpot createDeal failed: ${response.status} ${body}`);
-      throw new Error(`HubSpot createDeal failed: ${response.status}`);
-    }
-
-    const result = await response.json();
 
     if (data.contactId) {
       await this.associateDealToContact(config, result.id, data.contactId);
@@ -142,21 +128,24 @@ export class HubSpotProvider implements CrmProviderInterface {
   ): Promise<void> {
     const url = `${HUBSPOT_API_BASE}/objects/deals/${dealId}/associations/contacts/${contactId}/deal_to_contact`;
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: this.buildHeaders(config),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.warn(`HubSpot deal-contact association failed: ${response.status} ${body}`);
+    try {
+      await this.http.requestJson(url, {
+        method: 'PUT',
+        headers: this.buildHeaders(config),
+        timeoutMs: 10000,
+        retries: 1,
+      });
+    } catch (error) {
+      this.logger.warn(`HubSpot deal-contact association failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   private buildHeaders(config: Record<string, string>): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.hubspot_api_key}`,
     };
+    if (config.__requestId) headers['X-Request-Id'] = config.__requestId;
+    return headers;
   }
 }

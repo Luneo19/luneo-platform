@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
-import { ConversationStatus, Prisma } from '@prisma/client';
+import { ConversationStatus, LearningSignalType, Prisma } from '@prisma/client';
 import { CurrentUser } from '@/common/types/user.types';
+import { JOB_TYPES, QueuesService } from '@/libs/queues';
+import { LearningService } from '@/modules/learning/learning.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { AddMessageDto } from './dto/add-message.dto';
@@ -20,6 +22,8 @@ export class ConversationsService {
   constructor(
     private prisma: PrismaOptimizedService,
     private cache: SmartCacheService,
+    private queuesService: QueuesService,
+    private learningService: LearningService,
   ) {}
 
   async getInbox(query: ConversationQueryDto, user: CurrentUser) {
@@ -127,10 +131,13 @@ export class ConversationsService {
       throw new NotFoundException(`Agent ${dto.agentId} introuvable`);
     }
 
+    const contactId = await this.resolveContactId(user.organizationId, dto);
+
     const conversation = await this.prisma.conversation.create({
       data: {
         organizationId: user.organizationId,
         agentId: dto.agentId,
+        contactId,
         channelId: dto.channelId,
         channelType: dto.channelType,
         visitorId: dto.visitorId,
@@ -214,6 +221,12 @@ export class ConversationsService {
     await this.cache.invalidate(`conversations:${user.organizationId}`, 'brand');
     this.logger.log(`Conversation ${id} escaladée`);
 
+    await this.learningService.recordSignal(user, {
+      conversationId: id,
+      signalType: LearningSignalType.ESCALATED_TO_HUMAN,
+      data: { reason: 'manual_escalation' },
+    });
+
     return updated;
   }
 
@@ -235,6 +248,18 @@ export class ConversationsService {
 
     await this.cache.invalidate(`conversations:${user.organizationId}`, 'brand');
     this.logger.log(`Conversation ${id} résolue`);
+
+    await this.learningService.recordSignal(user, {
+      conversationId: id,
+      signalType: LearningSignalType.HUMAN_CORRECTION,
+      data: { source: 'conversation_resolve', resolvedBy: 'HUMAN' },
+    });
+
+    await this.queuesService.addSummarizationJob(
+      JOB_TYPES.SUMMARIZATION.SUMMARIZE_CONVERSATION,
+      { conversationId: id },
+      { jobId: `summarize:${id}` },
+    );
 
     return updated;
   }
@@ -296,5 +321,51 @@ export class ConversationsService {
     }
 
     return conversation;
+  }
+
+  private async resolveContactId(
+    organizationId: string,
+    dto: Pick<CreateConversationDto, 'visitorEmail' | 'visitorId' | 'visitorName'>,
+  ): Promise<string | undefined> {
+    if (!dto.visitorEmail && !dto.visitorId) return undefined;
+
+    const existing = await this.prisma.contact.findFirst({
+      where: {
+        organizationId,
+        OR: [
+          ...(dto.visitorEmail ? [{ email: dto.visitorEmail }] : []),
+          ...(dto.visitorId ? [{ externalId: dto.visitorId }] : []),
+        ],
+      },
+      select: { id: true, totalConversations: true, firstInteractionAt: true },
+    });
+
+    if (existing) {
+      await this.prisma.contact.update({
+        where: { id: existing.id },
+        data: {
+          totalConversations: { increment: 1 },
+          lastInteractionAt: new Date(),
+          firstInteractionAt: existing.firstInteractionAt ?? new Date(),
+          firstName: dto.visitorName ?? undefined,
+        },
+      });
+      return existing.id;
+    }
+
+    const created = await this.prisma.contact.create({
+      data: {
+        organizationId,
+        externalId: dto.visitorId,
+        email: dto.visitorEmail,
+        firstName: dto.visitorName,
+        totalConversations: 1,
+        firstInteractionAt: new Date(),
+        lastInteractionAt: new Date(),
+      },
+      select: { id: true },
+    });
+
+    return created.id;
   }
 }

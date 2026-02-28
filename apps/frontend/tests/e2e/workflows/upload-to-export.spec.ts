@@ -13,6 +13,10 @@ import { test, expect } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
 import path from 'path';
 
+async function isPresentAndVisible(locator: any): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
+
 test.describe('Upload → 3D Configuration → Export Flow', () => {
   test.beforeEach(async ({ page }) => {
     await setLocale(page, 'fr');
@@ -46,7 +50,7 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     let productSelected = false;
     for (const link of productLinks) {
-      if (await link.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(link)) {
         await link.click();
         await page.waitForTimeout(1000);
         productSelected = true;
@@ -78,12 +82,12 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     let uploadTriggered = false;
     for (const button of uploadButtons) {
-      if (await button.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(button)) {
         // Si c'est un input file, créer un fichier mock
         if (button.locator('input[type="file"]').count() > 0 || button.evaluate(el => el.tagName === 'INPUT')) {
           // Créer un fichier mock pour le test
           const fileInput = page.locator('input[type="file"]').first();
-          if (await fileInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+          if (await isPresentAndVisible(fileInput)) {
             // Note: En test E2E réel, on utiliserait un vrai fichier GLB
             // Pour ce test, on simule juste l'interaction
             console.log('ℹ️ Input file trouvé (upload simulé)');
@@ -121,7 +125,7 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     let configuratorLoaded = false;
     for (const element of configuratorElements) {
-      if (await element.isVisible({ timeout: 5000 }).catch(() => false)) {
+      if (await isPresentAndVisible(element)) {
         configuratorLoaded = true;
         console.log('✅ Configurateur 3D chargé');
         break;
@@ -141,7 +145,7 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     ];
     
     for (const control of configControls) {
-      if (await control.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(control)) {
         console.log('✅ Contrôles de configuration trouvés');
         break;
       }
@@ -161,7 +165,7 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     let saveClicked = false;
     for (const button of saveButtons) {
-      if (await button.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(button)) {
         // Intercepter la requête API de sauvegarde
         let saveRequestMade = false;
         page.on('response', async (response) => {
@@ -206,9 +210,12 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     let exportTriggered = false;
     for (const button of exportButtons) {
-      if (await button.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(button)) {
         // Intercepter les téléchargements
-        const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
+        const downloadPromise = Promise.race([
+          page.waitForEvent('download', { timeout: 5000 }),
+          page.waitForTimeout(5000).then(() => undefined),
+        ]);
         
         // Intercepter les requêtes API d'export
         let exportRequestMade = false;
@@ -252,14 +259,14 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     // Chercher un input file
     const fileInput = page.locator('input[type="file"]').first();
     
-    if (await fileInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isPresentAndVisible(fileInput)) {
       // Tester avec un fichier invalide (simulé)
       // En test réel, on créerait un fichier avec une mauvaise extension
       console.log('ℹ️ Input file trouvé (validation non testable sans serveur)');
     } else {
       // Chercher un bouton qui ouvre un dialogue d'upload
       const uploadButton = page.getByRole('button', { name: /upload|télécharger/i }).first();
-      if (await uploadButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(uploadButton)) {
         await uploadButton.click();
         await page.waitForTimeout(500);
         console.log('✅ Dialogue d\'upload ouvert');
@@ -288,7 +295,7 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     let elementsFound = 0;
     for (const element of interfaceElements) {
-      if (await element.isVisible({ timeout: 5000 }).catch(() => false)) {
+      if (await isPresentAndVisible(element)) {
         elementsFound++;
       }
     }
@@ -326,7 +333,7 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     for (const format of exportFormats) {
       let found = false;
       for (const selector of format.selectors) {
-        if (await selector.isVisible({ timeout: 2000 }).catch(() => false)) {
+        if (await isPresentAndVisible(selector)) {
           console.log(`✅ Bouton d'export ${format.name} trouvé`);
           found = true;
           break;
@@ -350,25 +357,11 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
     
     const response = await request.post('/api/ar/upload', {
       multipart: formData,
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      console.log(`✅ API upload répond avec status: ${status}`);
-      
-      // L'API devrait répondre (même si c'est une erreur d'authentification)
-      expect(status).toBeDefined();
-      
-      if (status === 401) {
-        console.log('ℹ️ 401 Unauthorized (normal sans authentification)');
-      } else if (status === 400) {
-        console.log('ℹ️ 400 Bad Request (peut être normal selon la validation)');
-      } else if (status === 200 || status === 201) {
-        console.log('✅ Upload réussi');
-      }
-    } else {
-      console.log('⚠️ Endpoint API non accessible (peut être normal en test)');
-    }
+    });
+
+    const status = response.status();
+    console.log(`✅ API upload répond avec status: ${status}`);
+    expect([200, 201, 400, 401, 403, 422]).toContain(status);
   });
 
   test('should verify export API endpoint', async ({ request }) => {
@@ -380,24 +373,11 @@ test.describe('Upload → 3D Configuration → Export Flow', () => {
         platform: 'ios',
         includeTextures: true,
       },
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      console.log(`✅ API export répond avec status: ${status}`);
-      
-      expect(status).toBeDefined();
-      
-      if (status === 401) {
-        console.log('ℹ️ 401 Unauthorized (normal sans authentification)');
-      } else if (status === 400 || status === 404) {
-        console.log('ℹ️ 400/404 (normal avec configurationId mocké)');
-      } else if (status === 200 || status === 201) {
-        console.log('✅ Export réussi');
-      }
-    } else {
-      console.log('⚠️ Endpoint API non accessible (peut être normal en test)');
-    }
+    });
+
+    const status = response.status();
+    console.log(`✅ API export répond avec status: ${status}`);
+    expect([200, 201, 400, 401, 403, 404, 422]).toContain(status);
   });
 });
 
@@ -427,10 +407,10 @@ test.describe('3D Configurator Performance', () => {
     
     const fileInput = page.locator('input[type="file"]').first();
     
-    if (await fileInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isPresentAndVisible(fileInput)) {
       // Vérifier qu'il y a une limite de taille affichée
       const sizeLimit = page.getByText(/mb|mo|size|taille|limit|limite/i).first();
-      const hasSizeLimit = await sizeLimit.isVisible({ timeout: 2000 }).catch(() => false);
+      const hasSizeLimit = await isPresentAndVisible(sizeLimit);
       
       if (hasSizeLimit) {
         console.log('✅ Limite de taille affichée');
@@ -454,16 +434,12 @@ test.describe('3D Upload Security', () => {
     
     const response = await request.post('/api/ar/upload', {
       multipart: formData,
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      // Devrait retourner une erreur de validation (400)
-      expect([400, 422]).toContain(status);
-      console.log(`✅ Format invalide rejeté avec status: ${status}`);
-    } else {
-      console.log('ℹ️ API non accessible (normal en test)');
-    }
+    });
+
+    const status = response.status();
+    // Devrait retourner une erreur de validation (400)
+    expect([400, 422]).toContain(status);
+    console.log(`✅ Format invalide rejeté avec status: ${status}`);
   });
 
   test('should reject oversized files', async ({ request }) => {
@@ -476,16 +452,12 @@ test.describe('3D Upload Security', () => {
     
     const response = await request.post('/api/ar/upload', {
       multipart: formData,
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      // Devrait retourner une erreur de taille (400)
-      expect([400, 413]).toContain(status);
-      console.log(`✅ Fichier trop volumineux rejeté avec status: ${status}`);
-    } else {
-      console.log('ℹ️ API non accessible (normal en test)');
-    }
+    });
+
+    const status = response.status();
+    // Devrait retourner une erreur de taille (400)
+    expect([400, 413]).toContain(status);
+    console.log(`✅ Fichier trop volumineux rejeté avec status: ${status}`);
   });
 });
 

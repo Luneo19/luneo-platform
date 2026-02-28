@@ -3,6 +3,14 @@ import { type Page } from '@playwright/test';
 const SUPPORTED_LOCALES = ['en', 'fr', 'de'] as const;
 export type SupportedTestLocale = (typeof SUPPORTED_LOCALES)[number];
 
+async function safeIsVisible(locator: any): Promise<boolean> {
+  try {
+    return (await locator.count()) > 0 && (await locator.first().isVisible());
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Définit la locale de la page en ajoutant un paramètre de query
  * Cette fonction est tolérante aux erreurs pour éviter les échecs flaky
@@ -29,7 +37,7 @@ export async function ensureCookieBannerClosed(page: Page): Promise<void> {
     const banner = page.locator('[data-testid="cookie-banner"]');
     
     // Vérifier si la bannière est visible
-    const isVisible = await banner.isVisible().catch(() => false);
+    const isVisible = await safeIsVisible(banner);
     
     if (isVisible) {
       // Essayer plusieurs sélecteurs pour le bouton d'acceptation
@@ -44,7 +52,7 @@ export async function ensureCookieBannerClosed(page: Page): Promise<void> {
       
       for (const selector of acceptSelectors) {
         const acceptButton = page.locator(selector).first();
-        if (await acceptButton.isVisible().catch(() => false)) {
+        if (await safeIsVisible(acceptButton)) {
           await acceptButton.click({ force: true });
           // Attendre que la bannière disparaisse
           await banner.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
@@ -53,7 +61,7 @@ export async function ensureCookieBannerClosed(page: Page): Promise<void> {
       }
       
       // Si la bannière est toujours visible, essayer de la masquer via JavaScript
-      if (await banner.isVisible().catch(() => false)) {
+      if (await safeIsVisible(banner)) {
         await page.evaluate(() => {
           const banner = document.querySelector('[data-testid="cookie-banner"]') as HTMLElement;
           if (banner) {

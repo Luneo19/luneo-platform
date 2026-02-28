@@ -38,6 +38,8 @@ interface PendingInvite {
   expiresAt: string;
 }
 
+const TEAM_MODULE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_TEAM_MODULE === 'true';
+
 function toIsoDate(value: unknown): string {
   if (typeof value === 'string') return value;
   if (value instanceof Date) return value.toISOString();
@@ -45,6 +47,7 @@ function toIsoDate(value: unknown): string {
 }
 
 function TeamPageContent() {
+  const [teamModuleUnavailable, setTeamModuleUnavailable] = useState(!TEAM_MODULE_ENABLED);
   const { toast } = useToast();
   const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,12 +60,19 @@ function TeamPageContent() {
   const queryClient = useQueryClient();
   const teamQuery = useQuery({
     queryKey: ['team', 'members'],
+    enabled: TEAM_MODULE_ENABLED,
     queryFn: async () => {
-      const [members, invites] = await Promise.all([
-        endpoints.team.members(),
-        endpoints.team.invites(),
-      ]);
-      return { members, pendingInvites: invites } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+      try {
+        const [members, invites] = await Promise.all([
+          endpoints.team.members(),
+          endpoints.team.invites(),
+        ]);
+        setTeamModuleUnavailable(false);
+        return { members, pendingInvites: invites } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+      } catch (error) {
+        setTeamModuleUnavailable(true);
+        return { members: [], pendingInvites: [] } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+      }
     },
   });
   const inviteMutation = useMutation({
@@ -212,6 +222,17 @@ function TeamPageContent() {
 
   if (teamQuery.isLoading) {
     return <TeamSkeleton />;
+  }
+
+  if (teamModuleUnavailable) {
+    return (
+      <Card className="dash-card p-6 border-border">
+        <h2 className="text-xl font-semibold text-foreground mb-2">Module equipe bientot disponible</h2>
+        <p className="text-muted-foreground">
+          La gestion d’equipe est temporairement desactivee pendant la migration API.
+        </p>
+      </Card>
+    );
   }
 
   return (

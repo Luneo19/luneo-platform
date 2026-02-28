@@ -56,7 +56,7 @@ function StatCard({
         <div className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
           {value}
         </div>
-        <div className="text-xs text-white/40 tracking-wide">{label}</div>
+        <div className="text-xs text-white/70 tracking-wide">{label}</div>
       </div>
     </motion.div>
   );
@@ -83,7 +83,7 @@ function ChatDemo() {
     >
       <div className="flex items-center gap-2 mb-4">
         <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-        <span className="text-xs font-medium text-white/50">Agent en ligne</span>
+        <span className="text-xs font-medium text-white/80">Agent en ligne</span>
       </div>
 
       <div className="space-y-3">
@@ -195,8 +195,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 key={i}
                 className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-3.5 py-1.5"
               >
-                <Icon className="h-3.5 w-3.5 text-white/40" />
-                <span className="text-xs text-white/40">{badge.label}</span>
+                <Icon className="h-3.5 w-3.5 text-white/70" />
+                <span className="text-xs text-white/70">{badge.label}</span>
               </div>
             );
           })}

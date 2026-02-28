@@ -9,7 +9,19 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTranslatedPlans, getTranslatedFeatures, getTranslatedFaqs } from '../data';
 import type { Plan, Feature } from '../data';
 
-type CheckoutResponse = { success?: boolean; url?: string; sessionId?: string; error?: string; message?: string };
+type CheckoutResponse = {
+  success?: boolean;
+  url?: string;
+  sessionId?: string;
+  error?: string;
+  message?: string;
+  data?: {
+    url?: string;
+    sessionId?: string;
+    error?: string;
+    message?: string;
+  };
+};
 
 export function usePricingPage() {
   const [isYearly, setIsYearly] = useState(true);
@@ -98,11 +110,12 @@ export function usePricingPage() {
           email: resolvedUser.email,
           billingInterval,
         });
-        if (!result?.url) {
-          const msg = result?.error || result?.message || t('pricing.card.invalidResponse');
+        const checkoutUrl = result?.url ?? result?.data?.url;
+        if (!checkoutUrl) {
+          const msg = result?.error || result?.message || result?.data?.error || result?.data?.message || t('pricing.card.invalidResponse');
           throw new Error(typeof msg === 'string' ? msg : t('pricing.card.invalidResponse'));
         }
-        window.location.href = result.url;
+        window.location.href = checkoutUrl;
       } catch (err: unknown) {
         const axiosData = (err as { response?: { data?: { message?: string } } })?.response?.data;
         const backendMessage = axiosData?.message;

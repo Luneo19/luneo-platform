@@ -102,7 +102,7 @@ export default function AdminTicketsPage() {
       const res = await api.get<{
         data: AdminTicket[];
         meta: { total: number; page: number; limit: number; totalPages: number };
-      }>('/api/v1/admin/support/tickets', { params });
+      }>('/api/admin/support/tickets', { params });
 
       const rawRes = res as unknown as { data?: AdminTicket[]; meta?: { total: number; page: number; limit: number; totalPages: number } };
       const data = rawRes?.data ?? (Array.isArray(res) ? res : []);
@@ -153,7 +153,7 @@ export default function AdminTicketsPage() {
           <Ticket className="w-6 h-6" />
           Tickets
         </h1>
-        <p className="text-white/50 mt-1">
+        <p className="text-white/75 mt-1">
           Liste des tickets support avec filtres et pagination
         </p>
       </div>
@@ -227,7 +227,7 @@ export default function AdminTicketsPage() {
               </Button>
             </div>
           ) : tickets.length === 0 ? (
-            <div className="text-center py-12 text-white/50">Aucun ticket trouvé</div>
+            <div className="text-center py-12 text-white/75">Aucun ticket trouvé</div>
           ) : (
             <Table>
               <TableHeader>
@@ -272,7 +272,7 @@ export default function AdminTicketsPage() {
                         {t.priority === 'low' ? 'Basse' : t.priority === 'medium' ? 'Moyenne' : t.priority === 'high' ? 'Haute' : t.priority === 'urgent' ? 'Urgent' : t.priority}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-white/60 text-sm">
+                    <TableCell className="text-white/80 text-sm">
                       {t.createdAt
                         ? new Date(t.createdAt).toLocaleDateString('fr-FR', {
                             day: '2-digit',
@@ -302,7 +302,7 @@ export default function AdminTicketsPage() {
 
         {totalPages > 1 && !loading && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-white/75">
               Page {page} sur {totalPages} ({total} ticket{total !== 1 ? 's' : ''})
             </p>
             <div className="flex gap-2">

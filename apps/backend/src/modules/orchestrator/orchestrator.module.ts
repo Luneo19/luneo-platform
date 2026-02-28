@@ -19,6 +19,12 @@ import { SalesforceProvider } from '@/modules/integrations/providers/salesforce.
 import { GoogleCalendarProvider } from '@/modules/integrations/providers/google-calendar.provider';
 import { CalendlyProvider } from '@/modules/integrations/providers/calendly.provider';
 import { MailchimpProvider } from '@/modules/integrations/providers/mailchimp.provider';
+import { IntegrationHttpClient } from '@/modules/integrations/providers/integration-http.client';
+import { QuotasModule } from '@/modules/quotas/quotas.module';
+import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module';
+import { WorkflowEngineService } from './workflow/workflow-engine.service';
+import { MemoryModule } from '@/modules/memory/memory.module';
+import { QueuesModule } from '@/libs/queues/queues.module';
 
 const actionExecutors = [
   BookingExecutor,
@@ -30,6 +36,7 @@ const actionExecutors = [
 ];
 
 const integrationProviders = [
+  IntegrationHttpClient,
   IntegrationRouterService,
   HubSpotProvider,
   SalesforceProvider,
@@ -45,14 +52,19 @@ const integrationProviders = [
     PrismaOptimizedModule,
     EmailModule,
     BillingModule,
+    QuotasModule,
+    UsageBillingModule,
+    MemoryModule,
+    QueuesModule,
   ],
   providers: [
     OrchestratorService,
+    WorkflowEngineService,
     ToolRegistryService,
     ActionRegistryService,
     ...actionExecutors,
     ...integrationProviders,
   ],
-  exports: [OrchestratorService, ToolRegistryService, ActionRegistryService],
+  exports: [OrchestratorService, WorkflowEngineService, ToolRegistryService, ActionRegistryService],
 })
 export class OrchestratorModule {}

@@ -113,11 +113,10 @@ apps/frontend/.env.*
 **/.git/
 
 # ===================
-# Lock files (large, not useful for indexing)
+# Lock files
 # ===================
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
+
+# Kept indexable to ease dependency/version audits.
 
 # ===================
 # Temporary & log files
@@ -178,11 +177,11 @@ storybook-static/
 # ===================
 monitoring/
 postman/
-sdk/
-woocommerce-plugin/
-integrations/
-docs/
-tests/
+
+# Heavy generated/operational directories
+artifacts/
+reports/
+_archived_test_pages/
 
 # ===================
 # Worker standalone apps (heavy, separate processes)
@@ -202,11 +201,6 @@ apps/widget/
 **/.next/trace
 **/.next/diagnostics/
 **/*.nft.json
-
-# ===================
-# Python AI engine (separate service)
-# ===================
-apps/ai-engine/
 
 # ===================
 # Archive V1 (do not index)

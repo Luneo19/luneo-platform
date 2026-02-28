@@ -38,7 +38,12 @@ export class MailgunService {
     const apiKey = this.configService.get<string>('email.mailgunApiKey');
     const domain = this.configService.get<string>('email.mailgunDomain');
     const __url = this.configService.get<string>('email.mailgunUrl');
-    this.defaultFrom = this.configService.get<string>('email.fromEmail') || 'noreply@luneo.app';
+    const fromName = this.configService.get<string>('emailDomain.sendgridFromName')?.trim() || 'Luneo';
+    const fromEmail =
+      this.configService.get<string>('emailDomain.sendgridFromEmail')?.trim()
+      || this.configService.get<string>('email.fromEmail')?.trim()
+      || 'no-reply@luneo.app';
+    this.defaultFrom = `${fromName} <${fromEmail}>`;
 
     if (!apiKey || !domain) {
       this.logger.debug('Mailgun configuration incomplete. Service will not be available.');

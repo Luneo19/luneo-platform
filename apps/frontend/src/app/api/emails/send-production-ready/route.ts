@@ -18,19 +18,24 @@ export async function POST(request: NextRequest) {
     if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
+    if (user.role !== 'ADMIN') {
+      throw { status: 403, message: 'Accès refusé', code: 'FORBIDDEN' };
+    }
 
     const { orderId, productionFiles } = validatedData;
 
-    // Forward to backend
-    const backendResponse = await fetch(`${API_URL}/api/v1/emails/send-production-ready`, {
+    // Forward to backend unified email endpoint
+    const backendResponse = await fetch(`${API_URL}/api/v1/email/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Cookie: request.headers.get('cookie') || '',
       },
       body: JSON.stringify({
-        orderId,
-        productionFiles,
+        to: user.email,
+        subject: `Fichiers de production prêts (${orderId})`,
+        html: `<p>Vos fichiers de production sont prêts pour la commande <strong>${orderId}</strong>.</p><ul>${productionFiles.map((file) => `<li><a href="${file.url}">${file.name}</a></li>`).join('')}</ul>`,
+        text: `Vos fichiers de production sont prêts pour la commande ${orderId}: ${productionFiles.map((f) => f.url).join(', ')}`,
       }),
     });
 

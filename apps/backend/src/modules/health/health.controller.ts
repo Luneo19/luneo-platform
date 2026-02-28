@@ -7,6 +7,7 @@ import { Controller, Get, Header } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
 import { HealthService, EnrichedHealthResponse } from './health.service';
+import { IntegrationHttpClient } from '@/modules/integrations/providers/integration-http.client';
 
 @ApiTags('Health')
 @SkipRateLimit()
@@ -60,6 +61,51 @@ export class HealthController {
   })
   async getEnriched(): Promise<EnrichedHealthResponse> {
     return this.healthService.getEnrichedHealth();
+  }
+
+  @Get('integrations')
+  @Public()
+  @ApiOperation({
+    summary: 'Integration health and runtime metrics',
+    description: 'Expose la santé des intégrations critiques et leurs métriques d’appels runtime.',
+  })
+  async getIntegrationsHealth() {
+    const enriched = await this.healthService.getEnrichedHealth();
+    return {
+      status: enriched.status,
+      integrations: enriched.dependencies.integrations,
+      metrics: enriched.integrationMetrics ?? IntegrationHttpClient.getGlobalMetrics(),
+    };
+  }
+
+  @Get('slo')
+  @Public()
+  @ApiOperation({
+    summary: 'SLO opérationnel 24h',
+    description:
+      "Expose un indicateur SLO consolidé (dépendances + queues + intégrations) avec burn rate.",
+  })
+  async getSloStatus() {
+    return this.healthService.getSloStatus();
+  }
+
+  @Get('error-budget')
+  @Public()
+  @ApiOperation({
+    summary: "Error budget courant",
+    description:
+      "Expose l'état de consommation de l'error budget pour le pilotage release/go-live.",
+  })
+  async getErrorBudget() {
+    const slo = await this.healthService.getSloStatus();
+    return {
+      window: slo.window,
+      objectivePercent: slo.objectivePercent,
+      errorBudgetPercent: slo.errorBudgetPercent,
+      errorBudgetRemainingPercent: slo.errorBudgetRemainingPercent,
+      burnRate: slo.burnRate,
+      status: slo.status,
+    };
   }
 
   @Get('terminus')
@@ -233,6 +279,14 @@ export class HealthController {
       redisUp = 0;
     }
 
+    const integrationMetrics = IntegrationHttpClient.getGlobalMetrics();
+    const integrationLines = Object.entries(integrationMetrics).flatMap(([provider, metric]) => ([
+      `luneo_integration_calls_total{provider="${provider}"} ${metric.calls}`,
+      `luneo_integration_success_total{provider="${provider}"} ${metric.success}`,
+      `luneo_integration_error_total{provider="${provider}"} ${metric.errors}`,
+      `luneo_integration_avg_latency_ms{provider="${provider}"} ${metric.avgLatencyMs.toFixed(2)}`,
+    ]));
+
     return [
       '# HELP luneo_process_uptime_seconds Process uptime in seconds',
       '# TYPE luneo_process_uptime_seconds gauge',
@@ -254,6 +308,15 @@ export class HealthController {
       '# HELP luneo_metrics_generated_at_ms Metrics generation timestamp',
       '# TYPE luneo_metrics_generated_at_ms gauge',
       `luneo_metrics_generated_at_ms ${now}`,
+      '# HELP luneo_integration_calls_total Total integration calls by provider',
+      '# TYPE luneo_integration_calls_total counter',
+      '# HELP luneo_integration_success_total Total successful integration calls by provider',
+      '# TYPE luneo_integration_success_total counter',
+      '# HELP luneo_integration_error_total Total failed integration calls by provider',
+      '# TYPE luneo_integration_error_total counter',
+      '# HELP luneo_integration_avg_latency_ms Average integration latency by provider',
+      '# TYPE luneo_integration_avg_latency_ms gauge',
+      ...integrationLines,
       '',
     ].join('\n');
   }

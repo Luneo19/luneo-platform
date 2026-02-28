@@ -43,6 +43,37 @@ export class AuthService {
     private tokenBlacklist: TokenBlacklistService,
   ) {}
 
+  private resolvePublicFrontendUrl(): string {
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV;
+    const fallback = nodeEnv === 'production' ? 'https://luneo.app' : 'http://localhost:3000';
+    const configured =
+      this.configService.get<string>('app.frontendUrl')
+      || this.configService.get<string>('FRONTEND_URL')
+      || this.configService.get<string>('NEXT_PUBLIC_APP_URL')
+      || fallback;
+
+    try {
+      const parsed = new URL(configured);
+      if (nodeEnv === 'production') {
+        const host = parsed.hostname.toLowerCase();
+        if (host !== 'luneo.app' && host !== 'www.luneo.app') {
+          this.logger.warn(`Invalid production frontend host "${host}" for auth links; forcing luneo.app`);
+          return 'https://luneo.app';
+        }
+        return `https://${host}`;
+      }
+
+      return `${parsed.protocol}//${parsed.host}`;
+    } catch {
+      this.logger.warn(`Invalid frontend URL "${configured}" for auth links; using fallback ${fallback}`);
+      return fallback;
+    }
+  }
+
+  private buildPasswordResetVersion(passwordHash?: string | null): string {
+    return crypto.createHash('sha256').update(passwordHash ?? '').digest('hex').slice(0, 16);
+  }
+
   /**
    * SEC-05: Chiffre un token OAuth pour stockage sécurisé
    */
@@ -160,7 +191,7 @@ export class AuthService {
           },
         );
 
-        const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://luneo.app' : 'http://localhost:3000');
+        const appUrl = this.resolvePublicFrontendUrl();
         const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
         // Queue email asynchronously - don't await to not block signup response
@@ -169,6 +200,7 @@ export class AuthService {
           verificationToken,
           verificationUrl,
           { userId: user.id, priority: 'high' },
+          user.locale ?? undefined,
         ).then(({ jobId }) => {
           this.logger.debug(`Confirmation email queued for ${user.email}, jobId: ${jobId}`);
         }).catch(queueError => {
@@ -713,11 +745,11 @@ export class AuthService {
    * Forgot password - Send reset email
    */
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-    const { email } = forgotPasswordDto;
+    const normalizedEmail = forgotPasswordDto.email.trim().toLowerCase();
 
     // Find user
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     // Don't reveal if user exists (security best practice)
@@ -728,7 +760,12 @@ export class AuthService {
 
     // Generate reset token (JWT with short expiration)
     const resetToken = await this.jwtService.signAsync(
-      { sub: user.id, email: user.email, type: 'password-reset' },
+      {
+        sub: user.id,
+        email: user.email,
+        type: 'password-reset',
+        pwdv: this.buildPasswordResetVersion(user.passwordHash),
+      },
       {
         secret: this.configService.get('jwt.secret'),
         expiresIn: '1h', // 1 hour expiration
@@ -736,24 +773,20 @@ export class AuthService {
     );
 
     // Get app URL from config
-    const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || this.configService.get<string>('NEXT_PUBLIC_APP_URL') || (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://luneo.app' : 'http://localhost:3000');
+    const appUrl = this.resolvePublicFrontendUrl();
     const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
-    // Queue reset email asynchronously - don't await to not block response
-    this.emailService.queuePasswordResetEmail(
-      user.email,
-      resetToken,
-      resetUrl,
-      { userId: user.id, priority: 'high' },
-    ).then(({ jobId }) => {
-      this.logger.debug(`Password reset email queued for ${user.email}, jobId: ${jobId}`);
-    }).catch(error => {
-      // Log error but don't reveal it to user
-      this.logger.error('Failed to queue password reset email', {
+    // Security-critical flow: send directly instead of queueing to avoid
+    // silent delivery failures when workers/queues are degraded.
+    try {
+      await this.emailService.sendPasswordResetEmail(user.email, resetToken, resetUrl, 'auto', user.locale ?? undefined);
+      this.logger.log(`Password reset email sent for ${user.email}`);
+    } catch (error) {
+      this.logger.error('Failed to send password reset email', {
         error: error instanceof Error ? error.message : 'Unknown error',
         email: user.email,
       });
-    });
+    }
 
     // Return success message immediately (don't reveal if user exists)
     return { message: 'If an account with that email exists, a password reset link has been sent.' };
@@ -777,12 +810,6 @@ export class AuthService {
         throw new BadRequestException('Invalid token type');
       }
 
-      // SECURITY FIX P0-3: Ensure reset token is single-use.
-      // We use the token's iat (issued-at) timestamp to check if the user's password
-      // was already changed after this token was issued. If passwordChangedAt > iat,
-      // the token has already been used or is stale.
-      const tokenIssuedAt = payload.iat ? new Date(payload.iat * 1000) : null;
-
       // Find user
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
@@ -793,15 +820,16 @@ export class AuthService {
         throw new NotFoundException('User not found');
       }
 
-      // SECURITY FIX P0-3: Check if password was already changed after this token was issued.
-      // updatedAt changes when password is updated, making the token effectively single-use.
-      if (tokenIssuedAt && user.updatedAt && user.updatedAt > tokenIssuedAt) {
-        this.logger.warn('Reset token already used (password changed after token issued)', {
-          userId: user.id,
-          tokenIssuedAt: tokenIssuedAt.toISOString(),
-          userUpdatedAt: user.updatedAt.toISOString(),
-        });
-        throw new BadRequestException('This reset link has already been used. Please request a new one.');
+      // Enforce one-time reset links with a password-hash fingerprint.
+      // This avoids false positives caused by user.updatedAt changes unrelated to password updates.
+      if (typeof payload.pwdv === 'string') {
+        const currentPwdv = this.buildPasswordResetVersion(user.passwordHash);
+        if (payload.pwdv !== currentPwdv) {
+          this.logger.warn('Reset token already used or stale (password fingerprint mismatch)', {
+            userId: user.id,
+          });
+          throw new BadRequestException('This reset link has already been used. Please request a new one.');
+        }
       }
 
       // ✅ Validate password strength (additional check)
@@ -811,10 +839,21 @@ export class AuthService {
         );
       }
 
-      // Prevent reusing old password (supports both bcrypt and Argon2id)
-      const { isValid: isSamePassword } = await verifyPassword(password, user.passwordHash ?? '');
-      if (isSamePassword) {
-        throw new BadRequestException('New password must be different from the current password');
+      // Prevent reusing old password when a password hash already exists.
+      // OAuth-only accounts may not have a local password hash yet.
+      if (typeof user.passwordHash === 'string' && user.passwordHash.trim().length > 0) {
+        try {
+          const { isValid: isSamePassword } = await verifyPassword(password, user.passwordHash);
+          if (isSamePassword) {
+            throw new BadRequestException('New password must be different from the current password');
+          }
+        } catch (error) {
+          // Do not block reset for legacy/corrupted hashes; allow setting a fresh password.
+          this.logger.warn('Skipping old-password reuse check due invalid stored hash format', {
+            userId: user.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
       }
 
       // Hash new password with Argon2id (OWASP 2025 recommended)
@@ -913,7 +952,7 @@ export class AuthService {
 
       // Send welcome email after successful verification (non-blocking)
       const userName = user.firstName || user.email.split('@')[0];
-      this.emailService.queueWelcomeEmail(user.email, userName).catch((err: unknown) => {
+      this.emailService.queueWelcomeEmail(user.email, userName, undefined, user.locale ?? undefined).catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.warn(`Failed to queue welcome email for ${user.email}: ${msg}`);
       });
@@ -957,7 +996,7 @@ export class AuthService {
         },
       );
 
-      const appUrl = this.configService.get('app.frontendUrl') || this.configService.get<string>('FRONTEND_URL') || (this.configService.get<string>('NODE_ENV') === 'production' ? 'https://luneo.app' : 'http://localhost:3000');
+      const appUrl = this.resolvePublicFrontendUrl();
       const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
       this.emailService.queueConfirmationEmail(
@@ -965,6 +1004,7 @@ export class AuthService {
         verificationToken,
         verificationUrl,
         { userId: user.id, priority: 'high' },
+        user.locale ?? undefined,
       ).catch((err: unknown) => {
         this.logger.error('Failed to queue resend verification email', {
           userId: user.id,

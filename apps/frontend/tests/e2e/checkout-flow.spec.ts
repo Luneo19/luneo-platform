@@ -5,6 +5,7 @@
 
 import { test, expect } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from './utils/locale';
+import { isPresentAndVisible } from './utils/assertions';
 
 test.describe('Checkout Flow - Complete Journey', () => {
   test.beforeEach(async ({ page }) => {
@@ -35,7 +36,7 @@ test.describe('Checkout Flow - Complete Journey', () => {
       
       for (const planName of planNames) {
         const planElement = page.getByText(new RegExp(planName, 'i')).first();
-        if (await planElement.isVisible({ timeout: 2000 }).catch(() => false)) {
+        if (await isPresentAndVisible(planElement)) {
           foundPlan = true;
           console.log(`✅ Plan ${planName} visible`);
           break;
@@ -44,7 +45,7 @@ test.describe('Checkout Flow - Complete Journey', () => {
       
       // Si aucun plan n'est trouvé, vérifier qu'il y a au moins du contenu
       if (!foundPlan) {
-        const hasContent = await page.locator('main, [role="main"], .container').first().isVisible().catch(() => false);
+        const hasContent = await isPresentAndVisible(page.locator('main, [role="main"], .container').first());
         expect(hasContent).toBeTruthy();
       }
     });
@@ -59,10 +60,10 @@ test.describe('Checkout Flow - Complete Journey', () => {
       const yearlyText = page.getByText(/annuel|yearly/i).first();
       
       const hasToggle = 
-        await monthlyText.isVisible().catch(() => false) ||
-        await yearlyText.isVisible().catch(() => false);
+        await isPresentAndVisible(monthlyText) ||
+        await isPresentAndVisible(yearlyText);
       
-      console.log('Pricing toggle visible:', hasToggle);
+      expect(hasToggle).toBeTruthy();
     });
 
     test('should have CTA buttons', async ({ page }) => {
@@ -72,9 +73,8 @@ test.describe('Checkout Flow - Complete Journey', () => {
       
       // Chercher des boutons CTA
       const ctaButton = page.getByRole('button', { name: /commencer|essayer|choisir|get started|try|subscribe|contact/i }).first();
-      const hasButton = await ctaButton.isVisible().catch(() => false);
-      
-      console.log('CTA button visible:', hasButton);
+      const hasButton = await isPresentAndVisible(ctaButton);
+      expect(hasButton).toBeTruthy();
     });
   });
 
@@ -104,16 +104,13 @@ test.describe('Checkout Flow - Complete Journey', () => {
   test.describe('Success Page', () => {
     test('should have success page route', async ({ page }) => {
       // Naviguer directement vers la page de succès
-      await page.goto('/dashboard/billing/success?session_id=test_session');
+      const response = await page.goto('/dashboard/billing/success?session_id=test_session');
       await page.waitForLoadState('domcontentloaded');
       
-      // Vérifier que la page existe (pas de 404)
-      const is404 = await page.getByText(/404|not found/i).isVisible().catch(() => false);
-      
-      // La page existe si pas de 404 ou si elle affiche du contenu de succès
-      const hasSuccessContent = await page.getByText(/succès|success|paiement|payment|vérification/i).first().isVisible().catch(() => false);
-      
-      console.log('Success page: is404=', is404, 'hasContent=', hasSuccessContent);
+      expect(response?.status() ?? 500).toBeLessThan(500);
+      expect(page.url()).toContain('/success');
+      const body = (await page.textContent('body')) || '';
+      expect(body.includes('Internal Server Error')).toBeFalsy();
     });
   });
 
@@ -139,15 +136,10 @@ test.describe('Checkout Flow - Complete Journey', () => {
 
 test.describe('Billing API Integration', () => {
   test('should have plans API endpoint', async ({ request }) => {
-    const response = await request.get('/api/public/plans').catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      console.log('Plans API status:', status);
-      
-      // API devrait répondre (peu importe le status)
-      expect(status).toBeDefined();
-    }
+    const response = await request.get('/api/public/plans');
+    const status = response.status();
+    console.log('Plans API status:', status);
+    expect(status).toBeLessThan(500);
   });
 
   test('should have checkout session API', async ({ request }) => {
@@ -156,15 +148,11 @@ test.describe('Billing API Integration', () => {
         planId: 'starter',
         billing: 'monthly',
       },
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      console.log('Checkout API status:', status);
-      
-      // API devrait répondre
-      expect(status).toBeDefined();
-    }
+    });
+
+    const status = response.status();
+    console.log('Checkout API status:', status);
+    expect([200, 201, 400, 401, 403, 404, 422]).toContain(status);
   });
 });
 
@@ -200,12 +188,10 @@ test.describe('Checkout Security', () => {
         planId: 'invalid_plan_id_xyz123',
         billing: 'monthly',
       },
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      // Should return an error status (4xx or 5xx)
-      expect([400, 401, 403, 404, 500]).toContain(status);
-    }
+    });
+
+    const status = response.status();
+    // Should return an error status (4xx or 5xx)
+    expect([400, 401, 403, 404, 422]).toContain(status);
   });
 });

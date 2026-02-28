@@ -156,7 +156,7 @@ function SecuritySettingsPageContent() {
     >
       <SlideUp delay={0.1}>
         <h1 className="text-3xl font-bold text-white mb-2">Sécurité</h1>
-        <p className="text-slate-400 mb-8">Gérez vos paramètres de sécurité et authentification</p>
+        <p className="text-slate-200 mb-8">Gérez vos paramètres de sécurité et authentification</p>
       </SlideUp>
 
       {/* 2FA Section */}
@@ -168,7 +168,7 @@ function SecuritySettingsPageContent() {
                 <Shield className="w-5 h-5 text-cyan-400" />
                 Authentification à deux facteurs (2FA)
               </h2>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-200 text-sm">
                 Ajoutez une couche de sécurité supplémentaire à votre compte
               </p>
             </div>
@@ -221,7 +221,7 @@ function SecuritySettingsPageContent() {
           {qrCodeUrl && !is2FAEnabled && (
             <div className="space-y-4">
               <div className="text-center">
-                <p className="text-slate-300 mb-4">
+                <p className="text-slate-100 mb-4">
                   Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)
                 </p>
                 <div className="inline-block p-4 bg-white rounded-lg">
@@ -234,7 +234,7 @@ function SecuritySettingsPageContent() {
               </div>
 
               <div>
-                <Label htmlFor="verification-token" className="text-slate-300 mb-2 block">
+                <Label htmlFor="verification-token" className="text-slate-100 mb-2 block">
                   Code de vérification (6 chiffres)
                 </Label>
                 <Input
@@ -266,7 +266,7 @@ function SecuritySettingsPageContent() {
 
           {is2FAEnabled && (
             <div className="space-y-4">
-              <p className="text-slate-300 text-sm">
+              <p className="text-slate-100 text-sm">
                 La 2FA est activée sur votre compte. Vous devrez entrer un code à chaque connexion.
               </p>
               {showBackupCodes && backupCodes.length > 0 && (
@@ -280,7 +280,7 @@ function SecuritySettingsPageContent() {
                         variant="outline"
                         size="sm"
                         onClick={copyBackupCodes}
-                        className="border-slate-600 text-slate-300"
+                        className="border-slate-600 text-slate-100"
                       >
                         <Copy className="w-4 h-4 mr-1" />
                         Copier
@@ -289,7 +289,7 @@ function SecuritySettingsPageContent() {
                         variant="outline"
                         size="sm"
                         onClick={downloadBackupCodes}
-                        className="border-slate-600 text-slate-300"
+                        className="border-slate-600 text-slate-100"
                       >
                         <Download className="w-4 h-4 mr-1" />
                         Télécharger
@@ -298,7 +298,7 @@ function SecuritySettingsPageContent() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {backupCodes.map((code, index) => (
-                      <code key={index} className="bg-slate-800 px-3 py-2 rounded text-sm text-slate-300">
+                      <code key={index} className="bg-slate-800 px-3 py-2 rounded text-sm text-slate-100">
                         {code}
                       </code>
                     ))}

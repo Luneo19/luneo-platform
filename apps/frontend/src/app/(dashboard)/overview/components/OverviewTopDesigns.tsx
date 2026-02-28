@@ -24,7 +24,7 @@ export function OverviewTopDesigns({ designs }: { designs: TopDesignItem[] }) {
           Top Designs
         </h2>
         <Link href="/dashboard/library">
-          <Button variant="ghost" size="sm" className="text-white/40 hover:text-white hover:bg-white/[0.04]">
+          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/[0.04]">
             Voir tout
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
@@ -36,7 +36,7 @@ export function OverviewTopDesigns({ designs }: { designs: TopDesignItem[] }) {
             <div className="w-12 h-12 bg-white/[0.04] rounded-full flex items-center justify-center mx-auto mb-3 border border-white/[0.06]">
               <Layers className="w-6 h-6 text-white/30" />
             </div>
-            <p className="text-white/60 text-sm">Aucun design encore</p>
+            <p className="text-white/80 text-sm">Aucun design encore</p>
             <p className="text-xs text-white/30 mt-1">Créez votre premier chef-d&apos;œuvre</p>
           </div>
         ) : (
@@ -48,7 +48,7 @@ export function OverviewTopDesigns({ designs }: { designs: TopDesignItem[] }) {
               transition={{ delay: index * 0.05 }}
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.04] transition-colors cursor-pointer"
             >
-              <div className="w-6 h-6 bg-white/[0.04] rounded-full flex items-center justify-center text-xs font-bold text-white/40 border border-white/[0.06]">
+              <div className="w-6 h-6 bg-white/[0.04] rounded-full flex items-center justify-center text-xs font-bold text-white/70 border border-white/[0.06]">
                 {index + 1}
               </div>
               {design.image ? (

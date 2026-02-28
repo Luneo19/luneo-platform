@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   lint:
-    name: Lint & Type Check
+    name: Lint, Type Check & Migration Readiness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,11 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: cd apps/backend && pnpm run lint
+      - run: cd apps/backend && pnpm run type-check
+      - run: cd apps/backend && pnpm run migrate:verify
+        env:
+          MIGRATION_VERIFY_REQUIRE_DB: 'true'
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
       - run: cd apps/backend && pnpm run build
 
   unit-tests:

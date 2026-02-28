@@ -22,7 +22,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -36,6 +35,7 @@ interface PasswordStrength {
     uppercase: boolean;
     lowercase: boolean;
     number: boolean;
+    special: boolean;
   };
 }
 
@@ -50,6 +50,7 @@ const checkPasswordStrength = (
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
   };
 
   const score = Object.values(requirements).filter(Boolean).length;
@@ -78,13 +79,17 @@ function ResetPasswordPageContent() {
   const [isInitializing, setIsInitializing] = useState(true);
 
   const passwordStrength = useMemo(() => checkPasswordStrength(password, t), [password, t]);
+  const hasStrongPassword = useMemo(
+    () => Object.values(passwordStrength.requirements).every(Boolean),
+    [passwordStrength.requirements],
+  );
   const passwordsMatch = useMemo(
     () => password === confirmPassword && confirmPassword.length > 0,
     [password, confirmPassword],
   );
   const isFormValid = useMemo(
-    () => passwordStrength.score >= 3 && passwordsMatch,
-    [passwordStrength.score, passwordsMatch],
+    () => hasStrongPassword && passwordsMatch,
+    [hasStrongPassword, passwordsMatch],
   );
 
   useEffect(() => {
@@ -130,7 +135,7 @@ function ResetPasswordPageContent() {
       setLoading(true);
       setError('');
 
-      if (passwordStrength.score < 3) {
+      if (!hasStrongPassword) {
         setError(t('auth.resetPassword.errors.weakPassword'));
         setLoading(false);
         return;
@@ -154,11 +159,12 @@ function ResetPasswordPageContent() {
           return;
         }
 
-        const apiUrl = getBackendUrl();
-        const response = await fetch(`${apiUrl}/api/v1/auth/reset-password`, {
+        // Use same-origin auth proxy to avoid cross-domain misrouting in production.
+        const response = await fetch('/api/v1/auth/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, password }),
+          cache: 'no-store',
         });
 
         const data = await response.json();
@@ -180,7 +186,7 @@ function ResetPasswordPageContent() {
         setLoading(false);
       }
     },
-    [password, confirmPassword, passwordStrength.score, router, t],
+    [password, confirmPassword, hasStrongPassword, router, t],
   );
 
   // Success state
@@ -363,6 +369,7 @@ function ResetPasswordPageContent() {
                     { key: 'uppercase', labelKey: 'auth.resetPassword.requirements.uppercase' },
                     { key: 'lowercase', labelKey: 'auth.resetPassword.requirements.lowercase' },
                     { key: 'number', labelKey: 'auth.resetPassword.requirements.number' },
+                    { key: 'special', labelKey: 'auth.resetPassword.requirements.special' },
                   ].map(({ key, labelKey }) => (
                     <div
                       key={key}

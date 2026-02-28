@@ -73,7 +73,7 @@ export default function TemplatesPage() {
             <FileText className="w-8 h-8 text-purple-400" />
             Email Templates
           </h1>
-          <p className="text-white/60 mt-2">
+          <p className="text-white/80 mt-2">
             Manage email templates for automated communications
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function TemplatesPage() {
             variant="outline"
             size="sm"
             onClick={() => mutate()}
-            className="border-white/10 text-white/70 hover:text-white hover:bg-white/5"
+            className="bg-zinc-900 border-zinc-700 text-zinc-100 hover:bg-zinc-800"
           >
             <RefreshCw className="w-4 h-4 mr-1" />
             Refresh
@@ -96,7 +96,7 @@ export default function TemplatesPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
         <Input
           placeholder="Search templates..."
           value={search}
@@ -109,7 +109,7 @@ export default function TemplatesPage() {
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-          <span className="ml-3 text-white/60">Loading templates...</span>
+          <span className="ml-3 text-white/80">Loading templates...</span>
         </div>
       )}
 
@@ -118,7 +118,12 @@ export default function TemplatesPage() {
         <Card className="bg-red-500/10 border-red-500/20">
           <CardContent className="p-6 text-center">
             <p className="text-red-400">Failed to load templates. Backend may not be available.</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => mutate()}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 bg-zinc-900 border-zinc-700 text-zinc-100 hover:bg-zinc-800"
+              onClick={() => mutate()}
+            >
               Retry
             </Button>
           </CardContent>
@@ -132,7 +137,7 @@ export default function TemplatesPage() {
             <Card className="col-span-full bg-white/[0.02] border-white/[0.06]">
               <CardContent className="p-12 text-center">
                 <FileText className="w-12 h-12 mx-auto text-white/20 mb-4" />
-                <p className="text-white/40">
+                <p className="text-white/70">
                   {search ? 'No templates match your search' : 'No email templates yet'}
                 </p>
               </CardContent>
@@ -156,11 +161,11 @@ export default function TemplatesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-white/50 text-sm truncate">{template.subject}</p>
+                  <p className="text-white/75 text-sm truncate">{template.subject}</p>
                   {template.variables && template.variables.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {template.variables.map((v) => (
-                        <Badge key={v} variant="outline" className="text-xs text-white/40 border-white/10">
+                        <Badge key={v} variant="outline" className="text-xs text-white/70 border-white/10">
                           {`{{${v}}}`}
                         </Badge>
                       ))}
@@ -171,16 +176,16 @@ export default function TemplatesPage() {
                       {new Date(template.updatedAt).toLocaleDateString()}
                     </span>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white/70 hover:text-white">
                         <Eye className="w-3.5 h-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white/70 hover:text-white">
                         <Edit className="w-3.5 h-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-white/40 hover:text-red-400"
+                        className="h-7 w-7 text-white/70 hover:text-red-400"
                         onClick={() => handleDelete(template.id)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />

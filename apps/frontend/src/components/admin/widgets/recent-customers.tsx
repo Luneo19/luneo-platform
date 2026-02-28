@@ -86,7 +86,7 @@ export function RecentCustomers({
         {customers.length > limit && (
           <Link
             href="/admin/customers"
-            className="text-sm text-white/60 hover:text-white flex items-center gap-1"
+            className="text-sm text-white/80 hover:text-white flex items-center gap-1"
           >
             View All
             <ArrowRight className="w-4 h-4" />
@@ -95,7 +95,7 @@ export function RecentCustomers({
       </CardHeader>
       <CardContent>
         {displayCustomers.length === 0 ? (
-          <div className="text-center py-8 text-white/40">
+          <div className="text-center py-8 text-white/70">
             <p>No customers yet</p>
           </div>
         ) : (
@@ -139,7 +139,7 @@ function RecentCustomerRow({ customer }: { customer: RecentCustomer }) {
             <p className="text-sm font-medium text-white truncate group-hover:text-white">
               {customer.name}
             </p>
-            <p className="text-xs text-zinc-400 truncate">{customer.email}</p>
+            <p className="text-xs text-zinc-300 truncate">{customer.email}</p>
           </div>
           <Badge
             variant="secondary"
@@ -148,7 +148,7 @@ function RecentCustomerRow({ customer }: { customer: RecentCustomer }) {
             {statusLabels[customer.status]}
           </Badge>
         </div>
-        <div className="flex items-center gap-4 mt-2 text-xs text-white/40">
+        <div className="flex items-center gap-4 mt-2 text-xs text-white/70">
           {customer.plan && (
             <span className="capitalize">{customer.plan}</span>
           )}

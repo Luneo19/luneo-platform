@@ -107,7 +107,7 @@ export function CustomersTable({
     if (selectedCustomers.size === customers.length) {
       setSelectedCustomers(new Set());
     } else {
-      setSelectedCustomers(new Set(customers.map(c => c.id)));
+      setSelectedCustomers(new Set(customers.map(c => c.userId || c.id)));
     }
   };
 
@@ -191,7 +191,7 @@ export function CustomersTable({
             Customers ({pagination.total})
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-200 hover:bg-zinc-800">
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -340,14 +340,14 @@ export function CustomersTable({
                     <TableCell>
                       <input
                         type="checkbox"
-                        checked={selectedCustomers.has(customer.id)}
-                        onChange={() => toggleSelectCustomer(customer.id)}
+                        checked={selectedCustomers.has(customer.userId || customer.id)}
+                        onChange={() => toggleSelectCustomer(customer.userId || customer.id)}
                         className="rounded border-zinc-600 bg-zinc-900"
                       />
                     </TableCell>
                     <TableCell>
                       <Link
-                        href={`/admin/customers/${customer.id}`}
+                        href={`/admin/customers/${customer.userId || customer.id}`}
                         className="flex items-center gap-3 hover:text-white transition-colors"
                       >
                         <Avatar className="h-8 w-8">
@@ -396,7 +396,7 @@ export function CustomersTable({
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-zinc-300 hover:text-white">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </TableCell>

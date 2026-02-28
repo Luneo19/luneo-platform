@@ -3,6 +3,7 @@ import { PrismaOptimizedModule } from '@/libs/prisma/prisma-optimized.module';
 import { RedisOptimizedModule } from '@/libs/redis/redis-optimized.module';
 import { LlmModule } from '@/libs/llm/llm.module';
 import { FeatureFlagsModule } from '@/modules/feature-flags/feature-flags.module';
+import { QueuesModule } from '@/libs/queues/queues.module';
 import { AgentAnalyticsController } from './agent-analytics.controller';
 import { AgentAnalyticsService } from './agent-analytics.service';
 import { InsightsService } from './services/insights.service';
@@ -13,6 +14,8 @@ import { BusinessImpactService } from './business-impact.service';
 import { ScorecardService } from './scorecard.service';
 import { AttributionV1Service } from './attribution-v1.service';
 import { FlywheelAutomationService } from './flywheel-automation.service';
+import { ReportGenerationProcessor } from './report-generation.processor';
+import { ReportGenerationScheduler } from './report-generation.scheduler';
 
 @Module({
   imports: [
@@ -20,6 +23,7 @@ import { FlywheelAutomationService } from './flywheel-automation.service';
     RedisOptimizedModule,
     LlmModule,
     FeatureFlagsModule,
+    QueuesModule,
   ],
   controllers: [AgentAnalyticsController],
   providers: [
@@ -32,6 +36,8 @@ import { FlywheelAutomationService } from './flywheel-automation.service';
     ScorecardService,
     AttributionV1Service,
     FlywheelAutomationService,
+    ReportGenerationProcessor,
+    ReportGenerationScheduler,
   ],
   exports: [
     AgentAnalyticsService,

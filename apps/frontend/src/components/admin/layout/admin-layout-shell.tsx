@@ -28,7 +28,7 @@ export function AdminLayoutShell({ sidebar, header, children }: AdminLayoutShell
 
   return (
     <MobileSidebarContext.Provider value={{ open: sidebarOpen, toggle, close }}>
-      <div className="flex h-screen bg-zinc-950 overflow-hidden">
+      <div data-admin-ui="true" className="flex h-screen bg-zinc-950 overflow-hidden">
         {/* Desktop sidebar */}
         <div className="hidden lg:flex">
           {sidebar}

@@ -177,77 +177,40 @@ export async function POST(request: NextRequest) {
       type,
       messageLength: message.length,
     });
-    const targetSupportEmail =
-      process.env.SUPPORT_EMAIL || process.env.CONTACT_EMAIL || 'support@luneo.app';
-    const trackingId = `ctc_${Date.now().toString(36)}`;
-
-    // Option 1: Envoyer via SendGrid si configuré
-    if (process.env.SENDGRID_API_KEY) {
-      try {
-        const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personalizations: [{
-              to: [{ email: targetSupportEmail }],
-              subject: `[Contact ${type}] ${subject} (${trackingId})`,
-            }],
-            from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@luneo.app', name: 'Luneo Contact' },
-            reply_to: { email: email, name: name },
-            content: [{
-              type: 'text/html',
-              value: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #3b82f6;">Nouveau message de contact</h2>
-                  <table style="width: 100%; border-collapse: collapse;">
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Nom:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${name}</td></tr>
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Email:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${email}</td></tr>
-                    ${company ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Entreprise:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${company}</td></tr>` : ''}
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Type:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${type}</td></tr>
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Sujet:</strong></td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${subject}</td></tr>
-                  </table>
-                  <h3 style="color: #374151; margin-top: 20px;">Message:</h3>
-                  <div style="background: #f9fafb; padding: 16px; border-radius: 8px; white-space: pre-wrap;">${message}</div>
-                  <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;">
-                  <p style="color: #6b7280; font-size: 12px;">Envoyé depuis le formulaire de contact Luneo</p>
-                </div>
-              `,
-            }],
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          serverLogger.warn('SendGrid API error', { status: response.status, error: errorText });
-        } else {
-          serverLogger.info('Contact email sent via SendGrid', { to: targetSupportEmail, from: email, trackingId });
-        }
-      } catch (emailError) {
-        serverLogger.error('Email sending failed', emailError instanceof Error ? emailError : undefined, { error: emailError });
-        // Continue anyway - message is logged
-      }
-    }
-
-    // Option 2: Store contact message via backend API
     const backendUrl = getBackendUrl();
+    const backendResponse = await fetch(`${backendUrl}/api/v1/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, company, subject, message, type, captchaToken }),
+      cache: 'no-store',
+    });
+
+    let backendPayload: unknown = null;
     try {
-      await fetch(`${backendUrl}/api/v1/contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, company, subject, message, type, trackingId }),
-      });
-    } catch (dbError) {
-      serverLogger.warn('Backend contact storage failed', { error: dbError });
-      // Continue anyway - message is logged and email was sent
+      backendPayload = await backendResponse.json();
+    } catch {
+      backendPayload = null;
     }
 
+    if (!backendResponse.ok) {
+      serverLogger.warn('Backend contact processing failed', {
+        status: backendResponse.status,
+        payload: backendPayload,
+        email,
+        subject,
+      });
+      throw {
+        status: backendResponse.status,
+        message: 'Impossible d\'envoyer le message de contact pour le moment.',
+        code: 'CONTACT_BACKEND_ERROR',
+      };
+    }
+
+    const payload = (backendPayload ?? {}) as { trackingId?: string; message?: string };
     return {
       success: true,
-      trackingId,
-      message: 'Message envoyé avec succès. Nous vous répondrons sous 24h.',
+      trackingId: payload.trackingId,
+      message: payload.message || 'Message envoyé avec succès. Nous vous répondrons sous 24h.',
     };
   }, '/api/contact', 'POST');
 }

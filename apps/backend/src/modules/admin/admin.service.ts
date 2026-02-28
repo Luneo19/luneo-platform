@@ -2109,6 +2109,7 @@ export class AdminService {
   private static readonly ORION_AUDIT_LOG_KEY = 'admin:orion:audit-log';
   private static readonly MARKETING_CAMPAIGNS_KEY = 'admin:marketing:campaigns';
   private static readonly MARKETING_AUTOMATIONS_KEY = 'admin:marketing:automations';
+  private static readonly SENDGRID_EVENTS_KEY = 'admin:email:sendgrid:events';
 
   private async getFeatureFlagList<T>(key: string): Promise<T[]> {
     const flag = await this.prisma.featureFlag.findUnique({ where: { key } });
@@ -2609,6 +2610,36 @@ export class AdminService {
     return found;
   }
 
+  private resolveSendGridTemplateId(templateType: unknown): string | null {
+    const type = String(templateType || '').toLowerCase();
+    const templates = this.configService.get<Record<string, string>>('emailDomain.emailTemplates') || {};
+    const map: Record<string, string> = {
+      welcome: 'welcome',
+      newsletter: 'newsletter',
+      invoice: 'invoice',
+      order_confirmation: 'orderConfirmation',
+      orderconfirmation: 'orderConfirmation',
+      production_ready: 'productionReady',
+      productionready: 'productionReady',
+      password_reset: 'passwordReset',
+      passwordreset: 'passwordReset',
+      email_confirmation: 'emailConfirmation',
+      emailconfirmation: 'emailConfirmation',
+      payment_failed: 'paymentFailed',
+      paymentfailed: 'paymentFailed',
+      subscription_updated: 'subscriptionUpdated',
+      subscriptionupdated: 'subscriptionUpdated',
+      subscription_canceled: 'subscriptionCanceled',
+      subscriptioncanceled: 'subscriptionCanceled',
+      contact: 'contact',
+    };
+    const key = map[type];
+    if (!key) return null;
+    const templateId = templates[key];
+    if (!templateId || templateId.includes('template-id')) return null;
+    return templateId;
+  }
+
   async createOrionCommunicationTemplate(body: Record<string, unknown>) {
     const templates = await this.getOrionCommunicationTemplates();
     const now = new Date().toISOString();
@@ -2620,6 +2651,7 @@ export class AdminService {
       subject: body.subject ?? '',
       body: body.body ?? '',
       active: body.active ?? true,
+      sendgridTemplateId: body.sendgridTemplateId ?? this.resolveSendGridTemplateId(body.type),
       createdAt: now,
       updatedAt: now,
     };
@@ -2646,6 +2678,7 @@ export class AdminService {
       ...current,
       ...body,
       id,
+      sendgridTemplateId: body.sendgridTemplateId ?? current.sendgridTemplateId ?? this.resolveSendGridTemplateId(body.type ?? current.type),
       updatedAt: new Date().toISOString(),
     };
     templates[index] = updated;
@@ -2678,7 +2711,7 @@ export class AdminService {
     const limit = Math.min(params?.limit || 20, 100);
     const skip = (page - 1) * limit;
 
-    const [ticketMessages, webhookLogs, totalTicketMessages, totalWebhookLogs] = await Promise.all([
+    const [ticketMessages, webhookLogs, sendgridEvents, totalTicketMessages, totalWebhookLogs] = await Promise.all([
       this.prisma.ticketMessage.findMany({
         where: { isStaff: true },
         skip,
@@ -2696,6 +2729,7 @@ export class AdminService {
           webhook: { select: { id: true, url: true } },
         },
       }),
+      this.getFeatureFlagList<Record<string, unknown>>(AdminService.SENDGRID_EVENTS_KEY),
       this.prisma.ticketMessage.count({ where: { isStaff: true } }),
       this.prisma.webhookLog.count(),
     ]);
@@ -2720,11 +2754,21 @@ export class AdminService {
       createdAt: log.createdAt.toISOString(),
     }));
 
-    const items = [...mappedMessages, ...mappedWebhooks]
+    const mappedSendGrid = sendgridEvents.map((event) => ({
+      id: String(event.id ?? crypto.randomUUID()),
+      channel: 'email',
+      type: String(event.type ?? 'email_event'),
+      status: String(event.status ?? 'sent'),
+      subject: event.subject ? String(event.subject) : null,
+      target: String(event.target ?? 'unknown'),
+      createdAt: String(event.createdAt ?? new Date().toISOString()),
+    }));
+
+    const items = [...mappedMessages, ...mappedWebhooks, ...mappedSendGrid]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, limit);
 
-    const total = totalTicketMessages + totalWebhookLogs;
+    const total = totalTicketMessages + totalWebhookLogs + mappedSendGrid.length;
     return {
       items,
       total,
@@ -2735,19 +2779,23 @@ export class AdminService {
   }
 
   async getOrionCommunicationStats() {
-    const [templates, staffMessagesCount, webhookLogCount, failedWebhookCount] = await Promise.all([
+    const [templates, staffMessagesCount, webhookLogCount, failedWebhookCount, sendgridEvents] = await Promise.all([
       this.getOrionCommunicationTemplates(),
       this.prisma.ticketMessage.count({ where: { isStaff: true } }),
       this.prisma.webhookLog.count(),
       this.prisma.webhookLog.count({ where: { success: false } }),
+      this.getFeatureFlagList<Record<string, unknown>>(AdminService.SENDGRID_EVENTS_KEY),
     ]);
+
+    const sendgridFailed = sendgridEvents.filter((event) => String(event.status || '').toLowerCase() === 'failed').length;
+    const sendgridSent = sendgridEvents.length - sendgridFailed;
 
     return {
       templates: templates.length,
-      sent: staffMessagesCount + webhookLogCount - failedWebhookCount,
-      failed: failedWebhookCount,
+      sent: staffMessagesCount + webhookLogCount - failedWebhookCount + sendgridSent,
+      failed: failedWebhookCount + sendgridFailed,
       channels: {
-        email: templates.filter((template) => String(template.channel || '').toLowerCase() === 'email').length,
+        email: templates.filter((template) => String(template.channel || '').toLowerCase() === 'email').length + sendgridEvents.length,
         webhook: webhookLogCount,
         support: staffMessagesCount,
       },

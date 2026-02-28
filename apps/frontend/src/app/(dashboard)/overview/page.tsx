@@ -54,10 +54,20 @@ interface RecentConversation {
   createdAt: string;
 }
 
-function useOverviewStats(period: string) {
+function useOverviewStats(period: string, role?: string) {
   return useQuery<OverviewStats>({
-    queryKey: ['overview-stats', period],
+    queryKey: ['overview-stats', period, role],
     queryFn: async () => {
+      // Platform admins do not necessarily have tenant-scoped agent analytics.
+      // Skip tenant endpoints to avoid predictable 4xx noise on /overview.
+      if (role === 'ADMIN' || role === 'PLATFORM_ADMIN') {
+        return {
+          agentsActive: 0, agentsTotal: 0,
+          conversationsTotal: 0, conversationsThisPeriod: 0, conversationsTrend: 0,
+          resolutionRate: 0, avgSatisfaction: 0,
+          leadsCaptured: 0, resolvedWithoutHuman: 0, estimatedRevenue: 0, costSavings: 0,
+        };
+      }
       try {
         const now = new Date();
         const from = new Date(now);
@@ -136,14 +146,14 @@ function KPICard({
   color: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all hover:border-white/[0.1] hover:bg-white/[0.04]">
+    <div className="rounded-2xl border border-border bg-card p-6 transition-all hover:border-border/80 hover:bg-accent/30">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-semibold uppercase tracking-wider text-white/50">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
         <div className={`rounded-lg p-2 ${color}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="text-3xl font-bold text-white">{value}</div>
+      <div className="text-3xl font-bold text-foreground">{value}</div>
       <div className="mt-2 flex items-center gap-2">
         {trend !== undefined && trend !== 0 && (
           <>
@@ -157,7 +167,7 @@ function KPICard({
             </span>
           </>
         )}
-        {subtitle && <span className="text-xs text-white/40">{subtitle}</span>}
+        {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
       </div>
     </div>
   );
@@ -166,7 +176,7 @@ function KPICard({
 function OverviewContent() {
   const [period] = useState('30d');
   const { user } = useAuth();
-  const { data: stats, isLoading, refetch } = useOverviewStats(period);
+  const { data: stats, isLoading, refetch } = useOverviewStats(period, user?.role);
   const { data: conversations = [] } = useRecentConversations();
 
   const quickActions = [
@@ -177,14 +187,14 @@ function OverviewContent() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-foreground">
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             Bonjour{user?.firstName ? `, ${user.firstName}` : ''} !
           </h1>
-          <p className="mt-1 text-sm text-white/50">
+          <p className="mt-1 text-sm text-muted-foreground">
             Voici un aperçu de vos agents IA et conversations
           </p>
         </div>
@@ -192,7 +202,7 @@ function OverviewContent() {
           variant="outline"
           size="sm"
           onClick={() => refetch()}
-          className="border-white/[0.06] text-white/70 hover:bg-white/[0.06]"
+          className="border-border text-foreground hover:bg-accent"
         >
           <RefreshCw className="mr-2 h-3.5 w-3.5" />
           Actualiser
@@ -203,10 +213,10 @@ function OverviewContent() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 animate-pulse">
-              <div className="h-3 w-20 rounded bg-white/[0.06] mb-4" />
-              <div className="h-8 w-24 rounded bg-white/[0.06] mb-2" />
-              <div className="h-3 w-32 rounded bg-white/[0.04]" />
+            <div key={i} className="rounded-2xl border border-border bg-card p-6 animate-pulse">
+              <div className="h-3 w-20 rounded bg-muted mb-4" />
+              <div className="h-8 w-24 rounded bg-muted mb-2" />
+              <div className="h-3 w-32 rounded bg-muted/70" />
             </div>
           ))}
         </div>
@@ -247,21 +257,21 @@ function OverviewContent() {
 
           {/* Operational KPIs - Secondary */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-              <p className="text-xs text-white/40">Agents actifs</p>
-              <p className="text-lg font-semibold text-white">{stats.agentsActive}/{stats.agentsTotal}</p>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Agents actifs</p>
+              <p className="text-lg font-semibold text-foreground">{stats.agentsActive}/{stats.agentsTotal}</p>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-              <p className="text-xs text-white/40">Conversations</p>
-              <p className="text-lg font-semibold text-white">{stats.conversationsThisPeriod.toLocaleString()}</p>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Conversations</p>
+              <p className="text-lg font-semibold text-foreground">{stats.conversationsThisPeriod.toLocaleString()}</p>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-              <p className="text-xs text-white/40">Satisfaction</p>
-              <p className="text-lg font-semibold text-white">{stats.avgSatisfaction > 0 ? `${stats.avgSatisfaction.toFixed(1)}/5` : '—'}</p>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Satisfaction</p>
+              <p className="text-lg font-semibold text-foreground">{stats.avgSatisfaction > 0 ? `${stats.avgSatisfaction.toFixed(1)}/5` : '—'}</p>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-              <p className="text-xs text-white/40">Total conversations</p>
-              <p className="text-lg font-semibold text-white">{stats.conversationsTotal.toLocaleString()}</p>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">Total conversations</p>
+              <p className="text-lg font-semibold text-foreground">{stats.conversationsTotal.toLocaleString()}</p>
             </div>
           </div>
         </>
@@ -269,15 +279,15 @@ function OverviewContent() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="mb-4 text-lg font-semibold text-white">Actions rapides</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Actions rapides</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {quickActions.map((action) => (
             <Link key={action.label} href={action.href}>
-              <div className="group rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
+              <div className="group rounded-xl border border-border bg-card p-4 text-center transition-all hover:border-border/80 hover:bg-accent/30">
                 <div className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${action.color}`}>
-                  <action.icon className="h-5 w-5 text-white" />
+                  <action.icon className="h-5 w-5 text-foreground" />
                 </div>
-                <p className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
+                <p className="text-sm font-medium text-foreground group-hover:text-purple-500 transition-colors">
                   {action.label}
                 </p>
               </div>
@@ -289,9 +299,9 @@ function OverviewContent() {
       {/* Content: Recent Conversations + Getting Started */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Recent Conversations */}
-        <div className="xl:col-span-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <div className="xl:col-span-2 rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Activity className="h-5 w-5 text-purple-400" />
               Conversations récentes
             </h2>
@@ -302,24 +312,24 @@ function OverviewContent() {
 
           {conversations.length === 0 ? (
             <div className="py-12 text-center">
-              <MessageSquare className="mx-auto mb-3 h-10 w-10 text-white/20" />
-              <p className="text-sm text-white/40">Aucune conversation pour le moment</p>
-              <p className="mt-1 text-xs text-white/30">Les conversations apparaîtront ici une fois vos agents actifs</p>
+              <MessageSquare className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Aucune conversation pour le moment</p>
+              <p className="mt-1 text-xs text-muted-foreground">Les conversations apparaîtront ici une fois vos agents actifs</p>
             </div>
           ) : (
             <div className="space-y-2">
               {conversations.map((conv) => (
                 <Link key={conv.id} href={`/conversations/${conv.id}`}>
-                  <div className="flex items-center justify-between rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3 transition-all hover:bg-white/[0.06]">
+                  <div className="flex items-center justify-between rounded-lg bg-background border border-border px-4 py-3 transition-all hover:bg-accent/30">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06]">
-                        <MessageSquare className="h-3.5 w-3.5 text-white/50" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">
+                        <p className="truncate text-sm font-medium text-foreground">
                           {conv.visitorName || conv.visitorEmail || 'Visiteur anonyme'}
                         </p>
-                        <p className="truncate text-xs text-white/40">
+                        <p className="truncate text-xs text-muted-foreground">
                           {(conv.agent?.name ?? 'Agent')} · {conv.messageCount} messages
                         </p>
                       </div>
@@ -328,7 +338,7 @@ function OverviewContent() {
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${STATUS_COLOR[conv.status] ?? STATUS_COLOR.ACTIVE}`}>
                         {conv.status}
                       </span>
-                      <span className="text-[10px] text-white/30">
+                      <span className="text-[10px] text-muted-foreground">
                         {new Date(conv.createdAt).toLocaleDateString('fr-FR')}
                       </span>
                     </div>
@@ -340,8 +350,8 @@ function OverviewContent() {
         </div>
 
         {/* Getting Started / Suggestions */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
             <Sparkles className="h-5 w-5 text-blue-400" />
             Pour bien démarrer
           </h2>
@@ -368,9 +378,9 @@ function OverviewContent() {
             />
           </div>
 
-          <div className="mt-6 rounded-lg border border-white/[0.06] bg-white/[0.03] p-4">
-            <p className="text-xs font-medium text-white/60 mb-2">Besoin d'aide ?</p>
-            <p className="text-xs text-white/40">
+          <div className="mt-6 rounded-lg border border-border bg-background p-4">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Besoin d'aide ?</p>
+            <p className="text-xs text-muted-foreground">
               Consultez notre documentation ou contactez le support pour démarrer rapidement.
             </p>
             <Link href="/help/documentation" className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
@@ -387,10 +397,10 @@ function ChecklistItem({ done, label, href }: { done: boolean; label: string; hr
   return (
     <Link href={href}>
       <div className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
-        done ? 'bg-emerald-500/5 border border-emerald-500/10' : 'bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.06]'
+        done ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-card border border-border hover:bg-accent/30'
       }`}>
-        <CheckCircle2 className={`h-4 w-4 shrink-0 ${done ? 'text-emerald-400' : 'text-white/20'}`} />
-        <span className={`text-sm ${done ? 'text-emerald-300 line-through' : 'text-white/70'}`}>
+        <CheckCircle2 className={`h-4 w-4 shrink-0 ${done ? 'text-emerald-400' : 'text-muted-foreground'}`} />
+        <span className={`text-sm ${done ? 'text-emerald-500 line-through' : 'text-foreground'}`}>
           {label}
         </span>
       </div>

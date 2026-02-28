@@ -69,6 +69,7 @@ export class WorkflowEngineService {
     agentId: string,
     conversationId: string,
     userMessage: string,
+    flowDataOverride?: Record<string, unknown> | null,
   ): Promise<WorkflowResult> {
     const agent = await this.prisma.agent.findUnique({
       where: { id: agentId },
@@ -79,7 +80,7 @@ export class WorkflowEngineService {
       throw new NotFoundException(`Agent ${agentId} introuvable`);
     }
 
-    const flowData = agent.flowData as Record<string, unknown> | null;
+    const flowData = (flowDataOverride ?? agent.flowData) as Record<string, unknown> | null;
     if (!flowData || !Array.isArray(flowData.nodes) || flowData.nodes.length === 0) {
       return {
         response: '',

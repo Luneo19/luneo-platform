@@ -30,7 +30,7 @@ interface Agent {
   avatar?: string;
   status: AgentStatus;
   template?: { id: string; name: string; category?: string };
-  stats: {
+  stats?: {
     totalConversations: number;
     totalMessages: number;
     avgSatisfaction: number;
@@ -63,6 +63,12 @@ export default function AgentsPage() {
   const [search, setSearch] = useState('');
 
   const fetchAgents = useCallback(async () => {
+    if (user?.role === 'ADMIN' || user?.role === 'PLATFORM_ADMIN') {
+      setAgents([]);
+      setError('Le module Agents est lié aux organisations clientes et n’est pas disponible pour ce profil admin.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -78,7 +84,7 @@ export default function AgentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, user?.role]);
 
   useEffect(() => {
     fetchAgents();
@@ -196,6 +202,9 @@ export default function AgentsPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredAgents.map((agent) => {
             const statusCfg = STATUS_CONFIG[agent.status] ?? STATUS_CONFIG.DRAFT;
+            const totalConversations = agent.stats?.totalConversations ?? 0;
+            const avgSatisfaction = agent.stats?.avgSatisfaction ?? 0;
+            const resolutionRate = agent.stats?.resolutionRate ?? 0;
             return (
               <Link key={agent.id} href={`/agents/${agent.id}`}>
                 <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
@@ -229,7 +238,7 @@ export default function AgentsPage() {
                         <span className="text-xs">Conversations</span>
                       </div>
                       <p className="mt-1 text-lg font-bold text-white">
-                        {agent.stats.totalConversations.toLocaleString()}
+                        {totalConversations.toLocaleString()}
                       </p>
                     </div>
                     <div className="rounded-lg bg-white/[0.03] border border-white/[0.04] px-3 py-2.5">
@@ -238,8 +247,8 @@ export default function AgentsPage() {
                         <span className="text-xs">Satisfaction</span>
                       </div>
                       <p className="mt-1 text-lg font-bold text-white">
-                        {agent.stats.avgSatisfaction > 0
-                          ? `${agent.stats.avgSatisfaction.toFixed(1)}/5`
+                        {avgSatisfaction > 0
+                          ? `${avgSatisfaction.toFixed(1)}/5`
                           : '—'}
                       </p>
                     </div>
@@ -253,7 +262,7 @@ export default function AgentsPage() {
                         : `Créé ${new Date(agent.createdAt).toLocaleDateString('fr-FR')}`}
                     </span>
                     <span className="text-xs text-white/20">
-                      {Math.round(agent.stats.resolutionRate * 100)}% résolu
+                      {Math.round(resolutionRate * 100)}% résolu
                     </span>
                   </div>
                 </div>

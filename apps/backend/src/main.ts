@@ -13,6 +13,15 @@ const earlyLogger = new Logger('MainBootstrap');
 earlyLogger.log('Starting main.ts...');
 earlyLogger.debug(`NODE_ENV: ${process.env.NODE_ENV}`);
 earlyLogger.debug(`PORT: ${process.env.PORT}`);
+process.on('uncaughtException', (error) => {
+  // Keep this at process-level to surface startup crashes in container logs.
+  earlyLogger.error(`Uncaught exception during bootstrap: ${error?.message ?? error}`, error?.stack);
+});
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  earlyLogger.error(`Unhandled rejection during bootstrap: ${message}`, stack);
+});
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
@@ -203,6 +212,8 @@ async function bootstrap() {
     // This must be done BEFORE NestJS/JSON body parsing
     // Stripe webhook
     server.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
+    // SendGrid event webhook (raw body for signature verification)
+    server.use('/api/v1/webhooks/sendgrid/events', express.raw({ type: 'application/json' }));
     // WooCommerce webhook (raw body for HMAC verification)
     server.use('/api/v1/ecommerce/woocommerce/webhook', express.raw({ type: 'application/json' }));
     // Shopify webhooks (raw body for HMAC-SHA256 verification)

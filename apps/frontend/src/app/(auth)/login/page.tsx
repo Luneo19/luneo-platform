@@ -98,27 +98,6 @@ function LoginPageContent() {
     }
   }, [t]);
 
-  // If the user is already authenticated, avoid showing auth pages again.
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const me = await endpoints.auth.me().catch(() => null);
-        const role = (me as { role?: string } | null)?.role;
-        if (!role || cancelled) return;
-        const targetUrl = resolvePostAuthTarget(role, currentQueryRedirect());
-        window.location.replace(targetUrl);
-      } catch {
-        // Ignore and keep login page for unauthenticated users.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvePostAuthTarget, currentQueryRedirect]);
-
   // Email validation
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -268,7 +247,7 @@ function LoginPageContent() {
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display" data-testid="login-title">
           {t('auth.login.welcomeBack')}
             </h1>
-        <p className="text-slate-500" data-testid="login-subtitle">
+        <p className="text-slate-300" data-testid="login-subtitle">
           {t('auth.login.subtitleLuneo')}
             </p>
           </div>
@@ -315,16 +294,16 @@ function LoginPageContent() {
         {/* Email */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="email" className="text-sm font-medium text-slate-200">
             {t('auth.login.email')}
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
                   placeholder={t('auth.login.emailPlaceholder')}
-              className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
+              className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -342,7 +321,7 @@ function LoginPageContent() {
         <SlideUp delay={0.5}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+            <Label htmlFor="password" className="text-sm font-medium text-slate-200">
                 {t('auth.login.password')}
               </Label>
             <Link 
@@ -354,12 +333,12 @@ function LoginPageContent() {
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
+              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -369,7 +348,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
                   data-testid="login-toggle-password"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -390,11 +369,11 @@ function LoginPageContent() {
               className="w-4 h-4 rounded border-dark-border bg-dark-surface text-purple-500 focus:ring-purple-500/20 focus:ring-offset-0"
                   data-testid="login-remember"
                 />
-            <Label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
+            <Label htmlFor="remember" className="text-sm text-slate-300 cursor-pointer">
               {t('auth.login.rememberMe')}
                 </Label>
               </div>
-          <div className="flex items-center gap-1 text-xs text-slate-600">
+          <div className="flex items-center gap-1 text-xs text-slate-300">
             <Shield className="w-3 h-3" />
             <span>{t('auth.login.secureConnection')}</span>
           </div>
@@ -431,7 +410,7 @@ function LoginPageContent() {
           <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-dark-bg text-slate-600">{t('auth.login.orContinueWith')}</span>
+          <span className="px-4 bg-dark-bg text-slate-300">{t('auth.login.orContinueWith')}</span>
             </div>
           </div>
         </FadeIn>
@@ -442,7 +421,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12"
+          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-200 h-12"
               onClick={() => handleOAuthLogin('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -459,7 +438,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12"
+          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-200 h-12"
               onClick={() => handleOAuthLogin('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -478,7 +457,7 @@ function LoginPageContent() {
           {/* Sign up link */}
         <FadeIn delay={1.0}>
       <div className="mt-8 text-center">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-300">
               {t('auth.login.noAccount')}{' '}
               <Link
                 href="/register"
@@ -495,7 +474,7 @@ function LoginPageContent() {
       {/* Security indicators */}
         <FadeIn delay={1.1}>
         <div className="mt-8 pt-6 border-t border-white/[0.06]">
-        <div className="flex items-center justify-center gap-6 text-xs text-slate-600">
+        <div className="flex items-center justify-center gap-6 text-xs text-slate-300">
           <div className="flex items-center gap-1">
             <Shield className="w-3 h-3" />
             <span>{t('auth.login.securityIndicators.ssl')}</span>

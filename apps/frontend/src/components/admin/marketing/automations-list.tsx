@@ -30,6 +30,19 @@ const statusColors: Record<string, string> = {
   draft: 'bg-zinc-500/20 text-zinc-400',
 };
 
+function getAutomationDisplayName(automation: Automation): string {
+  const rawName = String(automation.name || '').trim();
+  const id = String(automation.id || '').trim();
+  const looksLikeUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawName);
+
+  if (!rawName || rawName === id || looksLikeUuid) {
+    const shortId = id ? id.slice(0, 8) : 'draft';
+    return `Automation ${shortId}`;
+  }
+
+  return rawName;
+}
+
 export function AutomationsList({ automations, isLoading, onRefresh }: AutomationsListProps) {
   const [loadingId, setLoadingId] = React.useState<string | null>(null);
   const { toast } = useToast();
@@ -135,7 +148,7 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold text-white">{automation.name}</h3>
+                  <h3 className="text-lg font-semibold text-white">{getAutomationDisplayName(automation)}</h3>
                   <Badge
                     variant="secondary"
                     className={cn('text-xs', statusColors[automation.status])}
@@ -201,6 +214,7 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
                   <Button
                     variant="outline"
                     size="sm"
+                    className="border-zinc-700 text-zinc-100 hover:bg-zinc-800"
                     disabled={loadingId === automation.id}
                     onClick={() => toggleStatus(automation)}
                   >
@@ -211,6 +225,7 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
                   <Button
                     variant="outline"
                     size="sm"
+                    className="border-zinc-700 text-zinc-100 hover:bg-zinc-800"
                     disabled={loadingId === automation.id}
                     onClick={() => toggleStatus(automation)}
                   >
@@ -219,7 +234,7 @@ export function AutomationsList({ automations, isLoading, onRefresh }: Automatio
                   </Button>
                 )}
                 <Link href={`/admin/marketing/automations/${automation.id}/edit`}>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-100 hover:bg-zinc-800">
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>

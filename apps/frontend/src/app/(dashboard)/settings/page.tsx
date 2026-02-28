@@ -100,7 +100,7 @@ function SettingsPageContent() {
   });
   const changePasswordMutation = useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
-      api.post('/api/v1/users/change-password', data),
+      api.put('/api/v1/users/me/password', data),
     onSuccess: () => {
       setSaving(false);
       toast({ title: t('common.success'), description: t('settings.security.passwordChanged') });
@@ -145,27 +145,22 @@ function SettingsPageContent() {
     sessions: 3
   });
 
-  // Load settings from API
+  // Load user notification settings from the active backend route.
   useEffect(() => {
-    api
-      .get<{ data?: UserSettingsPayload } | UserSettingsPayload>('/api/v1/users/settings')
-      .then((data) => {
-        if (data) {
-          const settings: UserSettingsPayload = (data as { data?: UserSettingsPayload }).data ?? (data as UserSettingsPayload);
-          if (settings.security) setSecurity((prev) => ({ ...prev, ...settings.security }));
-          if (settings.notifications) setNotifications((prev) => ({ ...prev, ...settings.notifications }));
-          if (settings.theme) setTheme(settings.theme);
-          if (
-            settings.language &&
-            (supportedLocales as readonly string[]).includes(settings.language) &&
-            settings.language !== locale
-          ) {
-            setLocale(settings.language as Locale);
-          }
-        }
+    endpoints.settings
+      .getNotifications()
+      .then((settings) => {
+        if (!settings) return;
+        setNotifications((prev) => ({
+          ...prev,
+          emailNotifications: settings.email?.orders ?? prev.emailNotifications,
+          weeklyReport: settings.email?.marketing ?? prev.weeklyReport,
+          securityAlerts: settings.email?.securityAlerts ?? prev.securityAlerts,
+          pushNotifications: settings.push?.orders ?? prev.pushNotifications,
+        }));
       })
       .catch((err: unknown) => {
-        logger.error('Failed to load user settings', err);
+        logger.warn('Failed to load notification settings', { error: err });
       });
   }, []);
 
@@ -278,43 +273,43 @@ function SettingsPageContent() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{t('settings.title')}</h1>
-        <p className="text-white/60">{t('settings.security.title')}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t('settings.title')}</h1>
+        <p className="text-muted-foreground">{t('settings.security.title')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-white/[0.04] border border-white/[0.06] p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-card border border-border p-1 rounded-xl">
           <TabsTrigger
             value="profile"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground rounded-lg"
           >
             <User className="w-4 h-4 mr-2" />
             {t('settings.tabs.profile')}
           </TabsTrigger>
           <TabsTrigger
             value="security"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground rounded-lg"
           >
             <Shield className="w-4 h-4 mr-2" />
             {t('settings.tabs.security')}
           </TabsTrigger>
           <TabsTrigger
             value="notifications"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground rounded-lg"
           >
             <Bell className="w-4 h-4 mr-2" />
             {t('settings.tabs.notifications')}
           </TabsTrigger>
           <TabsTrigger
             value="preferences"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-white/60 rounded-lg"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground rounded-lg"
           >
             <Palette className="w-4 h-4 mr-2" />
             {t('settings.tabs.preferences')}
           </TabsTrigger>
           <TabsTrigger
             value="danger"
-            className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 data-[state=inactive]:text-white/60 rounded-lg"
+            className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 data-[state=inactive]:text-muted-foreground rounded-lg"
           >
             <AlertCircle className="w-4 h-4 mr-2" />
             Zone Danger
@@ -334,14 +329,14 @@ function SettingsPageContent() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">{profile.name}</h3>
-                <p className="text-white/60">{profile.role} • {profile.company}</p>
+                <p className="text-white/80">{profile.role} • {profile.company}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-white/60 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     <User className="w-4 h-4 inline mr-2" />
                     {t('settings.security.fullName')}
                   </label>
@@ -352,7 +347,7 @@ function SettingsPageContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/60 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     <Mail className="w-4 h-4 inline mr-2" />
                     Email
                   </label>
@@ -367,7 +362,7 @@ function SettingsPageContent() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-white/60 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     <Building className="w-4 h-4 inline mr-2" />
                     {t('settings.security.company')}
                   </label>
@@ -378,7 +373,7 @@ function SettingsPageContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/60 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     <Smartphone className="w-4 h-4 inline mr-2" />
                     {t('settings.security.phone')}
                   </label>
@@ -392,7 +387,7 @@ function SettingsPageContent() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-white/60 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     <Globe className="w-4 h-4 inline mr-2" />
                     {t('settings.security.website')}
                   </label>
@@ -403,7 +398,7 @@ function SettingsPageContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/60 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     {t('settings.security.timezone')}
                   </label>
                   <select
@@ -441,7 +436,7 @@ function SettingsPageContent() {
             <h3 className="text-lg font-bold text-white mb-4">{t('settings.security.changePassword')}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-2">
+                <label className="block text-sm font-medium text-white/80 mb-2">
                   {t('settings.security.currentPassword')}
                 </label>
                 <div className="relative">
@@ -454,14 +449,14 @@ function SettingsPageContent() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-2">
+                <label className="block text-sm font-medium text-white/80 mb-2">
                   {t('settings.security.newPassword')}
                 </label>
                 <Input
@@ -472,7 +467,7 @@ function SettingsPageContent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-2">
+                <label className="block text-sm font-medium text-white/80 mb-2">
                   {t('settings.security.confirmPassword')}
                 </label>
                 <Input
@@ -497,7 +492,7 @@ function SettingsPageContent() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">{t('settings.security.twoFactor')}</h3>
-                <p className="text-white/60 text-sm mb-4">
+                <p className="text-white/80 text-sm mb-4">
                   {t('settings.security.twoFactorAddLayer')}
                 </p>
                 {security.twoFactorEnabled && (
@@ -520,7 +515,7 @@ function SettingsPageContent() {
 
           <Card className="dash-card p-6 border-white/[0.06]">
             <h3 className="text-lg font-bold text-white mb-4">{t('settings.security.sessions')}</h3>
-            <p className="text-white/60 text-sm mb-4">
+            <p className="text-white/80 text-sm mb-4">
               {t('settings.security.sessionsCount', { count: security.sessions })} • {t('settings.security.lastLogin', { time: '2h' })}
             </p>
             <Button variant="outline" className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]">
@@ -543,7 +538,7 @@ function SettingsPageContent() {
                 <div key={item.key} className="flex items-start justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.06]">
                   <div>
                     <h4 className="text-white font-medium">{item.label}</h4>
-                    <p className="text-sm text-white/60">{item.desc}</p>
+                    <p className="text-sm text-white/80">{item.desc}</p>
                   </div>
                   <button
                     onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key as keyof NotificationSettings] })}
@@ -576,7 +571,7 @@ function SettingsPageContent() {
             <h3 className="text-lg font-bold text-white mb-6">Apparence et langue</h3>
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-3">Thème</label>
+                <label className="block text-sm font-medium text-white/80 mb-3">Thème</label>
                 <div className="grid grid-cols-2 gap-4">
                   {['dark', 'light'].map((themeKey) => (
                     <button
@@ -596,7 +591,7 @@ function SettingsPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white/60 mb-3">{t('settings.security.language')}</label>
+                <label className="block text-sm font-medium text-white/80 mb-3">{t('settings.security.language')}</label>
                 <select
                   value={locale}
                   onChange={(e) => {
@@ -621,7 +616,7 @@ function SettingsPageContent() {
         <TabsContent value="danger" className="space-y-6">
           <Card className="dash-card p-6 border-red-500/30 bg-red-500/5">
             <h3 className="text-lg font-bold text-red-400 mb-4">{t('settings.security.dangerZone')}</h3>
-            <p className="text-white/60 text-sm mb-6">
+            <p className="text-white/80 text-sm mb-6">
               {t('settings.security.dangerZoneDesc')}
             </p>
 
@@ -629,7 +624,7 @@ function SettingsPageContent() {
               <div className="flex items-start justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.06]">
                 <div>
                   <h4 className="text-white font-medium">{t('settings.security.exportMyData')}</h4>
-                  <p className="text-sm text-white/60">{t('settings.security.exportMyDataDesc')}</p>
+                  <p className="text-sm text-white/80">{t('settings.security.exportMyDataDesc')}</p>
                 </div>
                 <Button variant="outline" className="border-white/[0.12] text-white/80 hover:bg-white/[0.04]">
                   <Download className="w-4 h-4 mr-2" />
@@ -640,7 +635,7 @@ function SettingsPageContent() {
               <div className="flex items-start justify-between p-4 bg-white/[0.04] rounded-xl border border-red-500/20">
                 <div>
                   <h4 className="text-red-400 font-medium">{t('settings.security.deleteAccount')}</h4>
-                  <p className="text-sm text-white/60">{t('settings.security.deleteAccountDesc')}</p>
+                  <p className="text-sm text-white/80">{t('settings.security.deleteAccountDesc')}</p>
                 </div>
                 <Button variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30">
                   <Trash2 className="w-4 h-4 mr-2" />

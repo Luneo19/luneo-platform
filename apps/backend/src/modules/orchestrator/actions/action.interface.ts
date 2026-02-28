@@ -52,6 +52,7 @@ export interface ActionContext {
   organizationId: string;
   agentId: string;
   conversationId: string;
+  requestId?: string;
   visitorEmail?: string;
   visitorName?: string;
   integrationConfigs?: Record<string, Record<string, string>>;

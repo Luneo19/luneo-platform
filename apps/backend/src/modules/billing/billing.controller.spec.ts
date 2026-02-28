@@ -25,6 +25,8 @@ describe('BillingController', () => {
     const mockBillingService = {
       createCheckoutSession: jest.fn(),
       getSubscription: jest.fn(),
+      getScheduledPlanChanges: jest.fn(),
+      cancelScheduledDowngrade: jest.fn(),
       getInvoices: jest.fn(),
       getPaymentMethods: jest.fn(),
       addPaymentMethod: jest.fn(),
@@ -142,6 +144,46 @@ describe('BillingController', () => {
       const result = await controller.getSubscription(req);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('GET /billing/scheduled-changes', () => {
+    it('should return scheduled changes for current user', async () => {
+      const mockScheduledChanges = {
+        hasScheduledChanges: true,
+        scheduledChanges: {
+          type: 'cancel',
+          effectiveDate: new Date('2026-03-15T00:00:00.000Z'),
+          reason: 'Subscription scheduled for cancellation',
+        },
+        currentPlan: 'pro',
+        currentStatus: 'active',
+      };
+
+      billingService.getScheduledPlanChanges.mockResolvedValue(mockScheduledChanges);
+
+      const req = mockRequest('user_sched_123') as unknown;
+      const result = await controller.getScheduledChanges(req);
+
+      expect(billingService.getScheduledPlanChanges).toHaveBeenCalledWith('user_sched_123');
+      expect(result).toEqual(mockScheduledChanges);
+    });
+  });
+
+  describe('POST /billing/cancel-downgrade', () => {
+    it('should cancel scheduled downgrade for current user', async () => {
+      const mockResult = {
+        success: true,
+        message: 'Le downgrade programmé a été annulé.',
+        currentPlan: 'business',
+      };
+      billingService.cancelScheduledDowngrade.mockResolvedValue(mockResult);
+
+      const req = mockRequest('user_cancel_123') as unknown;
+      const result = await controller.cancelScheduledDowngrade(req);
+
+      expect(billingService.cancelScheduledDowngrade).toHaveBeenCalledWith('user_cancel_123');
+      expect(result).toEqual(mockResult);
     });
   });
 
@@ -284,69 +326,4 @@ describe('BillingController', () => {
     });
   });
 
-  describe('POST /billing/webhook', () => {
-    const mockStripeEvent = {
-      id: 'evt_123',
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs_123' } },
-    };
-
-    beforeEach(() => {
-      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_123';
-      // Mock getStripe to return an object with webhooks.constructEvent that returns the event
-      billingService.getStripe = jest.fn().mockResolvedValue({
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(mockStripeEvent),
-        },
-      } as unknown);
-    });
-
-    afterEach(() => {
-      delete process.env.STRIPE_WEBHOOK_SECRET;
-    });
-
-    it('should process webhook successfully', async () => {
-      billingService.handleStripeWebhook.mockResolvedValue({ processed: true });
-
-      const req = { rawBody: Buffer.from('{}') } as unknown;
-      const result = await controller.handleWebhook(req, 'sig_test_123');
-
-      expect(result).toEqual({ received: true, processed: true });
-    });
-
-    it('should throw BadRequestException when signature is missing', async () => {
-      const req = { rawBody: Buffer.from('{}') } as unknown;
-
-      await expect(
-        controller.handleWebhook(req, undefined as unknown)
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw when webhook secret is not configured', async () => {
-      delete process.env.STRIPE_WEBHOOK_SECRET;
-
-      const req = { rawBody: Buffer.from('{}') } as unknown;
-
-      await expect(
-        controller.handleWebhook(req, 'sig_test_123')
-      ).rejects.toThrow();
-    });
-
-    it('should throw BadRequestException for invalid signature', async () => {
-      // Override the mock to throw an error
-      billingService.getStripe = jest.fn().mockResolvedValue({
-        webhooks: {
-          constructEvent: jest.fn().mockImplementation(() => {
-            throw new Error('Invalid signature');
-          }),
-        },
-      } as unknown);
-
-      const req = { rawBody: Buffer.from('{}') } as unknown;
-
-      await expect(
-        controller.handleWebhook(req, 'invalid_sig')
-      ).rejects.toThrow(BadRequestException);
-    });
-  });
 });

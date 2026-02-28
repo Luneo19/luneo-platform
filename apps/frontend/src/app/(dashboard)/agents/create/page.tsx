@@ -223,9 +223,20 @@ export default function AgentCreatePage() {
         title: 'Agent créé',
         description: 'Votre agent a été créé avec succès.',
       });
-      router.push(`/agents/${newId}`);
+      router.push(`/agents/${newId}?setup=1`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur lors de la création';
+      const errObj = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const status = errObj?.response?.status;
+      const backendMsg = errObj?.response?.data?.message;
+      const rawMsg = backendMsg || (err instanceof Error ? err.message : 'Erreur lors de la création');
+      const msg =
+        status === 403 && /csrf/i.test(rawMsg)
+          ? 'Session expirée ou jeton CSRF invalide. Rechargez la page puis réessayez.'
+          : status === 403 && /limite d['’]agents atteinte/i.test(rawMsg)
+            ? 'Limite d’agents atteinte pour votre plan. Supprimez un agent existant ou passez au plan supérieur.'
+          : status === 403
+            ? 'Accès refusé pour la création d’agent. Vérifiez votre organisation active.'
+            : rawMsg;
       toast({
         title: 'Erreur',
         description: msg,

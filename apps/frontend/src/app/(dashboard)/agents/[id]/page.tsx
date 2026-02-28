@@ -24,6 +24,7 @@ import {
   Workflow,
   Play,
   Pause,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface Agent {
@@ -39,6 +40,18 @@ interface Agent {
   agentKnowledgeBases?: Array<{
     knowledgeBase: { id: string; name: string; status: string; documentsCount: number };
   }>;
+}
+
+interface AgentReadiness {
+  ready: boolean;
+  checklist: {
+    hasKnowledgeBase: boolean;
+    hasChannel: boolean;
+    hasFlowTrigger: boolean;
+    statusEligible: boolean;
+    requireFlowTrigger: boolean;
+  };
+  missing: string[];
 }
 
 export default function AgentDetailPage() {
@@ -59,6 +72,9 @@ export default function AgentDetailPage() {
   const [channelLoading, setChannelLoading] = useState(false);
   const [copiedWidgetId, setCopiedWidgetId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<'publish' | 'pause' | 'duplicate' | 'delete' | null>(null);
+  const [activeTab, setActiveTab] = useState('config');
+  const [readiness, setReadiness] = useState<AgentReadiness | null>(null);
+  const [readinessLoading, setReadinessLoading] = useState(false);
 
   const fetchAgent = useCallback(async () => {
     if (!id) return;
@@ -80,6 +96,19 @@ export default function AgentDetailPage() {
     }
   }, [id]);
 
+  const fetchReadiness = useCallback(async () => {
+    if (!id) return;
+    setReadinessLoading(true);
+    try {
+      const res = await endpoints.agents.readiness(id);
+      setReadiness((res as { data?: AgentReadiness })?.data ?? (res as AgentReadiness));
+    } catch {
+      setReadiness(null);
+    } finally {
+      setReadinessLoading(false);
+    }
+  }, [id]);
+
   const fetchKnowledgeBases = useCallback(async () => {
     try {
       const res = await endpoints.knowledge.bases.list();
@@ -93,7 +122,8 @@ export default function AgentDetailPage() {
   useEffect(() => {
     fetchAgent();
     fetchKnowledgeBases();
-  }, [fetchAgent, fetchKnowledgeBases]);
+    fetchReadiness();
+  }, [fetchAgent, fetchKnowledgeBases, fetchReadiness]);
 
   const handleSave = async () => {
     if (!agent) return;
@@ -178,6 +208,7 @@ export default function AgentDetailPage() {
     try {
       await endpoints.agents.publish(agent.id);
       await fetchAgent();
+      await fetchReadiness();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de publication');
     } finally {
@@ -191,6 +222,7 @@ export default function AgentDetailPage() {
     try {
       await endpoints.agents.pause(agent.id);
       await fetchAgent();
+      await fetchReadiness();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de pause');
     } finally {
@@ -228,6 +260,16 @@ export default function AgentDetailPage() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const goToKnowledgeStep = () => setActiveTab('knowledge');
+  const goToChannelsStep = () => setActiveTab('channels');
+
+  const readinessLabelMap: Record<string, string> = {
+    knowledge_base: 'Ajouter au moins une base de connaissance',
+    channel: 'Créer au moins un canal',
+    status: "L'agent doit être dans un statut publiable",
+    flow_trigger: 'Ajouter un Trigger dans le flow builder',
   };
 
   if (loading) {
@@ -297,7 +339,7 @@ export default function AgentDetailPage() {
               <Button
                 variant="outline"
                 onClick={handlePublish}
-                disabled={actionLoading !== null}
+                disabled={actionLoading !== null || Boolean(readiness && !readiness.ready)}
                 className="border-white/20 text-white hover:bg-white/10"
               >
                 {actionLoading === 'publish' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
@@ -327,7 +369,89 @@ export default function AgentDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="config" className="space-y-6">
+      {agent.status !== 'ACTIVE' && (
+        <div className="rounded-2xl border border-white/[0.06] bg-gray-900/50 p-6">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Tunnel d&apos;activation</h3>
+              <p className="text-sm text-white/60">Create -&gt; Connect -&gt; Publish</p>
+            </div>
+            {readinessLoading ? (
+              <div className="flex items-center gap-2 text-xs text-white/50">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Vérification...
+              </div>
+            ) : readiness?.ready ? (
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+                Prêt à publier
+              </span>
+            ) : (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
+                Prérequis manquants
+              </span>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <button
+              onClick={goToKnowledgeStep}
+              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                readiness?.checklist.hasKnowledgeBase
+                  ? 'border-emerald-500/30 bg-emerald-500/10'
+                  : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'
+              }`}
+            >
+              <p className="text-sm font-medium text-white">1. Connect Knowledge</p>
+              <p className="mt-1 text-xs text-white/60">
+                {readiness?.checklist.hasKnowledgeBase ? 'OK' : 'Ajouter une base'}
+              </p>
+            </button>
+            <button
+              onClick={goToChannelsStep}
+              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                readiness?.checklist.hasChannel
+                  ? 'border-emerald-500/30 bg-emerald-500/10'
+                  : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'
+              }`}
+            >
+              <p className="text-sm font-medium text-white">2. Connect Channel</p>
+              <p className="mt-1 text-xs text-white/60">
+                {readiness?.checklist.hasChannel ? 'OK' : 'Créer un canal widget'}
+              </p>
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={actionLoading !== null || Boolean(readiness && !readiness.ready)}
+              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                readiness?.ready
+                  ? 'border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20'
+                  : 'border-white/[0.08] bg-white/[0.03] opacity-80'
+              }`}
+            >
+              <p className="text-sm font-medium text-white">3. Publish</p>
+              <p className="mt-1 text-xs text-white/60">
+                {readiness?.ready ? 'Publier maintenant' : 'Bloqué tant que les étapes 1-2 ne sont pas complètes'}
+              </p>
+            </button>
+          </div>
+
+          {readiness && !readiness.ready && readiness.missing.length > 0 && (
+            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+              <p className="mb-2 flex items-center gap-2 text-sm text-amber-300">
+                <AlertTriangle className="h-4 w-4" />
+                Points à corriger avant publication
+              </p>
+              <ul className="space-y-1 text-xs text-amber-200/90">
+                {readiness.missing.map((item) => (
+                  <li key={item}>• {readinessLabelMap[item] ?? item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-gray-900 border border-white/[0.06] p-1 rounded-xl">
           <TabsTrigger value="config" className="data-[state=active]:bg-white/[0.1] data-[state=active]:text-white rounded-lg px-4 py-2">
             <Settings className="mr-2 h-4 w-4" />

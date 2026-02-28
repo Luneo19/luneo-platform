@@ -37,11 +37,14 @@ test.describe('Flow 1: New User Registration Journey', () => {
   test('should display all subscription plans with correct structure', async ({ page }) => {
     await page.goto('/pricing');
     await expect(page.locator('body')).toContainText(/mois|month/i);
-    
+
     const ctaButtons = page.getByRole('button', { name: /commencer|start|choisir|select|essayer/i });
-    await expect(ctaButtons.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-      return expect(page.getByRole('link', { name: /commencer|start|choisir|select/i }).first()).toBeVisible();
-    });
+    const ctaLinks = page.getByRole('link', { name: /commencer|start|choisir|select/i });
+    if ((await ctaButtons.count()) > 0) {
+      await expect(ctaButtons.first()).toBeVisible({ timeout: 5000 });
+    } else {
+      await expect(ctaLinks.first()).toBeVisible({ timeout: 5000 });
+    }
   });
 
   test('should register a new user', async ({ page }) => {
@@ -50,17 +53,17 @@ test.describe('Flow 1: New User Registration Journey', () => {
     await page.fill('input[name="email"], input[type="email"]', TEST_EMAIL);
     await page.fill('input[name="password"], input[type="password"]', TEST_PASSWORD);
     
-    const firstNameInput = page.locator('input[name="firstName"]');
-    if (await firstNameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    const firstNameInput = page.locator('input[name="firstName"]').first();
+    if ((await firstNameInput.count()) > 0 && (await firstNameInput.isVisible())) {
       await firstNameInput.fill('E2E');
     }
-    const lastNameInput = page.locator('input[name="lastName"]');
-    if (await lastNameInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+    const lastNameInput = page.locator('input[name="lastName"]').first();
+    if ((await lastNameInput.count()) > 0 && (await lastNameInput.isVisible())) {
       await lastNameInput.fill('TestUser');
     }
-    
+
     const termsCheckbox = page.locator('input[type="checkbox"]').first();
-    if (await termsCheckbox.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if ((await termsCheckbox.count()) > 0 && (await termsCheckbox.isVisible())) {
       await termsCheckbox.check();
     }
     
@@ -160,9 +163,9 @@ test.describe('Flow 5: Marketplace Journey', () => {
 
   test('should have search capability', async ({ page }) => {
     await page.goto('/marketplace');
-    
+
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i], input[placeholder*="chercher" i], input[placeholder*="rechercher" i]');
-    if (await searchInput.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if ((await searchInput.count()) > 0 && (await searchInput.first().isVisible())) {
       await searchInput.first().fill('design');
       await page.waitForTimeout(1000);
     }
@@ -170,9 +173,9 @@ test.describe('Flow 5: Marketplace Journey', () => {
 
   test('should navigate to template detail', async ({ page }) => {
     await page.goto('/marketplace');
-    
+
     const templateLink = page.locator('a[href*="/marketplace/"]').first();
-    if (await templateLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if ((await templateLink.count()) > 0 && (await templateLink.isVisible())) {
       await templateLink.click();
       await page.waitForURL(/\/marketplace\/.+/);
       await expect(page.locator('body')).toContainText(/.+/);

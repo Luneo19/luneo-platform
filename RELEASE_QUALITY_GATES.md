@@ -13,7 +13,9 @@ This gate is intentionally strict and stable for production-critical changes:
 - backend critical lint (`common`, `auth`, `email`),
 - frontend targeted hardening tests,
 - frontend + backend type-check,
-- frontend + backend build.
+- frontend + backend build,
+- critical production smoke (`pnpm run smoke:critical`),
+- post-login conversion tunnel smoke (`pnpm run smoke:post-login-tunnel`).
 
 Use this gate for deploy decisions.
 
@@ -31,3 +33,4 @@ It remains mandatory for platform maturity and technical debt reduction, but can
 - Production deployment must pass `quality:release`.
 - `quality:platform` is tracked continuously and reduced to zero failures by dedicated hardening sprints.
 - No new critical feature should be merged without at least one test in the release gate scope.
+- Any smoke regression on public URLs blocks the release candidate until fixed.

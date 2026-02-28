@@ -47,6 +47,7 @@ export class GlobalRateLimitGuard extends ThrottlerGuard {
     // send many requests in bursts; rate limiting would cause 429s and failed deliveries (P3-12)
     const webhookPathSuffixes = [
       'billing/webhook',
+      'webhooks/sendgrid/events',
       'ecommerce/woocommerce/webhook',
       'integrations/shopify/webhooks',
       'pce/webhooks',

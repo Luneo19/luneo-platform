@@ -193,10 +193,10 @@ function Sidebar({ onClose }: SidebarProps = {}) {
       initial={false}
       animate={{ width: effectiveCollapsed ? sidebarConfig.collapsedWidth : sidebarConfig.expandedWidth }}
       transition={{ duration: sidebarConfig.transitionDuration / 1000 }}
-      className="dash-sidebar dash-scroll flex flex-col h-screen sticky top-0"
+      className="dash-sidebar dash-scroll flex flex-col h-screen sticky top-0 text-foreground"
     >
       {/* Header */}
-      <div className="p-4 border-b border-white/[0.06]">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           {!effectiveCollapsed && (
             <Link href="/overview" className="flex items-center space-x-3" onClick={handleNavClick}>
@@ -204,8 +204,8 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                 <span className="text-white font-bold text-lg">L</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Luneo</h1>
-                <p className="text-xs text-white/40">Agent IA</p>
+                <h1 className="text-xl font-bold text-foreground">Luneo</h1>
+                <p className="text-xs text-muted-foreground">Agent IA</p>
               </div>
             </Link>
           )}
@@ -219,7 +219,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
 
           <button
             onClick={handleToggleCollapse}
-            className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
+            className="p-2 hover:bg-accent rounded-lg transition-colors text-muted-foreground"
             aria-label={isMobileOverlay ? t('dashboard.sidebar.closeMenu') : (effectiveCollapsed ? t('dashboard.sidebar.openSidebar') : t('dashboard.sidebar.collapseSidebar'))}
           >
             {isMobileOverlay || !effectiveCollapsed ? <X className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
@@ -229,9 +229,9 @@ function Sidebar({ onClose }: SidebarProps = {}) {
 
       {/* Search */}
       {!effectiveCollapsed && (
-        <div className="p-4 border-b border-white/[0.06]">
+        <div className="p-4 border-b border-border">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder={t('dashboard.sidebar.searchPlaceholder')}
@@ -247,10 +247,10 @@ function Sidebar({ onClose }: SidebarProps = {}) {
         {navigationSections.map((section) => (
           <div key={section.title || '_main'} className="mb-6">
             {section.title && (
-              <div className="mx-4 mb-3 border-t border-white/[0.06]" />
+              <div className="mx-4 mb-3 border-t border-border" />
             )}
             {!effectiveCollapsed && section.title && (
-              <h3 className="px-4 text-xs font-semibold text-white/30 uppercase tracking-wider mb-2">
+              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 {SIDEBAR_SECTION_KEYS[section.title] ? t(SIDEBAR_SECTION_KEYS[section.title]) : section.title}
               </h3>
             )}
@@ -265,19 +265,19 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                   <div key={item.name}>
                     <div
                       className={`mx-2 rounded-lg transition-all duration-200 border ${
-                        isActive ? 'dash-sidebar-item-active' : 'border-transparent hover:bg-white/[0.04]'
+                        isActive ? 'dash-sidebar-item-active' : 'border-transparent hover:bg-accent'
                       }`}
                     >
                       <div className="flex items-center">
                         <Link
                           href={item.href}
-                          className="flex-1 flex items-center px-3 py-3 text-sm font-medium transition-colors text-white"
+                          className="flex-1 flex items-center px-3 py-3 text-sm font-medium transition-colors text-foreground"
                           onClick={handleNavClick}
                         >
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
                             isActive
                               ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400'
-                              : 'bg-white/[0.06] text-white/60'
+                              : 'bg-muted text-muted-foreground'
                           }`}>
                             <Icon className="w-4 h-4" />
                           </div>
@@ -291,7 +291,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-white/50 mt-0.5">{SIDEBAR_ITEM_DESC_KEYS[item.href] ? t(SIDEBAR_ITEM_DESC_KEYS[item.href]) : item.description}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{SIDEBAR_ITEM_DESC_KEYS[item.href] ? t(SIDEBAR_ITEM_DESC_KEYS[item.href]) : item.description}</p>
                             </div>
                           )}
                         </Link>
@@ -299,7 +299,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                         {!effectiveCollapsed && item.children && (
                           <button
                             onClick={() => toggleExpanded(item.name)}
-                            className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors text-white/50"
+                            className="p-2 hover:bg-accent rounded-lg transition-colors text-muted-foreground"
                             aria-label={isExpanded ? t('dashboard.sidebar.collapseSection') : t('dashboard.sidebar.expandSection')}
                           >
                             {isExpanded ? (
@@ -333,14 +333,14 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                                   onClick={handleNavClick}
                                   className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                                     isChildActive
-                                      ? 'bg-white/[0.06] text-white border border-purple-500/20'
-                                      : 'text-white/50 hover:text-white hover:bg-white/[0.04]'
+                                      ? 'bg-accent text-foreground border border-purple-500/20'
+                                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                                   }`}
                                 >
                                   <ChildIcon className="w-4 h-4 mr-3" />
                                   <div>
                                     <div>{child.name}</div>
-                                    <p className="text-xs text-white/30">{child.description}</p>
+                                    <p className="text-xs text-muted-foreground">{child.description}</p>
                                   </div>
                                 </Link>
                               );
@@ -358,12 +358,12 @@ function Sidebar({ onClose }: SidebarProps = {}) {
       </div>
 
       {/* Documentation link */}
-      <div className="border-t border-white/[0.06] px-2 py-2">
+      <div className="border-t border-border px-2 py-2">
         <div className={`flex ${effectiveCollapsed ? 'flex-col items-center gap-1' : 'items-center gap-1'}`}>
           <Link
             href="/help/documentation"
             onClick={handleNavClick}
-            className="flex items-center px-3 py-2 text-xs text-white/40 hover:text-white/70 rounded-lg hover:bg-white/[0.04] transition-colors"
+            className="flex items-center px-3 py-2 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-colors"
           >
             <BookOpen className="w-3.5 h-3.5" />
             {!effectiveCollapsed && <span className="ml-2">{t('dashboard.sidebar.documentation')}</span>}
@@ -373,14 +373,14 @@ function Sidebar({ onClose }: SidebarProps = {}) {
 
       {/* Admin Panel Link — visible only for PLATFORM_ADMIN */}
       {user?.role === 'PLATFORM_ADMIN' && (
-        <div className="border-t border-white/[0.06] px-2 py-3">
+        <div className="border-t border-border px-2 py-3">
           <Link
             href="/admin"
             onClick={handleNavClick}
             className={`flex items-center px-3 py-3 rounded-lg transition-all duration-200 border ${
               pathname?.startsWith('/admin')
                 ? 'dash-sidebar-item-active'
-                : 'border-transparent hover:bg-gradient-to-r hover:from-red-500/10 hover:to-orange-500/10'
+                : 'border-transparent hover:bg-accent'
             }`}
           >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -400,7 +400,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                     Admin
                   </span>
                 </div>
-                <p className="text-xs text-white/40">{t('dashboard.sidebar.adminPanelDescription')}</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.sidebar.adminPanelDescription')}</p>
               </div>
             )}
           </Link>
@@ -408,7 +408,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
       )}
 
       {/* User Section */}
-      <div className="border-t border-white/[0.06] p-4">
+      <div className="border-t border-border p-4">
         {!effectiveCollapsed ? (
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
@@ -416,12 +416,12 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             </div>
             <div className="flex-1">
               <div className="flex items-center">
-                <span className="text-sm font-medium text-white">{userDisplayName}</span>
+                <span className="text-sm font-medium text-foreground">{userDisplayName}</span>
               </div>
-              <p className="text-xs text-white/40">{user?.email || ''}</p>
+              <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
             </div>
-            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
-              <Bell className="w-4 h-4 text-white/40" aria-hidden />
+            <button className="p-2 hover:bg-accent rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
+              <Bell className="w-4 h-4 text-muted-foreground" aria-hidden />
             </button>
           </div>
         ) : (
@@ -429,8 +429,8 @@ function Sidebar({ onClose }: SidebarProps = {}) {
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">{userInitials}</span>
             </div>
-            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
-              <Bell className="w-4 h-4 text-white/40" aria-hidden />
+            <button className="p-2 hover:bg-accent rounded-lg transition-colors" aria-label={t('dashboard.sidebar.notifications') || 'Notifications'}>
+              <Bell className="w-4 h-4 text-muted-foreground" aria-hidden />
             </button>
           </div>
         )}

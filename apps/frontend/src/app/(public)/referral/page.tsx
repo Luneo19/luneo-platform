@@ -48,6 +48,7 @@ const tiers = [
 // Stats are derived from the referral API response — no hardcoded marketing numbers
 
 function ReferralPageContent() {
+  const referralStatsEnabled = process.env.NEXT_PUBLIC_ENABLE_REFERRAL_PERSONAL_STATS === 'true';
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [copied, setCopied] = useState(false);
@@ -64,6 +65,10 @@ function ReferralPageContent() {
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
+    if (!referralStatsEnabled) {
+      setStatsLoading(false);
+      return;
+    }
     let cancelled = false;
     api.get<{ referralCode: string; referralLink: string; totalReferrals: number; activeReferrals: number; totalEarnings: number; pendingEarnings: number }>('/api/v1/referral/stats')
       .then((res) => {
@@ -72,7 +77,7 @@ function ReferralPageContent() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setStatsLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [referralStatsEnabled]);
 
   const displayCode = stats?.referralCode ?? 'LUNEO-XXXXXX';
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';

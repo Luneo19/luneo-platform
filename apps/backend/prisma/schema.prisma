@@ -187,6 +187,8 @@ model Organization {
   onboardingCompleted  Boolean  @default(false)
   onboardingStep       Int      @default(0)
   onboardingData       Json?
+  verticalTemplateId   String?
+  verticalTemplate     VerticalTemplate? @relation(fields: [verticalTemplateId], references: [id], onDelete: SetNull)
 
   status               OrgStatus @default(ACTIVE)
   suspendedAt          DateTime?
@@ -199,14 +201,19 @@ model Organization {
   members              OrganizationMember[]
   invitations          Invitation[]
   agents               Agent[]
+  contacts             Contact[]
   knowledgeBases       KnowledgeBase[]
   conversations        Conversation[]
+  workflows            Workflow[]
+  workflowExecutions   WorkflowExecution[]
   integrations         Integration[]
   apiKeys              ApiKey[]
   webhooks             Webhook[]
   invoices             Invoice[]
   auditLogs            AuditLog[]
   usageRecords         UsageRecord[]
+  learningSignals      LearningSignal[]
+  knowledgeGaps        KnowledgeGap[]
   tickets              Ticket[]
   analyticsEvents      AnalyticsEvent[]
 
@@ -697,6 +704,8 @@ model Conversation {
   externalId       String?
 
   visitorId        String?
+  contactId        String?
+  contact          Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
   visitorEmail     String?
   visitorName      String?
   visitorPhone     String?
@@ -767,6 +776,7 @@ model Conversation {
   deletedAt        DateTime?
 
   messages         Message[]
+  learningSignals  LearningSignal[]
 
   @@index([organizationId])
   @@index([agentId])
@@ -774,6 +784,7 @@ model Conversation {
   @@index([channelType])
   @@index([createdAt])
   @@index([visitorId])
+  @@index([contactId])
   @@index([visitorEmail])
   @@index([resolvedAt])
   @@index([escalatedAt])
@@ -824,12 +835,182 @@ model Message {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   deletedAt        DateTime?
+  learningSignals  LearningSignal[]
 
   @@index([conversationId])
   @@index([role])
   @@index([createdAt])
   @@index([flagged])
   @@map("messages")
+}
+
+model VerticalTemplate {
+  id                     String   @id @default(cuid())
+  slug                   String   @unique
+  name                   String
+  description            String?  @db.Text
+  icon                   String?
+  onboardingQuestions    Json?
+  defaultKnowledge       Json?
+  defaultWorkflows       Json?
+  intentCategories       Json?
+  kpiDefinitions         Json?
+  industryVocabulary     Json?
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  organizations          Organization[]
+  insights               VerticalInsight[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("vertical_templates")
+}
+
+model Contact {
+  id                    String      @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  externalId            String?
+
+  email                 String?
+  phone                 String?
+  firstName             String?
+  lastName              String?
+  avatar                String?
+
+  aiProfile             Json?
+  tags                  String[]
+  segments              String[]
+
+  totalConversations    Int         @default(0)
+  totalMessages         Int         @default(0)
+  averageSatisfaction   Float?
+  leadScore             Int         @default(0)
+  leadStatus            LeadStatus  @default(NEW)
+  churnRisk             ChurnRisk   @default(LOW)
+  firstInteractionAt    DateTime?
+  lastInteractionAt     DateTime?
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  conversations         Conversation[]
+  workflowExecutions    WorkflowExecution[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([phone])
+  @@index([leadStatus])
+  @@index([lastInteractionAt])
+  @@map("contacts")
+}
+
+model LearningSignal {
+  id                    String             @id @default(cuid())
+  organizationId        String
+  organization          Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversationId        String
+  conversation          Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId             String?
+  message               Message?           @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  signalType            LearningSignalType
+  data                  Json?
+  processed             Boolean            @default(false)
+  processedAt           DateTime?
+  createdAt             DateTime           @default(now())
+
+  @@index([organizationId])
+  @@index([conversationId])
+  @@index([messageId])
+  @@index([signalType])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("learning_signals")
+}
+
+model KnowledgeGap {
+  id                    String             @id @default(cuid())
+  organizationId        String
+  organization          Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  question              String             @db.Text
+  normalizedQuestion    String?
+  frequency             Int                @default(1)
+  category              String?
+  suggestedAnswer       String?            @db.Text
+  status                KnowledgeGapStatus @default(DETECTED)
+  approvedBy            String?
+  integratedAt          DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([frequency])
+  @@index([createdAt])
+  @@map("knowledge_gaps")
+}
+
+model VerticalInsight {
+  id                    String            @id @default(cuid())
+  verticalTemplateId    String
+  verticalTemplate      VerticalTemplate  @relation(fields: [verticalTemplateId], references: [id], onDelete: Cascade)
+  insightType           VerticalInsightType
+  data                  Json?
+  distributedAt         DateTime?
+  createdAt             DateTime          @default(now())
+
+  @@index([verticalTemplateId])
+  @@index([insightType])
+  @@index([createdAt])
+  @@map("vertical_insights")
+}
+
+model Workflow {
+  id                    String              @id @default(cuid())
+  organizationId        String
+  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?             @db.Text
+  triggerType           WorkflowTriggerType
+  triggerConfig         Json?
+  steps                 Json?
+  isActive              Boolean             @default(true)
+  stats                 Json?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  executions            WorkflowExecution[]
+
+  @@index([organizationId])
+  @@index([triggerType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id                    String                  @id @default(cuid())
+  workflowId            String
+  workflow              Workflow                @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  organizationId        String
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contactId             String?
+  contact               Contact?                @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  status                WorkflowExecutionStatus @default(RUNNING)
+  currentStep           Int                     @default(0)
+  startedAt             DateTime                @default(now())
+  completedAt           DateTime?
+  error                 String?                 @db.Text
+
+  @@index([workflowId])
+  @@index([organizationId])
+  @@index([contactId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("workflow_executions")
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1500,6 +1681,71 @@ enum MessageRole {
   TOOL
   INTERNAL_NOTE
   @@map("message_role")
+}
+
+enum LeadStatus {
+  NEW
+  ENGAGED
+  QUALIFIED
+  CONVERTED
+  LOST
+  @@map("lead_status")
+}
+
+enum ChurnRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  @@map("churn_risk")
+}
+
+enum LearningSignalType {
+  RESOLVED_BY_AI
+  ESCALATED_TO_HUMAN
+  HUMAN_CORRECTION
+  POSITIVE_FEEDBACK
+  NEGATIVE_FEEDBACK
+  KNOWLEDGE_GAP
+  NEW_INTENT_DETECTED
+  HALLUCINATION_CAUGHT
+  @@map("learning_signal_type")
+}
+
+enum KnowledgeGapStatus {
+  DETECTED
+  SUGGESTED
+  APPROVED
+  REJECTED
+  INTEGRATED
+  @@map("knowledge_gap_status")
+}
+
+enum VerticalInsightType {
+  COMMON_GAP
+  BEST_PRACTICE
+  TREND
+  OPTIMIZATION
+  @@map("vertical_insight_type")
+}
+
+enum WorkflowTriggerType {
+  MESSAGE_RECEIVED
+  LEAD_SCORE_THRESHOLD
+  INACTIVITY
+  ECOMMERCE_EVENT
+  SCHEDULE
+  WEBHOOK_RECEIVED
+  MANUAL
+  @@map("workflow_trigger_type")
+}
+
+enum WorkflowExecutionStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELED
+  @@map("workflow_execution_status")
 }
 
 enum IntegrationType {

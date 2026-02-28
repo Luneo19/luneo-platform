@@ -15,6 +15,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // The Vercel rewrite in vercel.json proxies /api/* → https://api.luneo.app/api/*
 const AUTH_BASE = '';
 
+const readCsrfTokenFromCookie = (): string | null => {
+  if (typeof document === 'undefined') return null;
+  const raw = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('csrf_token='))
+    ?.split('=')[1];
+  return raw ? decodeURIComponent(raw) : null;
+};
+
 /**
  * Map backend user response to AuthUser
  */
@@ -112,8 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      const csrfToken = readCsrfTokenFromCookie();
       await fetch(`${AUTH_BASE}/api/v1/auth/logout`, {
         method: 'POST',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : undefined,
         credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
       });
       logger.info('User logged out', { userId: user?.id });
@@ -135,7 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const publicPrefixes = [
       '/', '/solutions', '/pricing', '/about', '/contact', '/blog', '/careers',
       '/developers', '/changelog', '/security', '/status', '/legal', '/help',
-      '/features', '/login', '/register', '/forgot-password', '/reset-password',
+      '/features', '/referral', '/templates', '/product', '/integrations',
+      '/testimonials', '/share', '/ref', '/verify-email', '/callback',
+      '/login', '/register', '/forgot-password', '/reset-password',
     ];
 
     const isPublicPage = (): boolean => {

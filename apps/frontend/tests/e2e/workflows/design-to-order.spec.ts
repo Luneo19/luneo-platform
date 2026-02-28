@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
 import { loginUser, isUserLoggedIn, TEST_USER } from '../utils/auth';
 
+async function isPresentAndVisible(locator: any): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
+
 /**
  * Test E2E du workflow complet : Création Design → Commande → Paiement
  * 
@@ -18,22 +22,14 @@ test.describe('Workflow: Design to Order', () => {
   }) => {
     // Étape 1: Connexion
     // Utiliser l'utilitaire d'authentification si disponible
-    const useAuth = process.env.E2E_USE_AUTH === 'true';
-    
-    if (useAuth) {
-      try {
-        await loginUser(page, TEST_USER);
-        expect(await isUserLoggedIn(page)).toBe(true);
-      } catch (error) {
-        // Si l'authentification échoue, continuer avec les tests sans auth
-        console.warn('Authentication skipped, continuing without login');
-      }
-    } else {
-      // Vérifier que les éléments de login sont présents
-      await page.goto('/login');
-      await expect(page.getByTestId('login-title')).toBeVisible();
-      await expect(page.getByTestId('login-email')).toBeVisible();
-      await expect(page.getByTestId('login-password')).toBeVisible();
+    const useAuth = process.env.E2E_USE_AUTH !== 'false';
+    expect(useAuth).toBe(true);
+
+    try {
+      await loginUser(page, TEST_USER);
+      expect(await isUserLoggedIn(page)).toBe(true);
+    } catch (error) {
+      throw new Error(`Authentication is required for design-to-order flow: ${String(error)}`);
     }
 
     // Étape 2: Navigation vers AI Studio
@@ -46,7 +42,7 @@ test.describe('Workflow: Design to Order', () => {
 
     // Étape 3: Vérifier présence des éléments de création de design
     const promptInput = page.getByPlaceholder(/prompt|description|créer/i).first();
-    if (await promptInput.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(promptInput)) {
       await expect(promptInput).toBeVisible();
     }
 
@@ -60,7 +56,7 @@ test.describe('Workflow: Design to Order', () => {
 
     // Étape 5: Vérifier présence du panier (si disponible)
     const cartButton = page.getByRole('button', { name: /panier|cart/i }).first();
-    if (await cartButton.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(cartButton)) {
       await expect(cartButton).toBeVisible();
     }
   });
@@ -80,14 +76,16 @@ test.describe('Workflow: Design to Order', () => {
       /commandes|orders/i,
     ];
 
+    let visibleSections = 0;
     for (const section of dashboardSections) {
       const element = page.getByText(section).first();
-      // Ne pas échouer si l'élément n'est pas trouvé (peut ne pas être visible)
-      const isVisible = await element.isVisible().catch(() => false);
+      const isVisible = await isPresentAndVisible(element);
       if (isVisible) {
+        visibleSections += 1;
         await expect(element).toBeVisible();
       }
     }
+    expect(visibleSections).toBeGreaterThan(0);
   });
 
   test('should access product customization page', async ({ page }) => {
@@ -103,14 +101,16 @@ test.describe('Workflow: Design to Order', () => {
     const productLink = page.getByRole('link', { name: /produit|product/i }).first();
 
     // Si un bouton de personnalisation existe, cliquer dessus
-    if (await customizeButton.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(customizeButton)) {
       await customizeButton.click();
       await expect(page).toHaveURL(/.*customize|.*edit/);
-    } else if (await productLink.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(productLink)) {
       // Sinon, cliquer sur un lien produit
       await productLink.click();
       // Vérifier qu'on est sur une page de détail produit
       await expect(page).toHaveURL(/.*products\/.+/);
+    } else {
+      throw new Error('No product customization entry point found');
     }
   });
 });

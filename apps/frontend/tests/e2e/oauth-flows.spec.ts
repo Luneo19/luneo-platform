@@ -16,14 +16,25 @@ test.describe('OAuth Flows', () => {
         });
       });
 
-      const googleButton = page.getByRole('button', { name: /google|continuer avec google/i });
-      
-      if (await googleButton.isVisible().catch(() => false)) {
-        await googleButton.click();
-        // Should redirect to Google
-        await page.waitForTimeout(1000);
-        // Note: In real tests, you'd need to handle the OAuth callback
+      const googleButton = page.getByRole('button', { name: /google|continuer avec google/i }).or(
+        page.getByRole('link', { name: /google|continuer avec google/i })
+      ).first();
+      if ((await googleButton.count()) > 0) {
+        await expect(googleButton).toBeVisible();
+        await googleButton.click({ noWaitAfter: true });
+      } else {
+        await expect(page).toHaveURL(/.*login/);
       }
+      // Should redirect to Google
+      await page.waitForTimeout(1000);
+      const currentUrl = page.url().toLowerCase();
+      expect(
+        currentUrl.includes('/login') ||
+        currentUrl.includes('/auth') ||
+        currentUrl.includes('google') ||
+        currentUrl.includes('oauth')
+      ).toBeTruthy();
+      // Note: In real tests, you'd need to handle the OAuth callback
     });
 
     test('should handle Google OAuth callback successfully', async ({ page }) => {
@@ -90,12 +101,16 @@ test.describe('OAuth Flows', () => {
         });
       });
 
-      const githubButton = page.getByRole('button', { name: /github|continuer avec github/i });
-      
-      if (await githubButton.isVisible().catch(() => false)) {
-        await githubButton.click();
-        await page.waitForTimeout(1000);
+      const githubButton = page.getByRole('button', { name: /github|continuer avec github/i }).or(
+        page.getByRole('link', { name: /github|continuer avec github/i })
+      ).first();
+      if ((await githubButton.count()) > 0) {
+        await expect(githubButton).toBeVisible();
+        await githubButton.click({ noWaitAfter: true });
+      } else {
+        await expect(page).toHaveURL(/.*login/);
       }
+      await page.waitForTimeout(1000);
     });
 
     test('should handle GitHub OAuth callback successfully', async ({ page }) => {

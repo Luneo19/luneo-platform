@@ -19,9 +19,12 @@ async function fetchAuthMe(cookie: string | null): Promise<{ id: string; email: 
     });
     if (!res.ok) return null;
     const json = await res.json();
-    // Backend may return { success: true, data: { id, email, ... } }
-    // or directly { id, email, ... }
-    const user = json?.data || json;
+    // Backend payloads vary across modules:
+    // - { success: true, data: { id, ... } }
+    // - { success: true, data: { user: { id, ... } } }
+    // - { user: { id, ... } }
+    // - { id, ... }
+    const user = json?.data?.user || json?.data || json?.user || json;
     if (!user || !user.id) return null;
     return user;
   } catch {

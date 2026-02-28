@@ -228,6 +228,12 @@ export function useAdminOverview(options: UseAdminOverviewOptions = {}) {
       revalidateOnReconnect: true,
       errorRetryCount: 3,
       errorRetryInterval: 5000,
+      shouldRetryOnError: (err) => {
+        const status = (err as FetcherError | undefined)?.status;
+        // Do not spam retries for authz/authn failures.
+        if (status === 401 || status === 403) return false;
+        return true;
+      },
     }
   );
 

@@ -115,6 +115,10 @@ export class BookingExecutor implements ActionExecutor {
           error: 'INTEGRATION_NOT_CONFIGURED',
         };
       }
+      const requestScopedConfig = {
+        ...config,
+        __requestId: context.requestId ?? context.idempotencyKey ?? context.conversationId,
+      };
 
       const startDateTime = this.buildDateTime(date, time);
       const endDateTime = new Date(
@@ -128,7 +132,7 @@ export class BookingExecutor implements ActionExecutor {
         ? `Rendez-vous avec ${attendeeName}`
         : `Rendez-vous - ${attendeeEmail}`;
 
-      const event = await calendarProvider.createEvent(config, {
+      const event = await calendarProvider.createEvent(requestScopedConfig, {
         calendarId,
         title,
         start: startDateTime.toISOString(),

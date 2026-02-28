@@ -84,7 +84,7 @@ export function OverviewStatsGrid({
               </div>
             </div>
             <h3 className="text-2xl font-bold text-white mb-1">{stat.value}</h3>
-            <p className="text-sm text-white/40 mb-3">{stat.title}</p>
+            <p className="text-sm text-white/70 mb-3">{stat.title}</p>
             <MiniBarChart data={chartValues} color={colors.chart} />
           </MotionDiv>
         );

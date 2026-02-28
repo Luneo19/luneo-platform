@@ -9,21 +9,20 @@ test.describe('Rate Limiting', () => {
   test('should enforce rate limits on API endpoints', async ({ page }) => {
     // Make multiple rapid requests to trigger rate limiting
     const requests = [];
-    const baseURL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseURL = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Make 150 requests rapidly (limit is 100/min)
     for (let i = 0; i < 150; i++) {
-      requests.push(
-        page.request.get(`${baseURL}/api/health`).catch(() => null)
-      );
+      requests.push(page.request.get(`${baseURL}/api/health`));
     }
 
-    const responses = await Promise.all(requests);
+    const responses = await Promise.allSettled(requests);
+    const fulfilledResponses = responses
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .map((result) => result.value);
 
     // Check for rate limit responses (429)
-    const rateLimited = responses.filter(
-      (res) => res && res.status() === 429
-    );
+    const rateLimited = fulfilledResponses.filter((res) => res.status() === 429);
 
     // Should have at least some rate limited responses
     if (rateLimited.length > 0) {
@@ -31,11 +30,12 @@ test.describe('Rate Limiting', () => {
       expect(rateLimited.length).toBeGreaterThan(0);
     } else {
       console.warn('⚠️ Rate limiting not triggered (might be disabled in dev)');
+      expect(fulfilledResponses.length).toBeGreaterThan(0);
     }
   });
 
   test('should include rate limit headers in responses', async ({ page }) => {
-    const baseURL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseURL = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await page.request.get(`${baseURL}/api/health`);
 
     const headers = response.headers();
@@ -58,7 +58,7 @@ test.describe('Rate Limiting', () => {
   });
 
   test('should allow requests after rate limit window', async ({ page }) => {
-    const baseURL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseURL = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Make initial request
     const response1 = await page.request.get(`${baseURL}/api/health`);

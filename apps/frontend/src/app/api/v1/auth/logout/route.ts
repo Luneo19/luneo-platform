@@ -47,15 +47,18 @@ export async function POST(req: NextRequest) {
       backendLogoutSucceeded = true;
     }
 
-    const nextRes = backendLogoutSucceeded
-      ? NextResponse.json({ message: 'Logged out' }, { status: 200 })
-      : NextResponse.json(
-          {
-            message:
-              'Logout partially completed. Please retry to fully revoke your session.',
+    // Keep logout UX idempotent: always return 200 once local cookies are cleared,
+    // even if backend token revocation is temporarily unavailable.
+    const nextRes = NextResponse.json(
+      backendLogoutSucceeded
+        ? { message: 'Logged out', success: true }
+        : {
+            message: 'Logged out locally. Remote token revocation is pending.',
+            success: true,
+            partial: true,
           },
-          { status: 503 },
-        );
+      { status: 200 },
+    );
     setNoCacheHeaders(nextRes);
 
     nextRes.cookies.set('accessToken', '', {
@@ -84,11 +87,30 @@ export async function POST(req: NextRequest) {
     return nextRes;
   } catch (error) {
     serverLogger.error('[Auth Proxy] Logout error:', error);
-    const res = NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 503 },
-    );
+    // Never block the user-facing logout flow on proxy-side failures.
+    const res = NextResponse.json({ message: 'Logged out', success: true, partial: true }, { status: 200 });
     setNoCacheHeaders(res);
+    res.cookies.set('accessToken', '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    res.cookies.set('refreshToken', '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    res.cookies.set('csrf_token', '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
     return res;
   }
 }

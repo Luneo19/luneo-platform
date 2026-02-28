@@ -44,7 +44,7 @@ export default function AdminOverviewPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Super Admin Dashboard</h1>
-        <p className="text-white/60 mt-2">
+        <p className="text-white/80 mt-2">
           {t('common.welcome')} ! Voici un aperçu de votre activité.
         </p>
       </div>

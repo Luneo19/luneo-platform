@@ -41,6 +41,14 @@ export class TemplateRenderer {
     return path.join(this.templatesDir, baseName);
   }
 
+  private getTemplateCandidates(templateName: string, locale?: string): string[] {
+    const normalizedLocale = (locale || '').trim().toLowerCase();
+    if (normalizedLocale.startsWith('en')) {
+      return [`${templateName}.en`, templateName];
+    }
+    return [templateName];
+  }
+
   /**
    * Load template from disk (with caching)
    */
@@ -89,12 +97,15 @@ export class TemplateRenderer {
    * Render a template with the given variables.
    * Returns null if the template file does not exist.
    */
-  render(templateName: string, variables: Record<string, unknown>): string | null {
-    const template = this.loadTemplate(templateName);
-    if (!template) {
-      return null;
+  render(templateName: string, variables: Record<string, unknown>, locale?: string): string | null {
+    const candidates = this.getTemplateCandidates(templateName, locale);
+    for (const candidate of candidates) {
+      const template = this.loadTemplate(candidate);
+      if (template) {
+        return this.interpolate(template, variables);
+      }
     }
-    return this.interpolate(template, variables);
+    return null;
   }
 
   /**

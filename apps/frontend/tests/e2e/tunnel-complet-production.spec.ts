@@ -3,6 +3,10 @@ import { test, expect, Page } from '@playwright/test';
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Tunnel de conversion COMPLET', () => {
+  async function isPresentAndVisible(locator: any): Promise<boolean> {
+    return (await locator.count()) > 0 && (await locator.first().isVisible());
+  }
+
   test.setTimeout(90_000);
 
   const timestamp = Date.now();
@@ -33,19 +37,19 @@ test.describe('Tunnel de conversion COMPLET', () => {
       await page.screenshot({ path: 'test-results/A2-register.png' });
 
       const nameField = page.locator('#fullName, [name="name"], [name="firstName"]');
-      if (await nameField.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(nameField)) {
         await nameField.fill('Marchand Test');
       }
       await page.locator('#email, [name="email"]').first().fill(merchantEmail);
       await page.locator('#password, [name="password"]').first().fill(merchantPassword);
 
       const confirmField = page.locator('#confirmPassword, [name="confirmPassword"]');
-      if (await confirmField.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(confirmField)) {
         await confirmField.fill(merchantPassword);
       }
 
       const terms = page.locator('#terms, [name="terms"], input[type="checkbox"]');
-      if (await terms.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(terms)) {
         await terms.check({ force: true });
       }
 
@@ -118,7 +122,7 @@ test.describe('Tunnel de conversion COMPLET', () => {
       const textTool = page.locator(
         'button:has-text("Texte"), button:has-text("Text"), [data-tool="text"]'
       );
-      if (await textTool.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+      if (await isPresentAndVisible(textTool.first())) {
         await textTool.first().click();
         await page.screenshot({ path: 'test-results/B2-text-tool.png' });
       }

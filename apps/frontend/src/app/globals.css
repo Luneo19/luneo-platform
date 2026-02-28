@@ -49,7 +49,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 263 70% 50%;
+    --primary: 263 70% 45%;
     --primary-foreground: 0 0% 100%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -1020,6 +1020,19 @@
   }
 }
 
+/* Admin-only contrast hardening for controls */
+[data-admin-ui='true'] button.border-input,
+[data-admin-ui='true'] a.border-input {
+  border-color: rgb(63 63 70 / 1);
+  color: rgb(244 244 245 / 1);
+  background-color: transparent;
+}
+
+[data-admin-ui='true'] button.border-input:hover,
+[data-admin-ui='true'] a.border-input:hover {
+  background-color: rgb(39 39 42 / 1);
+}
+
 /* ─── Electric Grid Animations (Madgicx-style) ─── */
 @keyframes electric-scan-h {
   0% { transform: translateY(-100vh); opacity: 0; }
@@ -1038,6 +1051,142 @@
 @keyframes orbit-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* ===================================================================
+   GLOBAL CONTRAST HARDENING (light/dark)
+   Centralized fallbacks for legacy utility classes still hardcoded.
+   =================================================================== */
+
+.light {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Light mode: force readable text when components still use white alpha utilities */
+.light .text-white {
+  color: rgb(15 23 42) !important;
+}
+
+html:not(.dark) .text-white {
+  color: rgb(15 23 42) !important;
+}
+
+.light .text-white\/90 {
+  color: rgb(30 41 59) !important;
+}
+
+html:not(.dark) .text-white\/90 {
+  color: rgb(30 41 59) !important;
+}
+
+.light .text-white\/80 {
+  color: rgb(51 65 85) !important;
+}
+
+html:not(.dark) .text-white\/80 {
+  color: rgb(51 65 85) !important;
+}
+
+.light .text-white\/70 {
+  color: rgb(71 85 105) !important;
+}
+
+html:not(.dark) .text-white\/70 {
+  color: rgb(71 85 105) !important;
+}
+
+.light .text-white\/60 {
+  color: rgb(100 116 139) !important;
+}
+
+html:not(.dark) .text-white\/60 {
+  color: rgb(100 116 139) !important;
+}
+
+.light .text-white\/50 {
+  color: rgb(100 116 139) !important;
+}
+
+html:not(.dark) .text-white\/50 {
+  color: rgb(100 116 139) !important;
+}
+
+.light .text-white\/40 {
+  color: rgb(148 163 184) !important;
+}
+
+html:not(.dark) .text-white\/40 {
+  color: rgb(148 163 184) !important;
+}
+
+.light .text-white\/30 {
+  color: rgb(148 163 184) !important;
+}
+
+html:not(.dark) .text-white\/30 {
+  color: rgb(148 163 184) !important;
+}
+
+/* Light mode fallback for medium grays often used in dashboard/admin cards */
+html:not(.dark) .text-zinc-500,
+html:not(.dark) .text-gray-500,
+html:not(.dark) .text-slate-500 {
+  color: rgb(71 85 105) !important;
+}
+
+html:not(.dark) .text-zinc-400,
+html:not(.dark) .text-gray-400,
+html:not(.dark) .text-slate-400 {
+  color: rgb(100 116 139) !important;
+}
+
+/* Dark mode: upgrade muted slate tones that were too dim */
+.dark .text-slate-600 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-slate-500 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-slate-400 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-gray-500 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-gray-400 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-zinc-500 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-zinc-400 {
+  color: rgb(203 213 225) !important;
+}
+
+/* Placeholders readability */
+.light input::placeholder,
+.light textarea::placeholder {
+  color: rgb(148 163 184) !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: rgb(148 163 184) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(148 163 184) !important;
 }
 
 

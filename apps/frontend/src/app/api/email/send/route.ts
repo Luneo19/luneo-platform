@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward to backend
-    const backendResponse = await fetch(`${API_URL}/api/v1/emails/send`, {
+    const backendResponse = await fetch(`${API_URL}/api/v1/email/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

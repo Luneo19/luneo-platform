@@ -20,9 +20,11 @@
     "type-check": "turbo run type-check",
     "type-check:release": "pnpm --filter luneo-frontend type-check && pnpm --filter @luneo/backend type-check",
     "build:release": "pnpm --filter luneo-frontend build && pnpm --filter @luneo/backend build",
-    "quality:release": "pnpm run lint:release && pnpm run type-check:release && pnpm run test:release && pnpm run build:release",
+    "quality:release": "pnpm run lint:release && pnpm run type-check:release && pnpm run test:release && pnpm run build:release && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_SERVER=true pnpm run smoke:critical && SMOKE_BASE_URL=https://luneo.app pnpm run smoke:post-login-tunnel",
     "quality:platform": "pnpm run lint && pnpm run type-check && pnpm run test && pnpm run build",
     "smoke:critical": "node scripts/smoke/critical-smoke.mjs",
+    "smoke:post-login-tunnel": "node scripts/smoke/post-login-tunnel-smoke.mjs",
+    "rollback:drill": "node scripts/rollback-drill.mjs",
     "clean": "turbo run clean",
     "deploy": "turbo run deploy",
     "setup": "node scripts/setup.js"

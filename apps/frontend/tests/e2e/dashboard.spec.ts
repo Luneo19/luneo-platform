@@ -6,6 +6,10 @@ import { loginUser } from './utils/auth';
  * Tests E2E Dashboard - Parcours complet utilisateur
  * TODO-054: Tests E2E Dashboard complets (200+ lignes)
  */
+
+async function isPresentAndVisible(locator: any): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
 test.describe('Dashboard - Complete User Flow', () => {
   test.beforeEach(async ({ page }) => {
     await setLocale(page, 'fr');
@@ -41,7 +45,7 @@ test.describe('Dashboard - Complete User Flow', () => {
     
     // Vérifier stats cards
     const statsCards = page.locator('[class*="card"], [class*="Card"]').first();
-    const hasCards = await statsCards.isVisible().catch(() => false);
+    const hasCards = await isPresentAndVisible(statsCards);
     
     if (hasCards) {
       await expect(statsCards).toBeVisible();
@@ -55,9 +59,9 @@ test.describe('Dashboard - Complete User Flow', () => {
     const productsLink = page.getByRole('link', { name: /produits|products/i }).first();
     const productsNav = page.locator('nav').getByText(/produits|products/i).first();
     
-    if (await productsLink.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(productsLink)) {
       await productsLink.click();
-    } else if (await productsNav.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(productsNav)) {
       await productsNav.click();
     }
     
@@ -76,9 +80,9 @@ test.describe('Dashboard - Complete User Flow', () => {
     const ordersLink = page.getByRole('link', { name: /commandes|orders/i }).first();
     const ordersNav = page.locator('nav').getByText(/commandes|orders/i).first();
     
-    if (await ordersLink.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(ordersLink)) {
       await ordersLink.click();
-    } else if (await ordersNav.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(ordersNav)) {
       await ordersNav.click();
     }
     
@@ -97,9 +101,9 @@ test.describe('Dashboard - Complete User Flow', () => {
     const libraryLink = page.getByRole('link', { name: /bibliothèque|library/i }).first();
     const libraryNav = page.locator('nav').getByText(/bibliothèque|library/i).first();
     
-    if (await libraryLink.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(libraryLink)) {
       await libraryLink.click();
-    } else if (await libraryNav.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(libraryNav)) {
       await libraryNav.click();
     }
     
@@ -118,9 +122,9 @@ test.describe('Dashboard - Complete User Flow', () => {
     const collectionsLink = page.getByRole('link', { name: /collections/i }).first();
     const collectionsNav = page.locator('nav').getByText(/collections/i).first();
     
-    if (await collectionsLink.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(collectionsLink)) {
       await collectionsLink.click();
-    } else if (await collectionsNav.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(collectionsNav)) {
       await collectionsNav.click();
     }
     
@@ -139,9 +143,9 @@ test.describe('Dashboard - Complete User Flow', () => {
     const analyticsLink = page.getByRole('link', { name: /analytics|analytiques/i }).first();
     const analyticsNav = page.locator('nav').getByText(/analytics|analytiques/i).first();
     
-    if (await analyticsLink.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(analyticsLink)) {
       await analyticsLink.click();
-    } else if (await analyticsNav.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(analyticsNav)) {
       await analyticsNav.click();
     }
     
@@ -161,11 +165,11 @@ test.describe('Dashboard - Complete User Flow', () => {
     const settingsNav = page.locator('nav').getByText(/paramètres|settings/i).first();
     const settingsButton = page.getByRole('button', { name: /paramètres|settings/i }).first();
     
-    if (await settingsLink.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(settingsLink)) {
       await settingsLink.click();
-    } else if (await settingsNav.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(settingsNav)) {
       await settingsNav.click();
-    } else if (await settingsButton.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(settingsButton)) {
       await settingsButton.click();
     }
     
@@ -185,7 +189,7 @@ test.describe('Dashboard - Complete User Flow', () => {
       .getByRole('button', { name: /nouvelle collection|new collection/i })
       .first();
 
-    if (await newCollectionButton.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(newCollectionButton)) {
       await newCollectionButton.click();
       await page.waitForTimeout(1000);
       
@@ -193,8 +197,8 @@ test.describe('Dashboard - Complete User Flow', () => {
       const modal = page.getByRole('dialog').first();
       const form = page.getByRole('textbox').first();
       
-      const hasModal = await modal.isVisible().catch(() => false);
-      const hasForm = await form.isVisible().catch(() => false);
+      const hasModal = await isPresentAndVisible(modal);
+      const hasForm = await isPresentAndVisible(form);
       
       expect(hasModal || hasForm).toBeTruthy();
       
@@ -207,7 +211,7 @@ test.describe('Dashboard - Complete User Flow', () => {
           .getByRole('button', { name: /créer|create|enregistrer|save/i })
           .first();
         
-        if (await submitButton.isVisible().catch(() => false)) {
+        if (await isPresentAndVisible(submitButton)) {
           await submitButton.click();
           await page.waitForTimeout(2000);
           
@@ -225,7 +229,7 @@ test.describe('Dashboard - Complete User Flow', () => {
     // Trouver la barre de recherche
     const searchInput = page.getByPlaceholder(/rechercher|search/i).first();
     
-    if (await searchInput.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(searchInput)) {
       await searchInput.fill('test');
       await page.waitForTimeout(1000);
       
@@ -241,12 +245,12 @@ test.describe('Dashboard - Complete User Flow', () => {
     const filterButton = page.getByRole('button', { name: /filtre|filter/i }).first();
     const categoryFilter = page.getByText(/catégorie|category/i).first();
     
-    if (await filterButton.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(filterButton)) {
       await filterButton.click();
       await page.waitForTimeout(500);
     }
     
-    if (await categoryFilter.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(categoryFilter)) {
       await categoryFilter.click();
       await page.waitForTimeout(1000);
       
@@ -263,18 +267,18 @@ test.describe('Dashboard - Complete User Flow', () => {
       .first();
     const bellIcon = page.locator('svg').filter({ hasText: /bell|notification/i }).first();
     
-    if (await notificationIcon.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(notificationIcon)) {
       await notificationIcon.click();
       await page.waitForTimeout(500);
       
       // Vérifier qu'un menu de notifications s'ouvre
       const notificationMenu = page.getByRole('menu').first();
-      const hasMenu = await notificationMenu.isVisible().catch(() => false);
+      const hasMenu = await isPresentAndVisible(notificationMenu);
       
       if (hasMenu) {
         await expect(notificationMenu).toBeVisible();
       }
-    } else if (await bellIcon.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(bellIcon)) {
       await bellIcon.click();
       await page.waitForTimeout(500);
     }
@@ -289,9 +293,9 @@ test.describe('Dashboard - Complete User Flow', () => {
       .first();
     const avatar = page.locator('img[alt*="user"], [class*="avatar"]').first();
     
-    if (await userMenu.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(userMenu)) {
       await userMenu.click();
-    } else if (await avatar.isVisible().catch(() => false)) {
+    } else if (await isPresentAndVisible(avatar)) {
       await avatar.click();
     }
     
@@ -302,7 +306,7 @@ test.describe('Dashboard - Complete User Flow', () => {
       .getByRole('button', { name: /déconnexion|logout|sign out/i })
       .first();
     
-    if (await logoutButton.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(logoutButton)) {
       await logoutButton.click();
       await page.waitForTimeout(2000);
       
@@ -323,7 +327,7 @@ test.describe('Dashboard - Complete User Flow', () => {
     const mobileMenu = page
       .locator('[aria-label*="menu"], [class*="hamburger"], button[class*="menu"]')
       .first();
-    const hasMobileMenu = await mobileMenu.isVisible().catch(() => false);
+    const hasMobileMenu = await isPresentAndVisible(mobileMenu);
     
     if (hasMobileMenu) {
       await mobileMenu.click();
@@ -349,7 +353,7 @@ test.describe('Dashboard - Complete User Flow', () => {
     
     // Vérifier qu'un message d'erreur s'affiche
     const errorMessage = page.getByText(/erreur|error|échec|failed/i).first();
-    const hasError = await errorMessage.isVisible().catch(() => false);
+    const hasError = await isPresentAndVisible(errorMessage);
     
     // L'erreur devrait être gérée gracieusement
     expect(hasError || page.url().includes('/products')).toBeTruthy();

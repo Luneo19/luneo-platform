@@ -1,6 +1,8 @@
 /**
- * E2E Tests - Billing
- * Skeleton: implement when test DB and Stripe test mode are configured.
+ * E2E Tests - Billing (release gates)
+ * Ces tests valident des comportements stables et non permissifs:
+ * - protection des endpoints privés,
+ * - validation de signature webhook.
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -31,25 +33,11 @@ describe('Billing E2E', () => {
     await app.close();
   });
 
-  it('POST /billing/checkout - creates checkout session', async () => {
-    const email = process.env.TEST_USER_EMAIL || 'admin@luneo.com';
-    const password = process.env.TEST_USER_PASSWORD || 'admin123';
-    const loginRes = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email, password });
-    if (loginRes.status === 200) {
-      const cookies = loginRes.headers['set-cookie'];
-      const cookieHeader = Array.isArray(cookies) ? cookies.join('; ') : cookies;
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/billing/create-checkout-session')
-        .set('Cookie', cookieHeader)
-        .send({ planId: 'starter', billingInterval: 'monthly' });
-      // May succeed or fail based on Stripe config
-      expect([200, 201, 400, 500]).toContain(res.status);
-      if (res.status === 200 || res.status === 201) {
-        expect(res.body).toHaveProperty('url');
-      }
-    }
+  it('POST /billing/create-checkout-session should reject unauthenticated request', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/billing/create-checkout-session')
+      .send({ planId: 'starter', billingInterval: 'monthly' });
+    expect(res.status).toBe(401);
   });
 
   it('POST /billing/webhook - processes payment event', async () => {
@@ -58,23 +46,12 @@ describe('Billing E2E', () => {
       .post('/api/v1/billing/webhook')
       .set('Content-Type', 'application/json')
       .send(JSON.stringify({ type: 'checkout.session.completed' }));
-    // Should fail without valid signature
-    expect([400, 401]).toContain(res.status);
+    expect(res.status).toBe(400);
+    expect(String(res.body?.message || '')).toContain('signature');
   });
 
-  it('GET /billing/usage - returns current usage', async () => {
-    const email = process.env.TEST_USER_EMAIL || 'admin@luneo.com';
-    const password = process.env.TEST_USER_PASSWORD || 'admin123';
-    const loginRes = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email, password });
-    if (loginRes.status === 200) {
-      const cookies = loginRes.headers['set-cookie'];
-      const cookieHeader = Array.isArray(cookies) ? cookies.join('; ') : cookies;
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/billing/subscription')
-        .set('Cookie', cookieHeader);
-      expect([200, 404]).toContain(res.status);
-    }
+  it('GET /billing/subscription should reject unauthenticated request', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/billing/subscription');
+    expect(res.status).toBe(401);
   });
 });

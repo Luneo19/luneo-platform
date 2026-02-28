@@ -25,11 +25,12 @@ export class SendEmailDto {
 export class TestEmailDto {
   email: string;
   name?: string;
+  locale?: string;
   provider?: 'sendgrid' | 'mailgun' | 'auto';
 }
 
 @ApiTags('Email')
-@Controller('email')
+@Controller(['email', 'emails'])
 @UseGuards(JwtAuthGuard)
 @Throttle({ default: { limit: 20, ttl: 60000 } })
 export class EmailController {
@@ -100,6 +101,7 @@ export class EmailController {
         testData.email,
         testData.name || 'Test User',
         testData.provider,
+        testData.locale,
       );
       return {
         success: true,
@@ -130,6 +132,7 @@ export class EmailController {
         resetToken,
         resetUrl,
         testData.provider,
+        testData.locale,
       );
       return {
         success: true,
@@ -162,6 +165,7 @@ export class EmailController {
         confirmationToken,
         confirmationUrl,
         testData.provider,
+        testData.locale,
       );
       return {
         success: true,

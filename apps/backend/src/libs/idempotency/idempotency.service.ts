@@ -99,8 +99,8 @@ export class IdempotencyService {
       if (code === 'P2002') {
         return false;
       }
-      this.logger.warn(`Idempotency claim failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
+      this.logger.error(`Idempotency claim failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
     }
   }
 

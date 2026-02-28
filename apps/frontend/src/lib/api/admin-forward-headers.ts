@@ -42,7 +42,7 @@ export function buildAdminForwardHeaders(
     } else {
       // Fallback: if the browser sent csrf_token cookie but omitted the header,
       // rebuild the double-submit header so backend CSRF guard can validate.
-      const csrfCookie = request.cookies.get('csrf_token')?.value;
+      const csrfCookie = request.cookies?.get?.('csrf_token')?.value;
       if (csrfCookie) headers['x-csrf-token'] = csrfCookie;
     }
   }

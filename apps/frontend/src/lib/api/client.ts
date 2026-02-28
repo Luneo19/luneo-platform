@@ -431,10 +431,102 @@ export const endpoints = {
       api.put<{ success: boolean }>('/api/v1/settings/notifications', preferences),
   },
 
-  // Organizations (renamed from brands)
+  // Organizations / Brands
   organizations: {
-    current: () => api.get('/api/v1/organizations/settings'),
-    update: (data: Record<string, unknown>) => api.put('/api/v1/organizations/settings', data),
+    current: () => api.get('/api/v1/brands/settings'),
+    update: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
+  },
+
+  // Verticals
+  verticals: {
+    templates: () => api.get('/api/v1/verticals/templates'),
+    getTemplate: (slug: string) => api.get(`/api/v1/verticals/templates/${slug}`),
+    select: (slug: string, onboardingData?: Record<string, unknown>) =>
+      api.post('/api/v1/verticals/select', { slug, onboardingData }),
+  },
+
+  // Contacts (customer profile progressive)
+  contacts: {
+    list: (params?: { page?: number; limit?: number; search?: string }) =>
+      api.get('/api/v1/contacts', { params }),
+    get: (id: string) => api.get(`/api/v1/contacts/${id}`),
+    create: (data: {
+      externalId?: string;
+      email?: string;
+      phone?: string;
+      firstName?: string;
+      lastName?: string;
+      aiProfile?: Record<string, unknown>;
+    }) => api.post('/api/v1/contacts', data),
+    updateProfile: (id: string, data: {
+      aiProfile?: Record<string, unknown>;
+      leadStatus?: string;
+      churnRisk?: string;
+      leadScore?: number;
+      tags?: string[];
+      segments?: string[];
+      firstName?: string;
+      lastName?: string;
+    }) => api.patch(`/api/v1/contacts/${id}/profile`, data),
+  },
+
+  // Learning flywheel
+  learning: {
+    createSignal: (data: {
+      conversationId: string;
+      messageId?: string;
+      signalType: string;
+      data?: Record<string, unknown>;
+    }) => api.post('/api/v1/learning/signals', data),
+    gaps: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get('/api/v1/learning/gaps', { params }),
+    approveGap: (id: string) => api.post(`/api/v1/learning/gaps/${id}/approve`, {}),
+  },
+
+  // ROI
+  roi: {
+    overview: () => api.get('/api/v1/roi/overview'),
+  },
+
+  // Memory
+  memory: {
+    contact: (contactId: string) => api.get(`/api/v1/memory/contacts/${contactId}`),
+    summarizeConversation: (conversationId: string) =>
+      api.post('/api/v1/memory/conversations/summarize', { conversationId }),
+  },
+
+  // Actions
+  actions: {
+    catalog: () => api.get('/api/v1/actions/catalog'),
+    execute: (data: {
+      actionId: string;
+      agentId: string;
+      conversationId: string;
+      params?: Record<string, unknown>;
+    }) => api.post('/api/v1/actions/execute', data),
+  },
+
+  // Automation / Workflows
+  automation: {
+    workflows: () => api.get('/api/v1/automation/workflows'),
+    createWorkflow: (data: {
+      name: string;
+      description?: string;
+      triggerType: string;
+      triggerConfig?: Record<string, unknown>;
+      steps?: Record<string, unknown>;
+      isActive?: boolean;
+    }) => api.post('/api/v1/automation/workflows', data),
+    updateWorkflow: (id: string, data: Record<string, unknown>) =>
+      api.patch(`/api/v1/automation/workflows/${id}`, data),
+    toggleWorkflow: (id: string) => api.post(`/api/v1/automation/workflows/${id}/toggle`, {}),
+    executeWorkflow: (data: {
+      workflowId: string;
+      agentId: string;
+      conversationId: string;
+      userMessage: string;
+      context?: Record<string, unknown>;
+    }) => api.post('/api/v1/automation/workflows/execute', data),
   },
 
   // LLM Models
@@ -470,6 +562,18 @@ export const endpoints = {
     update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/agents/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/agents/${id}`),
     publish: (id: string) => api.post(`/api/v1/agents/${id}/publish`),
+    readiness: (id: string) =>
+      api.get<{
+        ready: boolean;
+        checklist: {
+          hasKnowledgeBase: boolean;
+          hasChannel: boolean;
+          hasFlowTrigger: boolean;
+          statusEligible: boolean;
+          requireFlowTrigger: boolean;
+        };
+        missing: string[];
+      }>(`/api/v1/agents/${id}/readiness`),
     pause: (id: string) => api.post(`/api/v1/agents/${id}/pause`),
     duplicate: (id: string) => api.post<{ id?: string; data?: { id?: string } }>(`/api/v1/agents/${id}/duplicate`),
     test: (id: string, data: { message: string; context?: { visitorName?: string; visitorEmail?: string } }) =>
@@ -613,7 +717,7 @@ export const endpoints = {
     scheduledChanges: () => api.get('/api/v1/billing/scheduled-changes'),
   },
 
-  // Notifications (backend: GET list, POST :id/read, POST read-all, DELETE :id)
+  // Notifications
   notifications: {
     list: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) =>
       api.get<{ notifications: unknown[]; pagination: { total: number } }>('/api/v1/notifications', { params }),
@@ -648,9 +752,13 @@ export const endpoints = {
         api.delete<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/disconnect'),
       status: async () => {
         try {
-          return await api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status');
+          return await api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify/status');
         } catch {
-          return api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify/status');
+          try {
+            return await api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status');
+          } catch {
+            return { connected: false, status: 'inactive' };
+          }
         }
       },
     },
@@ -790,16 +898,21 @@ export const endpoints = {
       }) => api.get<{ data: AdminClient[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/customers', { params }),
       get: (id: string) => api.get<AdminClient>(`/api/v1/admin/customers/${id}`),
       updatePlan: (orgId: string, plan: string) =>
-        api.patch(`/api/v1/admin/organizations/${orgId}`, { subscriptionPlan: plan, plan }),
-      offerSubscription: (body: { organizationId: string; plan: string; durationMonths: number; reason?: string }) =>
-        api.post('/api/v1/admin/billing/offer-subscription', body),
+        api.patch(`/api/v1/admin/brands/${orgId}`, { subscriptionPlan: plan, plan }),
+      offerSubscription: (body: { organizationId?: string; brandId?: string; plan: string; durationMonths: number; reason?: string }) =>
+        api.post('/api/v1/admin/billing/offer-subscription', {
+          brandId: body.brandId ?? body.organizationId,
+          plan: body.plan,
+          durationMonths: body.durationMonths,
+          reason: body.reason,
+        }),
       suspend: (orgId: string, reason?: string) =>
-        api.post(`/api/v1/admin/organizations/${orgId}/suspend`, { reason }),
+        api.post(`/api/v1/admin/brands/${orgId}/suspend`, { reason }),
       unsuspend: (orgId: string) =>
-        api.post(`/api/v1/admin/organizations/${orgId}/unsuspend`),
+        api.post(`/api/v1/admin/brands/${orgId}/unsuspend`),
     },
     tickets: (params?: { page?: number; limit?: number; status?: string; priority?: string }) =>
-      api.get<{ data: AdminTicket[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/support/tickets', { params }),
+      api.get<{ data: AdminTicket[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/admin/support/tickets', { params }),
   },
 
   // ORION Super Admin - Retention (ARTEMIS) + Admin Tools

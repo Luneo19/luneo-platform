@@ -103,6 +103,13 @@ export class AgentsController {
     return this.agentsService.publish(id, this.requireOrg(user));
   }
 
+  @Get(':id/readiness')
+  @ApiOperation({ summary: 'Get publish readiness checklist for an agent' })
+  @ApiResponse({ status: 200, description: 'Readiness status and missing prerequisites' })
+  readiness(@CurrentUser() user: CurrentUserType, @Param('id') id: string) {
+    return this.agentsService.getReadiness(id, this.requireOrg(user));
+  }
+
   @Post(':id/pause')
   @ApiOperation({ summary: 'Pause an active agent' })
   @ApiResponse({ status: 200, description: 'Agent paused' })

@@ -129,7 +129,7 @@ function PrivacySettingsPageContent() {
         <h1 className="text-3xl font-bold text-white mb-2">
           {t('privacy.pageTitle')}
         </h1>
-        <p className="text-slate-400">
+        <p className="text-slate-200">
           {t('privacy.pageSubtitle')}
         </p>
       </div>
@@ -145,7 +145,7 @@ function PrivacySettingsPageContent() {
               <h3 className="text-lg font-semibold text-white mb-2">
                 {t('privacy.gdprRightsTitle')}
               </h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
+              <p className="text-slate-100 text-sm leading-relaxed">
                 {t('privacy.gdprRightsDesc')}
               </p>
             </div>
@@ -180,7 +180,7 @@ function PrivacySettingsPageContent() {
                 key={i}
                 className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50"
               >
-                <item.icon className="w-5 h-5 text-slate-400 mb-2" />
+                <item.icon className="w-5 h-5 text-slate-200 mb-2" />
                 <p className="text-sm font-medium text-white">{item.label}</p>
                 <p className="text-xs text-slate-500">{item.desc}</p>
               </div>
@@ -226,9 +226,9 @@ function PrivacySettingsPageContent() {
           <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-slate-300">
+              <div className="text-sm text-slate-100">
                 <p className="font-semibold text-red-400 mb-1">{t('privacy.warningTitle')}</p>
-                <ul className="list-disc list-inside space-y-1 text-slate-400">
+                <ul className="list-disc list-inside space-y-1 text-slate-200">
                   <li>{t('privacy.warningDesigns')}</li>
                   <li>{t('privacy.warningOrders')}</li>
                   <li>{t('privacy.warningIntegrations')}</li>
@@ -255,14 +255,14 @@ function PrivacySettingsPageContent() {
                   <AlertTriangle className="w-5 h-5 text-red-400" />
                   {t('privacy.deleteConfirmTitle')}
                 </DialogTitle>
-                <DialogDescription className="text-slate-400">
+                <DialogDescription className="text-slate-200">
                   {t('privacy.deleteConfirmDesc')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="confirmation" className="text-slate-300">
+                  <Label htmlFor="confirmation" className="text-slate-100">
                     {t('privacy.typeToConfirmLabel')}
                   </Label>
                   <Input
@@ -275,7 +275,7 @@ function PrivacySettingsPageContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-300">
+                  <Label htmlFor="password" className="text-slate-100">
                     {t('privacy.confirmWithPassword')}
                   </Label>
                   <Input
@@ -326,7 +326,7 @@ function PrivacySettingsPageContent() {
           <CardTitle className="text-white">{t('privacy.howWeUseDataTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4 text-sm text-slate-400">
+          <div className="space-y-4 text-sm text-slate-200">
             <div className="flex items-start gap-3">
               <Check className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
               <p>

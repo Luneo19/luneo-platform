@@ -64,6 +64,15 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { WebCrawlerModule } from './modules/web-crawler/web-crawler.module';
 import { EvalHarnessModule } from './modules/eval-harness/eval-harness.module';
 import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
+import { ContactModule } from './modules/contact/contact.module';
+import { ContactsModule } from './modules/contacts/contacts.module';
+import { VerticalsModule } from './modules/verticals/verticals.module';
+import { LearningModule } from './modules/learning/learning.module';
+import { RoiModule } from './modules/roi/roi.module';
+import { MemoryModule } from './modules/memory/memory.module';
+import { ActionsModule } from './modules/actions/actions.module';
+import { AutomationModule } from './modules/automation/automation.module';
+import { IntegrationsApiModule } from './modules/integrations-api/integrations-api.module';
 
 // =============================================
 // LIBS INFRASTRUCTURE
@@ -215,6 +224,15 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     WebCrawlerModule,
     EvalHarnessModule,
     UsageBillingModule,
+    ContactModule,
+    ContactsModule,
+    VerticalsModule,
+    LearningModule,
+    RoiModule,
+    MemoryModule,
+    ActionsModule,
+    AutomationModule,
+    IntegrationsApiModule,
 
     // --- Infrastructure ---
     CommonModule,

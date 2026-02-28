@@ -15,6 +15,10 @@ interface CustomFixtures {
   takeNamedScreenshot: (name: string) => Promise<void>;
 }
 
+async function isPresentAndVisible(locator: any): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
+
 // Export de test avec les fixtures personnalisées
 export const test = base.extend<CustomFixtures>({
   // Page avec cookies acceptés
@@ -24,7 +28,7 @@ export const test = base.extend<CustomFixtures>({
     
     // Accepter les cookies si la bannière est présente
     const cookieBanner = page.getByRole('button', { name: /accepter|accept/i });
-    if (await cookieBanner.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isPresentAndVisible(cookieBanner)) {
       await cookieBanner.click();
       await page.waitForTimeout(500);
     }

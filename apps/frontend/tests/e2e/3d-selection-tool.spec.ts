@@ -19,18 +19,17 @@ test.describe('3D Selection Tool', () => {
 
   test('should simulate selection and upload mask', async ({ page, request }) => {
     // Step 1: Login (if auth is enabled)
-    const useAuth = process.env.E2E_USE_AUTH === 'true';
-    
-    if (useAuth) {
-      try {
-        await loginUser(page, TEST_USER);
-        const isLoggedIn = await page.evaluate(() => {
-          return document.cookie.includes('accessToken=');
-        });
-        expect(isLoggedIn).toBeTruthy();
-      } catch (error) {
-        console.warn('Authentication skipped, continuing without login');
-      }
+    const useAuth = process.env.E2E_USE_AUTH !== 'false';
+    expect(useAuth).toBe(true);
+
+    try {
+      await loginUser(page, TEST_USER);
+      const isLoggedIn = await page.evaluate(() => {
+        return document.cookie.includes('accessToken=');
+      });
+      expect(isLoggedIn).toBeTruthy();
+    } catch (error) {
+      throw new Error(`Authentication is required for 3D selection flow: ${String(error)}`);
     }
 
     // Step 2: Navigate to a page with 3D viewer (or create a test page)

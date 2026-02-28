@@ -167,7 +167,12 @@ export async function verifyPageAccessible(page: Page): Promise<boolean> {
   ];
   
   for (const errorMsg of errorMessages) {
-    const isVisible = await errorMsg.isVisible({ timeout: 2000 }).catch(() => false);
+    let isVisible = false;
+    try {
+      isVisible = (await errorMsg.count()) > 0 && (await errorMsg.first().isVisible());
+    } catch {
+      isVisible = false;
+    }
     if (isVisible) {
       return false;
     }

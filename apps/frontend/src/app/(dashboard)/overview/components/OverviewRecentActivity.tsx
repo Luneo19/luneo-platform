@@ -29,7 +29,7 @@ export function OverviewRecentActivity({
           Activité Récente
         </h2>
         <Link href="/dashboard/monitoring">
-          <Button variant="ghost" size="sm" className="text-white/40 hover:text-white hover:bg-white/[0.04]">
+          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/[0.04]">
             Voir tout
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
@@ -41,7 +41,7 @@ export function OverviewRecentActivity({
             <div className="w-12 h-12 bg-white/[0.04] rounded-full flex items-center justify-center mx-auto mb-3 border border-white/[0.06]">
               <Clock className="w-6 h-6 text-white/30" />
             </div>
-            <p className="text-white/60 text-sm">Aucune activité récente</p>
+            <p className="text-white/80 text-sm">Aucune activité récente</p>
             <Link href="/dashboard/ai-studio">
               <Button size="sm" className="mt-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white">
                 <Plus className="w-4 h-4 mr-1" />

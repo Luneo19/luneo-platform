@@ -122,7 +122,7 @@ const Header = memo(function Header({
                   className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
                     density === mode
                       ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 shadow-sm'
-                      : 'text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/60'
+                      : 'text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white'
                   }`}
                   aria-pressed={density === mode}
                   aria-label={mode === 'compact' ? t('dashboard.header.densityCompact') : t('dashboard.header.densityComfort')}
@@ -136,8 +136,8 @@ const Header = memo(function Header({
             <ThemeToggle />
 
             {/* Help */}
-            <button className="p-2 hover:bg-white/[0.04] rounded-lg transition-colors" aria-label={t('dashboard.header.help') || 'Aide'}>
-              <HelpCircle className="w-5 h-5 text-white/50 dark:text-white/50 text-gray-500" />
+            <button className="p-2 hover:bg-accent rounded-lg transition-colors" aria-label={t('dashboard.header.help') || 'Aide'}>
+              <HelpCircle className="w-5 h-5 text-muted-foreground" />
             </button>
 
             {/* Plan badge */}
@@ -195,7 +195,7 @@ const Header = memo(function Header({
                     <div className="py-1" role="none">
                       <Link
                         href={appRoutes.overview}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-600 dark:text-white/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-white/85 hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors"
                         onClick={handleCloseMenu}
                         role="menuitem"
                       >
@@ -204,7 +204,7 @@ const Header = memo(function Header({
                       </Link>
                       <Link
                         href={appRoutes.settings}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-600 dark:text-white/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-white/85 hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors"
                         onClick={handleCloseMenu}
                         role="menuitem"
                       >
@@ -213,7 +213,7 @@ const Header = memo(function Header({
                       </Link>
                       <Link
                         href={appRoutes.billing}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-600 dark:text-white/70 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-white/85 hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors"
                         onClick={handleCloseMenu}
                         role="menuitem"
                       >

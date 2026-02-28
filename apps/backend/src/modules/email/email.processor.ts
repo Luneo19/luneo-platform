@@ -21,6 +21,7 @@ export interface EmailJobData {
   // Données spécifiques aux types d'emails
   data?: {
     userName?: string;
+    locale?: string;
     resetToken?: string;
     resetUrl?: string;
     confirmationToken?: string;
@@ -58,6 +59,7 @@ export class EmailProcessor {
             Array.isArray(to) ? to[0] : to,
             data?.userName || 'Utilisateur',
             provider,
+            data?.locale,
           );
           break;
         case 'password-reset':
@@ -66,6 +68,7 @@ export class EmailProcessor {
             data?.resetToken || '',
             data?.resetUrl || '',
             provider,
+            data?.locale,
           );
           break;
         case 'confirmation':
@@ -74,6 +77,7 @@ export class EmailProcessor {
             data?.confirmationToken || '',
             data?.confirmationUrl || '',
             provider,
+            data?.locale,
           );
           break;
         case 'generic':

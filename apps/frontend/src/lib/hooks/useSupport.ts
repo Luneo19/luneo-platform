@@ -44,6 +44,8 @@ export interface CreateTicketDto {
   priority?: 'low' | 'medium' | 'high';
 }
 
+const SUPPORT_MODULE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SUPPORT_MODULE !== 'false';
+
 export function useSupport() {
   const { toast } = useToast();
   const { t } = useI18n();
@@ -65,6 +67,11 @@ export function useSupport() {
   const [knowledgeBase, setKnowledgeBase] = useState<unknown[]>([]);
 
   const fetchTickets = useCallback(async () => {
+    if (!SUPPORT_MODULE_ENABLED) {
+      setTickets([]);
+      setError('Le module support est temporairement indisponible.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -78,6 +85,10 @@ export function useSupport() {
   }, []);
   
   const fetchTicket = useCallback(async (ticketId: string) => {
+    if (!SUPPORT_MODULE_ENABLED) {
+      setError('Le module support est temporairement indisponible.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -91,6 +102,10 @@ export function useSupport() {
   }, []);
   
   const updateTicket = useCallback(async (ticketId: string, updates: Partial<Ticket>) => {
+    if (!SUPPORT_MODULE_ENABLED) {
+      setError('Le module support est temporairement indisponible.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -108,6 +123,10 @@ export function useSupport() {
   }, [selectedTicket, toast, t]);
 
   const addMessage = useCallback(async (ticketId: string, message: string) => {
+    if (!SUPPORT_MODULE_ENABLED) {
+      setError('Le module support est temporairement indisponible.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -127,6 +146,10 @@ export function useSupport() {
   }, [selectedTicket, toast, t]);
 
   const fetchKnowledgeBase = useCallback(async () => {
+    if (!SUPPORT_MODULE_ENABLED) {
+      setKnowledgeBase([]);
+      return;
+    }
     try {
       setIsLoading(true);
       const response = await api.get<unknown>('/api/v1/support/knowledge-base/articles');
@@ -143,6 +166,14 @@ export function useSupport() {
 
   const createTicket = useCallback(
     async (data: CreateTicketDto): Promise<{ success: boolean; ticketId?: string }> => {
+      if (!SUPPORT_MODULE_ENABLED) {
+        toast({
+          title: t('common.error'),
+          description: 'Le module support est temporairement indisponible.',
+          variant: 'destructive',
+        });
+        return { success: false };
+      }
       try {
         setIsLoading(true);
         type CreateTicketResponse = { ticketId?: string; id?: string };

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CalendarProviderInterface } from './integration-provider.interface';
+import { IntegrationHttpClient } from './integration-http.client';
 
 const GCAL_API_BASE = 'https://www.googleapis.com/calendar/v3';
 
@@ -7,6 +8,8 @@ const GCAL_API_BASE = 'https://www.googleapis.com/calendar/v3';
 export class GoogleCalendarProvider implements CalendarProviderInterface {
   readonly integrationType = 'google_calendar';
   private readonly logger = new Logger(GoogleCalendarProvider.name);
+
+  constructor(private readonly http: IntegrationHttpClient) {}
 
   isConfigured(): boolean {
     return true;
@@ -16,14 +19,11 @@ export class GoogleCalendarProvider implements CalendarProviderInterface {
     config: Record<string, string>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${GCAL_API_BASE}/users/me/calendarList?maxResults=1`, {
+      await this.http.requestJson(`${GCAL_API_BASE}/users/me/calendarList?maxResults=1`, {
         headers: this.buildHeaders(config),
+        timeoutMs: 10000,
+        retries: 1,
       });
-
-      if (!response.ok) {
-        const body = await response.text();
-        return { success: false, error: `Google Calendar API error ${response.status}: ${body}` };
-      }
 
       return { success: true };
     } catch (error) {
@@ -64,22 +64,17 @@ export class GoogleCalendarProvider implements CalendarProviderInterface {
     }
 
     const encodedCalendarId = encodeURIComponent(data.calendarId);
-    const response = await fetch(
+    const result = await this.http.requestJson<{ id: string; htmlLink?: string }>(
       `${GCAL_API_BASE}/calendars/${encodedCalendarId}/events?sendUpdates=all`,
       {
         method: 'POST',
         headers: this.buildHeaders(config),
-        body: JSON.stringify(event),
+        body: event,
+        timeoutMs: 10000,
+        retries: 1,
       },
     );
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`Google Calendar createEvent failed: ${response.status} ${body}`);
-      throw new Error(`Google Calendar createEvent failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     return { id: result.id, link: result.htmlLink };
   }
 
@@ -88,23 +83,21 @@ export class GoogleCalendarProvider implements CalendarProviderInterface {
     calendarId: string,
     dateRange: { from: string; to: string },
   ): Promise<{ start: string; end: string }[]> {
-    const response = await fetch(`${GCAL_API_BASE}/freeBusy`, {
-      method: 'POST',
-      headers: this.buildHeaders(config),
-      body: JSON.stringify({
-        timeMin: dateRange.from,
-        timeMax: dateRange.to,
-        items: [{ id: calendarId }],
-      }),
-    });
+    const result = await this.http.requestJson<{ calendars?: Record<string, { busy?: Array<{ start: string; end: string }> }> }>(
+      `${GCAL_API_BASE}/freeBusy`,
+      {
+        method: 'POST',
+        headers: this.buildHeaders(config),
+        body: {
+          timeMin: dateRange.from,
+          timeMax: dateRange.to,
+          items: [{ id: calendarId }],
+        },
+        timeoutMs: 10000,
+        retries: 1,
+      },
+    );
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`Google Calendar freeBusy failed: ${response.status} ${body}`);
-      throw new Error(`Google Calendar freeBusy failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     const calendarBusy = result.calendars?.[calendarId]?.busy || [];
 
     return calendarBusy.map((period: { start: string; end: string }) => ({
@@ -151,9 +144,11 @@ export class GoogleCalendarProvider implements CalendarProviderInterface {
   }
 
   private buildHeaders(config: Record<string, string>): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.google_calendar_access_token}`,
     };
+    if (config.__requestId) headers['X-Request-Id'] = config.__requestId;
+    return headers;
   }
 }

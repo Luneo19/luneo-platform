@@ -210,7 +210,15 @@ function AddonsPageContent() {
         .filter((a) => (quantities[a.id] || 0) > 0)
         .map((a) => ({ type: a.id, quantity: quantities[a.id] }));
 
-      const checkout = await api.post<{ success?: boolean; url?: string; error?: string }>(
+      const checkout = await api.post<{
+        success?: boolean;
+        url?: string;
+        error?: string;
+        data?: {
+          url?: string;
+          error?: string;
+        };
+      }>(
         '/api/v1/billing/create-checkout-session',
         {
           planId: currentPlan,
@@ -219,9 +227,9 @@ function AddonsPageContent() {
         },
       );
 
-      const checkoutUrl = checkout?.url;
+      const checkoutUrl = checkout?.url ?? checkout?.data?.url;
       if (!checkoutUrl) {
-        throw new Error(checkout?.error || 'Impossible de créer la session de paiement');
+        throw new Error(checkout?.error || checkout?.data?.error || 'Impossible de créer la session de paiement');
       }
 
       setPurchaseSuccess(true);

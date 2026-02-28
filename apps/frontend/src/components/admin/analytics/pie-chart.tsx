@@ -80,7 +80,7 @@ export function PieChartWidget({
       return (
         <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
           <p className="text-sm font-medium text-white mb-1">{data.name}</p>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-white/80">
             {formatCurrency(data.value)} ({percent}%)
           </p>
         </div>
@@ -156,7 +156,7 @@ export function PieChartWidget({
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-white/60">{item.name}</span>
+                  <span className="text-white/80">{item.name}</span>
                 </div>
                 <span className="text-white font-medium">
                   {formatCurrency(item.value)} ({(item.value / total * 100).toFixed(1)}%)

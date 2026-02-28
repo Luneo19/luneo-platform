@@ -59,6 +59,7 @@ interface TemplateGalleryProps {
 }
 
 function TemplateGallery({ className, onTemplateSelect, showCreateButton = true }: TemplateGalleryProps) {
+  const templatesModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_TEMPLATES_MODULE === 'true';
   const { t } = useI18n();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -72,9 +73,14 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
   const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
+    if (!templatesModuleEnabled) {
+      setTemplates([]);
+      setIsLoading(false);
+      return;
+    }
     loadTemplates();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, sortBy, selectedCategory]);
+  }, [page, sortBy, selectedCategory, templatesModuleEnabled]);
 
   // Optimisé: useMemo pour filtrage au lieu de useEffect
   const filteredTemplates = useMemo(() => {
@@ -100,6 +106,13 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
   }, [searchQuery, templates, selectedCategory]);
 
   const loadTemplates = useCallback(async () => {
+    if (!templatesModuleEnabled) {
+      setTemplates([]);
+      setTotalPages(1);
+      setCategories([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const params: Record<string, string | number> = {
@@ -133,7 +146,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, sortBy, selectedCategory, toast]);
+  }, [page, sortBy, selectedCategory, toast, templatesModuleEnabled]);
 
   const handleUseTemplate = (template: Template) => {
     onTemplateSelect?.(template);

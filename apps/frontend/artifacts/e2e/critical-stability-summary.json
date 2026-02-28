@@ -1,0 +1,19 @@
+{
+  "suite": "critical",
+  "generatedAt": "2026-02-28T12:29:20.160Z",
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "flaky": 0,
+  "skipped": 0,
+  "passRatePct": 100,
+  "flakyRatePct": 0,
+  "slowestTests": [
+    {
+      "title": "pricing.spec.ts > Pricing Page - Complete Flow > should display all pricing plans > chromium",
+      "status": "passed",
+      "maxDurationMs": 1942
+    }
+  ],
+  "failedTests": []
+}

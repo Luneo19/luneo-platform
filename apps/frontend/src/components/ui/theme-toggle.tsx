@@ -37,7 +37,7 @@ export function ThemeToggle({ className, variant = 'glass' }: ThemeToggleProps) 
         className={cn(
           'relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
           variant === 'glass'
-            ? 'bg-white/[0.04] border border-white/[0.06] text-white/50'
+            ? 'bg-background border border-border text-muted-foreground'
             : 'bg-muted text-muted-foreground',
           className,
         )}
@@ -61,7 +61,7 @@ export function ThemeToggle({ className, variant = 'glass' }: ThemeToggleProps) 
       className={cn(
         'relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200',
         variant === 'glass'
-          ? 'bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] text-white/60 hover:text-white/90'
+          ? 'bg-background border border-border hover:bg-accent text-muted-foreground hover:text-foreground'
           : 'bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground',
         className,
       )}

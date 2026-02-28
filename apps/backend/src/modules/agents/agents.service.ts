@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { OrchestratorService, AgentExecutionResult } from '@/modules/orchestrator/orchestrator.service';
+import { WorkflowEngineService } from '@/modules/orchestrator/workflow/workflow-engine.service';
 import { QuotasService } from '@/modules/quotas/quotas.service';
 import { AgentStatus, Prisma } from '@prisma/client';
-import { FlowExecutionEngine, type FlowNode, type FlowEdge } from '@/libs/flow/flow-execution-engine';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
 
@@ -20,9 +20,62 @@ export class AgentsService {
   constructor(
     private readonly prisma: PrismaOptimizedService,
     private readonly orchestratorService: OrchestratorService,
-    private readonly flowEngine: FlowExecutionEngine,
+    private readonly workflowEngineService: WorkflowEngineService,
     private readonly quotasService: QuotasService,
   ) {}
+
+  private hasFlowTrigger(flowData: unknown): boolean {
+    if (!flowData || typeof flowData !== 'object') return false;
+    const nodes = (flowData as { nodes?: Array<{ data?: { block?: { category?: string } } }> }).nodes;
+    if (!Array.isArray(nodes)) return false;
+    return nodes.some((node) => node?.data?.block?.category === 'TRIGGER');
+  }
+
+  private buildReadinessChecklist(
+    agent: { status: AgentStatus; agentKnowledgeBases: unknown[]; channels: unknown[]; flowData?: unknown },
+    options?: { requireFlowTrigger?: boolean; flowDataOverride?: unknown },
+  ) {
+    const hasKnowledgeBase = agent.agentKnowledgeBases.length > 0;
+    const hasChannel = agent.channels.length > 0;
+    const hasFlowTrigger = this.hasFlowTrigger(options?.flowDataOverride ?? agent.flowData);
+    const statusEligible = agent.status !== AgentStatus.ARCHIVED;
+    const requireFlowTrigger = Boolean(options?.requireFlowTrigger);
+
+    const missing: string[] = [];
+    if (!hasKnowledgeBase) missing.push('knowledge_base');
+    if (!hasChannel) missing.push('channel');
+    if (!statusEligible) missing.push('status');
+    if (requireFlowTrigger && !hasFlowTrigger) missing.push('flow_trigger');
+
+    return {
+      ready: missing.length === 0,
+      checklist: {
+        hasKnowledgeBase,
+        hasChannel,
+        hasFlowTrigger,
+        statusEligible,
+        requireFlowTrigger,
+      },
+      missing,
+    };
+  }
+
+  private assertAgentReadyForActivation(
+    agent: { status: AgentStatus; agentKnowledgeBases: unknown[]; channels: unknown[]; flowData?: unknown },
+    options?: { requireFlowTrigger?: boolean; flowDataOverride?: unknown },
+  ) {
+    const readiness = this.buildReadinessChecklist(agent, options);
+    if (readiness.ready) return readiness;
+
+    const missingLabels: Record<string, string> = {
+      knowledge_base: 'au moins une base de connaissance',
+      channel: 'au moins un canal',
+      status: "un statut d'agent publiable",
+      flow_trigger: 'au moins un trigger dans le flow',
+    };
+    const message = readiness.missing.map((item) => missingLabels[item] ?? item).join(', ');
+    throw new BadRequestException(`Publication bloquee: il manque ${message}.`);
+  }
 
   async create(organizationId: string, dto: CreateAgentDto) {
     const org = await this.prisma.organization.findUnique({
@@ -227,11 +280,7 @@ export class AgentsService {
     if (agent.status === AgentStatus.ACTIVE) {
       throw new BadRequestException('Already active');
     }
-    if (agent.agentKnowledgeBases.length === 0) {
-      throw new BadRequestException(
-        'Agent needs at least one knowledge base before activation',
-      );
-    }
+    this.assertAgentReadyForActivation(agent);
 
     return this.prisma.agent.update({
       where: { id },
@@ -432,17 +481,18 @@ export class AgentsService {
     });
     if (!agent) throw new NotFoundException('Agent not found');
 
-    const result = await this.flowEngine.execute(
-      { nodes: flow.nodes as FlowNode[], edges: flow.edges as FlowEdge[] },
+    const result = await this.workflowEngineService.executeWorkflow(
+      agentId,
+      `flow-preview-${Date.now()}`,
       message,
-      { sandbox: true, traceExecution: true, agentId },
+      flow as Record<string, unknown>,
     );
 
     return {
       data: {
-        response: result.finalResponse || 'Aucune réponse générée par le flow.',
-        sources: result.sources,
-        executionTrace: result.trace,
+        response: result.response || 'Aucune réponse générée par le flow.',
+        sources: [],
+        executionTrace: result.actionsExecuted,
       },
     };
   }
@@ -454,14 +504,14 @@ export class AgentsService {
   ) {
     const agent = await this.prisma.agent.findFirst({
       where: { id: agentId, organizationId, deletedAt: null },
+      include: { agentKnowledgeBases: true, channels: true },
     });
     if (!agent) throw new NotFoundException('Agent not found');
 
-    const nodes = flow.nodes as FlowNode[];
-    const hasTrigger = nodes.some((n) => n.data?.block?.category === 'TRIGGER');
-    if (!hasTrigger) {
-      throw new BadRequestException('Flow must contain at least one Trigger block');
-    }
+    this.assertAgentReadyForActivation(agent, {
+      requireFlowTrigger: true,
+      flowDataOverride: flow,
+    });
 
     const updated = await this.prisma.agent.update({
       where: { id: agentId },
@@ -475,5 +525,14 @@ export class AgentsService {
 
     this.logger.log(`Agent ${agentId} published with flow version ${updated.flowVersion}`);
     return { data: updated };
+  }
+
+  async getReadiness(agentId: string, organizationId: string) {
+    const agent = await this.prisma.agent.findFirst({
+      where: { id: agentId, organizationId, deletedAt: null },
+      include: { agentKnowledgeBases: true, channels: true },
+    });
+    if (!agent) throw new NotFoundException('Agent not found');
+    return this.buildReadinessChecklist(agent);
   }
 }

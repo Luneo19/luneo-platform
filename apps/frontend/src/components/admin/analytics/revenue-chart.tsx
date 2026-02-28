@@ -69,7 +69,7 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
     if (active && payload && payload.length) {
       return (
         <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
-          <p className="text-sm text-white/60 mb-2">{payload[0].payload.date}</p>
+          <p className="text-sm text-white/80 mb-2">{payload[0].payload.date}</p>
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {formatCurrency(entry.value ?? 0)}
@@ -125,14 +125,14 @@ export function RevenueChart({ data, isLoading = false, className }: RevenueChar
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis
               dataKey="date"
-              stroke="#4a4a5e"
+              stroke="#a1a1aa"
               fontSize={12}
-              tickLine={{ stroke: '#4a4a5e' }}
+              tickLine={{ stroke: '#a1a1aa' }}
             />
             <YAxis
-              stroke="#4a4a5e"
+              stroke="#a1a1aa"
               fontSize={12}
-              tickLine={{ stroke: '#4a4a5e' }}
+              tickLine={{ stroke: '#a1a1aa' }}
               tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
             />
             <Tooltip content={<CustomTooltip />} />

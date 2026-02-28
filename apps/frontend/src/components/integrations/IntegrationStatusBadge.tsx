@@ -12,11 +12,21 @@ interface IntegrationStatusBadgeProps {
 }
 
 export function IntegrationStatusBadge({ integrationType, className }: IntegrationStatusBadgeProps) {
+  const integrationsModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_INTEGRATIONS_MODULE === 'true';
   const { data: integrations, isLoading, error } = useQuery({ queryKey: ['integrations'], queryFn: () => api.get('/api/v1/integrations').then((r: any) => r.data ?? r),
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: typeof window !== 'undefined', // Only run on client
+    enabled: integrationsModuleEnabled && typeof window !== 'undefined', // Only run on client when module is enabled
   });
+
+  if (!integrationsModuleEnabled) {
+    return (
+      <Badge variant="outline" className={`border-gray-300 text-gray-600 ${className}`}>
+        <XCircle className="w-3 h-3 mr-1" />
+        Non connecté
+      </Badge>
+    );
+  }
 
   // If not authenticated or error, show disconnected
   if (error || !integrations) {

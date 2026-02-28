@@ -1,0 +1,182 @@
+name: E2E Quality Gates
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  E2E_BASE_URL: ${{ secrets.E2E_BASE_URL != '' && secrets.E2E_BASE_URL || 'https://luneo.app' }}
+
+jobs:
+  e2e-critical-gate:
+    name: E2E Critical Business Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run critical E2E batch
+        run: |
+          mkdir -p artifacts/e2e
+          cd apps/frontend
+          BASE_URL="${E2E_BASE_URL}" pnpm exec playwright test --config=playwright.production.config.ts \
+            tests/e2e/pricing.spec.ts \
+            tests/e2e/checkout-flow.spec.ts \
+            tests/e2e/workflows/checkout-to-confirmation.spec.ts \
+            tests/e2e/workflows/registration-to-design.spec.ts \
+            --project=chromium \
+            --reporter=json > ../../artifacts/e2e/critical-results.json
+
+      - name: Build critical stability report
+        run: |
+          cd apps/frontend
+          pnpm run report:e2e:stability -- --input ../../artifacts/e2e/critical-results.json --out-dir ../../artifacts/e2e --suite critical
+
+      - name: Enforce critical thresholds (hard gate)
+        run: |
+          cd apps/frontend
+          pnpm run enforce:e2e:thresholds -- --input ../../artifacts/e2e/critical-stability-summary.json --suite critical --max-failed 0 --max-flaky-rate 0 --min-pass-rate 100
+
+      - name: Upload critical artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-critical-artifacts
+          path: artifacts/e2e/**
+          if-no-files-found: ignore
+
+  e2e-domain-gate:
+    name: E2E Domain Coverage Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run domain E2E batch
+        run: |
+          mkdir -p artifacts/e2e
+          cd apps/frontend
+          BASE_URL="${E2E_BASE_URL}" pnpm exec playwright test --config=playwright.production.config.ts \
+            tests/e2e/products-flows.spec.ts \
+            tests/e2e/orders-flows.spec.ts \
+            tests/e2e/analytics-flows.spec.ts \
+            tests/e2e/oauth.spec.ts \
+            tests/e2e/oauth-flows.spec.ts \
+            tests/e2e/email-verification.spec.ts \
+            tests/e2e/admin-dashboard.spec.ts \
+            tests/e2e/cross-browser.spec.ts \
+            tests/e2e/rate-limiting.spec.ts \
+            --project=chromium \
+            --reporter=json > ../../artifacts/e2e/domain-results.json
+
+      - name: Build domain stability report
+        run: |
+          cd apps/frontend
+          pnpm run report:e2e:stability -- --input ../../artifacts/e2e/domain-results.json --out-dir ../../artifacts/e2e --suite domain
+
+      - name: Enforce domain thresholds (hard gate)
+        run: |
+          cd apps/frontend
+          pnpm run enforce:e2e:thresholds -- --input ../../artifacts/e2e/domain-stability-summary.json --suite domain --max-failed 0 --max-flaky-rate 1 --min-pass-rate 99
+
+      - name: Upload domain artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-domain-artifacts
+          path: artifacts/e2e/**
+          if-no-files-found: ignore
+
+  e2e-release-readiness:
+    name: E2E Release Readiness
+    runs-on: ubuntu-latest
+    needs: [e2e-critical-gate, e2e-domain-gate]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download critical artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-critical-artifacts
+          path: artifacts/e2e-critical
+
+      - name: Download domain artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-domain-artifacts
+          path: artifacts/e2e-domain
+
+      - name: Build E2E PR pack
+        run: |
+          cd apps/frontend
+          pnpm run report:e2e:pr-pack -- \
+            --critical ../../artifacts/e2e-critical/critical-stability-summary.json \
+            --domain ../../artifacts/e2e-domain/domain-stability-summary.json \
+            --out ../../artifacts/e2e-pr-pack.md \
+            --title "E2E PR Quality Pack"
+
+      - name: Publish PR pack in workflow summary
+        run: cat artifacts/e2e-pr-pack.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload PR pack artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-pr-pack
+          path: artifacts/e2e-pr-pack.md
+          if-no-files-found: error
+
+      - name: Confirm all E2E gates passed
+        run: echo "E2E critical and domain gates passed."

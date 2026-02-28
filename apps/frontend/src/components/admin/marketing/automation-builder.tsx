@@ -131,7 +131,7 @@ export function AutomationBuilder({
               <Button
                 key={node.type}
                 variant="outline"
-                className="w-full justify-start bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
+                className="w-full justify-start bg-zinc-900 border-zinc-700 text-zinc-100 hover:bg-zinc-800"
                 onClick={() => addStep(node.type as AutomationStep['type'])}
               >
                 <span className="mr-2">{node.icon}</span>

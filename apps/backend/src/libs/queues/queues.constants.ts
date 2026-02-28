@@ -13,6 +13,8 @@ export const QUEUE_NAMES = {
   EMAIL_INBOUND: 'email-inbound',
   ESCALATION: 'escalation',
   ANALYTICS_AGGREGATION: 'analytics-aggregation',
+  LEARNING: 'learning',
+  SUMMARIZATION: 'summarization',
   DLQ: 'dead-letter-queue',
 } as const;
 
@@ -57,6 +59,15 @@ export const JOB_TYPES = {
     AGGREGATE_WEEKLY: 'aggregate-weekly',
     COMPUTE_CSAT: 'compute-csat',
     GENERATE_REPORT: 'generate-report',
+    SYNC_BILLING_USAGE: 'sync-billing-usage',
+    GENERATE_SCORECARD_REPORT: 'generate-scorecard-report',
+  },
+  LEARNING: {
+    ANALYZE_SIGNALS: 'analyze-signals',
+    AGGREGATE_VERTICAL: 'aggregate-vertical',
+  },
+  SUMMARIZATION: {
+    SUMMARIZE_CONVERSATION: 'summarize-conversation',
   },
   DLQ: {
     RETRY_FAILED: 'retry-failed',

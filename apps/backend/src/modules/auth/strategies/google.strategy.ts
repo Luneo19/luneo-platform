@@ -26,18 +26,23 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly oauthService: OAuthService,
   ) {
     const startupLogger = new Logger(GoogleStrategy.name);
+    const nodeEnv = configService.get<string>('NODE_ENV') || process.env.NODE_ENV || 'development';
+    const isProduction = nodeEnv === 'production';
     const oauthStateRaw =
       configService.get<string>('oauth.google.enableState') ??
       configService.get<string>('OAUTH_GOOGLE_ENABLE_STATE');
     const oauthPkceRaw =
       configService.get<string>('oauth.google.enablePkce') ??
       configService.get<string>('OAUTH_GOOGLE_ENABLE_PKCE');
-    const oauthStateEnabled = (oauthStateRaw ?? 'false') === 'true';
+    const oauthStateEnabled = (oauthStateRaw ?? (isProduction ? 'true' : 'false')) === 'true';
     const oauthPkceEnabled = (oauthPkceRaw ?? 'false') === 'true';
+    const oauthSessionEnabled =
+      (configService.get<string>('OAUTH_SESSION_ENABLED') ?? process.env.OAUTH_SESSION_ENABLED ?? 'false') === 'true';
+    const effectiveStateEnabled = oauthStateEnabled && oauthSessionEnabled;
 
     if (oauthStateRaw == null) {
       startupLogger.warn(
-        'Google OAuth state is not explicitly configured (default=false). Set OAUTH_GOOGLE_ENABLE_STATE=true/false explicitly.',
+        `Google OAuth state is not explicitly configured (default=${isProduction ? 'true' : 'false'}). Set OAUTH_GOOGLE_ENABLE_STATE explicitly.`,
       );
     }
     if (oauthPkceRaw == null) {
@@ -61,6 +66,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     if (!clientID || !clientSecret) {
       throw new Error('Google OAuth clientID and clientSecret are required');
     }
+    if (isProduction && !oauthStateEnabled) {
+      startupLogger.warn(
+        'Google OAuth state is disabled in production. This lowers CSRF protection for OAuth. Prefer enabling sessions + OAUTH_GOOGLE_ENABLE_STATE=true.',
+      );
+    }
+    if (oauthStateEnabled && !oauthSessionEnabled) {
+      startupLogger.warn(
+        'Google OAuth state requested but OAUTH_SESSION_ENABLED is false. Falling back to stateless OAuth (state disabled) to avoid runtime failures.',
+      );
+    }
 
     super({
       clientID,
@@ -69,7 +84,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       scope: ['email', 'profile'],
       // State/PKCE can require extra session setup with passport strategies.
       // Keep them configurable to avoid hard prod failures when infra is stateless.
-      state: oauthStateEnabled,
+      state: effectiveStateEnabled,
       pkce: oauthPkceEnabled,
       passReqToCallback: false,
     });

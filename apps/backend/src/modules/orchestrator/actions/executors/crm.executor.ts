@@ -169,16 +169,20 @@ export class CrmExecutor implements ActionExecutor {
           error: 'INTEGRATION_NOT_CONFIGURED',
         };
       }
+      const requestScopedConfig = {
+        ...config,
+        __requestId: context.requestId ?? context.idempotencyKey ?? context.conversationId,
+      };
 
       const crmProvider = this.integrationRouter.getCrmProvider(providerType);
 
       switch (subAction) {
         case 'create_contact':
-          return await this.createContact(crmProvider, config, params, context);
+          return await this.createContact(crmProvider, requestScopedConfig, params, context);
         case 'update_contact':
-          return await this.updateContact(crmProvider, config, params, context);
+          return await this.updateContact(crmProvider, requestScopedConfig, params, context);
         case 'create_deal':
-          return await this.createDeal(crmProvider, config, params, context);
+          return await this.createDeal(crmProvider, requestScopedConfig, params, context);
         default:
           return {
             success: false,

@@ -16,6 +16,8 @@ interface TeamMember {
   permissions?: string[];
 }
 
+const TEAM_MODULE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_TEAM_MODULE === 'true';
+
 export function useTeam() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,12 @@ export function useTeam() {
 
   // Charger les membres
   const loadMembers = useCallback(async () => {
+    if (!TEAM_MODULE_ENABLED) {
+      setMembers([]);
+      setLoading(false);
+      setError('Le module equipe est temporairement indisponible.');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -41,6 +49,9 @@ export function useTeam() {
 
   // Inviter un membre
   const inviteMember = useCallback(async (email: string, role: string) => {
+    if (!TEAM_MODULE_ENABLED) {
+      return { success: false, error: 'Le module equipe est temporairement indisponible.' };
+    }
     try {
       setLoading(true);
       setError(null);
@@ -60,6 +71,9 @@ export function useTeam() {
 
   // Supprimer un membre
   const removeMember = useCallback(async (memberId: string) => {
+    if (!TEAM_MODULE_ENABLED) {
+      return { success: false, error: 'Le module equipe est temporairement indisponible.' };
+    }
     try {
       setLoading(true);
       setError(null);
@@ -79,6 +93,9 @@ export function useTeam() {
 
   // Changer le rôle d'un membre
   const updateMemberRole = useCallback(async (memberId: string, role: string) => {
+    if (!TEAM_MODULE_ENABLED) {
+      return { success: false, error: 'Le module equipe est temporairement indisponible.' };
+    }
     try {
       setLoading(true);
       setError(null);

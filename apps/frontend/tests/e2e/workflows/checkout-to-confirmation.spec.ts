@@ -11,6 +11,7 @@
 
 import { test, expect } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
+import { isPresentAndVisible } from '../utils/assertions';
 
 test.describe('Checkout → Payment → Confirmation Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -42,7 +43,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     
     for (const planName of planNames) {
       const planElement = page.getByText(new RegExp(planName, 'i')).first();
-      if (await planElement.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(planElement)) {
         foundPlan = true;
         selectedPlanName = planName;
         console.log(`✅ Plan ${planName} trouvé`);
@@ -52,7 +53,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     
     // Si aucun plan n'est trouvé, vérifier qu'il y a du contenu
     if (!foundPlan) {
-      const hasContent = await page.locator('main, [role="main"], .container').first().isVisible().catch(() => false);
+      const hasContent = await isPresentAndVisible(page.locator('main, [role="main"], .container').first());
       expect(hasContent).toBeTruthy();
       console.log('ℹ️ Plans non trouvés mais contenu présent');
     }
@@ -72,7 +73,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     
     let checkoutButton = null;
     for (const button of ctaButtons) {
-      if (await button.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(button)) {
         checkoutButton = button.first();
         console.log('✅ Bouton de checkout trouvé');
         break;
@@ -90,10 +91,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
       }
     }
     
-    if (!checkoutButton) {
-      console.log('⚠️ Aucun bouton de checkout trouvé, mais la page est accessible');
-      return; // Arrêter le test si on ne peut pas continuer
-    }
+    expect(checkoutButton).not.toBeNull();
 
     // ============================================
     // ÉTAPE 4: CRÉATION DE LA SESSION CHECKOUT
@@ -158,7 +156,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
       
       let stripePageLoaded = false;
       for (const element of stripeElements) {
-        if (await element.isVisible({ timeout: 5000 }).catch(() => false)) {
+        if (await isPresentAndVisible(element)) {
           stripePageLoaded = true;
           console.log('✅ Page Stripe Checkout chargée');
           break;
@@ -197,7 +195,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
       
       let successPageVisible = false;
       for (const element of successElements) {
-        if (await element.isVisible({ timeout: 5000 }).catch(() => false)) {
+        if (await isPresentAndVisible(element)) {
           successPageVisible = true;
           console.log('✅ Page de succès affichée');
           break;
@@ -206,7 +204,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
       
       // Vérifier qu'il n'y a pas d'erreur
       const errorMessage = page.getByText(/erreur|error|échec|failed/i).first();
-      const hasError = await errorMessage.isVisible({ timeout: 2000 }).catch(() => false);
+      const hasError = await isPresentAndVisible(errorMessage);
       
       if (hasError) {
         console.log('⚠️ Message d\'erreur détecté sur la page de succès (peut être normal en test)');
@@ -236,7 +234,7 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     
     // Vérifier qu'il n'y a pas d'erreur bloquante
     const errorBanner = page.getByText(/erreur.*critique|critical.*error/i).first();
-    const hasCriticalError = await errorBanner.isVisible({ timeout: 2000 }).catch(() => false);
+    const hasCriticalError = await isPresentAndVisible(errorBanner);
     
     expect(hasCriticalError).toBeFalsy();
     console.log('✅ Annulation gérée correctement');
@@ -254,9 +252,9 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     const yearlyText = page.getByText(/annuel|yearly/i).first();
     const toggleButton = page.getByRole('button', { name: /toggle|switch/i }).first();
     
-    const hasMonthly = await monthlyText.isVisible({ timeout: 2000 }).catch(() => false);
-    const hasYearly = await yearlyText.isVisible({ timeout: 2000 }).catch(() => false);
-    const hasToggle = await toggleButton.isVisible({ timeout: 2000 }).catch(() => false);
+    const hasMonthly = await isPresentAndVisible(monthlyText);
+    const hasYearly = await isPresentAndVisible(yearlyText);
+    const hasToggle = await isPresentAndVisible(toggleButton);
     
     if (hasToggle) {
       // Cliquer sur le toggle
@@ -279,26 +277,11 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
         planId: 'starter',
         billing: 'monthly',
       },
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      console.log(`✅ API checkout répond avec status: ${status}`);
-      
-      // L'API devrait répondre (même si c'est une erreur d'authentification)
-      expect(status).toBeDefined();
-      
-      // Si c'est 401, c'est normal (pas authentifié)
-      if (status === 401) {
-        console.log('ℹ️ 401 Unauthorized (normal sans authentification)');
-      } else if (status === 400) {
-        console.log('ℹ️ 400 Bad Request (peut être normal selon la configuration)');
-      } else if (status === 200 || status === 201) {
-        console.log('✅ Session checkout créée avec succès');
-      }
-    } else {
-      console.log('⚠️ Endpoint API non accessible (peut être normal en test)');
-    }
+    });
+
+    const status = response.status();
+    console.log(`✅ API checkout répond avec status: ${status}`);
+    expect([200, 201, 400, 401, 403, 404, 422]).toContain(status);
   });
 
   test('should verify success page with mock session', async ({ page }) => {
@@ -318,9 +301,9 @@ test.describe('Checkout → Payment → Confirmation Flow', () => {
     const errorMessage = page.getByText(/erreur|error|session.*invalide|invalid.*session/i).first();
     const successMessage = page.getByText(/succès|success/i).first();
     
-    const hasLoading = await loadingIndicator.isVisible({ timeout: 3000 }).catch(() => false);
-    const hasError = await errorMessage.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSuccess = await successMessage.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasLoading = await isPresentAndVisible(loadingIndicator);
+    const hasError = await isPresentAndVisible(errorMessage);
+    const hasSuccess = await isPresentAndVisible(successMessage);
     
     // Au moins un de ces états devrait être visible
     expect(hasLoading || hasError || hasSuccess).toBeTruthy();
@@ -353,29 +336,21 @@ test.describe('Checkout Performance', () => {
     expect(loadTime).toBeLessThan(15000);
   });
 
-  test('should create checkout session within reasonable time', async ({ page, request }) => {
-    // Ce test nécessite une authentification, donc on le skip si pas disponible
-    test.skip(process.env.E2E_SKIP_AUTH === 'true', 'Skipping authenticated test');
-    
+  test('should create checkout session within reasonable time', async ({ request }) => {
+    expect(process.env.E2E_SKIP_AUTH).not.toBe('true');
+
     const startTime = Date.now();
-    
-    // Simuler la création d'une session (peut échouer sans auth, c'est OK)
     const response = await request.post('/api/billing/create-checkout-session', {
       data: {
         planId: 'starter',
         billing: 'monthly',
       },
-    }).catch(() => null);
-    
+    });
+
     const apiTime = Date.now() - startTime;
-    
-    if (response) {
-      console.log(`Checkout API response time: ${apiTime}ms`);
-      // L'API devrait répondre en moins de 5 secondes
-      expect(apiTime).toBeLessThan(5000);
-    } else {
-      console.log('ℹ️ API non accessible (normal sans authentification)');
-    }
+    expect(response.status()).toBeLessThan(500);
+    console.log(`Checkout API response time: ${apiTime}ms`);
+    expect(apiTime).toBeLessThan(5000);
   });
 });
 
@@ -390,16 +365,11 @@ test.describe('Checkout Security', () => {
         planId: 'invalid_plan_id_xyz123',
         billing: 'monthly',
       },
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      // Devrait retourner une erreur (4xx ou 5xx)
-      expect([400, 401, 403, 404, 422, 500]).toContain(status);
-      console.log(`✅ Plan invalide rejeté avec status: ${status}`);
-    } else {
-      console.log('ℹ️ API non accessible (normal en test)');
-    }
+    });
+
+    const status = response.status();
+    expect([400, 401, 403, 404, 422]).toContain(status);
+    console.log(`✅ Plan invalide rejeté avec status: ${status}`);
   });
 
   test('should require valid billing cycle', async ({ request }) => {
@@ -408,16 +378,11 @@ test.describe('Checkout Security', () => {
         planId: 'starter',
         billing: 'invalid_cycle',
       },
-    }).catch(() => null);
-    
-    if (response) {
-      const status = response.status();
-      // Devrait retourner une erreur de validation
-      expect([400, 422]).toContain(status);
-      console.log(`✅ Cycle de facturation invalide rejeté avec status: ${status}`);
-    } else {
-      console.log('ℹ️ API non accessible (normal en test)');
-    }
+    });
+
+    const status = response.status();
+    expect([400, 404, 422]).toContain(status);
+    console.log(`✅ Cycle de facturation invalide rejeté avec status: ${status}`);
   });
 });
 

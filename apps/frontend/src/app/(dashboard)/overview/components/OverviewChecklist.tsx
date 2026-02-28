@@ -81,10 +81,10 @@ export function OverviewChecklist({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold text-white">Démarrage rapide</h2>
-          <p className="text-sm text-white/40 mt-0.5">Votre agent IA opérationnel en 5 étapes</p>
+          <p className="text-sm text-white/70 mt-0.5">Votre agent IA opérationnel en 5 étapes</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white/60">{completedCount}/{steps.length}</span>
+          <span className="text-sm font-medium text-white/80">{completedCount}/{steps.length}</span>
           <div className="w-20 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
@@ -118,14 +118,14 @@ export function OverviewChecklist({
                   {step.done ? (
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
                   ) : (
-                    <Icon className={`w-4 h-4 ${isNext ? 'text-purple-400' : 'text-white/40'}`} />
+                    <Icon className={`w-4 h-4 ${isNext ? 'text-purple-400' : 'text-white/70'}`} />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-medium ${step.done ? 'text-green-400 line-through' : 'text-white'}`}>
                     {step.label}
                   </p>
-                  <p className="text-xs text-white/40">{step.description}</p>
+                  <p className="text-xs text-white/70">{step.description}</p>
                 </div>
                 {!step.done && isNext && (
                   <ArrowRight className="w-4 h-4 text-purple-400 group-hover:translate-x-0.5 transition-transform shrink-0" />

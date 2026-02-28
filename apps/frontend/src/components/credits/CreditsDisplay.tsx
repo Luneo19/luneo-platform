@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AlertCircle, Loader2, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
 import { endpoints } from '@/lib/api/client';
 import { useI18n } from '@/i18n/useI18n';
+import { ensureSession } from '@/lib/auth/session-client';
 
 interface CreditsDisplayProps {
   userId: string;
@@ -28,18 +29,42 @@ export function CreditsDisplay({
   showBuyButton = true,
   className 
 }: CreditsDisplayProps) {
+  const creditsModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_CREDITS_MODULE === 'true';
   const { locale } = useI18n();
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
   const router = useRouter();
 
-  const fetchCredits = async () => {
+  const fetchCredits = useCallback(async () => {
+    if (!creditsModuleEnabled) {
+      setLoading(false);
+      return;
+    }
+    if (!userId || unavailable) {
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
+      const hasSession = await ensureSession();
+      if (!hasSession) {
+        setLoading(false);
+        return;
+      }
       const data = await endpoints.credits.balance();
       setCredits(data as CreditsData);
     } catch (err) {
+      const errObj = err as { response?: { status?: number } };
+      const status = errObj?.response?.status;
+      if (status === 401 || status === 404) {
+        setUnavailable(true);
+        setError(null);
+        setCredits(null);
+        return;
+      }
+
       logger.error('Failed to fetch credits', err instanceof Error ? err : new Error(String(err)), {
         component: 'CreditsDisplay',
         userId,
@@ -48,17 +73,33 @@ export function CreditsDisplay({
     } finally {
       setLoading(false);
     }
-  };
+  }, [creditsModuleEnabled, userId, unavailable, locale]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!creditsModuleEnabled) {
+      setLoading(false);
+      return;
+    }
+    if (!userId) {
+      setLoading(false);
+      setCredits(null);
+      setError(null);
+      return;
+    }
     
     fetchCredits();
     
     const interval = setInterval(fetchCredits, 120000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [creditsModuleEnabled, userId, fetchCredits]);
+
+  if (!creditsModuleEnabled) {
+    return null;
+  }
+
+  if (unavailable) {
+    return null;
+  }
 
   if (loading || credits === null) {
     return (

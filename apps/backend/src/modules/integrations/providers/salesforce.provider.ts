@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CrmProviderInterface } from './integration-provider.interface';
+import { IntegrationHttpClient } from './integration-http.client';
 
 const SF_API_VERSION = 'v58.0';
 
@@ -7,6 +8,8 @@ const SF_API_VERSION = 'v58.0';
 export class SalesforceProvider implements CrmProviderInterface {
   readonly integrationType = 'salesforce';
   private readonly logger = new Logger(SalesforceProvider.name);
+
+  constructor(private readonly http: IntegrationHttpClient) {}
 
   isConfigured(): boolean {
     return true;
@@ -17,15 +20,11 @@ export class SalesforceProvider implements CrmProviderInterface {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const baseUrl = this.getBaseUrl(config);
-      const response = await fetch(`${baseUrl}/services/data/${SF_API_VERSION}/limits`, {
+      await this.http.requestJson(`${baseUrl}/services/data/${SF_API_VERSION}/limits`, {
         headers: this.buildHeaders(config),
+        timeoutMs: 10000,
+        retries: 1,
       });
-
-      if (!response.ok) {
-        const body = await response.text();
-        return { success: false, error: `Salesforce API error ${response.status}: ${body}` };
-      }
-
       return { success: true };
     } catch (error) {
       this.logger.error('Salesforce connection test failed', error);
@@ -53,22 +52,17 @@ export class SalesforceProvider implements CrmProviderInterface {
     if (data.firstName) payload.FirstName = data.firstName;
     if (data.phone) payload.Phone = data.phone;
 
-    const response = await fetch(
+    const result = await this.http.requestJson<{ id: string }>(
       `${baseUrl}/services/data/${SF_API_VERSION}/sobjects/Contact`,
       {
         method: 'POST',
         headers: this.buildHeaders(config),
-        body: JSON.stringify(payload),
+        body: payload,
+        timeoutMs: 10000,
+        retries: 1,
       },
     );
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`Salesforce createContact failed: ${response.status} ${body}`);
-      throw new Error(`Salesforce createContact failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     return { id: result.id };
   }
 
@@ -79,18 +73,15 @@ export class SalesforceProvider implements CrmProviderInterface {
     const baseUrl = this.getBaseUrl(config);
     const soql = `SELECT Id, FirstName, LastName, Email, Phone FROM Contact WHERE Email = '${this.escapeSoql(email)}' LIMIT 1`;
 
-    const response = await fetch(
+    const result = await this.http.requestJson<{ totalSize: number; records: Array<{ Id: string; FirstName?: string; LastName?: string; Email?: string; Phone?: string }> }>(
       `${baseUrl}/services/data/${SF_API_VERSION}/query?q=${encodeURIComponent(soql)}`,
-      { headers: this.buildHeaders(config) },
+      {
+        headers: this.buildHeaders(config),
+        timeoutMs: 10000,
+        retries: 1,
+      },
     );
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`Salesforce getContact failed: ${response.status} ${body}`);
-      throw new Error(`Salesforce getContact failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     if (result.totalSize === 0) return null;
 
     const record = result.records[0];
@@ -122,22 +113,17 @@ export class SalesforceProvider implements CrmProviderInterface {
     if (data.amount !== undefined) payload.Amount = data.amount;
     if (data.contactId) payload.ContactId = data.contactId;
 
-    const response = await fetch(
+    const result = await this.http.requestJson<{ id: string }>(
       `${baseUrl}/services/data/${SF_API_VERSION}/sobjects/Opportunity`,
       {
         method: 'POST',
         headers: this.buildHeaders(config),
-        body: JSON.stringify(payload),
+        body: payload,
+        timeoutMs: 10000,
+        retries: 1,
       },
     );
 
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`Salesforce createDeal failed: ${response.status} ${body}`);
-      throw new Error(`Salesforce createDeal failed: ${response.status}`);
-    }
-
-    const result = await response.json();
     return { id: result.id };
   }
 
@@ -148,13 +134,15 @@ export class SalesforceProvider implements CrmProviderInterface {
   }
 
   private buildHeaders(config: Record<string, string>): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.salesforce_access_token}`,
     };
+    if (config.__requestId) headers['X-Request-Id'] = config.__requestId;
+    return headers;
   }
 
   private escapeSoql(value: string): string {
-    return value.replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+    return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 }

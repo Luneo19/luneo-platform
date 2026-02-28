@@ -2073,6 +2073,15 @@ export class BillingService {
     status?: string;
     message: string;
   }> {
+    const refundLockKey = `refund:${subscriptionId}`;
+    const lockAcquired = await this.distributedLock.acquire(refundLockKey, 30, false);
+    if (!lockAcquired) {
+      return {
+        success: false,
+        message: 'Une demande de remboursement est déjà en cours pour cet abonnement.',
+      };
+    }
+
     const stripe = await this.getStripe();
 
     try {
@@ -2101,6 +2110,23 @@ export class BillingService {
 
       if (!paymentIntentId) {
         return { success: false, message: 'No payment intent found on the latest invoice' };
+      }
+
+      // Prevent duplicate refunds on the same invoice/payment intent.
+      if (latestInvoice.amount_remaining === 0 && latestInvoice.amount_paid > 0) {
+        const chargeId =
+          typeof latestInvoice.charge === 'string'
+            ? latestInvoice.charge
+            : latestInvoice.charge?.id;
+        if (chargeId) {
+          const charge = await stripe.charges.retrieve(chargeId);
+          if (charge.refunded || (charge.amount_refunded ?? 0) > 0) {
+            return {
+              success: false,
+              message: 'This latest invoice has already been refunded.',
+            };
+          }
+        }
       }
 
       // Issue the refund
@@ -2156,6 +2182,8 @@ export class BillingService {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error during refund',
       };
+    } finally {
+      await this.distributedLock.release(refundLockKey);
     }
   }
 

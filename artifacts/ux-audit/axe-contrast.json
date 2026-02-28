@@ -1,0 +1,367 @@
+[
+  {
+    "route": "/",
+    "theme": "light",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/login",
+    "theme": "light",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "#email"
+            ],
+            "html": "<input id=\"email\" class=\"flex w-full rounded-...\" placeholder=\"votre@email.com\" required=\"\" data-testid=\"login-email\" type=\"email\" value=\"\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.01 (foreground color: #b2b4ba, background color: #b2b2ba, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/register",
+    "theme": "light",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "#fullName"
+            ],
+            "html": "<input id=\"fullName\" class=\"flex w-full rounded-...\" data-testid=\"register-name\" placeholder=\"Jean Dupont\" required=\"\" type=\"text\" value=\"\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.03 (foreground color: #8f939b, background color: #8f8f9b, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              "#email"
+            ],
+            "html": "<input id=\"email\" class=\"flex w-full rounded-...\" data-testid=\"register-email\" placeholder=\"votre@entreprise.com\" required=\"\" type=\"email\" value=\"\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.01 (foreground color: #c6c8cc, background color: #c6c6cc, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/pricing",
+    "theme": "light",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/help/support",
+    "theme": "light",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/dashboard",
+    "theme": "light",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "a[href$=\"brands\"] > .bg-blue-700.py-0\\.5.px-2"
+            ],
+            "html": "<span class=\"px-2 py-0.5 text-xs font-semibold bg-blue-700 text-white rounded-full\">new</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.66 (foreground color: #0f172a, background color: #1d4ed8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              "a[href$=\"billing\"] > .bg-blue-700.py-0\\.5.px-2"
+            ],
+            "html": "<span class=\"px-2 py-0.5 text-xs font-semibold bg-blue-700 text-white rounded-full\">new</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.66 (foreground color: #0f172a, background color: #1d4ed8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".border-t > .text-zinc-500.text-xs"
+            ],
+            "html": "<span class=\"text-xs text-zinc-500\">Luneo Platform v2.0</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #475569, background color: #18181b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".md\\:inline"
+            ],
+            "html": "<span class=\"hidden md:inline\">Rechercher...</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.72 (foreground color: #64748b, background color: #18181b, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".sm\\:flex > .text-zinc-500.text-xs"
+            ],
+            "html": "<span class=\"text-xs text-zinc-500\">Super Admin</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #475569, background color: #18181b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              "p"
+            ],
+            "html": "<p class=\"text-white/80 mt-2\">Bienvenue<!-- --> ! Voici un aperçu de votre activité.</p>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.71 (foreground color: #334155, background color: #18181b, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".lg\\:grid-cols-2.gap-6.grid-cols-1:nth-child(3) > .bg-white\\/\\[0\\.03\\].border-white\\/\\[0\\.06\\].text-card-foreground > .space-y-1\\.5.p-6.flex-col > .tracking-tight.text-lg"
+            ],
+            "html": "<h3 class=\"tracking-tight text-lg font-semibold text-white\">Revenue Chart</h3>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.08 (foreground color: #0f172a, background color: #1f1f22, font size: 13.5pt (18px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".border-zinc-700.bg-zinc-800.text-card-foreground > .space-y-1\\.5.p-6.flex-col > .tracking-tight.text-lg"
+            ],
+            "html": "<h3 class=\"tracking-tight text-lg font-semibold text-white flex items-center gap-2\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.19 (foreground color: #0f172a, background color: #27272a, font size: 13.5pt (18px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".mb-4"
+            ],
+            "html": "<h3 class=\"text-lg font-semibold text-white mb-4\">Quick Actions</h3>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.08 (foreground color: #0f172a, background color: #1f1f22, font size: 13.5pt (18px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".bg-white\\/\\[0\\.03\\].border-white\\/\\[0\\.06\\].text-card-foreground:nth-child(2) > .space-y-1\\.5.p-6.flex-col > .tracking-tight.text-lg"
+            ],
+            "html": "<h3 class=\"tracking-tight text-lg font-semibold text-white\">Recent Customers</h3>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.08 (foreground color: #0f172a, background color: #1f1f22, font size: 13.5pt (18px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/agents",
+    "theme": "light",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/billing",
+    "theme": "light",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "#radix-_r_6_-trigger-invoices"
+            ],
+            "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_6_-content-...\" data-state=\"inactive\" id=\"radix-_r_6_-trigger-...\" class=\"inline-flex items-ce...\" ta",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.03 (foreground color: #fcfdfd, background color: #f8f9fb, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              "#radix-_r_6_-trigger-payment-methods"
+            ],
+            "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_6_-content-...\" data-state=\"inactive\" id=\"radix-_r_6_-trigger-...\" class=\"inline-flex items-ce...\" ta",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.03 (foreground color: #fcfdfd, background color: #f8f9fb, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/settings",
+    "theme": "light",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/admin",
+    "theme": "light",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "a[href$=\"brands\"] > .bg-blue-700.px-2.py-0\\.5"
+            ],
+            "html": "<span class=\"px-2 py-0.5 text-xs font-semibold bg-blue-700 text-white rounded-full\">new</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.66 (foreground color: #0f172a, background color: #1d4ed8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              "a[href$=\"billing\"] > .bg-blue-700.px-2.py-0\\.5"
+            ],
+            "html": "<span class=\"px-2 py-0.5 text-xs font-semibold bg-blue-700 text-white rounded-full\">new</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.66 (foreground color: #0f172a, background color: #1d4ed8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".border-t > .text-zinc-500.text-xs"
+            ],
+            "html": "<span class=\"text-xs text-zinc-500\">Luneo Platform v2.0</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #475569, background color: #18181b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".md\\:inline"
+            ],
+            "html": "<span class=\"hidden md:inline\">Rechercher...</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.72 (foreground color: #64748b, background color: #18181b, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".sm\\:flex > .text-zinc-500.text-xs"
+            ],
+            "html": "<span class=\"text-xs text-zinc-500\">Super Admin</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #475569, background color: #18181b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".mt-2.text-white\\/80"
+            ],
+            "html": "<p class=\"text-white/80 mt-2\">Bienvenue<!-- --> ! Voici un aperçu de votre activité.</p>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.71 (foreground color: #334155, background color: #18181b, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".hover\\:bg-white\\/\\[0\\.04\\].bg-white\\/\\[0\\.03\\].border-white\\/\\[0\\.06\\]:nth-child(1) > .space-y-0.pb-3.flex-row > .tracking-tight"
+            ],
+            "html": "<h3 class=\"tracking-tight text-sm font-medium text-white/80\">MRR</h3>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.58 (foreground color: #334155, background color: #1f1f22, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".hover\\:bg-white\\/\\[0\\.04\\].bg-white\\/\\[0\\.03\\].border-white\\/\\[0\\.06\\]:nth-child(1) > .pt-0.p-6 > .items-baseline.justify-between.flex > .flex-1 > .text-2xl.mb-1.font-bold"
+            ],
+            "html": "<div class=\"text-2xl font-bold text-white mb-1\">€0</div>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.08 (foreground color: #0f172a, background color: #1f1f22, font size: 18.0pt (24px), font weight: bold). Expected contrast ratio of 3:1"
+          },
+          {
+            "target": [
+              ".hover\\:bg-white\\/\\[0\\.04\\].bg-white\\/\\[0\\.03\\].border-white\\/\\[0\\.06\\]:nth-child(1) > .pt-0.p-6 > .items-baseline.justify-between.flex > .flex-1 > .gap-1.text-white\\/80.text-sm > span:nth-child(2)"
+            ],
+            "html": "<span>0.0%</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.58 (foreground color: #334155, background color: #1f1f22, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".hover\\:bg-white\\/\\[0\\.04\\].bg-white\\/\\[0\\.03\\].border-white\\/\\[0\\.06\\]:nth-child(1) > .pt-0.p-6 > .items-baseline.justify-between.flex > .flex-1 > .gap-1.text-white\\/80.text-sm > .ml-1.text-white\\/70.text-xs"
+            ],
+            "html": "<span class=\"text-white/70 text-xs ml-1\">vs last period</span>",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.16 (foreground color: #475569, background color: #1f1f22, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/login",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/register",
+    "theme": "dark",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "#password"
+            ],
+            "html": "<input id=\"password\" class=\"flex w-full rounded-...\" data-testid=\"register-password\" placeholder=\"Créez un mot de pass...\" required=\"\" type=\"password\" value=\"\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.4 (foreground color: #4b4f5a, background color: #060a1c, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              "#confirmPassword"
+            ],
+            "html": "<input id=\"confirmPassword\" class=\"flex w-full rounded-...\" data-testid=\"register-confirm-pas...\" placeholder=\"Confirmez votre mot ...\" required=\"\" type=\"password\" value=\"\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 1.05 (foreground color: #0a101f, background color: #020818, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/pricing",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/help/support",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/dashboard",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/agents",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/billing",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/settings",
+    "theme": "dark",
+    "colorContrastCount": 0,
+    "violations": []
+  },
+  {
+    "route": "/admin",
+    "theme": "dark",
+    "colorContrastCount": 1,
+    "violations": [
+      {
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".bg-primary"
+            ],
+            "html": "<button class=\"inline-flex items-ce...\" aria-disabled=\"false\">",
+            "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.46 (foreground color: #ffffff, background color: #6366f1, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  }
+]

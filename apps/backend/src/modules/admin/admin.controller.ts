@@ -294,6 +294,7 @@ export class AdminController {
   }
 
   @Post('billing/:subscriptionId/refund')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiBearerAuth()
   @Roles(PlatformRole.ADMIN)
   @ApiOperation({

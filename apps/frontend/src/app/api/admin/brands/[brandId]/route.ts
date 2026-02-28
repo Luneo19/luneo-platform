@@ -21,7 +21,8 @@ export async function GET(
     }
 
     const { brandId } = await params;
-    const res = await fetch(`${API_URL}/api/v1/admin/brands/${brandId}`, {
+    const normalizedBrandId = brandId.toLowerCase();
+    const res = await fetch(`${API_URL}/api/v1/admin/brands/${normalizedBrandId}`, {
       headers: buildAdminForwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
@@ -47,8 +48,9 @@ export async function PATCH(
     }
 
     const { brandId } = await params;
+    const normalizedBrandId = brandId.toLowerCase();
     const body = await request.json().catch(() => ({}));
-    const res = await fetch(`${API_URL}/api/v1/admin/brands/${brandId}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/brands/${normalizedBrandId}`, {
       method: 'PATCH',
       headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),

@@ -56,7 +56,7 @@ export function KPICard({
       case 'down':
         return 'text-red-400';
       default:
-        return 'text-white/60';
+        return 'text-white/80';
     }
   };
 
@@ -88,10 +88,10 @@ export function KPICard({
   return (
     <Card className={cn('bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.04] transition-colors', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium text-white/60">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-white/80">{title}</CardTitle>
         {Icon && (
           <div className="h-8 w-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
-            <Icon className="h-4 w-4 text-white/60" />
+            <Icon className="h-4 w-4 text-white/80" />
           </div>
         )}
       </CardHeader>
@@ -110,11 +110,11 @@ export function KPICard({
                 {change !== undefined && changePercent === undefined && (
                   <span>{change > 0 ? '+' : ''}{formatValue(change)}</span>
                 )}
-                <span className="text-white/40 text-xs ml-1">vs last period</span>
+                <span className="text-white/70 text-xs ml-1">vs last period</span>
               </div>
             )}
             {description && (
-              <p className="text-xs text-white/40 mt-1">{description}</p>
+              <p className="text-xs text-white/70 mt-1">{description}</p>
             )}
           </div>
           {sparkline && sparkline.length > 0 && (

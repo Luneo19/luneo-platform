@@ -66,7 +66,7 @@ export function BarChartWidget({
       const firstPayload = payload[0].payload as { name?: string };
       return (
         <div className="rounded-lg p-3 border border-white/[0.06]" style={{ backgroundColor: '#1a1a2e' }}>
-          <p className="text-sm text-white/60 mb-2">{firstPayload.name}</p>
+          <p className="text-sm text-white/80 mb-2">{firstPayload.name}</p>
           {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {typeof entry.value === 'number' ? formatCurrency(entry.value) : entry.value}
@@ -92,11 +92,11 @@ export function BarChartWidget({
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />}
-              <XAxis type="number" stroke="#4a4a5e" fontSize={12} />
+              <XAxis type="number" stroke="#a1a1aa" fontSize={12} />
               <YAxis
                 dataKey="name"
                 type="category"
-                stroke="#4a4a5e"
+                stroke="#a1a1aa"
                 fontSize={12}
                 width={100}
               />
@@ -111,14 +111,14 @@ export function BarChartWidget({
               {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />}
               <XAxis
                 dataKey="name"
-                stroke="#4a4a5e"
+                stroke="#a1a1aa"
                 fontSize={12}
-                tickLine={{ stroke: '#4a4a5e' }}
+                tickLine={{ stroke: '#a1a1aa' }}
               />
               <YAxis
-                stroke="#4a4a5e"
+                stroke="#a1a1aa"
                 fontSize={12}
-                tickLine={{ stroke: '#4a4a5e' }}
+                tickLine={{ stroke: '#a1a1aa' }}
                 tickFormatter={(value) => {
                   if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                   return value.toString();

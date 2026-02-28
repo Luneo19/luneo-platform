@@ -32,7 +32,9 @@
     "test:mutation": "stryker run stryker.conf.json",
     "test:mutation:auth": "stryker run stryker.conf.json --mutate src/modules/auth/**/*.ts",
     "test:load": "k6 run test/load/k6-config.js",
-    "migrate:deploy": "prisma migrate deploy"
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:status": "prisma migrate status --schema prisma/schema.prisma",
+    "migrate:verify": "ts-node scripts/verify-migration-readiness.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.76.0",

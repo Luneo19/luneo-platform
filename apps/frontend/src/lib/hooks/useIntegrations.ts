@@ -39,10 +39,12 @@ function mapApiToIntegration(row: Record<string, unknown>): Integration {
 }
 
 export function useIntegrations() {
+  const integrationsModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_INTEGRATIONS_MODULE === 'true';
   const queryClient = useQueryClient();
 
   const integrationsQuery = useQuery({
     queryKey: ['integrations'],
+    enabled: integrationsModuleEnabled,
     queryFn: () => api.get<Record<string, unknown>[]>('/api/v1/integrations'),
   });
 

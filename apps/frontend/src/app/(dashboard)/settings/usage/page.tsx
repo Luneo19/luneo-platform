@@ -243,13 +243,13 @@ function UsagePageContent() {
       {/* Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Link href="/billing">
-          <Button variant="outline" className="w-full justify-start gap-2 bg-white/[0.02] border-white/[0.08] text-gray-300 hover:text-white hover:bg-white/[0.05]">
+          <Button variant="outline" className="w-full justify-start gap-2 bg-white/[0.02] border-white/[0.08] text-gray-500 hover:text-white hover:bg-white/[0.05]">
             <CreditCard className="w-4 h-4" />
             Facturation
           </Button>
         </Link>
         <Link href="/billing/addons">
-          <Button variant="outline" className="w-full justify-start gap-2 bg-white/[0.02] border-white/[0.08] text-gray-300 hover:text-white hover:bg-white/[0.05]">
+          <Button variant="outline" className="w-full justify-start gap-2 bg-white/[0.02] border-white/[0.08] text-gray-500 hover:text-white hover:bg-white/[0.05]">
             <Package className="w-4 h-4" />
             Acheter des add-ons
           </Button>
@@ -267,7 +267,7 @@ function UsagePageContent() {
         <CardHeader>
           <CardTitle className="text-white">Rate limits API</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2 text-sm text-gray-300">
+        <CardContent className="flex flex-col gap-2 text-sm text-gray-500">
           <p>
             Limite/minute: <span className="text-white font-medium">{overview?.rateLimits?.api?.requestsPerMinute ?? 0}</span>
           </p>

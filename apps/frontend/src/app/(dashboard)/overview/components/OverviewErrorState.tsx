@@ -11,7 +11,7 @@ export function OverviewErrorState({ error, onRetry }: { error: string; onRetry:
       <div className="dash-card rounded-2xl p-8 max-w-md border border-red-500/30 bg-red-500/5 text-center">
         <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-white mb-2">Erreur de chargement</h3>
-        <p className="text-sm text-white/60 mb-6">{error}</p>
+        <p className="text-sm text-white/80 mb-6">{error}</p>
         <div className="flex gap-3 justify-center">
           <Button
             onClick={onRetry}
