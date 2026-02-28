@@ -225,7 +225,7 @@ export function AdvancedCharts({
         </ResponsiveContainer>
       );
 
-    case 'pie':
+    case 'pie': {
       const pieData = chartData.map((item, index) => ({
         name: item.date || `Item ${index + 1}`,
         value: item.value,
@@ -265,6 +265,7 @@ export function AdvancedCharts({
           </PieChart>
         </ResponsiveContainer>
       );
+    }
 
     default:
       return null;
