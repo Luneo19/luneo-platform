@@ -6,23 +6,19 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Search,
-  Filter,
   Grid3x3,
   List,
   Upload,
-  Download,
   Tag,
   Image as ImageIcon,
   Plus,
   Trash2,
-  Edit,
   Star,
-  TrendingUp,
   Layers,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -30,7 +26,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
@@ -310,7 +305,7 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               <AnimatePresence>
                 {filteredCliparts.map((clipart, i) => (
-                  <motion
+                  <Motion
                     key={clipart.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -374,7 +369,7 @@ export function ClipartBrowser({ className, onClipartSelect, showUploadButton = 
                         )}
                       </div>
                     </Card>
-                  </motion>
+                  </Motion>
                 ))}
               </AnimatePresence>
             </div>
