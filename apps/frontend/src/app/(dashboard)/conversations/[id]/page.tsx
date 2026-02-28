@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
 import { endpoints } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +53,6 @@ export default function ConversationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { user } = useAuth();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +131,8 @@ export default function ConversationDetailPage() {
     if (!sourcesUsed) return [];
     if (Array.isArray(sourcesUsed)) return sourcesUsed as Array<{ title?: string; url?: string; preview?: string }>;
     if (typeof sourcesUsed === 'object' && sourcesUsed !== null && 'sources' in sourcesUsed) {
-      return (sourcesUsed as any).sources ?? [];
+      const maybeSources = (sourcesUsed as { sources?: Array<{ title?: string; url?: string; preview?: string }> }).sources;
+      return maybeSources ?? [];
     }
     return [];
   };

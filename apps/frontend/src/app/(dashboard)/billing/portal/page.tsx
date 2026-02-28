@@ -12,18 +12,15 @@ import { appRoutes } from '@/lib/routes';
 function BillingPortalPageContent() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const openPortal = async () => {
       try {
-        setIsLoading(true);
         setError(null);
 
         const data = (await endpoints.billing.customerPortal()) as { success?: boolean; url?: string; error?: string };
         if (!data?.success || !data?.url) {
           setError(data?.error || 'Aucun abonnement actif trouvé. Souscrivez d\'abord à un plan.');
-          setIsLoading(false);
           return;
         }
         window.location.href = data.url;
@@ -35,7 +32,6 @@ function BillingPortalPageContent() {
         const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
         logger.error('Billing portal error', { error: err });
         setError(errorMessage);
-        setIsLoading(false);
       }
     };
 

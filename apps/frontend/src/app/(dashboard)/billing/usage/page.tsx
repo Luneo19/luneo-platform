@@ -59,7 +59,11 @@ export default function BillingUsagePage() {
     setLoading(true);
     setError(null);
     try {
-      const orgId = (user as any)?.organizationId ?? (user as any)?.brandId ?? '';
+      const scopedUser = user as
+        | { organizationId?: string; brandId?: string }
+        | null
+        | undefined;
+      const orgId = scopedUser?.organizationId ?? scopedUser?.brandId ?? '';
       if (!orgId) {
         throw new Error('Organisation introuvable pour cet utilisateur.');
       }

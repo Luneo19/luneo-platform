@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
 import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
@@ -69,7 +68,6 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function ConversationsPage() {
-  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

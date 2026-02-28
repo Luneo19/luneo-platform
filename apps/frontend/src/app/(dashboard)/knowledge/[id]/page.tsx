@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
 import { endpoints } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +79,6 @@ const SOURCE_STATUS_CONFIG: Record<SourceStatus, { label: string; className: str
 const ACCEPTED_FILE_TYPES = '.pdf,.txt,.md,.csv,.docx';
 
 export default function KnowledgeBaseDetailPage() {
-  const { user } = useAuth();
   const params = useParams();
   const id = params?.id as string;
 
