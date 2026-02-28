@@ -7,10 +7,7 @@ import { logger } from '@/lib/logger';
 import type {
   ShopifyStore,
   ShopifyProduct,
-  ShopifyVariant,
   ShopifyOrder,
-  SyncResult,
-  IntegrationSettings,
 } from './types';
 
 interface ShopifyConfig {

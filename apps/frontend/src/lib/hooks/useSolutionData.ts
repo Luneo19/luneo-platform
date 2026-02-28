@@ -52,7 +52,7 @@ interface SolutionData {
  * Ce hook retourne null pour `data` car les solutions sont des pages marketing statiques.
  * Les composants qui l'utilisent basculent automatiquement sur leurs données locales.
  */
-export function useSolutionData(solutionId: string) {
+export function useSolutionData(_solutionId: string) {
   const [data] = useState<SolutionData | null>(null);
   const [loading] = useState(false);
   const [error] = useState<string | null>(null);

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
-import { Palette, Eye, Download, DollarSign } from 'lucide-react';
 
 interface DashboardStats {
   title: string;
@@ -181,8 +180,6 @@ export function useDashboardData(period: '24h' | '7d' | '30d' | '90d' = '7d') {
       
       // Calculer les changements (comparaison avec période précédente)
       // Pour simplifier, on utilise des valeurs par défaut si pas de données précédentes
-      const previousPeriod = period === '7d' ? '24h' : period === '30d' ? '7d' : '30d';
-      
       // Stats transformées
       const stats: DashboardStats[] = [
         {

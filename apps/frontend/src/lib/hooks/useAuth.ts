@@ -57,10 +57,10 @@ export function useLogin() {
       const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
       router.push(safeRedirect || getRoleBasedRedirect(data.user?.role));
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       logger.error('Login failed', {
         error,
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     },
   });
@@ -85,10 +85,10 @@ export function useRegister() {
       // Redirect to overview
       router.push('/overview');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       logger.error('Registration failed', {
         error,
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     },
   });

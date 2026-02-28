@@ -57,7 +57,7 @@ export function useRemoveFromFavorites() {
   return useMutation({
     mutationFn: async (params: { favoriteId: string }) =>
       api.delete(`/api/v1/library/favorites/${params.favoriteId}`),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       queryClient.invalidateQueries({ queryKey: ['cliparts'] });
