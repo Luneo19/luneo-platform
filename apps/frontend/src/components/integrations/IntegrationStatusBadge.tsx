@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 
@@ -13,7 +13,16 @@ interface IntegrationStatusBadgeProps {
 
 export function IntegrationStatusBadge({ integrationType, className }: IntegrationStatusBadgeProps) {
   const integrationsModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_INTEGRATIONS_MODULE === 'true';
-  const { data: integrations, isLoading, error } = useQuery({ queryKey: ['integrations'], queryFn: () => api.get('/api/v1/integrations').then((r: any) => r.data ?? r),
+  const { data: integrations, isLoading, error } = useQuery({
+    queryKey: ['integrations'],
+    queryFn: () =>
+      api
+        .get('/api/v1/integrations')
+        .then((r: { data?: unknown } | unknown) =>
+          typeof r === 'object' && r !== null && 'data' in r
+            ? (r as { data?: unknown }).data ?? r
+            : r
+        ),
     retry: false,
     refetchOnWindowFocus: false,
     enabled: integrationsModuleEnabled && typeof window !== 'undefined', // Only run on client when module is enabled

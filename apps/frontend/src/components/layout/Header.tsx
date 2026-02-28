@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Search,
   Settings,
@@ -140,7 +140,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
 
             <AnimatePresence>
               {isProfileOpen && (
-                <motion
+                <Motion
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -222,7 +222,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                       <span>{t('profileMenu.logout')}</span>
                     </button>
                   </div>
-                </motion>
+                </Motion>
               )}
             </AnimatePresence>
           </div>

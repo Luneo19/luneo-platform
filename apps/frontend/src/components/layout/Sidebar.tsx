@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -141,7 +141,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
     const Icon = item.icon;
 
     return (
-      <motion
+      <Motion
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onMouseEnter={() => handleItemHover(item.href)}
@@ -192,22 +192,22 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
 
           {/* Tooltip pour mode collapsed */}
           {isCollapsed && hoveredItem === item.href && (
-            <motion
+            <Motion
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap"
             >
               <div className="font-medium">{item.title}</div>
               <div className="text-xs text-gray-300">{item.description}</div>
-            </motion>
+            </Motion>
           )}
         </Link>
-      </motion>
+      </Motion>
     );
   };
 
   return (
-    <motion
+    <Motion
       initial={false}
       animate={{ width: isCollapsed ? '4rem' : '16rem' }}
       className="bg-white border-r border-gray-200 flex flex-col h-full shadow-sm"
@@ -216,7 +216,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <motion
+            <Motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center space-x-3"
@@ -226,7 +226,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
                 <h1 className="font-bold text-gray-900">Luneo</h1>
                 <p className="text-xs text-gray-500">Enterprise</p>
               </div>
-            </motion>
+            </Motion>
           )}
           
           <Button
@@ -248,7 +248,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Plan Status */}
         {!isCollapsed && user && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200"
@@ -264,7 +264,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
                 Gérer l&apos;abonnement
               </Link>
             </p>
-          </motion>
+          </Motion>
         )}
 
         {/* Main Navigation */}
@@ -327,7 +327,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
           </div>
         )}
       </div>
-    </motion>
+    </Motion>
   );
 }
 
