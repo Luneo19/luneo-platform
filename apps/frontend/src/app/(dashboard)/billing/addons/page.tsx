@@ -25,7 +25,6 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { cn } from '@/lib/utils';
 
 interface AddOnConfig {
   id: string;

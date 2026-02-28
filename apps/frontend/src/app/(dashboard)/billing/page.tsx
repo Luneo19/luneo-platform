@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -39,7 +39,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Download, AlertCircle, Zap, Database, MessageSquare, FileText, Bot, HardDrive } from 'lucide-react';
+import { CreditCard, Download, AlertCircle, Zap, MessageSquare, FileText, Bot, HardDrive } from 'lucide-react';
 
 // ========================================
 // COMPONENT
@@ -47,7 +47,6 @@ import { CreditCard, Download, AlertCircle, Zap, Database, MessageSquare, FileTe
 
 function BillingPageContent() {
   const { t } = useI18n();
-  const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
 
   // Queries
   const subscriptionQuery = useQuery({
