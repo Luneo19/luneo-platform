@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import {
   ChevronDown,
   ChevronRight,
@@ -159,7 +159,7 @@ function DocsSidebarContent({ open = false, onClose }: { open?: boolean; onClose
 
               {/* Children */}
               {item.children.length > 0 && expandedItems.includes(item.title) && (
-                <motion
+                <Motion
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
@@ -178,7 +178,7 @@ function DocsSidebarContent({ open = false, onClose }: { open?: boolean; onClose
                       {child.title}
                     </Link>
                   ))}
-                </motion>
+                </Motion>
               )}
             </div>
           ))}
@@ -261,13 +261,13 @@ function DocsSidebarContent({ open = false, onClose }: { open?: boolean; onClose
                     )}
                   </div>
                   {item.children.length > 0 && expandedItems.includes(item.title) && (
-                    <motion initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="ml-6 mt-1 space-y-0.5">
+                    <Motion initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="ml-6 mt-1 space-y-0.5">
                       {item.children.map((child) => (
                         <Link key={child.href} href={child.href} onClick={onClose} className={`block px-3 py-2 text-sm rounded-lg transition-colors ${isActive(child.href) ? 'text-white bg-white/10' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                           {child.title}
                         </Link>
                       ))}
-                    </motion>
+                    </Motion>
                   )}
                 </div>
               ))}

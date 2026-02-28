@@ -1,4 +1,4 @@
-import type { PlanDefinition, PlanQuotaDefinition, PlanTier } from '@/lib/billing-plans';
+import type { PlanDefinition, PlanQuotaDefinition } from '@/lib/billing-plans';
 import { PLAN_CATALOG, getPlanDefinition } from '@/lib/billing-plans';
 import type { UsageSummaryData, TimelineEntry, ProjectionHighlight, PlanCoverageInsight } from './types';
 

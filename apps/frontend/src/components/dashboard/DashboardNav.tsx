@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -165,7 +165,7 @@ function DashboardNavContent() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -196,7 +196,7 @@ function DashboardNavContent() {
                 );
               })}
             </div>
-          </motion>
+          </Motion>
         )}
       </div>
     </nav>

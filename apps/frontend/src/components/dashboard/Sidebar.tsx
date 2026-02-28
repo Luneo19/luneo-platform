@@ -3,7 +3,7 @@
 import React, { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useDensity } from '@/providers/DensityProvider';
 import { sidebarConfig } from '@/styles/dashboard-tokens';
@@ -189,7 +189,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
   const effectiveCollapsed = isMobileOverlay ? false : sidebarCollapsed;
 
   return (
-    <motion
+    <Motion
       initial={false}
       animate={{ width: effectiveCollapsed ? sidebarConfig.collapsedWidth : sidebarConfig.expandedWidth }}
       transition={{ duration: sidebarConfig.transitionDuration / 1000 }}
@@ -316,7 +316,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                     {!effectiveCollapsed && item.children && (
                       <AnimatePresence>
                         {isExpanded && (
-                          <motion
+                          <Motion
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -345,7 +345,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
                                 </Link>
                               );
                             })}
-                          </motion>
+                          </Motion>
                         )}
                       </AnimatePresence>
                     )}
@@ -435,7 +435,7 @@ function Sidebar({ onClose }: SidebarProps = {}) {
           </div>
         )}
       </div>
-    </motion>
+    </Motion>
   );
 }
 

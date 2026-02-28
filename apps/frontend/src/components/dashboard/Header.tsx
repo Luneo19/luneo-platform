@@ -44,10 +44,6 @@ const Header = memo(function Header({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { t } = useI18n();
 
-  const handleMenuToggle = useCallback(() => {
-    onMenuToggle?.();
-  }, [onMenuToggle]);
-
   const handleUserMenuToggle = useCallback(() => {
     setShowUserMenu((prev) => !prev);
   }, []);

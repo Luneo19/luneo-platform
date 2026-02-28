@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, memo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ function DocPageTemplateContent({
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion
+        <Motion
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -87,7 +87,7 @@ function DocPageTemplateContent({
               </Button>
             </Link>
           </div>
-        </motion>
+        </Motion>
       </div>
     </div>
   );

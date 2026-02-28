@@ -5,8 +5,8 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Wifi,
@@ -34,7 +34,7 @@ function RealtimeIndicatorComponent({
   maxFeedItems = 5,
   position = 'bottom-right',
 }: RealtimeIndicatorProps) {
-  const { isConnected, lastEvent, subscribe, error } = useRealtime();
+  const { isConnected, lastEvent: _lastEvent, subscribe, error } = useRealtime();
   const [events, setEvents] = useState<RealtimeEvent[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasNewEvents, setHasNewEvents] = useState(false);
@@ -112,7 +112,7 @@ function RealtimeIndicatorComponent({
   return (
     <div className={`fixed ${positionClasses[position]} z-50`}>
       {/* Connection Status */}
-      <motion
+      <Motion
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="flex flex-col items-end gap-2"
@@ -155,7 +155,7 @@ function RealtimeIndicatorComponent({
         {/* Event Feed */}
         <AnimatePresence>
           {showFeed && isExpanded && (
-            <motion
+            <Motion
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: -10, height: 0 }}
@@ -184,7 +184,7 @@ function RealtimeIndicatorComponent({
                 ) : (
                   <div className="divide-y divide-slate-800">
                     {events.map((event, index) => (
-                      <motion
+                      <Motion
                         key={event.id}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -202,7 +202,7 @@ function RealtimeIndicatorComponent({
                             </p>
                           </div>
                         </div>
-                      </motion>
+                      </Motion>
                     ))}
                   </div>
                 )}
@@ -219,22 +219,22 @@ function RealtimeIndicatorComponent({
                   </button>
                 </div>
               )}
-            </motion>
+            </Motion>
           )}
         </AnimatePresence>
-      </motion>
+      </Motion>
 
       {/* Error Toast */}
       <AnimatePresence>
         {error && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             className="mt-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-sm text-red-300"
           >
             {error}
-          </motion>
+          </Motion>
         )}
       </AnimatePresence>
     </div>
