@@ -265,7 +265,7 @@ interface AnalyticsExportData {
   topProducts?: Array<Record<string, unknown>>;
   audienceData?: { devices?: Array<Record<string, unknown>>; countries?: Array<Record<string, unknown>> };
 }
-function generateCSV(data: AnalyticsExportData, reportType: string): string {
+function generateCSV(data: AnalyticsExportData): string {
   let csv = '';
 
   if (data.dailyData) {
@@ -542,7 +542,7 @@ export async function POST(request: NextRequest) {
       const dateRangeForFilename = `${startDateStr}_to_${endDateStr}`;
       
       if (format === 'csv') {
-        const csv = generateCSV(data, reportType);
+        const csv = generateCSV(data);
         return new NextResponse(csv, {
           headers: {
             'Content-Type': 'text/csv',

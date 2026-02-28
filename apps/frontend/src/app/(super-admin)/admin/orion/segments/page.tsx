@@ -39,7 +39,7 @@ const OPERATORS = [
 type ConditionRow = { property: string; operator: string; value: string };
 
 export default function OrionSegmentsPage() {
-  const { segments, isLoading, isError, error, createSegment, deleteSegment } = useSegments();
+  const { segments, isLoading, isError, createSegment, deleteSegment } = useSegments();
   const safeSegments = Array.isArray(segments) ? segments : [];
   const [logicMode, setLogicMode] = useState<'AND' | 'OR'>('AND');
   const [conditions, setConditions] = useState<ConditionRow[]>([

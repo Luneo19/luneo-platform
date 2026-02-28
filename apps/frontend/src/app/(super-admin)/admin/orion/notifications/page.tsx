@@ -51,7 +51,6 @@ export default function NotificationsPage() {
     unreadCount,
     isLoading,
     isError,
-    error,
     markAsRead,
     markAllAsRead,
   } = useAdminNotifications();

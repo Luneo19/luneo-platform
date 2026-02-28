@@ -100,7 +100,7 @@ function ExperimentCard({ exp }: { exp: Experiment }) {
 }
 
 export default function ExperimentsPage() {
-  const { experiments, isLoading, isError, error } = useExperiments();
+  const { experiments, isLoading, isError } = useExperiments();
   const safeExperiments = Array.isArray(experiments) ? experiments : [];
   const [activeTab, setActiveTab] = useState('active');
 
