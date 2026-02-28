@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +28,7 @@ export default function NewAutomationPage() {
   const [trigger, setTrigger] = useState('');
   const [steps, setSteps] = useState<AutomationStep[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [, setIsTesting] = useState(false);
 
   const handleSave = async () => {
     if (!name || !trigger || steps.length === 0) {

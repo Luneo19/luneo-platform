@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Shield, Loader2, Activity, AlertCircle, BarChart3 } from 'lucide-react';
 import { endpoints } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useToast } from '@/hooks/use-toast';
 
 type ApolloService = {
   name: string;

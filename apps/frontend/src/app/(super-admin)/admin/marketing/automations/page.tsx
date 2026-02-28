@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { AutomationsList } from '@/components/admin/marketing/automations-list';
 import { useAutomations } from '@/hooks/admin/use-automations';
