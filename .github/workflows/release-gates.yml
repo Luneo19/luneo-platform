@@ -38,3 +38,24 @@ jobs:
 
       - name: Run mandatory release gates
         run: pnpm run quality:release
+
+      - name: Build release reliability KPI snapshot
+        if: always()
+        run: pnpm run report:release:kpi
+
+      - name: Publish release reliability summary
+        if: always()
+        run: |
+          if [ -f artifacts/release-kpi/release-reliability-kpi.md ]; then
+            cat artifacts/release-kpi/release-reliability-kpi.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload release reliability artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gates-reliability-kpi
+          path: |
+            artifacts/smoke/**
+            artifacts/release-kpi/**
+          if-no-files-found: ignore

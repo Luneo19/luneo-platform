@@ -35,13 +35,6 @@ import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 
-// Initialize Sentry monitoring
-if (typeof window !== 'undefined') {
-  import('@/lib/monitoring/sentry-init').catch(() => {
-    // Sentry initialization failed, continue without it
-  });
-}
-
 import { loadI18nConfig, type SupportedLocale, type TranslationMessages } from "@/i18n/server";
 import { loadFeatureFlags } from "@/lib/feature-flags/loadFeatureFlags";
 import { getDefaultOrganizationSchema, getDefaultWebSiteSchema } from '@/lib/seo/schema';

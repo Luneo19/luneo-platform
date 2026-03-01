@@ -43,3 +43,24 @@ jobs:
           SMOKE_RUN_AUTH_CHECKS: ${{ inputs.run_auth_checks }}
           SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
           SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+
+      - name: Build release reliability KPI snapshot
+        if: always()
+        run: pnpm run report:release:kpi
+
+      - name: Publish smoke reliability summary
+        if: always()
+        run: |
+          if [ -f artifacts/release-kpi/release-reliability-kpi.md ]; then
+            cat artifacts/release-kpi/release-reliability-kpi.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload smoke reliability artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preprod-smoke-reliability-kpi
+          path: |
+            artifacts/smoke/**
+            artifacts/release-kpi/**
+          if-no-files-found: ignore

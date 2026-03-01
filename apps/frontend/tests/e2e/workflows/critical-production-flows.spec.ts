@@ -73,7 +73,10 @@ test.describe('Flow 1: New User Registration Journey', () => {
 
   test('should display onboarding flow', async ({ page }) => {
     await page.goto('/onboarding');
-    await expect(page.locator('body')).toContainText(/.+/);
+    await page.waitForURL(/\/(onboarding|login|dashboard)/, { timeout: 10000 });
+    if (page.url().includes('/onboarding')) {
+      await expect(page.getByRole('heading').first()).toBeVisible();
+    }
   });
 });
 
@@ -125,13 +128,15 @@ test.describe('Flow 3: Billing & Subscription', () => {
   });
 
   test('should handle checkout success page', async ({ page }) => {
-    await page.goto('/checkout/success');
-    await expect(page.locator('body')).toContainText(/.+/);
+    const response = await page.goto('/checkout/success');
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('body')).toContainText(/success|merci|commande|order/i);
   });
 
   test('should handle checkout cancel page', async ({ page }) => {
-    await page.goto('/checkout/cancel');
-    await expect(page.locator('body')).toContainText(/.+/);
+    const response = await page.goto('/checkout/cancel');
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('body')).toContainText(/cancel|annul|retour|checkout/i);
   });
 });
 
@@ -152,6 +157,7 @@ test.describe('Flow 4: Admin Brand Management', () => {
     await page.waitForURL(/\/(admin\/brands|login|dashboard)/, { timeout: 10000 });
     // Même contrainte de protection sur une page admin sensible.
     expect(page.url()).not.toContain('/admin/brands');
+    expect(page.url()).toMatch(/\/(login|dashboard)/);
   });
 });
 
@@ -179,11 +185,10 @@ test.describe('Flow 5: Marketplace Journey', () => {
     await page.goto('/marketplace');
 
     const templateLink = page.locator('a[href*="/marketplace/"]').first();
-    if ((await templateLink.count()) > 0 && (await templateLink.isVisible())) {
-      await templateLink.click();
-      await page.waitForURL(/\/marketplace\/.+/);
-      await expect(page.locator('body')).toContainText(/.+/);
-    }
+    await expect(templateLink).toBeVisible({ timeout: 5000 });
+    await templateLink.click();
+    await page.waitForURL(/\/marketplace\/.+/);
+    await expect(page.locator('main')).toContainText(/marketplace|template|design/i);
   });
 });
 

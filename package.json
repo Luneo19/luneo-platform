@@ -25,6 +25,7 @@
     "smoke:critical": "node scripts/smoke/critical-smoke.mjs",
     "smoke:post-login-tunnel": "node scripts/smoke/post-login-tunnel-smoke.mjs",
     "rollback:drill": "node scripts/rollback-drill.mjs",
+    "report:release:kpi": "node scripts/release/build-release-reliability-kpi.mjs",
     "clean": "turbo run clean",
     "deploy": "turbo run deploy",
     "setup": "node scripts/setup.js"

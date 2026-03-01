@@ -171,3 +171,6 @@ scripts/*
 scripts/smoke/*
 !scripts/smoke/critical-smoke.mjs
 !scripts/smoke/post-login-tunnel-smoke.mjs
+!scripts/release/
+scripts/release/*
+!scripts/release/build-release-reliability-kpi.mjs

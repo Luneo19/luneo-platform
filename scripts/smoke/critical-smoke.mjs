@@ -1,4 +1,7 @@
 /* eslint-disable no-console */
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 const baseUrl = (process.env.SMOKE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const adminEmail = process.env.SMOKE_ADMIN_EMAIL;
 const adminPassword = process.env.SMOKE_ADMIN_PASSWORD;
@@ -6,8 +9,13 @@ const runAuthChecks = process.env.SMOKE_RUN_AUTH_CHECKS === 'true';
 const requireServer = process.env.SMOKE_REQUIRE_SERVER === 'true';
 const debugAuth = process.env.SMOKE_DEBUG_AUTH === 'true';
 const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS || 3000);
+const startedAt = new Date().toISOString();
+const OUT_DIR = path.resolve('artifacts/smoke');
+const JSON_REPORT = path.join(OUT_DIR, 'critical-smoke-report.json');
+const MD_REPORT = path.join(OUT_DIR, 'critical-smoke-report.md');
 
 const jar = new Map();
+const checks = [];
 
 function isLikelyValidEmail(value) {
   if (!value) return false;
@@ -47,10 +55,18 @@ function cookieHeader() {
 }
 
 async function check(name, fn) {
+  const started = Date.now();
   try {
     await fn();
+    checks.push({ name, ok: true, durationMs: Date.now() - started });
     console.log(`PASS ${name}`);
   } catch (error) {
+    checks.push({
+      name,
+      ok: false,
+      durationMs: Date.now() - started,
+      error: error instanceof Error ? error.message : String(error),
+    });
     console.error(`FAIL ${name}`);
     throw error;
   }
@@ -297,7 +313,63 @@ async function run() {
   });
 }
 
-run().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+function toMarkdown(report) {
+  const lines = [
+    '# Critical Smoke Report',
+    '',
+    `- Base URL: \`${report.baseUrl}\``,
+    `- Started at: ${report.startedAt}`,
+    `- Finished at: ${report.finishedAt}`,
+    `- Total checks: ${report.totalChecks}`,
+    `- Passed: ${report.passedChecks}`,
+    `- Failed: ${report.failedChecks}`,
+    `- Pass rate: ${report.passRate}%`,
+    '',
+    '## Checks',
+  ];
+
+  for (const item of report.checks) {
+    lines.push(`- ${item.ok ? 'OK' : 'KO'} \`${item.name}\` (${item.durationMs}ms)`);
+    if (item.error) lines.push(`  - error: \`${item.error}\``);
+  }
+
+  return lines.join('\n');
+}
+
+async function persistReport(error) {
+  const finishedAt = new Date().toISOString();
+  const passedChecks = checks.filter((item) => item.ok).length;
+  const failedChecks = checks.length - passedChecks;
+  const passRate = checks.length > 0 ? Number(((passedChecks / checks.length) * 100).toFixed(2)) : 0;
+
+  const report = {
+    baseUrl,
+    startedAt,
+    finishedAt,
+    runAuthChecks,
+    ok: !error && failedChecks === 0,
+    totalChecks: checks.length,
+    passedChecks,
+    failedChecks,
+    passRate,
+    checks,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
+  };
+
+  await fs.mkdir(OUT_DIR, { recursive: true });
+  await fs.writeFile(JSON_REPORT, JSON.stringify(report, null, 2), 'utf8');
+  await fs.writeFile(MD_REPORT, toMarkdown(report), 'utf8');
+
+  console.log(`Critical smoke report written: ${JSON_REPORT}`);
+  console.log(`Critical smoke report written: ${MD_REPORT}`);
+}
+
+run()
+  .then(async () => {
+    await persistReport();
+  })
+  .catch(async (error) => {
+    await persistReport(error);
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });

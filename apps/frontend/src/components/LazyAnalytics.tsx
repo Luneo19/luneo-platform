@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { CrispChat } from '@/components/CrispChat';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -43,7 +42,6 @@ export function LazyAnalytics() {
     <>
       {analyticsEnabled ? <Analytics /> : null}
       {analyticsEnabled ? <SpeedInsights /> : null}
-      {analyticsEnabled ? <GoogleAnalytics /> : null}
       {marketingEnabled ? <CrispChat /> : null}
     </>
   );
