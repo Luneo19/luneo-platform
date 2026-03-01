@@ -25,6 +25,7 @@ process.on('unhandledRejection', (reason) => {
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import { HealthService } from './modules/health/health.service';
 import { setupSwagger } from './swagger';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const express = require('express');
@@ -73,6 +74,7 @@ function validateRequiredEnvVars() {
 }
 
 let appReady = false;
+let readinessProbe: null | (() => Promise<{ status: 'ok' | 'degraded' | 'unavailable'; timestamp: string; uptime: number; service: string; version: string; dependencies?: unknown }>) = null;
 
 async function bootstrap() {
   validateRequiredEnvVars();
@@ -452,7 +454,7 @@ async function bootstrap() {
   // This is the EXACT pattern from serverless.ts which works correctly on Vercel
   // The order of middleware registration is critical: /health must be registered
   // BEFORE NestJS adds its routing middleware during app.init()
-  server.get('/health', (_req: Request, res: Response) => {
+  server.get('/health/live', (_req: Request, res: Response) => {
     if (!appReady) {
       res.status(503).json({
         status: 'starting',
@@ -472,10 +474,124 @@ async function bootstrap() {
       version: process.env.npm_package_version || '1.0.0',
     });
   });
-  logger.log('Health check route registered at /health (BEFORE app.init() on Express server)');
+  server.get('/health/ready', async (_req: Request, res: Response) => {
+    if (!appReady || !readinessProbe) {
+      res.status(503).json({
+        status: 'not_ready',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+      });
+      return;
+    }
+
+    try {
+      const snapshot = await readinessProbe();
+      const dependencies = snapshot.dependencies as
+        | { database?: string; redis?: string }
+        | undefined;
+      const isReady =
+        snapshot.status !== 'unavailable' &&
+        dependencies?.database === 'ok' &&
+        dependencies?.redis === 'ok';
+
+      if (!isReady) {
+        res.status(503).json({
+          status: 'not_ready',
+          timestamp: snapshot.timestamp,
+          uptime: snapshot.uptime,
+          service: snapshot.service,
+          version: snapshot.version,
+          dependencies: {
+            database: dependencies?.database ?? 'unknown',
+            redis: dependencies?.redis ?? 'unknown',
+          },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        status: 'ready',
+        timestamp: snapshot.timestamp,
+        uptime: snapshot.uptime,
+        service: snapshot.service,
+        version: snapshot.version,
+        dependencies: {
+          database: dependencies?.database ?? 'ok',
+          redis: dependencies?.redis ?? 'ok',
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(503).json({
+        status: 'not_ready',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+        error: message,
+      });
+    }
+  });
+  server.get('/health', async (_req: Request, res: Response) => {
+    if (!appReady) {
+      res.status(503).json({
+        status: 'starting',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+      });
+      return;
+    }
+
+    if (!readinessProbe) {
+      res.status(503).json({
+        status: 'starting',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+      });
+      return;
+    }
+
+    try {
+      const snapshot = await readinessProbe();
+      const isHardFailure = snapshot.status === 'unavailable';
+      res.status(isHardFailure ? 503 : 200).json(snapshot);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(503).json({
+        status: 'unavailable',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'luneo-backend',
+        version: process.env.npm_package_version || '1.0.0',
+        error: message,
+      });
+    }
+  });
+  logger.log('Health check routes registered at /health/live, /health/ready and /health (BEFORE app.init() on Express server)');
 
   // Initialize NestJS application (this registers all routes)
   await app.init();
+  const healthService = app.get(HealthService);
+  readinessProbe = async () => {
+    const enriched = await healthService.getEnrichedHealth();
+    return {
+      status: enriched.status,
+      timestamp: enriched.timestamp,
+      uptime: enriched.uptime,
+      service: enriched.service,
+      version: enriched.version,
+      dependencies: {
+        database: enriched.dependencies.database.status,
+        redis: enriched.dependencies.redis.status,
+      },
+    };
+  };
   
   // Railway provides PORT automatically - use it directly
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (configService.get('app.port') || 3000);

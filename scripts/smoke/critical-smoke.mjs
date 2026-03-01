@@ -112,6 +112,20 @@ async function fetchJson(path, init = {}) {
   return { res, data };
 }
 
+async function retryWithBackoff(fn, retries = 2, baseDelayMs = 800) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries) break;
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 async function fetchText(path, init = {}) {
   const headers = new Headers(init.headers || {});
   const cookie = cookieHeader();
@@ -194,16 +208,18 @@ async function run() {
 
   await check('security headers are present on public entrypoint', async () => {
     const { res } = await fetchText('/');
-    const securityHeaders = [
-      'content-security-policy',
+    const requiredSecurityHeaders = [
       'x-content-type-options',
       'x-frame-options',
-      'strict-transport-security',
       'referrer-policy',
+      'permissions-policy',
     ];
-    const present = securityHeaders.filter((header) => res.headers.get(header));
-    if (present.length === 0) {
-      throw new Error('No expected security headers found on "/"');
+    if (!isLocalBaseUrl()) {
+      requiredSecurityHeaders.push('strict-transport-security');
+    }
+    const missing = requiredSecurityHeaders.filter((header) => !res.headers.get(header));
+    if (missing.length > 0) {
+      throw new Error(`Missing required security headers on "/": ${missing.join(', ')}`);
     }
   });
 
@@ -259,27 +275,29 @@ async function run() {
   });
 
   await check('login as admin', async () => {
-    const { res, data } = await fetchJson('/api/v1/auth/login', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(csrfTokenForAuth ? { 'x-csrf-token': csrfTokenForAuth } : {}),
-      },
-      body: JSON.stringify({ email: adminEmail, password: adminPassword }),
-    });
-    if (res.status !== 200) {
-      const details = JSON.stringify(data || {}).slice(0, 500);
-      authDebug('login-failed', {
-        status: res.status,
-        response: data,
-        cookieKeys: Array.from(jar.keys()),
-        csrfHeaderSent: Boolean(csrfTokenForAuth),
+    await retryWithBackoff(async () => {
+      const { res, data } = await fetchJson('/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(csrfTokenForAuth ? { 'x-csrf-token': csrfTokenForAuth } : {}),
+        },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
       });
-      throw new Error(`Expected status 200, got ${res.status}. Response: ${details}`);
-    }
-    authDebug('login-success', {
-      status: res.status,
-      cookieKeys: Array.from(jar.keys()),
+      if (res.status !== 200) {
+        const details = JSON.stringify(data || {}).slice(0, 500);
+        authDebug('login-failed', {
+          status: res.status,
+          response: data,
+          cookieKeys: Array.from(jar.keys()),
+          csrfHeaderSent: Boolean(csrfTokenForAuth),
+        });
+        throw new Error(`Expected status 200, got ${res.status}. Response: ${details}`);
+      }
+      authDebug('login-success', {
+        status: res.status,
+        cookieKeys: Array.from(jar.keys()),
+      });
     });
   });
 
