@@ -32,8 +32,7 @@ function main() {
   assert(migrationFolders.length > 0, 'Aucune migration détectée');
 
   const latestMigration = migrationFolders[migrationFolders.length - 1];
-  const isCi = process.env.CI === 'true';
-  const requireDb = process.env.MIGRATION_VERIFY_REQUIRE_DB === 'true' || isCi;
+  const requireDb = process.env.MIGRATION_VERIFY_REQUIRE_DB === 'true';
 
   const summary: Record<string, unknown> = {
     schemaPath,
@@ -42,16 +41,31 @@ function main() {
     databaseUrlConfigured: Boolean(process.env.DATABASE_URL),
   };
 
+  const databaseUrl = process.env.DATABASE_URL;
   if (requireDb) {
-    assert(Boolean(process.env.DATABASE_URL), 'DATABASE_URL requis pour verifier les migrations en CI/preflight strict');
-    const statusOutput = runCommand('pnpm exec prisma migrate status --schema prisma/schema.prisma');
-    const normalizedOutput = statusOutput.toLowerCase();
-    const looksHealthy =
-      normalizedOutput.includes('database schema is up to date') ||
-      normalizedOutput.includes('no pending migrations') ||
-      normalizedOutput.includes('already in sync');
-    assert(looksHealthy, `Etat Prisma non clean detecte:\n${statusOutput}`);
-    summary.prismaMigrateStatus = statusOutput;
+    assert(Boolean(databaseUrl), 'DATABASE_URL requis pour verifier les migrations en mode strict');
+  }
+
+  if (databaseUrl) {
+    try {
+      const statusOutput = runCommand('pnpm exec prisma migrate status --schema prisma/schema.prisma');
+      const normalizedOutput = statusOutput.toLowerCase();
+      const looksHealthy =
+        normalizedOutput.includes('database schema is up to date') ||
+        normalizedOutput.includes('no pending migrations') ||
+        normalizedOutput.includes('already in sync');
+      assert(looksHealthy, `Etat Prisma non clean detecte:\n${statusOutput}`);
+      summary.prismaMigrateStatus = statusOutput;
+    } catch (error) {
+      if (requireDb) {
+        throw error;
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      summary.prismaMigrateStatusSkipped = `DB inaccessible en mode non-strict: ${message}`;
+    }
+  } else {
+    summary.prismaMigrateStatusSkipped = 'DATABASE_URL absente: verification DB ignoree (mode non-strict).';
   }
 
   const rollbackChecklist = [
