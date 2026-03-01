@@ -34,6 +34,7 @@ export const JOB_TYPES = {
     REINDEX_COLLECTION: 'reindex-collection',
     DELETE_EMBEDDINGS: 'delete-embeddings',
     SYNC_KNOWLEDGE_BASE: 'sync-knowledge-base',
+    CRAWL_WEBSITE: 'crawl-website',
   },
   INTEGRATION_SYNC: {
     SYNC_SHOPIFY: 'sync-shopify',

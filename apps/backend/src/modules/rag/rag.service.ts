@@ -4,6 +4,8 @@ import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { VectorService } from '@/libs/vector/vector.service';
 import { LlmService } from '@/libs/llm/llm.service';
 import { SmartCacheService } from '@/libs/cache/smart-cache.service';
+import { QueryExpanderService } from './query-expander.service';
+import { RerankerService } from './reranker.service';
 
 export interface RagSource {
   chunkId: string;
@@ -45,6 +47,8 @@ export class RagService {
     private readonly vectorService: VectorService,
     private readonly llmService: LlmService,
     private readonly cache: SmartCacheService,
+    private readonly queryExpanderService: QueryExpanderService,
+    private readonly rerankerService: RerankerService,
   ) {}
 
   /**
@@ -74,17 +78,9 @@ export class RagService {
     }
 
     const kbIds = agent.agentKnowledgeBases.map((akb) => akb.knowledgeBaseId);
-    const queryEmbedding = await this.llmService.generateEmbedding(query);
-    const searchResults = await this.searchAcrossKnowledgeBases(
-      queryEmbedding,
-      kbIds,
-      topK * 2,
-    );
-
-    const relevantResults = searchResults
-      .filter((r) => r.score >= minScore)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+    const expandedQueries = this.queryExpanderService.expand(query);
+    const searchResults = await this.searchWithExpandedQueries(expandedQueries, kbIds, topK * 2);
+    const relevantResults = this.rerankerService.rerank(query, searchResults, topK, minScore);
 
     if (relevantResults.length === 0) {
       return { context: '', sources: [] };
@@ -174,21 +170,9 @@ export class RagService {
       return this.processWithoutRag(query, agent, options, startTime);
     }
 
-    // 2. Generate embedding for query
-    const queryEmbedding = await this.llmService.generateEmbedding(query);
-
-    // 3. Search across all agent's knowledge bases (namespace = kbId per KB)
-    const searchResults = await this.searchAcrossKnowledgeBases(
-      queryEmbedding,
-      kbIds,
-      topK * 2,
-    );
-
-    // 4. Filter and rerank by relevance score
-    const relevantResults = searchResults
-      .filter((r) => r.score >= minScore)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+    const expandedQueries = this.queryExpanderService.expand(query);
+    const searchResults = await this.searchWithExpandedQueries(expandedQueries, kbIds, topK * 2);
+    const relevantResults = this.rerankerService.rerank(query, searchResults, topK, minScore);
 
     if (relevantResults.length === 0) {
       this.logger.debug(`No relevant chunks found for query (minScore=${minScore})`);
@@ -275,6 +259,20 @@ export class RagService {
     }
 
     return allResults;
+  }
+
+  private async searchWithExpandedQueries(
+    expandedQueries: string[],
+    kbIds: string[],
+    topKPerKb: number,
+  ): Promise<Array<{ id: string; score: number }>> {
+    const merged: Array<{ id: string; score: number }> = [];
+    for (const expandedQuery of expandedQueries) {
+      const embedding = await this.llmService.generateEmbedding(expandedQuery);
+      const results = await this.searchAcrossKnowledgeBases(embedding, kbIds, topKPerKb);
+      merged.push(...results);
+    }
+    return merged;
   }
 
   private async processWithoutRag(

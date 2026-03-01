@@ -8,11 +8,26 @@ import { LearningModule } from '@/modules/learning/learning.module';
 import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
 import { HandoffService } from './handoff.service';
+import { SlaService } from './sla.service';
+import { InboxCollaborationService } from './inbox-collaboration.service';
+import { ConversationsGateway } from './conversations.gateway';
 
 @Module({
   imports: [PrismaOptimizedModule, SmartCacheModule, QueuesModule, AgentAnalyticsModule, EmailModule, LearningModule],
   controllers: [ConversationsController],
-  providers: [ConversationsService, HandoffService],
-  exports: [ConversationsService, HandoffService],
+  providers: [
+    ConversationsService,
+    HandoffService,
+    SlaService,
+    InboxCollaborationService,
+    ConversationsGateway,
+  ],
+  exports: [
+    ConversationsService,
+    HandoffService,
+    SlaService,
+    InboxCollaborationService,
+    ConversationsGateway,
+  ],
 })
 export class ConversationsModule {}

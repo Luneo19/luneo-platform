@@ -22,6 +22,9 @@ import {
 } from './providers';
 import { ChannelRouterService } from './channel-router.service';
 import { ChannelReliabilityService } from './channel-reliability.service';
+import { WhatsAppAdapter } from './adapters/whatsapp.adapter';
+import { EmailAdapter } from './adapters/email.adapter';
+import { WebchatAdapter } from './adapters/webchat.adapter';
 
 @Module({
   imports: [
@@ -46,12 +49,18 @@ import { ChannelReliabilityService } from './channel-reliability.service';
     SlackProvider,
     ChannelRouterService,
     ChannelReliabilityService,
+    WhatsAppAdapter,
+    EmailAdapter,
+    WebchatAdapter,
   ],
   exports: [
     ChannelsService,
     EmailOutboundService,
     ChannelRouterService,
     ChannelReliabilityService,
+    WhatsAppAdapter,
+    EmailAdapter,
+    WebchatAdapter,
   ],
 })
 export class ChannelsModule {}

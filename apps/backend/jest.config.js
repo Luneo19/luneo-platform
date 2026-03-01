@@ -17,13 +17,7 @@ module.exports = {
   testRegex,
   testPathIgnorePatterns: isIntegration ? [] : ['integration\\.spec\\.ts$'],
   transform: {
-    '^.+\\.(t|j)s$': [
-      'ts-jest',
-      {
-        isolatedModules: true,
-        tsconfig: { skipLibCheck: true },
-      },
-    ],
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: { skipLibCheck: true } }],
   },
   collectCoverageFrom: [
     'src/**/*.(t|j)s',

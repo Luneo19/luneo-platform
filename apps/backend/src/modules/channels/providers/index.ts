@@ -1,4 +1,8 @@
-export { ChannelProviderInterface, ChannelMessage, IncomingMessage } from './channel-provider.interface';
+export type {
+  ChannelProviderInterface,
+  ChannelMessage,
+  IncomingMessage,
+} from './channel-provider.interface';
 export { WhatsAppProvider } from './whatsapp.provider';
 export { TelegramProvider } from './telegram.provider';
 export { MessengerProvider } from './messenger.provider';

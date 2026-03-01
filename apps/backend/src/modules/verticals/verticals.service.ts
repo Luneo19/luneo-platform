@@ -26,9 +26,11 @@ export class VerticalsService {
         description: seed.description,
         icon: seed.icon,
         onboardingQuestions: seed.onboardingQuestions as Prisma.InputJsonValue,
+        defaultKnowledge: seed.defaultKnowledgeTemplates as Prisma.InputJsonValue,
         defaultWorkflows: seed.defaultWorkflows as Prisma.InputJsonValue,
         kpiDefinitions: seed.kpiDefinitions as Prisma.InputJsonValue,
         intentCategories: seed.intentCategories as Prisma.InputJsonValue,
+        industryVocabulary: seed.industryVocabulary as Prisma.InputJsonValue,
         isActive: true,
       },
     });
@@ -72,11 +74,18 @@ export class VerticalsService {
 
   async selectVerticalForOrganization(user: CurrentUser, slug: string, onboardingData?: Record<string, unknown>) {
     if (!user.organizationId) throw new BadRequestException('Organisation requise');
+    return this.selectVerticalByOrganizationId(user.organizationId, slug, onboardingData);
+  }
 
+  async selectVerticalByOrganizationId(
+    organizationId: string,
+    slug: string,
+    onboardingData?: Record<string, unknown>,
+  ) {
     const template = await this.ensureTemplatePersisted(slug);
 
     const organization = await this.prisma.organization.update({
-      where: { id: user.organizationId },
+      where: { id: organizationId },
       data: {
         verticalTemplateId: template.id,
         onboardingData: onboardingData as Prisma.InputJsonValue | undefined,

@@ -25,6 +25,11 @@ import { UsageBillingModule } from '@/modules/usage-billing/usage-billing.module
 import { WorkflowEngineService } from './workflow/workflow-engine.service';
 import { MemoryModule } from '@/modules/memory/memory.module';
 import { QueuesModule } from '@/libs/queues/queues.module';
+import { IntentClassifierService } from './intent-classifier.service';
+import { ContextBuilderService } from './context-builder.service';
+import { PromptEngineService } from './prompt-engine.service';
+import { AgentRouterService } from './agent-router.service';
+import { OrchestratorLanguageService } from './language.service';
 
 const actionExecutors = [
   BookingExecutor,
@@ -60,6 +65,11 @@ const integrationProviders = [
   providers: [
     OrchestratorService,
     WorkflowEngineService,
+    IntentClassifierService,
+    ContextBuilderService,
+    PromptEngineService,
+    AgentRouterService,
+    OrchestratorLanguageService,
     ToolRegistryService,
     ActionRegistryService,
     ...actionExecutors,

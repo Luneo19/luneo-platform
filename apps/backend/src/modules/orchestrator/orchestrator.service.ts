@@ -10,6 +10,11 @@ import { WorkflowEngineService } from './workflow/workflow-engine.service';
 import { MemoryService } from '@/modules/memory/memory.service';
 import { JOB_TYPES, QueuesService } from '@/libs/queues';
 import { createHash } from 'crypto';
+import { IntentClassifierService } from './intent-classifier.service';
+import { ContextBuilderService } from './context-builder.service';
+import { PromptEngineService } from './prompt-engine.service';
+import { AgentRouterService } from './agent-router.service';
+import { OrchestratorLanguageService } from './language.service';
 
 export interface AgentExecutionResult {
   content: string;
@@ -42,6 +47,11 @@ export class OrchestratorService {
     private readonly workflowEngineService: WorkflowEngineService,
     private readonly memoryService: MemoryService,
     private readonly queuesService: QueuesService,
+    private readonly intentClassifierService: IntentClassifierService,
+    private readonly contextBuilderService: ContextBuilderService,
+    private readonly promptEngineService: PromptEngineService,
+    private readonly agentRouterService: AgentRouterService,
+    private readonly languageService: OrchestratorLanguageService,
   ) {}
 
   async executeAgent(
@@ -56,7 +66,7 @@ export class OrchestratorService {
     );
 
     // 1. Load agent config
-    const agent = await this.prisma.agent.findUnique({
+    let agent = await this.prisma.agent.findUnique({
       where: { id: agentId },
       include: {
         agentKnowledgeBases: { include: { knowledgeBase: true } },
@@ -69,7 +79,7 @@ export class OrchestratorService {
 
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: { id: true, organizationId: true, contactId: true },
+      select: { id: true, organizationId: true, contactId: true, channelType: true },
     });
     if (!conversation || conversation.organizationId !== agent.organizationId) {
       throw new NotFoundException(`Conversation ${conversationId} introuvable`);
@@ -89,6 +99,31 @@ export class OrchestratorService {
       userMessage,
       latestUserMessage?.id,
     );
+
+    const detectedLanguage = this.languageService.detectLanguage(userMessage);
+    const intentClassification = this.intentClassifierService.classify(
+      userMessage,
+      this.extractScopedIntents(agent.scope),
+    );
+
+    const routedAgentId = await this.agentRouterService.route({
+      organizationId: agent.organizationId,
+      currentAgentId: agent.id,
+      channelType: conversation.channelType,
+      intent: intentClassification.intent,
+    });
+
+    if (routedAgentId !== agent.id) {
+      const routedAgent = await this.prisma.agent.findUnique({
+        where: { id: routedAgentId },
+        include: {
+          agentKnowledgeBases: { include: { knowledgeBase: true } },
+        },
+      });
+      if (routedAgent) {
+        agent = routedAgent;
+      }
+    }
 
     await this.quotasService.enforceQuota(agent.organizationId, 'messages_ai', 1);
 
@@ -211,68 +246,22 @@ export class OrchestratorService {
       };
     }
 
-    // 2. Load conversation history (last N messages based on contextWindow)
-    const history = await this.prisma.message.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: 'desc' },
-      take: agent.contextWindow ?? 10,
+    const context = await this.contextBuilderService.buildContext(
+      agent,
+      conversation,
+      userMessage,
+    );
+    const systemPrompt = this.promptEngineService.buildPrompt({
+      basePrompt: agent.systemPrompt ?? 'Tu es un assistant IA professionnel.',
+      customInstructions: agent.customInstructions,
+      tone: agent.tone,
+      languageInstruction: this.languageService.buildLanguageInstruction(detectedLanguage),
+      context,
     });
-    const orderedHistory = history.reverse();
-
-    // 3. Memory context (episodic facts for contact-aware responses)
-    let memoryContext = '';
-    if (conversation.contactId) {
-      try {
-        const memory = await this.memoryService.getContactMemory(
-          {
-            id: 'orchestrator',
-            email: 'orchestrator@luneo.local',
-            role: PlatformRole.ADMIN,
-            organizationId: agent.organizationId,
-          },
-          conversation.contactId,
-        );
-        const topFacts = memory.episodicFacts.slice(0, 3);
-        if (topFacts.length > 0) {
-          memoryContext = topFacts
-            .map((item, index) => `Fact ${index + 1}: ${item.summary ?? 'N/A'}`)
-            .join('\n');
-        }
-      } catch (error) {
-        this.logger.warn(
-          `Unable to load memory context for conversation ${conversationId}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    }
-
-    // 4. RAG: retrieve context if agent has knowledge bases
-    let context = '';
-    let sources: RagSource[] = [];
-
-    if (agent.agentKnowledgeBases.length > 0) {
-      const retrieved = await this.ragService.retrieveContext(userMessage, agentId, {
-        topK: 5,
-        minScore: agent.confidenceThreshold ?? 0.7,
-      });
-      context = retrieved.context;
-      sources = retrieved.sources;
-    }
-
-    // 5. Build prompt
-    const systemPrompt = this.buildFullPrompt(agent, context, memoryContext);
-
-    const historyMessages = orderedHistory
-      .filter((m) => m.role === 'USER' || m.role === 'ASSISTANT')
-      .map((m) => ({
-        role: m.role.toLowerCase() as 'user' | 'assistant',
-        content: m.content,
-      }));
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
-      ...historyMessages,
+      ...context.history,
       { role: 'user' as const, content: userMessage },
     ];
 
@@ -303,13 +292,18 @@ export class OrchestratorService {
         costUsd: completion.costUsd,
         latencyMs: Date.now() - startTime,
         confidence: this.computeResponseConfidence(
-          sources,
+          context.sources,
           completion.content,
           agent.confidenceThreshold ?? 0.7,
           agent.agentKnowledgeBases.length > 0,
         ),
-        sourcesUsed: sources.length > 0 ? (sources as unknown as object) : undefined,
-        chunksUsed: sources.map((s) => s.chunkId),
+        intent: intentClassification.intent,
+        sentiment: this.computeSentiment(userMessage),
+        sourcesUsed:
+          context.sources.length > 0
+            ? (context.sources as unknown as object)
+            : undefined,
+        chunksUsed: context.sources.map((s) => s.chunkId),
       },
     });
 
@@ -322,6 +316,9 @@ export class OrchestratorService {
         totalTokensIn: { increment: completion.tokensIn },
         totalTokensOut: { increment: completion.tokensOut },
         totalCostUsd: { increment: completion.costUsd ?? 0 },
+        language: detectedLanguage,
+        primaryIntent: intentClassification.intent,
+        aiConfidence: intentClassification.confidence,
       },
     });
 
@@ -358,7 +355,7 @@ export class OrchestratorService {
       confidenceThreshold: agent.confidenceThreshold ?? 0.7,
       userMessage,
       responseContent: completion.content,
-      sources,
+      sources: context.sources,
       hasKnowledgeBase: agent.agentKnowledgeBases.length > 0,
     });
     await this.maybeEscalateConversation(
@@ -370,7 +367,7 @@ export class OrchestratorService {
 
     return {
       content: completion.content,
-      sources,
+      sources: context.sources,
       tokensIn: completion.tokensIn,
       tokensOut: completion.tokensOut,
       costUsd: completion.costUsd ?? 0,
@@ -428,6 +425,21 @@ export class OrchestratorService {
     }
 
     return prompt;
+  }
+
+  private extractScopedIntents(scope: unknown): string[] {
+    if (!scope || typeof scope !== 'object') return [];
+    const intents = (scope as Record<string, unknown>).intents;
+    if (!Array.isArray(intents)) return [];
+    return intents.filter((value): value is string => typeof value === 'string');
+  }
+
+  private computeSentiment(input: string): string {
+    const normalized = input.toLowerCase();
+    if (/(urgent|furious|colere|frustre|inadmissible)/.test(normalized)) return 'urgent';
+    if (/(merci|parfait|super|excellent)/.test(normalized)) return 'positive';
+    if (/(probleme|bug|retard|decu|insatisfait)/.test(normalized)) return 'negative';
+    return 'neutral';
   }
 
   private computeRequestFingerprint(

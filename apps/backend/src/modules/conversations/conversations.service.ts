@@ -264,6 +264,48 @@ export class ConversationsService {
     return updated;
   }
 
+  async submitFeedback(
+    conversationId: string,
+    payload: { rating: number; comment?: string },
+    user: CurrentUser,
+  ) {
+    if (payload.rating < 1 || payload.rating > 5) {
+      throw new BadRequestException('La note doit etre comprise entre 1 et 5');
+    }
+
+    const conversation = await this.ensureConversationAccess(conversationId, user);
+
+    const updated = await this.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        satisfactionRating: payload.rating,
+        satisfactionComment: payload.comment?.trim() || null,
+        satisfactionRatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        satisfactionRating: true,
+        satisfactionComment: true,
+        satisfactionRatedAt: true,
+      },
+    });
+
+    await this.learningService.recordSignal(user, {
+      conversationId: conversation.id,
+      signalType:
+        payload.rating >= 4
+          ? LearningSignalType.POSITIVE_FEEDBACK
+          : LearningSignalType.NEGATIVE_FEEDBACK,
+      data: {
+        rating: payload.rating,
+        comment: payload.comment ?? null,
+      },
+    });
+
+    await this.cache.invalidate(`conversations:${user.organizationId}`, 'brand');
+    return updated;
+  }
+
   async getStats(user: CurrentUser) {
     if (!user.organizationId) {
       throw new BadRequestException('Organisation requise');

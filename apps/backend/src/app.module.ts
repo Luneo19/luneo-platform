@@ -73,6 +73,13 @@ import { MemoryModule } from './modules/memory/memory.module';
 import { ActionsModule } from './modules/actions/actions.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { IntegrationsApiModule } from './modules/integrations-api/integrations-api.module';
+import { SearchModule } from './modules/search/search.module';
+import { PublicApiModule } from './modules/public-api/public-api.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { StatusPageModule } from './modules/status-page/status-page.module';
+import { ScheduledMessagesModule } from './modules/scheduled-messages/scheduled-messages.module';
+import { EnterpriseModule } from './modules/enterprise/enterprise.module';
 
 // =============================================
 // LIBS INFRASTRUCTURE
@@ -233,6 +240,13 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     ActionsModule,
     AutomationModule,
     IntegrationsApiModule,
+    SearchModule,
+    PublicApiModule,
+    PrivacyModule,
+    WebhooksModule,
+    StatusPageModule,
+    ScheduledMessagesModule,
+    EnterpriseModule,
 
     // --- Infrastructure ---
     CommonModule,
