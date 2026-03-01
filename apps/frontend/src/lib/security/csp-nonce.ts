@@ -40,10 +40,12 @@ export function buildCSPWithNonce(nonce: string): string {
   const nonceValue = `'nonce-${nonce}'`;
   const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.ingest.sentry.io' : '';
   const reportUri = process.env.CSP_REPORT_URI || '';
+  const allowUnsafeEval = process.env.CSP_ALLOW_UNSAFE_EVAL === 'true';
+  const scriptUnsafeEval = allowUnsafeEval ? " 'unsafe-eval'" : '';
   
   const directives = [
     "default-src 'self'",
-    `script-src 'self' ${nonceValue} 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com`,
+    `script-src 'self' ${nonceValue}${scriptUnsafeEval} https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.sentry-cdn.com`,
     `style-src 'self' ${nonceValue} https://fonts.googleapis.com`,
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' https://fonts.gstatic.com data:",

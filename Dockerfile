@@ -26,10 +26,7 @@ RUN apk add --no-cache \
 # Installer pnpm via corepack et set PNPM_HOME for global installs
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Installer @nestjs/cli globalement
-RUN pnpm add -g @nestjs/cli@latest
+RUN corepack enable && corepack prepare pnpm@8.10.0 --activate
 
 # Définir le répertoire de travail
 WORKDIR /app
@@ -52,7 +49,7 @@ RUN pnpm prisma generate
 # Build the application using tsconfig.docker.json (relaxed strict checks, rootDir: ".")
 # PRODUCTION FIX: Removed || true - build must succeed for production deployment
 WORKDIR /app/apps/backend
-RUN nest build --tsc -p tsconfig.docker.json
+RUN pnpm exec nest build --tsc -p tsconfig.docker.json
 # Verify build output exists (fail fast if compilation produced no output)
 RUN test -f dist/src/main.js || (echo "ERROR: dist/src/main.js not found after build" && ls -R dist/ 2>/dev/null && exit 1)
 
@@ -85,7 +82,7 @@ RUN apk add --no-cache \
 # Installer pnpm via corepack
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.10.0 --activate
 
 # Installer uniquement les dépendances de production
 WORKDIR /app

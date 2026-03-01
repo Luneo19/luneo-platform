@@ -1,4 +1,10 @@
-import { Module, Global, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  Global,
+  MiddlewareConsumer,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -63,6 +69,11 @@ export class CommonModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(XssSanitizeMiddleware, I18nMiddleware)
+      .exclude(
+        { path: 'billing/webhook', method: RequestMethod.POST },
+        { path: 'webhooks/email/inbound', method: RequestMethod.POST },
+        { path: 'webhooks/sendgrid/events', method: RequestMethod.POST },
+      )
       .forRoutes('*'); // Apply to all routes
   }
 }

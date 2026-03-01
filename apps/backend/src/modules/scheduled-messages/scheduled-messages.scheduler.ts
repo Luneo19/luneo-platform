@@ -12,10 +12,17 @@ export class ScheduledMessagesScheduler {
 
   @Cron('*/1 * * * *')
   async processDueMessages() {
-    const result = await this.scheduledMessagesService.processDueBatch();
-    if (result.scanned > 0) {
-      this.logger.log(
-        `Scheduled messages processed: scanned=${result.scanned} sent=${result.sent} failed=${result.failed}`,
+    try {
+      const result = await this.scheduledMessagesService.processDueBatch();
+      if (result.scanned > 0) {
+        this.logger.log(
+          `Scheduled messages processed: scanned=${result.scanned} sent=${result.sent} failed=${result.failed}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'Failed to process scheduled messages batch',
+        error instanceof Error ? error.stack : String(error),
       );
     }
   }

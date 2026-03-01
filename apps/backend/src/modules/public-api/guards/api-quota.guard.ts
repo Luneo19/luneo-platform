@@ -19,13 +19,30 @@ export class ApiQuotaGuard implements CanActivate {
 
   constructor(private readonly redis: RedisOptimizedService) {}
 
+  private isFailOpenEnabled(): boolean {
+    if (process.env.PUBLIC_API_QUOTA_FAIL_OPEN) {
+      return process.env.PUBLIC_API_QUOTA_FAIL_OPEN === 'true';
+    }
+    return process.env.NODE_ENV !== 'production';
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<PublicApiRequest>();
     const auth = request.publicApiAuth;
     if (!auth) return true;
 
+    const failOpen = this.isFailOpenEnabled();
     const client = this.redis.client;
-    if (!client) return true;
+    if (!client) {
+      if (failOpen) {
+        this.logger.warn('Quota backend unavailable, skipping quota check');
+        return true;
+      }
+      throw new HttpException(
+        'Quota backend unavailable',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
 
     const limit = Math.max(10, auth.rateLimit || 1000);
     const bucket = Math.floor(Date.now() / 60000);
@@ -47,9 +64,19 @@ export class ApiQuotaGuard implements CanActivate {
       if (error instanceof HttpException) {
         throw error;
       }
-      // Fail-open on Redis errors to preserve API availability.
-      this.logger.warn(
-        `Quota backend unavailable for api key ${auth.keyId}, skipping quota check`,
+      if (failOpen) {
+        this.logger.warn(
+          `Quota backend unavailable for api key ${auth.keyId}, skipping quota check`,
+        );
+        return true;
+      }
+      this.logger.error(
+        `Quota backend error for api key ${auth.keyId}`,
+        error instanceof Error ? error.message : String(error),
+      );
+      throw new HttpException(
+        'Quota backend unavailable',
+        HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 

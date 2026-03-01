@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -9,12 +10,18 @@ import {
   ScheduledMessageStatus,
 } from '@prisma/client';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 import { CurrentUser } from '@/common/types/user.types';
 import { CreateScheduledMessageDto } from './dto/create-scheduled-message.dto';
 
 @Injectable()
 export class ScheduledMessagesService {
-  constructor(private readonly prisma: PrismaOptimizedService) {}
+  private readonly logger = new Logger(ScheduledMessagesService.name);
+
+  constructor(
+    private readonly prisma: PrismaOptimizedService,
+    private readonly distributedLock: DistributedLockService,
+  ) {}
 
   async create(user: CurrentUser, dto: CreateScheduledMessageDto) {
     if (!user.organizationId) throw new BadRequestException('Organisation requise');
@@ -86,86 +93,131 @@ export class ScheduledMessagesService {
   }
 
   async processDueBatch(now = new Date(), take = 100) {
-    const due = await this.prisma.scheduledMessage.findMany({
-      where: {
-        status: ScheduledMessageStatus.SCHEDULED,
-        scheduledAt: { lte: now },
-        cancelledAt: null,
-      },
-      orderBy: { scheduledAt: 'asc' },
-      take,
-    });
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const item of due) {
-      try {
-        await this.processSingle(item.id);
-        sent += 1;
-      } catch {
-        failed += 1;
-      }
+    const batchLockKey = 'scheduled-messages:process-due';
+    const batchLockAcquired = await this.distributedLock.acquire(
+      batchLockKey,
+      55,
+      false,
+    );
+    if (!batchLockAcquired) {
+      this.logger.debug('Scheduled messages batch skipped: lock already held');
+      return { scanned: 0, sent: 0, failed: 0 };
     }
 
-    return { scanned: due.length, sent, failed };
+    try {
+      const due = await this.prisma.scheduledMessage.findMany({
+        where: {
+          status: ScheduledMessageStatus.SCHEDULED,
+          scheduledAt: { lte: now },
+          cancelledAt: null,
+        },
+        orderBy: { scheduledAt: 'asc' },
+        take,
+      });
+
+      let sent = 0;
+      let failed = 0;
+
+      for (const item of due) {
+        try {
+          await this.processSingle(item.id);
+          sent += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      return { scanned: due.length, sent, failed };
+    } finally {
+      await this.distributedLock.release(batchLockKey);
+    }
   }
 
   private async processSingle(id: string) {
-    const item = await this.prisma.scheduledMessage.findUnique({
-      where: { id },
-      include: { conversation: true },
-    });
-    if (!item) return;
-    if (item.status !== ScheduledMessageStatus.SCHEDULED || item.cancelledAt) return;
+    const itemLockKey = `scheduled-messages:item:${id}`;
+    const itemLockAcquired = await this.distributedLock.acquire(
+      itemLockKey,
+      120,
+      false,
+    );
+    if (!itemLockAcquired) {
+      return;
+    }
 
     try {
-      if (item.conversationId) {
-        await this.prisma.message.create({
-          data: {
-            conversationId: item.conversationId,
-            role: 'ASSISTANT',
-            content: item.content,
-            contentType: 'text',
-          },
-        });
+      const item = await this.prisma.scheduledMessage.findUnique({
+        where: { id },
+        include: { conversation: true },
+      });
+      if (!item) return;
+      if (item.status !== ScheduledMessageStatus.SCHEDULED || item.cancelledAt) return;
 
-        await this.prisma.conversation.update({
-          where: { id: item.conversationId },
+      if (item.conversationId) {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.message.create({
+            data: {
+              conversationId: item.conversationId!,
+              role: 'ASSISTANT',
+              content: item.content,
+              contentType: 'text',
+            },
+          });
+
+          await tx.conversation.update({
+            where: { id: item.conversationId! },
+            data: {
+              messageCount: { increment: 1 },
+              agentMessageCount: { increment: 1 },
+              updatedAt: new Date(),
+            },
+          });
+
+          await tx.scheduledMessage.update({
+            where: { id: item.id },
+            data: {
+              status: ScheduledMessageStatus.SENT,
+              sentAt: new Date(),
+            },
+          });
+        });
+      } else {
+        await this.prisma.scheduledMessage.update({
+          where: { id: item.id },
           data: {
-            messageCount: { increment: 1 },
-            agentMessageCount: { increment: 1 },
-            updatedAt: new Date(),
+            status: ScheduledMessageStatus.SENT,
+            sentAt: new Date(),
           },
         });
       }
+    } catch (error) {
+      const scheduledMessage = await this.prisma.scheduledMessage.findUnique({
+        where: { id },
+        select: { id: true, organizationId: true, content: true },
+      });
+      if (!scheduledMessage) {
+        throw error;
+      }
 
       await this.prisma.scheduledMessage.update({
-        where: { id: item.id },
-        data: {
-          status: ScheduledMessageStatus.SENT,
-          sentAt: new Date(),
-        },
-      });
-    } catch (error) {
-      await this.prisma.scheduledMessage.update({
-        where: { id: item.id },
+        where: { id: scheduledMessage.id },
         data: { status: ScheduledMessageStatus.FAILED },
       });
       await this.prisma.failedJob.create({
         data: {
-          organizationId: item.organizationId,
+          organizationId: scheduledMessage.organizationId,
           queue: 'scheduled_messages',
-          jobId: item.id,
+          jobId: scheduledMessage.id,
           data: {
-            scheduledMessageId: item.id,
-            content: item.content.slice(0, 500),
+            scheduledMessageId: scheduledMessage.id,
+            content: scheduledMessage.content.slice(0, 500),
           } as Prisma.InputJsonValue,
           error: error instanceof Error ? error.message : String(error),
           attempts: 1,
         },
       });
       throw error;
+    } finally {
+      await this.distributedLock.release(itemLockKey);
     }
   }
 }

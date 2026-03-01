@@ -95,8 +95,8 @@ describe('PublicApiService', () => {
       id: 'k1',
       name: 'prod',
       keyPrefix: 'lun_live_xxxxx',
-      scopes: ['*'],
-      permissions: ['*'],
+      scopes: ['conversations:read', 'contacts:read'],
+      permissions: ['conversations:read', 'contacts:read'],
       rateLimit: 1000,
       allowedIps: [],
       expiresAt: null,
@@ -111,8 +111,8 @@ describe('PublicApiService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           organizationId: 'org_1',
-          scopes: ['*'],
-          permissions: ['*'],
+          scopes: ['conversations:read', 'contacts:read'],
+          permissions: ['conversations:read', 'contacts:read'],
         }),
       }),
     );

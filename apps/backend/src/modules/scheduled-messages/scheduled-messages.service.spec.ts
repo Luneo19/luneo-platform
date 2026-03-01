@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ScheduledMessagesService } from './scheduled-messages.service';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
+import { DistributedLockService } from '@/libs/redis/distributed-lock.service';
 
 describe('ScheduledMessagesService', () => {
   let service: ScheduledMessagesService;
 
   const prisma = {
+    $transaction: jest.fn(),
     conversation: {
       findFirst: jest.fn(),
     },
@@ -24,13 +26,22 @@ describe('ScheduledMessagesService', () => {
       create: jest.fn(),
     },
   };
+  const distributedLock = {
+    acquire: jest.fn(),
+    release: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    distributedLock.acquire.mockResolvedValue(true);
+    distributedLock.release.mockResolvedValue(undefined);
+    prisma.$transaction.mockImplementation(async (callback: any) => callback(prisma));
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ScheduledMessagesService,
         { provide: PrismaOptimizedService, useValue: prisma },
+        { provide: DistributedLockService, useValue: distributedLock },
       ],
     }).compile();
 
@@ -95,5 +106,14 @@ describe('ScheduledMessagesService', () => {
     const result = await service.processDueBatch(new Date(), 100);
 
     expect(result).toEqual({ scanned: 2, sent: 1, failed: 1 });
+  });
+
+  it('processDueBatch skip si lock batch non acquis', async () => {
+    distributedLock.acquire.mockResolvedValueOnce(false);
+
+    const result = await service.processDueBatch(new Date(), 100);
+
+    expect(result).toEqual({ scanned: 0, sent: 0, failed: 0 });
+    expect(prisma.scheduledMessage.findMany).not.toHaveBeenCalled();
   });
 });

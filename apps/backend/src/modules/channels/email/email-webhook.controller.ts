@@ -5,6 +5,7 @@ import {
   Logger,
   HttpCode,
   Headers,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -38,6 +39,9 @@ export class EmailWebhookController {
       this.logger.error(
         'Failed to process inbound email',
         error instanceof Error ? error.message : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Echec traitement webhook email inbound',
       );
     }
 

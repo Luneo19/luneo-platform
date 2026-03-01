@@ -9,6 +9,9 @@ import { AgentsService } from '@/modules/agents/agents.service';
 import { WebhooksService } from '@/modules/webhooks/webhooks.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
+const DEFAULT_API_KEY_SCOPES = ['conversations:read', 'contacts:read'];
+const DEFAULT_API_KEY_PERMISSIONS = ['conversations:read', 'contacts:read'];
+
 @Injectable()
 export class PublicApiService {
   constructor(
@@ -147,8 +150,10 @@ export class PublicApiService {
         name: dto.name.trim(),
         keyHash,
         keyPrefix,
-        scopes: dto.scopes?.length ? dto.scopes : ['*'],
-        permissions: dto.permissions?.length ? dto.permissions : ['*'],
+        scopes: dto.scopes?.length ? dto.scopes : DEFAULT_API_KEY_SCOPES,
+        permissions: dto.permissions?.length
+          ? dto.permissions
+          : DEFAULT_API_KEY_PERMISSIONS,
         allowedIps: dto.allowedIps ?? [],
         rateLimit: dto.rateLimit ?? 1000,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
