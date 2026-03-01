@@ -24,7 +24,7 @@
     "quality:release": "pnpm run lint:release && pnpm run type-check:release && pnpm run test:release && pnpm run build:release && pnpm run migrate:verify:release && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_SERVER=true SMOKE_RUN_AUTH_CHECKS=true pnpm run smoke:critical && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_CREDENTIALS=true pnpm run smoke:post-login-tunnel",
     "quality:platform": "pnpm run lint && pnpm run type-check && pnpm run test && pnpm run build",
     "smoke:critical": "node scripts/smoke/critical-smoke.mjs",
-    "smoke:post-login-tunnel": "node scripts/smoke/post-login-tunnel-smoke.mjs",
+    "smoke:post-login-tunnel": "pnpm exec playwright install chromium && node scripts/smoke/post-login-tunnel-smoke.mjs",
     "rollback:drill": "node scripts/rollback-drill.mjs",
     "report:release:kpi": "node scripts/release/build-release-reliability-kpi.mjs",
     "clean": "turbo run clean",
