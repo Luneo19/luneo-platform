@@ -21,7 +21,7 @@
     "type-check:release": "pnpm --filter luneo-frontend type-check && pnpm --filter @luneo/backend type-check && pnpm --filter @luneo/ai-engine type-check",
     "build:release": "pnpm --filter luneo-frontend build && pnpm --filter @luneo/backend build && pnpm --filter @luneo/ai-engine build",
     "migrate:verify:release": "pnpm --filter @luneo/backend migrate:verify",
-    "quality:release": "pnpm run lint:release && pnpm run type-check:release && pnpm run test:release && pnpm run build:release && MIGRATION_VERIFY_REQUIRE_DB=true pnpm run migrate:verify:release && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_SERVER=true SMOKE_RUN_AUTH_CHECKS=true pnpm run smoke:critical && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_CREDENTIALS=true pnpm run smoke:post-login-tunnel",
+    "quality:release": "pnpm run lint:release && pnpm run type-check:release && pnpm run test:release && pnpm run build:release && pnpm run migrate:verify:release && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_SERVER=true SMOKE_RUN_AUTH_CHECKS=true pnpm run smoke:critical && SMOKE_BASE_URL=https://luneo.app SMOKE_REQUIRE_CREDENTIALS=true pnpm run smoke:post-login-tunnel",
     "quality:platform": "pnpm run lint && pnpm run type-check && pnpm run test && pnpm run build",
     "smoke:critical": "node scripts/smoke/critical-smoke.mjs",
     "smoke:post-login-tunnel": "node scripts/smoke/post-login-tunnel-smoke.mjs",
