@@ -11,7 +11,7 @@ import { endpoints } from '@/lib/api/client';
 interface TwoFactorFormProps {
   tempToken: string;
   email: string;
-  onSuccess: () => void;
+  onSuccess: (user?: { role?: string }) => void;
   onError: (error: string) => void;
 }
 
@@ -32,8 +32,7 @@ export function TwoFactorForm({ tempToken, email, onSuccess, onError }: TwoFacto
       const response = await endpoints.auth.loginWith2FA(tempToken, token);
 
       if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user));
-        onSuccess();
+        onSuccess(response.user as { role?: string });
       } else {
         onError('Réponse invalide du serveur');
       }

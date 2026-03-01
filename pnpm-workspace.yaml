@@ -1,4 +1,5 @@
 packages:
+  - 'apps/ai-engine'
   - 'apps/frontend'
   - 'apps/backend'
   - 'packages/types'

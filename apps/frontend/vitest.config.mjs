@@ -48,12 +48,12 @@ export default defineConfig({
       include: [
         'src/**/*.{ts,tsx}',
       ],
-      // Coverage thresholds — increase progressively toward 70%
+      // Coverage thresholds (palier 1): raised progressively toward 70%.
       thresholds: {
-        lines: 40,
-        functions: 40,
-        branches: 30,
-        statements: 40,
+        lines: 45,
+        functions: 45,
+        branches: 35,
+        statements: 45,
       },
     },
   },

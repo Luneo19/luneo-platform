@@ -1,0 +1,13 @@
+{
+  "name": "@luneo/ai-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Luneo AI engine service baseline",
+  "scripts": {
+    "lint": "python3 -m compileall -q app tests",
+    "type-check": "python3 -m compileall -q app tests",
+    "test": "python3 -m unittest discover -s tests -p \"test_*.py\"",
+    "build": "python3 -m compileall -q app",
+    "quality": "pnpm run lint && pnpm run type-check && pnpm run test"
+  }
+}

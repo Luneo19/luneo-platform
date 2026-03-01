@@ -36,6 +36,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate smoke secrets
+        run: |
+          if [ "${RUN_AUTH_CHECKS}" = "true" ] && { [ -z "${SMOKE_ADMIN_EMAIL}" ] || [ -z "${SMOKE_ADMIN_PASSWORD}" ]; }; then
+            echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are required when run_auth_checks=true."
+            exit 1
+          fi
+        env:
+          RUN_AUTH_CHECKS: ${{ inputs.run_auth_checks }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+
       - name: Run critical smoke
         run: pnpm run smoke:critical
         env:

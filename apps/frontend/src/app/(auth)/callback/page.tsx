@@ -21,8 +21,19 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const next = searchParams.get('next') || '/overview';
+        const next = searchParams.get('next');
         const errorParam = searchParams.get('error');
+
+        const isSafeInternalPath = (candidate: string | null): candidate is string => {
+          if (!candidate) return false;
+          if (!candidate.startsWith('/')) return false;
+          if (candidate.startsWith('//')) return false;
+          const lower = candidate.toLowerCase();
+          if (lower.includes('javascript:')) return false;
+          if (lower.includes('://')) return false;
+          return true;
+        };
+        const redirectTarget = isSafeInternalPath(next) ? next : '/overview';
 
         if (errorParam) {
           logger.error('OAuth callback error', { error: errorParam });
@@ -46,7 +57,7 @@ export default function AuthCallbackPage() {
 
         if (user && user.id) {
           // Redirect to the intended page (user data fetched via React Query on next page)
-          router.push(next);
+          router.push(redirectTarget);
           router.refresh();
         } else {
           throw new Error('User verification failed');

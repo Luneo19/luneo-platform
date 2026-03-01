@@ -3,7 +3,7 @@ import { SkipRateLimit } from '@/libs/rate-limit/rate-limit.decorator';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
 import { CloudinaryService } from '@/libs/storage/cloudinary.service';
-import { Controller, Get, Header } from '@nestjs/common';
+import { Controller, Get, Header, ServiceUnavailableException } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
 import { HealthService, EnrichedHealthResponse } from './health.service';
@@ -61,6 +61,42 @@ export class HealthController {
   })
   async getEnriched(): Promise<EnrichedHealthResponse> {
     return this.healthService.getEnrichedHealth();
+  }
+
+  @Get('ready')
+  @Public()
+  @ApiOperation({
+    summary: 'Strict readiness check for orchestrators',
+    description:
+      'Retourne 200 uniquement si les dépendances critiques (database + redis) sont opérationnelles.',
+  })
+  @ApiResponse({ status: 200, description: 'Service ready' })
+  @ApiResponse({ status: 503, description: 'Service not ready' })
+  async getReadiness(): Promise<{
+    status: 'ready';
+    timestamp: string;
+    dependencies: { database: string; redis: string };
+  }> {
+    const health = await this.healthService.getEnrichedHealth();
+    const isDatabaseReady = health.dependencies.database.status === 'ok';
+    const isRedisReady = health.dependencies.redis.status === 'ok';
+
+    if (!isDatabaseReady || !isRedisReady) {
+      throw new ServiceUnavailableException({
+        status: 'not_ready',
+        timestamp: new Date().toISOString(),
+        dependencies: {
+          database: health.dependencies.database.status,
+          redis: health.dependencies.redis.status,
+        },
+      });
+    }
+
+    return {
+      status: 'ready',
+      timestamp: new Date().toISOString(),
+      dependencies: { database: 'ok', redis: 'ok' },
+    };
   }
 
   @Get('integrations')

@@ -24,9 +24,10 @@ Le chemin standard est le workflow manuel:
 ## 4) Vérifications post-deploy immédiates
 
 - [ ] Frontend: `https://luneo.app` répond `HTTP 200`
-- [ ] Backend: `https://api.luneo.app/health` retourne `status: ok`
+- [ ] Backend readiness: `https://api.luneo.app/health/ready` retourne `status: ready`
+- [ ] Backend health enrichi: `https://api.luneo.app/health` retourne `status: ok|degraded|unavailable` cohérent
 - [ ] Smoke `critical` passe
-- [ ] Smoke `post-login-tunnel` passe (ou skip explicitement documenté)
+- [ ] Smoke `post-login-tunnel` passe (obligatoire, non skippable en release)
 
 ## 5) Sanity métier (10-15 min)
 

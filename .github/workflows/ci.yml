@@ -37,6 +37,12 @@ jobs:
 
       - name: Run release quality gate
         run: pnpm run quality:release
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
 
       - name: Build release reliability KPI snapshot
         if: always()

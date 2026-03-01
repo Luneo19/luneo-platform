@@ -277,14 +277,25 @@ function LoginPageContent() {
         <TwoFactorForm
           tempToken={tempToken}
           email={formData.email}
-          onSuccess={() => {
+          onSuccess={async (userFrom2fa) => {
             setSuccess(t('auth.login.successRedirect'));
-            const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-            const user = userJson ? (JSON.parse(userJson) as { role?: string }) : undefined;
-            setTimeout(() => {
-              // Use window.location.href for full page reload so cookies are properly read server-side
-              window.location.href = resolvePostAuthTarget(user?.role, currentQueryRedirect());
-            }, 500);
+            try {
+              // Use authenticated session as source of truth after 2FA.
+              const verifyResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+              const meData = verifyResp.ok ? await verifyResp.json() : null;
+              const verifiedUser = meData?.data || meData;
+              const role = verifiedUser?.role || userFrom2fa?.role;
+
+              setTimeout(() => {
+                // Full reload to ensure server-side cookies/guards are applied consistently.
+                window.location.href = resolvePostAuthTarget(role, currentQueryRedirect());
+              }, 500);
+            } catch {
+              // Fallback to role from loginWith2FA response if /me check fails transiently.
+              setTimeout(() => {
+                window.location.href = resolvePostAuthTarget(userFrom2fa?.role, currentQueryRedirect());
+              }, 500);
+            }
           }}
           onError={(error) => setError(error)}
         />

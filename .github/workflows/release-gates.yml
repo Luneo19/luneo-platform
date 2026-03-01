@@ -36,8 +36,27 @@ jobs:
       - name: Generate Prisma client
         run: cd apps/backend && pnpm exec prisma generate
 
+      - name: Validate release gate secrets
+        run: |
+          if [ -z "${DATABASE_URL}" ] || [ -z "${SMOKE_ADMIN_EMAIL}" ] || [ -z "${SMOKE_ADMIN_PASSWORD}" ] || [ -z "${SMOKE_USER_EMAIL}" ] || [ -z "${SMOKE_USER_PASSWORD}" ]; then
+            echo "DATABASE_URL, SMOKE_ADMIN_EMAIL, SMOKE_ADMIN_PASSWORD, SMOKE_USER_EMAIL and SMOKE_USER_PASSWORD are required."
+            exit 1
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+
       - name: Run mandatory release gates
         run: pnpm run quality:release
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
 
       - name: Build release reliability KPI snapshot
         if: always()

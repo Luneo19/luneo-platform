@@ -32,6 +32,24 @@ function computeMttrMs(rollbackReport) {
   return numberOrNull(failed.durationMs);
 }
 
+function computeMttrRealMs(rollbackReport) {
+  if (!rollbackReport?.steps || !Array.isArray(rollbackReport.steps)) return null;
+  if (rollbackReport.dryRun) return null;
+
+  const recoveryStepNames = [
+    'rollback-action',
+    'post-rollback-critical-smoke',
+    'post-rollback-post-login-smoke',
+  ];
+  const recoverySteps = rollbackReport.steps.filter((step) =>
+    recoveryStepNames.includes(step.name)
+  );
+  if (recoverySteps.length === 0) return null;
+
+  const total = recoverySteps.reduce((sum, step) => sum + (numberOrNull(step.durationMs) ?? 0), 0);
+  return total > 0 ? total : null;
+}
+
 function toMarkdown(report) {
   const lines = [
     '# Release Reliability KPI',
@@ -39,7 +57,8 @@ function toMarkdown(report) {
     `- Generated at: ${report.generatedAt}`,
     `- Smoke pass-rate: ${report.smoke.passRate === null ? 'N/A' : `${report.smoke.passRate}%`}`,
     `- Rollback success-rate: ${report.rollback.successRate === null ? 'N/A' : `${report.rollback.successRate}%`}`,
-    `- MTTR (proxy): ${report.mttrMs === null ? 'N/A' : `${report.mttrMs}ms`}`,
+    `- MTTR real: ${report.mttr.realMs === null ? 'N/A' : `${report.mttr.realMs}ms`}`,
+    `- MTTR proxy: ${report.mttr.proxyMs === null ? 'N/A' : `${report.mttr.proxyMs}ms`}`,
     '',
     '## Sources',
     `- Critical smoke report: ${report.sources.criticalSmokeFound ? 'found' : 'missing'}`,
@@ -57,7 +76,8 @@ async function main() {
   const smokePassRate = numberOrNull(criticalSmoke?.passRate);
   const rollbackSuccessRate =
     rollbackReport && typeof rollbackReport.ok === 'boolean' ? (rollbackReport.ok ? 100 : 0) : null;
-  const mttrMs = computeMttrMs(rollbackReport);
+  const mttrProxyMs = computeMttrMs(rollbackReport);
+  const mttrRealMs = computeMttrRealMs(rollbackReport);
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -67,7 +87,10 @@ async function main() {
     rollback: {
       successRate: rollbackSuccessRate,
     },
-    mttrMs,
+    mttr: {
+      realMs: mttrRealMs,
+      proxyMs: mttrProxyMs,
+    },
     sources: {
       criticalSmokePath: CRITICAL_SMOKE_PATH,
       rollbackReportPath: ROLLBACK_DRILL_PATH,

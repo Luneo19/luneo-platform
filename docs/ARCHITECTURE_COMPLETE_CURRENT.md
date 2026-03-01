@@ -18,6 +18,7 @@ Le repository est un monorepo `pnpm` orchestre par `turborepo`.
 - Applications actives dans le workspace:
   - `apps/frontend` (Next.js 15, App Router)
   - `apps/backend` (NestJS)
+  - `apps/ai-engine` (Python service baseline)
 - Packages partages:
   - `packages/types`
   - `packages/ai-safety`
@@ -29,13 +30,14 @@ Le repository est un monorepo `pnpm` orchestre par `turborepo`.
   - Backend: Railway/Docker (`railway.json`, `Dockerfile`)
 
 Note importante:
-- `apps/ai-engine` n'est pas present dans ce repository a l'etat actuel.
+- `apps/ai-engine` est la surface IA canonique integree au workspace et aux gates qualite.
 
 ## 3. Structure physique (haut niveau)
 
 ```text
 luneo-platform/
 ├── apps/
+│   ├── ai-engine/
 │   ├── backend/
 │   └── frontend/
 ├── packages/

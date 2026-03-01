@@ -28,9 +28,10 @@ Le flux actif est centré sur un **quality gate unique** puis un **déploiement 
 - lint release
 - type-check release
 - tests release ciblés
-- build frontend + backend
-- smoke critique
-- smoke post-login (peut être skip sans credentials, selon script)
+- build frontend + backend + ai-engine
+- migration readiness backend (DB requise)
+- smoke critique (auth/admin obligatoire)
+- smoke post-login tunnel (credentials obligatoires)
 
 ## Workflow `deploy-production.yml`
 
@@ -49,7 +50,7 @@ Le flux actif est centré sur un **quality gate unique** puis un **déploiement 
 
 ### Post-deploy
 - smoke critique obligatoire
-- smoke post-login tunnel
+- smoke post-login tunnel obligatoire
 - upload des artefacts smoke
 
 ## Règles de release recommandées
@@ -68,8 +69,9 @@ Le flux actif est centré sur un **quality gate unique** puis un **déploiement 
 - `VERCEL_PROJECT_ID`
 - `SMOKE_ADMIN_EMAIL`
 - `SMOKE_ADMIN_PASSWORD`
-- `SMOKE_USER_EMAIL` (si smoke post-login complet)
-- `SMOKE_USER_PASSWORD` (si smoke post-login complet)
+- `SMOKE_USER_EMAIL`
+- `SMOKE_USER_PASSWORD`
+- `DATABASE_URL_TEST` (gates migration/readiness en CI)
 
 ## Notes importantes
 

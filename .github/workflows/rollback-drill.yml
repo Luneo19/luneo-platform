@@ -43,6 +43,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate rollback drill secrets
+        run: |
+          if [ -z "${SMOKE_USER_EMAIL}" ] || [ -z "${SMOKE_USER_PASSWORD}" ] || [ -z "${SMOKE_ADMIN_EMAIL}" ] || [ -z "${SMOKE_ADMIN_PASSWORD}" ]; then
+            echo "SMOKE_USER_EMAIL, SMOKE_USER_PASSWORD, SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are required."
+            exit 1
+          fi
+          if [ "${ROLLBACK_DRILL_DRY_RUN}" != "true" ] && [ -z "${ROLLBACK_DRILL_COMMAND}" ]; then
+            echo "ROLLBACK_DRILL_COMMAND is required when dry_run=false."
+            exit 1
+          fi
+        env:
+          ROLLBACK_DRILL_DRY_RUN: ${{ github.event_name == 'schedule' && 'true' || (inputs.dry_run == true && 'true' || 'false') }}
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+          ROLLBACK_DRILL_COMMAND: ${{ secrets.ROLLBACK_DRILL_COMMAND }}
+
       - name: Run rollback drill
         run: pnpm run rollback:drill
         env:

@@ -22,7 +22,8 @@ Rollback immédiat si un des cas suivants:
 
 3. **Rollback backend (Railway)**
    - redéployer la révision stable précédente du service `backend`
-   - vérifier `https://api.luneo.app/health`
+   - vérifier `https://api.luneo.app/health/ready` (readiness stricte)
+   - vérifier `https://api.luneo.app/health` (health enrichi)
 
 4. **Base de données (si migration fautive)**
    - appliquer le runbook DBA validé
@@ -31,7 +32,8 @@ Rollback immédiat si un des cas suivants:
 ## Vérifications post-rollback
 
 - [ ] frontend répond 200
-- [ ] backend health `status: ok`
+- [ ] backend readiness `status: ready`
+- [ ] backend health enrichi cohérent (pas de dépendance critique indisponible)
 - [ ] smoke critique passe
 - [ ] flux login + dashboard + endpoint API principal valides
 - [ ] erreurs 5xx redescendent à un niveau normal

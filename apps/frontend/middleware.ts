@@ -179,7 +179,7 @@ export async function middleware(request: NextRequest) {
 
   // 4. CSRF Protection for mutations
   if (shouldCheckCSRF(request, pathname)) {
-    const csrfResponse = handleCSRF(request);
+    const csrfResponse = handleCSRF(request, pathname);
     if (csrfResponse) return csrfResponse;
   }
 
@@ -497,10 +497,17 @@ function shouldCheckCSRF(request: NextRequest, pathname: string): boolean {
   return pathname.startsWith('/api/');
 }
 
-function handleCSRF(request: NextRequest): NextResponse | null {
+function handleCSRF(request: NextRequest, pathname: string): NextResponse | null {
   const csrfToken = request.headers.get('x-csrf-token');
   // SECURITY FIX: Match backend cookie name (csrf_token, not csrf-token)
   const csrfCookie = request.cookies.get('csrf_token')?.value;
+  const hasSessionCookie =
+    Boolean(request.cookies.get('accessToken')?.value) ||
+    Boolean(request.cookies.get('access_token')?.value) ||
+    Boolean(request.cookies.get('refreshToken')?.value) ||
+    Boolean(request.cookies.get('refresh_token')?.value);
+  const sensitivePrefixes = ['/api/v1/', '/api/admin/', '/api/billing/', '/api/security/'];
+  const isSensitiveMutationPath = sensitivePrefixes.some((prefix) => pathname.startsWith(prefix));
 
   // In development, skip CSRF (but log for awareness)
   if (process.env.NODE_ENV === 'development') {
@@ -512,8 +519,22 @@ function handleCSRF(request: NextRequest): NextResponse | null {
     }
   }
 
-  // Skip if no CSRF cookie is set (first request)
+  // Skip if no CSRF cookie is set and there is no authenticated session context.
   if (!csrfCookie) {
+    // Fail closed on authenticated sensitive mutations.
+    if (hasSessionCookie && isSensitiveMutationPath) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Forbidden',
+          message: 'Missing CSRF cookie for authenticated mutation',
+          code: 'CSRF_COOKIE_MISSING',
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
     return null;
   }
 

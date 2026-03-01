@@ -174,3 +174,11 @@ scripts/smoke/*
 !scripts/release/
 scripts/release/*
 !scripts/release/build-release-reliability-kpi.mjs
+
+# Runtime artifacts and operational outputs
+artifacts/
+reports/
+
+# Database backups / dumps (never commit)
+apps/backend/backups/
+*.sql
