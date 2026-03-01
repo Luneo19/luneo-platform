@@ -143,11 +143,15 @@ test.describe('Flow 4: Admin Brand Management', () => {
   test('should protect admin routes from unauthenticated users', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForURL(/\/(admin|login|dashboard)/, { timeout: 10000 });
+    // Un utilisateur non authentifié ne doit jamais rester sur la racine admin.
+    expect(page.url()).not.toMatch(/\/admin\/?$/);
   });
 
   test('should protect admin brands page', async ({ page }) => {
     await page.goto('/admin/brands');
     await page.waitForURL(/\/(admin\/brands|login|dashboard)/, { timeout: 10000 });
+    // Même contrainte de protection sur une page admin sensible.
+    expect(page.url()).not.toContain('/admin/brands');
   });
 });
 

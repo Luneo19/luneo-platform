@@ -1,212 +1,71 @@
-# 🔄 Guide de Rollback - Luneo Platform
+# Guide de Rollback Production
 
-**Date:** Décembre 2024  
-**Status:** Guide complet de rollback
+Dernière mise à jour: 2026-03-01
 
----
+## Déclencheurs rollback
 
-## 🎯 Vue d'Ensemble
+Rollback immédiat si un des cas suivants:
+- indisponibilité frontend ou backend
+- régression auth/paiement critique
+- taux 5xx anormal soutenu
+- incident sécurité confirmé
 
-Ce guide détaille le processus de rollback (retour en arrière) en cas de problème après un déploiement.
+## Ordre d’action recommandé
 
----
+1. **Stabiliser le trafic**
+   - geler tout nouveau déploiement
+   - notifier équipe incident
 
-## ⚠️ Quand Faire un Rollback
+2. **Rollback frontend (Vercel)**
+   - promouvoir le dernier déploiement stable depuis Vercel
+   - vérifier `https://luneo.app` (HTTP + login)
 
-### Critères de Rollback
+3. **Rollback backend (Railway)**
+   - redéployer la révision stable précédente du service `backend`
+   - vérifier `https://api.luneo.app/health`
 
-#### Erreurs Critiques
-- Application inaccessible
-- Erreurs 500 généralisées
-- Base de données corrompue
-- Sécurité compromise
+4. **Base de données (si migration fautive)**
+   - appliquer le runbook DBA validé
+   - ne jamais improviser un rollback SQL sans validation
 
-#### Performance
-- Performance dégradée > 50%
-- Temps de réponse > 10s
-- Core Web Vitals dégradés
+## Vérifications post-rollback
 
-#### Fonctionnalités
-- Fonctionnalités critiques cassées
-- Paiements non fonctionnels
-- Authentification cassée
+- [ ] frontend répond 200
+- [ ] backend health `status: ok`
+- [ ] smoke critique passe
+- [ ] flux login + dashboard + endpoint API principal valides
+- [ ] erreurs 5xx redescendent à un niveau normal
 
----
+## Commandes utiles (CLI)
 
-## 🔄 Processus de Rollback
-
-### Option 1: Via Vercel Dashboard (Recommandé)
-
-#### Étapes
-1. Aller sur [vercel.com](https://vercel.com)
-2. Sélectionner le projet
-3. Aller dans "Deployments"
-4. Identifier la version précédente stable
-5. Cliquer sur "..." (menu)
-6. Sélectionner "Promote to Production"
-7. Confirmer
-
-#### Avantages
-- Interface graphique
-- Rapide
-- Pas de commandes
-
-### Option 2: Via Vercel CLI
-
-#### Installation
+### Vercel
 ```bash
-npm i -g vercel
+vercel ls
+vercel inspect <deployment-url>
 ```
 
-#### Login
+### Railway
 ```bash
-vercel login
+railway status
+railway logs --service backend --environment production
 ```
 
-#### Rollback
-```bash
-cd apps/frontend
-vercel rollback
-```
+## Documentation incident obligatoire
 
-#### Rollback Vers Version Spécifique
-```bash
-vercel rollback <deployment-url>
-```
+Après rollback, créer un rapport court:
+- SHA déployé fautif
+- SHA/version rollback
+- impact utilisateur
+- timeline
+- cause racine (si connue)
+- actions préventives
 
----
+## Exigence de clôture
 
-## 📊 Vérifications Après Rollback
-
-### Immédiat (0-5 min)
-- [ ] Application accessible
-- [ ] Health check OK
-- [ ] Aucune erreur console
-
-### Court Terme (5-15 min)
-- [ ] Fonctionnalités critiques OK
-- [ ] Performance acceptable
-- [ ] Monitoring vérifié
-
-### Moyen Terme (15-30 min)
-- [ ] Sentry vérifié (pas d'erreurs)
-- [ ] Vercel Analytics vérifié
-- [ ] Logs vérifiés
-
----
-
-## 🗄️ Database Rollback (Si Nécessaire)
-
-### Migrations Prisma
-
-#### Vérifier Migrations
-```bash
-cd apps/frontend
-npx prisma migrate status
-```
-
-#### Rollback Migration
-```bash
-# Si migration problématique
-npx prisma migrate resolve --rolled-back <migration_name>
-```
-
-#### Restaurer Backup
-```bash
-# Si base de données corrompue
-# Restaurer depuis backup Supabase
-```
-
----
-
-## 📝 Documentation
-
-### Après Rollback
-- [ ] Documenter raison du rollback
-- [ ] Documenter version rollback
-- [ ] Documenter problèmes rencontrés
-- [ ] Créer issue pour corriger problème
-
-### Exemple
-```markdown
-## Rollback - [Date]
-
-**Version rollback:** [deployment-url]
-**Raison:** [description]
-**Problèmes:** [liste]
-**Actions:** [corrections prévues]
-```
-
----
-
-## 🚨 Scénarios d'Urgence
-
-### Application Complètement Inaccessible
-
-#### Actions Immédiates
-1. Rollback via Vercel Dashboard
-2. Vérifier health check
-3. Vérifier logs
-4. Notifier équipe
-
-### Base de Données Corrompue
-
-#### Actions Immédiates
-1. Rollback application
-2. Restaurer backup base de données
-3. Vérifier intégrité données
-4. Notifier équipe
-
-### Sécurité Compromise
-
-#### Actions Immédiates
-1. Rollback application
-2. Révoquer secrets compromis
-3. Générer nouveaux secrets
-4. Notifier équipe et utilisateurs
-
----
-
-## 📋 Checklist Rollback
-
-### Avant Rollback
-- [ ] Identifier version stable précédente
-- [ ] Vérifier que version est fonctionnelle
-- [ ] Notifier équipe
-
-### Pendant Rollback
-- [ ] Exécuter rollback
-- [ ] Attendre déploiement
-- [ ] Vérifier health check
-
-### Après Rollback
-- [ ] Application accessible
-- [ ] Fonctionnalités critiques OK
-- [ ] Monitoring vérifié
-- [ ] Documenter rollback
-
----
-
-## 🎯 Best Practices
-
-### 1. Prévention
-- Toujours tester staging avant production
-- Vérifier health checks après déploiement
-- Monitorer activement après déploiement
-
-### 2. Préparation
-- Identifier versions stables
-- Documenter processus
-- Tester processus de rollback
-
-### 3. Communication
-- Notifier équipe avant rollback
-- Documenter raison
-- Communiquer après rollback
-
----
-
-**Dernière mise à jour:** Décembre 2024
+Un rollback n’est clôturé que si:
+- monitoring stable pendant 30 min minimum
+- incident communiqué
+- ticket(s) correctif(s) créés et priorisés
 
 
 
