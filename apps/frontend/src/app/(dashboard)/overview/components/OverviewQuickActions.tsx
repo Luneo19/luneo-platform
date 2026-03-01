@@ -25,7 +25,7 @@ export function OverviewQuickActions({ actions }: { actions: QuickActionItem[] }
           Actions Rapides
         </h2>
         <Link href="/dashboard/settings">
-          <Button variant="ghost" size="sm" className="text-white/40 hover:text-white hover:bg-white/[0.04]">
+          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/[0.04]">
             <Settings className="w-4 h-4" />
           </Button>
         </Link>

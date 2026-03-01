@@ -20,6 +20,10 @@ type EscalationJobType =
   (typeof JOB_TYPES.ESCALATION)[keyof typeof JOB_TYPES.ESCALATION];
 type AnalyticsAggregationJobType =
   (typeof JOB_TYPES.ANALYTICS_AGGREGATION)[keyof typeof JOB_TYPES.ANALYTICS_AGGREGATION];
+type LearningJobType =
+  (typeof JOB_TYPES.LEARNING)[keyof typeof JOB_TYPES.LEARNING];
+type SummarizationJobType =
+  (typeof JOB_TYPES.SUMMARIZATION)[keyof typeof JOB_TYPES.SUMMARIZATION];
 type DLQJobType = (typeof JOB_TYPES.DLQ)[keyof typeof JOB_TYPES.DLQ];
 
 @Injectable()
@@ -40,6 +44,10 @@ export class QueuesService implements OnModuleInit {
     private readonly escalationQueue: Queue,
     @InjectQueue(QUEUE_NAMES.ANALYTICS_AGGREGATION)
     private readonly analyticsAggregationQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.LEARNING)
+    private readonly learningQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.SUMMARIZATION)
+    private readonly summarizationQueue: Queue,
     @InjectQueue(QUEUE_NAMES.DLQ)
     private readonly dlqQueue: Queue,
   ) {
@@ -50,6 +58,8 @@ export class QueuesService implements OnModuleInit {
       [QUEUE_NAMES.EMAIL_INBOUND, this.emailInboundQueue],
       [QUEUE_NAMES.ESCALATION, this.escalationQueue],
       [QUEUE_NAMES.ANALYTICS_AGGREGATION, this.analyticsAggregationQueue],
+      [QUEUE_NAMES.LEARNING, this.learningQueue],
+      [QUEUE_NAMES.SUMMARIZATION, this.summarizationQueue],
       [QUEUE_NAMES.DLQ, this.dlqQueue],
     ]);
   }
@@ -126,6 +136,26 @@ export class QueuesService implements OnModuleInit {
     opts?: JobsOptions,
   ) {
     return this.addJob(QUEUE_NAMES.ANALYTICS_AGGREGATION, jobType, data, opts);
+  }
+
+  // ── Learning ────────────────────────────────────────────────────
+
+  async addLearningJob<T extends Record<string, unknown>>(
+    jobType: LearningJobType,
+    data: T,
+    opts?: JobsOptions,
+  ) {
+    return this.addJob(QUEUE_NAMES.LEARNING, jobType, data, opts);
+  }
+
+  // ── Summarization ───────────────────────────────────────────────
+
+  async addSummarizationJob<T extends Record<string, unknown>>(
+    jobType: SummarizationJobType,
+    data: T,
+    opts?: JobsOptions,
+  ) {
+    return this.addJob(QUEUE_NAMES.SUMMARIZATION, jobType, data, opts);
   }
 
   // ── Dead Letter Queue ─────────────────────────────────────────

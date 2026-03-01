@@ -61,8 +61,9 @@ export class WidgetApiController {
   async sendMessage(
     @Param('id') conversationId: string,
     @Body() dto: SendMessageDto,
+    @Headers('x-conversation-token') conversationToken?: string,
   ) {
-    return this.widgetApiService.sendMessage(conversationId, dto);
+    return this.widgetApiService.sendMessage(conversationId, dto, conversationToken);
   }
 
   @Get('conversations/:id/messages')
@@ -73,15 +74,21 @@ export class WidgetApiController {
   async getMessages(
     @Param('id') conversationId: string,
     @Query('after') after?: string,
+    @Query('token') token?: string,
+    @Headers('x-conversation-token') conversationToken?: string,
   ) {
-    return this.widgetApiService.getMessages(conversationId, after);
+    return this.widgetApiService.getMessages(conversationId, after, token || conversationToken);
   }
 
   @Sse('conversations/:id/stream')
   @ApiOperation({ summary: 'SSE stream for real-time message updates' })
   @ApiResponse({ status: 200, description: 'Server-Sent Events stream' })
-  streamMessages(@Param('id') conversationId: string): Observable<MessageEvent> {
+  streamMessages(
+    @Param('id') conversationId: string,
+    @Query('token') token?: string,
+    @Headers('x-conversation-token') conversationToken?: string,
+  ): Observable<MessageEvent> {
     this.logger.log(`SSE stream ouvert pour conversation ${conversationId}`);
-    return this.widgetApiService.getStream(conversationId);
+    return this.widgetApiService.getStream(conversationId, token || conversationToken);
   }
 }

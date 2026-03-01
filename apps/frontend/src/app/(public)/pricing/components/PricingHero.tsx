@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n/useI18n';
-import { CreditCard, Zap, Shield, Star, Crown, Gem } from 'lucide-react';
+import { CreditCard, Shield, Crown, Gem } from 'lucide-react';
 import { OrbitingCircles, OrbitIcon } from '@/components/ui/premium';
 
 export function PricingHero({
@@ -56,7 +56,7 @@ export function PricingHero({
               {t('pricing.hero.titleHighlight')}
             </span>
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-white/50 leading-relaxed">
+          <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-white/90 leading-relaxed">
             {t('pricing.hero.subtitle')}
           </p>
           <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-4 py-2">
@@ -75,7 +75,7 @@ export function PricingHero({
               className={`rounded-lg px-4 sm:px-5 py-2 sm:py-2.5 text-sm font-medium transition-all duration-200 ${
                 !isYearly
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-white/40 hover:text-white/70'
+                  : 'text-white/90 hover:text-white'
               }`}
             >
               {t('pricing.hero.monthly')}
@@ -85,7 +85,7 @@ export function PricingHero({
               className={`rounded-lg px-4 sm:px-5 py-2 sm:py-2.5 text-sm font-medium transition-all duration-200 flex items-center ${
                 isYearly
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-white/40 hover:text-white/70'
+                  : 'text-white/90 hover:text-white'
               }`}
             >
               {t('pricing.hero.yearly')}

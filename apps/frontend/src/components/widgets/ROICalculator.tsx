@@ -23,9 +23,9 @@ function ROICalculator() {
     // Avec Luneo
     const newConversionRate = 1.4; // +40%
     const newOrdersPerMonth = Math.round(ordersPerMonth * newConversionRate);
-    const newReturnRate = returnRate * 0.35; // -65% retours
+    const _newReturnRate = returnRate * 0.35; // -65% retours
     const newRevenue = newOrdersPerMonth * avgOrderValue;
-    const newReturns = (newRevenue * newReturnRate) / 100;
+    const newReturns = (newRevenue * _newReturnRate) / 100;
     const newDesignCost = newOrdersPerMonth * 0.05 * 25; // 5% du temps original
     const newTotalCost = newReturns + newDesignCost;
 
@@ -41,7 +41,6 @@ function ROICalculator() {
       currentDesignCost,
       currentTotalCost,
       newOrdersPerMonth,
-      newReturnRate,
       newRevenue,
       newReturns,
       newDesignCost,
@@ -60,7 +59,6 @@ function ROICalculator() {
     currentDesignCost,
     currentTotalCost,
     newOrdersPerMonth,
-    newReturnRate,
     newRevenue,
     newReturns,
     newDesignCost,

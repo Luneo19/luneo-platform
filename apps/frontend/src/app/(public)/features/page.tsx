@@ -3,21 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  MessageSquareDot,
-  BookOpen,
-  BarChart3,
   Globe,
   BrainCircuit,
-  ShieldCheck,
   ArrowRight,
   Check,
   Zap,
-  Clock,
-  Users,
   Sparkles,
   Bot,
   Database,
-  Layers,
   LineChart,
   Plug,
   Lock,

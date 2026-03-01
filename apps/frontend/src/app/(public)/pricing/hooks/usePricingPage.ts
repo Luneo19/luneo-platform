@@ -4,11 +4,24 @@ import { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePricingPlans } from '@/lib/hooks/useMarketingData';
 import { api, endpoints } from '@/lib/api/client';
+import { appRoutes } from '@/lib/routes';
 import { useI18n } from '@/i18n/useI18n';
 import { getTranslatedPlans, getTranslatedFeatures, getTranslatedFaqs } from '../data';
 import type { Plan, Feature } from '../data';
 
-type CheckoutResponse = { success?: boolean; url?: string; sessionId?: string; error?: string; message?: string };
+type CheckoutResponse = {
+  success?: boolean;
+  url?: string;
+  sessionId?: string;
+  error?: string;
+  message?: string;
+  data?: {
+    url?: string;
+    sessionId?: string;
+    error?: string;
+    message?: string;
+  };
+};
 
 export function usePricingPage() {
   const [isYearly, setIsYearly] = useState(true);
@@ -24,6 +37,21 @@ export function usePricingPage() {
   // Translated features and FAQs
   const translatedFeatures: Feature[] = useMemo(() => getTranslatedFeatures(t), [t]);
   const translatedFaqs = useMemo(() => getTranslatedFaqs(t), [t]);
+
+  const resolveCurrentUser = useCallback(async () => {
+    if (user) return user;
+    try {
+      const me = await endpoints.auth.me();
+      if (me?.email) {
+        return {
+          email: me.email,
+        };
+      }
+    } catch {
+      // Anonymous user; pricing will redirect to register.
+    }
+    return null;
+  }, [user]);
 
   const mergedPlans: Plan[] = useMemo(() => {
     const basePlans = translatedPlans;
@@ -50,8 +78,10 @@ export function usePricingPage() {
     async (planId: string) => {
       const billingInterval = isYearly ? 'yearly' : 'monthly';
 
+      const resolvedUser = await resolveCurrentUser();
+
       // Not logged in: redirect to register with plan pre-selected
-      if (!user) {
+      if (!resolvedUser) {
         const params = new URLSearchParams({ plan: planId, interval: billingInterval });
         window.location.href = `/register?${params.toString()}`;
         return;
@@ -66,7 +96,7 @@ export function usePricingPage() {
         const plan = sub?.plan;
         const status = sub?.status;
         if (plan && status === 'active' && plan !== 'free') {
-          window.location.href = '/dashboard/billing';
+          window.location.href = appRoutes.billing;
           return;
         }
       } catch {
@@ -77,14 +107,15 @@ export function usePricingPage() {
       try {
         const result = await api.post<CheckoutResponse>('/api/v1/billing/create-checkout-session', {
           planId,
-          email: user.email,
+          email: resolvedUser.email,
           billingInterval,
         });
-        if (!result?.url) {
-          const msg = result?.error || result?.message || t('pricing.card.invalidResponse');
+        const checkoutUrl = result?.url ?? result?.data?.url;
+        if (!checkoutUrl) {
+          const msg = result?.error || result?.message || result?.data?.error || result?.data?.message || t('pricing.card.invalidResponse');
           throw new Error(typeof msg === 'string' ? msg : t('pricing.card.invalidResponse'));
         }
-        window.location.href = result.url;
+        window.location.href = checkoutUrl;
       } catch (err: unknown) {
         const axiosData = (err as { response?: { data?: { message?: string } } })?.response?.data;
         const backendMessage = axiosData?.message;
@@ -104,7 +135,7 @@ export function usePricingPage() {
         throw new Error(message || t('errors.generic'));
       }
     },
-    [user, isYearly, t]
+    [resolveCurrentUser, isYearly, t]
   );
 
   return {

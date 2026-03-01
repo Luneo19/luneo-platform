@@ -20,7 +20,7 @@ interface AllProvidersProps {
 /**
  * Wrapper avec tous les providers nécessaires pour les tests
  */
-function AllProviders({ children }: AllProvidersProps) {
+export function AllProviders({ children }: AllProvidersProps) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {

@@ -1,4 +1,5 @@
 import { toast as sonnerToast } from 'sonner';
+import { appRoutes } from '@/lib/routes';
 
 export const toast = {
   success(message: string) {
@@ -32,7 +33,7 @@ export const toast = {
       action: {
         label: 'Voir',
         onClick: () => {
-          window.location.href = '/dashboard/agents';
+          window.location.href = appRoutes.agents;
         },
       },
     });

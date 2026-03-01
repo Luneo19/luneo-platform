@@ -6,21 +6,18 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Search,
-  Filter,
   Grid3x3,
   List,
   Eye,
-  Download,
   Star,
   Tag,
   Layers,
   TrendingUp,
-  Clock,
   Sparkles,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -28,12 +25,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface Template {
   id: string;
@@ -58,6 +55,7 @@ interface TemplateGalleryProps {
 }
 
 function TemplateGallery({ className, onTemplateSelect, showCreateButton = true }: TemplateGalleryProps) {
+  const templatesModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_TEMPLATES_MODULE === 'true';
   const { t } = useI18n();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -71,9 +69,14 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
   const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
+    if (!templatesModuleEnabled) {
+      setTemplates([]);
+      setIsLoading(false);
+      return;
+    }
     loadTemplates();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, sortBy, selectedCategory]);
+  }, [page, sortBy, selectedCategory, templatesModuleEnabled]);
 
   // Optimisé: useMemo pour filtrage au lieu de useEffect
   const filteredTemplates = useMemo(() => {
@@ -99,6 +102,13 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
   }, [searchQuery, templates, selectedCategory]);
 
   const loadTemplates = useCallback(async () => {
+    if (!templatesModuleEnabled) {
+      setTemplates([]);
+      setTotalPages(1);
+      setCategories([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const params: Record<string, string | number> = {
@@ -114,10 +124,11 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
         '/api/v1/templates',
         { params }
       );
-      setTemplates(data?.templates || []);
+      const normalizedTemplates = normalizeListResponse<Template>((data as Record<string, unknown> | undefined)?.templates);
+      setTemplates(normalizedTemplates);
       setTotalPages(data?.pagination?.totalPages || 1);
       const uniqueCategories = Array.from(
-        new Set((data?.templates || []).map((t: Template) => t.category).filter(Boolean))
+        new Set(normalizedTemplates.map((t: Template) => t.category).filter(Boolean))
       ) as string[];
       setCategories(uniqueCategories);
     } catch (error) {
@@ -131,7 +142,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, sortBy, selectedCategory, toast]);
+  }, [page, sortBy, selectedCategory, toast, templatesModuleEnabled]);
 
   const handleUseTemplate = (template: Template) => {
     onTemplateSelect?.(template);
@@ -243,7 +254,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence>
                 {filteredTemplates.map((template, i) => (
-                  <motion
+                  <Motion
                     key={template.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -328,7 +339,7 @@ function TemplateGallery({ className, onTemplateSelect, showCreateButton = true 
                         </div>
                       </div>
                     </Card>
-                  </motion>
+                  </Motion>
                 ))}
               </AnimatePresence>
             </div>

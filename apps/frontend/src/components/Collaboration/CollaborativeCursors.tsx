@@ -6,7 +6,7 @@
  */
 
 import { memo } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface Cursor {
@@ -49,7 +49,7 @@ const Cursor = memo(function Cursor({
   color: string;
 }) {
   return (
-    <motion
+    <Motion
       className="pointer-events-none absolute top-0 left-0"
       initial={{ scale: 0, opacity: 0 }}
       animate={{
@@ -73,7 +73,7 @@ const Cursor = memo(function Cursor({
       >
         {name}
       </div>
-    </motion>
+    </Motion>
   );
 });
 

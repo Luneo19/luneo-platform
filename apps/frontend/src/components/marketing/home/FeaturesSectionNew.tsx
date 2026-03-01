@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Brain, BookOpen, BarChart3, Plug, Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 interface Feature {
   icon: LucideIcon;
@@ -13,61 +14,6 @@ interface Feature {
   glowColor: string;
   bullets: string[];
 }
-
-const FEATURES: Feature[] = [
-  {
-    icon: Brain,
-    title: 'Agents Intelligents',
-    description:
-      'Agents conversationnels alimentés par RAG et multi-modèles (GPT-4, Claude, Mistral). Réponses précises basées sur vos données.',
-    gradient: 'from-indigo-500 to-cyan-500',
-    glowColor: 'group-hover:shadow-indigo-500/10',
-    bullets: [
-      'Multi-modèles IA',
-      'Retrieval Augmented Generation',
-      'Personnalisation du ton et du style',
-    ],
-  },
-  {
-    icon: BookOpen,
-    title: 'Base de Connaissances',
-    description:
-      'Importez vos documents, sites web et APIs. Indexation vectorielle automatique pour des réponses toujours à jour.',
-    gradient: 'from-cyan-500 to-emerald-500',
-    glowColor: 'group-hover:shadow-cyan-500/10',
-    bullets: [
-      'Import PDF, DOCX, HTML, CSV',
-      'Crawling de sites web',
-      'Synchronisation automatique',
-    ],
-  },
-  {
-    icon: BarChart3,
-    title: 'Analytics Temps Réel',
-    description:
-      'Tableau de bord complet avec métriques de performance, satisfaction client et insights actionables.',
-    gradient: 'from-emerald-500 to-indigo-500',
-    glowColor: 'group-hover:shadow-emerald-500/10',
-    bullets: [
-      'Taux de résolution automatique',
-      'Score de satisfaction client',
-      'Analyse des sujets trending',
-    ],
-  },
-  {
-    icon: Plug,
-    title: 'Intégrations Natives',
-    description:
-      'Connectez vos outils existants en quelques clics. Shopify, Slack, Zendesk, HubSpot et 30+ intégrations.',
-    gradient: 'from-indigo-500 to-emerald-500',
-    glowColor: 'group-hover:shadow-indigo-500/10',
-    bullets: [
-      'E-commerce (Shopify, WooCommerce)',
-      'Communication (Slack, Teams)',
-      'CRM (HubSpot, Salesforce)',
-    ],
-  },
-];
 
 function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -114,6 +60,85 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
 }
 
 export function FeaturesSectionNew() {
+  const { locale } = useI18n();
+  const isEn = locale === 'en';
+  const features: Feature[] = isEn
+    ? [
+        {
+          icon: Brain,
+          title: 'Intelligent Agents',
+          description:
+            'RAG-powered conversational agents across multiple LLMs (GPT-4, Claude, Mistral) with answers grounded in your data.',
+          gradient: 'from-indigo-500 to-cyan-500',
+          glowColor: 'group-hover:shadow-indigo-500/10',
+          bullets: ['Multi-model orchestration', 'Retrieval Augmented Generation', 'Tone and policy control'],
+        },
+        {
+          icon: BookOpen,
+          title: 'Knowledge Base',
+          description:
+            'Import documents, websites and APIs. Automatic indexing keeps answers fresh and relevant.',
+          gradient: 'from-cyan-500 to-emerald-500',
+          glowColor: 'group-hover:shadow-cyan-500/10',
+          bullets: ['PDF, DOCX, HTML, CSV import', 'Website crawling', 'Automatic sync'],
+        },
+        {
+          icon: BarChart3,
+          title: 'Real-time Analytics',
+          description:
+            'Track performance, customer satisfaction and operational impact from one dashboard.',
+          gradient: 'from-emerald-500 to-indigo-500',
+          glowColor: 'group-hover:shadow-emerald-500/10',
+          bullets: ['Auto-resolution rate', 'CSAT score', 'Trending topics analysis'],
+        },
+        {
+          icon: Plug,
+          title: 'Native Integrations',
+          description:
+            'Connect your stack in minutes: Shopify, Slack, Zendesk, HubSpot and 30+ integrations.',
+          gradient: 'from-indigo-500 to-emerald-500',
+          glowColor: 'group-hover:shadow-indigo-500/10',
+          bullets: ['E-commerce (Shopify, WooCommerce)', 'Communication (Slack, Teams)', 'CRM (HubSpot, Salesforce)'],
+        },
+      ]
+    : [
+        {
+          icon: Brain,
+          title: 'Agents Intelligents',
+          description:
+            'Agents conversationnels alimentés par RAG et multi-modèles (GPT-4, Claude, Mistral). Réponses précises basées sur vos données.',
+          gradient: 'from-indigo-500 to-cyan-500',
+          glowColor: 'group-hover:shadow-indigo-500/10',
+          bullets: ['Multi-modèles IA', 'Retrieval Augmented Generation', 'Personnalisation du ton et du style'],
+        },
+        {
+          icon: BookOpen,
+          title: 'Base de Connaissances',
+          description:
+            'Importez vos documents, sites web et APIs. Indexation vectorielle automatique pour des réponses toujours à jour.',
+          gradient: 'from-cyan-500 to-emerald-500',
+          glowColor: 'group-hover:shadow-cyan-500/10',
+          bullets: ['Import PDF, DOCX, HTML, CSV', 'Crawling de sites web', 'Synchronisation automatique'],
+        },
+        {
+          icon: BarChart3,
+          title: 'Analytics Temps Réel',
+          description:
+            'Tableau de bord complet avec métriques de performance, satisfaction client et insights actionables.',
+          gradient: 'from-emerald-500 to-indigo-500',
+          glowColor: 'group-hover:shadow-emerald-500/10',
+          bullets: ['Taux de résolution automatique', 'Score de satisfaction client', 'Analyse des sujets trending'],
+        },
+        {
+          icon: Plug,
+          title: 'Intégrations Natives',
+          description:
+            'Connectez vos outils existants en quelques clics. Shopify, Slack, Zendesk, HubSpot et 30+ intégrations.',
+          gradient: 'from-indigo-500 to-emerald-500',
+          glowColor: 'group-hover:shadow-indigo-500/10',
+          bullets: ['E-commerce (Shopify, WooCommerce)', 'Communication (Slack, Teams)', 'CRM (HubSpot, Salesforce)'],
+        },
+      ];
   const headerRef = useRef<HTMLDivElement>(null);
   const headerInView = useInView(headerRef, { once: true, margin: '-60px' });
 
@@ -128,22 +153,23 @@ export function FeaturesSectionNew() {
           className="text-center mb-20"
         >
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium tracking-wide uppercase mb-6">
-            Fonctionnalités
+            {isEn ? 'Features' : 'Fonctionnalités'}
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mt-4 mb-6">
-            Tout ce dont vous avez besoin pour{' '}
+            {isEn ? 'Everything you need for ' : 'Tout ce dont vous avez besoin pour '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400">
-              vos agents IA
+              {isEn ? 'your AI agents' : 'vos agents IA'}
             </span>
           </h2>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Une plateforme complète pour créer, entraîner et déployer des agents
-            conversationnels intelligents.
+            {isEn
+              ? 'A complete platform to build, train and deploy production-grade conversational agents.'
+              : 'Une plateforme complète pour créer, entraîner et déployer des agents conversationnels intelligents.'}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          {FEATURES.map((feature, i) => (
+          {features.map((feature, i) => (
             <FeatureCard key={i} feature={feature} index={i} />
           ))}
         </div>

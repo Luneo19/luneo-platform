@@ -18,18 +18,24 @@ export async function POST(request: NextRequest) {
     if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
+    if (user.role !== 'ADMIN') {
+      throw { status: 403, message: 'Accès refusé', code: 'FORBIDDEN' };
+    }
 
     const { orderId } = validatedData;
 
-    // Forward to backend
-    const backendResponse = await fetch(`${API_URL}/api/v1/emails/send-order-confirmation`, {
+    // Forward to backend unified email endpoint
+    const backendResponse = await fetch(`${API_URL}/api/v1/email/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Cookie: request.headers.get('cookie') || '',
       },
       body: JSON.stringify({
-        orderId,
+        to: user.email,
+        subject: `Confirmation de commande ${orderId}`,
+        html: `<p>Votre commande <strong>${orderId}</strong> a bien été enregistrée.</p>`,
+        text: `Votre commande ${orderId} a bien été enregistrée.`,
       }),
     });
 
@@ -47,7 +53,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const result = await backendResponse.json();
+    await backendResponse.json();
     serverLogger.info('Order confirmation email sent', {
       userId: user.id,
       orderId,

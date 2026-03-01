@@ -11,57 +11,39 @@ test.describe('OAuth Flow', () => {
   });
 
   test('should initiate Google OAuth login', async ({ page }) => {
-    // Click Google OAuth button
     const googleButton = page.locator('button:has-text("Google")');
-    
-    if (await googleButton.count() > 0) {
-      // Mock OAuth callback
-      await page.route('**/auth/google/callback**', (route) => {
-        route.fulfill({
-          status: 302,
-          headers: {
-            Location: '/dashboard?oauth=google',
-          },
-        });
+    await expect(googleButton).toHaveCount(1);
+
+    await page.route('**/auth/google/callback**', (route) => {
+      route.fulfill({
+        status: 302,
+        headers: {
+          Location: '/dashboard?oauth=google',
+        },
       });
-      
-      await googleButton.click();
-      
-      // Should redirect to OAuth provider or callback
-      await page.waitForTimeout(2000);
-      
-      // In real scenario, would complete OAuth flow
-      // For test, we verify button exists and is clickable
-      expect(await googleButton.isVisible()).toBeTruthy();
-    } else {
-      test.skip();
-    }
+    });
+
+    await googleButton.click();
+    await page.waitForTimeout(2000);
+    await expect(googleButton).toBeVisible();
   });
 
   test('should initiate GitHub OAuth login', async ({ page }) => {
-    // Click GitHub OAuth button
     const githubButton = page.locator('button:has-text("GitHub")');
-    
-    if (await githubButton.count() > 0) {
-      // Mock OAuth callback
-      await page.route('**/auth/github/callback**', (route) => {
-        route.fulfill({
-          status: 302,
-          headers: {
-            Location: '/dashboard?oauth=github',
-          },
-        });
+    await expect(githubButton).toHaveCount(1);
+
+    await page.route('**/auth/github/callback**', (route) => {
+      route.fulfill({
+        status: 302,
+        headers: {
+          Location: '/dashboard?oauth=github',
+        },
       });
-      
-      await githubButton.click();
-      
-      // Should redirect to OAuth provider
-      await page.waitForTimeout(2000);
-      
-      expect(await githubButton.isVisible()).toBeTruthy();
-    } else {
-      test.skip();
-    }
+    });
+
+    await githubButton.click();
+    await page.waitForTimeout(2000);
+    await expect(githubButton).toBeVisible();
   });
 
   test('should handle OAuth callback errors', async ({ page }) => {

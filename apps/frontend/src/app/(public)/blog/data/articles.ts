@@ -23,7 +23,7 @@ export const articles: BlogArticle[] = [
     category: 'Agents IA',
     tags: ['agents IA', 'service client', 'automatisation', 'satisfaction'],
     readTime: '5 min',
-    imageUrl: '/blog/article-1.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>Les <strong>agents IA conversationnels</strong> sont devenus un pilier du service client moderne. Les entreprises qui les déploient constatent en moyenne une <strong>réduction de 80 % du temps de première réponse</strong> et une hausse significative de la satisfaction client.</p>
 
@@ -47,7 +47,7 @@ export const articles: BlogArticle[] = [
     category: 'Knowledge',
     tags: ['base de connaissances', 'RAG', 'agents IA', 'qualité'],
     readTime: '4 min',
-    imageUrl: '/blog/article-2.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>La qualité d'un <strong>agent IA</strong> dépend directement de la qualité de ses sources. Une base de connaissances bien structurée permet à l'agent de fournir des réponses précises, sourcées et à jour.</p>
 
@@ -71,7 +71,7 @@ export const articles: BlogArticle[] = [
     category: 'Multicanal',
     tags: ['multicanal', 'widget', 'WhatsApp', 'email', 'agents IA'],
     readTime: '5 min',
-    imageUrl: '/blog/article-3.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>Un <strong>agent IA multicanal</strong> répond à vos clients là où ils sont : sur votre site via un widget, sur WhatsApp, par email ou via API. L'expérience est cohérente quel que soit le point de contact.</p>
 
@@ -95,7 +95,7 @@ export const articles: BlogArticle[] = [
     category: 'Tutorial',
     tags: ['Shopify', 'WooCommerce', 'intégration', 'agents IA', 'e-commerce'],
     readTime: '6 min',
-    imageUrl: '/blog/article-4.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>Intégrer un <strong>agent IA</strong> sur votre boutique Shopify ou WooCommerce permet d'automatiser le support client, de répondre aux questions produit et de réduire les abandons de panier.</p>
 
@@ -119,7 +119,7 @@ export const articles: BlogArticle[] = [
     category: 'Insight',
     tags: ['support', 'tickets', 'automatisation', 'agents IA', 'productivité'],
     readTime: '4 min',
-    imageUrl: '/blog/article-5.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>Le <strong>volume de tickets support</strong> est un défi constant pour les équipes. Les agents IA permettent de traiter automatiquement les questions récurrentes et de réduire significativement la charge de travail.</p>
 
@@ -143,7 +143,7 @@ export const articles: BlogArticle[] = [
     category: 'Tendances',
     tags: ['IA conversationnelle', '2026', 'RAG', 'tendances', 'agents IA'],
     readTime: '5 min',
-    imageUrl: '/blog/article-6.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>L'année 2026 marque un tournant pour l'<strong>IA conversationnelle</strong> : les agents deviennent plus autonomes, plus contextuels et plus intégrés dans les workflows métier.</p>
 
@@ -167,7 +167,7 @@ export const articles: BlogArticle[] = [
     category: 'ROI',
     tags: ['ROI', 'métriques', 'analytics', 'agents IA', 'performance'],
     readTime: '5 min',
-    imageUrl: '/blog/article-7.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>Un <strong>agent IA</strong> représente un investissement. Pour le justifier et l'optimiser, il faut suivre les bonnes métriques et démontrer un <strong>retour sur investissement concret</strong>.</p>
 
@@ -191,7 +191,7 @@ export const articles: BlogArticle[] = [
     category: 'Guide',
     tags: ['plateforme', 'comparatif', 'choix', 'agents IA', 'SaaS'],
     readTime: '6 min',
-    imageUrl: '/blog/article-8.jpg',
+    imageUrl: '/placeholder-design.jpg',
     content: `
 <p>Choisir une <strong>plateforme d'agents IA</strong> est une décision stratégique. L'outil doit s'intégrer à votre stack, offrir une qualité de réponse professionnelle et évoluer avec votre volume.</p>
 

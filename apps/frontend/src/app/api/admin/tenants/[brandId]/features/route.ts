@@ -4,8 +4,10 @@ import { ApiResponseBuilder } from '@/lib/api-response';
 import { manageTenantFeaturesSchema } from '@/lib/validation/zod-schemas';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
+const ADMIN_ROLES = new Set(['ADMIN', 'PLATFORM_ADMIN']);
 
 type TenantFeaturesRouteContext = {
   params: Promise<{ brandId: string }>;
@@ -16,7 +18,8 @@ async function getAdminUser(request: NextRequest): Promise<{ id: string }> {
   if (!user) {
     throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
   }
-  if (user.role !== 'PLATFORM_ADMIN') {
+  const role = typeof user.role === 'string' ? user.role : '';
+  if (!ADMIN_ROLES.has(role)) {
     throw { status: 403, message: 'Accès réservé aux administrateurs', code: 'FORBIDDEN' };
   }
   return user;
@@ -32,13 +35,9 @@ export async function GET(request: NextRequest, { params }: TenantFeaturesRouteC
     const user = await getAdminUser(request);
 
     // Forward to backend API
-    const cookieHeader = request.headers.get('cookie') || '';
     const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: cookieHeader,
-      },
+      headers: buildAdminForwardHeaders(request),
     });
 
     if (!response.ok) {
@@ -84,13 +83,9 @@ export async function POST(request: NextRequest, { params }: TenantFeaturesRoute
     }
 
     // Forward to backend API
-    const cookieHeader = request.headers.get('cookie') || '';
     const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: cookieHeader,
-      },
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(validation.data),
     });
 
@@ -138,13 +133,9 @@ export async function PUT(request: NextRequest, { params }: TenantFeaturesRouteC
     }
 
     // Forward to backend API
-    const cookieHeader = request.headers.get('cookie') || '';
     const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: cookieHeader,
-      },
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify({ features }),
     });
 
@@ -190,13 +181,9 @@ export async function DELETE(request: NextRequest, { params }: TenantFeaturesRou
     }
 
     // Forward to backend API
-    const cookieHeader = request.headers.get('cookie') || '';
     const response = await fetch(`${API_URL}/api/v1/admin/tenants/${brandId}/features?feature=${encodeURIComponent(feature)}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: cookieHeader,
-      },
+      headers: buildAdminForwardHeaders(request),
     });
 
     if (!response.ok) {

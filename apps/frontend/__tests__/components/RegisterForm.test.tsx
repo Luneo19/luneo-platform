@@ -3,12 +3,10 @@
  * T-008: Tests pour RegisterForm component
  */
 
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AllProviders } from '../utils/test-utils';
-import { generateTestEmail } from '../fixtures';
 
 // Mock du module Supabase
 const mockSignUp = vi.fn();

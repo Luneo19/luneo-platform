@@ -60,6 +60,7 @@ import {
   useAnalyticsMetrics,
   useAnalyticsTimeSeries,
   useAnalyticsTopEvents,
+  useUnifiedScorecard,
   useExportAnalytics,
   type TimeRange,
   type TimeSeriesData,
@@ -117,6 +118,7 @@ function AnalyticsLuxuryPageContent() {
   } = useAnalyticsTopEvents(period);
   const { mutate: exportAnalytics, isPending: isExporting } =
     useExportAnalytics();
+  const { data: scorecard } = useUnifiedScorecard(period);
   const isLoading = metricsLoading || timeSeriesLoading || topEventsLoading;
   const hasError = metricsError || timeSeriesError || topEventsError;
 
@@ -423,6 +425,43 @@ function AnalyticsLuxuryPageContent() {
         <div className="mb-10">
           <InsightsCard />
         </div>
+
+        {scorecard && (
+          <div className="mb-10">
+            <Card className="dash-card border-white/[0.06] bg-transparent shadow-none">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-white">ROI v1.5 - Provenance</CardTitle>
+                <CardDescription className="text-white/60">
+                  Distinction explicite entre métriques observées et estimées
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {scorecard.metrics.map((metric) => (
+                    <div
+                      key={metric.key}
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4"
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-white">{metric.label}</p>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs ${
+                            metric.provenance === 'observed'
+                              ? 'bg-emerald-500/15 text-emerald-300'
+                              : 'bg-amber-500/15 text-amber-300'
+                          }`}
+                        >
+                          {metric.provenance === 'observed' ? 'observed' : 'estimated'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/50">Source: {metric.source}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Charts */}
         <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">

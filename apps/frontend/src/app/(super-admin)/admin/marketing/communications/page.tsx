@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, RefreshCw, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface CommunicationLog {
   id: string;
@@ -74,7 +75,7 @@ export default function CommunicationsPage() {
     fetcher
   );
 
-  const communicationLogs = logs || [];
+  const communicationLogs = normalizeListResponse<CommunicationLog>(logs);
 
   return (
     <div className="space-y-6">
@@ -85,7 +86,7 @@ export default function CommunicationsPage() {
             <Mail className="w-8 h-8 text-purple-400" />
             Communications Log
           </h1>
-          <p className="text-white/60 mt-2">
+          <p className="text-white/80 mt-2">
             Track all sent emails, notifications and communications
           </p>
         </div>
@@ -112,7 +113,7 @@ export default function CommunicationsPage() {
           ].map((stat) => (
             <Card key={stat.label} className="bg-white/[0.03] border-white/[0.06]">
               <CardContent className="p-4 text-center">
-                <p className="text-white/40 text-xs">{stat.label}</p>
+                <p className="text-white/70 text-xs">{stat.label}</p>
                 <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
               </CardContent>
             </Card>
@@ -122,7 +123,7 @@ export default function CommunicationsPage() {
 
       {/* Filter */}
       <div className="flex gap-3 items-center">
-        <span className="text-white/50 text-sm">Filter by type:</span>
+        <span className="text-white/75 text-sm">Filter by type:</span>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[180px] bg-white/[0.03] border-white/[0.06] text-white">
             <SelectValue placeholder="All types" />
@@ -140,7 +141,7 @@ export default function CommunicationsPage() {
       {logsLoading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-          <span className="ml-3 text-white/60">Loading communications...</span>
+          <span className="ml-3 text-white/80">Loading communications...</span>
         </div>
       )}
 
@@ -163,12 +164,12 @@ export default function CommunicationsPage() {
             {communicationLogs.length === 0 ? (
               <div className="p-12 text-center">
                 <Mail className="w-12 h-12 mx-auto text-white/20 mb-4" />
-                <p className="text-white/40">No communications found</p>
+                <p className="text-white/70">No communications found</p>
               </div>
             ) : (
               <div className="divide-y divide-white/[0.06]">
                 {/* Table Header */}
-                <div className="grid grid-cols-5 gap-4 p-4 text-xs text-white/40 uppercase tracking-wider">
+                <div className="grid grid-cols-5 gap-4 p-4 text-xs text-white/70 uppercase tracking-wider">
                   <span>Status</span>
                   <span>Type</span>
                   <span>Recipient</span>
@@ -186,12 +187,12 @@ export default function CommunicationsPage() {
                         <span className={config.color}>{config.label}</span>
                       </div>
                       <div>
-                        <Badge variant="outline" className="text-xs text-white/50 border-white/10">
+                        <Badge variant="outline" className="text-xs text-white/75 border-white/10">
                           {log.type}
                         </Badge>
                       </div>
                       <span className="text-white/70 truncate">{log.to}</span>
-                      <span className="text-white/50 truncate">{log.subject || '-'}</span>
+                      <span className="text-white/75 truncate">{log.subject || '-'}</span>
                       <span className="text-white/30">
                         {new Date(log.sentAt || log.createdAt).toLocaleDateString()}
                       </span>

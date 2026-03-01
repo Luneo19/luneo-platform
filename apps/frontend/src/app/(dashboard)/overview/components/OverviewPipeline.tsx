@@ -75,7 +75,7 @@ export function OverviewPipeline({
 
   return (
     <div className="dash-card rounded-2xl p-5 border border-white/[0.06]">
-      <h2 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">
+      <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4">
         {t('overview.pipeline.title')}
       </h2>
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
@@ -89,7 +89,7 @@ export function OverviewPipeline({
                     <Icon className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-xl font-bold text-white">{stage.value}</span>
-                  <span className="text-xs text-white/50">{stage.label}</span>
+                  <span className="text-xs text-white/75">{stage.label}</span>
                 </div>
               </Link>
               {i < stages.length - 1 && (

@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import {
   MessageSquare,
   Bot,
-  Database,
   Zap,
   TrendingUp,
   ArrowUpRight,
@@ -34,14 +33,6 @@ interface UsageData {
   forecast: { endOfMonth: number; overageExpected: number };
 }
 
-interface PlanInfo {
-  name: string;
-  slug: string;
-  price: number;
-  currency: string;
-  interval: string;
-}
-
 function formatCents(cents: number, currency = 'EUR'): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
@@ -61,7 +52,6 @@ function formatStorageBytes(bytes: number): string {
 export default function BillingUsagePage() {
   const { user } = useAuth();
   const [usage, setUsage] = useState<UsageData | null>(null);
-  const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,7 +59,14 @@ export default function BillingUsagePage() {
     setLoading(true);
     setError(null);
     try {
-      const orgId = (user as any)?.organizationId ?? (user as any)?.brandId ?? '';
+      const scopedUser = user as
+        | { organizationId?: string; brandId?: string }
+        | null
+        | undefined;
+      const orgId = scopedUser?.organizationId ?? scopedUser?.brandId ?? '';
+      if (!orgId) {
+        throw new Error('Organisation introuvable pour cet utilisateur.');
+      }
       const [usageRes] = await Promise.all([
         api.get<{ data: UsageData }>(`/api/v1/organizations/${orgId}/usage`),
       ]);

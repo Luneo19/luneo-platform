@@ -7,18 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['Authorization'] = auth;
-  return headers;
-}
 
 export async function GET(
   request: NextRequest,
@@ -31,8 +22,8 @@ export async function GET(
     }
 
     const { id } = await params;
-    const res = await fetch(`${API_URL}/api/v1/orion/agents/${id}`, {
-      headers: forwardHeaders(request),
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/agents/${id}`, {
+      headers: buildAdminForwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -46,7 +37,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -58,9 +49,9 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const res = await fetch(`${API_URL}/api/v1/orion/agents/${id}`, {
-      method: 'PUT',
-      headers: forwardHeaders(request),
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/agents/${id}`, {
+      method: 'PATCH',
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),
     });
     const raw = await res.json().catch(() => ({}));
@@ -70,7 +61,7 @@ export async function PUT(
     const data = raw.data ?? raw;
     return NextResponse.json(data);
   } catch (error) {
-    serverLogger.apiError('/api/admin/orion/agents/[id]', 'PUT', error, 500);
+    serverLogger.apiError('/api/admin/orion/agents/[id]', 'PATCH', error, 500);
     return NextResponse.json({ error: 'Failed to update ORION agent' }, { status: 500 });
   }
 }

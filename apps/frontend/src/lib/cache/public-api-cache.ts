@@ -9,7 +9,7 @@
  * - Compression pour grandes valeurs
  */
 
-import type { Redis as RedisType } from '@upstash/redis';
+import { Redis, type Redis as RedisType } from '@upstash/redis';
 import { logger } from '@/lib/logger';
 
 // ============================================
@@ -34,7 +34,6 @@ function getRedis(): RedisType | null {
   }
 
   try {
-    const { Redis } = require('@upstash/redis');
     const instance = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
       token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),
@@ -156,7 +155,7 @@ class PublicApiCacheService {
    */
   async get<T>(
     key: string,
-    options: Pick<CacheOptions, 'staleWhileRevalidate'> = {}
+    _options: Pick<CacheOptions, 'staleWhileRevalidate'> = {}
   ): Promise<{ data: T | null; isStale: boolean }> {
     const redis = getRedis();
     if (!redis) {
@@ -246,7 +245,7 @@ class PublicApiCacheService {
     fetcher: () => Promise<T>,
     options: CacheOptions = {}
   ): Promise<T> {
-    const { forceRefresh = false, ttl = PUBLIC_CACHE_TTL.MARKETING_DATA } = options;
+    const { forceRefresh = false, ttl: _ttl = PUBLIC_CACHE_TTL.MARKETING_DATA } = options;
 
     // Forcer le refresh - ignorer le cache
     if (forceRefresh) {

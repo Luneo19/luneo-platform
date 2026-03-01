@@ -15,7 +15,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 import { api } from '@/lib/api/client';
 import type {
-  AnalyticsEvent,
   TrackedEvent,
   DeviceInfo,
   PageInfo,
@@ -175,7 +174,7 @@ class AnalyticsService {
     if (typeof window === 'undefined') return;
 
     const eventName = `${event.category}_${event.action}`;
-    const { category, ...metadataWithoutCategory } = event.metadata || {};
+    const { category: _category, ...metadataWithoutCategory } = event.metadata || {};
     const properties = {
       action: event.action,
       label: event.label,

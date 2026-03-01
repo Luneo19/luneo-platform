@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';
 import { Card } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
@@ -27,7 +28,7 @@ function ConfigSetupPageContent() {
           1. Créer votre compte
         </h3>
         <p className="text-gray-300">
-          Inscrivez-vous sur <a href="/register" className="text-blue-400 hover:underline">luneo.app</a> et confirmez votre email.
+          Inscrivez-vous sur <Link href="/register" className="text-blue-400 hover:underline">luneo.app</Link> et confirmez votre email.
         </p>
       </Card>
 
@@ -63,9 +64,9 @@ function ConfigSetupPageContent() {
 
       <h2 className="text-2xl font-bold mt-8 mb-4">Prochaines étapes</h2>
       <ul className="space-y-2">
-        <li>• <a href="/help/documentation/api-reference/create-design" className="text-blue-400 hover:underline">Créer votre premier design</a></li>
-        <li>• <a href="/help/documentation/configuration/monitoring" className="text-blue-400 hover:underline">Configurer le monitoring</a></li>
-        <li>• <a href="/help/documentation/security/authentication" className="text-blue-400 hover:underline">Sécuriser votre intégration</a></li>
+        <li>• <Link href="/help/documentation/api-reference/create-design" className="text-blue-400 hover:underline">Créer votre premier design</Link></li>
+        <li>• <Link href="/help/documentation/configuration/monitoring" className="text-blue-400 hover:underline">Configurer le monitoring</Link></li>
+        <li>• <Link href="/help/documentation/security/authentication" className="text-blue-400 hover:underline">Sécuriser votre intégration</Link></li>
       </ul>
     </DocPageTemplate>
   );

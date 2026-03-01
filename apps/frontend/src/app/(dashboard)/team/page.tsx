@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import React, { useState, memo, useCallback } from 'react';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { endpoints } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 interface TeamMember {
   id: string;
@@ -37,7 +38,16 @@ interface PendingInvite {
   expiresAt: string;
 }
 
+const TEAM_MODULE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_TEAM_MODULE === 'true';
+
+function toIsoDate(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  return new Date().toISOString();
+}
+
 function TeamPageContent() {
+  const [teamModuleUnavailable, setTeamModuleUnavailable] = useState(!TEAM_MODULE_ENABLED);
   const { toast } = useToast();
   const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,12 +60,19 @@ function TeamPageContent() {
   const queryClient = useQueryClient();
   const teamQuery = useQuery({
     queryKey: ['team', 'members'],
+    enabled: TEAM_MODULE_ENABLED,
     queryFn: async () => {
-      const [members, invites] = await Promise.all([
-        endpoints.team.members(),
-        endpoints.team.invites(),
-      ]);
-      return { members, pendingInvites: invites } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+      try {
+        const [members, invites] = await Promise.all([
+          endpoints.team.members(),
+          endpoints.team.invites(),
+        ]);
+        setTeamModuleUnavailable(false);
+        return { members, pendingInvites: invites } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+      } catch (error) {
+        setTeamModuleUnavailable(true);
+        return { members: [], pendingInvites: [] } as { members: Record<string, unknown>[]; pendingInvites: Record<string, unknown>[] };
+      }
     },
   });
   const inviteMutation = useMutation({
@@ -103,23 +120,26 @@ function TeamPageContent() {
   });
 
   type MemberRole = 'owner' | 'admin' | 'member' | 'viewer';
-  const members: TeamMember[] = (teamQuery.data?.members || []).map((m: Record<string, unknown>) => ({
+  const membersRaw = normalizeListResponse<Record<string, unknown>>((teamQuery.data as Record<string, unknown> | undefined)?.members);
+  const invitesRaw = normalizeListResponse<Record<string, unknown>>((teamQuery.data as Record<string, unknown> | undefined)?.pendingInvites);
+
+  const members: TeamMember[] = membersRaw.map((m: Record<string, unknown>) => ({
     id: m.id as string,
     name: (m.name as string) || (m.email as string),
     email: m.email as string,
     role: (m.role as string).toLowerCase() as MemberRole,
     status: 'active' as const,
     avatar: (m.avatar as string) || '',
-    joinedAt: (m.joinedAt as Date).toISOString(),
-    lastActive: m.lastActive ? formatRelativeTime((m.lastActive as Date).toISOString()) : 'Jamais',
+    joinedAt: toIsoDate(m.joinedAt),
+    lastActive: m.lastActive ? formatRelativeTime(toIsoDate(m.lastActive)) : 'Jamais',
   }));
 
-  const pendingInvites: PendingInvite[] = (teamQuery.data?.pendingInvites || []).map((i: Record<string, unknown>) => ({
+  const pendingInvites: PendingInvite[] = invitesRaw.map((i: Record<string, unknown>) => ({
     id: i.id as string,
     email: i.email as string,
     role: (i.role as string).toLowerCase() as MemberRole,
-    sentAt: (i.invitedAt as Date).toISOString().split('T')[0],
-    expiresAt: (i.expiresAt as Date).toISOString().split('T')[0],
+    sentAt: toIsoDate(i.invitedAt).split('T')[0],
+    expiresAt: toIsoDate(i.expiresAt).split('T')[0],
   }));
 
   const roles = [
@@ -204,6 +224,17 @@ function TeamPageContent() {
     return <TeamSkeleton />;
   }
 
+  if (teamModuleUnavailable) {
+    return (
+      <Card className="dash-card p-6 border-border">
+        <h2 className="text-xl font-semibold text-foreground mb-2">Module equipe bientot disponible</h2>
+        <p className="text-muted-foreground">
+          La gestion d’equipe est temporairement desactivee pendant la migration API.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -273,7 +304,7 @@ function TeamPageContent() {
           <h3 className="text-lg font-bold text-white mb-4">Invitations en attente</h3>
           <div className="space-y-3">
             {pendingInvites.map((invite) => (
-              <motion
+              <Motion
                 key={invite.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -309,7 +340,7 @@ function TeamPageContent() {
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
-              </motion>
+              </Motion>
             ))}
           </div>
         </Card>
@@ -320,7 +351,7 @@ function TeamPageContent() {
           {filteredMembers.map((member) => {
             const roleInfo = getRoleInfo(member.role);
             return (
-              <motion
+              <Motion
                 key={member.id}
                 layout
                 initial={{ opacity: 0 }}
@@ -396,7 +427,7 @@ function TeamPageContent() {
                     </>
                   )}
                 </div>
-              </motion>
+              </Motion>
             );
           })}
         </div>
@@ -426,14 +457,14 @@ function TeamPageContent() {
 
       <AnimatePresence>
         {showInviteModal && (
-          <motion
+          <Motion
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowInviteModal(false)}
           >
-            <motion
+            <Motion
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -487,8 +518,8 @@ function TeamPageContent() {
                   </Button>
                 </div>
               </div>
-            </motion>
-          </motion>
+            </Motion>
+          </Motion>
         )}
       </AnimatePresence>
     </div>

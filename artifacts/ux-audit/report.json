@@ -1,0 +1,904 @@
+{
+  "generatedAt": "2026-02-27T16:05:24.464Z",
+  "baseUrl": "https://luneo.app",
+  "findings": [
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "74 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "13 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/login",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "15 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/register",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "203 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/pricing",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "27 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/help/support",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "26 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/dashboard",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "28 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/admin",
+      "viewport": "mobile",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "100 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "9 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/login",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "105 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/dashboard",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "49 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/agents",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "64 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/billing",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "50 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/settings",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "69 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/admin",
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "74 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "13 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/login",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "17 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/register",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "203 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/pricing",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "27 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/help/support",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "74 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/dashboard",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "35 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/admin",
+      "viewport": "tablet",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "107 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "9 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/login",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "9 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/register",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "157 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/pricing",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "107 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/dashboard",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "49 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/agents",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "64 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/billing",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "50 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/settings",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "69 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/admin",
+      "viewport": "tablet",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "74 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "13 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/login",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "17 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/register",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "203 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/pricing",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "27 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/help/support",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "74 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/dashboard",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "35 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/admin",
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "107 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "9 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/login",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "9 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/register",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "157 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/pricing",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "107 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/dashboard",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "49 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/agents",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "64 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/billing",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "50 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/settings",
+      "viewport": "desktop",
+      "theme": "dark"
+    },
+    {
+      "type": "low-contrast-cluster",
+      "severity": "medium",
+      "details": "69 éléments texte avec contraste < 3 détectés",
+      "url": "https://luneo.app/admin",
+      "viewport": "desktop",
+      "theme": "dark"
+    }
+  ],
+  "checks": [
+    {
+      "url": "https://luneo.app/",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_.png"
+    },
+    {
+      "url": "https://luneo.app/login",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_login.png"
+    },
+    {
+      "url": "https://luneo.app/register",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_register.png"
+    },
+    {
+      "url": "https://luneo.app/forgot-password",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-light-_forgot-password.png"
+    },
+    {
+      "url": "https://luneo.app/pricing",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_pricing.png"
+    },
+    {
+      "url": "https://luneo.app/help/support",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_help_support.png"
+    },
+    {
+      "url": "https://luneo.app/dashboard",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 0,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_dashboard.png"
+    },
+    {
+      "url": "https://luneo.app/agents",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-light-_agents.png"
+    },
+    {
+      "url": "https://luneo.app/billing",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-light-_billing.png"
+    },
+    {
+      "url": "https://luneo.app/settings",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-light-_settings.png"
+    },
+    {
+      "url": "https://luneo.app/admin",
+      "viewport": "mobile",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-light-_admin.png"
+    },
+    {
+      "url": "https://luneo.app/",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_.png"
+    },
+    {
+      "url": "https://luneo.app/login",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_login.png"
+    },
+    {
+      "url": "https://luneo.app/register",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-dark-_register.png"
+    },
+    {
+      "url": "https://luneo.app/forgot-password",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-dark-_forgot-password.png"
+    },
+    {
+      "url": "https://luneo.app/pricing",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-dark-_pricing.png"
+    },
+    {
+      "url": "https://luneo.app/help/support",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "mobile-dark-_help_support.png"
+    },
+    {
+      "url": "https://luneo.app/dashboard",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_dashboard.png"
+    },
+    {
+      "url": "https://luneo.app/agents",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_agents.png"
+    },
+    {
+      "url": "https://luneo.app/billing",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_billing.png"
+    },
+    {
+      "url": "https://luneo.app/settings",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_settings.png"
+    },
+    {
+      "url": "https://luneo.app/admin",
+      "viewport": "mobile",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "mobile-dark-_admin.png"
+    },
+    {
+      "url": "https://luneo.app/",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_.png"
+    },
+    {
+      "url": "https://luneo.app/login",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_login.png"
+    },
+    {
+      "url": "https://luneo.app/register",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_register.png"
+    },
+    {
+      "url": "https://luneo.app/forgot-password",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "tablet-light-_forgot-password.png"
+    },
+    {
+      "url": "https://luneo.app/pricing",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_pricing.png"
+    },
+    {
+      "url": "https://luneo.app/help/support",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_help_support.png"
+    },
+    {
+      "url": "https://luneo.app/dashboard",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_dashboard.png"
+    },
+    {
+      "url": "https://luneo.app/agents",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "tablet-light-_agents.png"
+    },
+    {
+      "url": "https://luneo.app/billing",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "tablet-light-_billing.png"
+    },
+    {
+      "url": "https://luneo.app/settings",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "tablet-light-_settings.png"
+    },
+    {
+      "url": "https://luneo.app/admin",
+      "viewport": "tablet",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-light-_admin.png"
+    },
+    {
+      "url": "https://luneo.app/",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_.png"
+    },
+    {
+      "url": "https://luneo.app/login",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_login.png"
+    },
+    {
+      "url": "https://luneo.app/register",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_register.png"
+    },
+    {
+      "url": "https://luneo.app/forgot-password",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "tablet-dark-_forgot-password.png"
+    },
+    {
+      "url": "https://luneo.app/pricing",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_pricing.png"
+    },
+    {
+      "url": "https://luneo.app/help/support",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "tablet-dark-_help_support.png"
+    },
+    {
+      "url": "https://luneo.app/dashboard",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_dashboard.png"
+    },
+    {
+      "url": "https://luneo.app/agents",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_agents.png"
+    },
+    {
+      "url": "https://luneo.app/billing",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_billing.png"
+    },
+    {
+      "url": "https://luneo.app/settings",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_settings.png"
+    },
+    {
+      "url": "https://luneo.app/admin",
+      "viewport": "tablet",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "tablet-dark-_admin.png"
+    },
+    {
+      "url": "https://luneo.app/",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_.png"
+    },
+    {
+      "url": "https://luneo.app/login",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_login.png"
+    },
+    {
+      "url": "https://luneo.app/register",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_register.png"
+    },
+    {
+      "url": "https://luneo.app/forgot-password",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "desktop-light-_forgot-password.png"
+    },
+    {
+      "url": "https://luneo.app/pricing",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_pricing.png"
+    },
+    {
+      "url": "https://luneo.app/help/support",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_help_support.png"
+    },
+    {
+      "url": "https://luneo.app/dashboard",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_dashboard.png"
+    },
+    {
+      "url": "https://luneo.app/agents",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "desktop-light-_agents.png"
+    },
+    {
+      "url": "https://luneo.app/billing",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "desktop-light-_billing.png"
+    },
+    {
+      "url": "https://luneo.app/settings",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "desktop-light-_settings.png"
+    },
+    {
+      "url": "https://luneo.app/admin",
+      "viewport": "desktop",
+      "theme": "light",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-light-_admin.png"
+    },
+    {
+      "url": "https://luneo.app/",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_.png"
+    },
+    {
+      "url": "https://luneo.app/login",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_login.png"
+    },
+    {
+      "url": "https://luneo.app/register",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_register.png"
+    },
+    {
+      "url": "https://luneo.app/forgot-password",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "desktop-dark-_forgot-password.png"
+    },
+    {
+      "url": "https://luneo.app/pricing",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_pricing.png"
+    },
+    {
+      "url": "https://luneo.app/help/support",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 0,
+      "screenshot": "desktop-dark-_help_support.png"
+    },
+    {
+      "url": "https://luneo.app/dashboard",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_dashboard.png"
+    },
+    {
+      "url": "https://luneo.app/agents",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_agents.png"
+    },
+    {
+      "url": "https://luneo.app/billing",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_billing.png"
+    },
+    {
+      "url": "https://luneo.app/settings",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_settings.png"
+    },
+    {
+      "url": "https://luneo.app/admin",
+      "viewport": "desktop",
+      "theme": "dark",
+      "status": 200,
+      "checkCount": 1,
+      "screenshot": "desktop-dark-_admin.png"
+    }
+  ]
+}

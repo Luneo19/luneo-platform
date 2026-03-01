@@ -4,20 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
   Plus,
   Bot,
   MessageSquare,
   Star,
   Search,
-  MoreVertical,
-  Pause,
-  Play,
-  Pencil,
-  Trash2,
 } from 'lucide-react';
 
 type AgentStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
@@ -29,7 +23,7 @@ interface Agent {
   avatar?: string;
   status: AgentStatus;
   template?: { id: string; name: string; category?: string };
-  stats: {
+  stats?: {
     totalConversations: number;
     totalMessages: number;
     avgSatisfaction: number;
@@ -62,21 +56,28 @@ export default function AgentsPage() {
   const [search, setSearch] = useState('');
 
   const fetchAgents = useCallback(async () => {
+    if (user?.role === 'ADMIN' || user?.role === 'PLATFORM_ADMIN') {
+      setAgents([]);
+      setError('Le module Agents est lié aux organisations clientes et n’est pas disponible pour ce profil admin.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (filter !== 'ALL') params.set('status', filter);
-      const res = await api.get<{ data: Agent[]; meta: { total: number } }>(
+      const res = await api.get(
         `/api/v1/agents?${params.toString()}`
       );
-      setAgents(res.data ?? []);
+      setAgents(normalizeListResponse<Agent>(res));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les agents');
+      const message = err instanceof Error ? err.message : 'Impossible de charger les agents';
+      setError(message.includes('organisation') ? 'Aucune organisation active. Finalisez l’onboarding pour créer des agents.' : message);
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, user?.role]);
 
   useEffect(() => {
     fetchAgents();
@@ -194,6 +195,9 @@ export default function AgentsPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredAgents.map((agent) => {
             const statusCfg = STATUS_CONFIG[agent.status] ?? STATUS_CONFIG.DRAFT;
+            const totalConversations = agent.stats?.totalConversations ?? 0;
+            const avgSatisfaction = agent.stats?.avgSatisfaction ?? 0;
+            const resolutionRate = agent.stats?.resolutionRate ?? 0;
             return (
               <Link key={agent.id} href={`/agents/${agent.id}`}>
                 <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
@@ -227,7 +231,7 @@ export default function AgentsPage() {
                         <span className="text-xs">Conversations</span>
                       </div>
                       <p className="mt-1 text-lg font-bold text-white">
-                        {agent.stats.totalConversations.toLocaleString()}
+                        {totalConversations.toLocaleString()}
                       </p>
                     </div>
                     <div className="rounded-lg bg-white/[0.03] border border-white/[0.04] px-3 py-2.5">
@@ -236,8 +240,8 @@ export default function AgentsPage() {
                         <span className="text-xs">Satisfaction</span>
                       </div>
                       <p className="mt-1 text-lg font-bold text-white">
-                        {agent.stats.avgSatisfaction > 0
-                          ? `${agent.stats.avgSatisfaction.toFixed(1)}/5`
+                        {avgSatisfaction > 0
+                          ? `${avgSatisfaction.toFixed(1)}/5`
                           : '—'}
                       </p>
                     </div>
@@ -251,7 +255,7 @@ export default function AgentsPage() {
                         : `Créé ${new Date(agent.createdAt).toLocaleDateString('fr-FR')}`}
                     </span>
                     <span className="text-xs text-white/20">
-                      {Math.round(agent.stats.resolutionRate * 100)}% résolu
+                      {Math.round(resolutionRate * 100)}% résolu
                     </span>
                   </div>
                 </div>

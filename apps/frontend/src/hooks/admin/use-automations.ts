@@ -4,6 +4,7 @@
  */
 
 import useSWR from 'swr';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 export interface Automation {
   id: string;
@@ -70,7 +71,7 @@ export function useAutomations() {
   );
 
   return {
-    automations: data || [],
+    automations: normalizeListResponse<Automation>(data),
     isLoading,
     isError: !!error,
     error,

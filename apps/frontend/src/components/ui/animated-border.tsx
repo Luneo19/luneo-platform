@@ -26,14 +26,6 @@ interface AnimatedBorderProps {
   compact?: boolean;
 }
 
-const GRADIENTS = {
-  'purple-pink': 'from-purple-500 via-pink-500 to-purple-500',
-  'blue-cyan': 'from-blue-500 via-cyan-500 to-blue-500',
-  'emerald-teal': 'from-emerald-500 via-teal-500 to-emerald-500',
-  'amber-orange': 'from-amber-500 via-orange-500 to-amber-500',
-  'rainbow': 'from-purple-500 via-pink-500 via-blue-500 to-purple-500',
-};
-
 const SPEEDS = {
   slow: '6s',
   normal: '3s',
@@ -46,7 +38,7 @@ function AnimatedBorderInner({
   rounded = 'rounded-2xl',
   borderWidth = 1,
   speed = 'normal',
-  gradient = 'purple-pink',
+  gradient: _gradient = 'purple-pink',
   active = true,
   hoverOnly = false,
   compact = false,

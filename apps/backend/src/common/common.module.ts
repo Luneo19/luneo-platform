@@ -1,4 +1,10 @@
-import { Module, Global, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  Global,
+  MiddlewareConsumer,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 
 import { PrismaModule } from '@/libs/prisma/prisma.module';
@@ -9,12 +15,12 @@ import { BrandScopedGuard } from './guards/brand-scoped.guard';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
 import { AppErrorFilter } from './errors/app-error.filter';
 import { ValidationPipe } from './utils/validation.pipe';
-import { RateLimitGuard } from '@/libs/rate-limit/rate-limit.guard';
 import { RateLimitModule } from '@/libs/rate-limit/rate-limit.module';
 import { I18nModule } from '@/libs/i18n/i18n.module';
 import { TimezoneModule } from '@/libs/timezone/timezone.module';
 import { I18nMiddleware } from '@/common/middleware/i18n.middleware';
 import { XssSanitizeMiddleware } from '@/common/middleware/xss-sanitize.middleware';
+import { BillingEntitlementsGuard } from './guards/billing-entitlements.guard';
 
 @Global()
 @Module({
@@ -39,11 +45,11 @@ import { XssSanitizeMiddleware } from '@/common/middleware/xss-sanitize.middlewa
     },
     {
       provide: APP_GUARD,
-      useClass: RateLimitGuard,
+      useClass: BrandScopedGuard,
     },
     {
       provide: APP_GUARD,
-      useClass: BrandScopedGuard,
+      useClass: BillingEntitlementsGuard,
     },
     {
       provide: APP_INTERCEPTOR,
@@ -63,6 +69,11 @@ export class CommonModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(XssSanitizeMiddleware, I18nMiddleware)
+      .exclude(
+        { path: 'billing/webhook', method: RequestMethod.POST },
+        { path: 'webhooks/email/inbound', method: RequestMethod.POST },
+        { path: 'webhooks/sendgrid/events', method: RequestMethod.POST },
+      )
       .forRoutes('*'); // Apply to all routes
   }
 }

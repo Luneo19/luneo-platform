@@ -16,6 +16,8 @@ export interface CustomerOverviewTabProps {
 }
 
 export function CustomerOverviewTab({ customer }: CustomerOverviewTabProps) {
+  const safeSegments = Array.isArray(customer.segments) ? customer.segments : [];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Usage Metrics */}
@@ -92,8 +94,8 @@ export function CustomerOverviewTab({ customer }: CustomerOverviewTabProps) {
           <div className="flex justify-between items-center">
             <span className="text-zinc-400">Segments</span>
             <div className="flex gap-2">
-              {customer.segments.length > 0 ? (
-                customer.segments.map((segment) => (
+              {safeSegments.length > 0 ? (
+                safeSegments.map((segment) => (
                   <Badge key={segment.id} variant="secondary">
                     {segment.name}
                   </Badge>

@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -22,59 +22,60 @@ import {
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
+import { appRoutes } from '@/lib/routes';
 
 const navigationItems = [
   {
     name: 'Dashboard',
-    href: '/overview',
+    href: appRoutes.overview,
     icon: LayoutDashboard,
     description: 'Vue d\'ensemble'
   },
   {
     name: 'AI Studio',
-    href: '/dashboard/ai-studio',
+    href: appRoutes.agents,
     icon: Palette,
     description: 'Créer des designs'
   },
   {
     name: 'AR Studio',
-    href: '/dashboard/ar-studio',
+    href: appRoutes.agents,
     icon: Globe,
     description: 'Réalité augmentée'
   },
   {
     name: 'Analytics',
-    href: '/dashboard/analytics',
+    href: appRoutes.analytics,
     icon: BarChart3,
     description: 'Métriques et statistiques'
   },
   {
     name: 'Produits',
-    href: '/dashboard/products',
+    href: appRoutes.agents,
     icon: Package,
     description: 'Gérer vos produits'
   },
   {
     name: 'Facturation',
-    href: '/dashboard/billing',
+    href: appRoutes.billing,
     icon: CreditCard,
     description: 'Abonnements et paiements'
   },
   {
     name: 'Équipe',
-    href: '/dashboard/team',
+    href: appRoutes.team,
     icon: Users,
     description: 'Collaboration et membres'
   },
   {
     name: 'Intégrations',
-    href: '/dashboard/integrations-dashboard',
+    href: appRoutes.integrations,
     icon: Plug,
     description: 'API et connecteurs'
   },
   {
     name: 'Paramètres',
-    href: '/dashboard/settings',
+    href: appRoutes.settings,
     icon: Settings,
     description: 'Configuration du compte'
   }
@@ -164,7 +165,7 @@ function DashboardNavContent() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -195,7 +196,7 @@ function DashboardNavContent() {
                 );
               })}
             </div>
-          </motion>
+          </Motion>
         )}
       </div>
     </nav>

@@ -3,6 +3,7 @@
  * Hook SWR for A/B testing experiments (CRUD)
  */
 import useSWR from 'swr';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 class FetcherError extends Error {
   info?: unknown;
@@ -33,7 +34,7 @@ async function fetcher(url: string): Promise<Experiment[]> {
     });
   }
   const data: unknown = await response.json();
-  return (Array.isArray(data) ? data : (data as { data?: Experiment[] })?.data ?? []) as Experiment[];
+  return normalizeListResponse<Experiment>(data);
 }
 
 export interface Experiment {
@@ -76,7 +77,7 @@ export function useExperiments() {
   };
 
   return {
-    experiments: data || [],
+    experiments: Array.isArray(data) ? data : [],
     isLoading,
     isError: !!error,
     error,

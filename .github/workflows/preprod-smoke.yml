@@ -1,0 +1,77 @@
+name: Preprod Critical Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL to validate (ex: https://luneo.app)
+        required: true
+        default: https://luneo.app
+      run_auth_checks:
+        description: Run auth/admin checks
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  smoke-critical:
+    name: Smoke Critical Paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.10.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate smoke secrets
+        run: |
+          if [ "${RUN_AUTH_CHECKS}" = "true" ] && { [ -z "${SMOKE_ADMIN_EMAIL}" ] || [ -z "${SMOKE_ADMIN_PASSWORD}" ]; }; then
+            echo "SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are required when run_auth_checks=true."
+            exit 1
+          fi
+        env:
+          RUN_AUTH_CHECKS: ${{ inputs.run_auth_checks }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+
+      - name: Run critical smoke
+        run: pnpm run smoke:critical
+        env:
+          SMOKE_BASE_URL: ${{ inputs.base_url }}
+          SMOKE_RUN_AUTH_CHECKS: ${{ inputs.run_auth_checks }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+
+      - name: Build release reliability KPI snapshot
+        if: always()
+        run: pnpm run report:release:kpi
+
+      - name: Publish smoke reliability summary
+        if: always()
+        run: |
+          if [ -f artifacts/release-kpi/release-reliability-kpi.md ]; then
+            cat artifacts/release-kpi/release-reliability-kpi.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload smoke reliability artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preprod-smoke-reliability-kpi
+          path: |
+            artifacts/smoke/**
+            artifacts/release-kpi/**
+          if-no-files-found: ignore

@@ -56,7 +56,6 @@ export class ApiResponseBuilder {
     metadata?: Record<string, unknown>
   ): NextResponse<ApiResponse> {
     const errorMessage = error instanceof Error ? error.message : error;
-    const errorStack = error instanceof Error ? error.stack : undefined;
 
     // Logger l'erreur
     if (error instanceof Error) {

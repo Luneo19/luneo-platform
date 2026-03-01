@@ -31,4 +31,12 @@ export class ConversationQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 20;
+
+  @ApiPropertyOptional({
+    description: 'Tri (compat legacy frontend, ex: createdAt:desc)',
+    example: 'createdAt:desc',
+  })
+  @IsOptional()
+  @IsString()
+  sort?: string;
 }

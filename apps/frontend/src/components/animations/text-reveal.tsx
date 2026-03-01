@@ -20,7 +20,7 @@ export function TextReveal({
   delay = 0,
   className = '',
   splitBy = 'word',
-  duration = 0.5
+  duration: _duration = 0.5
 }: TextRevealProps) {
   const text = typeof children === 'string' ? children : String(children);
   

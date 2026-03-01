@@ -12,6 +12,7 @@ import { ExportAuditLogsDto } from './dto/export-audit-logs.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { BrandOwnershipGuard } from '@/common/guards/brand-ownership.guard';
 import { AuthService } from '@/modules/auth/auth.service';
+import { EnterpriseReadinessService } from './enterprise-readiness.service';
 
 /**
  * Controller pour la sécurité et conformité
@@ -25,6 +26,7 @@ export class SecurityController {
     private readonly rbacService: RBACService,
     private readonly auditLogs: AuditLogsService,
     private readonly authService: AuthService,
+    private readonly enterpriseReadinessService: EnterpriseReadinessService,
   ) {}
 
   // ==================== RBAC ====================
@@ -197,6 +199,86 @@ export class SecurityController {
   async detectSuspiciousActivity(@Param('userId') userId: string) {
     const alerts = await this.auditLogs.detectSuspiciousActivity(userId);
     return { userId, alerts };
+  }
+
+  // ==================== ENTERPRISE READINESS ====================
+
+  @Get('enterprise/readiness')
+  @ApiOperation({ summary: 'Get enterprise readiness status for current organization' })
+  @ApiResponse({ status: 200, description: 'Enterprise readiness status' })
+  async getEnterpriseReadiness(@Request() req: RequestWithUser) {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization context required');
+    }
+    return this.enterpriseReadinessService.getStatus(organizationId);
+  }
+
+  @Post('enterprise/scim')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Configure SCIM provisioning controls' })
+  async configureScim(
+    @Request() req: RequestWithUser,
+    @Body() body: { enabled: boolean; endpoint?: string; tokenMasked?: string },
+  ) {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization context required');
+    }
+    return this.enterpriseReadinessService.configureScim(organizationId, body);
+  }
+
+  @Post('enterprise/policy')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Configure policy-as-code controls' })
+  async configurePolicy(
+    @Request() req: RequestWithUser,
+    @Body() body: { enabled: boolean; policyBundleVersion?: string },
+  ) {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization context required');
+    }
+    return this.enterpriseReadinessService.configurePolicyAsCode(
+      organizationId,
+      body,
+    );
+  }
+
+  @Post('enterprise/byok')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Configure BYOK controls' })
+  async configureByok(
+    @Request() req: RequestWithUser,
+    @Body()
+    body: { enabled: boolean; kmsProvider?: 'aws-kms' | 'gcp-kms' | 'azure-key-vault' },
+  ) {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization context required');
+    }
+    return this.enterpriseReadinessService.configureByok(organizationId, body);
+  }
+
+  @Post('enterprise/isolation')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(Permission.SETTINGS_UPDATE)
+  @ApiOperation({ summary: 'Configure environment isolation controls' })
+  async configureIsolation(
+    @Request() req: RequestWithUser,
+    @Body() body: { enabled: boolean; mode?: 'shared' | 'dedicated' },
+  ) {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization context required');
+    }
+    return this.enterpriseReadinessService.configureEnvironmentIsolation(
+      organizationId,
+      body,
+    );
   }
 
 }

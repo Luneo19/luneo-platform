@@ -168,7 +168,6 @@ export class AppError extends HttpException {
       {
         ...metadata,
         originalError: error.name,
-        originalStack: error.stack,
       },
       false,
     );

@@ -10,6 +10,7 @@ import { ChatTestPanel } from '@/components/builder/ChatTestPanel';
 import { ArrowLeft, Save, Play, Rocket, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
+import { appRoutes } from '@/lib/routes';
 
 function BuilderContent() {
   const params = useParams<{ id: string }>();
@@ -55,7 +56,7 @@ function BuilderContent() {
       <div className="h-14 border-b flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push('/dashboard/agents')}
+            onClick={() => router.push(appRoutes.agents)}
             className="p-1.5 hover:bg-gray-100 rounded-lg transition"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />

@@ -20,17 +20,18 @@ export default function CustomersPage() {
     updateFilters,
     goToPage,
   } = useCustomers();
+  const safeCustomers = React.useMemo(() => (Array.isArray(customers) ? customers : []), [customers]);
 
   // Calculer les stats depuis les customers
   const stats = React.useMemo(() => {
-    const active = customers.filter(c => c.status === 'active').length;
-    const trial = customers.filter(c => c.status === 'trial').length;
-    const atRisk = customers.filter(c => c.churnRisk === 'high').length;
-    const totalLTV = customers.reduce((sum, c) => sum + c.ltv, 0);
-    const avgLTV = customers.length > 0 ? totalLTV / customers.length : 0;
+    const active = safeCustomers.filter(c => c.status === 'active').length;
+    const trial = safeCustomers.filter(c => c.status === 'trial').length;
+    const atRisk = safeCustomers.filter(c => c.churnRisk === 'high').length;
+    const totalLTV = safeCustomers.reduce((sum, c) => sum + c.ltv, 0);
+    const avgLTV = safeCustomers.length > 0 ? totalLTV / safeCustomers.length : 0;
 
     return { active, trial, atRisk, avgLTV };
-  }, [customers]);
+  }, [safeCustomers]);
 
   return (
     <div className="space-y-6">
@@ -75,7 +76,7 @@ export default function CustomersPage() {
 
       {/* Customers Table */}
       <CustomersTable
-        customers={customers}
+        customers={safeCustomers}
         pagination={pagination}
         isLoading={isLoading}
         filters={filters}

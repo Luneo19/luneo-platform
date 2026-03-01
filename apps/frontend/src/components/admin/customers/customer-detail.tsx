@@ -8,12 +8,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Send, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Mail, Power, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { KPICard } from '@/components/admin/widgets/kpi-card';
 import { formatCurrency, getInitials } from '@/lib/utils';
 import type { CustomerDetail, CustomerActivity } from '@/hooks/admin/use-customer-detail';
@@ -38,6 +38,9 @@ export interface CustomerDetailProps {
     sentAt: Date | string;
   }>;
   isLoading?: boolean;
+  isMutating?: boolean;
+  onToggleActive?: () => void;
+  onDelete?: () => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -60,7 +63,14 @@ export function CustomerDetail({
   billingHistory,
   emailHistory,
   isLoading = false,
+  isMutating = false,
+  onToggleActive,
+  onDelete,
 }: CustomerDetailProps) {
+  const safeActivities = Array.isArray(activities) ? activities : [];
+  const safeBillingHistory = Array.isArray(billingHistory) ? billingHistory : [];
+  const safeEmailHistory = Array.isArray(emailHistory) ? emailHistory : [];
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -83,12 +93,28 @@ export function CustomerDetail({
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-100 hover:bg-zinc-800">
             <Mail className="w-4 h-4 mr-2" />
             Send Email
           </Button>
-          <Button variant="outline" size="sm">
-            <MoreVertical className="w-4 h-4" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-zinc-700 text-zinc-100 hover:bg-zinc-800"
+            onClick={onToggleActive}
+            disabled={!onToggleActive || isMutating}
+          >
+            <Power className="w-4 h-4 mr-2" />
+            {customer.isActive === false ? 'Réactiver' : 'Désactiver'}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onDelete}
+            disabled={!onDelete || isMutating}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Supprimer
           </Button>
         </div>
       </div>
@@ -176,13 +202,13 @@ export function CustomerDetail({
             Overview
           </TabsTrigger>
           <TabsTrigger value="activity" className="data-[state=active]:bg-zinc-700">
-            Activity ({activities.length})
+            Activity ({safeActivities.length})
           </TabsTrigger>
           <TabsTrigger value="billing" className="data-[state=active]:bg-zinc-700">
-            Billing ({billingHistory.length})
+            Billing ({safeBillingHistory.length})
           </TabsTrigger>
           <TabsTrigger value="emails" className="data-[state=active]:bg-zinc-700">
-            Emails ({emailHistory.length})
+            Emails ({safeEmailHistory.length})
           </TabsTrigger>
         </TabsList>
 
@@ -191,15 +217,15 @@ export function CustomerDetail({
         </TabsContent>
 
         <TabsContent value="activity" className="mt-6">
-          <CustomerActivityTab activities={activities} />
+          <CustomerActivityTab activities={safeActivities} />
         </TabsContent>
 
         <TabsContent value="billing" className="mt-6">
-          <CustomerBillingTab billingHistory={billingHistory} />
+          <CustomerBillingTab billingHistory={safeBillingHistory} />
         </TabsContent>
 
         <TabsContent value="emails" className="mt-6">
-          <CustomerEmailsTab emailHistory={emailHistory} />
+          <CustomerEmailsTab emailHistory={safeEmailHistory} />
         </TabsContent>
       </Tabs>
     </div>

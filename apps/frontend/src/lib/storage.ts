@@ -125,7 +125,7 @@ async function uploadToCloudinary(
  * ⚠️ AWS DÉSACTIVÉ - Cette fonction redirige vers Cloudinary
  * AWS a coûté 1200$/mois, nous utilisons Cloudinary gratuit à la place
  */
-async function uploadToS3(
+async function _uploadToS3(
   base64Data: string,
   path: string,
   mimeType: string,
@@ -217,7 +217,7 @@ async function deleteFromCloudinary(publicId: string): Promise<DeleteResult> {
  * ⚠️ AWS DÉSACTIVÉ - Cette fonction redirige vers Cloudinary
  * AWS a coûté 1200$/mois, nous utilisons Cloudinary gratuit à la place
  */
-async function deleteFromS3(path: string): Promise<DeleteResult> {
+async function _deleteFromS3(path: string): Promise<DeleteResult> {
   // AWS DÉSACTIVÉ - Rediriger vers Cloudinary
   logger.warn('AWS S3 est désactivé (coût: 1200$/mois). Tentative de suppression via Cloudinary.', { path });
   // Extract public_id from S3 path if possible

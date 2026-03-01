@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { useIndustryStore } from '@/store/industry.store';
 import { IndustryCard } from './IndustryCard';
 import { useI18n } from '@/i18n/useI18n';
@@ -27,7 +27,7 @@ export function Step2Industry({
   }
 
   return (
-    <motion
+    <Motion
       key="step2-industry"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -56,6 +56,6 @@ export function Step2Industry({
           />
         ))}
       </div>
-    </motion>
+    </Motion>
   );
 }

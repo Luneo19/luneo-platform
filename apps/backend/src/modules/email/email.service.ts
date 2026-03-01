@@ -7,20 +7,49 @@ import { SendGridService, SendGridEmailOptions } from './sendgrid.service';
 import { EmailJobData } from './email.processor';
 import { TemplateRenderer, escapeHtml } from './template-renderer';
 
-function emailLayout(content: string, previewText?: string, frontendUrl?: string): string {
+type EmailLocale = 'fr' | 'en';
+
+function normalizeEmailLocale(locale?: string): EmailLocale {
+  const normalized = (locale || '').trim().toLowerCase();
+  return normalized.startsWith('en') ? 'en' : 'fr';
+}
+
+function stripHtml(input: string): string {
+  return input
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function emailLayout(
+  content: string,
+  previewText?: string,
+  frontendUrl?: string,
+  options?: { locale?: string; logoUrl?: string },
+): string {
   const baseUrl = frontendUrl ?? 'https://luneo.app';
+  const locale = normalizeEmailLocale(options?.locale);
+  const copyrightText =
+    locale === 'en'
+      ? `© ${new Date().getFullYear()} Luneo. All rights reserved.`
+      : `© ${new Date().getFullYear()} Luneo. Tous droits réservés.`;
+  const logoUrl = options?.logoUrl || `${baseUrl.replace(/\/$/, '')}/logo.png`;
   return `<!DOCTYPE html>
-<html>
+<html lang="${locale}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 .container{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;margin-top:20px;margin-bottom:20px}
 .header{background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:30px;text-align:center;color:#fff}
 .content{padding:30px}.footer{padding:20px 30px;text-align:center;font-size:12px;color:#71717a;border-top:1px solid #e4e4e7}
-.btn{display:inline-block;background:#6366f1;color:#fff !important;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600}</style>
+.btn{display:inline-block;background:#6366f1;color:#fff !important;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600}
+.logo{max-width:140px;height:auto;display:block;margin:0 auto 8px auto}</style>
 </head><body>${previewText ? `<div style="display:none;max-height:0;overflow:hidden">${previewText}</div>` : ''}
-<div class="container"><div class="header"><h1 style="margin:0;font-size:24px">Luneo</h1></div>
+<div class="container"><div class="header"><img src="${logoUrl}" alt="Luneo logo" class="logo" /></div>
 <div class="content">${content}</div>
-<div class="footer"><p>© ${new Date().getFullYear()} Luneo. Tous droits réservés.</p><p><a href="${baseUrl}" style="color:#6366f1">luneo.app</a></p></div>
+<div class="footer"><p>${copyrightText}</p><p><a href="${baseUrl}" style="color:#6366f1">luneo.app</a></p></div>
 </div></body></html>`;
 }
 
@@ -74,6 +103,44 @@ export class EmailService {
       ?? 'https://luneo.app';
   }
 
+  private getTemplateId(templateKey: string): string | undefined {
+    const id = this.configService.get<string>(`emailDomain.emailTemplates.${templateKey}`);
+    if (!id) return undefined;
+    const normalized = id.trim();
+    if (!normalized || normalized.includes('template-id')) return undefined;
+    return normalized;
+  }
+
+  private isAuthCriticalTemplate(templateKey: string): boolean {
+    return templateKey === 'passwordReset' || templateKey === 'emailConfirmation' || templateKey === 'welcome';
+  }
+
+  private shouldForceLocalAuthTemplates(): boolean {
+    const configured = this.configService.get<boolean>('emailDomain.forceLocalAuthTemplates');
+    if (typeof configured === 'boolean') {
+      return configured;
+    }
+    const envValue = (process.env.EMAIL_FORCE_LOCAL_AUTH_TEMPLATES ?? 'true').trim().toLowerCase();
+    return envValue !== 'false';
+  }
+
+  private hasMeaningfulHtml(html?: string | null): boolean {
+    if (!html) return false;
+    return stripHtml(html).length > 5;
+  }
+
+  private shouldUseSendGridDynamicTemplate(
+    templateKey: string,
+    provider?: 'sendgrid' | 'mailgun' | 'auto',
+  ): string | undefined {
+    if (!this.sendgridAvailable) return undefined;
+    if (provider === 'mailgun') return undefined;
+    if (this.isAuthCriticalTemplate(templateKey) && this.shouldForceLocalAuthTemplates()) {
+      return undefined;
+    }
+    return this.getTemplateId(templateKey);
+  }
+
   private initializeProviders() {
     // Vérifier SendGrid
     this.sendgridAvailable = this.sendgridService.isAvailable();
@@ -96,16 +163,27 @@ export class EmailService {
    * Envoyer un email en utilisant le provider approprié
    */
   async sendEmail(options: EmailOptions): Promise<unknown> {
-    const provider = options.provider || this.defaultProvider;
+    const hasTemplate = typeof options.template === 'string' && options.template.trim().length > 0;
+    const hasText = typeof options.text === 'string' && options.text.trim().length > 0;
+    const hasHtml = this.hasMeaningfulHtml(options.html);
+    const normalizedOptions =
+      !hasTemplate && !hasText && !hasHtml
+        ? { ...options, text: options.subject }
+        : options;
+    if (!hasTemplate && !hasText && !hasHtml) {
+      this.logger.warn('Email payload had empty content; using subject as fallback text body.');
+    }
+
+    const provider = normalizedOptions.provider || this.defaultProvider;
 
     try {
       switch (provider) {
         case 'sendgrid':
-          return await this.sendWithSendGrid(options);
+          return await this.sendWithSendGrid(normalizedOptions);
         case 'mailgun':
-          return await this.sendWithMailgun(options);
+          return await this.sendWithMailgun(normalizedOptions);
         case 'auto':
-          return await this.sendWithAutoProvider(options);
+          return await this.sendWithAutoProvider(normalizedOptions);
         default:
           throw new BadRequestException(`Unknown email provider: ${provider}`);
       }
@@ -115,7 +193,7 @@ export class EmailService {
       // Fallback vers l'autre provider si disponible
       if (provider !== 'auto') {
         this.logger.log(`Attempting fallback to other provider...`);
-        return await this.sendWithAutoProvider(options);
+        return await this.sendWithAutoProvider(normalizedOptions);
       }
       
       throw error;
@@ -144,6 +222,20 @@ export class EmailService {
       categories: options.tags,
       headers: options.headers,
     };
+
+    // Disable click-tracking for authentication-critical emails.
+    // This prevents provider-level link rewriting that can break password reset flows.
+    const hasAuthCriticalTag = (options.tags ?? []).some((tag) =>
+      ['password-reset', 'email-confirmation', 'welcome'].includes(tag),
+    );
+    if (hasAuthCriticalTag) {
+      sendgridOptions.trackingSettings = {
+        clickTracking: {
+          enable: false,
+          enableText: false,
+        },
+      };
+    }
 
     return await this.sendgridService.sendSimpleMessage(sendgridOptions);
   }
@@ -178,6 +270,8 @@ export class EmailService {
    * Envoyer avec le provider automatique (fallback)
    */
   private async sendWithAutoProvider(options: EmailOptions): Promise<unknown> {
+    let primaryProviderError: unknown = null;
+
     // Essayer d'abord le provider par défaut
     try {
       if (this.defaultProvider === 'sendgrid' && this.sendgridAvailable) {
@@ -186,6 +280,7 @@ export class EmailService {
         return await this.sendWithMailgun(options);
       }
     } catch (error) {
+      primaryProviderError = error;
       this.logger.warn(`Default provider failed, trying alternative...`);
     }
 
@@ -196,25 +291,56 @@ export class EmailService {
       return await this.sendWithSendGrid(options);
     }
 
+    if (primaryProviderError instanceof Error) {
+      throw new ServiceUnavailableException(
+        `No fallback provider available. Primary provider "${this.defaultProvider}" failed: ${primaryProviderError.message}`,
+      );
+    }
+
     throw new ServiceUnavailableException('No email provider available');
   }
 
   /**
    * Envoyer un email de bienvenue
    */
-  async sendWelcomeEmail(userEmail: string, userName: string, provider?: 'sendgrid' | 'mailgun' | 'auto'): Promise<unknown> {
+  async sendWelcomeEmail(
+    userEmail: string,
+    userName: string,
+    provider?: 'sendgrid' | 'mailgun' | 'auto',
+    locale?: string,
+  ): Promise<unknown> {
     const frontendUrl = this.getFrontendUrl();
     const loginUrl = `${frontendUrl}/login`;
     const baseUrl = frontendUrl.replace(/\/$/, '');
+    const resolvedLocale = normalizeEmailLocale(locale);
+    const logoUrl = `${baseUrl}/logo.png`;
 
     let html = this.templateRenderer.render('welcome', {
       userName,
       loginUrl,
       baseUrl,
-    });
+      logoUrl,
+    }, resolvedLocale);
 
     if (!html) {
-      const content = `
+      const content = resolvedLocale === 'en'
+        ? `
+      <h1 style="color: #333;">Welcome ${escapeHtml(userName)}!</h1>
+      <p>We are delighted to welcome you to Luneo.</p>
+      <p>Your account has been created successfully.</p>
+      <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <h3>Next steps:</h3>
+        <ul>
+          <li>Complete your profile</li>
+          <li>Explore our features</li>
+          <li>Create your first design</li>
+        </ul>
+      </div>
+      <p><a href="${loginUrl}" class="btn">Sign in</a></p>
+      <p>If you have any questions, feel free to contact us.</p>
+      <p>Best regards,<br>The Luneo team</p>
+    `
+        : `
       <h1 style="color: #333;">Bienvenue ${escapeHtml(userName)} !</h1>
       <p>Nous sommes ravis de vous accueillir chez Luneo.</p>
       <p>Votre compte a été créé avec succès.</p>
@@ -230,14 +356,46 @@ export class EmailService {
       <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
     `;
-      html = emailLayout(content, undefined, frontendUrl);
+      html = emailLayout(content, undefined, frontendUrl, { locale: resolvedLocale, logoUrl });
+    }
+    if (!this.hasMeaningfulHtml(html)) {
+      const content = resolvedLocale === 'en'
+        ? `<h1 style="color: #333;">Welcome ${escapeHtml(userName)}!</h1><p>Your account is ready.</p><p><a href="${loginUrl}" class="btn">Sign in</a></p>`
+        : `<h1 style="color: #333;">Bienvenue ${escapeHtml(userName)} !</h1><p>Votre compte est prêt.</p><p><a href="${loginUrl}" class="btn">Se connecter</a></p>`;
+      html = emailLayout(content, undefined, frontendUrl, { locale: resolvedLocale, logoUrl });
+    }
+
+    const subject =
+      resolvedLocale === 'en' ? 'Welcome to Luneo! 🎉' : 'Bienvenue chez Luneo ! 🎉';
+    const text =
+      resolvedLocale === 'en'
+        ? `Welcome to Luneo, ${userName}!\n\nYour account has been created successfully.\n\nSign in: ${loginUrl}\n\nThe Luneo team`
+        : `Bienvenue sur Luneo, ${userName}!\n\nVotre compte a été créé avec succès.\n\nConnectez-vous: ${loginUrl}\n\nL'équipe Luneo`;
+
+    const templateId = this.shouldUseSendGridDynamicTemplate('welcome', provider);
+    if (templateId) {
+      return this.sendEmail({
+        to: userEmail,
+        subject,
+        text,
+        template: templateId,
+        templateData: {
+          locale: resolvedLocale,
+          userName,
+          loginUrl,
+          appUrl: baseUrl,
+          logoUrl,
+        },
+        tags: ['welcome', 'onboarding'],
+        provider: provider === 'auto' || provider === undefined ? 'sendgrid' : provider,
+      });
     }
 
     return this.sendEmail({
       to: userEmail,
-      subject: 'Bienvenue chez Luneo ! 🎉',
+      subject,
       html,
-      text: `Bienvenue sur Luneo, ${userName}!\n\nVotre compte a été créé avec succès.\n\nConnectez-vous: ${loginUrl}\n\nL'équipe Luneo`,
+      text,
       tags: ['welcome', 'onboarding'],
       provider,
     });
@@ -246,19 +404,41 @@ export class EmailService {
   /**
    * Envoyer un email de réinitialisation de mot de passe
    */
-  async sendPasswordResetEmail(userEmail: string, resetToken: string, resetUrl: string, provider?: 'sendgrid' | 'mailgun' | 'auto'): Promise<unknown> {
-    const fullResetUrl = `${resetUrl}?token=${resetToken}`;
-    const expiresIn = '1 heure';
+  async sendPasswordResetEmail(
+    userEmail: string,
+    resetToken: string,
+    resetUrl: string,
+    provider?: 'sendgrid' | 'mailgun' | 'auto',
+    locale?: string,
+  ): Promise<unknown> {
+    const hasTokenInUrl = typeof resetUrl === 'string' && resetUrl.includes('token=');
+    const fullResetUrl = hasTokenInUrl ? resetUrl : `${resetUrl}?token=${resetToken}`;
+    const resolvedLocale = normalizeEmailLocale(locale);
+    const expiresIn = resolvedLocale === 'en' ? '1 hour' : '1 heure';
 
     const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    const logoUrl = `${baseUrl}/logo.png`;
     let html = this.templateRenderer.render('password-reset', {
       resetUrl: fullResetUrl,
       expiresIn,
       baseUrl,
-    });
+      logoUrl,
+    }, resolvedLocale);
 
     if (!html) {
-      const content = `
+      const content = resolvedLocale === 'en'
+        ? `
+      <h1 style="color: #333;">Reset your password</h1>
+      <p>You requested to reset your password.</p>
+      <p>Click the button below to set a new password:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${fullResetUrl}" class="btn">Reset my password</a>
+      </div>
+      <p>This link expires in 1 hour.</p>
+      <p>If you did not request this reset, you can safely ignore this email.</p>
+      <p>Best regards,<br>The Luneo team</p>
+    `
+        : `
       <h1 style="color: #333;">Réinitialisation de mot de passe</h1>
       <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
       <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
@@ -269,14 +449,48 @@ export class EmailService {
       <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
     `;
-      html = emailLayout(content);
+      html = emailLayout(content, undefined, baseUrl, { locale: resolvedLocale, logoUrl });
+    }
+    if (!this.hasMeaningfulHtml(html)) {
+      const content = resolvedLocale === 'en'
+        ? `<h1 style="color: #333;">Reset your password</h1><p>Use this secure link:</p><p><a href="${fullResetUrl}" class="btn">Reset my password</a></p><p>This link expires in 1 hour.</p>`
+        : `<h1 style="color: #333;">Réinitialisation de mot de passe</h1><p>Utilisez ce lien sécurisé :</p><p><a href="${fullResetUrl}" class="btn">Réinitialiser mon mot de passe</a></p><p>Ce lien expire dans 1 heure.</p>`;
+      html = emailLayout(content, undefined, baseUrl, { locale: resolvedLocale, logoUrl });
+    }
+
+    const subject =
+      resolvedLocale === 'en'
+        ? 'Reset your password'
+        : 'Réinitialisation de votre mot de passe';
+    const text =
+      resolvedLocale === 'en'
+        ? `Reset your password\n\nClick this link to reset your password:\n${fullResetUrl}\n\nThis link expires in 1 hour.\n\nIf you did not request this reset, you can ignore this email.`
+        : `Réinitialisation de votre mot de passe\n\nCliquez sur ce lien pour réinitialiser votre mot de passe:\n${fullResetUrl}\n\nCe lien expire dans 1 heure.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.`;
+
+    const templateId = this.shouldUseSendGridDynamicTemplate('passwordReset', provider);
+    if (templateId) {
+      return this.sendEmail({
+        to: userEmail,
+        subject,
+        text,
+        template: templateId,
+        templateData: {
+          locale: resolvedLocale,
+          resetUrl: fullResetUrl,
+          expiresIn,
+          appUrl: baseUrl,
+          logoUrl,
+        },
+        tags: ['password-reset', 'security'],
+        provider: provider === 'auto' || provider === undefined ? 'sendgrid' : provider,
+      });
     }
 
     return this.sendEmail({
       to: userEmail,
-      subject: 'Réinitialisation de votre mot de passe',
+      subject,
       html,
-      text: `Réinitialisation de votre mot de passe\n\nCliquez sur ce lien pour réinitialiser votre mot de passe:\n${fullResetUrl}\n\nCe lien expire dans 1 heure.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.`,
+      text,
       tags: ['password-reset', 'security'],
       provider,
     });
@@ -285,19 +499,41 @@ export class EmailService {
   /**
    * Envoyer un email de confirmation
    */
-  async sendConfirmationEmail(userEmail: string, confirmationToken: string, confirmationUrl: string, provider?: 'sendgrid' | 'mailgun' | 'auto'): Promise<unknown> {
-    const fullConfirmUrl = `${confirmationUrl}?token=${confirmationToken}`;
-    const expiresIn = '24 heures';
+  async sendConfirmationEmail(
+    userEmail: string,
+    confirmationToken: string,
+    confirmationUrl: string,
+    provider?: 'sendgrid' | 'mailgun' | 'auto',
+    locale?: string,
+  ): Promise<unknown> {
+    const hasTokenInUrl = typeof confirmationUrl === 'string' && confirmationUrl.includes('token=');
+    const fullConfirmUrl = hasTokenInUrl ? confirmationUrl : `${confirmationUrl}?token=${confirmationToken}`;
+    const resolvedLocale = normalizeEmailLocale(locale);
+    const expiresIn = resolvedLocale === 'en' ? '24 hours' : '24 heures';
 
     const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    const logoUrl = `${baseUrl}/logo.png`;
     let html = this.templateRenderer.render('email-verification', {
       verificationUrl: fullConfirmUrl,
       expiresIn,
       baseUrl,
-    });
+      logoUrl,
+    }, resolvedLocale);
 
     if (!html) {
-      const content = `
+      const content = resolvedLocale === 'en'
+        ? `
+      <h1 style="color: #333;">Email confirmation</h1>
+      <p>Thank you for signing up to Luneo!</p>
+      <p>To activate your account, please confirm your email address:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${fullConfirmUrl}" class="btn">Confirm my email</a>
+      </div>
+      <p>If the button does not work, copy this link into your browser:</p>
+      <p style="word-break: break-all; color: #666;">${fullConfirmUrl}</p>
+      <p>Best regards,<br>The Luneo team</p>
+    `
+        : `
       <h1 style="color: #333;">Confirmation d'email</h1>
       <p>Merci de vous être inscrit chez Luneo !</p>
       <p>Pour activer votre compte, veuillez confirmer votre adresse email :</p>
@@ -308,14 +544,46 @@ export class EmailService {
       <p style="word-break: break-all; color: #666;">${fullConfirmUrl}</p>
       <p>Cordialement,<br>L'équipe Luneo</p>
     `;
-      html = emailLayout(content);
+      html = emailLayout(content, undefined, baseUrl, { locale: resolvedLocale, logoUrl });
+    }
+    if (!this.hasMeaningfulHtml(html)) {
+      const content = resolvedLocale === 'en'
+        ? `<h1 style="color: #333;">Confirm your email address</h1><p>Click the button below to verify your account.</p><p><a href="${fullConfirmUrl}" class="btn">Confirm my email</a></p>`
+        : `<h1 style="color: #333;">Confirmez votre adresse email</h1><p>Cliquez sur le bouton ci-dessous pour vérifier votre compte.</p><p><a href="${fullConfirmUrl}" class="btn">Confirmer mon email</a></p>`;
+      html = emailLayout(content, undefined, baseUrl, { locale: resolvedLocale, logoUrl });
+    }
+
+    const subject =
+      resolvedLocale === 'en' ? 'Confirm your email address' : 'Confirmez votre adresse email';
+    const text =
+      resolvedLocale === 'en'
+        ? `Confirm your email address\n\nClick this link to verify your email:\n${fullConfirmUrl}\n\nThe Luneo team`
+        : `Confirmez votre adresse email\n\nCliquez sur ce lien pour vérifier votre email:\n${fullConfirmUrl}\n\nL'équipe Luneo`;
+
+    const templateId = this.shouldUseSendGridDynamicTemplate('emailConfirmation', provider);
+    if (templateId) {
+      return this.sendEmail({
+        to: userEmail,
+        subject,
+        text,
+        template: templateId,
+        templateData: {
+          locale: resolvedLocale,
+          verificationUrl: fullConfirmUrl,
+          expiresIn,
+          appUrl: baseUrl,
+          logoUrl,
+        },
+        tags: ['email-confirmation', 'onboarding'],
+        provider: provider === 'auto' || provider === undefined ? 'sendgrid' : provider,
+      });
     }
 
     return this.sendEmail({
       to: userEmail,
-      subject: 'Confirmez votre adresse email',
+      subject,
       html,
-      text: `Confirmez votre adresse email\n\nCliquez sur ce lien pour vérifier votre email:\n${fullConfirmUrl}\n\nL'équipe Luneo`,
+      text,
       tags: ['email-confirmation', 'onboarding'],
       provider,
     });
@@ -329,6 +597,23 @@ export class EmailService {
     data: { planName: string; billingDate: string; features: string },
   ): Promise<void> {
     const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
+    const templateId = this.shouldUseSendGridDynamicTemplate('invoicePaid', 'auto');
+    if (templateId) {
+      await this.sendEmail({
+        to,
+        subject: `Votre abonnement ${data.planName} est activé`,
+        template: templateId,
+        templateData: {
+          planName: data.planName,
+          billingDate: data.billingDate,
+          features: data.features,
+          appUrl: baseUrl,
+        },
+        tags: ['billing', 'subscription-created'],
+        provider: 'sendgrid',
+      });
+      return;
+    }
     let html = this.templateRenderer.render('subscription-created', {
       planName: data.planName,
       billingDate: data.billingDate,
@@ -368,6 +653,24 @@ export class EmailService {
   ): Promise<void> {
     const baseUrl = this.getFrontendUrl().replace(/\/$/, '');
     const updatePaymentUrl = `${baseUrl}/dashboard/billing`;
+    const templateId = this.shouldUseSendGridDynamicTemplate('paymentFailed', 'auto');
+    if (templateId) {
+      await this.sendEmail({
+        to,
+        subject: 'Échec de paiement — Action requise',
+        template: templateId,
+        templateData: {
+          amount: data.amount,
+          retryDate: data.retryDate,
+          firstName: data.firstName || '',
+          updatePaymentUrl,
+          appUrl: baseUrl,
+        },
+        tags: ['billing', 'payment-failed'],
+        provider: 'sendgrid',
+      });
+      return;
+    }
     let html = this.templateRenderer.render('payment-failed', {
       amount: data.amount,
       retryDate: data.retryDate,
@@ -556,12 +859,13 @@ export class EmailService {
     userEmail: string,
     userName: string,
     queueOptions?: QueueEmailOptions,
+    locale?: string,
   ): Promise<{ jobId: string }> {
     const jobData: EmailJobData = {
       type: 'welcome',
       to: userEmail,
       subject: 'Bienvenue chez Luneo ! 🎉',
-      data: { userName },
+      data: { userName, locale },
       tags: ['welcome', 'onboarding'],
       userId: queueOptions?.userId,
       priority: queueOptions?.priority || 'normal',
@@ -584,12 +888,13 @@ export class EmailService {
     resetToken: string,
     resetUrl: string,
     queueOptions?: QueueEmailOptions,
+    locale?: string,
   ): Promise<{ jobId: string }> {
     const jobData: EmailJobData = {
       type: 'password-reset',
       to: userEmail,
       subject: 'Réinitialisation de votre mot de passe',
-      data: { resetToken, resetUrl },
+      data: { resetToken, resetUrl, locale },
       tags: ['password-reset', 'security'],
       userId: queueOptions?.userId,
       priority: queueOptions?.priority || 'high', // High priority for security emails
@@ -612,12 +917,13 @@ export class EmailService {
     confirmationToken: string,
     confirmationUrl: string,
     queueOptions?: QueueEmailOptions,
+    locale?: string,
   ): Promise<{ jobId: string }> {
     const jobData: EmailJobData = {
       type: 'confirmation',
       to: userEmail,
       subject: 'Confirmez votre adresse email',
-      data: { confirmationToken, confirmationUrl },
+      data: { confirmationToken, confirmationUrl, locale },
       tags: ['email-confirmation', 'onboarding'],
       userId: queueOptions?.userId,
       priority: queueOptions?.priority || 'high', // High priority for signup flow

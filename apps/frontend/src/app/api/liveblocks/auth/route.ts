@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const { profile } = await accessResponse.json();
+      await accessResponse.json();
     } else {
       // For non-design rooms, get profile from backend
       const profileResponse = await fetch(`${API_URL}/api/v1/auth/me`, {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         },
       });
       
-      const profile = profileResponse.ok ? await profileResponse.json() : null;
+      const _profile = profileResponse.ok ? await profileResponse.json() : null;
     }
 
     // Get user profile for name and avatar

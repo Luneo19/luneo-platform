@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { Brain, Send, Star, TrendingDown, Sparkles, Headphones, ShoppingCart, TrendingUp, Wrench, Megaphone } from 'lucide-react';
 
 interface ChatMessage {
@@ -159,14 +159,12 @@ export function AgentDemoShowcase() {
   const [visibleMessages, setVisibleMessages] = useState<number[]>([]);
   const [showTyping, setShowTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [hasStarted, setHasStarted] = useState(false);
 
   const currentScript = SCENARIOS[activeScenario].messages;
 
   const startAnimation = useCallback(() => {
     setVisibleMessages([]);
     setShowTyping(false);
-    setHasStarted(true);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const script = SCENARIOS[activeScenario].messages;
@@ -211,6 +209,7 @@ export function AgentDemoShowcase() {
 
   return (
     <motion.div
+      id="demo"
       ref={containerRef}
       initial={{ opacity: 0, y: 40 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}

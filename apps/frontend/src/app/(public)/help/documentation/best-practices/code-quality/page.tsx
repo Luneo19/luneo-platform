@@ -1,7 +1,6 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import Link from 'next/link';
 import { CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ErrorBoundary } from '@/components/ErrorBoundary';

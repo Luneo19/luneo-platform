@@ -17,13 +17,7 @@ module.exports = {
   testRegex,
   testPathIgnorePatterns: isIntegration ? [] : ['integration\\.spec\\.ts$'],
   transform: {
-    '^.+\\.(t|j)s$': [
-      'ts-jest',
-      {
-        isolatedModules: true,
-        tsconfig: { skipLibCheck: true },
-      },
-    ],
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: { skipLibCheck: true } }],
   },
   collectCoverageFrom: [
     'src/**/*.(t|j)s',
@@ -49,10 +43,10 @@ module.exports = {
   },
   coverageThreshold: {
     global: {
-      branches: 15,
-      functions: 15,
-      lines: 20,
-      statements: 20,
+      branches: 25,
+      functions: 35,
+      lines: 35,
+      statements: 35,
     },
   },
   testTimeout: 30000,

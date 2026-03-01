@@ -1,13 +1,10 @@
 /**
- * PRICING CONSTANTS - Luneo V2 (Agents IA)
+ * PRICING CONSTANTS - Luneo (Plans reels)
  *
  * The canonical source of truth is the backend API: GET /api/v1/plans/all
  * These static values are kept as fallback for SSR/initial render.
  *
  * To fetch live data, use: endpoints.billing.plans()
- *
- * Plans: FREE(0) | PRO(49) | BUSINESS(149) | ENTERPRISE(sur devis)
- * Yearly discount: ~20% off (2 mois offerts)
  */
 
 export const PRICING = {
@@ -17,6 +14,12 @@ export const PRICING = {
     yearlyMonthly: 0,
     name: 'Gratuit',
   },
+  starter: {
+    monthly: 49,
+    yearly: 468,
+    yearlyMonthly: 39,
+    name: 'Pro',
+  },
   pro: {
     monthly: 49,
     yearly: 468,
@@ -25,7 +28,7 @@ export const PRICING = {
   },
   business: {
     monthly: 149,
-    yearly: 1_428,
+    yearly: 1428,
     yearlyMonthly: 119,
     name: 'Business',
   },
@@ -35,14 +38,7 @@ export const PRICING = {
     yearlyMonthly: -1,
     name: 'Enterprise',
   },
-  /** @deprecated V1 alias — maps to pro */
-  starter: {
-    monthly: 49,
-    yearly: 468,
-    yearlyMonthly: 39,
-    name: 'Pro',
-  },
-  /** @deprecated V1 alias — maps to pro */
+  /** @deprecated V1 alias - maps to pro */
   professional: {
     monthly: 49,
     yearly: 468,
@@ -52,8 +48,8 @@ export const PRICING = {
 } as const;
 
 /**
- * Plan limits — V2 Agents IA
- * MUST match backend plan-config.ts (SINGLE SOURCE OF TRUTH)
+ * Plan limits
+ * MUST match backend quotas/plan-limits.config.ts
  */
 export const PLAN_LIMITS = {
   free: {
@@ -61,42 +57,96 @@ export const PLAN_LIMITS = {
     conversationsPerMonth: 100,
     knowledgeBases: 1,
     documentsPerKB: 10,
-    storageMB: 500,
+    storageMB: 5,
     teamMembers: 1,
+    channels: 1,
+    allowedChannels: ['WIDGET'],
+    analyticsRetentionDays: 7,
     apiAccess: false,
     visualBuilder: false,
     emailChannel: false,
     advancedAnalytics: false,
     whiteLabel: false,
     prioritySupport: false,
+    customActions: false,
+    ssoSaml: false,
+    customIntegrations: false,
+    abTesting: false,
+    multiModelChoice: false,
+    sentimentAnalysis: false,
+    autoImprovement: false,
   },
-  pro: {
+  starter: {
     agents: 5,
     conversationsPerMonth: 2_000,
     knowledgeBases: 5,
-    documentsPerKB: 50,
+    documentsPerKB: 200,
     storageMB: 10_000,
     teamMembers: 5,
+    channels: 9,
+    allowedChannels: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+    analyticsRetentionDays: 90,
     apiAccess: true,
     visualBuilder: true,
     emailChannel: true,
     advancedAnalytics: false,
     whiteLabel: false,
     prioritySupport: true,
+    customActions: true,
+    ssoSaml: false,
+    customIntegrations: true,
+    abTesting: false,
+    multiModelChoice: true,
+    sentimentAnalysis: true,
+    autoImprovement: true,
+  },
+  pro: {
+    agents: 5,
+    conversationsPerMonth: 2_000,
+    knowledgeBases: 5,
+    documentsPerKB: 200,
+    storageMB: 10_000,
+    teamMembers: 5,
+    channels: 9,
+    allowedChannels: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+    analyticsRetentionDays: 90,
+    apiAccess: true,
+    visualBuilder: true,
+    emailChannel: true,
+    advancedAnalytics: false,
+    whiteLabel: false,
+    prioritySupport: true,
+    customActions: true,
+    ssoSaml: false,
+    customIntegrations: true,
+    abTesting: false,
+    multiModelChoice: true,
+    sentimentAnalysis: true,
+    autoImprovement: true,
   },
   business: {
     agents: 25,
     conversationsPerMonth: 15_000,
     knowledgeBases: 25,
-    documentsPerKB: 200,
+    documentsPerKB: 1_000,
     storageMB: 100_000,
     teamMembers: 25,
+    channels: 9,
+    allowedChannels: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+    analyticsRetentionDays: 90,
     apiAccess: true,
     visualBuilder: true,
     emailChannel: true,
     advancedAnalytics: true,
     whiteLabel: true,
     prioritySupport: true,
+    customActions: true,
+    ssoSaml: false,
+    customIntegrations: true,
+    abTesting: false,
+    multiModelChoice: true,
+    sentimentAnalysis: true,
+    autoImprovement: true,
   },
   enterprise: {
     agents: -1,
@@ -105,42 +155,47 @@ export const PLAN_LIMITS = {
     documentsPerKB: -1,
     storageMB: -1,
     teamMembers: -1,
+    channels: -1,
+    allowedChannels: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+    analyticsRetentionDays: 365,
     apiAccess: true,
     visualBuilder: true,
     emailChannel: true,
     advancedAnalytics: true,
     whiteLabel: true,
     prioritySupport: true,
+    customActions: true,
+    ssoSaml: true,
+    customIntegrations: true,
+    abTesting: true,
+    multiModelChoice: true,
+    sentimentAnalysis: true,
+    autoImprovement: true,
   },
-  /** @deprecated V1 alias — maps to pro */
-  starter: {
-    agents: 5,
-    conversationsPerMonth: 2_000,
-    knowledgeBases: 5,
-    documentsPerKB: 50,
-    storageMB: 10_000,
-    teamMembers: 5,
-    apiAccess: true,
-    visualBuilder: true,
-    emailChannel: true,
-    advancedAnalytics: false,
-    whiteLabel: false,
-    prioritySupport: true,
-  },
-  /** @deprecated V1 alias — maps to pro */
+  /** @deprecated V1 alias - maps to pro */
   professional: {
     agents: 5,
     conversationsPerMonth: 2_000,
     knowledgeBases: 5,
-    documentsPerKB: 50,
+    documentsPerKB: 200,
     storageMB: 10_000,
     teamMembers: 5,
+    channels: 9,
+    allowedChannels: ['WIDGET', 'EMAIL', 'SLACK', 'WHATSAPP', 'MESSENGER', 'INSTAGRAM', 'TELEGRAM', 'SMS', 'API'],
+    analyticsRetentionDays: 90,
     apiAccess: true,
     visualBuilder: true,
     emailChannel: true,
-    advancedAnalytics: false,
+    advancedAnalytics: true,
     whiteLabel: false,
     prioritySupport: true,
+    customActions: true,
+    ssoSaml: false,
+    customIntegrations: true,
+    abTesting: false,
+    multiModelChoice: true,
+    sentimentAnalysis: true,
+    autoImprovement: true,
   },
 } as const;
 

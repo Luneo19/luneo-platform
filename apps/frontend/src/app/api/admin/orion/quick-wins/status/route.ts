@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const res = await fetch(`${API_URL}/api/v1/orion/quick-wins/status${request.nextUrl.search}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/quick-wins/status${request.nextUrl.search}`, {
       headers: forwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import {
   TrendingUp,
   TrendingDown,
@@ -16,11 +16,8 @@ import {
   DollarSign,
   Palette,
   Download,
-  Calendar,
-  Filter,
   RefreshCw,
   BarChart3,
-  PieChart,
   Activity,
   Target,
   Clock,
@@ -34,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Optimisé: Dynamic imports pour @nivo (packages lourds ~240KB)
-import { LazyResponsiveLine as ResponsiveLine, LazyResponsiveBar as ResponsiveBar, LazyResponsivePie as ResponsivePie } from '@/lib/performance/dynamic-charts';
+import { LazyResponsiveLine as ResponsiveLine, LazyResponsivePie as ResponsivePie } from '@/lib/performance/dynamic-charts';
 import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -235,7 +232,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
         {metricCards.map((metric, i) => {
           const IconComponent = metric.icon as React.ComponentType<{ className?: string }>;
           return (
-            <motion
+            <Motion
               key={metric.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -268,7 +265,7 @@ function AnalyticsDashboardContent({ className, dateRange: initialDateRange = '3
                   <p className="text-xs text-gray-500 mt-2">{metric.description}</p>
                 </CardContent>
               </Card>
-            </motion>
+            </Motion>
           );
         })}
       </div>

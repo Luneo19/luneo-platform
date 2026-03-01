@@ -44,7 +44,7 @@ export class AppModule {}`;
     [primaryColor]="'#6366f1'"
     welcomeMessage="Bonjour ! Comment puis-je vous aider ?"
     [user]="currentUser"
-    (onMessage)="handleMessage(\$event)"
+    (onMessage)="handleMessage($event)"
     (onOpen)="handleOpen()"
     (onClose)="handleClose()"
   ></luneo-widget>

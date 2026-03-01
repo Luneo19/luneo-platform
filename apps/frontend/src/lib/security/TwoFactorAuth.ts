@@ -82,7 +82,7 @@ export class TwoFactorAuthService {
   /**
    * @deprecated Use setup() instead - no userId needed, uses authenticated user
    */
-  async generateSecret(userId: string): Promise<{ secret: string; qrCode: string }> {
+  async generateSecret(_userId: string): Promise<{ secret: string; qrCode: string }> {
     const setup = await this.setup();
     return {
       secret: setup.secret,
@@ -125,9 +125,9 @@ export class TwoFactorAuthService {
    * @deprecated Use verify2FA() instead
    */
   async verifyCode(
-    userId: string,
+    _userId: string,
     code: string,
-    method: 'totp' | 'backup' = 'totp'
+    _method: 'totp' | 'backup' = 'totp'
   ): Promise<boolean> {
     const result = await this.verify2FA(code);
     return result.success;
@@ -137,7 +137,7 @@ export class TwoFactorAuthService {
    * @deprecated Use verify2FA() instead
    */
   async verify(
-    userId: string,
+    _userId: string,
     verification: TwoFactorVerification
   ): Promise<boolean> {
     if (verification.method === 'totp') {
@@ -226,7 +226,7 @@ export class TwoFactorAuthService {
   /**
    * @deprecated Use getStatus() instead
    */
-  async isEnabled(userId: string): Promise<boolean> {
+  async isEnabled(_userId: string): Promise<boolean> {
     const status = await this.getStatus();
     return status.enabled;
   }

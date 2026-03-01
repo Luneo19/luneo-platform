@@ -11,7 +11,7 @@ interface CustomCursorProps {
 export function CustomCursor({
   color = '#6366f1',
   size = 24,
-  trailLength = 8,
+  trailLength: _trailLength = 8,
 }: CustomCursorProps) {
   const cursorRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);

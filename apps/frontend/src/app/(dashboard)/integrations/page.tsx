@@ -86,6 +86,7 @@ const INTEGRATIONS = [
 
 export default function IntegrationsPage() {
   useAuth(); // Ensure auth context
+  const integrationsModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_INTEGRATIONS_MODULE === 'true';
   const { toast } = useToast();
   const [shopifyStatus, setShopifyStatus] = useState<ShopifyStatus | null>(null);
   const [shopifyLoading, setShopifyLoading] = useState(true);
@@ -96,6 +97,12 @@ export default function IntegrationsPage() {
   const [accessToken, setAccessToken] = useState('');
 
   const fetchShopifyStatus = useCallback(async () => {
+    if (!integrationsModuleEnabled) {
+      setShopifyStatus({ connected: false });
+      setShopifyLoading(false);
+      return;
+    }
+
     try {
       setShopifyLoading(true);
       const data = await endpoints.integrations.shopifyV2.status();
@@ -111,7 +118,7 @@ export default function IntegrationsPage() {
     } finally {
       setShopifyLoading(false);
     }
-  }, [toast]);
+  }, [toast, integrationsModuleEnabled]);
 
   useEffect(() => {
     fetchShopifyStatus();

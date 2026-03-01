@@ -3,10 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api/client';
+import { normalizeListResponse } from '@/lib/api/normalize';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Search,
@@ -54,7 +53,6 @@ const CATEGORY_FILTERS: { value: TemplateCategory | 'ALL'; label: string }[] = [
 ];
 
 export default function AgentNewPage() {
-  const { user } = useAuth();
   const router = useRouter();
   const [templates, setTemplates] = useState<AgentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,10 +66,10 @@ export default function AgentNewPage() {
     try {
       const params = new URLSearchParams();
       if (categoryFilter !== 'ALL') params.set('category', categoryFilter);
-      const res = await api.get<{ data: AgentTemplate[] }>(
+      const res = await api.get(
         `/api/v1/agent-templates?${params.toString()}`
       );
-      setTemplates(res.data ?? []);
+      setTemplates(normalizeListResponse<AgentTemplate>(res));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les templates');
     } finally {

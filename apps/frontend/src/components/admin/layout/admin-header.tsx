@@ -9,7 +9,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { AdminBreadcrumbs } from './admin-breadcrumbs';
-import { Search, Bell, User, LogOut, Menu } from 'lucide-react';
+import { Search, User, LogOut, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { AdminUser } from '@/lib/admin/permissions';
 import { endpoints } from '@/lib/api/client';

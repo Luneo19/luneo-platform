@@ -10,6 +10,7 @@ import { serverLogger } from '@/lib/logger-server';
 import { AnalyticsExportSchema } from '@/lib/validations/api-schemas';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 // Helper pour calculer les dates
 function getDateRange(startDate?: string, endDate?: string, dateRange?: string) {
@@ -115,27 +116,49 @@ async function fetchAnalyticsData(
     const audience = audienceRes.ok ? await audienceRes.json() : null;
 
     // Transform to expected format
-    const dailyData = overview?.dailyMetrics || overview?.data || [];
-    const funnelData = funnel?.steps || funnel?.data || [
+    const dailyData = normalizeListResponse<Record<string, unknown>>(overview?.dailyMetrics ?? overview?.data).map((row) => ({
+      date: String(row.date ?? ''),
+      visitors: Number(row.visitors ?? 0),
+      pageViews: Number(row.pageViews ?? 0),
+      conversions: Number(row.conversions ?? 0),
+      revenue: Number(row.revenue ?? 0),
+      designs: Number(row.designs ?? 0),
+      avgSessionDuration: Number(row.avgSessionDuration ?? 0),
+    }));
+    const funnelData = normalizeListResponse<Record<string, unknown>>(funnel?.steps ?? funnel?.data).length > 0
+      ? normalizeListResponse<Record<string, unknown>>(funnel?.steps ?? funnel?.data).map((row) => ({
+          step: String(row.step ?? ''),
+          value: Number(row.value ?? 0),
+          rate: Number(row.rate ?? 0),
+        }))
+      : [
       { step: 'Visiteurs', value: overview?.totalVisitors || 0, rate: 100 },
       { step: 'Vues Produits', value: Math.floor((overview?.totalVisitors || 0) * 0.65), rate: 65 },
       { step: 'Personnalisations', value: Math.floor((overview?.totalVisitors || 0) * 0.32), rate: 32 },
       { step: 'Ajout Panier', value: Math.floor((overview?.totalVisitors || 0) * 0.18), rate: 18 },
       { step: 'Achats', value: overview?.conversions || 0, rate: overview?.conversionRate || 0 },
     ];
-    const topProducts = (products?.products || products?.data || []).map((p: Record<string, unknown>) => ({
-      product: p.name || p.product || 'Unknown',
-      designs: p.designs || p.customizations || 0,
-      revenue: p.revenue || 0,
-      conversionRate: p.conversionRate || 0,
+    const topProducts = normalizeListResponse<Record<string, unknown>>(products?.products ?? products?.data).map((p: Record<string, unknown>) => ({
+      product: String(p.name ?? p.product ?? 'Unknown'),
+      designs: Number(p.designs ?? p.customizations ?? 0),
+      revenue: Number(p.revenue ?? 0),
+      conversionRate: Number(p.conversionRate ?? 0),
     }));
     const audienceData = {
-      devices: audience?.devices || [
+      devices: normalizeListResponse<Record<string, unknown>>(audience?.devices).length > 0
+        ? normalizeListResponse<Record<string, unknown>>(audience?.devices).map((d) => ({
+            device: String(d.device ?? ''),
+            percentage: Number(d.percentage ?? 0),
+          }))
+        : [
         { device: 'Desktop', percentage: 58 },
         { device: 'Mobile', percentage: 35 },
         { device: 'Tablet', percentage: 7 },
       ],
-      countries: audience?.countries || audience?.topCountries || [],
+      countries: normalizeListResponse<Record<string, unknown>>(audience?.countries ?? audience?.topCountries).map((c) => ({
+        country: String(c.country ?? ''),
+        visitors: Number(c.visitors ?? 0),
+      })),
     };
 
     return { dailyData, funnelData, topProducts, audienceData };
@@ -242,7 +265,7 @@ interface AnalyticsExportData {
   topProducts?: Array<Record<string, unknown>>;
   audienceData?: { devices?: Array<Record<string, unknown>>; countries?: Array<Record<string, unknown>> };
 }
-function generateCSV(data: AnalyticsExportData, reportType: string): string {
+function generateCSV(data: AnalyticsExportData): string {
   let csv = '';
 
   if (data.dailyData) {
@@ -519,7 +542,7 @@ export async function POST(request: NextRequest) {
       const dateRangeForFilename = `${startDateStr}_to_${endDateStr}`;
       
       if (format === 'csv') {
-        const csv = generateCSV(data, reportType);
+        const csv = generateCSV(data);
         return new NextResponse(csv, {
           headers: {
             'Content-Type': 'text/csv',

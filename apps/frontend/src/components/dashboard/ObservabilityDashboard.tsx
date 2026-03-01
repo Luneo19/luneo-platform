@@ -148,9 +148,9 @@ function ObservabilityDashboard() {
             </p>
           </div>
           <div className="divide-y divide-border/60">
-            {data?.queues.map((queue) => (
+            {Array.isArray(data?.queues) ? data.queues.map((queue) => (
               <QueueRow key={queue.name} queue={queue} />
-            )) ?? (
+            )) : (
               <div className="p-6 text-sm text-muted-foreground">
                 Collecte des métriques en cours…
               </div>

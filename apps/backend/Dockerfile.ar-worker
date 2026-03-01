@@ -49,7 +49,7 @@ ENV PATH="${BLENDER_PATH}:${PATH}"
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs \
     && corepack enable \
-    && corepack prepare pnpm@latest --activate \
+    && corepack prepare pnpm@8.10.0 --activate \
     && pnpm --version
 
 # Install global npm tools for 3D pipeline

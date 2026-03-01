@@ -39,7 +39,8 @@ const OPERATORS = [
 type ConditionRow = { property: string; operator: string; value: string };
 
 export default function OrionSegmentsPage() {
-  const { segments, isLoading, isError, error, createSegment, deleteSegment } = useSegments();
+  const { segments, isLoading, isError, createSegment, deleteSegment } = useSegments();
+  const safeSegments = Array.isArray(segments) ? segments : [];
   const [logicMode, setLogicMode] = useState<'AND' | 'OR'>('AND');
   const [conditions, setConditions] = useState<ConditionRow[]>([
     { property: 'sessions_per_month', operator: 'gt', value: '' },
@@ -104,7 +105,7 @@ export default function OrionSegmentsPage() {
     }
   };
 
-  const totalSegmented = segments.reduce((acc, s) => acc + (s.userCount ?? 0), 0);
+  const totalSegmented = safeSegments.reduce((acc, s) => acc + (s.userCount ?? 0), 0);
   const activeFilters = conditions.filter((c) => c.value.trim()).length;
 
   const segmentTypeDisplay = (seg: { type?: string | null; criteria?: Record<string, unknown> }) => {
@@ -138,7 +139,7 @@ export default function OrionSegmentsPage() {
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 text-zinc-400 text-sm">Total segments</div>
             <div className="text-2xl font-semibold text-zinc-100">
-              {isLoading ? '—' : segments.length}
+              {isLoading ? '—' : safeSegments.length}
             </div>
           </CardContent>
         </Card>
@@ -335,13 +336,13 @@ export default function OrionSegmentsPage() {
         <CardContent>
           {isLoading ? (
             <div className="py-12 text-center text-zinc-400">Loading segments…</div>
-          ) : segments.length === 0 ? (
+          ) : safeSegments.length === 0 ? (
             <div className="py-12 text-center text-zinc-500">
               {isError ? 'No data available.' : 'No segments yet. Create one above.'}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
-              {segments.map((seg) => {
+              {safeSegments.map((seg) => {
                 const typeLabel = segmentTypeDisplay(seg);
                 return (
                   <Card

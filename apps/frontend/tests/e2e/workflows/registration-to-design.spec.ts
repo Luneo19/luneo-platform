@@ -8,11 +8,69 @@
  * 3. Création d'un design
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from '../utils/locale';
+import { isPresentAndVisible } from '../utils/assertions';
 
 // Générateur d'email unique pour les tests
 const generateTestEmail = () => `e2e-${Date.now()}-${Math.random().toString(36).substring(7)}@test-luneo.app`;
+
+async function satisfyRegistrationPrerequisites(page: Page, testName: string): Promise<void> {
+  const nameField = page.getByTestId('register-name');
+  const firstNameField = page.locator('input[name="firstName"]').first();
+  const lastNameField = page.locator('input[name="lastName"]').first();
+  const termsCheckbox = page.locator('input[type="checkbox"]').first();
+
+  if (await isPresentAndVisible(nameField)) {
+    await nameField.fill(testName);
+  } else {
+    if (await isPresentAndVisible(firstNameField)) await firstNameField.fill('Test');
+    if (await isPresentAndVisible(lastNameField)) await lastNameField.fill('User E2E');
+  }
+
+  if (await isPresentAndVisible(termsCheckbox)) {
+    await termsCheckbox.check({ force: true });
+  }
+}
+
+async function fillVisibleRequiredFields(page: Page): Promise<void> {
+  const requiredFields = page.locator('input[required], textarea[required], select[required]');
+  const count = await requiredFields.count();
+
+  for (let i = 0; i < count; i += 1) {
+    const field = requiredFields.nth(i);
+    if (!(await field.isVisible().catch(() => false))) continue;
+
+    const tagName = await field.evaluate((el) => el.tagName.toLowerCase()).catch(() => '');
+    const type = await field.getAttribute('type');
+    const name = (await field.getAttribute('name')) || '';
+    const currentValue = await field.inputValue().catch(() => '');
+
+    if (tagName === 'select') {
+      const options = field.locator('option');
+      if ((await options.count()) > 1) {
+        await field.selectOption({ index: 1 }).catch(() => {});
+      }
+      continue;
+    }
+
+    if ((type === 'checkbox' || type === 'radio') && !(await field.isChecked().catch(() => false))) {
+      await field.check({ force: true }).catch(() => {});
+      continue;
+    }
+
+    if (currentValue.trim().length > 0) continue;
+
+    const lowerName = name.toLowerCase();
+    if (type === 'email' || lowerName.includes('email')) {
+      await field.fill(generateTestEmail()).catch(() => {});
+    } else if (type === 'password' || lowerName.includes('password')) {
+      await field.fill('TestPassword123!').catch(() => {});
+    } else {
+      await field.fill('E2E Value').catch(() => {});
+    }
+  }
+}
 
 test.describe('Registration → Onboarding → Design Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -36,27 +94,24 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     await expect(page).toHaveURL(/.*register/);
     
     // Remplir le formulaire d'inscription
-    const nameField = page.getByTestId('register-name');
     const emailField = page.getByTestId('register-email');
     const passwordField = page.getByTestId('register-password');
     const confirmPasswordField = page.getByTestId('register-confirm-password');
     const submitButton = page.getByTestId('register-submit');
     
     // Remplir les champs
-    if (await nameField.isVisible().catch(() => false)) {
-      await nameField.fill(testName);
-    }
+    await satisfyRegistrationPrerequisites(page, testName);
     await emailField.fill(testEmail);
     await passwordField.fill(testPassword);
     await confirmPasswordField.fill(testPassword);
     
     // Soumettre le formulaire
+    await fillVisibleRequiredFields(page);
+    await expect.poll(async () => submitButton.isEnabled(), { timeout: 10000 }).toBeTruthy();
     await submitButton.click();
     
     // Attendre la redirection (vers onboarding, dashboard, ou vérification email)
-    await page.waitForURL(/dashboard|onboarding|verify|confirm|welcome/, { timeout: 15000 }).catch(() => {
-      console.log('⚠️ Pas de redirection automatique après inscription');
-    });
+    await page.waitForURL(/dashboard|onboarding|verify|confirm|welcome/, { timeout: 15000 });
     
     console.log('✅ Inscription terminée');
 
@@ -83,7 +138,7 @@ test.describe('Registration → Onboarding → Design Flow', () => {
       ];
       
       for (const stepButton of onboardingSteps) {
-        if (await stepButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        if (await isPresentAndVisible(stepButton)) {
           await stepButton.click();
           await page.waitForTimeout(500); // Attendre la transition
         }
@@ -91,7 +146,7 @@ test.describe('Registration → Onboarding → Design Flow', () => {
       
       // Si il y a un bouton "Skip" ou "Passer", l'utiliser
       const skipButton = page.getByRole('button', { name: /passer|skip|ignorer|later/i }).first();
-      if (await skipButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(skipButton)) {
         await skipButton.click();
         await page.waitForTimeout(1000);
       }
@@ -116,9 +171,9 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     const aiStudioLink = page.getByRole('link', { name: /ai studio|studio|créer.*design|create.*design/i }).first();
     const createButton = page.getByRole('button', { name: /créer|create|nouveau|new/i }).first();
     
-    if (await aiStudioLink.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isPresentAndVisible(aiStudioLink)) {
       await aiStudioLink.click();
-    } else if (await createButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    } else if (await isPresentAndVisible(createButton)) {
       await createButton.click();
     } else {
       // Naviguer directement vers AI Studio
@@ -139,10 +194,10 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     const promptInput = page.getByPlaceholder(/prompt|description|créer|create|décris|describe/i).first();
     const textareaInput = page.locator('textarea').first();
     
-    if (await promptInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await isPresentAndVisible(promptInput)) {
       await promptInput.fill('Design de test E2E - T-shirt avec logo moderne');
       console.log('✅ Prompt rempli');
-    } else if (await textareaInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+    } else if (await isPresentAndVisible(textareaInput)) {
       await textareaInput.fill('Design de test E2E - T-shirt avec logo moderne');
       console.log('✅ Textarea rempli');
     } else {
@@ -153,10 +208,10 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     const generateButton = page.getByRole('button', { name: /générer|generate|créer|create|générer.*design/i }).first();
     const designSubmitButton = page.getByTestId('generate-design').or(page.getByTestId('create-design'));
     
-    if (await generateButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isPresentAndVisible(generateButton)) {
       await generateButton.click();
       console.log('✅ Bouton de génération cliqué');
-    } else if (await designSubmitButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    } else if (await isPresentAndVisible(designSubmitButton)) {
       await designSubmitButton.click();
       console.log('✅ Bouton de soumission cliqué');
     } else {
@@ -171,9 +226,9 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     const loadingMessage = page.getByText(/chargement|loading|génération|generating/i).first();
     const designPreview = page.locator('img[alt*="design"], img[alt*="preview"], canvas').first();
     
-    const hasSuccess = await successMessage.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasLoading = await loadingMessage.isVisible({ timeout: 2000 }).catch(() => false);
-    const hasPreview = await designPreview.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasSuccess = await isPresentAndVisible(successMessage);
+    const hasLoading = await isPresentAndVisible(loadingMessage);
+    const hasPreview = await isPresentAndVisible(designPreview);
     
     if (hasSuccess || hasLoading || hasPreview) {
       console.log('✅ Design en cours de création ou créé');
@@ -198,19 +253,22 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     const confirmPasswordField = page.getByTestId('register-confirm-password');
     const submitButton = page.getByTestId('register-submit');
     
+    await satisfyRegistrationPrerequisites(page, 'Onboarding Skip E2E');
     await emailField.fill(testEmail);
     await passwordField.fill(testPassword);
     await confirmPasswordField.fill(testPassword);
+    await fillVisibleRequiredFields(page);
+    await expect.poll(async () => submitButton.isEnabled(), { timeout: 10000 }).toBeTruthy();
     await submitButton.click();
     
     // Attendre redirection
-    await page.waitForURL(/dashboard|onboarding|verify/, { timeout: 15000 }).catch(() => {});
+    await page.waitForURL(/dashboard|onboarding|verify/, { timeout: 15000 });
     
     // Si on est sur onboarding, chercher le bouton skip
     if (page.url().includes('onboarding')) {
       const skipButton = page.getByRole('button', { name: /passer|skip|ignorer|later|plus tard/i }).first();
       
-      if (await skipButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(skipButton)) {
         await skipButton.click();
         await page.waitForURL(/dashboard/, { timeout: 5000 });
         await expect(page).toHaveURL(/.*dashboard/);
@@ -233,7 +291,7 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     ];
     
     for (const link of aiStudioLinks) {
-      if (await link.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isPresentAndVisible(link)) {
         await link.click();
         await page.waitForURL(/.*ai-studio|.*studio/, { timeout: 5000 });
         await expect(page).toHaveURL(/.*ai-studio|.*studio/);
@@ -266,13 +324,16 @@ test.describe('Registration to Design Performance', () => {
     const confirmPasswordField = page.getByTestId('register-confirm-password');
     const submitButton = page.getByTestId('register-submit');
     
+    await satisfyRegistrationPrerequisites(page, 'Perf E2E');
     await emailField.fill(testEmail);
     await passwordField.fill(testPassword);
     await confirmPasswordField.fill(testPassword);
+    await fillVisibleRequiredFields(page);
+    await expect.poll(async () => submitButton.isEnabled(), { timeout: 10000 }).toBeTruthy();
     await submitButton.click();
     
     // Attendre redirection
-    await page.waitForURL(/dashboard|onboarding|verify/, { timeout: 15000 }).catch(() => {});
+    await page.waitForURL(/dashboard|onboarding|verify/, { timeout: 15000 });
     
     const registrationTime = Date.now() - startTime;
     console.log(`Registration time: ${registrationTime}ms`);

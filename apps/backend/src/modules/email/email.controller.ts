@@ -25,11 +25,12 @@ export class SendEmailDto {
 export class TestEmailDto {
   email: string;
   name?: string;
+  locale?: string;
   provider?: 'sendgrid' | 'mailgun' | 'auto';
 }
 
 @ApiTags('Email')
-@Controller('email')
+@Controller(['email', 'emails'])
 @UseGuards(JwtAuthGuard)
 @Throttle({ default: { limit: 20, ttl: 60000 } })
 export class EmailController {
@@ -53,6 +54,7 @@ export class EmailController {
   }
 
   @Get('status')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Get email providers status' })
   @ApiResponse({ status: 200, description: 'Email providers status' })
   getStatus() {
@@ -65,6 +67,7 @@ export class EmailController {
   }
 
   @Post('send')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send email' })
   @ApiBody({ type: SendEmailDto })
   @ApiResponse({ status: 200, description: 'Email sent successfully' })
@@ -98,6 +101,7 @@ export class EmailController {
         testData.email,
         testData.name || 'Test User',
         testData.provider,
+        testData.locale,
       );
       return {
         success: true,
@@ -128,6 +132,7 @@ export class EmailController {
         resetToken,
         resetUrl,
         testData.provider,
+        testData.locale,
       );
       return {
         success: true,
@@ -160,6 +165,7 @@ export class EmailController {
         confirmationToken,
         confirmationUrl,
         testData.provider,
+        testData.locale,
       );
       return {
         success: true,
@@ -177,6 +183,7 @@ export class EmailController {
 
   // SendGrid specific endpoints
   @Post('sendgrid/simple')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send simple email via SendGrid (direct)' })
   @ApiBody({ type: SendEmailDto })
   @ApiResponse({ status: 200, description: 'SendGrid email sent successfully' })
@@ -204,6 +211,7 @@ export class EmailController {
   }
 
   @Post('sendgrid/template')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send email with SendGrid template' })
   @ApiResponse({ status: 200, description: 'SendGrid template email sent successfully' })
   async sendSendGridTemplate(@Body() data: SendGridTemplateDto) {
@@ -227,6 +235,7 @@ export class EmailController {
   }
 
   @Post('sendgrid/scheduled')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send scheduled email via SendGrid' })
   @ApiResponse({ status: 200, description: 'Scheduled email sent successfully' })
   async sendSendGridScheduled(@Body() data: SendGridScheduledDto) {
@@ -252,6 +261,7 @@ export class EmailController {
   }
 
   @Get('sendgrid/stats')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Get SendGrid statistics' })
   @ApiResponse({ status: 200, description: 'SendGrid statistics' })
   async getSendGridStats() {
@@ -263,13 +273,20 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('Failed to get SendGrid stats', error instanceof Error ? error.stack : String(error));
-      throw new InternalServerErrorException('Failed to get SendGrid stats');
+      this.logger.warn('SendGrid stats unavailable', error instanceof Error ? error.message : String(error));
+      return {
+        success: false,
+        providerAvailable: this.sendgridService.isAvailable(),
+        stats: null,
+        message: 'SendGrid stats unavailable',
+        timestamp: new Date().toISOString(),
+      };
     }
   }
 
   // Mailgun specific endpoints
   @Post('mailgun/simple')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Send simple email via Mailgun (direct)' })
   @ApiBody({ type: SendEmailDto })
   @ApiResponse({ status: 200, description: 'Mailgun email sent successfully' })
@@ -297,6 +314,7 @@ export class EmailController {
   }
 
   @Get('mailgun/stats')
+  @Roles(PlatformRole.ADMIN)
   @ApiOperation({ summary: 'Get Mailgun statistics' })
   @ApiResponse({ status: 200, description: 'Mailgun statistics' })
   async getMailgunStats() {
@@ -308,8 +326,14 @@ export class EmailController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('Failed to get Mailgun stats', error instanceof Error ? error.stack : String(error));
-      throw new InternalServerErrorException('Failed to get Mailgun stats');
+      this.logger.warn('Mailgun stats unavailable', error instanceof Error ? error.message : String(error));
+      return {
+        success: false,
+        providerAvailable: this.mailgunService.isAvailable(),
+        stats: null,
+        message: 'Mailgun stats unavailable',
+        timestamp: new Date().toISOString(),
+      };
     }
   }
 }

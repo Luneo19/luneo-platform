@@ -1,0 +1,146 @@
+name: E2E Weekly KPI
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  E2E_BASE_URL: ${{ secrets.E2E_BASE_URL != '' && secrets.E2E_BASE_URL || 'https://luneo.app' }}
+
+jobs:
+  weekly-e2e-kpi:
+    name: Weekly E2E Stability Snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.10.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run critical E2E weekly batch
+        run: |
+          mkdir -p artifacts/e2e
+          cd apps/frontend
+          BASE_URL="${E2E_BASE_URL}" pnpm exec playwright test --config=playwright.production.config.ts \
+            tests/e2e/pricing.spec.ts \
+            tests/e2e/checkout-flow.spec.ts \
+            tests/e2e/workflows/checkout-to-confirmation.spec.ts \
+            tests/e2e/workflows/registration-to-design.spec.ts \
+            --project=chromium \
+            --reporter=json > ../../artifacts/e2e/critical-results.json
+
+      - name: Build + enforce critical weekly gate
+        run: |
+          cd apps/frontend
+          pnpm run report:e2e:stability -- --input ../../artifacts/e2e/critical-results.json --out-dir ../../artifacts/e2e --suite critical
+          pnpm run enforce:e2e:thresholds -- --input ../../artifacts/e2e/critical-stability-summary.json --suite critical --max-failed 0 --max-flaky-rate 0 --min-pass-rate 100
+
+      - name: Run domain E2E weekly batch
+        run: |
+          cd apps/frontend
+          BASE_URL="${E2E_BASE_URL}" pnpm exec playwright test --config=playwright.production.config.ts \
+            tests/e2e/products-flows.spec.ts \
+            tests/e2e/orders-flows.spec.ts \
+            tests/e2e/analytics-flows.spec.ts \
+            tests/e2e/oauth.spec.ts \
+            tests/e2e/oauth-flows.spec.ts \
+            tests/e2e/email-verification.spec.ts \
+            tests/e2e/admin-dashboard.spec.ts \
+            tests/e2e/cross-browser.spec.ts \
+            tests/e2e/rate-limiting.spec.ts \
+            --project=chromium \
+            --reporter=json > ../../artifacts/e2e/domain-results.json
+
+      - name: Build + enforce domain weekly gate
+        run: |
+          cd apps/frontend
+          pnpm run report:e2e:stability -- --input ../../artifacts/e2e/domain-results.json --out-dir ../../artifacts/e2e --suite domain
+          pnpm run enforce:e2e:thresholds -- --input ../../artifacts/e2e/domain-stability-summary.json --suite domain --max-failed 0 --max-flaky-rate 1 --min-pass-rate 99
+
+      - name: Build weekly KPI snapshot + PR pack
+        run: |
+          cd apps/frontend
+          pnpm run report:e2e:weekly-kpi -- --critical ../../artifacts/e2e/critical-stability-summary.json --domain ../../artifacts/e2e/domain-stability-summary.json --out-dir ../../artifacts/e2e
+          pnpm run report:e2e:pr-pack -- --critical ../../artifacts/e2e/critical-stability-summary.json --domain ../../artifacts/e2e/domain-stability-summary.json --out ../../artifacts/e2e-weekly-pr-pack.md --title "E2E Weekly Quality Pack"
+
+      - name: Locate previous weekly KPI artifact
+        id: previous_weekly
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const candidates = artifacts
+              .filter((artifact) => artifact.name.startsWith('e2e-weekly-kpi-') && !artifact.expired)
+              .filter((artifact) => artifact.workflow_run?.id !== context.runId)
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const selected = candidates[0];
+            core.setOutput('download_url', selected?.archive_download_url || '');
+
+      - name: Download previous weekly KPI artifact
+        if: steps.previous_weekly.outputs.download_url != ''
+        run: |
+          mkdir -p artifacts/previous-weekly
+          curl -sSL \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ steps.previous_weekly.outputs.download_url }}" \
+            -o artifacts/previous-weekly.zip
+          unzip -o artifacts/previous-weekly.zip -d artifacts/previous-weekly
+
+      - name: Build weekly trend report (N vs N-1)
+        run: |
+          python3 - <<'PY' > /tmp/e2e_kpi_paths.txt
+          import glob
+          import os
+          current = sorted(glob.glob('artifacts/e2e/weekly-kpi-*.json'))
+          previous = sorted(glob.glob('artifacts/previous-weekly/weekly-kpi-*.json'))
+          print(current[-1] if current else '')
+          print(previous[-1] if previous else '')
+          PY
+          CURRENT_PATH=$(sed -n '1p' /tmp/e2e_kpi_paths.txt)
+          PREVIOUS_PATH=$(sed -n '2p' /tmp/e2e_kpi_paths.txt)
+          cd apps/frontend
+          if [ -n "$PREVIOUS_PATH" ]; then
+            pnpm run report:e2e:trend -- --current "../../$CURRENT_PATH" --previous "../../$PREVIOUS_PATH" --out ../../artifacts/e2e-weekly-trend.md
+          else
+            pnpm run report:e2e:trend -- --current "../../$CURRENT_PATH" --out ../../artifacts/e2e-weekly-trend.md
+          fi
+
+      - name: Publish weekly summary
+        run: |
+          cat artifacts/e2e-weekly-pr-pack.md >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          cat artifacts/e2e-weekly-trend.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload weekly KPI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-weekly-kpi-${{ github.run_number }}
+          path: |
+            artifacts/e2e/**
+            artifacts/e2e-weekly-pr-pack.md
+            artifacts/e2e-weekly-trend.md
+          if-no-files-found: error

@@ -18,20 +18,24 @@ export async function POST(request: NextRequest) {
     if (!user) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
+    if (user.role !== 'ADMIN') {
+      throw { status: 403, message: 'Accès refusé', code: 'FORBIDDEN' };
+    }
 
     const { email, name } = validatedData;
 
-    // Forward to backend
-    const backendResponse = await fetch(`${API_URL}/api/v1/emails/send-welcome`, {
+    // Forward to backend unified email endpoint
+    const backendResponse = await fetch(`${API_URL}/api/v1/email/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Cookie: request.headers.get('cookie') || '',
       },
       body: JSON.stringify({
-        email,
-        name: name || user.email?.split('@')[0] || 'Utilisateur',
-        userId: user.id,
+        to: email,
+        subject: 'Bienvenue chez Luneo !',
+        html: `<p>Bonjour ${name || 'Utilisateur'},</p><p>Bienvenue chez Luneo.</p>`,
+        text: `Bonjour ${name || 'Utilisateur'}, bienvenue chez Luneo.`,
       }),
     });
 
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const result = await backendResponse.json();
+    await backendResponse.json();
     serverLogger.info('Welcome email sent', {
       userId: user.id,
       email,

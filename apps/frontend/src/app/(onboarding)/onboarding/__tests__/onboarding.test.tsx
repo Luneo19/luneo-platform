@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 import OnboardingPage from '../page';
 
 // Mock next/navigation
@@ -24,11 +25,11 @@ vi.mock('next/navigation', () => ({
 
 // Mock onboarding store
 const mockFormData = {
-  step1: { name: '', company: '', role: '', teamSize: '' },
-  step2: { industrySlug: '' },
-  step3: { useCases: [] },
-  step4: { goals: [] },
-  step5: { integrations: [] },
+  step1: { firstName: '', lastName: '' },
+  step2: { companyName: '', website: '', industry: '' },
+  step3: { sector: '', companySize: '', objective: '' },
+  step4: { companySize: '', agentName: '', systemPrompt: '', greeting: '', tone: 'PROFESSIONAL', model: 'gpt-4o-mini' },
+  step5: { objective: '', templateId: null },
 };
 
 const mockNextStep = vi.fn();
@@ -37,31 +38,42 @@ const mockSaveStep = vi.fn().mockResolvedValue(undefined);
 const mockCompleteOnboarding = vi.fn().mockResolvedValue(undefined);
 const mockSkipOnboarding = vi.fn().mockResolvedValue(undefined);
 const mockSetStepData = vi.fn();
-const mockSetSelectedIndustry = vi.fn();
 const mockFetchProgress = vi.fn();
 
 vi.mock('@/store/onboarding.store', () => ({
   useOnboardingStore: () => ({
     formData: mockFormData,
     currentStep: 1,
-    totalSteps: 6,
+    totalSteps: 7,
     isSubmitting: false,
-    selectedIndustry: null,
+    isLoading: false,
+    error: null,
     fetchProgress: mockFetchProgress,
     saveStep: mockSaveStep,
     nextStep: mockNextStep,
     previousStep: mockPreviousStep,
     setStepData: mockSetStepData,
-    setSelectedIndustry: mockSetSelectedIndustry,
     completeOnboarding: mockCompleteOnboarding,
     skipOnboarding: mockSkipOnboarding,
+  }),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { firstName: 'Test', lastName: 'User' },
   }),
 }));
 
 // Mock industry store
 const mockFetchAllIndustries = vi.fn().mockResolvedValue([]);
 vi.mock('@/store/industry.store', () => ({
-  useIndustryStore: (selector?: (state: any) => any) => {
+  useIndustryStore: (
+    selector?: (state: {
+      fetchAllIndustries: () => Promise<unknown[]>;
+      industries: unknown[];
+      isLoading: boolean;
+    }) => unknown
+  ) => {
     const state = {
       fetchAllIndustries: mockFetchAllIndustries,
       industries: [],
@@ -73,8 +85,10 @@ vi.mock('@/store/industry.store', () => ({
 
 // Mock dynamic motion components
 vi.mock('@/lib/performance/dynamic-motion', () => ({
-  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  LazyAnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LazyMotionDiv: ({ children, ...props }: { children: ReactNode } & ComponentProps<'div'>) => (
+    <div {...props}>{children}</div>
+  ),
+  LazyAnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 // Mock ErrorBoundary
@@ -84,7 +98,10 @@ vi.mock('@/components/ErrorBoundary', () => ({
 
 // Mock Step2Industry component
 vi.mock('../components/Step2Industry', () => ({
-  Step2Industry: ({ selectedIndustry, onSelectIndustry }: any) => (
+  Step2Industry: ({ selectedIndustry: _selectedIndustry, onSelectIndustry: _onSelectIndustry }: {
+    selectedIndustry: unknown;
+    onSelectIndustry: (industry: unknown) => void;
+  }) => (
     <div data-testid="step2-industry">
       <h1>Secteur d&apos;activité</h1>
       <p>Sélectionnez votre secteur</p>
@@ -99,15 +116,6 @@ vi.mock('@/i18n/useI18n', () => ({
       const map: Record<string, string> = {
         'onboarding.welcome': 'Bienvenue sur Luneo',
         'onboarding.letsGetStarted': 'Commençons par faire connaissance',
-        'onboarding.step1.profile': 'Profil',
-        'onboarding.step1.fullName': 'Nom complet',
-        'onboarding.step1.companyName': 'Entreprise',
-        'onboarding.step1.role': 'Rôle',
-        'onboarding.step1.teamSize': 'Taille de l\'équipe',
-        'onboarding.step1.fullNamePlaceholder': 'Jean Dupont',
-        'onboarding.step1.companyPlaceholder': 'Ma super entreprise',
-        'onboarding.step1.rolePlaceholder': 'CEO, Marketing',
-        'onboarding.step1.teamSizePlaceholder': '1-10, 10-50',
         'onboarding.continue': 'Continuer',
         'onboarding.skip': 'Passer',
       };
@@ -133,7 +141,7 @@ describe('OnboardingPage', () => {
       render(<OnboardingPage />);
       
       expect(screen.getByText(/bienvenue sur luneo/i)).toBeInTheDocument();
-      expect(screen.getByText(/commençons par faire connaissance/i)).toBeInTheDocument();
+      expect(screen.getByText(/commençons par vous connaître/i)).toBeInTheDocument();
     });
 
     it('should show progress indicators', () => {
@@ -159,11 +167,8 @@ describe('OnboardingPage', () => {
     it('should render step 1 form fields', () => {
       render(<OnboardingPage />);
       
-      // Check for input fields in step 1 using placeholders
-      expect(screen.getByPlaceholderText(/jean dupont/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/ma super entreprise/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/ceo, marketing/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/1-10, 10-50/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/jean/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/dupont/i)).toBeInTheDocument();
     });
 
     it('should render navigation buttons correctly', () => {

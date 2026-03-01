@@ -15,7 +15,7 @@ import type { TopDesignItem } from '../components/OverviewTopDesigns';
 import type { QuickActionItem } from '../components/OverviewQuickActions';
 import type { GoalItem } from '../components/OverviewGoals';
 import type { NotificationItem } from '../components/OverviewNotifications';
-import { Sparkles, Palette, Box, Layers, Package, ShoppingBag, FileText } from 'lucide-react';
+import { Sparkles, Package, ShoppingBag, FileText } from 'lucide-react';
 
 export type Period = '24h' | '7d' | '30d' | '90d';
 
@@ -28,7 +28,7 @@ export function useOverviewData() {
   const { data: chartData, isLoading: chartLoading } = useDashboardChartData(selectedPeriod);
   const { data: usageData } = useDashboardUsage(selectedPeriod);
   const { data: pipelineData } = usePipelineData();
-  const { notifications, loading: notificationsLoading } = useNotifications(10);
+  const { notifications } = useNotifications(10);
 
   const loading = statsLoading || chartLoading;
   const error = statsError?.message || null;

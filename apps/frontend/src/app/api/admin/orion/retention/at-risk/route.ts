@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const res = await fetch(`${API_URL}/api/v1/orion/retention/at-risk${request.nextUrl.search}`, {
+    const res = await fetch(`${API_URL}/api/v1/admin/orion/retention/at-risk${request.nextUrl.search}`, {
       headers: forwardHeaders(request),
     });
     const raw = await res.json().catch(() => ({}));

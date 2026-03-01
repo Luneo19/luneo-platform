@@ -7,6 +7,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import type { LoginCredentials, RegisterData, User } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { ensureSession } from '@/lib/auth/session-client';
 
 interface AuthSessionResponse {
   accessToken?: string;
@@ -91,12 +92,41 @@ const apiClient: AxiosInstance = axios.create({
   withCredentials: true, // ✅ IMPORTANT: Required for httpOnly cookies
 });
 
+let csrfBootstrapInFlight: Promise<string | null> | null = null;
+
+async function ensureBrowserCsrfToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  const existing = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrf_token='))
+    ?.split('=')[1];
+  if (existing) return decodeURIComponent(existing);
+
+  if (!csrfBootstrapInFlight) {
+    csrfBootstrapInFlight = (async () => {
+      try {
+        const resp = await fetch('/api/csrf/token', { credentials: 'include' });
+        if (!resp.ok) return null;
+        const json = await resp.json().catch(() => null) as { token?: string } | null;
+        return json?.token ? String(json.token) : null;
+      } catch {
+        return null;
+      } finally {
+        csrfBootstrapInFlight = null;
+      }
+    })();
+  }
+
+  return csrfBootstrapInFlight;
+}
+
 /**
  * Request Interceptor
  * Add authentication token and common headers
  */
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     config.headers['X-Request-Time'] = new Date().toISOString();
 
     if (typeof window !== 'undefined') {
@@ -107,10 +137,14 @@ apiClient.interceptors.request.use(
       // The backend CsrfGuard compares X-CSRF-Token header with the csrf_token cookie.
       const method = (config.method || '').toUpperCase();
       if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
-        const csrfToken = document.cookie
+        let csrfToken = document.cookie
           .split('; ')
           .find(row => row.startsWith('csrf_token='))
           ?.split('=')[1];
+        if (!csrfToken) {
+          const bootstrapped = await ensureBrowserCsrfToken();
+          csrfToken = bootstrapped ? encodeURIComponent(bootstrapped) : undefined;
+        }
         if (csrfToken) {
           config.headers['X-CSRF-Token'] = decodeURIComponent(csrfToken);
         }
@@ -128,8 +162,6 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
-let refreshPromise: Promise<Response> | null = null;
 
 /**
  * Response Interceptor
@@ -154,30 +186,12 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        if (!refreshPromise) {
-          refreshPromise = fetch('/api/v1/auth/refresh', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
-          });
-        }
-
-        const refreshResp = await refreshPromise;
-        refreshPromise = null;
-
-        if (!refreshResp.ok) {
+        const recovered = await ensureSession();
+        if (!recovered) {
           throw new Error('Token refresh failed');
         }
-
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-        }
-        
         return apiClient(originalRequest);
       } catch (refreshError) {
-        refreshPromise = null;
         if (typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -232,6 +246,21 @@ apiClient.interceptors.response.use(
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
 
+function toDateRangeFromPeriod(period?: string): { from: string; to: string } | undefined {
+  if (!period) return undefined;
+  const now = new Date();
+  const from = new Date(now);
+  if (period === '24h') from.setDate(now.getDate() - 1);
+  else if (period === '7d') from.setDate(now.getDate() - 7);
+  else if (period === '30d') from.setDate(now.getDate() - 30);
+  else if (period === '90d') from.setDate(now.getDate() - 90);
+  else return undefined;
+  return {
+    from: from.toISOString().split('T')[0],
+    to: now.toISOString().split('T')[0],
+  };
+}
+
 async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -239,6 +268,13 @@ async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promis
     } catch (error) {
       const isAxiosErr = axios.isAxiosError(error);
       const status = isAxiosErr ? error.response?.status : undefined;
+      const requestUrl = isAxiosErr ? (error.config?.url || '') : '';
+
+      // Do not retry automation test delivery: backend returns actionable errors
+      // (provider unavailable, configuration missing) that retries cannot fix.
+      if (requestUrl.includes('/api/admin/marketing/automations/test')) {
+        throw error;
+      }
 
       // Don't retry client errors (4xx)
       if (status && status >= 400 && status < 500) {
@@ -395,10 +431,114 @@ export const endpoints = {
       api.put<{ success: boolean }>('/api/v1/settings/notifications', preferences),
   },
 
-  // Organizations (renamed from brands)
+  // Organizations / Brands
   organizations: {
-    current: () => api.get('/api/v1/organizations/settings'),
-    update: (data: Record<string, unknown>) => api.put('/api/v1/organizations/settings', data),
+    current: () => api.get('/api/v1/brands/settings'),
+    update: (data: Record<string, unknown>) => api.put('/api/v1/brands/settings', data),
+  },
+
+  // Verticals
+  verticals: {
+    templates: () => api.get('/api/v1/verticals/templates'),
+    getTemplate: (slug: string) => api.get(`/api/v1/verticals/templates/${slug}`),
+    select: (slug: string, onboardingData?: Record<string, unknown>) =>
+      api.post('/api/v1/verticals/select', { slug, onboardingData }),
+  },
+
+  // Contacts (customer profile progressive)
+  contacts: {
+    list: (params?: { page?: number; limit?: number; search?: string }) =>
+      api.get('/api/v1/contacts', { params }),
+    get: (id: string) => api.get(`/api/v1/contacts/${id}`),
+    create: (data: {
+      externalId?: string;
+      email?: string;
+      phone?: string;
+      firstName?: string;
+      lastName?: string;
+      aiProfile?: Record<string, unknown>;
+    }) => api.post('/api/v1/contacts', data),
+    updateProfile: (id: string, data: {
+      aiProfile?: Record<string, unknown>;
+      leadStatus?: string;
+      churnRisk?: string;
+      leadScore?: number;
+      tags?: string[];
+      segments?: string[];
+      firstName?: string;
+      lastName?: string;
+    }) => api.patch(`/api/v1/contacts/${id}/profile`, data),
+  },
+
+  // Learning flywheel
+  learning: {
+    createSignal: (data: {
+      conversationId: string;
+      messageId?: string;
+      signalType: string;
+      data?: Record<string, unknown>;
+    }) => api.post('/api/v1/learning/signals', data),
+    gaps: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get('/api/v1/learning/gaps', { params }),
+    approveGap: (id: string) => api.post(`/api/v1/learning/gaps/${id}/approve`, {}),
+  },
+
+  // ROI
+  roi: {
+    overview: () => api.get('/api/v1/roi/overview'),
+  },
+
+  // Memory
+  memory: {
+    contact: (contactId: string) => api.get(`/api/v1/memory/contacts/${contactId}`),
+    summarizeConversation: (conversationId: string) =>
+      api.post('/api/v1/memory/conversations/summarize', { conversationId }),
+  },
+
+  // Actions
+  actions: {
+    catalog: () => api.get('/api/v1/actions/catalog'),
+    execute: (data: {
+      actionId: string;
+      agentId: string;
+      conversationId: string;
+      params?: Record<string, unknown>;
+    }) => api.post('/api/v1/actions/execute', data),
+  },
+
+  // Automation / Workflows
+  automation: {
+    workflows: () => api.get('/api/v1/automation/workflows'),
+    createWorkflow: (data: {
+      name: string;
+      description?: string;
+      triggerType: string;
+      triggerConfig?: Record<string, unknown>;
+      steps?: Record<string, unknown>;
+      isActive?: boolean;
+    }) => api.post('/api/v1/automation/workflows', data),
+    updateWorkflow: (id: string, data: Record<string, unknown>) =>
+      api.patch(`/api/v1/automation/workflows/${id}`, data),
+    toggleWorkflow: (id: string) => api.post(`/api/v1/automation/workflows/${id}/toggle`, {}),
+    executeWorkflow: (data: {
+      workflowId: string;
+      agentId: string;
+      conversationId: string;
+      userMessage: string;
+      context?: Record<string, unknown>;
+    }) => api.post('/api/v1/automation/workflows/execute', data),
+  },
+
+  // LLM Models
+  llm: {
+    models: () => api.get('/api/v1/llm/models'),
+  },
+
+  // Web Crawler & Persona Generation
+  webCrawler: {
+    crawl: (url: string) => api.post('/api/v1/web-crawler/crawl', { url }),
+    generatePersona: (url: string, industry?: string) =>
+      api.post('/api/v1/web-crawler/generate-persona', { url, industry }),
   },
 
   // Agents V2
@@ -422,7 +562,20 @@ export const endpoints = {
     update: (id: string, data: Record<string, unknown>) => api.patch(`/api/v1/agents/${id}`, data),
     delete: (id: string) => api.delete(`/api/v1/agents/${id}`),
     publish: (id: string) => api.post(`/api/v1/agents/${id}/publish`),
+    readiness: (id: string) =>
+      api.get<{
+        ready: boolean;
+        checklist: {
+          hasKnowledgeBase: boolean;
+          hasChannel: boolean;
+          hasFlowTrigger: boolean;
+          statusEligible: boolean;
+          requireFlowTrigger: boolean;
+        };
+        missing: string[];
+      }>(`/api/v1/agents/${id}/readiness`),
     pause: (id: string) => api.post(`/api/v1/agents/${id}/pause`),
+    duplicate: (id: string) => api.post<{ id?: string; data?: { id?: string } }>(`/api/v1/agents/${id}/duplicate`),
     test: (id: string, data: { message: string; context?: { visitorName?: string; visitorEmail?: string } }) =>
       api.post<{ response: string; sources?: Array<{ title: string; url?: string; score?: number; preview?: string }>; metadata?: { model?: string; tokensIn?: number; tokensOut?: number; costUsd?: number; latencyMs?: number; confidence?: number } }>(`/api/v1/agents/${id}/test`, data),
     attachKnowledgeBase: (agentId: string, knowledgeBaseId: string) =>
@@ -501,8 +654,15 @@ export const endpoints = {
 
   // Analytics (kept for dashboard-level metrics)
   analytics: {
-    overview: (params?: { period?: string }) =>
-      api.get('/api/v1/analytics/dashboard', { params }),
+    overview: (params?: { period?: string; from?: string; to?: string }) => {
+      const fromTo = toDateRangeFromPeriod(params?.period);
+      return api.get('/api/v1/agent-analytics/overview', {
+        params: {
+          from: params?.from ?? fromTo?.from,
+          to: params?.to ?? fromTo?.to,
+        },
+      });
+    },
     pipeline: () =>
       api.get<{ products: number; selling: number; orders: number; inProduction: number; delivered: number }>('/api/v1/analytics/pipeline'),
     designs: (params?: { startDate?: string; endDate?: string }) =>
@@ -536,6 +696,7 @@ export const endpoints = {
   // Billing (list plans: GET /plans/all; current: GET /plans/current)
   billing: {
     subscription: () => api.get('/api/v1/billing/subscription'),
+    overview: () => api.get('/api/v1/billing/overview'),
     plans: () => api.get('/api/v1/plans/all'),
     subscribe: (planId: string, email?: string, billingInterval?: 'monthly' | 'yearly') =>
       api.post('/api/v1/billing/create-checkout-session', { planId, email, billingInterval: billingInterval || 'monthly' }),
@@ -546,7 +707,8 @@ export const endpoints = {
     exportInvoicesCSV: () => api.get<{ csv: string; filename: string }>('/api/v1/billing/invoices/export/csv'),
     paymentMethods: () => api.get('/api/v1/billing/payment-methods'),
     addPaymentMethod: (paymentMethodId: string) => api.post('/api/v1/billing/payment-methods', { paymentMethodId }),
-    removePaymentMethod: () => api.delete('/api/v1/billing/payment-methods'),
+    removePaymentMethod: (paymentMethodId: string) =>
+      api.delete('/api/v1/billing/payment-methods', { params: { id: paymentMethodId } }),
     customerPortal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
     portal: () => api.get<{ url?: string }>('/api/v1/billing/customer-portal'),
     changePlan: (data: { planId: string; billingInterval?: string }) => api.post('/api/v1/billing/change-plan', data),
@@ -555,7 +717,7 @@ export const endpoints = {
     scheduledChanges: () => api.get('/api/v1/billing/scheduled-changes'),
   },
 
-  // Notifications (backend: GET list, POST :id/read, POST read-all, DELETE :id)
+  // Notifications
   notifications: {
     list: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) =>
       api.get<{ notifications: unknown[]; pagination: { total: number } }>('/api/v1/notifications', { params }),
@@ -588,8 +750,17 @@ export const endpoints = {
         api.post<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/connect', data),
       disconnect: () =>
         api.delete<{ success: boolean; message?: string }>('/api/v1/integrations/shopify-v2/disconnect'),
-      status: () =>
-        api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status'),
+      status: async () => {
+        try {
+          return await api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify/status');
+        } catch {
+          try {
+            return await api.get<{ connected: boolean; shopDomain?: string; shopName?: string; status?: string; lastSyncAt?: string | null }>('/api/v1/integrations/shopify-v2/status');
+          } catch {
+            return { connected: false, status: 'inactive' };
+          }
+        }
+      },
     },
     woocommerceStatus: () =>
       api.get<{ connected: boolean; siteUrl?: string; status: string; lastSyncAt?: string | null; syncedProductsCount?: number }>('/api/v1/integrations/woocommerce/status'),
@@ -727,29 +898,34 @@ export const endpoints = {
       }) => api.get<{ data: AdminClient[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/customers', { params }),
       get: (id: string) => api.get<AdminClient>(`/api/v1/admin/customers/${id}`),
       updatePlan: (orgId: string, plan: string) =>
-        api.patch(`/api/v1/admin/organizations/${orgId}`, { subscriptionPlan: plan, plan }),
-      offerSubscription: (body: { organizationId: string; plan: string; durationMonths: number; reason?: string }) =>
-        api.post('/api/v1/admin/billing/offer-subscription', body),
+        api.patch(`/api/v1/admin/brands/${orgId}`, { subscriptionPlan: plan, plan }),
+      offerSubscription: (body: { organizationId?: string; brandId?: string; plan: string; durationMonths: number; reason?: string }) =>
+        api.post('/api/v1/admin/billing/offer-subscription', {
+          brandId: body.brandId ?? body.organizationId,
+          plan: body.plan,
+          durationMonths: body.durationMonths,
+          reason: body.reason,
+        }),
       suspend: (orgId: string, reason?: string) =>
-        api.post(`/api/v1/admin/organizations/${orgId}/suspend`, { reason }),
+        api.post(`/api/v1/admin/brands/${orgId}/suspend`, { reason }),
       unsuspend: (orgId: string) =>
-        api.post(`/api/v1/admin/organizations/${orgId}/unsuspend`),
+        api.post(`/api/v1/admin/brands/${orgId}/unsuspend`),
     },
     tickets: (params?: { page?: number; limit?: number; status?: string; priority?: string }) =>
-      api.get<{ data: AdminTicket[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/v1/admin/support/tickets', { params }),
+      api.get<{ data: AdminTicket[]; meta: { total: number; page: number; limit: number; totalPages: number } }>('/api/admin/support/tickets', { params }),
   },
 
   // ORION Super Admin - Retention (ARTEMIS) + Admin Tools
   orion: {
     auditLog: (params?: { page?: number; pageSize?: number; action?: string; userId?: string; dateFrom?: string; dateTo?: string }) =>
-      api.get<{ items: Array<{ id: string; adminId: string; action: string; resource: string; resourceId: string | null; changes: unknown; ipAddress: string | null; createdAt: string; user: { email: string; name: string } }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/orion/audit-log', { params }),
+      api.get<{ items: Array<{ id: string; adminId: string; action: string; resource: string; resourceId: string | null; changes: unknown; ipAddress: string | null; createdAt: string; user: { email: string; name: string } }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/admin/orion/audit-log', { params }),
     notifications: (params?: { page?: number; pageSize?: number; type?: string; read?: boolean }) =>
-      api.get<{ items: Array<{ id: string; type: string; title: string; message: string; read: boolean; readAt: string | null; createdAt: string }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/orion/notifications', { params }),
-    notificationCount: () => api.get<{ count: number }>('/api/v1/orion/notifications/count'),
-    markNotificationRead: (id: string) => api.put<{ id: string; read: boolean }>(`/api/v1/orion/notifications/${id}/read`),
-    markAllNotificationsRead: () => api.put<{ success: boolean }>('/api/v1/orion/notifications/read-all'),
+      api.get<{ items: Array<{ id: string; type: string; title: string; message: string; read: boolean; readAt: string | null; createdAt: string }>; total: number; page: number; pageSize: number; totalPages: number }>('/api/v1/admin/orion/notifications', { params }),
+    notificationCount: () => api.get<{ count: number }>('/api/v1/admin/orion/notifications/count'),
+    markNotificationRead: (id: string) => api.put<{ id: string; read: boolean }>(`/api/v1/admin/orion/notifications/${id}/read`),
+    markAllNotificationsRead: () => api.put<{ success: boolean }>('/api/v1/admin/orion/notifications/read-all'),
     export: (type: string, params?: { format?: 'csv' | 'json'; dateFrom?: string; dateTo?: string; limit?: number }) =>
-      api.get<string | { data: unknown[] }>(`/api/v1/orion/export/${type}`, { params }),
+      api.get<string | { data: unknown[] }>(`/api/v1/admin/orion/export/${type}`, { params }),
     retention: {
       dashboard: () => api.get<{
         totalUsers: number;
@@ -758,7 +934,7 @@ export const endpoints = {
         atRiskPercent: number;
         distribution: Array<{ level: string; count: number }>;
         trend: Array<{ date: string; count: number; avgScore: number }>;
-      }>('/api/v1/orion/retention/dashboard'),
+      }>('/api/v1/admin/orion/retention/dashboard'),
       atRisk: (params?: { limit?: number }) =>
         api.get<Array<{
           id: string;
@@ -767,7 +943,7 @@ export const endpoints = {
           churnRisk: string;
           lastActivityAt: string | null;
           user: { id: string; email: string; firstName: string | null; lastName: string | null; lastLoginAt: string | null };
-        }>>('/api/v1/orion/retention/at-risk', { params }),
+        }>>('/api/v1/admin/orion/retention/at-risk', { params }),
       healthScore: (userId: string) =>
         api.get<{
           id: string;
@@ -776,9 +952,9 @@ export const endpoints = {
           churnRisk: string;
           lastActivityAt: string | null;
           user: { id: string; email: string; firstName: string | null; lastName: string | null; lastLoginAt: string | null };
-        }>(`/api/v1/orion/retention/health/${userId}`),
+        }>(`/api/v1/admin/orion/retention/health/${userId}`),
       calculate: (userId: string) =>
-        api.post<{ id: string; healthScore: number; churnRisk: string }>(`/api/v1/orion/retention/calculate/${userId}`),
+        api.post<{ id: string; healthScore: number; churnRisk: string }>(`/api/v1/admin/orion/retention/calculate/${userId}`),
       winBackCampaigns: () =>
         api.get<Array<{
           id: string;
@@ -788,9 +964,9 @@ export const endpoints = {
           status: string;
           stepsCount: number;
           runsCount: number;
-        }>>('/api/v1/orion/retention/win-back'),
+        }>>('/api/v1/admin/orion/retention/win-back'),
       triggerWinBack: (userIds: string[]) =>
-        api.post<{ triggered: number; runIds?: string[]; message?: string }>('/api/v1/orion/retention/win-back/trigger', { userIds }),
+        api.post<{ triggered: number; runIds?: string[]; message?: string }>('/api/v1/admin/orion/retention/win-back/trigger', { userIds }),
     },
     quickWins: {
       status: () =>
@@ -799,92 +975,96 @@ export const endpoints = {
           lowCreditsAlert: { usersAtRisk: number };
           churnAlert: { inactiveUsers: number };
           trialReminder: { trialEnding: number };
-        }>('/api/v1/orion/quick-wins/status'),
+        }>('/api/v1/admin/orion/quick-wins/status'),
       welcomeSetup: () =>
-        api.post<{ template: { id: string }; status: string }>('/api/v1/orion/quick-wins/welcome-setup'),
+        api.post<{ template: { id: string }; status: string }>('/api/v1/admin/orion/quick-wins/welcome-setup'),
       lowCredits: () =>
         api.get<{ usersAtRisk: number; users: Array<{ id: string; email: string; firstName: string | null; aiCredits: number }> }>(
-          '/api/v1/orion/quick-wins/low-credits'
+          '/api/v1/admin/orion/quick-wins/low-credits'
         ),
       inactive: (params?: { days?: number }) =>
         api.get<{
           inactiveUsers: number;
           users: Array<{ id: string; email: string; firstName: string | null; lastLoginAt: string | null }>;
           thresholdDays: number;
-        }>('/api/v1/orion/quick-wins/inactive', { params }),
+        }>('/api/v1/admin/orion/quick-wins/inactive', { params }),
       trialEnding: () =>
         api.get<{
           trialEnding: number;
           users: Array<{ id: string; email: string; firstName: string | null; trialEndsAt: Date | null; brandName: string }>;
           brands: number;
-        }>('/api/v1/orion/quick-wins/trial-ending'),
+        }>('/api/v1/admin/orion/quick-wins/trial-ending'),
     },
     prometheus: {
-      stats: () => api.get<unknown>('/api/v1/orion/prometheus/stats'),
-      analyzeTicket: (ticketId: string) => api.post<unknown>(`/api/v1/orion/prometheus/tickets/${ticketId}/analyze`),
-      generateResponse: (ticketId: string) => api.post<unknown>(`/api/v1/orion/prometheus/tickets/${ticketId}/generate`),
-      reviewQueue: (params?: { status?: string; page?: number; limit?: number }) => api.get<unknown>('/api/v1/orion/prometheus/review-queue', { params }),
-      reviewStats: () => api.get<unknown>('/api/v1/orion/prometheus/review-queue/stats'),
-      approveResponse: (responseId: string, body?: { notes?: string; editedContent?: string }) => api.post<unknown>(`/api/v1/orion/prometheus/review-queue/${responseId}/approve`, body),
-      rejectResponse: (responseId: string, body?: { notes?: string }) => api.post<unknown>(`/api/v1/orion/prometheus/review-queue/${responseId}/reject`, body),
-      bulkApprove: (responseIds: string[]) => api.post<unknown>('/api/v1/orion/prometheus/review-queue/bulk-approve', { responseIds }),
-      submitFeedback: (responseId: string, rating: number, comment?: string) => api.put<unknown>(`/api/v1/orion/prometheus/responses/${responseId}/feedback`, { rating, comment }),
+      stats: () => api.get<unknown>('/api/v1/admin/orion/prometheus/stats'),
+      analyzeTicket: (ticketId: string) => api.post<unknown>(`/api/v1/admin/orion/prometheus/tickets/${ticketId}/analyze`),
+      generateResponse: (ticketId: string) => api.post<unknown>(`/api/v1/admin/orion/prometheus/tickets/${ticketId}/generate`),
+      reviewQueue: (params?: { status?: string; page?: number; limit?: number }) => api.get<unknown>('/api/v1/admin/orion/prometheus/review-queue', { params }),
+      reviewStats: () => api.get<unknown>('/api/v1/admin/orion/prometheus/stats'),
+      approveResponse: (responseId: string, body?: { notes?: string; editedContent?: string }) => api.post<unknown>(`/api/v1/admin/orion/prometheus/review-queue/${responseId}/approve`, body),
+      rejectResponse: (responseId: string, body?: { notes?: string }) => api.post<unknown>(`/api/v1/admin/orion/prometheus/review-queue/${responseId}/reject`, body),
+      bulkApprove: (responseIds: string[]) => api.post<unknown>('/api/v1/admin/orion/prometheus/review-queue/bulk-approve', { responseIds }),
+      submitFeedback: (responseId: string, rating: number, comment?: string) => api.put<unknown>(`/api/v1/admin/orion/prometheus/responses/${responseId}/feedback`, { rating, comment }),
     },
     zeus: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/zeus/dashboard'),
-      alerts: () => api.get<unknown>('/api/v1/orion/zeus/alerts'),
-      decisions: () => api.get<unknown>('/api/v1/orion/zeus/decisions'),
-      override: (actionId: string, approved: boolean) => api.post<unknown>(`/api/v1/orion/zeus/override/${actionId}`, { approved }),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/zeus/dashboard'),
+      alerts: () => api.get<unknown>('/api/v1/admin/orion/zeus/alerts'),
+      decisions: () => api.get<unknown>('/api/v1/admin/orion/zeus/decisions'),
+      override: (actionId: string, approved: boolean) =>
+        api.post<unknown>(`/api/v1/admin/orion/zeus/override/${actionId}`, { approved }),
     },
     athena: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/athena/dashboard'),
-      distribution: () => api.get<unknown>('/api/v1/orion/athena/distribution'),
-      customerHealth: (userId: string) => api.get<unknown>(`/api/v1/orion/athena/customer/${userId}`),
-      calculateHealth: (userId: string) => api.post<unknown>(`/api/v1/orion/athena/calculate/${userId}`),
-      generateInsights: () => api.post<unknown>('/api/v1/orion/athena/insights/generate'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/athena/dashboard'),
+      distribution: () => api.get<unknown>('/api/v1/admin/orion/athena/distribution'),
+      customerHealth: (userId: string) => api.get<unknown>(`/api/v1/admin/orion/athena/customer/${userId}`),
+      calculateHealth: (userId: string) => api.post<unknown>(`/api/v1/admin/orion/athena/calculate/${userId}`),
+      generateInsights: () => api.post<unknown>('/api/v1/admin/orion/athena/insights/generate'),
     },
     apollo: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/apollo/dashboard'),
-      services: () => api.get<unknown>('/api/v1/orion/apollo/services'),
-      incidents: (status?: string) => api.get<unknown>('/api/v1/orion/apollo/incidents', { params: { status } }),
-      metrics: (hours?: number) => api.get<unknown>('/api/v1/orion/apollo/metrics', { params: { hours } }),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/apollo/dashboard'),
+      services: () => api.get<unknown>('/api/v1/admin/orion/apollo/services'),
+      incidents: (status?: string) => api.get<unknown>('/api/v1/admin/orion/apollo/incidents', { params: { status } }),
+      metrics: (hours?: number) => api.get<unknown>('/api/v1/admin/orion/apollo/metrics', { params: { hours } }),
     },
     artemis: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/artemis/dashboard'),
-      threats: () => api.get<unknown>('/api/v1/orion/artemis/threats'),
-      resolveThreat: (id: string) => api.post<unknown>(`/api/v1/orion/artemis/threats/${id}/resolve`),
-      blockedIPs: () => api.get<unknown>('/api/v1/orion/artemis/blocked-ips'),
-      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) => api.post<unknown>('/api/v1/orion/artemis/block-ip', data),
-      unblockIP: (ip: string) => api.delete<unknown>(`/api/v1/orion/artemis/blocked-ips/${ip}`),
-      fraudChecks: () => api.get<unknown>('/api/v1/orion/artemis/fraud-checks'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/artemis/dashboard'),
+      threats: () => api.get<unknown>('/api/v1/admin/orion/artemis/threats'),
+      resolveThreat: (id: string) => api.post<unknown>(`/api/v1/admin/orion/artemis/threats/${id}/resolve`),
+      blockedIPs: () => api.get<unknown>('/api/v1/admin/orion/artemis/blocked-ips'),
+      blockIP: (data: { ipAddress: string; reason: string; expiresAt?: string }) =>
+        api.post<unknown>('/api/v1/admin/orion/artemis/block-ip', data),
+      unblockIP: (ip: string) => api.delete<unknown>(`/api/v1/admin/orion/artemis/blocked-ips/${ip}`),
+      fraudChecks: () => api.get<unknown>('/api/v1/admin/orion/artemis/fraud-checks'),
     },
     hermes: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/hermes/dashboard'),
-      pending: () => api.get<unknown>('/api/v1/orion/hermes/pending'),
-      campaigns: () => api.get<unknown>('/api/v1/orion/hermes/campaigns'),
-      stats: () => api.get<unknown>('/api/v1/orion/hermes/stats'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/hermes/dashboard'),
+      pending: () => api.get<unknown>('/api/v1/admin/orion/hermes/pending'),
+      campaigns: () => api.get<unknown>('/api/v1/admin/orion/hermes/campaigns'),
+      stats: () => api.get<unknown>('/api/v1/admin/orion/hermes/stats'),
     },
     hades: {
-      dashboard: () => api.get<unknown>('/api/v1/orion/hades/dashboard'),
-      atRisk: () => api.get<unknown>('/api/v1/orion/hades/at-risk'),
-      winBack: () => api.get<unknown>('/api/v1/orion/hades/win-back'),
-      mrrAtRisk: () => api.get<unknown>('/api/v1/orion/hades/mrr-at-risk'),
-      actions: () => api.get<unknown>('/api/v1/orion/hades/actions'),
+      dashboard: () => api.get<unknown>('/api/v1/admin/orion/hades/dashboard'),
+      atRisk: () => api.get<unknown>('/api/v1/admin/orion/hades/at-risk'),
+      winBack: () => api.get<unknown>('/api/v1/admin/orion/hades/win-back'),
+      mrrAtRisk: () => api.get<unknown>('/api/v1/admin/orion/hades/mrr-at-risk'),
+      actions: () => api.get<unknown>('/api/v1/admin/orion/hades/actions'),
     },
-    insights: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/orion/insights', { params }),
-    actions: (params?: Record<string, string | number | boolean | undefined>) => api.get<unknown>('/api/v1/orion/actions', { params }),
-    activityFeed: (limit?: number) => api.get<unknown>('/api/v1/orion/activity-feed', { params: { limit } }),
+    insights: (params?: Record<string, string | number | boolean | undefined>) =>
+      api.get<unknown>('/api/v1/admin/orion/insights', { params }),
+    actions: (params?: Record<string, string | number | boolean | undefined>) =>
+      api.get<unknown>('/api/v1/admin/orion/actions', { params }),
+    activityFeed: (limit?: number) => api.get<unknown>('/api/v1/admin/orion/activity-feed', { params: { limit } }),
     automationsV2: {
-      list: (brandId?: string) => api.get<unknown>('/api/v1/orion/automations-v2', { params: { brandId } }),
-      get: (id: string) => api.get<unknown>(`/api/v1/orion/automations-v2/${id}`),
-      create: (data: Record<string, unknown>) => api.post<unknown>('/api/v1/orion/automations-v2', data),
-      update: (id: string, data: Record<string, unknown>) => api.put<unknown>(`/api/v1/orion/automations-v2/${id}`, data),
-      toggle: (id: string) => api.post<unknown>(`/api/v1/orion/automations-v2/${id}/toggle`),
-      delete: (id: string) => api.delete<unknown>(`/api/v1/orion/automations-v2/${id}`),
-      test: (id: string, testData: Record<string, unknown>) => api.post<unknown>(`/api/v1/orion/automations-v2/${id}/test`, { testData }),
-      runs: (id: string) => api.get<unknown>(`/api/v1/orion/automations-v2/${id}/runs`),
-      triggers: () => api.get<unknown>('/api/v1/orion/automations-v2/triggers'),
-      actions: () => api.get<unknown>('/api/v1/orion/automations-v2/actions'),
+      list: (brandId?: string) => api.get<unknown>('/api/v1/admin/orion/automations-v2', { params: { brandId } }),
+      get: (id: string) => api.get<unknown>(`/api/v1/admin/orion/automations-v2/${id}`),
+      create: (data: Record<string, unknown>) => api.post<unknown>('/api/v1/admin/orion/automations-v2', data),
+      update: (id: string, data: Record<string, unknown>) => api.put<unknown>(`/api/v1/admin/orion/automations-v2/${id}`, data),
+      toggle: (id: string) => api.post<unknown>(`/api/v1/admin/orion/automations-v2/${id}/toggle`),
+      delete: (id: string) => api.delete<unknown>(`/api/v1/admin/orion/automations-v2/${id}`),
+      test: (id: string, testData: Record<string, unknown>) => api.post<unknown>(`/api/v1/admin/orion/automations-v2/${id}/test`, { testData }),
+      runs: (id: string) => api.get<unknown>(`/api/v1/admin/orion/automations-v2/${id}/runs`),
+      triggers: () => api.get<unknown>('/api/v1/admin/orion/automations-v2/triggers'),
+      actions: () => api.get<unknown>('/api/v1/admin/orion/automations-v2/actions'),
     },
   },
 

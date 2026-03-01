@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { RedisOptimizedService } from '@/libs/redis/redis-optimized.service';
+import { ALL_QUEUE_NAMES } from '@/libs/queues/queues.constants';
+import { IntegrationHttpClient, IntegrationProviderMetric } from '@/modules/integrations/providers/integration-http.client';
 
 export interface DependencyStatus {
   status: 'ok' | 'degraded' | 'unavailable';
@@ -30,6 +32,22 @@ export interface HealthMetrics {
   latencyP95Ms: number | null;
 }
 
+export interface SloStatusResponse {
+  window: string;
+  objectivePercent: number;
+  currentAvailabilityPercent: number;
+  errorRatePercent: number;
+  errorBudgetPercent: number;
+  errorBudgetRemainingPercent: number;
+  burnRate: number;
+  status: 'healthy' | 'at_risk' | 'breached';
+  indicators: {
+    dependencyAvailabilityPercent: number;
+    queueSuccessRatePercent: number;
+    integrationSuccessRatePercent: number;
+  };
+}
+
 export interface EnrichedHealthResponse {
   status: 'ok' | 'degraded' | 'unavailable';
   timestamp: string;
@@ -41,7 +59,9 @@ export interface EnrichedHealthResponse {
     redis: RedisDetailedStatus;
     stripe: DependencyStatus;
     email: DependencyStatus;
+    integrations: Record<string, DependencyStatus>;
   };
+  integrationMetrics?: Record<string, IntegrationProviderMetric>;
   queues?: QueueHealthStatus[];
   metrics?: HealthMetrics;
 }
@@ -62,15 +82,17 @@ export class HealthService {
    * Returns enriched health with dependency checks (database, redis, stripe config, email config).
    */
   async getEnrichedHealth(): Promise<EnrichedHealthResponse> {
-    const [database, redis, stripe, email, queues] = await Promise.all([
+    const [database, redis, stripe, email, integrations, queues] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),
       this.checkStripe(),
       this.checkEmail(),
+      this.checkIntegrations(),
       this.checkQueues(),
     ]);
 
-    const statuses = [database.status, redis.status, stripe.status, email.status];
+    const integrationStatuses = Object.values(integrations).map((s) => s.status);
+    const statuses = [database.status, redis.status, stripe.status, email.status, ...integrationStatuses];
     const overallStatus = statuses.every((s) => s === 'ok')
       ? 'ok'
       : statuses.some((s) => s === 'unavailable')
@@ -88,9 +110,122 @@ export class HealthService {
         redis,
         stripe,
         email,
+        integrations,
       },
+      integrationMetrics: IntegrationHttpClient.getGlobalMetrics(),
       queues,
     };
+  }
+
+  async getSloStatus(): Promise<SloStatusResponse> {
+    const [database, redis, stripe, email, integrations, queues] = await Promise.all([
+      this.checkDatabase(),
+      this.checkRedis(),
+      this.checkStripe(),
+      this.checkEmail(),
+      this.checkIntegrations(),
+      this.checkQueues(),
+    ]);
+
+    const dependencyStatuses = [
+      database.status,
+      redis.status,
+      stripe.status,
+      email.status,
+      ...Object.values(integrations).map((item) => item.status),
+    ];
+    const okDependencies = dependencyStatuses.filter((status) => status === 'ok').length;
+    const dependencyAvailabilityPercent =
+      dependencyStatuses.length > 0
+        ? (okDependencies / dependencyStatuses.length) * 100
+        : 100;
+
+    const queueCompleted = queues.reduce((sum, queue) => sum + queue.completed, 0);
+    const queueFailed = queues.reduce((sum, queue) => sum + queue.failed, 0);
+    const queueTotal = queueCompleted + queueFailed;
+    const queueSuccessRatePercent =
+      queueTotal > 0 ? (queueCompleted / queueTotal) * 100 : 100;
+
+    const integrationMetrics = IntegrationHttpClient.getGlobalMetrics();
+    const integrationAggregate = Object.values(integrationMetrics).reduce(
+      (acc, metric) => {
+        acc.success += metric.success;
+        acc.errors += metric.errors;
+        return acc;
+      },
+      { success: 0, errors: 0 },
+    );
+    const integrationTotal = integrationAggregate.success + integrationAggregate.errors;
+    const integrationSuccessRatePercent =
+      integrationTotal > 0
+        ? (integrationAggregate.success / integrationTotal) * 100
+        : 100;
+
+    // Weighted operational availability score.
+    const currentAvailabilityPercent =
+      dependencyAvailabilityPercent * 0.5 +
+      queueSuccessRatePercent * 0.3 +
+      integrationSuccessRatePercent * 0.2;
+
+    const objectivePercent = 99.9;
+    const errorBudgetPercent = Math.max(0, 100 - objectivePercent);
+    const errorRatePercent = Math.max(0, 100 - currentAvailabilityPercent);
+    const errorBudgetRemainingPercent =
+      errorBudgetPercent > 0
+        ? ((errorBudgetPercent - errorRatePercent) / errorBudgetPercent) * 100
+        : 0;
+    const burnRate =
+      errorBudgetPercent > 0 ? errorRatePercent / errorBudgetPercent : 0;
+
+    const status: SloStatusResponse['status'] =
+      errorBudgetRemainingPercent <= 0
+        ? 'breached'
+        : errorBudgetRemainingPercent < 25
+          ? 'at_risk'
+          : 'healthy';
+
+    return {
+      window: 'rolling-24h',
+      objectivePercent,
+      currentAvailabilityPercent: this.round(currentAvailabilityPercent),
+      errorRatePercent: this.round(errorRatePercent),
+      errorBudgetPercent: this.round(errorBudgetPercent),
+      errorBudgetRemainingPercent: this.round(errorBudgetRemainingPercent),
+      burnRate: this.round(burnRate),
+      status,
+      indicators: {
+        dependencyAvailabilityPercent: this.round(dependencyAvailabilityPercent),
+        queueSuccessRatePercent: this.round(queueSuccessRatePercent),
+        integrationSuccessRatePercent: this.round(integrationSuccessRatePercent),
+      },
+    };
+  }
+
+  private checkIntegrations(): Promise<Record<string, DependencyStatus>> {
+    const statuses: Record<string, DependencyStatus> = {};
+
+    statuses.hubspot =
+      this.configService.get<string>('HUBSPOT_API_KEY')
+        ? { status: 'ok' }
+        : { status: 'degraded', message: 'HUBSPOT_API_KEY not configured' };
+
+    statuses.salesforce =
+      this.configService.get<string>('SALESFORCE_ACCESS_TOKEN') &&
+      this.configService.get<string>('SALESFORCE_INSTANCE_URL')
+        ? { status: 'ok' }
+        : { status: 'degraded', message: 'Salesforce credentials not fully configured' };
+
+    statuses.google_calendar =
+      this.configService.get<string>('GOOGLE_CALENDAR_ACCESS_TOKEN')
+        ? { status: 'ok' }
+        : { status: 'degraded', message: 'GOOGLE_CALENDAR_ACCESS_TOKEN not configured' };
+
+    statuses.calendly =
+      this.configService.get<string>('CALENDLY_API_KEY')
+        ? { status: 'ok' }
+        : { status: 'degraded', message: 'CALENDLY_API_KEY not configured' };
+
+    return Promise.resolve(statuses);
   }
 
   private async checkDatabase(): Promise<DependencyStatus> {
@@ -144,7 +279,7 @@ export class HealthService {
       return details;
     } catch (error) {
       return {
-        status: 'degraded',
+        status: 'unavailable',
         message: 'Service unavailable',
       };
     }
@@ -180,7 +315,7 @@ export class HealthService {
    * Returns waiting/active/failed/completed counts per queue
    */
   private async checkQueues(): Promise<QueueHealthStatus[]> {
-    const queueNames = ['ai-generation', 'design-generation', 'render-processing', 'production-processing', 'email'];
+    const queueNames = ALL_QUEUE_NAMES;
     const results: QueueHealthStatus[] = [];
 
     try {
@@ -207,5 +342,9 @@ export class HealthService {
     }
 
     return results;
+  }
+
+  private round(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 }

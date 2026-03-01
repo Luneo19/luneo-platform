@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 
 export interface DateRangeQuery {
@@ -298,10 +298,21 @@ export class AgentAnalyticsService {
   async getDailyAnalytics(
     agentId: string,
     range: DateRangeQuery,
+    organizationId?: string,
   ): Promise<DailyAnalytics[]> {
     this.logger.log(
       `Récupération analytics journalières pour agent ${agentId}`,
     );
+
+    if (organizationId) {
+      const agent = await this.prisma.agent.findFirst({
+        where: { id: agentId, organizationId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!agent) {
+        throw new NotFoundException('Agent not found');
+      }
+    }
 
     const conversations = await this.prisma.conversation.findMany({
       where: {
@@ -337,8 +348,19 @@ export class AgentAnalyticsService {
   async getSummary(
     agentId: string,
     range: DateRangeQuery,
+    organizationId?: string,
   ): Promise<AgentAnalyticsSummary> {
     this.logger.log(`Récupération résumé analytics pour agent ${agentId}`);
+
+    if (organizationId) {
+      const agent = await this.prisma.agent.findFirst({
+        where: { id: agentId, organizationId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!agent) {
+        throw new NotFoundException('Agent not found');
+      }
+    }
 
     const [conversationCount, messageCount] = await Promise.all([
       this.prisma.conversation.count({
@@ -357,8 +379,16 @@ export class AgentAnalyticsService {
       }),
     ]);
 
-    const topTopics = await this.getTopTopicsForAgent(agentId, range);
-    const satisfactionTrend = await this.getSatisfactionTrend(agentId, range);
+    const topTopics = await this.getTopTopicsForAgent(
+      agentId,
+      range,
+      organizationId,
+    );
+    const satisfactionTrend = await this.getSatisfactionTrend(
+      agentId,
+      range,
+      organizationId,
+    );
 
     return {
       totalConversations: conversationCount,
@@ -373,10 +403,12 @@ export class AgentAnalyticsService {
   private async getTopTopicsForAgent(
     agentId: string,
     range: DateRangeQuery,
+    organizationId?: string,
   ): Promise<{ topic: string; count: number }[]> {
     const conversations = await this.prisma.conversation.findMany({
       where: {
         agentId,
+        ...(organizationId ? { agent: { organizationId } } : {}),
         createdAt: { gte: range.startDate, lte: range.endDate },
       },
       select: { topics: true },
@@ -398,10 +430,12 @@ export class AgentAnalyticsService {
   async getSatisfactionTrend(
     agentId: string,
     range: DateRangeQuery,
+    organizationId?: string,
   ): Promise<number> {
     const agg = await this.prisma.conversation.aggregate({
       where: {
         agentId,
+        ...(organizationId ? { agent: { organizationId } } : {}),
         createdAt: { gte: range.startDate, lte: range.endDate },
         satisfactionRating: { not: null },
       },

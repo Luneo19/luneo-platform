@@ -54,6 +54,7 @@ function formatPrice(priceCents: number): string {
 }
 
 function AdminCreditPacksContent() {
+  const creditsModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_CREDITS_MODULE === 'true';
   const { t } = useI18n();
   const [packs, setPacks] = useState<CreditPack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,8 +90,27 @@ function AdminCreditPacksContent() {
   }, []);
 
   useEffect(() => {
+    if (!creditsModuleEnabled) {
+      setLoading(false);
+      return;
+    }
     fetchPacks();
-  }, [fetchPacks]);
+  }, [creditsModuleEnabled, fetchPacks]);
+
+  if (!creditsModuleEnabled) {
+    return (
+      <div className="space-y-6 p-6">
+        <Card className="dash-card border-white/[0.06] bg-white/[0.03] backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-white">{t('admin.creditPacks.title')}</CardTitle>
+            <CardDescription className="text-white/80">
+              Module des packs de credits desactive dans cet environnement.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const openCreate = () => {
     setForm({

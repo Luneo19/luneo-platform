@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+
 import { Shield, Lock, CheckCircle, AlertTriangle, ArrowRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';

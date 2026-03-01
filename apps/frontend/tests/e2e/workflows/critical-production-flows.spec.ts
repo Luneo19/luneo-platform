@@ -37,11 +37,14 @@ test.describe('Flow 1: New User Registration Journey', () => {
   test('should display all subscription plans with correct structure', async ({ page }) => {
     await page.goto('/pricing');
     await expect(page.locator('body')).toContainText(/mois|month/i);
-    
+
     const ctaButtons = page.getByRole('button', { name: /commencer|start|choisir|select|essayer/i });
-    await expect(ctaButtons.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-      return expect(page.getByRole('link', { name: /commencer|start|choisir|select/i }).first()).toBeVisible();
-    });
+    const ctaLinks = page.getByRole('link', { name: /commencer|start|choisir|select/i });
+    if ((await ctaButtons.count()) > 0) {
+      await expect(ctaButtons.first()).toBeVisible({ timeout: 5000 });
+    } else {
+      await expect(ctaLinks.first()).toBeVisible({ timeout: 5000 });
+    }
   });
 
   test('should register a new user', async ({ page }) => {
@@ -50,17 +53,17 @@ test.describe('Flow 1: New User Registration Journey', () => {
     await page.fill('input[name="email"], input[type="email"]', TEST_EMAIL);
     await page.fill('input[name="password"], input[type="password"]', TEST_PASSWORD);
     
-    const firstNameInput = page.locator('input[name="firstName"]');
-    if (await firstNameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    const firstNameInput = page.locator('input[name="firstName"]').first();
+    if ((await firstNameInput.count()) > 0 && (await firstNameInput.isVisible())) {
       await firstNameInput.fill('E2E');
     }
-    const lastNameInput = page.locator('input[name="lastName"]');
-    if (await lastNameInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+    const lastNameInput = page.locator('input[name="lastName"]').first();
+    if ((await lastNameInput.count()) > 0 && (await lastNameInput.isVisible())) {
       await lastNameInput.fill('TestUser');
     }
-    
+
     const termsCheckbox = page.locator('input[type="checkbox"]').first();
-    if (await termsCheckbox.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if ((await termsCheckbox.count()) > 0 && (await termsCheckbox.isVisible())) {
       await termsCheckbox.check();
     }
     
@@ -70,7 +73,10 @@ test.describe('Flow 1: New User Registration Journey', () => {
 
   test('should display onboarding flow', async ({ page }) => {
     await page.goto('/onboarding');
-    await expect(page.locator('body')).toContainText(/.+/);
+    await page.waitForURL(/\/(onboarding|login|dashboard)/, { timeout: 10000 });
+    if (page.url().includes('/onboarding')) {
+      await expect(page.getByRole('heading').first()).toBeVisible();
+    }
   });
 });
 
@@ -122,13 +128,15 @@ test.describe('Flow 3: Billing & Subscription', () => {
   });
 
   test('should handle checkout success page', async ({ page }) => {
-    await page.goto('/checkout/success');
-    await expect(page.locator('body')).toContainText(/.+/);
+    const response = await page.goto('/checkout/success');
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('body')).toContainText(/success|merci|commande|order/i);
   });
 
   test('should handle checkout cancel page', async ({ page }) => {
-    await page.goto('/checkout/cancel');
-    await expect(page.locator('body')).toContainText(/.+/);
+    const response = await page.goto('/checkout/cancel');
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('body')).toContainText(/cancel|annul|retour|checkout/i);
   });
 });
 
@@ -140,11 +148,16 @@ test.describe('Flow 4: Admin Brand Management', () => {
   test('should protect admin routes from unauthenticated users', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForURL(/\/(admin|login|dashboard)/, { timeout: 10000 });
+    // Un utilisateur non authentifié ne doit jamais rester sur la racine admin.
+    expect(page.url()).not.toMatch(/\/admin\/?$/);
   });
 
   test('should protect admin brands page', async ({ page }) => {
     await page.goto('/admin/brands');
     await page.waitForURL(/\/(admin\/brands|login|dashboard)/, { timeout: 10000 });
+    // Même contrainte de protection sur une page admin sensible.
+    expect(page.url()).not.toContain('/admin/brands');
+    expect(page.url()).toMatch(/\/(login|dashboard)/);
   });
 });
 
@@ -160,9 +173,9 @@ test.describe('Flow 5: Marketplace Journey', () => {
 
   test('should have search capability', async ({ page }) => {
     await page.goto('/marketplace');
-    
+
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i], input[placeholder*="chercher" i], input[placeholder*="rechercher" i]');
-    if (await searchInput.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if ((await searchInput.count()) > 0 && (await searchInput.first().isVisible())) {
       await searchInput.first().fill('design');
       await page.waitForTimeout(1000);
     }
@@ -170,13 +183,12 @@ test.describe('Flow 5: Marketplace Journey', () => {
 
   test('should navigate to template detail', async ({ page }) => {
     await page.goto('/marketplace');
-    
+
     const templateLink = page.locator('a[href*="/marketplace/"]').first();
-    if (await templateLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await templateLink.click();
-      await page.waitForURL(/\/marketplace\/.+/);
-      await expect(page.locator('body')).toContainText(/.+/);
-    }
+    await expect(templateLink).toBeVisible({ timeout: 5000 });
+    await templateLink.click();
+    await page.waitForURL(/\/marketplace\/.+/);
+    await expect(page.locator('main')).toContainText(/marketplace|template|design/i);
   });
 });
 

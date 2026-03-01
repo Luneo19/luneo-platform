@@ -64,14 +64,11 @@ test.describe('Visual Regression - Critical Pages', () => {
     
     // Only take screenshot if dashboard is accessible
     const currentUrl = page.url();
-    if (currentUrl.includes('/dashboard')) {
-      await expect(page).toHaveScreenshot('dashboard.png', {
-        fullPage: true,
-        maxDiffPixels: 200,
-      });
-    } else {
-      test.skip();
-    }
+    expect(currentUrl).toContain('/dashboard');
+    await expect(page).toHaveScreenshot('dashboard.png', {
+      fullPage: true,
+      maxDiffPixels: 200,
+    });
   });
 
   test('should match pricing page screenshot', async ({ page }) => {
@@ -92,14 +89,11 @@ test.describe('Visual Regression - Critical Pages', () => {
     await page.waitForTimeout(2000);
     
     const currentUrl = page.url();
-    if (currentUrl.includes('/admin')) {
-      await expect(page).toHaveScreenshot('admin-dashboard.png', {
-        fullPage: true,
-        maxDiffPixels: 200,
-      });
-    } else {
-      test.skip();
-    }
+    expect(currentUrl).toContain('/admin');
+    await expect(page).toHaveScreenshot('admin-dashboard.png', {
+      fullPage: true,
+      maxDiffPixels: 200,
+    });
   });
 
   test('should match admin customers page screenshot', async ({ page }) => {
@@ -109,14 +103,11 @@ test.describe('Visual Regression - Critical Pages', () => {
     await page.waitForTimeout(2000);
     
     const currentUrl = page.url();
-    if (currentUrl.includes('/admin/customers')) {
-      await expect(page).toHaveScreenshot('admin-customers.png', {
-        fullPage: true,
-        maxDiffPixels: 200,
-      });
-    } else {
-      test.skip();
-    }
+    expect(currentUrl).toContain('/admin/customers');
+    await expect(page).toHaveScreenshot('admin-customers.png', {
+      fullPage: true,
+      maxDiffPixels: 200,
+    });
   });
 
   test('should match admin analytics page screenshot', async ({ page }) => {
@@ -126,13 +117,10 @@ test.describe('Visual Regression - Critical Pages', () => {
     await page.waitForTimeout(2000);
     
     const currentUrl = page.url();
-    if (currentUrl.includes('/admin/analytics')) {
-      await expect(page).toHaveScreenshot('admin-analytics.png', {
-        fullPage: true,
-        maxDiffPixels: 200,
-      });
-    } else {
-      test.skip();
-    }
+    expect(currentUrl).toContain('/admin/analytics');
+    await expect(page).toHaveScreenshot('admin-analytics.png', {
+      fullPage: true,
+      maxDiffPixels: 200,
+    });
   });
 });

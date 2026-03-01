@@ -7,16 +7,21 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Play, Pause, Edit, Copy, MoreVertical } from 'lucide-react';
+import { Plus, Play, Pause, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Automation } from '@/hooks/admin/use-automations';
+import { api } from '@/lib/api/client';
+import { useToast } from '@/hooks/use-toast';
+import { getErrorDisplayMessage } from '@/lib/hooks/useErrorToast';
+import { logger } from '@/lib/logger';
 
 export interface AutomationsListProps {
   automations: Automation[];
   isLoading?: boolean;
+  onRefresh?: () => Promise<unknown>;
 }
 
 const statusColors: Record<string, string> = {
@@ -25,7 +30,72 @@ const statusColors: Record<string, string> = {
   draft: 'bg-zinc-500/20 text-zinc-400',
 };
 
-export function AutomationsList({ automations, isLoading }: AutomationsListProps) {
+function getAutomationDisplayName(automation: Automation): string {
+  const rawName = String(automation.name || '').trim();
+  const id = String(automation.id || '').trim();
+  const looksLikeUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawName);
+
+  if (!rawName || rawName === id || looksLikeUuid) {
+    const shortId = id ? id.slice(0, 8) : 'draft';
+    return `Automation ${shortId}`;
+  }
+
+  return rawName;
+}
+
+export function AutomationsList({ automations, isLoading, onRefresh }: AutomationsListProps) {
+  const [loadingId, setLoadingId] = React.useState<string | null>(null);
+  const { toast } = useToast();
+
+  const toggleStatus = React.useCallback(async (automation: Automation) => {
+    const nextStatus = automation.status === 'active' ? 'paused' : 'active';
+    setLoadingId(automation.id);
+    try {
+      await api.put(`/api/admin/marketing/automations/${automation.id}`, {
+        status: nextStatus,
+        active: nextStatus === 'active',
+      });
+      await onRefresh?.();
+      toast({
+        title: 'Automation updated',
+        description:
+          nextStatus === 'active'
+            ? 'Automation activated successfully'
+            : 'Automation paused successfully',
+      });
+    } catch (error) {
+      logger.error('Failed to toggle automation status', error);
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: getErrorDisplayMessage(error),
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  }, [onRefresh, toast]);
+
+  const testAutomation = React.useCallback(async (automationId: string) => {
+    setLoadingId(automationId);
+    try {
+      const result = await api.post<{ message?: string }>('/api/admin/marketing/automations/test', { id: automationId });
+      toast({
+        title: 'Automation test sent',
+        description: result?.message || 'Test workflow executed successfully',
+      });
+      await onRefresh?.();
+    } catch (error) {
+      logger.error('Failed to test automation', error);
+      toast({
+        variant: 'destructive',
+        title: 'Test failed',
+        description: getErrorDisplayMessage(error),
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  }, [onRefresh, toast]);
+
   if (isLoading) {
     return (
       <Card className="bg-zinc-800 border-zinc-700">
@@ -58,16 +128,27 @@ export function AutomationsList({ automations, isLoading }: AutomationsListProps
 
   return (
     <div className="space-y-4">
-      {automations.map((automation) => (
-        <Card
-          key={automation.id}
-          className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
-        >
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
+      {automations.map((automation) => {
+        const stats = automation.stats ?? {
+          sent: 0,
+          opened: 0,
+          clicked: 0,
+          converted: 0,
+          openRate: 0,
+          clickRate: 0,
+          conversionRate: 0,
+        };
+
+        return (
+          <Card
+            key={automation.id}
+            className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold text-white">{automation.name}</h3>
+                  <h3 className="text-lg font-semibold text-white">{getAutomationDisplayName(automation)}</h3>
                   <Badge
                     variant="secondary"
                     className={cn('text-xs', statusColors[automation.status])}
@@ -84,24 +165,24 @@ export function AutomationsList({ automations, isLoading }: AutomationsListProps
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <span className="text-xs text-zinc-500">Sent (30d)</span>
-                    <p className="text-lg font-semibold text-white">{automation.stats.sent}</p>
+                    <p className="text-lg font-semibold text-white">{stats.sent}</p>
                   </div>
                   <div>
                     <span className="text-xs text-zinc-500">Open Rate</span>
                     <p className="text-lg font-semibold text-white">
-                      {automation.stats.openRate.toFixed(1)}%
+                      {stats.openRate.toFixed(1)}%
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-zinc-500">Click Rate</span>
                     <p className="text-lg font-semibold text-white">
-                      {automation.stats.clickRate.toFixed(1)}%
+                      {stats.clickRate.toFixed(1)}%
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-zinc-500">Conversions</span>
                     <p className="text-lg font-semibold text-green-400">
-                      {automation.stats.converted}
+                      {stats.converted}
                     </p>
                   </div>
                 </div>
@@ -130,30 +211,49 @@ export function AutomationsList({ automations, isLoading }: AutomationsListProps
               {/* Actions */}
               <div className="flex items-center gap-2 ml-4">
                 {automation.status === 'active' ? (
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-zinc-700 text-zinc-100 hover:bg-zinc-800"
+                    disabled={loadingId === automation.id}
+                    onClick={() => toggleStatus(automation)}
+                  >
                     <Pause className="w-4 h-4 mr-2" />
-                    Pause
+                    {loadingId === automation.id ? 'Updating...' : 'Pause'}
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-zinc-700 text-zinc-100 hover:bg-zinc-800"
+                    disabled={loadingId === automation.id}
+                    onClick={() => toggleStatus(automation)}
+                  >
                     <Play className="w-4 h-4 mr-2" />
-                    Activate
+                    {loadingId === automation.id ? 'Updating...' : 'Activate'}
                   </Button>
                 )}
                 <Link href={`/admin/marketing/automations/${automation.id}/edit`}>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-100 hover:bg-zinc-800">
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="w-4 h-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={loadingId === automation.id}
+                  onClick={() => testAutomation(automation.id)}
+                  title="Run test"
+                >
+                  <Play className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           </CardContent>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }

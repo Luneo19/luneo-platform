@@ -5,6 +5,7 @@ import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
 
 const API_URL = getBackendUrl();
+const ADMIN_ROLES = new Set(['ADMIN', 'PLATFORM_ADMIN']);
 
 /**
  * GET /api/admin/tenants
@@ -28,7 +29,8 @@ export async function GET(_request: NextRequest) {
     if (!user || !user.id) {
       throw { status: 401, message: 'Non authentifié', code: 'UNAUTHORIZED' };
     }
-    if (user.role !== 'PLATFORM_ADMIN') {
+    const role = typeof user.role === 'string' ? user.role : '';
+    if (!ADMIN_ROLES.has(role)) {
       throw { status: 403, message: 'Accès réservé aux administrateurs', code: 'FORBIDDEN' };
     }
 

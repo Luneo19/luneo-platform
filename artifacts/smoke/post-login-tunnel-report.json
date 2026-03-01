@@ -1,0 +1,80 @@
+[
+  {
+    "id": "user-funnel",
+    "ok": true,
+    "steps": [
+      {
+        "name": "login",
+        "ok": true
+      },
+      {
+        "name": "visit:/overview",
+        "ok": true
+      },
+      {
+        "name": "visit:/agents",
+        "ok": true
+      },
+      {
+        "name": "visit:/conversations",
+        "ok": true
+      },
+      {
+        "name": "visit:/billing",
+        "ok": true
+      },
+      {
+        "name": "visit:/settings",
+        "ok": true
+      },
+      {
+        "name": "logout",
+        "ok": true
+      },
+      {
+        "name": "post-logout-login-page",
+        "ok": true
+      }
+    ],
+    "networkErrors": [],
+    "consoleIssues": [],
+    "pageErrors": []
+  },
+  {
+    "id": "admin-funnel",
+    "ok": true,
+    "steps": [
+      {
+        "name": "login",
+        "ok": true
+      },
+      {
+        "name": "visit:/admin",
+        "ok": true
+      },
+      {
+        "name": "visit:/admin/tickets",
+        "ok": true
+      },
+      {
+        "name": "visit:/admin/marketing/templates",
+        "ok": true
+      },
+      {
+        "name": "visit:/admin/marketing/communications",
+        "ok": true
+      },
+      {
+        "name": "logout",
+        "ok": true
+      },
+      {
+        "name": "post-logout-login-page",
+        "ok": true
+      }
+    ],
+    "networkErrors": [],
+    "consoleIssues": [],
+    "pageErrors": []
+  }
+]

@@ -16,9 +16,9 @@ describe('createTranslator (i18n index)', () => {
     expect(t('common.save')).toBe('Save');
   });
 
-  it('t() returns key as fallback for missing key', () => {
+  it('t() returns humanized fallback for missing key', () => {
     const t = createTranslator('en');
-    expect(t('nonexistent.key.path')).toBe('nonexistent.key.path');
+    expect(t('nonexistent.key.path')).toBe('Path');
   });
 
   it('replaces template variables', () => {
@@ -34,8 +34,8 @@ describe('createTranslator (i18n index)', () => {
     const value = tDe('common.error');
     expect(typeof value).toBe('string');
     expect(value.length).toBeGreaterThan(0);
-    // Truly missing key in both locales returns the key
-    expect(tDe('nonexistent.key.xyz')).toBe('nonexistent.key.xyz');
+    // Truly missing key in both locales returns a humanized fallback
+    expect(tDe('nonexistent.key.xyz')).toBe('Xyz');
   });
 });
 
@@ -53,9 +53,9 @@ describe('useI18n', () => {
     expect(result.current.t('common.cancel')).toBe('Cancel');
   });
 
-  it('t() returns key as fallback for missing key', () => {
+  it('t() returns humanized fallback for missing key', () => {
     const { result } = renderHook(() => useI18n());
-    expect(result.current.t('missing.key.here')).toBe('missing.key.here');
+    expect(result.current.t('missing.key.here')).toBe('Here');
   });
 
   it('locale switch changes active locale', () => {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
@@ -90,16 +90,16 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
 
       <div className="mb-5">
         <h3 className="text-lg sm:text-xl font-bold text-white">{plan.name}</h3>
-        <p className="mt-1.5 text-xs sm:text-sm text-white/50 leading-relaxed">{plan.description}</p>
+        <p className="mt-1.5 text-xs sm:text-sm text-white/90 leading-relaxed">{plan.description}</p>
       </div>
 
       <div className="mb-6">
         <div className="flex items-baseline gap-1">
           <span className="text-3xl sm:text-4xl font-bold text-white font-editorial tabular-nums">{displayPrice}</span>
-          {period && <span className="text-sm text-white/40">{period}</span>}
+          {period && <span className="text-sm text-white/90">{period}</span>}
         </div>
         {yearlyNote && (
-          <p className="mt-1 text-xs text-white/40">{yearlyNote}</p>
+          <p className="mt-1 text-xs text-white/90">{yearlyNote}</p>
         )}
         {isYearly &&
           price !== null &&
@@ -123,7 +123,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
         className={`w-full font-semibold text-sm h-10 sm:h-11 rounded-lg transition-all duration-200 ${
           plan.popular
             ? 'bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/20'
-            : 'bg-white/[0.08] text-white hover:bg-white/[0.12] border border-white/[0.08]'
+            : 'bg-white/[0.12] text-white hover:bg-white/[0.18] border border-white/[0.16]'
         }`}
       >
         {isLoading ? (
@@ -140,7 +140,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
         {plan.features.map((feature, index) => (
           <li key={index} className="flex items-start gap-2.5">
             <Check className="h-4 w-4 flex-shrink-0 text-green-400 mt-0.5" />
-            <span className="text-xs sm:text-sm text-white/60 leading-relaxed">{feature}</span>
+            <span className="text-xs sm:text-sm text-white/95 leading-relaxed">{feature}</span>
           </li>
         ))}
       </ul>
@@ -148,7 +148,7 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
   );
 
   return (
-    <motion
+    <Motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative h-full"
@@ -162,6 +162,6 @@ export function PricingPlanCard({ plan, isYearly, onCheckout }: PricingPlanCardP
       >
         {cardContent}
       </div>
-    </motion>
+    </Motion>
   );
 }

@@ -31,7 +31,12 @@ describe('onboarding.store', () => {
           id: 'prog-1',
           organizationId: 'org-1',
           userId: 'user-1',
-          step1Profile: { name: 'Jane', company: 'Acme', role: 'Admin', teamSize: '2-10' },
+          step1Profile: {
+            firstName: 'Jane',
+            lastName: 'Doe',
+            companyName: 'Acme',
+            website: 'https://acme.test',
+          },
           step1CompletedAt: '2024-01-01T00:00:00Z',
           step2Industry: 'tech',
           step2CompletedAt: '2024-01-01T00:00:00Z',
@@ -50,10 +55,13 @@ describe('onboarding.store', () => {
       await useOnboardingStore.getState().fetchProgress();
 
       expect(mockedApi.get).toHaveBeenCalledWith('/api/v1/onboarding/progress');
-      expect(useOnboardingStore.getState().progress).toEqual(progressResponse);
+      expect(useOnboardingStore.getState().progress).toEqual({
+        currentStep: 1,
+        progress: progressResponse.progress,
+      });
       expect(useOnboardingStore.getState().currentStep).toBe(1); // 0 + 1 = 1
-      expect(useOnboardingStore.getState().formData.step1.name).toBe('Jane');
-      expect(useOnboardingStore.getState().formData.step2.industrySlug).toBe('tech');
+      expect(useOnboardingStore.getState().formData.step1.firstName).toBe('Jane');
+      expect(useOnboardingStore.getState().formData.step2.industry).toBe('tech');
       expect(useOnboardingStore.getState().isLoading).toBe(false);
     });
   });
@@ -61,14 +69,13 @@ describe('onboarding.store', () => {
   describe('saveStep', () => {
     it('saves current step data', async () => {
       useOnboardingStore.getState().setStepData('step1', {
-        name: 'John',
-        company: 'Co',
-        role: 'User',
-        teamSize: '1',
+        firstName: 'John',
+        lastName: 'Doe',
       });
+      useOnboardingStore.getState().setStepData('step2', { companyName: 'Co' });
       await useOnboardingStore.getState().saveStep(1);
       expect(mockedApi.post).toHaveBeenCalledWith('/api/v1/onboarding/step/1', {
-        data: expect.objectContaining({ name: 'John', companyName: 'Co', role: 'User', teamSize: '1' }),
+        data: expect.objectContaining({ name: 'John Doe', companyName: 'Co', firstName: 'John', lastName: 'Doe' }),
       });
       expect(useOnboardingStore.getState().isSubmitting).toBe(false);
     });
@@ -83,9 +90,10 @@ describe('onboarding.store', () => {
       nextStep();
       nextStep();
       nextStep();
-      nextStep(); // 6
-      expect(useOnboardingStore.getState().currentStep).toBe(6);
-      nextStep(); // still 6
+      nextStep();
+      nextStep();
+      expect(useOnboardingStore.getState().currentStep).toBe(7);
+      nextStep(); // still 7
       expect(useOnboardingStore.getState().currentStep).toBe(totalSteps);
     });
   });

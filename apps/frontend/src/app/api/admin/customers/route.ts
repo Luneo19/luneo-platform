@@ -36,8 +36,25 @@ export async function GET(request: NextRequest) {
     if (!res.ok) {
       return NextResponse.json(raw.error ?? { error: 'Failed to fetch customers' }, { status: res.status });
     }
-    const data = raw.data ?? raw;
-    return NextResponse.json(data);
+    const payload = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const customers = Array.isArray(payload.data)
+      ? payload.data
+      : Array.isArray(payload.customers)
+        ? payload.customers
+        : [];
+    const meta = payload.meta && typeof payload.meta === 'object'
+      ? (payload.meta as Record<string, unknown>)
+      : {};
+
+    return NextResponse.json({
+      customers,
+      pagination: {
+        page: Number(meta.page ?? 1),
+        limit: Number(meta.limit ?? 50),
+        total: Number(meta.total ?? customers.length),
+        totalPages: Number(meta.totalPages ?? 1),
+      },
+    });
   } catch (error) {
     serverLogger.apiError('/api/admin/customers', 'GET', error, 500);
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });

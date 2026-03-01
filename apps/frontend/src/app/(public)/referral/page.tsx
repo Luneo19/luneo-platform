@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import {
-  Gift, Users, Coins, ArrowRight, Check, Copy, Star, TrendingUp,
-  Wallet, Award, Share2, Twitter, Linkedin, Mail, MessageCircle
+  Gift, Users, Coins, ArrowRight, Check, Copy, TrendingUp,
+  Wallet, Award, Twitter, Linkedin, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ const tiers = [
 // Stats are derived from the referral API response — no hardcoded marketing numbers
 
 function ReferralPageContent() {
+  const referralStatsEnabled = process.env.NEXT_PUBLIC_ENABLE_REFERRAL_PERSONAL_STATS === 'true';
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [copied, setCopied] = useState(false);
@@ -64,6 +65,10 @@ function ReferralPageContent() {
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
+    if (!referralStatsEnabled) {
+      setStatsLoading(false);
+      return;
+    }
     let cancelled = false;
     api.get<{ referralCode: string; referralLink: string; totalReferrals: number; activeReferrals: number; totalEarnings: number; pendingEarnings: number }>('/api/v1/referral/stats')
       .then((res) => {
@@ -72,9 +77,8 @@ function ReferralPageContent() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setStatsLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [referralStatsEnabled]);
 
-  const displayCode = stats?.referralCode ?? 'LUNEO-XXXXXX';
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://luneo.app';
   const displayLink = stats?.referralLink ?? (typeof window !== 'undefined' ? `${window.location.origin}/ref/LUNEO-XXXXXX` : `${APP_URL}/ref/LUNEO-XXXXXX`);
 
@@ -104,38 +108,38 @@ function ReferralPageContent() {
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full text-purple-300 text-sm mb-6"
           >
             <Gift className="w-4 h-4" />
             Programme de parrainage
-          </motion>
+          </Motion>
 
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-6xl font-bold text-white mb-6"
-            as="h1"
           >
-            Gagnez jusqu'à <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">35%</span> de commission
-          </motion>
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              Gagnez jusqu&apos;à <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">35%</span> de commission
+            </h1>
+          </Motion>
 
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-xl text-gray-400 max-w-2xl mx-auto mb-8"
-            as="p"
           >
-            Partagez Luneo avec votre réseau et recevez des commissions récurrentes sur chaque abonnement généré.
-          </motion>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
+              Partagez Luneo avec votre réseau et recevez des commissions récurrentes sur chaque abonnement généré.
+            </p>
+          </Motion>
 
           {/* Stats — dynamiques depuis l'API */}
           {stats && (
-            <motion
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -156,11 +160,11 @@ function ReferralPageContent() {
                 <p className="text-2xl font-bold text-white">€{((stats.pendingEarnings || 0) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}</p>
                 <p className="text-sm text-gray-400">En attente</p>
               </Card>
-            </motion>
+            </Motion>
           )}
 
           {/* CTA Form */}
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -190,7 +194,7 @@ function ReferralPageContent() {
                 </Button>
               </form>
             )}
-          </motion>
+          </Motion>
         </div>
       </section>
 
@@ -203,7 +207,7 @@ function ReferralPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {benefits.map((benefit, index) => (
-              <motion
+              <Motion
                 key={benefit.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -217,7 +221,7 @@ function ReferralPageContent() {
                   <h3 className="text-lg font-semibold text-white mb-2">{benefit.title}</h3>
                   <p className="text-gray-400 text-sm">{benefit.description}</p>
                 </Card>
-              </motion>
+              </Motion>
             ))}
           </div>
         </div>
@@ -235,7 +239,7 @@ function ReferralPageContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {tiers.map((tier, index) => (
-              <motion
+              <Motion
                 key={tier.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -250,7 +254,7 @@ function ReferralPageContent() {
                     {tier.min === 0 ? '0' : tier.min} - {tier.max === Infinity ? '∞' : tier.max} filleuls
                   </p>
                 </Card>
-              </motion>
+              </Motion>
             ))}
           </div>
         </div>
@@ -328,7 +332,7 @@ function ReferralPageContent() {
               a: 'Oui, le parrainage est cumulable avec toutes les promotions en cours pour vos filleuls.',
             },
           ].map((faq, index) => (
-            <motion
+            <Motion
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -340,7 +344,7 @@ function ReferralPageContent() {
                 <h3 className="text-white font-semibold mb-2">{faq.q}</h3>
                 <p className="text-gray-400">{faq.a}</p>
               </Card>
-            </motion>
+            </Motion>
           ))}
         </div>
       </section>

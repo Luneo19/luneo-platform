@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Download, FileText, FileSpreadsheet, File, Loader2, X } from 'lucide-react';
+import { Download, FileText, FileSpreadsheet, File, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
-import { endpoints } from '@/lib/api/client';
 
 interface ExportAnalyticsModalProps {
   open: boolean;
@@ -55,23 +54,19 @@ export function ExportAnalyticsModal({
 
       let url = '';
       let filename = '';
-      let contentType = '';
 
       switch (exportFormat) {
         case 'csv':
           url = `/api/v1/analytics/export/csv?${queryParams.toString()}`;
           filename = `analytics_export_${new Date().toISOString().split('T')[0]}.csv`;
-          contentType = 'text/csv';
           break;
         case 'excel':
           url = `/api/v1/analytics/export/excel?${queryParams.toString()}`;
           filename = `analytics_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           break;
         case 'pdf':
           url = `/api/v1/analytics/export/pdf?${queryParams.toString()}`;
           filename = `analytics_export_${new Date().toISOString().split('T')[0]}.pdf`;
-          contentType = 'application/pdf';
           break;
         default:
           throw new Error('Invalid export format');

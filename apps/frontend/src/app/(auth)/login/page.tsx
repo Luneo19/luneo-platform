@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useI18n } from '@/i18n/useI18n';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
 import { 
   Eye, 
@@ -20,13 +20,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { getBackendUrl } from '@/lib/api/server-url';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TwoFactorForm } from '@/components/auth/TwoFactorForm';
 import { getRoleBasedRedirect } from '@/lib/utils/role-redirect';
 import { memo } from 'react';
+import { endpoints } from '@/lib/api/client';
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -71,8 +70,22 @@ function LoginPageContent() {
     email: '',
     password: '',
   });
-  const router = useRouter();
 
+  const resolvePostAuthTarget = useCallback((role?: string, redirectTo?: string | null) => {
+    const safeRedirect =
+      redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
+    const isAdmin = role === 'ADMIN' || role === 'PLATFORM_ADMIN';
+    const fallback = getRoleBasedRedirect(role);
+
+    if (!safeRedirect) return fallback;
+    if (isAdmin) return safeRedirect.startsWith('/admin') ? safeRedirect : '/admin';
+    return safeRedirect.startsWith('/admin') ? '/overview' : safeRedirect;
+  }, []);
+
+  const currentQueryRedirect = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('redirect');
+  }, []);
   // Handle session=expired and redirect query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -114,25 +127,11 @@ function LoginPageContent() {
       // Use relative URL so the request goes through the Vercel proxy (same-origin).
       // This ensures httpOnly cookies from Set-Cookie are properly stored by the browser.
       // Vercel rewrites /api/* → https://api.luneo.app/api/*
-      const loginResp = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          rememberMe,
-        }),
+      const response = await endpoints.auth.login({
+        email: formData.email,
+        password: formData.password,
+        rememberMe,
       });
-
-      if (!loginResp.ok) {
-        const errData = await loginResp.json().catch(() => ({}));
-        throw Object.assign(new Error(errData.message || 'Login failed'), {
-          response: { data: errData, status: loginResp.status },
-        });
-      }
-
-      const response = await loginResp.json();
 
       // Si 2FA requis
       if (response.requires2FA && response.tempToken) {
@@ -149,10 +148,7 @@ function LoginPageContent() {
         // Verify cookies were actually stored by the browser before navigating.
         // Without this check, if the browser blocks cookies (extensions, settings),
         // the user enters an infinite redirect loop /admin → /login → /admin.
-        const params = new URLSearchParams(window.location.search);
-        const redirectTo = params.get('redirect');
-        const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
-        const targetUrl = safeRedirect || getRoleBasedRedirect(response.user?.role);
+        const targetUrl = resolvePostAuthTarget(response.user?.role, currentQueryRedirect());
         
         // Small delay to let browser process Set-Cookie headers
         await new Promise(r => setTimeout(r, 300));
@@ -163,14 +159,14 @@ function LoginPageContent() {
             setSuccess(t('auth.login.sessionVerified'));
             window.location.href = targetUrl;
           } else {
-            // Cookies were not stored — navigate anyway but warn
-            logger.warn('Cookie verification failed, navigating anyway', { status: verifyResp.status });
-            window.location.href = targetUrl;
+            // Do not navigate when session verification fails, otherwise /admin can loop.
+            logger.warn('Cookie verification failed, stopping redirect', { status: verifyResp.status });
+            setError(t('auth.login.errors.generic'));
           }
         } catch {
-          // Network error during verification — navigate anyway
-          logger.warn('Cookie verification fetch failed, navigating anyway');
-          window.location.href = targetUrl;
+          // Network error during verification — keep user on login to prevent loops.
+          logger.warn('Cookie verification fetch failed, stopping redirect');
+          setError(t('auth.login.errors.generic'));
         }
       } else {
         setError(t('auth.login.invalidResponse'));
@@ -209,20 +205,16 @@ function LoginPageContent() {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, rememberMe, router]);
+  }, [formData, rememberMe, resolvePostAuthTarget, currentQueryRedirect]);
 
   // OAuth login - ✅ Migré vers NestJS backend
   const handleOAuthLogin = useCallback(async (provider: 'google' | 'github') => {
     try {
       setOauthLoading(provider);
       setError('');
-      
-      // Redirect to backend OAuth endpoint
-      const apiUrl = getBackendUrl();
-      const oauthUrl = `${apiUrl}/api/v1/auth/${provider}`;
-      
-      // Redirect to backend OAuth
-      window.location.href = oauthUrl;
+
+      // Keep OAuth on same-origin to avoid cross-domain cookie issues.
+      window.location.href = `/api/v1/auth/${provider}`;
     } catch (err: unknown) {
       logger.error('OAuth error', {
         error: err,
@@ -236,7 +228,7 @@ function LoginPageContent() {
   }, []);
 
   return (
-      <motion
+      <Motion
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -244,18 +236,18 @@ function LoginPageContent() {
       >
       {/* Header */}
           <div className="text-center mb-8">
-        <motion
+        <Motion
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
           className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl mb-6 shadow-lg shadow-purple-500/25 lg:hidden"
         >
           <span className="text-white font-bold text-2xl">L</span>
-        </motion>
+        </Motion>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display" data-testid="login-title">
           {t('auth.login.welcomeBack')}
             </h1>
-        <p className="text-slate-500" data-testid="login-subtitle">
+        <p className="text-slate-300" data-testid="login-subtitle">
           {t('auth.login.subtitleLuneo')}
             </p>
           </div>
@@ -285,17 +277,25 @@ function LoginPageContent() {
         <TwoFactorForm
           tempToken={tempToken}
           email={formData.email}
-          onSuccess={() => {
+          onSuccess={async (userFrom2fa) => {
             setSuccess(t('auth.login.successRedirect'));
-            const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-            const user = userJson ? (JSON.parse(userJson) as { role?: string }) : undefined;
-            const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-            const redirectTo = params.get('redirect');
-            const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null;
-            setTimeout(() => {
-              // Use window.location.href for full page reload so cookies are properly read server-side
-              window.location.href = safeRedirect || getRoleBasedRedirect(user?.role);
-            }, 500);
+            try {
+              // Use authenticated session as source of truth after 2FA.
+              const verifyResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+              const meData = verifyResp.ok ? await verifyResp.json() : null;
+              const verifiedUser = meData?.data || meData;
+              const role = verifiedUser?.role || userFrom2fa?.role;
+
+              setTimeout(() => {
+                // Full reload to ensure server-side cookies/guards are applied consistently.
+                window.location.href = resolvePostAuthTarget(role, currentQueryRedirect());
+              }, 500);
+            } catch {
+              // Fallback to role from loginWith2FA response if /me check fails transiently.
+              setTimeout(() => {
+                window.location.href = resolvePostAuthTarget(userFrom2fa?.role, currentQueryRedirect());
+              }, 500);
+            }
           }}
           onError={(error) => setError(error)}
         />
@@ -305,16 +305,16 @@ function LoginPageContent() {
         {/* Email */}
         <SlideUp delay={0.4}>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+          <Label htmlFor="email" className="text-sm font-medium text-slate-200">
             {t('auth.login.email')}
               </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
                   placeholder={t('auth.login.emailPlaceholder')}
-              className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
+              className="pl-10 bg-dark-surface border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -332,24 +332,24 @@ function LoginPageContent() {
         <SlideUp delay={0.5}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+            <Label htmlFor="password" className="text-sm font-medium text-slate-200">
                 {t('auth.login.password')}
               </Label>
             <Link 
               href="/forgot-password" 
+              prefetch={false}
               className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
-              tabIndex={-1}
             >
               {t('auth.login.forgotPassword')}
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 w-5 h-5" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
+              className="pl-10 pr-12 bg-dark-surface border-dark-border text-white placeholder:text-slate-300 placeholder:opacity-100 focus:border-purple-500/50 focus:ring-purple-500/20 h-12"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -359,8 +359,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
-              tabIndex={-1}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
                   data-testid="login-toggle-password"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -381,11 +380,11 @@ function LoginPageContent() {
               className="w-4 h-4 rounded border-dark-border bg-dark-surface text-purple-500 focus:ring-purple-500/20 focus:ring-offset-0"
                   data-testid="login-remember"
                 />
-            <Label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer">
+            <Label htmlFor="remember" className="text-sm text-slate-300 cursor-pointer">
               {t('auth.login.rememberMe')}
                 </Label>
               </div>
-          <div className="flex items-center gap-1 text-xs text-slate-600">
+          <div className="flex items-center gap-1 text-xs text-slate-300">
             <Shield className="w-3 h-3" />
             <span>{t('auth.login.secureConnection')}</span>
           </div>
@@ -422,7 +421,7 @@ function LoginPageContent() {
           <div className="w-full border-t border-white/[0.06]" />
               </div>
               <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-dark-bg text-slate-600">{t('auth.login.orContinueWith')}</span>
+          <span className="px-4 bg-dark-bg text-slate-300">{t('auth.login.orContinueWith')}</span>
             </div>
           </div>
         </FadeIn>
@@ -433,7 +432,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12"
+          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-200 h-12"
               onClick={() => handleOAuthLogin('google')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -450,7 +449,7 @@ function LoginPageContent() {
             <Button
               type="button"
               variant="outline"
-          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-300 h-12"
+          className="bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] text-slate-200 h-12"
               onClick={() => handleOAuthLogin('github')}
           disabled={isLoading || oauthLoading !== null}
             >
@@ -469,10 +468,11 @@ function LoginPageContent() {
           {/* Sign up link */}
         <FadeIn delay={1.0}>
       <div className="mt-8 text-center">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-300">
               {t('auth.login.noAccount')}{' '}
               <Link
                 href="/register"
+                prefetch={false}
             className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 data-testid="login-switch-register"
               >
@@ -485,7 +485,7 @@ function LoginPageContent() {
       {/* Security indicators */}
         <FadeIn delay={1.1}>
         <div className="mt-8 pt-6 border-t border-white/[0.06]">
-        <div className="flex items-center justify-center gap-6 text-xs text-slate-600">
+        <div className="flex items-center justify-center gap-6 text-xs text-slate-300">
           <div className="flex items-center gap-1">
             <Shield className="w-3 h-3" />
             <span>{t('auth.login.securityIndicators.ssl')}</span>
@@ -503,7 +503,7 @@ function LoginPageContent() {
         </FadeIn>
         </>
       )}
-      </motion>
+      </Motion>
   );
 }
 

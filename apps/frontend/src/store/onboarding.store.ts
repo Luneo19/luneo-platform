@@ -1,10 +1,6 @@
 import { create } from 'zustand';
-import { api } from '@/lib/api/client';
+import { api, endpoints } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
-
-// ========================================
-// TYPES
-// ========================================
 
 export interface OnboardingFormData {
   step1: {
@@ -14,19 +10,50 @@ export interface OnboardingFormData {
   step2: {
     companyName: string;
     website: string;
+    industry: string;
   };
   step3: {
     sector: string;
+    companySize: string;
+    objective: string;
   };
   step4: {
     companySize: string;
+    agentName: string;
+    systemPrompt: string;
+    greeting: string;
+    tone: string;
+    model: string;
   };
   step5: {
     objective: string;
+    templateId: string | null;
   };
-  step6: {
-    templateSelected: boolean;
+}
+
+export interface CrawlSiteResult {
+  url: string;
+  title: string;
+  description: string;
+  language: string;
+  logoUrl?: string;
+}
+
+export interface GeneratedPersona {
+  agentName: string;
+  systemPrompt: string;
+  greeting: string;
+  tone: string;
+  responseStyle: string;
+  suggestedFAQ: { question: string; answer: string }[];
+  suggestedTopics: string[];
+  brandVoice: {
+    vocabulary: string[];
+    avoidWords: string[];
+    communicationStyle: string;
   };
+  industry: string;
+  language: string;
 }
 
 export interface OnboardingProgress {
@@ -47,53 +74,63 @@ export interface OnboardingProgress {
   skippedAt: string | null;
 }
 
-/** API response shape for GET /api/v1/onboarding/progress */
 export interface OnboardingProgressApiResponse {
   currentStep: number;
   progress: OnboardingProgress | null;
 }
 
-/** Maps form companySize to backend CompanySize enum value */
-function mapTeamSizeToCompanySize(companySize: string): string | undefined {
-  const map: Record<string, string> = {
-    SOLO: 'SOLO',
-    SMALL: 'SMALL_2_10',
-    MEDIUM: 'MEDIUM_11_50',
-    LARGE: 'LARGE_51_200',
-    ENTERPRISE: 'ENTERPRISE_200_PLUS',
-    '1': 'SOLO',
-    '2-10': 'SMALL_2_10',
-    '11-50': 'MEDIUM_11_50',
-    '51-200': 'LARGE_51_200',
-    '200+': 'ENTERPRISE_200_PLUS',
-  };
-  return map[companySize] ?? undefined;
-}
+const INDUSTRY_OPTIONS = [
+  { value: 'ECOMMERCE', label: 'E-commerce' },
+  { value: 'SAAS', label: 'SaaS / Tech' },
+  { value: 'FINTECH', label: 'Fintech / Finance' },
+  { value: 'HEALTHCARE', label: 'Santé' },
+  { value: 'REAL_ESTATE', label: 'Immobilier' },
+  { value: 'INSURANCE', label: 'Assurance' },
+  { value: 'EDUCATION', label: 'Éducation' },
+  { value: 'AGENCY', label: 'Agence' },
+  { value: 'CONSULTING', label: 'Conseil' },
+  { value: 'RETAIL', label: 'Commerce de détail' },
+  { value: 'HOSPITALITY', label: 'Hôtellerie / Restauration' },
+  { value: 'AUTOMOTIVE', label: 'Automobile' },
+  { value: 'TRAVEL', label: 'Voyage / Tourisme' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'NONPROFIT', label: 'Association / ONG' },
+  { value: 'GOVERNMENT', label: 'Service public' },
+  { value: 'OTHER', label: 'Autre' },
+] as const;
 
-// ========================================
-// STORE
-// ========================================
+export { INDUSTRY_OPTIONS };
+
+const ONBOARDING_DISMISS_KEY = 'onboarding_dismissed_until';
+const ONBOARDING_DISMISS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 interface OnboardingState {
   currentStep: number;
   totalSteps: number;
   progress: OnboardingProgressApiResponse | null;
-  selectedSector: string | null;
   formData: OnboardingFormData;
   isSubmitting: boolean;
   isLoading: boolean;
   error: string | null;
 
-  // Actions
+  crawlResult: CrawlSiteResult | null;
+  generatedPersona: GeneratedPersona | null;
+  isCrawling: boolean;
+  crawlError: string | null;
+
+  createdAgentId: string | null;
+
   fetchProgress: () => Promise<void>;
   saveStep: (stepNumber: number) => Promise<void>;
   nextStep: () => void;
   previousStep: () => void;
+  goToStep: (step: number) => void;
   setStepData: <K extends keyof OnboardingFormData>(
     step: K,
     data: Partial<OnboardingFormData[K]>
   ) => void;
-  setSelectedSector: (sector: string) => void;
+  scanWebsite: (url: string, industry?: string) => Promise<void>;
+  createAgentFromOnboarding: () => Promise<string | null>;
   completeOnboarding: () => Promise<void>;
   skipOnboarding: () => Promise<void>;
   reset: () => void;
@@ -101,81 +138,80 @@ interface OnboardingState {
 
 const initialFormData: OnboardingFormData = {
   step1: { firstName: '', lastName: '' },
-  step2: { companyName: '', website: '' },
-  step3: { sector: '' },
-  step4: { companySize: '' },
-  step5: { objective: '' },
-  step6: { templateSelected: false },
+  step2: { companyName: '', website: '', industry: '' },
+  step3: { sector: '', companySize: '', objective: '' },
+  step4: {
+    companySize: '',
+    agentName: '',
+    systemPrompt: '',
+    greeting: '',
+    tone: 'PROFESSIONAL',
+    model: 'gpt-4o-mini',
+  },
+  step5: { objective: '', templateId: null },
 };
-
-/** Maps V2 sector to backend industry slug */
-function mapSectorToIndustrySlug(sector: string): string {
-  const map: Record<string, string> = {
-    ECOMMERCE: 'print_on_demand',
-    SAAS: 'other',
-    FINTECH: 'other',
-    HEALTHCARE: 'other',
-    RETAIL: 'fashion',
-    OTHER: 'other',
-  };
-  return map[sector] ?? 'other';
-}
 
 export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
   currentStep: 1,
-  totalSteps: 7, // 7 steps V2
+  totalSteps: 7,
   progress: null,
-  selectedSector: null,
   formData: { ...initialFormData },
   isSubmitting: false,
   isLoading: false,
   error: null,
 
+  crawlResult: null,
+  generatedPersona: null,
+  isCrawling: false,
+  crawlError: null,
+
+  createdAgentId: null,
+
   fetchProgress: async () => {
     set({ isLoading: true, error: null });
     try {
       const raw = await api.get<OnboardingProgressApiResponse & { data?: OnboardingProgressApiResponse }>('/api/v1/onboarding/progress');
-      // Support both { currentStep, progress } and { data: { currentStep, progress } }
       const data = raw?.data ?? raw;
       const rawStep = data?.currentStep;
       const stepNumber = typeof rawStep === 'number' && !Number.isNaN(rawStep) ? rawStep : 0;
-      // Backend returns currentStep 0–5 (next step to show) or 6 (completed). UI V2 has 7 steps; map 0-5 → 1-6, 6 → 7.
-      const currentStep = stepNumber >= 6 ? 7 : Math.min(stepNumber + 1, 6);
+      const currentStep = Math.max(1, Math.min(stepNumber + 1, 7));
       const progressData = data?.progress ?? null;
 
-      // Restore form data from data.progress (V2 mapping)
       const formData = { ...initialFormData };
       if (progressData?.step1Profile) {
         const p1 = progressData.step1Profile as Record<string, unknown>;
-        const firstName = (p1?.firstName as string) ?? '';
-        const lastName = (p1?.lastName as string) ?? '';
-        const fullName = (p1?.name as string) ?? '';
-        const parts = fullName ? fullName.split(' ') : [];
         formData.step1 = {
-          firstName: firstName || parts[0] || '',
-          lastName: lastName || parts.slice(1).join(' ') || '',
+          firstName: (p1?.firstName as string) ?? '',
+          lastName: (p1?.lastName as string) ?? '',
         };
-        if (p1?.companyName) formData.step2.companyName = p1.companyName as string;
-        if (p1?.website) formData.step2.website = p1.website as string;
+        if (p1?.website) {
+          formData.step2.website = p1.website as string;
+        }
+        if (p1?.companyName) {
+          formData.step2.companyName = p1.companyName as string;
+        }
       }
-      const p2 = progressData?.step2Industry;
-      if (p2) formData.step3 = { sector: p2 };
-      const p3 = progressData?.step3UseCases as Record<string, unknown> | null;
-      if (p3?.companySize) formData.step4 = { companySize: p3.companySize as string };
-      const p4 = progressData?.step4Goals as Record<string, unknown> | null;
-      const goals = p4?.goals as string[] | undefined;
-      if (goals?.[0]) formData.step5 = { objective: goals[0] };
+      if (progressData?.step2Industry) {
+        formData.step2.industry = progressData.step2Industry;
+        formData.step3.sector = progressData.step2Industry;
+      }
+      if (progressData?.step3UseCases) {
+        const p3 = progressData.step3UseCases as Record<string, unknown>;
+        if (typeof p3.companySize === 'string') formData.step4.companySize = p3.companySize;
+        if (Array.isArray(p3.goals) && typeof p3.goals[0] === 'string') {
+          formData.step5.objective = p3.goals[0];
+        }
+      }
 
       set({
         progress: { currentStep, progress: progressData },
         currentStep,
-        selectedSector: progressData?.step2Industry ?? null,
         formData,
         isLoading: false,
       });
     } catch (error) {
       logger.error('Failed to fetch onboarding progress', error instanceof Error ? error : new Error(String(error)));
-      set({ error: 'Failed to fetch onboarding progress', isLoading: false });
+      set({ error: 'Erreur lors du chargement', isLoading: false });
     }
   },
 
@@ -183,56 +219,107 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     const { formData } = get();
     set({ isSubmitting: true, error: null });
     try {
-      // V2: Map UI steps (1-7) to API steps (1-5). Steps 6-7 are UI-only.
-      if (stepNumber === 6) {
-        set({ isSubmitting: false });
-        return; // No API call for "create first agent" step
-      }
-      if (stepNumber === 7) {
-        set({ isSubmitting: false });
-        return; // completeOnboarding handles this
-      }
-      let apiStep: number;
-      let payload: Record<string, unknown>;
       if (stepNumber === 1) {
-        apiStep = 1;
         const fullName = `${formData.step1.firstName} ${formData.step1.lastName}`.trim();
-        payload = {
-          name: fullName,
-          firstName: formData.step1.firstName,
-          lastName: formData.step1.lastName,
-          companyName: formData.step2.companyName || 'Mon entreprise',
-        };
+        await api.post('/api/v1/onboarding/step/1', {
+          data: {
+            name: fullName,
+            firstName: formData.step1.firstName,
+            lastName: formData.step1.lastName,
+            companyName: formData.step2.companyName || 'Mon entreprise',
+            website: formData.step2.website,
+          },
+        });
       } else if (stepNumber === 2) {
-        apiStep = 1;
-        const fullName = `${formData.step1.firstName} ${formData.step1.lastName}`.trim();
-        payload = {
-          name: fullName,
-          companyName: formData.step2.companyName || 'Mon entreprise',
-          website: formData.step2.website,
-        };
+        await api.post('/api/v1/onboarding/step/2', {
+          data: { industrySlug: formData.step2.industry, sector: formData.step2.industry },
+        });
       } else if (stepNumber === 3) {
-        apiStep = 2;
-        payload = { industrySlug: mapSectorToIndustrySlug(formData.step3.sector) };
+        await api.post('/api/v1/onboarding/step/3', {
+          data: { industrySlug: formData.step3.sector, sector: formData.step3.sector },
+        });
       } else if (stepNumber === 4) {
-        apiStep = 3;
-        payload = { companySize: formData.step4.companySize };
+        await api.post('/api/v1/onboarding/step/3', {
+          data: { companySize: formData.step4.companySize, goals: [formData.step5.objective || 'other'] },
+        });
       } else if (stepNumber === 5) {
-        apiStep = 4;
-        payload = { goals: [formData.step5.objective] };
-      } else {
-        set({ isSubmitting: false });
-        return;
+        await api.post('/api/v1/onboarding/step/3', {
+          data: { companySize: formData.step4.companySize, goals: [formData.step5.objective || 'other'] },
+        });
       }
-      await api.post(`/api/v1/onboarding/step/${apiStep}`, { data: payload });
       set({ isSubmitting: false });
     } catch (error) {
       logger.error(`Failed to save onboarding step ${stepNumber}`, error instanceof Error ? error : new Error(String(error)));
-      set({
-        error: `Failed to save step ${stepNumber}`,
-        isSubmitting: false,
-      });
+      set({ error: `Erreur à l'étape ${stepNumber}`, isSubmitting: false });
       throw error;
+    }
+  },
+
+  scanWebsite: async (url: string, industry?: string) => {
+    set({ isCrawling: true, crawlError: null });
+    try {
+      const result = await endpoints.webCrawler.generatePersona(url, industry);
+      const data = (result as { data?: { data?: { crawl: CrawlSiteResult; persona: GeneratedPersona } } })?.data?.data
+        ?? (result as { data?: { crawl: CrawlSiteResult; persona: GeneratedPersona } })?.data
+        ?? (result as { crawl: CrawlSiteResult; persona: GeneratedPersona });
+
+      const crawl = data?.crawl;
+      const persona = data?.persona;
+
+      set((state) => ({
+        crawlResult: crawl ?? null,
+        generatedPersona: persona ?? null,
+        isCrawling: false,
+        formData: {
+          ...state.formData,
+          step4: {
+            companySize: state.formData.step4.companySize,
+            agentName: persona?.agentName ?? state.formData.step4.agentName,
+            systemPrompt: persona?.systemPrompt ?? state.formData.step4.systemPrompt,
+            greeting: persona?.greeting ?? state.formData.step4.greeting,
+            tone: persona?.tone ?? state.formData.step4.tone,
+            model: state.formData.step4.model,
+          },
+          step2: {
+            ...state.formData.step2,
+            industry: persona?.industry ? mapDetectedIndustry(persona.industry) : state.formData.step2.industry,
+          },
+          step3: {
+            ...state.formData.step3,
+            sector: persona?.industry ? mapDetectedIndustry(persona.industry) : state.formData.step3.sector,
+          },
+        },
+      }));
+    } catch (error) {
+      logger.error('Website scan failed', error instanceof Error ? error : new Error(String(error)));
+      set({ isCrawling: false, crawlError: 'Impossible d\'analyser ce site. Vous pouvez continuer manuellement.' });
+    }
+  },
+
+  createAgentFromOnboarding: async () => {
+    const { formData, generatedPersona } = get();
+    set({ isSubmitting: true, error: null });
+    try {
+      const payload = {
+        name: formData.step4.agentName || 'Mon premier agent',
+        description: generatedPersona?.responseStyle ?? '',
+        model: formData.step4.model,
+        temperature: 0.3,
+        tone: formData.step4.tone,
+        languages: [generatedPersona?.language ?? 'fr'],
+        systemPrompt: formData.step4.systemPrompt,
+        greeting: formData.step4.greeting,
+        templateId: formData.step5.templateId ?? undefined,
+      };
+      const res = await endpoints.agents.create(payload);
+      const agent = res as { id?: string; data?: { id?: string } };
+      const newId = agent?.id ?? agent?.data?.id ?? null;
+      set({ createdAgentId: newId, isSubmitting: false });
+      return newId;
+    } catch (error) {
+      logger.error('Failed to create agent during onboarding', error instanceof Error ? error : new Error(String(error)));
+      set({ error: 'Erreur lors de la création de l\'agent', isSubmitting: false });
+      return null;
     }
   },
 
@@ -248,6 +335,10 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     }));
   },
 
+  goToStep: (step: number) => {
+    set({ currentStep: Math.max(1, Math.min(step, get().totalSteps)) });
+  },
+
   setStepData: (step, data) => {
     set((state) => ({
       formData: {
@@ -257,26 +348,18 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     }));
   },
 
-  setSelectedSector: (sector: string) => {
-    set((state) => ({
-      selectedSector: sector,
-      formData: {
-        ...state.formData,
-        step3: { sector },
-      },
-    }));
-  },
-
   completeOnboarding: async () => {
     set({ isSubmitting: true, error: null });
     try {
       await api.post('/api/v1/onboarding/complete');
-      // Set cookie so middleware knows onboarding is done (avoids redirect loop)
       document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(ONBOARDING_DISMISS_KEY);
+      }
       set({ isSubmitting: false });
     } catch (error) {
       logger.error('Failed to complete onboarding', error instanceof Error ? error : new Error(String(error)));
-      set({ error: 'Failed to complete onboarding', isSubmitting: false });
+      set({ error: 'Erreur lors de la finalisation', isSubmitting: false });
       throw error;
     }
   },
@@ -284,14 +367,28 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
   skipOnboarding: async () => {
     set({ isSubmitting: true, error: null });
     try {
-      await api.post('/api/v1/onboarding/skip');
-      // Set cookie so middleware knows onboarding is done (avoids redirect loop)
-      document.cookie = 'onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax';
+      // Best effort: persist skip intention server-side but do not block UX on API failures.
+      await api.post('/api/v1/onboarding/skip').catch((error) => {
+        logger.warn('Skip onboarding API failed, keeping local dismiss state only', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+
+      const dismissedUntil = Date.now() + ONBOARDING_DISMISS_WINDOW_MS;
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(ONBOARDING_DISMISS_KEY, String(dismissedUntil));
+      }
+      document.cookie = 'onboarding_completed=dismissed; path=/; max-age=86400; SameSite=Lax';
       set({ isSubmitting: false });
     } catch (error) {
       logger.error('Failed to skip onboarding', error instanceof Error ? error : new Error(String(error)));
-      set({ error: 'Failed to skip onboarding', isSubmitting: false });
-      throw error;
+      // Even on unexpected failures, keep the local dismiss behavior to avoid blocking users.
+      const dismissedUntil = Date.now() + ONBOARDING_DISMISS_WINDOW_MS;
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(ONBOARDING_DISMISS_KEY, String(dismissedUntil));
+      }
+      document.cookie = 'onboarding_completed=dismissed; path=/; max-age=86400; SameSite=Lax';
+      set({ error: null, isSubmitting: false });
     }
   },
 
@@ -299,11 +396,63 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
     set({
       currentStep: 1,
       progress: null,
-      selectedSector: null,
       formData: { ...initialFormData },
       isSubmitting: false,
       isLoading: false,
       error: null,
+      crawlResult: null,
+      generatedPersona: null,
+      isCrawling: false,
+      crawlError: null,
+      createdAgentId: null,
     });
   },
 }));
+
+function mapDetectedIndustry(detected: string): string {
+  const lower = detected.toLowerCase();
+  const mapping: Record<string, string> = {
+    'e-commerce': 'ECOMMERCE',
+    'ecommerce': 'ECOMMERCE',
+    'saas': 'SAAS',
+    'tech': 'SAAS',
+    'technology': 'SAAS',
+    'finance': 'FINTECH',
+    'fintech': 'FINTECH',
+    'banking': 'FINTECH',
+    'health': 'HEALTHCARE',
+    'healthcare': 'HEALTHCARE',
+    'médical': 'HEALTHCARE',
+    'santé': 'HEALTHCARE',
+    'real estate': 'REAL_ESTATE',
+    'immobilier': 'REAL_ESTATE',
+    'insurance': 'INSURANCE',
+    'assurance': 'INSURANCE',
+    'education': 'EDUCATION',
+    'formation': 'EDUCATION',
+    'agency': 'AGENCY',
+    'agence': 'AGENCY',
+    'consulting': 'CONSULTING',
+    'conseil': 'CONSULTING',
+    'retail': 'RETAIL',
+    'commerce': 'RETAIL',
+    'hotel': 'HOSPITALITY',
+    'restaurant': 'HOSPITALITY',
+    'hospitality': 'HOSPITALITY',
+    'hôtellerie': 'HOSPITALITY',
+    'automobile': 'AUTOMOTIVE',
+    'auto': 'AUTOMOTIVE',
+    'travel': 'TRAVEL',
+    'tourisme': 'TRAVEL',
+    'voyage': 'TRAVEL',
+    'media': 'MEDIA',
+    'nonprofit': 'NONPROFIT',
+    'association': 'NONPROFIT',
+    'government': 'GOVERNMENT',
+  };
+
+  for (const [key, value] of Object.entries(mapping)) {
+    if (lower.includes(key)) return value;
+  }
+  return 'OTHER';
+}

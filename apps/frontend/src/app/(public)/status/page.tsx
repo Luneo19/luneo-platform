@@ -8,7 +8,7 @@
 import React, { useState, useEffect, memo } from 'react';
 import { api } from '@/lib/api/client';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import {
   CheckCircle,
   AlertCircle,
@@ -34,6 +34,25 @@ interface Service {
   description: string;
 }
 
+interface PublicStatusResponse {
+  status: 'operational' | 'degraded';
+  updatedAt: string;
+  components: Array<{
+    name: string;
+    status: 'operational' | 'degraded' | 'outage';
+    latencyMs: number | null;
+  }>;
+  incidents: Array<{
+    id: string;
+    type: string;
+    severity: 'minor' | 'major';
+    title: string;
+    detail: string;
+    createdAt: string;
+    source: string;
+  }>;
+}
+
 function StatusPageContent() {
   const [services, setServices] = useState<Service[]>([
     { name: 'Application', status: 'checking', icon: Globe, description: 'Frontend & API' },
@@ -44,55 +63,38 @@ function StatusPageContent() {
   ]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [incidents, setIncidents] = useState<PublicStatusResponse['incidents']>([]);
 
   const checkServices = async () => {
     setIsRefreshing(true);
-
-    // Check health endpoint
-    const newServices: Service[] = [...services];
-
     try {
-      const start = Date.now();
-      const healthData = await api.get<{ database?: { status?: string }; status?: string }>('/api/v1/health');
-      const latency = Date.now() - start;
-      const ok = !!healthData;
-      
-      newServices[0] = {
-        ...newServices[0],
-        status: ok ? 'operational' : 'degraded',
-        latency,
+      const status = await api.get<PublicStatusResponse>('/api/v1/status/public');
+      const iconMap: Record<string, React.ElementType> = {
+        API: Globe,
+        Database,
+        Redis: Server,
+        Email: Cloud,
+        Stripe: CreditCard,
       };
-
-      if (ok) {
-        
-        // Database status
-        newServices[1] = {
-          ...newServices[1],
-          status: healthData.database?.status === 'connected' ? 'operational' : 'degraded',
-        };
-
-        // Server status
-        newServices[4] = {
-          ...newServices[4],
-          status: 'operational',
-        };
-      }
+      setServices(
+        status.components.map((component) => ({
+          name: component.name,
+          status:
+            component.status === 'outage'
+              ? 'outage'
+              : component.status === 'degraded'
+                ? 'degraded'
+                : 'operational',
+          latency: component.latencyMs ?? undefined,
+          icon: iconMap[component.name] ?? Server,
+          description: component.name,
+        })),
+      );
+      setIncidents(status.incidents);
+      setLastUpdated(new Date(status.updatedAt));
     } catch {
-      newServices[0] = { ...newServices[0], status: 'outage' };
+      setServices((prev) => prev.map((service) => ({ ...service, status: 'outage' })));
     }
-
-    // Check Stripe (just ping, not real check in frontend)
-    try {
-      newServices[2] = { ...newServices[2], status: 'operational' };
-    } catch {
-      newServices[2] = { ...newServices[2], status: 'degraded' };
-    }
-
-    // CDN is assumed operational if page loads
-    newServices[3] = { ...newServices[3], status: 'operational' };
-
-    setServices(newServices);
-    setLastUpdated(new Date());
     setIsRefreshing(false);
   };
 
@@ -155,7 +157,7 @@ function StatusPageContent() {
           </p>
 
           {/* Overall Status */}
-          <motion
+          <Motion
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className={`inline-flex items-center gap-3 px-6 py-3 rounded-full ${
@@ -179,13 +181,13 @@ function StatusPageContent() {
                 </span>
               </>
             )}
-          </motion>
+          </Motion>
         </div>
 
         {/* Services List */}
         <div className="space-y-4 mb-8">
           {services.map((service, index) => (
-            <motion
+            <Motion
               key={service.name}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -227,7 +229,7 @@ function StatusPageContent() {
                   </div>
                 </CardContent>
               </Card>
-            </motion>
+            </Motion>
           ))}
         </div>
 
@@ -252,9 +254,23 @@ function StatusPageContent() {
         <Card className="mt-8 bg-slate-900 border-slate-800">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Historique des incidents</h3>
-            <p className="text-slate-400 text-center py-8">
-              Aucun incident récent 🎉
-            </p>
+            {incidents.length === 0 ? (
+              <p className="text-slate-400 text-center py-8">
+                Aucun incident récent 🎉
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {incidents.map((incident) => (
+                  <div key={incident.id} className="rounded-lg border border-slate-800 p-3">
+                    <p className="text-sm font-medium text-white">{incident.title}</p>
+                    <p className="text-xs text-slate-400 mt-1">{incident.detail}</p>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {new Date(incident.createdAt).toLocaleString('fr-FR')} - {incident.source}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

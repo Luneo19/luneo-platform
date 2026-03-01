@@ -61,6 +61,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       organizationId: primaryMembership?.organizationId ?? null,
       organization: primaryMembership?.organization ?? null,
+      brandPlan: primaryMembership?.organization?.plan ?? null,
       brandId: primaryMembership?.organizationId ?? null,
     };
   }

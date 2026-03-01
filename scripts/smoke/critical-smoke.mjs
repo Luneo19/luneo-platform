@@ -1,0 +1,393 @@
+/* eslint-disable no-console */
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const baseUrl = (process.env.SMOKE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const adminEmail = process.env.SMOKE_ADMIN_EMAIL;
+const adminPassword = process.env.SMOKE_ADMIN_PASSWORD;
+const runAuthChecks = process.env.SMOKE_RUN_AUTH_CHECKS === 'true';
+const requireServer = process.env.SMOKE_REQUIRE_SERVER === 'true';
+const debugAuth = process.env.SMOKE_DEBUG_AUTH === 'true';
+const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS || 3000);
+const startedAt = new Date().toISOString();
+const OUT_DIR = path.resolve('artifacts/smoke');
+const JSON_REPORT = path.join(OUT_DIR, 'critical-smoke-report.json');
+const MD_REPORT = path.join(OUT_DIR, 'critical-smoke-report.md');
+
+const jar = new Map();
+const checks = [];
+
+function isLikelyValidEmail(value) {
+  if (!value) return false;
+  const normalized = value.trim();
+  if (normalized.includes('...')) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+}
+
+function maskEmail(value) {
+  if (!value || !value.includes('@')) return '<invalid>';
+  const [localPart, domain] = value.split('@');
+  if (!localPart || !domain) return '<invalid>';
+  const first = localPart[0];
+  const last = localPart[localPart.length - 1];
+  const middle = localPart.length > 2 ? '*'.repeat(localPart.length - 2) : '*';
+  return `${first}${middle}${last}@${domain}`;
+}
+
+function authDebug(label, payload) {
+  if (!debugAuth) return;
+  console.log(`[AUTH DEBUG] ${label}: ${JSON.stringify(payload)}`);
+}
+
+function updateCookies(setCookieHeaders = []) {
+  for (const raw of setCookieHeaders) {
+    const [firstPart] = raw.split(';');
+    const [name, value] = firstPart.split('=');
+    if (!name) continue;
+    jar.set(name.trim(), (value || '').trim());
+  }
+}
+
+function cookieHeader() {
+  return Array.from(jar.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join('; ');
+}
+
+async function check(name, fn) {
+  const started = Date.now();
+  try {
+    await fn();
+    checks.push({ name, ok: true, durationMs: Date.now() - started });
+    console.log(`PASS ${name}`);
+  } catch (error) {
+    checks.push({
+      name,
+      ok: false,
+      durationMs: Date.now() - started,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    console.error(`FAIL ${name}`);
+    throw error;
+  }
+}
+
+function expectStatus(res, expected) {
+  if (res.status !== expected) {
+    throw new Error(`Expected status ${expected}, got ${res.status}`);
+  }
+}
+
+function isLocalBaseUrl() {
+  try {
+    const { hostname } = new URL(baseUrl);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
+async function canReachBaseUrl() {
+  const target = `${baseUrl}/`;
+  try {
+    const res = await fetch(target, { method: 'HEAD', signal: AbortSignal.timeout(timeoutMs) });
+    return res.status > 0;
+  } catch {
+    try {
+      const res = await fetch(target, { method: 'GET', signal: AbortSignal.timeout(timeoutMs) });
+      return res.status > 0;
+    } catch {
+      return false;
+    }
+  }
+}
+
+async function fetchJson(path, init = {}) {
+  const headers = new Headers(init.headers || {});
+  const cookie = cookieHeader();
+  if (cookie) headers.set('cookie', cookie);
+  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  updateCookies(res.headers.getSetCookie?.() || []);
+  const data = await res.json().catch(() => null);
+  return { res, data };
+}
+
+async function retryWithBackoff(fn, retries = 2, baseDelayMs = 800) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries) break;
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
+async function fetchText(path, init = {}) {
+  const headers = new Headers(init.headers || {});
+  const cookie = cookieHeader();
+  if (cookie) headers.set('cookie', cookie);
+  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  updateCookies(res.headers.getSetCookie?.() || []);
+  const text = await res.text();
+  return { res, text };
+}
+
+async function followRedirects(path, maxHops = 8) {
+  let current = path;
+  const visited = [];
+  for (let hop = 0; hop <= maxHops; hop++) {
+    const res = await fetch(`${baseUrl}${current}`, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    visited.push({ path: current, status: res.status });
+    const location = res.headers.get('location');
+    if (!location || (res.status < 300 || res.status > 399)) {
+      return { finalStatus: res.status, visited };
+    }
+    const nextUrl = new URL(location, `${baseUrl}${current}`);
+    current = nextUrl.pathname + nextUrl.search;
+  }
+  throw new Error(`Redirect chain exceeded ${maxHops} hops: ${visited.map((s) => `${s.path}:${s.status}`).join(' -> ')}`);
+}
+
+async function run() {
+  console.log(`Running critical smoke on ${baseUrl}`);
+  const reachable = await canReachBaseUrl();
+  if (!reachable) {
+    const message = `Base URL unreachable (${baseUrl}). Start frontend/backend or set SMOKE_BASE_URL.`;
+    if (isLocalBaseUrl() && !requireServer) {
+      console.log(`SKIP smoke: ${message} Use SMOKE_REQUIRE_SERVER=true to fail instead of skip.`);
+      return;
+    }
+    throw new Error(message);
+  }
+
+  await check('public marketing endpoint', async () => {
+    const { res } = await fetchJson('/api/public/marketing');
+    expectStatus(res, 200);
+  });
+
+  await check('sitemap canonical output', async () => {
+    const { res, text } = await fetchText('/sitemap.xml');
+    expectStatus(res, 200);
+    const forbiddenAliases = ['/tarifs', '/ressources', '/produits', '/entreprise'];
+    for (const alias of forbiddenAliases) {
+      if (text.includes(`${baseUrl}${alias}`)) {
+        throw new Error(`Sitemap contains alias ${alias}`);
+      }
+    }
+  });
+
+  await check('admin/login entrypoints do not loop', async () => {
+    const admin = await followRedirects('/admin');
+    if (![200, 302, 307, 308, 401].includes(admin.finalStatus)) {
+      throw new Error(`Unexpected /admin final status: ${admin.finalStatus}`);
+    }
+
+    const upperAdmin = await followRedirects('/Admin');
+    if (![200, 302, 307, 308, 401, 404].includes(upperAdmin.finalStatus)) {
+      throw new Error(`Unexpected /Admin final status: ${upperAdmin.finalStatus}`);
+    }
+
+    const doubleSlashAdmin = await followRedirects('//Admin');
+    if (doubleSlashAdmin.visited.length > 5) {
+      throw new Error(`Potential redirect loop on //Admin: ${doubleSlashAdmin.visited.map((s) => `${s.path}:${s.status}`).join(' -> ')}`);
+    }
+
+    const loginRedirect = await followRedirects('/login?redirect=%2Fadmin');
+    if (loginRedirect.visited.length > 5) {
+      throw new Error(`Potential redirect loop on login redirect: ${loginRedirect.visited.map((s) => `${s.path}:${s.status}`).join(' -> ')}`);
+    }
+  });
+
+  await check('security headers are present on public entrypoint', async () => {
+    const { res } = await fetchText('/');
+    const requiredSecurityHeaders = [
+      'x-content-type-options',
+      'x-frame-options',
+      'referrer-policy',
+      'permissions-policy',
+    ];
+    if (!isLocalBaseUrl()) {
+      requiredSecurityHeaders.push('strict-transport-security');
+    }
+    const missing = requiredSecurityHeaders.filter((header) => !res.headers.get(header));
+    if (missing.length > 0) {
+      throw new Error(`Missing required security headers on "/": ${missing.join(', ')}`);
+    }
+  });
+
+  let csrfTokenForAuth = '';
+
+  await check('csrf token endpoint is reachable', async () => {
+    const { res, data } = await fetchJson('/api/csrf/token');
+    if (!res.ok) {
+      throw new Error(`/api/csrf/token failed with status ${res.status}`);
+    }
+    csrfTokenForAuth = data?.token || data?.csrfToken || data?.data?.token || jar.get('csrf_token') || '';
+    const hasToken = Boolean(csrfTokenForAuth);
+    authDebug('csrf-token', {
+      status: res.status,
+      tokenPresent: hasToken,
+      tokenLength: csrfTokenForAuth.length,
+      cookiePresent: Boolean(jar.get('csrf_token')),
+      cookieKeys: Array.from(jar.keys()),
+    });
+    if (!hasToken) {
+      throw new Error('CSRF endpoint response does not include token-like field');
+    }
+  });
+
+  await check('support page exposes operational channel', async () => {
+    const { res, text } = await fetchText('/help/support');
+    expectStatus(res, 200);
+    const hasSupportSignal =
+      text.includes('support@luneo.app') ||
+      text.toLowerCase().includes('support email') ||
+      text.toLowerCase().includes('chat');
+    if (!hasSupportSignal) {
+      throw new Error('Support page does not expose a clear operational channel');
+    }
+  });
+
+  if (!runAuthChecks) {
+    console.log('Skipping auth/admin checks (SMOKE_RUN_AUTH_CHECKS not enabled).');
+    return;
+  }
+
+  if (!adminEmail || !adminPassword) {
+    throw new Error('SMOKE_ADMIN_EMAIL and SMOKE_ADMIN_PASSWORD are required when SMOKE_RUN_AUTH_CHECKS=true');
+  }
+  if (!isLikelyValidEmail(adminEmail)) {
+    throw new Error('SMOKE_ADMIN_EMAIL must be a real email (example: admin@company.com), not a placeholder.');
+  }
+  authDebug('input', {
+    emailMasked: maskEmail(adminEmail),
+    emailValid: isLikelyValidEmail(adminEmail),
+    passwordLength: adminPassword.length,
+    hasCsrfTokenForAuth: Boolean(csrfTokenForAuth),
+  });
+
+  await check('login as admin', async () => {
+    await retryWithBackoff(async () => {
+      const { res, data } = await fetchJson('/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(csrfTokenForAuth ? { 'x-csrf-token': csrfTokenForAuth } : {}),
+        },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      });
+      if (res.status !== 200) {
+        const details = JSON.stringify(data || {}).slice(0, 500);
+        authDebug('login-failed', {
+          status: res.status,
+          response: data,
+          cookieKeys: Array.from(jar.keys()),
+          csrfHeaderSent: Boolean(csrfTokenForAuth),
+        });
+        throw new Error(`Expected status 200, got ${res.status}. Response: ${details}`);
+      }
+      authDebug('login-success', {
+        status: res.status,
+        cookieKeys: Array.from(jar.keys()),
+      });
+    });
+  });
+
+  await check('auth me returns 200 after login', async () => {
+    const { res } = await fetchJson('/api/v1/auth/me');
+    expectStatus(res, 200);
+  });
+
+  await check('admin tenants endpoint authorized', async () => {
+    const csrfToken = jar.get('csrf_token');
+    const { res } = await fetchJson('/api/admin/tenants', {
+      headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
+    });
+    expectStatus(res, 200);
+  });
+
+  await check('logout invalidates session', async () => {
+    const csrfToken = jar.get('csrf_token');
+    const { res } = await fetchJson('/api/v1/auth/logout', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+      },
+      body: JSON.stringify({}),
+    });
+    expectStatus(res, 200);
+
+    const after = await fetchJson('/api/v1/auth/me');
+    expectStatus(after.res, 401);
+  });
+}
+
+function toMarkdown(report) {
+  const lines = [
+    '# Critical Smoke Report',
+    '',
+    `- Base URL: \`${report.baseUrl}\``,
+    `- Started at: ${report.startedAt}`,
+    `- Finished at: ${report.finishedAt}`,
+    `- Total checks: ${report.totalChecks}`,
+    `- Passed: ${report.passedChecks}`,
+    `- Failed: ${report.failedChecks}`,
+    `- Pass rate: ${report.passRate}%`,
+    '',
+    '## Checks',
+  ];
+
+  for (const item of report.checks) {
+    lines.push(`- ${item.ok ? 'OK' : 'KO'} \`${item.name}\` (${item.durationMs}ms)`);
+    if (item.error) lines.push(`  - error: \`${item.error}\``);
+  }
+
+  return lines.join('\n');
+}
+
+async function persistReport(error) {
+  const finishedAt = new Date().toISOString();
+  const passedChecks = checks.filter((item) => item.ok).length;
+  const failedChecks = checks.length - passedChecks;
+  const passRate = checks.length > 0 ? Number(((passedChecks / checks.length) * 100).toFixed(2)) : 0;
+
+  const report = {
+    baseUrl,
+    startedAt,
+    finishedAt,
+    runAuthChecks,
+    ok: !error && failedChecks === 0,
+    totalChecks: checks.length,
+    passedChecks,
+    failedChecks,
+    passRate,
+    checks,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
+  };
+
+  await fs.mkdir(OUT_DIR, { recursive: true });
+  await fs.writeFile(JSON_REPORT, JSON.stringify(report, null, 2), 'utf8');
+  await fs.writeFile(MD_REPORT, toMarkdown(report), 'utf8');
+
+  console.log(`Critical smoke report written: ${JSON_REPORT}`);
+  console.log(`Critical smoke report written: ${MD_REPORT}`);
+}
+
+run()
+  .then(async () => {
+    await persistReport();
+  })
+  .catch(async (error) => {
+    await persistReport(error);
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });

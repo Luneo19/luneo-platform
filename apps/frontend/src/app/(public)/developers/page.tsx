@@ -8,7 +8,7 @@
 import { useState, memo } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Code,
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const codeExamples = {
   curl: `curl -X GET "https://api.luneo.app/api/v1/designs" \\
@@ -194,7 +194,7 @@ function DevelopersPageContent() {
       {/* Hero */}
       <div className="bg-gradient-to-b from-blue-900/20 to-slate-950 py-20">
         <div className="max-w-6xl mx-auto px-6">
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
@@ -224,7 +224,7 @@ function DevelopersPageContent() {
                 </Link>
               </Button>
             </div>
-          </motion>
+          </Motion>
         </div>
       </div>
 

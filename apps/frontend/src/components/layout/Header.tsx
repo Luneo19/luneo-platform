@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import {
   Search,
   Settings,
@@ -22,6 +22,7 @@ import { LocaleSwitcher } from '@/components/navigation/LocaleSwitcher';
 import { useTranslations } from '@/i18n/useI18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoutes } from '@/lib/routes';
 
 interface HeaderProps {
   title?: string;
@@ -30,7 +31,7 @@ interface HeaderProps {
 
 function HeaderContent({ title, subtitle }: HeaderProps) {
   const t = useTranslations('header');
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -48,6 +49,11 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
   const closeProfile = useCallback(() => {
     setIsProfileOpen(false);
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    closeProfile();
+    await logout();
+  }, [closeProfile, logout]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -134,7 +140,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
 
             <AnimatePresence>
               {isProfileOpen && (
-                <motion
+                <Motion
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -168,14 +174,14 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                       </div>
                     </Link>
                     
-                    <Link href="/dashboard/billing">
+                    <Link href={appRoutes.billing}>
                       <div className="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/50">
                         <CreditCard className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         <span>{t('profileMenu.billing')}</span>
                       </div>
                     </Link>
                     
-                    <Link href="/dashboard/settings">
+                    <Link href={appRoutes.settings}>
                       <div className="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/50">
                         <Settings className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         <span>{t('profileMenu.settings')}</span>
@@ -195,7 +201,7 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                     
                     <div className="my-2 border-t border-border" />
                     
-                    <Link href="/dashboard/integrations">
+                    <Link href={appRoutes.integrations}>
                       <div className="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/50">
                         <span className="flex h-4 w-4 items-center justify-center text-muted-foreground" aria-hidden="true">
                           🌐
@@ -209,14 +215,14 @@ function HeaderContent({ title, subtitle }: HeaderProps) {
                     <button
                       type="button"
                       className="flex w-full items-center gap-3 px-4 py-2 text-sm text-danger transition-colors hover:bg-accent/30"
-                      onClick={closeProfile}
+                      onClick={handleLogout}
                       data-testid="logout-button"
                     >
                       <LogOut className="h-4 w-4" aria-hidden="true" />
                       <span>{t('profileMenu.logout')}</span>
                     </button>
                   </div>
-                </motion>
+                </Motion>
               )}
             </AnimatePresence>
           </div>

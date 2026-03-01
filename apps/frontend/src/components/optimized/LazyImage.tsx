@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -103,7 +103,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
     >
       {/* Placeholder/Blur */}
       {shouldShowBlur && (
-        <motion
+        <Motion
           initial={{ opacity: 1 }}
           animate={{ opacity: isLoaded ? 0 : 1 }}
           transition={{ duration: 0.3 }}
@@ -127,7 +127,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
       )}
 
       {!isLoaded && !shouldShowBlur && !placeholder && (
-        <motion
+        <Motion
           initial={{ opacity: 1 }}
           animate={{ opacity: isLoaded ? 0 : 1 }}
           transition={{ duration: 0.3 }}
@@ -157,7 +157,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
 
       {/* Error state */}
       {isError && (
-        <motion
+        <Motion
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="absolute inset-0 flex items-center justify-center bg-gray-100"
@@ -178,7 +178,7 @@ const LazyImageContent: React.FC<LazyImageProps> = ({
             </svg>
             <p className="text-sm">Image non disponible</p>
           </div>
-        </motion>
+        </Motion>
       )}
     </div>
   );

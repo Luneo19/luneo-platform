@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ChevronDown } from 'lucide-react';
 
 export interface FAQItem {
@@ -53,19 +53,19 @@ function FAQAccordionItem({
       >
         <span className="text-lg font-semibold text-white">{question}</span>
         <ChevronDown
-          className={`h-5 w-5 text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-5 w-5 text-white/90 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion
+          <Motion
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <p className="mt-4 text-slate-300">{answer}</p>
-          </motion>
+            <p className="mt-4 text-white/90">{answer}</p>
+          </Motion>
         )}
       </AnimatePresence>
     </div>

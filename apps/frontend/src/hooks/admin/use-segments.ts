@@ -3,6 +3,7 @@
  * Hook SWR for customer segments (CRUD)
  */
 import useSWR from 'swr';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 class FetcherError extends Error {
   info?: unknown;
@@ -81,7 +82,7 @@ export function useSegments() {
   };
 
   return {
-    segments: data || [],
+    segments: normalizeListResponse<Segment>(data),
     isLoading,
     isError: !!error,
     error,

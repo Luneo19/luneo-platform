@@ -206,7 +206,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               {/* Support link */}
               <p className="text-center text-sm text-slate-500">
                 Le problème persiste ?{' '}
-                <a href="/support" className="text-blue-400 hover:underline">
+                <a href="/help/support" className="text-blue-400 hover:underline">
                   Contactez le support
                 </a>
               </p>

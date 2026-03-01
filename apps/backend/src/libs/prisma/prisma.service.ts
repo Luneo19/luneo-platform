@@ -5,13 +5,27 @@ import { Logger } from '@nestjs/common';
 
 const logger = new Logger('PrismaService');
 
+function withDefaultPoolParams(rawUrl?: string): string | undefined {
+  if (!rawUrl) return rawUrl;
+  try {
+    const parsed = new URL(rawUrl);
+    // Conservative defaults for Railway/Postgres to reduce connection churn.
+    if (!parsed.searchParams.has('connection_limit')) parsed.searchParams.set('connection_limit', '5');
+    if (!parsed.searchParams.has('pool_timeout')) parsed.searchParams.set('pool_timeout', '20');
+    if (!parsed.searchParams.has('connect_timeout')) parsed.searchParams.set('connect_timeout', '15');
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   // Access to all Prisma models including DesignDNA, PromptTemplate, OutboxEvent, Artisan, WorkOrder, Payout
   constructor(private configService: ConfigService) {
     // Connection pool settings are applied via DATABASE_URL query params in production
     // (e.g. connection_limit=10&pool_timeout=20&connect_timeout=10). See .env.example and PRODUCTION_CHECKLIST.md.
-    const databaseUrl = configService.get('database.url');
+    const databaseUrl = withDefaultPoolParams(configService.get('database.url'));
 
     super({
       datasources: {

@@ -37,6 +37,22 @@ export interface AnalyticsMetrics {
   };
 }
 
+export interface UnifiedScorecardMetric {
+  key: string;
+  label: string;
+  value: number;
+  target: number;
+  score: number;
+  provenance: 'estimated' | 'observed';
+  source: string;
+}
+
+export interface UnifiedScorecard {
+  period: { from: string; to: string; quarter: string };
+  totals: { weightedScore: number; health: 'critical' | 'at_risk' | 'on_track' | 'outperforming' };
+  metrics: UnifiedScorecardMetric[];
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function fetchAnalyticsMetrics(period: TimeRange): Promise<AnalyticsMetrics> {
@@ -87,6 +103,33 @@ async function fetchTopEvents(period: TimeRange): Promise<TopEvent[]> {
   }
 }
 
+function resolveDateRange(period: TimeRange): { from?: string; to?: string } {
+  const to = new Date();
+  const from = new Date(to);
+  if (period === '7d') from.setDate(to.getDate() - 7);
+  else if (period === '30d') from.setDate(to.getDate() - 30);
+  else if (period === '90d') from.setDate(to.getDate() - 90);
+  else if (period === 'ytd') from.setMonth(0, 1);
+  else return {};
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+async function fetchUnifiedScorecard(period: TimeRange): Promise<UnifiedScorecard | null> {
+  try {
+    const range = resolveDateRange(period);
+    const params = new URLSearchParams();
+    if (range.from) params.set('from', range.from);
+    if (range.to) params.set('to', range.to);
+    const res = await fetch(`${API_BASE}/api/v1/agent-analytics/scorecard?${params.toString()}`, {
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Failed to fetch unified scorecard');
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export function useAnalyticsMetrics(period: TimeRange) {
   return useQuery({
     queryKey: ['analytics', 'metrics', period],
@@ -107,6 +150,14 @@ export function useAnalyticsTopEvents(period: TimeRange) {
   return useQuery({
     queryKey: ['analytics', 'top-events', period],
     queryFn: () => fetchTopEvents(period),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUnifiedScorecard(period: TimeRange) {
+  return useQuery({
+    queryKey: ['analytics', 'scorecard', period],
+    queryFn: () => fetchUnifiedScorecard(period),
     staleTime: 5 * 60 * 1000,
   });
 }

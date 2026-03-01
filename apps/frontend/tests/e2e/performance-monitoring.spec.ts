@@ -3,8 +3,23 @@
  * Tests for Web Vitals tracking and performance metrics
  */
 
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from './utils/locale';
+
+interface WebVitalsMetric {
+  name?: string;
+}
+
+interface ApiTiming {
+  requestStart?: number;
+  responseEnd?: number;
+}
+
+interface ApiCallMetric {
+  url: string;
+  status: number;
+  timing: ApiTiming;
+}
 
 test.describe('Performance Monitoring', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,7 +29,7 @@ test.describe('Performance Monitoring', () => {
 
   test('should track Web Vitals on page load', async ({ page }) => {
     // Intercept Web Vitals API calls
-    const webVitalsCalls: any[] = [];
+    const webVitalsCalls: WebVitalsMetric[] = [];
     
     page.on('request', (request) => {
       if (request.url().includes('/api/analytics/web-vitals')) {
@@ -23,7 +38,7 @@ test.describe('Performance Monitoring', () => {
           try {
             const data = JSON.parse(postData);
             webVitalsCalls.push(data);
-          } catch (e) {
+          } catch (_e) {
             // Ignore parse errors
           }
         }
@@ -73,7 +88,7 @@ test.describe('Performance Monitoring', () => {
   });
 
   test('should track API performance', async ({ page }) => {
-    const apiCalls: any[] = [];
+    const apiCalls: ApiCallMetric[] = [];
     
     page.on('response', (response) => {
       if (response.url().includes('/api/')) {

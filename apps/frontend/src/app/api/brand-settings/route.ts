@@ -5,12 +5,13 @@ import { forwardGet, forwardPatch } from '@/lib/backend-forward';
 /**
  * GET /api/brand-settings
  * Récupère les paramètres de marque de l'utilisateur
- * Forward vers backend NestJS: GET /api/users/me puis GET /api/brands/:id
+ * Forward vers backend NestJS: GET /api/auth/me puis GET /api/brands/:id
  */
 export async function GET(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     // Récupérer le profil utilisateur pour obtenir le brandId
-    const userResult = await forwardGet('/users/me', request);
+    // Use /auth/me for better compatibility with current auth guards.
+    const userResult = await forwardGet('/auth/me', request);
     const user = userResult.data as { brandId?: string | null };
     
     if (!user?.brandId) {
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
 /**
  * PUT /api/brand-settings
  * Met à jour les paramètres de marque de l'utilisateur
- * Forward vers backend NestJS: GET /api/users/me puis PATCH /api/brands/:id
+ * Forward vers backend NestJS: GET /api/auth/me puis PATCH /api/brands/:id
  */
 export async function PUT(request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
@@ -97,7 +98,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Récupérer le profil utilisateur pour obtenir le brandId
-    const userResult = await forwardGet('/users/me', request);
+    // Use /auth/me for better compatibility with current auth guards.
+    const userResult = await forwardGet('/auth/me', request);
     const user = userResult.data as { brandId?: string | null };
     
     if (!user?.brandId) {

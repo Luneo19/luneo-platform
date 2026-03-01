@@ -7,6 +7,11 @@ import { OrchestratorService } from '../orchestrator.service';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { RagService } from '@/modules/rag/rag.service';
 import { LlmService } from '@/libs/llm/llm.service';
+import { QuotasService } from '@/modules/quotas/quotas.service';
+import { UsageMeteringService } from '@/modules/usage-billing/usage-metering.service';
+import { WorkflowEngineService } from '../workflow/workflow-engine.service';
+import { MemoryService } from '@/modules/memory/memory.service';
+import { QueuesService } from '@/libs/queues/queues.service';
 
 const mockPrisma = {
   agent: {
@@ -14,11 +19,16 @@ const mockPrisma = {
     update: jest.fn(),
   },
   message: {
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     create: jest.fn(),
   },
   conversation: {
+    findUnique: jest.fn(),
     update: jest.fn(),
+  },
+  featureFlag: {
+    findUnique: jest.fn(),
   },
 };
 
@@ -28,6 +38,26 @@ const mockRagService = {
 
 const mockLlmService = {
   complete: jest.fn(),
+};
+
+const mockQuotasService = {
+  enforceQuota: jest.fn(),
+};
+
+const mockUsageMeteringService = {
+  recordUsage: jest.fn(),
+};
+
+const mockWorkflowEngineService = {
+  executeWorkflow: jest.fn(),
+};
+
+const mockMemoryService = {
+  getContactMemory: jest.fn(),
+};
+
+const mockQueuesService = {
+  addEscalationJob: jest.fn(),
 };
 
 describe('OrchestratorService', () => {
@@ -40,11 +70,24 @@ describe('OrchestratorService', () => {
         { provide: PrismaOptimizedService, useValue: mockPrisma },
         { provide: RagService, useValue: mockRagService },
         { provide: LlmService, useValue: mockLlmService },
+        { provide: QuotasService, useValue: mockQuotasService },
+        { provide: UsageMeteringService, useValue: mockUsageMeteringService },
+        { provide: WorkflowEngineService, useValue: mockWorkflowEngineService },
+        { provide: MemoryService, useValue: mockMemoryService },
+        { provide: QueuesService, useValue: mockQueuesService },
       ],
     }).compile();
 
     service = module.get<OrchestratorService>(OrchestratorService);
     jest.clearAllMocks();
+    mockPrisma.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      organizationId: 'org-1',
+      contactId: null,
+    });
+    mockPrisma.featureFlag.findUnique.mockResolvedValue(null);
+    mockQuotasService.enforceQuota.mockResolvedValue(undefined);
+    mockUsageMeteringService.recordUsage.mockResolvedValue({});
   });
 
   it('should be defined', () => {
@@ -54,6 +97,7 @@ describe('OrchestratorService', () => {
   describe('executeAgent', () => {
     const baseAgent = {
       id: 'agent-1',
+      organizationId: 'org-1',
       model: 'gpt-4o-mini',
       temperature: 0.3,
       maxTokensPerReply: 1000,
@@ -63,12 +107,15 @@ describe('OrchestratorService', () => {
       tone: 'PROFESSIONAL',
       autoEscalate: true,
       confidenceThreshold: 0.7,
+      escalationMessage: null,
       agentKnowledgeBases: [] as { knowledgeBase: unknown }[],
     };
 
     it('should execute successfully with knowledge bases (calls RAG, LLM, saves message, updates stats)', async () => {
       const agentWithKbs = {
         ...baseAgent,
+        organizationId: 'org-1',
+        escalationMessage: null,
         agentKnowledgeBases: [{ knowledgeBase: { id: 'kb-1' } }],
       };
       const history = [
@@ -90,6 +137,7 @@ describe('OrchestratorService', () => {
       };
 
       mockPrisma.agent.findUnique.mockResolvedValue(agentWithKbs);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
       mockPrisma.message.findMany.mockResolvedValue(history);
       mockRagService.retrieveContext.mockResolvedValue(ragResult);
       mockLlmService.complete.mockResolvedValue(completion);
@@ -157,6 +205,7 @@ describe('OrchestratorService', () => {
 
     it('should execute without knowledge bases (skips RAG, calls LLM directly)', async () => {
       mockPrisma.agent.findUnique.mockResolvedValue(baseAgent);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
       mockPrisma.message.findMany.mockResolvedValue([]);
       mockLlmService.complete.mockResolvedValue({
         content: 'Direct response',
@@ -195,6 +244,7 @@ describe('OrchestratorService', () => {
 
     it('should handle LLM failure gracefully (propagates error)', async () => {
       mockPrisma.agent.findUnique.mockResolvedValue(baseAgent);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
       mockPrisma.message.findMany.mockResolvedValue([]);
       mockLlmService.complete.mockRejectedValue(new Error('LLM API error'));
 
@@ -206,6 +256,7 @@ describe('OrchestratorService', () => {
 
     it('should save message with correct fields (model, tokensIn, tokensOut, costUsd)', async () => {
       mockPrisma.agent.findUnique.mockResolvedValue(baseAgent);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
       mockPrisma.message.findMany.mockResolvedValue([]);
       mockLlmService.complete.mockResolvedValue({
         content: 'Response',
@@ -232,6 +283,7 @@ describe('OrchestratorService', () => {
 
     it('should update conversation stats (messageCount, totalCostUsd)', async () => {
       mockPrisma.agent.findUnique.mockResolvedValue(baseAgent);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
       mockPrisma.message.findMany.mockResolvedValue([]);
       mockLlmService.complete.mockResolvedValue({
         content: 'R',
@@ -260,6 +312,7 @@ describe('OrchestratorService', () => {
 
     it('should update agent stats (totalMessages, currentMonthSpend)', async () => {
       mockPrisma.agent.findUnique.mockResolvedValue(baseAgent);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
       mockPrisma.message.findMany.mockResolvedValue([]);
       mockLlmService.complete.mockResolvedValue({
         content: 'R',
@@ -282,6 +335,29 @@ describe('OrchestratorService', () => {
           lastActiveAt: expect.any(Date),
         },
       });
+    });
+
+    it('uses deterministic idempotency key for identical request', async () => {
+      mockPrisma.agent.findUnique.mockResolvedValue(baseAgent);
+      mockPrisma.message.findFirst.mockResolvedValue({ id: 'user-latest' });
+      mockPrisma.message.findMany.mockResolvedValue([]);
+      mockLlmService.complete.mockResolvedValue({
+        content: 'Reponse stable',
+        model: 'gpt-4o-mini',
+        tokensIn: 12,
+        tokensOut: 6,
+        costUsd: 0.0003,
+      });
+      mockPrisma.message.create.mockResolvedValue({});
+      mockPrisma.conversation.update.mockResolvedValue({});
+      mockPrisma.agent.update.mockResolvedValue({});
+
+      await service.executeAgent('agent-1', 'conv-1', 'Ou est ma commande ?');
+      await service.executeAgent('agent-1', 'conv-1', 'Ou est ma commande ?');
+
+      const first = mockUsageMeteringService.recordUsage.mock.calls[0][0];
+      const second = mockUsageMeteringService.recordUsage.mock.calls[1][0];
+      expect(first.idempotencyKey).toBe(second.idempotencyKey);
     });
   });
 });

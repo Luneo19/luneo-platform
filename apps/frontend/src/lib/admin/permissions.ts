@@ -19,9 +19,12 @@ async function fetchAuthMe(cookie: string | null): Promise<{ id: string; email: 
     });
     if (!res.ok) return null;
     const json = await res.json();
-    // Backend may return { success: true, data: { id, email, ... } }
-    // or directly { id, email, ... }
-    const user = json?.data || json;
+    // Backend payloads vary across modules:
+    // - { success: true, data: { id, ... } }
+    // - { success: true, data: { user: { id, ... } } }
+    // - { user: { id, ... } }
+    // - { id, ... }
+    const user = json?.data?.user || json?.data || json?.user || json;
     if (!user || !user.id) return null;
     return user;
   } catch {
@@ -42,21 +45,17 @@ export interface AdminUser {
  */
 export async function checkAdminAccess(): Promise<boolean> {
   try {
-    const user = await getServerUser();
-    
-    if (!user) {
-      return false;
-    }
-
     const { headers } = await import('next/headers');
     const cookie = (await headers()).get('cookie');
     const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || dbUser.isActive === false) {
-      return false;
+    if (dbUser && dbUser.isActive !== false) {
+      return dbUser.role === 'PLATFORM_ADMIN' || dbUser.role === 'ADMIN';
     }
 
-    return dbUser.role === 'PLATFORM_ADMIN' || dbUser.role === 'ADMIN';
+    const user = await getServerUser();
+    if (!user) return false;
+    return user.role === 'PLATFORM_ADMIN' || user.role === 'ADMIN';
   } catch (error) {
     serverLogger.error('[Admin Permissions] Error checking admin access', error);
     return false;
@@ -69,36 +68,6 @@ export async function checkAdminAccess(): Promise<boolean> {
  */
 export async function requireAdminAccess(): Promise<AdminUser | null> {
   serverLogger.debug('[Admin Permissions] Checking admin access...');
-  
-  let user: Awaited<ReturnType<typeof getServerUser>>;
-  try {
-    user = await getServerUser();
-  } catch (err) {
-    serverLogger.warn('[Admin Permissions] getServerUser threw', { error: String(err) });
-    return null;
-  }
-  
-  serverLogger.debug('[Admin Permissions] getServerUser result', { 
-    found: !!user, 
-    email: user?.email 
-  });
-  
-  if (!user) {
-    serverLogger.debug('[Admin Permissions] No user — deferring to client-side auth');
-    return null;
-  }
-
-  serverLogger.debug('[Admin Permissions] User role from JWT', { role: user.role });
-
-  if (user.role === 'PLATFORM_ADMIN' || user.role === 'ADMIN') {
-    serverLogger.debug('[Admin Permissions] Access granted based on JWT role');
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      brandId: user.brandId || null,
-    };
-  }
 
   const { headers } = await import('next/headers');
   const cookie = (await headers()).get('cookie');
@@ -111,9 +80,33 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
     isPlatformAdmin: dbUser?.role === 'PLATFORM_ADMIN',
   });
 
-  if (!dbUser || dbUser.isActive === false || (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN')) {
-    serverLogger.debug('[Admin Permissions] Access denied, redirecting');
-    redirect('/dashboard?error=unauthorized');
+  if (!dbUser || dbUser.isActive === false) {
+    let user: Awaited<ReturnType<typeof getServerUser>>;
+    try {
+      user = await getServerUser();
+    } catch (err) {
+      serverLogger.warn('[Admin Permissions] getServerUser threw', { error: String(err) });
+      return null;
+    }
+    if (!user) {
+      serverLogger.debug('[Admin Permissions] No active DB user during SSR check, deferring to client guard');
+      return null;
+    }
+    if (user.role !== 'PLATFORM_ADMIN' && user.role !== 'ADMIN') {
+      serverLogger.debug('[Admin Permissions] Access denied, redirecting to overview');
+      redirect('/overview');
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role || 'ADMIN',
+      brandId: user.brandId || null,
+    };
+  }
+
+  if (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN') {
+    serverLogger.debug('[Admin Permissions] Access denied, redirecting to overview');
+    redirect('/overview');
   }
 
   serverLogger.debug('[Admin Permissions] Access granted');
@@ -132,26 +125,23 @@ export async function requireAdminAccess(): Promise<AdminUser | null> {
  */
 export async function getAdminUser(): Promise<AdminUser | null> {
   try {
-    const user = await getServerUser();
-    
-    if (!user) {
-      return null;
-    }
-
     const { headers } = await import('next/headers');
     const cookie = (await headers()).get('cookie');
     const dbUser = await fetchAuthMe(cookie);
 
-    if (!dbUser || dbUser.isActive === false || (dbUser.role !== 'PLATFORM_ADMIN' && dbUser.role !== 'ADMIN')) {
-      return null;
+    if (dbUser && dbUser.isActive !== false && (dbUser.role === 'PLATFORM_ADMIN' || dbUser.role === 'ADMIN')) {
+      return {
+        id: dbUser.id,
+        email: dbUser.email,
+        role: dbUser.role,
+        brandId: dbUser.brandId ?? null,
+      };
     }
 
-    return {
-      id: dbUser.id,
-      email: dbUser.email,
-      role: dbUser.role,
-      brandId: dbUser.brandId ?? null,
-    };
+    const user = await getServerUser();
+    if (!user) return null;
+    if (user.role !== 'PLATFORM_ADMIN' && user.role !== 'ADMIN') return null;
+    return { id: user.id, email: user.email, role: user.role, brandId: user.brandId ?? null };
   } catch (error) {
     serverLogger.error('[Admin Permissions] Error getting admin user', error);
     return null;

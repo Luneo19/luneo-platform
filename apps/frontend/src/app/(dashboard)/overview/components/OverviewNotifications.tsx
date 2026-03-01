@@ -54,7 +54,7 @@ export function OverviewNotifications({
         <Button
           variant="ghost"
           size="sm"
-          className="text-white/40 hover:text-white hover:bg-white/[0.04]"
+          className="text-white/70 hover:text-white hover:bg-white/[0.04]"
           onClick={onToggleShowAll}
         >
           {showAll ? 'Moins' : 'Tout'}
@@ -79,7 +79,7 @@ export function OverviewNotifications({
                 {getNotificationIcon(notification.type)}
                 <div className="flex-1 min-w-0">
                   <p
-                    className={`text-sm font-medium ${notification.read ? 'text-white/40' : 'text-white'}`}
+                    className={`text-sm font-medium ${notification.read ? 'text-white/70' : 'text-white'}`}
                   >
                     {notification.title}
                   </p>

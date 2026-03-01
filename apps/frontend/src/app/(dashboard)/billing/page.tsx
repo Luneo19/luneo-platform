@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -39,7 +39,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Download, AlertCircle, Zap, Database, MessageSquare, FileText, Bot, HardDrive } from 'lucide-react';
+import { CreditCard, Download, AlertCircle, Zap, MessageSquare, FileText, Bot, HardDrive } from 'lucide-react';
 
 // ========================================
 // COMPONENT
@@ -47,7 +47,6 @@ import { CreditCard, Download, AlertCircle, Zap, Database, MessageSquare, FileTe
 
 function BillingPageContent() {
   const { t } = useI18n();
-  const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
 
   // Queries
   const subscriptionQuery = useQuery({
@@ -99,8 +98,8 @@ function BillingPageContent() {
   });
 
   const removePaymentMethodMutation = useMutation({
-    mutationFn: (_params: { paymentMethodId: string }) =>
-      endpoints.billing.removePaymentMethod(),
+    mutationFn: (params: { paymentMethodId: string }) =>
+      endpoints.billing.removePaymentMethod(params.paymentMethodId),
     onSuccess: () => {
       paymentMethodsQuery.refetch();
       logger.info('Payment method removed');
@@ -204,6 +203,7 @@ function BillingPageContent() {
   }
 
   const subscription = subscriptionQuery.data as Subscription | undefined;
+  const planName = String(subscription?.plan ?? 'free').toUpperCase();
   const usage = usageQuery.data;
   const limits = limitsQuery.data;
   const rawInvoices = (invoicesQuery.data as { invoices?: unknown[] } | undefined)?.invoices ?? invoicesQuery.data;
@@ -251,7 +251,7 @@ function BillingPageContent() {
                   <CardDescription className="text-white/60">
                     {subscription ? (
                       <>
-                        {t('billing.plan', { name: subscription.plan.toUpperCase() })}
+                        {t('billing.plan', { name: planName })}
                         {subscription.cancelAtPeriodEnd && (
                           <span className="dash-badge dash-badge-live ml-2">{t('billing.cancelled')}</span>
                         )}
@@ -448,7 +448,7 @@ function BillingPageContent() {
                     {invoices.map((invoice) => (
                       <TableRow key={invoice.id} className="border-white/[0.06] hover:bg-white/[0.04]">
                         <TableCell className="font-medium text-white">{invoice.number ?? '-'}</TableCell>
-                        <TableCell className="text-white/60">{invoice.createdAt ? formatDate(invoice.createdAt) : '-'}</TableCell>
+                        <TableCell className="text-white/80">{(invoice.createdAt ?? invoice.created) ? formatDate(invoice.createdAt ?? invoice.created) : '-'}</TableCell>
                         <TableCell className="text-white">{formatPrice(invoice.amount ?? 0, invoice.currency ?? 'EUR')}</TableCell>
                         <TableCell>
                           <span
@@ -456,7 +456,7 @@ function BillingPageContent() {
                               invoice.status === 'paid'
                                 ? 'dash-badge dash-badge-new'
                                 : invoice.status === 'open'
-                                ? 'dash-badge text-white/60 border-white/20'
+                                ? 'dash-badge text-white/80 border-white/30'
                                 : 'dash-badge dash-badge-live'
                             }
                           >
@@ -468,7 +468,7 @@ function BillingPageContent() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDownloadInvoice(invoice.id)}
-                            className="text-white/60 hover:text-white hover:bg-white/[0.04]"
+                            className="text-white/80 hover:text-white hover:bg-white/[0.08]"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -487,15 +487,15 @@ function BillingPageContent() {
           <Card className="dash-card border-white/[0.06]">
             <CardHeader>
               <CardTitle className="text-white">{t('billing.tabs.paymentMethods')}</CardTitle>
-              <CardDescription className="text-white/60">
+              <CardDescription className="text-white/80">
                 {t('billing.managePaymentMethods')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {paymentMethods.length === 0 ? (
                 <div className="text-center py-12">
-                  <CreditCard className="mx-auto h-12 w-12 text-white/40 mb-4" />
-                  <p className="text-white/60 mb-4">{t('billing.noPaymentMethods')}</p>
+                  <CreditCard className="mx-auto h-12 w-12 text-white/70 mb-4" />
+                  <p className="text-white/80 mb-4">{t('billing.noPaymentMethods')}</p>
                   <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0">
                     {t('billing.addCard')}
                   </Button>
@@ -508,7 +508,7 @@ function BillingPageContent() {
                       className="flex items-center justify-between p-4 border border-white/[0.06] rounded-xl bg-white/[0.03] backdrop-blur-sm"
                     >
                       <div className="flex items-center gap-4">
-                        <CreditCard className="h-6 w-6 text-white/40" />
+                        <CreditCard className="h-6 w-6 text-white/70" />
                         <div>
                           <div className="font-medium text-white flex items-center gap-2">
                             {method.type === 'card' ? t('billing.card') : t('billing.bankAccount')}
@@ -517,12 +517,12 @@ function BillingPageContent() {
                             )}
                           </div>
                           {method.last4 && (
-                            <div className="text-sm text-white/60">
+                            <div className="text-sm text-white/80">
                               •••• •••• •••• {method.last4}
                             </div>
                           )}
                           {method.expiryMonth && method.expiryYear && (
-                            <div className="text-sm text-white/60">
+                            <div className="text-sm text-white/80">
                               {t('billing.expires')} {method.expiryMonth}/{method.expiryYear}
                             </div>
                           )}
@@ -545,7 +545,7 @@ function BillingPageContent() {
                           size="sm"
                           onClick={() => handleRemovePaymentMethod(method.id)}
                           disabled={removePaymentMethodMutation.isPending}
-                          className="text-white/60 hover:text-white hover:bg-white/[0.04]"
+                          className="text-white/80 hover:text-white hover:bg-white/[0.08]"
                         >
                           {removePaymentMethodMutation.isPending ? '...' : t('common.delete')}
                         </Button>

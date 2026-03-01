@@ -61,6 +61,25 @@ import { QuotasModule } from './modules/quotas/quotas.module';
 import { AnalyticsCleanModule } from './modules/analytics-clean/analytics-clean.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { WebCrawlerModule } from './modules/web-crawler/web-crawler.module';
+import { EvalHarnessModule } from './modules/eval-harness/eval-harness.module';
+import { UsageBillingModule } from './modules/usage-billing/usage-billing.module';
+import { ContactModule } from './modules/contact/contact.module';
+import { ContactsModule } from './modules/contacts/contacts.module';
+import { VerticalsModule } from './modules/verticals/verticals.module';
+import { LearningModule } from './modules/learning/learning.module';
+import { RoiModule } from './modules/roi/roi.module';
+import { MemoryModule } from './modules/memory/memory.module';
+import { ActionsModule } from './modules/actions/actions.module';
+import { AutomationModule } from './modules/automation/automation.module';
+import { IntegrationsApiModule } from './modules/integrations-api/integrations-api.module';
+import { SearchModule } from './modules/search/search.module';
+import { PublicApiModule } from './modules/public-api/public-api.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { StatusPageModule } from './modules/status-page/status-page.module';
+import { ScheduledMessagesModule } from './modules/scheduled-messages/scheduled-messages.module';
+import { EnterpriseModule } from './modules/enterprise/enterprise.module';
 
 // =============================================
 // LIBS INFRASTRUCTURE
@@ -124,7 +143,7 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const isTest = process.env.NODE_ENV === 'test' || process.env.DISABLE_BULL === 'true';
-        
+
         if (isTest) {
           return {
             redis: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -135,21 +154,25 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
             },
           };
         }
-        
+
         const redisUrl = configService.get('redis.url');
         const isUpstash = redisUrl?.includes('upstash.io') || redisUrl?.startsWith('rediss://');
-        
-        const redisConf = redisUrl ? (isUpstash ? {
-          host: redisUrl.split('@')[1]?.split(':')[0] || 'localhost',
-          port: 6379,
-          password: redisUrl.split('default:')[1]?.split('@')[0] || undefined,
-          tls: { rejectUnauthorized: true },
-          maxRetriesPerRequest: 3,
-          enableReadyCheck: false,
-          lazyConnect: true,
-          connectTimeout: TIMEOUTS.REDIS_CONNECT,
-          commandTimeout: TIMEOUTS.REDIS_COMMAND,
-        } : redisUrl) : undefined;
+
+        const redisConf = redisUrl
+          ? (isUpstash
+              ? {
+                  host: redisUrl.split('@')[1]?.split(':')[0] || 'localhost',
+                  port: 6379,
+                  password: redisUrl.split('default:')[1]?.split('@')[0] || undefined,
+                  tls: { rejectUnauthorized: true },
+                  maxRetriesPerRequest: 3,
+                  enableReadyCheck: false,
+                  lazyConnect: true,
+                  connectTimeout: TIMEOUTS.REDIS_CONNECT,
+                  commandTimeout: TIMEOUTS.REDIS_COMMAND,
+                }
+              : redisUrl)
+          : undefined;
 
         return {
           redis: redisConf || redisUrl,
@@ -205,6 +228,25 @@ import { RedisOptimizedService } from './libs/redis/redis-optimized.service';
     AnalyticsCleanModule,
     OnboardingModule,
     NotificationsModule,
+    WebCrawlerModule,
+    EvalHarnessModule,
+    UsageBillingModule,
+    ContactModule,
+    ContactsModule,
+    VerticalsModule,
+    LearningModule,
+    RoiModule,
+    MemoryModule,
+    ActionsModule,
+    AutomationModule,
+    IntegrationsApiModule,
+    SearchModule,
+    PublicApiModule,
+    PrivacyModule,
+    WebhooksModule,
+    StatusPageModule,
+    ScheduledMessagesModule,
+    EnterpriseModule,
 
     // --- Infrastructure ---
     CommonModule,

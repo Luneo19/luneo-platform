@@ -13,7 +13,7 @@ export function OverviewHelpCard() {
         </div>
         <div>
           <h3 className="font-medium text-white">Besoin d&apos;aide ?</h3>
-          <p className="text-xs text-white/40">Consultez notre documentation</p>
+          <p className="text-xs text-white/70">Consultez notre documentation</p>
         </div>
       </div>
       <div className="space-y-2">

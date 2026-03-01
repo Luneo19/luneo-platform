@@ -33,6 +33,10 @@ export class RateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
+    if (this.isWebhookPath(request.path)) {
+      return true;
+    }
+
     // Skip rate limit for CORS preflight (avoids Redis round-trip and timeouts)
     if (request.method === 'OPTIONS') {
       return true;
@@ -68,23 +72,43 @@ export class RateLimitGuard implements CanActivate {
           keyPrefix: `rl:${this.getKeyPrefix(request)}`,
         }),
         new Promise<RateLimitResult>((resolve) => setTimeout(() => {
-          this.logger.debug(`Rate limit check timeout for ${identifier}, allowing request`);
-          resolve({
+          const sensitivePath = this.isSensitivePath(request.path);
+          this.logger.debug(`Rate limit check timeout for ${identifier}, ${sensitivePath ? 'blocking' : 'allowing'} request`);
+          resolve(
+            sensitivePath
+              ? {
+                  allowed: false,
+                  remaining: 0,
+                  limit: config.limit,
+                  resetTime: Date.now() + config.window * 1000,
+                  retryAfter: 5,
+                }
+              : {
+                  allowed: true,
+                  remaining: config.limit,
+                  limit: config.limit,
+                  resetTime: Date.now() + config.window * 1000,
+                }
+          );
+        }, 3000)),
+      ]);
+    } catch (error) {
+      const sensitivePath = this.isSensitivePath(request.path);
+      this.logger.debug(`Rate limit check error, ${sensitivePath ? 'blocking' : 'allowing'} request`, error?.message || error);
+      result = sensitivePath
+        ? {
+            allowed: false,
+            remaining: 0,
+            limit: config.limit,
+            resetTime: Date.now() + config.window * 1000,
+            retryAfter: 5,
+          }
+        : {
             allowed: true,
             remaining: config.limit,
             limit: config.limit,
             resetTime: Date.now() + config.window * 1000,
-          });
-        }, 3000)),
-      ]);
-    } catch (error) {
-      this.logger.debug(`Rate limit check error, allowing request`, error?.message || error);
-      result = {
-        allowed: true,
-        remaining: config.limit,
-        limit: config.limit,
-        resetTime: Date.now() + config.window * 1000,
-      } as RateLimitResult;
+          } as RateLimitResult;
     }
 
     // Add rate limit headers
@@ -170,6 +194,24 @@ export class RateLimitGuard implements CanActivate {
     if (result.retryAfter !== undefined) {
       response.setHeader('Retry-After', result.retryAfter);
     }
+  }
+
+  private isWebhookPath(path: string): boolean {
+    return (
+      path.includes('billing/webhook') ||
+      path.includes('ecommerce/woocommerce/webhook') ||
+      path.includes('integrations/shopify/webhooks') ||
+      path.includes('webhooks/email')
+    );
+  }
+
+  private isSensitivePath(path: string): boolean {
+    return (
+      path.includes('/auth/') ||
+      path.includes('/admin/') ||
+      path.includes('/billing/') ||
+      path.includes('/security/')
+    );
   }
 }
 

@@ -25,7 +25,6 @@ export const metadata: Metadata = generateSEOMetadata({
   canonicalUrl: `${SEO_BASE_URL}/help`,
   alternateLocales: [
     { locale: 'fr', url: `${SEO_BASE_URL}/help` },
-    { locale: 'en', url: `${SEO_BASE_URL}/en/help` },
   ],
 });
 

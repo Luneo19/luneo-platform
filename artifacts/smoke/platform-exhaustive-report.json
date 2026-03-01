@@ -1,0 +1,1261 @@
+{
+  "allRoutes": [
+    "/",
+    "/Admin",
+    "/about",
+    "/admin",
+    "/admin/ai-studio",
+    "/admin/analytics",
+    "/admin/analytics/advanced",
+    "/admin/audit-log",
+    "/admin/billing",
+    "/admin/brands",
+    "/admin/credit-packs",
+    "/admin/customers",
+    "/admin/designs",
+    "/admin/discounts",
+    "/admin/events",
+    "/admin/health",
+    "/admin/invoices",
+    "/admin/marketing",
+    "/admin/marketing/automations",
+    "/admin/marketing/automations/new",
+    "/admin/marketing/campaigns",
+    "/admin/marketing/communications",
+    "/admin/marketing/templates",
+    "/admin/orion",
+    "/admin/orion/agents",
+    "/admin/orion/agents/apollo",
+    "/admin/orion/agents/artemis",
+    "/admin/orion/agents/athena",
+    "/admin/orion/agents/hades",
+    "/admin/orion/agents/hermes",
+    "/admin/orion/agents/prometheus",
+    "/admin/orion/agents/zeus",
+    "/admin/orion/analytics",
+    "/admin/orion/automations",
+    "/admin/orion/communications",
+    "/admin/orion/experiments",
+    "/admin/orion/export",
+    "/admin/orion/notifications",
+    "/admin/orion/quick-wins",
+    "/admin/orion/retention",
+    "/admin/orion/review-queue",
+    "/admin/orion/segments",
+    "/admin/plan-history",
+    "/admin/settings",
+    "/admin/tenants",
+    "/admin/tickets",
+    "/admin/webhooks",
+    "/admin/webhooks/new",
+    "/agent-templates",
+    "/agents",
+    "/agents/create",
+    "/agents/new",
+    "/analytics",
+    "/api-docs",
+    "/api-status",
+    "/billing",
+    "/billing/addons",
+    "/billing/portal",
+    "/billing/success",
+    "/billing/usage",
+    "/blog",
+    "/callback",
+    "/careers",
+    "/case-studies",
+    "/changelog",
+    "/community",
+    "/compliance",
+    "/contact",
+    "/conversations",
+    "/customers",
+    "/dashboard/dashboard",
+    "/demo/customizer",
+    "/developers",
+    "/docs",
+    "/docs/guides",
+    "/enterprise",
+    "/entreprise",
+    "/features",
+    "/forgot-password",
+    "/help",
+    "/help/documentation",
+    "/help/documentation/ai/best-practices",
+    "/help/documentation/ai/bulk-generation",
+    "/help/documentation/ai/dalle-integration",
+    "/help/documentation/ai/generation",
+    "/help/documentation/ai/getting-started",
+    "/help/documentation/ai/models",
+    "/help/documentation/ai/prompts",
+    "/help/documentation/analytics/custom-events",
+    "/help/documentation/analytics/dashboards",
+    "/help/documentation/analytics/events",
+    "/help/documentation/analytics/exports",
+    "/help/documentation/analytics/metrics",
+    "/help/documentation/analytics/overview",
+    "/help/documentation/api-reference",
+    "/help/documentation/api-reference/authentication",
+    "/help/documentation/api-reference/designs",
+    "/help/documentation/api-reference/endpoints",
+    "/help/documentation/api-reference/js-sdk",
+    "/help/documentation/api-reference/limits",
+    "/help/documentation/api-reference/orders",
+    "/help/documentation/api-reference/rate-limits",
+    "/help/documentation/api-reference/sdk",
+    "/help/documentation/api-reference/webhooks",
+    "/help/documentation/ar-studio/getting-started",
+    "/help/documentation/authentication",
+    "/help/documentation/best-practices/accessibility",
+    "/help/documentation/best-practices/code-quality",
+    "/help/documentation/best-practices/performance",
+    "/help/documentation/best-practices/seo",
+    "/help/documentation/best-practices/ux-design",
+    "/help/documentation/cli",
+    "/help/documentation/cli/commands",
+    "/help/documentation/cli/installation",
+    "/help/documentation/cli/workflows",
+    "/help/documentation/configuration",
+    "/help/documentation/configuration/advanced",
+    "/help/documentation/configuration/email",
+    "/help/documentation/configuration/environment-variables",
+    "/help/documentation/configuration/monitoring",
+    "/help/documentation/configuration/nextjs",
+    "/help/documentation/configuration/production",
+    "/help/documentation/configuration/redis",
+    "/help/documentation/configuration/setup",
+    "/help/documentation/configuration/storage",
+    "/help/documentation/configuration/stripe",
+    "/help/documentation/configuration/supabase",
+    "/help/documentation/deployment/cdn",
+    "/help/documentation/deployment/docker",
+    "/help/documentation/deployment/kubernetes",
+    "/help/documentation/deployment/vercel",
+    "/help/documentation/errors",
+    "/help/documentation/examples",
+    "/help/documentation/integrations",
+    "/help/documentation/integrations/figma",
+    "/help/documentation/integrations/github",
+    "/help/documentation/integrations/make",
+    "/help/documentation/integrations/sendgrid",
+    "/help/documentation/integrations/slack",
+    "/help/documentation/integrations/stripe",
+    "/help/documentation/integrations/zapier",
+    "/help/documentation/quickstart",
+    "/help/documentation/quickstart/configuration",
+    "/help/documentation/quickstart/deploy",
+    "/help/documentation/quickstart/first-customizer",
+    "/help/documentation/quickstart/installation",
+    "/help/documentation/rate-limits",
+    "/help/documentation/sdk/angular",
+    "/help/documentation/sdk/react",
+    "/help/documentation/sdk/vue",
+    "/help/documentation/sdks/javascript",
+    "/help/documentation/sdks/node",
+    "/help/documentation/sdks/python",
+    "/help/documentation/sdks/react",
+    "/help/documentation/security",
+    "/help/documentation/security/audit",
+    "/help/documentation/security/authentication",
+    "/help/documentation/security/authorization",
+    "/help/documentation/security/best-practices",
+    "/help/documentation/security/cors",
+    "/help/documentation/security/data-protection",
+    "/help/documentation/security/gdpr",
+    "/help/documentation/security/ssl-tls",
+    "/help/documentation/troubleshooting/build-issues",
+    "/help/documentation/troubleshooting/common-errors",
+    "/help/documentation/troubleshooting/deploy-issues",
+    "/help/documentation/troubleshooting/performance-issues",
+    "/help/documentation/troubleshooting/support",
+    "/help/documentation/webhooks",
+    "/help/documentation/webhooks/events",
+    "/help/documentation/webhooks/security",
+    "/help/documentation/webhooks/setup",
+    "/help/enterprise-support",
+    "/help/faq",
+    "/help/quick-start",
+    "/help/support",
+    "/help/tutorials",
+    "/help/video-course",
+    "/home",
+    "/integrations",
+    "/integrations-overview",
+    "/integrations/make",
+    "/integrations/printful",
+    "/integrations/shopify",
+    "/integrations/stripe",
+    "/integrations/woocommerce",
+    "/integrations/zapier",
+    "/knowledge",
+    "/legal/cookies",
+    "/legal/dpa",
+    "/legal/gdpr",
+    "/legal/ndsg",
+    "/legal/privacy",
+    "/legal/terms",
+    "/login",
+    "/maintenance",
+    "/newsletter",
+    "/offline",
+    "/onboarding",
+    "/overview",
+    "/partners",
+    "/plans",
+    "/press",
+    "/pricing",
+    "/pricing-stripe",
+    "/privacy",
+    "/referral",
+    "/register",
+    "/release-notes",
+    "/releases",
+    "/reset-password",
+    "/resources",
+    "/ressources",
+    "/roadmap",
+    "/roi-calculator",
+    "/security",
+    "/settings",
+    "/settings/enterprise",
+    "/settings/privacy",
+    "/settings/security",
+    "/settings/usage",
+    "/status",
+    "/success-stories",
+    "/support",
+    "/tarifs",
+    "/team",
+    "/templates",
+    "/terms",
+    "/testimonials",
+    "/unsubscribe",
+    "/verify-email",
+    "/webinars",
+    "/whats-new"
+  ],
+  "publicRoutes": [
+    "/",
+    "/about",
+    "/blog",
+    "/careers",
+    "/contact",
+    "/developers",
+    "/features",
+    "/forgot-password",
+    "/help",
+    "/help/documentation",
+    "/help/documentation/ai/best-practices",
+    "/help/documentation/ai/bulk-generation",
+    "/help/documentation/ai/dalle-integration",
+    "/help/documentation/ai/generation",
+    "/help/documentation/ai/getting-started",
+    "/help/documentation/ai/models",
+    "/help/documentation/ai/prompts",
+    "/help/documentation/analytics/custom-events",
+    "/help/documentation/analytics/dashboards",
+    "/help/documentation/analytics/events",
+    "/help/documentation/analytics/exports",
+    "/help/documentation/analytics/metrics",
+    "/help/documentation/analytics/overview",
+    "/help/documentation/api-reference",
+    "/help/documentation/api-reference/authentication",
+    "/help/documentation/api-reference/designs",
+    "/help/documentation/api-reference/endpoints",
+    "/help/documentation/api-reference/js-sdk",
+    "/help/documentation/api-reference/limits",
+    "/help/documentation/api-reference/orders",
+    "/help/documentation/api-reference/rate-limits",
+    "/help/documentation/api-reference/sdk",
+    "/help/documentation/api-reference/webhooks",
+    "/help/documentation/ar-studio/getting-started",
+    "/help/documentation/authentication",
+    "/help/documentation/best-practices/accessibility",
+    "/help/documentation/best-practices/code-quality",
+    "/help/documentation/best-practices/performance",
+    "/help/documentation/best-practices/seo",
+    "/help/documentation/best-practices/ux-design",
+    "/help/documentation/cli",
+    "/help/documentation/cli/commands",
+    "/help/documentation/cli/installation",
+    "/help/documentation/cli/workflows",
+    "/help/documentation/configuration",
+    "/help/documentation/configuration/advanced",
+    "/help/documentation/configuration/email",
+    "/help/documentation/configuration/environment-variables",
+    "/help/documentation/configuration/monitoring",
+    "/help/documentation/configuration/nextjs",
+    "/help/documentation/configuration/production",
+    "/help/documentation/configuration/redis",
+    "/help/documentation/configuration/setup",
+    "/help/documentation/configuration/storage",
+    "/help/documentation/configuration/stripe",
+    "/help/documentation/configuration/supabase",
+    "/help/documentation/deployment/cdn",
+    "/help/documentation/deployment/docker",
+    "/help/documentation/deployment/kubernetes",
+    "/help/documentation/deployment/vercel",
+    "/help/documentation/errors",
+    "/help/documentation/examples",
+    "/help/documentation/integrations",
+    "/help/documentation/integrations/figma",
+    "/help/documentation/integrations/github",
+    "/help/documentation/integrations/make",
+    "/help/documentation/integrations/sendgrid",
+    "/help/documentation/integrations/slack",
+    "/help/documentation/integrations/stripe",
+    "/help/documentation/integrations/zapier",
+    "/help/documentation/quickstart",
+    "/help/documentation/quickstart/configuration",
+    "/help/documentation/quickstart/deploy",
+    "/help/documentation/quickstart/first-customizer",
+    "/help/documentation/quickstart/installation",
+    "/help/documentation/rate-limits",
+    "/help/documentation/sdk/angular",
+    "/help/documentation/sdk/react",
+    "/help/documentation/sdk/vue",
+    "/help/documentation/sdks/javascript",
+    "/help/documentation/sdks/node",
+    "/help/documentation/sdks/python",
+    "/help/documentation/sdks/react",
+    "/help/documentation/security",
+    "/help/documentation/security/audit",
+    "/help/documentation/security/authentication",
+    "/help/documentation/security/authorization",
+    "/help/documentation/security/best-practices",
+    "/help/documentation/security/cors",
+    "/help/documentation/security/data-protection",
+    "/help/documentation/security/gdpr",
+    "/help/documentation/security/ssl-tls",
+    "/help/documentation/troubleshooting/build-issues",
+    "/help/documentation/troubleshooting/common-errors",
+    "/help/documentation/troubleshooting/deploy-issues",
+    "/help/documentation/troubleshooting/performance-issues",
+    "/help/documentation/troubleshooting/support",
+    "/help/documentation/webhooks",
+    "/help/documentation/webhooks/events",
+    "/help/documentation/webhooks/security",
+    "/help/documentation/webhooks/setup",
+    "/help/enterprise-support",
+    "/help/faq",
+    "/help/quick-start",
+    "/help/support",
+    "/help/tutorials",
+    "/help/video-course",
+    "/legal/cookies",
+    "/legal/dpa",
+    "/legal/gdpr",
+    "/legal/ndsg",
+    "/legal/privacy",
+    "/legal/terms",
+    "/login",
+    "/pricing",
+    "/pricing-stripe",
+    "/referral",
+    "/register",
+    "/reset-password",
+    "/status",
+    "/templates",
+    "/verify-email"
+  ],
+  "userRoutes": [
+    "/agent-templates",
+    "/agents",
+    "/agents/create",
+    "/agents/new",
+    "/analytics",
+    "/billing",
+    "/billing/addons",
+    "/billing/portal",
+    "/billing/success",
+    "/billing/usage",
+    "/conversations",
+    "/integrations",
+    "/integrations-overview",
+    "/integrations/make",
+    "/integrations/printful",
+    "/integrations/shopify",
+    "/integrations/stripe",
+    "/integrations/woocommerce",
+    "/integrations/zapier",
+    "/knowledge",
+    "/overview",
+    "/plans",
+    "/settings",
+    "/settings/enterprise",
+    "/settings/privacy",
+    "/settings/security",
+    "/settings/usage"
+  ],
+  "adminRoutes": [
+    "/admin",
+    "/admin/ai-studio",
+    "/admin/analytics",
+    "/admin/analytics/advanced",
+    "/admin/audit-log",
+    "/admin/billing",
+    "/admin/brands",
+    "/admin/credit-packs",
+    "/admin/customers",
+    "/admin/designs",
+    "/admin/discounts",
+    "/admin/events",
+    "/admin/health",
+    "/admin/invoices",
+    "/admin/marketing",
+    "/admin/marketing/automations",
+    "/admin/marketing/automations/new",
+    "/admin/marketing/campaigns",
+    "/admin/marketing/communications",
+    "/admin/marketing/templates",
+    "/admin/orion",
+    "/admin/orion/agents",
+    "/admin/orion/agents/apollo",
+    "/admin/orion/agents/artemis",
+    "/admin/orion/agents/athena",
+    "/admin/orion/agents/hades",
+    "/admin/orion/agents/hermes",
+    "/admin/orion/agents/prometheus",
+    "/admin/orion/agents/zeus",
+    "/admin/orion/analytics",
+    "/admin/orion/automations",
+    "/admin/orion/communications",
+    "/admin/orion/experiments",
+    "/admin/orion/export",
+    "/admin/orion/notifications",
+    "/admin/orion/quick-wins",
+    "/admin/orion/retention",
+    "/admin/orion/review-queue",
+    "/admin/orion/segments",
+    "/admin/plan-history",
+    "/admin/settings",
+    "/admin/tenants",
+    "/admin/tickets",
+    "/admin/webhooks",
+    "/admin/webhooks/new"
+  ],
+  "results": [
+    {
+      "name": "public",
+      "ok": true,
+      "routesCount": 122,
+      "steps": [
+        {
+          "id": "visit:/",
+          "ok": true
+        },
+        {
+          "id": "visit:/about",
+          "ok": true
+        },
+        {
+          "id": "visit:/blog",
+          "ok": true
+        },
+        {
+          "id": "visit:/careers",
+          "ok": true
+        },
+        {
+          "id": "visit:/contact",
+          "ok": true
+        },
+        {
+          "id": "visit:/developers",
+          "ok": true
+        },
+        {
+          "id": "visit:/features",
+          "ok": true
+        },
+        {
+          "id": "visit:/forgot-password",
+          "ok": true
+        },
+        {
+          "id": "visit:/help",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/best-practices",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/bulk-generation",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/dalle-integration",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/generation",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/getting-started",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/models",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ai/prompts",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/analytics/custom-events",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/analytics/dashboards",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/analytics/events",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/analytics/exports",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/analytics/metrics",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/analytics/overview",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/authentication",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/designs",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/endpoints",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/js-sdk",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/limits",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/orders",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/rate-limits",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/sdk",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/api-reference/webhooks",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/ar-studio/getting-started",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/authentication",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/best-practices/accessibility",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/best-practices/code-quality",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/best-practices/performance",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/best-practices/seo",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/best-practices/ux-design",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/cli",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/cli/commands",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/cli/installation",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/cli/workflows",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/advanced",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/email",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/environment-variables",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/monitoring",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/nextjs",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/production",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/redis",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/setup",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/storage",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/stripe",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/configuration/supabase",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/deployment/cdn",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/deployment/docker",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/deployment/kubernetes",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/deployment/vercel",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/errors",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/examples",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/figma",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/github",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/make",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/sendgrid",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/slack",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/stripe",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/integrations/zapier",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/quickstart",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/quickstart/configuration",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/quickstart/deploy",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/quickstart/first-customizer",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/quickstart/installation",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/rate-limits",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdk/angular",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdk/react",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdk/vue",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdks/javascript",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdks/node",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdks/python",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/sdks/react",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/audit",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/authentication",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/authorization",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/best-practices",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/cors",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/data-protection",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/gdpr",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/security/ssl-tls",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/troubleshooting/build-issues",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/troubleshooting/common-errors",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/troubleshooting/deploy-issues",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/troubleshooting/performance-issues",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/troubleshooting/support",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/webhooks",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/webhooks/events",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/webhooks/security",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/documentation/webhooks/setup",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/enterprise-support",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/faq",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/quick-start",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/support",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/tutorials",
+          "ok": true
+        },
+        {
+          "id": "visit:/help/video-course",
+          "ok": true
+        },
+        {
+          "id": "visit:/legal/cookies",
+          "ok": true
+        },
+        {
+          "id": "visit:/legal/dpa",
+          "ok": true
+        },
+        {
+          "id": "visit:/legal/gdpr",
+          "ok": true
+        },
+        {
+          "id": "visit:/legal/ndsg",
+          "ok": true
+        },
+        {
+          "id": "visit:/legal/privacy",
+          "ok": true
+        },
+        {
+          "id": "visit:/legal/terms",
+          "ok": true
+        },
+        {
+          "id": "visit:/login",
+          "ok": true
+        },
+        {
+          "id": "visit:/pricing",
+          "ok": true
+        },
+        {
+          "id": "visit:/pricing-stripe",
+          "ok": true
+        },
+        {
+          "id": "visit:/referral",
+          "ok": true
+        },
+        {
+          "id": "visit:/register",
+          "ok": true
+        },
+        {
+          "id": "visit:/reset-password",
+          "ok": true
+        },
+        {
+          "id": "visit:/status",
+          "ok": true
+        },
+        {
+          "id": "visit:/templates",
+          "ok": true
+        },
+        {
+          "id": "visit:/verify-email",
+          "ok": true
+        }
+      ],
+      "networkErrors": [],
+      "consoleIssues": [],
+      "pageErrors": []
+    },
+    {
+      "name": "user",
+      "ok": true,
+      "routesCount": 27,
+      "steps": [
+        {
+          "id": "login",
+          "ok": true
+        },
+        {
+          "id": "visit:/agent-templates",
+          "ok": true
+        },
+        {
+          "id": "visit:/agents",
+          "ok": true
+        },
+        {
+          "id": "visit:/agents/create",
+          "ok": true
+        },
+        {
+          "id": "visit:/agents/new",
+          "ok": true
+        },
+        {
+          "id": "visit:/analytics",
+          "ok": true
+        },
+        {
+          "id": "visit:/billing",
+          "ok": true
+        },
+        {
+          "id": "visit:/billing/addons",
+          "ok": true
+        },
+        {
+          "id": "visit:/billing/portal",
+          "ok": true
+        },
+        {
+          "id": "visit:/billing/success",
+          "ok": true
+        },
+        {
+          "id": "visit:/billing/usage",
+          "ok": true
+        },
+        {
+          "id": "visit:/conversations",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations-overview",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations/make",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations/printful",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations/shopify",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations/stripe",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations/woocommerce",
+          "ok": true
+        },
+        {
+          "id": "visit:/integrations/zapier",
+          "ok": true
+        },
+        {
+          "id": "visit:/knowledge",
+          "ok": true
+        },
+        {
+          "id": "visit:/overview",
+          "ok": true
+        },
+        {
+          "id": "visit:/plans",
+          "ok": true
+        },
+        {
+          "id": "visit:/settings",
+          "ok": true
+        },
+        {
+          "id": "visit:/settings/enterprise",
+          "ok": true
+        },
+        {
+          "id": "visit:/settings/privacy",
+          "ok": true
+        },
+        {
+          "id": "visit:/settings/security",
+          "ok": true
+        },
+        {
+          "id": "visit:/settings/usage",
+          "ok": true
+        },
+        {
+          "id": "logout",
+          "ok": true
+        }
+      ],
+      "networkErrors": [],
+      "consoleIssues": [],
+      "pageErrors": []
+    },
+    {
+      "name": "admin",
+      "ok": true,
+      "routesCount": 45,
+      "steps": [
+        {
+          "id": "login",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/ai-studio",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/analytics",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/analytics/advanced",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/audit-log",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/billing",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/brands",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/credit-packs",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/customers",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/designs",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/discounts",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/events",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/health",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/invoices",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/marketing",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/marketing/automations",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/marketing/automations/new",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/marketing/campaigns",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/marketing/communications",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/marketing/templates",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/apollo",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/artemis",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/athena",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/hades",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/hermes",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/prometheus",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/agents/zeus",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/analytics",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/automations",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/communications",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/experiments",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/export",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/notifications",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/quick-wins",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/retention",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/review-queue",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/orion/segments",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/plan-history",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/settings",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/tenants",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/tickets",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/webhooks",
+          "ok": true
+        },
+        {
+          "id": "visit:/admin/webhooks/new",
+          "ok": true
+        },
+        {
+          "id": "logout",
+          "ok": true
+        }
+      ],
+      "networkErrors": [],
+      "consoleIssues": [],
+      "pageErrors": []
+    }
+  ]
+}

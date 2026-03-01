@@ -100,12 +100,13 @@ function ExperimentCard({ exp }: { exp: Experiment }) {
 }
 
 export default function ExperimentsPage() {
-  const { experiments, isLoading, isError, error } = useExperiments();
+  const { experiments, isLoading, isError } = useExperiments();
+  const safeExperiments = Array.isArray(experiments) ? experiments : [];
   const [activeTab, setActiveTab] = useState('active');
 
-  const active = experiments.filter((e) => e.status === 'running');
-  const completed = experiments.filter((e) => e.status === 'completed');
-  const draft = experiments.filter((e) => e.status === 'draft');
+  const active = safeExperiments.filter((e) => e.status === 'running');
+  const completed = safeExperiments.filter((e) => e.status === 'completed');
+  const draft = safeExperiments.filter((e) => e.status === 'draft');
 
   return (
     <div className="space-y-6 text-zinc-100">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -16,12 +16,12 @@ function DeploymentVercelPageContent() {
           <span className="text-white">Deployment - Vercel</span>
         </div>
 
-        <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <Motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-4xl font-bold mb-4">Déploiement Vercel</h1>
           <p className="text-xl text-gray-300 mb-8">
             Déployez Luneo sur Vercel avec configuration optimale.
           </p>
-        </motion>
+        </Motion>
 
         <Card className="bg-gray-800/50 border-gray-700 p-6 mb-8">
           <h2 className="text-2xl font-bold mb-4">Configuration vercel.json</h2>

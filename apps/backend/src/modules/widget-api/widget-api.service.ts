@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
 import { OrchestratorService } from '@/modules/orchestrator/orchestrator.service';
@@ -11,6 +12,8 @@ import { StartConversationDto } from './dto/start-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ConfigService } from '@nestjs/config';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 @Injectable()
 export class WidgetApiService {
@@ -21,6 +24,7 @@ export class WidgetApiService {
     private readonly prisma: PrismaOptimizedService,
     private readonly orchestratorService: OrchestratorService,
     private readonly quotasService: QuotasService,
+    private readonly configService: ConfigService,
   ) {}
 
   async getWidgetConfig(widgetId: string) {
@@ -80,15 +84,12 @@ export class WidgetApiService {
 
     await this.quotasService.enforceQuota(channel.agent.organizationId, 'conversations');
 
-    // Validate origin against allowed domains
+    // Validate origin against allowed domains (strict hostname matching)
     const allowedOrigins = channel.widgetAllowedOrigins ?? [];
     if (allowedOrigins.length > 0 && context.origin) {
-      const allowed = allowedOrigins.some((domain: string) => {
-        if (domain.startsWith('*.')) {
-          return context.origin.endsWith(domain.slice(1));
-        }
-        return context.origin.includes(domain);
-      });
+      const allowed = allowedOrigins.some((domain: string) =>
+        this.isOriginAllowed(context.origin, domain)
+      );
       if (!allowed) {
         throw new BadRequestException('Origin not allowed');
       }
@@ -137,10 +138,11 @@ export class WidgetApiService {
     return {
       conversationId: conversation.id,
       greeting,
+      conversationToken: this.createConversationToken(conversation.id, conversation.visitorId || ''),
     };
   }
 
-  async sendMessage(conversationId: string, dto: SendMessageDto) {
+  async sendMessage(conversationId: string, dto: SendMessageDto, headerToken?: string) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: { agent: true },
@@ -152,6 +154,12 @@ export class WidgetApiService {
     if (conversation.status === 'CLOSED' || conversation.status === 'SPAM') {
       throw new BadRequestException('Conversation is closed');
     }
+
+    this.assertConversationToken(
+      conversation.id,
+      conversation.visitorId || '',
+      dto.conversationToken || headerToken,
+    );
 
     // Save user message
     await this.prisma.message.create({
@@ -236,7 +244,7 @@ export class WidgetApiService {
     }
   }
 
-  async getMessages(conversationId: string, after?: string) {
+  async getMessages(conversationId: string, after?: string, conversationToken?: string) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
     });
@@ -244,6 +252,7 @@ export class WidgetApiService {
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
+    this.assertConversationToken(conversation.id, conversation.visitorId || '', conversationToken);
 
     const where: { conversationId: string; deletedAt: null; createdAt?: { gt: Date } } = {
       conversationId,
@@ -270,7 +279,7 @@ export class WidgetApiService {
     return { messages };
   }
 
-  getStream(conversationId: string): Observable<MessageEvent> {
+  getStream(conversationId: string, conversationToken?: string): Observable<MessageEvent> {
     if (!this.streamSubjects.has(conversationId)) {
       this.streamSubjects.set(conversationId, new Subject<unknown>());
     }
@@ -286,6 +295,7 @@ export class WidgetApiService {
             observer.error(new NotFoundException('Conversation not found'));
             return;
           }
+          this.assertConversationToken(conv.id, conv.visitorId || '', conversationToken);
 
           observer.next({
             data: JSON.stringify({ type: 'connected', conversationId }),
@@ -316,5 +326,77 @@ export class WidgetApiService {
     if (subject) {
       subject.next(event);
     }
+  }
+
+  private isOriginAllowed(origin: string, allowedDomain: string): boolean {
+    try {
+      const originUrl = new URL(origin);
+      const originHost = originUrl.hostname.toLowerCase();
+      const normalizedAllowed = allowedDomain
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/+$/, '')
+        .toLowerCase();
+
+      if (normalizedAllowed.startsWith('*.')) {
+        const suffix = normalizedAllowed.slice(2);
+        return originHost === suffix || originHost.endsWith(`.${suffix}`);
+      }
+
+      return originHost === normalizedAllowed;
+    } catch {
+      return false;
+    }
+  }
+
+  private createConversationToken(conversationId: string, visitorId: string): string {
+    const issuedAt = Date.now();
+    const expiresAt = issuedAt + 7 * 24 * 60 * 60 * 1000;
+    const payload = JSON.stringify({ conversationId, visitorId, expiresAt });
+    const payloadBase64 = Buffer.from(payload, 'utf8').toString('base64url');
+    const signature = this.signPayload(payloadBase64);
+    return `${payloadBase64}.${signature}`;
+  }
+
+  private assertConversationToken(conversationId: string, visitorId: string, token?: string): void {
+    if (!token || !token.includes('.')) {
+      throw new ForbiddenException('Missing widget conversation token');
+    }
+    const [payloadBase64, signature] = token.split('.');
+    const expectedSignature = this.signPayload(payloadBase64);
+    const providedBuffer = Buffer.from(signature || '', 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    if (providedBuffer.length !== expectedBuffer.length || !timingSafeEqual(providedBuffer, expectedBuffer)) {
+      throw new ForbiddenException('Invalid widget conversation token');
+    }
+
+    let payload: { conversationId: string; visitorId: string; expiresAt: number };
+    try {
+      payload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf8')) as {
+        conversationId: string;
+        visitorId: string;
+        expiresAt: number;
+      };
+    } catch {
+      throw new ForbiddenException('Invalid widget conversation token payload');
+    }
+    if (
+      payload.conversationId !== conversationId
+      || payload.visitorId !== visitorId
+      || typeof payload.expiresAt !== 'number'
+      || payload.expiresAt < Date.now()
+    ) {
+      throw new ForbiddenException('Expired or mismatched widget conversation token');
+    }
+  }
+
+  private signPayload(payloadBase64: string): string {
+    const secret =
+      this.configService.get<string>('JWT_SECRET')
+      || this.configService.get<string>('jwt.secret')
+      || process.env.JWT_SECRET;
+    if (!secret) {
+      throw new ForbiddenException('Widget token signing secret is not configured');
+    }
+    return createHmac('sha256', secret).update(payloadBase64).digest('base64url');
   }
 }

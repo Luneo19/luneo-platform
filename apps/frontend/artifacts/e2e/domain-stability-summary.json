@@ -1,0 +1,19 @@
+{
+  "suite": "domain",
+  "generatedAt": "2026-02-28T12:28:22.170Z",
+  "total": 1,
+  "passed": 0,
+  "failed": 0,
+  "flaky": 0,
+  "skipped": 0,
+  "passRatePct": 0,
+  "flakyRatePct": 0,
+  "slowestTests": [
+    {
+      "title": "pricing.spec.ts > Pricing Page - Complete Flow > should toggle between monthly and yearly pricing > chromium",
+      "status": "expected",
+      "maxDurationMs": 3342
+    }
+  ],
+  "failedTests": []
+}

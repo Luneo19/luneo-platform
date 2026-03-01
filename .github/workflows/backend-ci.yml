@@ -14,15 +14,18 @@ on:
 
 env:
   NODE_VERSION: '22'
-  PNPM_VERSION: '8'
+  PNPM_VERSION: '9'
+
+permissions:
+  contents: read
 
 jobs:
   lint:
-    name: Lint & Type Check
+    name: Lint, Type Check & Migration Readiness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
@@ -31,6 +34,11 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: cd apps/backend && pnpm run lint
+      - run: cd apps/backend && pnpm run type-check
+      - run: cd apps/backend && pnpm run migrate:verify
+        env:
+          MIGRATION_VERIFY_REQUIRE_DB: 'true'
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
       - run: cd apps/backend && pnpm run build
 
   unit-tests:
@@ -39,7 +47,7 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
@@ -63,7 +71,7 @@ jobs:
     needs: [lint, unit-tests]
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
@@ -89,18 +97,3 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-  deploy-production:
-    name: Deploy to Production (Railway)
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to Railway
-        run: |
-          npm install -g @railway/cli
-          railway up --service backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

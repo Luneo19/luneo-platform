@@ -3,11 +3,15 @@
  * T-016: Tests E2E inscription utilisateur
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { ensureCookieBannerClosed, setLocale } from './utils/locale';
 
 // Générateur d'email unique pour les tests
 const generateTestEmail = () => `test-e2e-${Date.now()}-${Math.random().toString(36).substring(7)}@test-luneo.app`;
+
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
 
 test.describe('Registration Flow - Complete Journey', () => {
   test.beforeEach(async ({ page }) => {
@@ -63,11 +67,11 @@ test.describe('Registration Flow - Complete Journey', () => {
       const githubButton = page.getByTestId('register-oauth-github');
       
       const hasOAuth = 
-        await googleButton.isVisible().catch(() => false) ||
-        await githubButton.isVisible().catch(() => false);
+        await isPresentAndVisible(googleButton) ||
+        await isPresentAndVisible(githubButton);
       
       console.log('OAuth buttons visible:', hasOAuth);
-      // Ne pas échouer si OAuth n'est pas configuré
+      expect(hasOAuth).toBeTruthy();
     });
   });
 
@@ -137,7 +141,7 @@ test.describe('Registration Flow - Complete Journey', () => {
       const confirmPasswordField = page.getByTestId('register-confirm-password');
       
       // Remplir le formulaire
-      if (await nameField.isVisible().catch(() => false)) {
+      if (await isPresentAndVisible(nameField)) {
         await nameField.fill('Test User E2E');
       }
       await emailField.fill(testEmail);
@@ -251,10 +255,9 @@ test.describe('Registration Flow - Complete Journey', () => {
       const loginLink = page.getByTestId('register-switch-login')
         .or(page.getByRole('link', { name: /connexion|login|se connecter|sign in/i }));
       
-      if (await loginLink.isVisible().catch(() => false)) {
-        await loginLink.click();
-        await expect(page).toHaveURL(/.*login/);
-      }
+      await expect(loginLink).toBeVisible();
+      await loginLink.click();
+      await expect(page).toHaveURL(/.*login/);
     });
   });
 });

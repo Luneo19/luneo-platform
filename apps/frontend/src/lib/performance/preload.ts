@@ -216,7 +216,7 @@ export function prefetchOnIdle(callback: () => void): void {
  * Preload critical fonts
  */
 export function preloadFonts(fonts: { url: string; format: string }[]): void {
-  fonts.forEach(({ url, format }) => {
+  fonts.forEach(({ url, format: _format }) => {
     preloadResource(url, {
       as: 'font',
       crossOrigin: 'anonymous',

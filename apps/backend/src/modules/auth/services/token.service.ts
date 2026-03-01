@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '@/libs/prisma/prisma.service';
 import { TokenBlacklistService } from '@/libs/auth/token-blacklist.service';
 import { PlatformRole } from '@prisma/client';
@@ -35,6 +35,18 @@ export class TokenService {
       case 'd': return value * 24 * 60 * 60 * 1000;
       default: return 7 * 24 * 60 * 60 * 1000;
     }
+  }
+
+  /**
+   * Hash refresh token for storage-at-rest protection.
+   * Uses a configurable pepper to reduce offline replay risk if DB is compromised.
+   */
+  private hashRefreshToken(token: string): string {
+    const pepper =
+      this.configService.get<string>('jwt.refreshTokenPepper') ||
+      this.configService.get<string>('jwt.refreshSecret') ||
+      '';
+    return createHash('sha256').update(`${pepper}:${token}`).digest('hex');
   }
 
   /**
@@ -118,14 +130,19 @@ export class TokenService {
       }
     }
 
+    const tokenHash = this.hashRefreshToken(token);
+    const tokenFamily = family ?? randomUUID();
+    const normalizedUserAgent = metadata?.userAgent
+      ? metadata.userAgent.substring(0, 200)
+      : undefined;
+
     await this.prisma.refreshToken.create({
       data: {
         userId,
-        token,
+        token: tokenHash,
         expiresAt,
-        ...(family && { deviceId: family }),
-        ...(metadata?.ipAddress && { deviceId: metadata.ipAddress }),
-        ...(metadata?.userAgent && { deviceName: metadata.userAgent.substring(0, 200) }),
+        deviceId: tokenFamily,
+        ...(normalizedUserAgent && { deviceName: normalizedUserAgent }),
       },
     });
 
@@ -160,35 +177,49 @@ export class TokenService {
         secret,
       });
 
+      const refreshTokenHash = this.hashRefreshToken(refreshToken);
       const tokenRecord = await this.prisma.refreshToken.findUnique({
-        where: { token: refreshToken },
+        where: { token: refreshTokenHash },
       });
 
-      if (!tokenRecord) {
+      // Backward compatibility for legacy plaintext tokens already stored.
+      const legacyTokenRecord = !tokenRecord
+        ? await this.prisma.refreshToken.findUnique({
+            where: { token: refreshToken },
+          })
+        : null;
+      const resolvedTokenRecord = tokenRecord ?? legacyTokenRecord;
+
+      if (!resolvedTokenRecord) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      if (tokenRecord.isRevoked || tokenRecord.revokedAt) {
+      if (resolvedTokenRecord.isRevoked || resolvedTokenRecord.revokedAt) {
         this.logger.warn(
-          `Refresh token reuse detected for user ${tokenRecord.userId}. ` +
-          `Token device ${tokenRecord.deviceId} will be invalidated. ` +
+          `Refresh token reuse detected for user ${resolvedTokenRecord.userId}. ` +
+          `Token device ${resolvedTokenRecord.deviceId} will be invalidated. ` +
           `Potential token theft attempt.`
         );
         
         await this.prisma.refreshToken.updateMany({
-          where: { userId: tokenRecord.userId, deviceId: tokenRecord.deviceId },
-          data: { revokedAt: new Date() },
+          where: {
+            userId: resolvedTokenRecord.userId,
+            ...(resolvedTokenRecord.deviceId
+              ? { deviceId: resolvedTokenRecord.deviceId }
+              : {}),
+          },
+          data: { isRevoked: true, revokedAt: new Date() },
         });
         
         throw new UnauthorizedException('Refresh token has been revoked. Please login again.');
       }
 
-      if (tokenRecord.expiresAt < new Date()) {
+      if (resolvedTokenRecord.expiresAt < new Date()) {
         throw new UnauthorizedException('Refresh token expired');
       }
 
       const tokenUser = await this.prisma.user.findUnique({
-        where: { id: tokenRecord.userId },
+        where: { id: resolvedTokenRecord.userId },
         include: {
           memberships: { where: { isActive: true }, include: { organization: true }, take: 1 },
         },
@@ -199,15 +230,30 @@ export class TokenService {
       }
 
       if (tokenUser.deletedAt !== null) {
-        this.logger.warn(`Token refresh denied for inactive user ${tokenRecord.userId}`);
+        this.logger.warn(`Token refresh denied for inactive user ${resolvedTokenRecord.userId}`);
         throw new UnauthorizedException('User account is inactive');
       }
 
-      if (metadata?.ipAddress && tokenRecord.deviceId && metadata.ipAddress !== tokenRecord.deviceId) {
+      if (
+        metadata?.userAgent &&
+        resolvedTokenRecord.deviceName &&
+        metadata.userAgent !== 'unknown' &&
+        resolvedTokenRecord.deviceName !== 'unknown' &&
+        resolvedTokenRecord.deviceName !== metadata.userAgent.substring(0, 200)
+      ) {
         this.logger.warn(
-          `Refresh token device mismatch for user ${tokenRecord.userId}: ` +
-          `original=${tokenRecord.deviceId}, current=${metadata.ipAddress}. `
+          `Refresh token client mismatch for user ${resolvedTokenRecord.userId}: ` +
+          `originalUA=${resolvedTokenRecord.deviceName}, currentUA=${metadata.userAgent.substring(0, 200)}`
         );
+
+        await this.prisma.refreshToken.updateMany({
+          where: resolvedTokenRecord.deviceId
+            ? { userId: resolvedTokenRecord.userId, deviceId: resolvedTokenRecord.deviceId }
+            : { userId: resolvedTokenRecord.userId },
+          data: { isRevoked: true, revokedAt: new Date() },
+        });
+
+        throw new UnauthorizedException('Refresh token client mismatch. Please login again.');
       }
 
       const tokens = await this.generateTokens(
@@ -217,14 +263,14 @@ export class TokenService {
       );
 
       await this.prisma.refreshToken.update({
-        where: { id: tokenRecord.id },
-        data: { isRevoked: true },
+        where: { id: resolvedTokenRecord.id },
+        data: { isRevoked: true, revokedAt: new Date() },
       });
 
       await this.saveRefreshToken(
         tokenUser.id, 
         tokens.refreshToken,
-        tokenRecord.deviceId ?? undefined,
+        resolvedTokenRecord.deviceId ?? undefined,
         metadata,
       );
 

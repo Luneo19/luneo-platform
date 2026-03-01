@@ -36,6 +36,7 @@ export interface CustomerDetail {
   industry?: string | null;
   country?: string | null;
   timezone?: string | null;
+  isActive?: boolean;
 }
 
 export interface CustomerActivity {
@@ -100,11 +101,26 @@ export function useCustomerDetail(customerId: string) {
     }
   );
 
+  const payload = (data ?? {}) as Partial<CustomerDetailResponse> & Record<string, unknown>;
+  const resolvedCustomer =
+    payload.customer && typeof payload.customer === 'object'
+      ? (payload.customer as CustomerDetail)
+      : (payload as unknown as CustomerDetail);
+  const normalizedCustomer = resolvedCustomer && typeof resolvedCustomer === 'object'
+    ? ({
+        ...resolvedCustomer,
+        segments: Array.isArray((resolvedCustomer as { segments?: unknown }).segments)
+          ? ((resolvedCustomer as { segments: CustomerDetail['segments'] }).segments)
+          : [],
+      } as CustomerDetail)
+    : resolvedCustomer;
+  const hasValidCustomer = normalizedCustomer && typeof normalizedCustomer.id === 'string' && normalizedCustomer.id.length > 0;
+
   return {
-    customer: data?.customer,
-    activities: data?.activities || [],
-    billingHistory: data?.billingHistory || [],
-    emailHistory: data?.emailHistory || [],
+    customer: hasValidCustomer ? normalizedCustomer : undefined,
+    activities: Array.isArray(payload.activities) ? payload.activities : [],
+    billingHistory: Array.isArray(payload.billingHistory) ? payload.billingHistory : [],
+    emailHistory: Array.isArray(payload.emailHistory) ? payload.emailHistory : [],
     isLoading,
     isError: !!error,
     error,

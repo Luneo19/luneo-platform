@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, memo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { CheckCircle, Loader2, ArrowRight, Sparkles, Crown, Gift, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { api } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useI18n } from '@/i18n/useI18n';
+import { appRoutes } from '@/lib/routes';
 
 interface SessionData {
   planName: string;
@@ -24,7 +25,6 @@ interface SessionData {
 function BillingSuccessPageContent() {
   const { t } = useI18n();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,12 +85,12 @@ function BillingSuccessPageContent() {
           <h1 className="text-2xl font-bold text-white mb-4">{t('dashboard.billing.success.errorTitle')}</h1>
           <p className="text-white/60 mb-6">{error}</p>
           <div className="space-y-3">
-            <Link href="/dashboard/billing" className="block">
+            <Link href={appRoutes.billing} className="block">
               <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0" aria-label={t('dashboard.billing.success.viewBilling')}>
                 {t('dashboard.billing.success.viewBilling')}
               </Button>
             </Link>
-            <Link href="/contact" className="block">
+            <Link href={appRoutes.contact} className="block">
               <Button variant="outline" className="w-full border-white/[0.12] text-white/80 hover:bg-white/[0.04]" aria-label={t('dashboard.billing.success.contactSupport')}>
                 {t('dashboard.billing.success.contactSupport')}
               </Button>
@@ -104,24 +104,24 @@ function BillingSuccessPageContent() {
   return (
     <div className="min-h-screen dash-bg dash-gradient-mesh py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <motion
+        <Motion
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
           <Card className="dash-card-glow p-8 md:p-12 border-white/[0.06] text-center">
             {/* Success Icon */}
-            <motion
+            <Motion
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8"
             >
               <CheckCircle className="w-12 h-12 text-white" />
-            </motion>
+            </Motion>
 
             {/* Title */}
-            <motion
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -132,11 +132,11 @@ function BillingSuccessPageContent() {
               <p className="text-xl text-white/60 mb-8">
                 {t('dashboard.billing.success.subscriptionActive', { planName: sessionData?.planName || 'Premium' })}
               </p>
-            </motion>
+            </Motion>
 
             {/* Subscription Details */}
             {sessionData && (
-              <motion
+              <Motion
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
@@ -165,11 +165,11 @@ function BillingSuccessPageContent() {
                     </>
                   )}
                 </div>
-              </motion>
+              </Motion>
             )}
 
             {/* What's Next */}
-            <motion
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -193,16 +193,16 @@ function BillingSuccessPageContent() {
                   <p className="text-sm text-white/60">{t('dashboard.billing.success.autoUpdates')}</p>
                 </div>
               </div>
-            </motion>
+            </Motion>
 
             {/* CTA Buttons */}
-            <motion
+            <Motion
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
               className="space-y-3"
             >
-              <Link href="/overview" className="block">
+              <Link href={appRoutes.overview} className="block">
                 <Button
                   size="lg"
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0"
@@ -212,25 +212,24 @@ function BillingSuccessPageContent() {
                   <ArrowRight className="w-5 h-5 ml-2" aria-hidden />
                 </Button>
               </Link>
-              <Link href="/help/documentation/quickstart" className="block">
+              <Link href={appRoutes.quickstart} className="block">
                 <Button variant="outline" size="lg" className="w-full border-white/[0.12] text-white/60 hover:bg-white/[0.04]" aria-label={t('dashboard.billing.success.quickStartGuide')}>
                   {t('dashboard.billing.success.quickStartGuide')}
                 </Button>
               </Link>
-            </motion>
+            </Motion>
 
             {/* Confirmation email notice */}
-            <motion
+            <Motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
               className="text-sm text-white/40 mt-8"
-              as="p"
             >
-              {t('dashboard.billing.success.confirmationEmail', { email: sessionData?.customerEmail ?? '' })}
-            </motion>
+              <p>{t('dashboard.billing.success.confirmationEmail', { email: sessionData?.customerEmail ?? '' })}</p>
+            </Motion>
           </Card>
-        </motion>
+        </Motion>
       </div>
     </div>
   );

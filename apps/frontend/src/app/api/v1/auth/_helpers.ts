@@ -32,7 +32,7 @@ export function rawHttpRequest(
     const mod = isHttps ? require('https') : require('http');
 
     const reqOptions = {
-      hostname: urlObj.hostname,
+      hostname: urlObj.hostname === 'localhost' ? '127.0.0.1' : urlObj.hostname,
       port: urlObj.port || (isHttps ? 443 : 80),
       path: urlObj.pathname + urlObj.search,
       method: options.method || 'GET',
@@ -172,7 +172,7 @@ export function setNoCacheHeaders(res: NextResponse): void {
  */
 export async function getAccessToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
-  return cookieStore.get('accessToken')?.value;
+  return cookieStore.get('accessToken')?.value || cookieStore.get('access_token')?.value;
 }
 
 /**
@@ -180,7 +180,7 @@ export async function getAccessToken(): Promise<string | undefined> {
  */
 export async function getRefreshToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
-  return cookieStore.get('refreshToken')?.value;
+  return cookieStore.get('refreshToken')?.value || cookieStore.get('refresh_token')?.value;
 }
 
 /**

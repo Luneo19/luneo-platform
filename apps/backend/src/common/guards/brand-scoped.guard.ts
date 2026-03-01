@@ -19,8 +19,6 @@ import { CurrentUser } from '../types/user.types';
 
 export const SKIP_BRAND_SCOPING_KEY = 'skipBrandScoping';
 
-const READ_ONLY_ALLOWED_PATHS = ['/billing', '/credits', '/auth', '/health'];
-
 @Injectable()
 export class BrandScopedGuard implements CanActivate {
   private readonly logger = new Logger(BrandScopedGuard.name);

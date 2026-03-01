@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, Page, type Locator } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -38,10 +38,22 @@ async function snap(page: Page, name: string): Promise<string> {
 
 async function waitStable(page: Page, ms = 3000) { await page.waitForTimeout(ms); }
 
+async function isPresentAndVisible(locator: Locator): Promise<boolean> {
+  return (await locator.count()) > 0 && (await locator.first().isVisible());
+}
+
+async function isEnabledSafe(locator: Locator): Promise<boolean> {
+  try {
+    return await locator.isEnabled();
+  } catch {
+    return false;
+  }
+}
+
 async function dismissCookies(page: Page) {
   for (const sel of ['button:has-text("Tout Accepter")', 'button:has-text("Accept")', 'button:has-text("Accepter")']) {
     const btn = page.locator(sel).first();
-    if (await btn.isVisible().catch(() => false)) { await btn.click().catch(() => {}); await waitStable(page, 500); return; }
+    if (await isPresentAndVisible(btn)) { await btn.click().catch(() => {}); await waitStable(page, 500); return; }
   }
 }
 
@@ -78,12 +90,12 @@ async function loginAs(page: Page, email: string, password: string, role: string
 
   // Fill email - try multiple selectors including placeholder-based
   for (const sel of ['input[name="email"]', 'input[type="email"]', 'input[placeholder*="email" i]', 'input[placeholder*="votre@" i]']) {
-    if (await page.locator(sel).isVisible().catch(() => false)) { await page.locator(sel).fill(email); break; }
+    if (await isPresentAndVisible(page.locator(sel))) { await page.locator(sel).fill(email); break; }
   }
 
   // Fill password
   for (const sel of ['input[name="password"]', 'input[type="password"]']) {
-    if (await page.locator(sel).isVisible().catch(() => false)) { await page.locator(sel).fill(password); break; }
+    if (await isPresentAndVisible(page.locator(sel))) { await page.locator(sel).fill(password); break; }
   }
 
   await snap(page, `login-${role}-filled`);
@@ -91,7 +103,7 @@ async function loginAs(page: Page, email: string, password: string, role: string
   // Submit
   for (const sel of ['button[type="submit"]', 'button:has-text("Se connecter")', 'button:has-text("Connexion")']) {
     const btn = page.locator(sel).first();
-    if (await btn.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(btn)) {
       await btn.click({ force: true }).catch(() => {});
       break;
     }
@@ -127,7 +139,7 @@ test.describe.serial('PARTIE A - Parcours Marchand', () => {
     await mp.goto(CONFIG.baseUrl, { waitUntil: 'domcontentloaded' }); await waitStable(mp, 2000);
     for (const sel of ['a:has-text("Essayer")', 'a:has-text("Commencer")', 'a[href*="register"]', 'a:has-text("Gratuit")']) {
       const el = mp.locator(sel).first();
-      if (await el.isVisible().catch(() => false)) { const b = await el.boundingBox(); if (b && b.y < 900) { log('A1.2', 'PASS', `CTA y=${Math.round(b.y)}`); return; } }
+      if (await isPresentAndVisible(el)) { const b = await el.boundingBox(); if (b && b.y < 900) { log('A1.2', 'PASS', `CTA y=${Math.round(b.y)}`); return; } }
     }
     log('A1.2', 'FAIL', 'No CTA above fold'); await snap(mp, 'A1-no-cta');
   });
@@ -142,13 +154,13 @@ test.describe.serial('PARTIE A - Parcours Marchand', () => {
     // Fill name (by placeholder since name attr may differ)
     for (const sel of ['input[name="name"]', 'input[placeholder*="Jean" i]', 'input[placeholder*="nom" i]', 'input[placeholder*="complet" i]']) {
       const e = mp.locator(sel).first();
-      if (await e.isVisible().catch(() => false)) { await e.fill(CONFIG.merchant.name); log('A2', 'INFO', `Name: ${sel}`); break; }
+      if (await isPresentAndVisible(e)) { await e.fill(CONFIG.merchant.name); log('A2', 'INFO', `Name: ${sel}`); break; }
     }
 
     // Fill email
     for (const sel of ['input[name="email"]', 'input[type="email"]', 'input[placeholder*="votre@" i]', 'input[placeholder*="email" i]']) {
       const e = mp.locator(sel).first();
-      if (await e.isVisible().catch(() => false)) { await e.fill(CONFIG.merchant.email); log('A2', 'INFO', `Email: ${sel}`); break; }
+      if (await isPresentAndVisible(e)) { await e.fill(CONFIG.merchant.email); log('A2', 'INFO', `Email: ${sel}`); break; }
     }
 
     // Fill password (first password field)
@@ -178,7 +190,7 @@ test.describe.serial('PARTIE A - Parcours Marchand', () => {
     log('A2', 'INFO', `Submit button disabled=${isDisabled}`);
 
     // Click submit (force if needed)
-    if (await submitBtn.isVisible().catch(() => false)) {
+    if (await isPresentAndVisible(submitBtn)) {
       if (isDisabled !== null) {
         log('A2', 'WARNING', 'Submit still disabled, trying force click');
         await submitBtn.click({ force: true }).catch(() => {});
@@ -216,9 +228,9 @@ test.describe.serial('PARTIE A - Parcours Marchand', () => {
       await snap(mp, `A4-step-${s}`);
       if (mp.url().includes('dashboard') || mp.url().includes('overview')) { log('A4', 'PASS', `Done step ${s}`); return; }
       const cards = mp.locator('[class*="cursor-pointer"]:not(button):not(a)');
-      if (await cards.first().isVisible().catch(() => false)) { await cards.first().click().catch(() => {}); await waitStable(mp, 500); }
+      if (await isPresentAndVisible(cards.first())) { await cards.first().click().catch(() => {}); await waitStable(mp, 500); }
       for (const sel of ['button:has-text("Continuer")', 'button:has-text("Suivant")', 'button:has-text("Terminer")', 'button:has-text("Proceder")', 'button[type="submit"]']) {
-        const b = mp.locator(sel).first(); if (await b.isVisible().catch(() => false) && await b.isEnabled().catch(() => false)) { await b.click(); await waitStable(mp, 2000); break; }
+        const b = mp.locator(sel).first(); if (await isPresentAndVisible(b) && await isEnabledSafe(b)) { await b.click(); await waitStable(mp, 2000); break; }
       }
     }
     log('A4', mp.url().includes('dashboard') || mp.url().includes('overview') ? 'PASS' : 'FAIL', mp.url());
@@ -232,13 +244,13 @@ test.describe.serial('PARTIE A - Parcours Marchand', () => {
   test('A6 - Creer produit', async () => {
     await mp.goto(`${CONFIG.baseUrl}/dashboard/products`, { waitUntil: 'domcontentloaded' }); await waitStable(mp, 2000);
     for (const s of ['button:has-text("Cr")', 'button:has-text("Nouveau")', 'button:has-text("Ajouter")', 'a[href*="new"]']) {
-      const b = mp.locator(s).first(); if (await b.isVisible().catch(() => false)) { await b.click(); break; }
+      const b = mp.locator(s).first(); if (await isPresentAndVisible(b)) { await b.click(); break; }
     }
     await waitStable(mp, 2000); await snap(mp, 'A6-form');
-    for (const s of ['input[name="name"]', 'input[placeholder*="nom" i]']) { const e = mp.locator(s).first(); if (await e.isVisible().catch(() => false)) { await e.fill(CONFIG.product.name); break; } }
-    for (const s of ['input[name="price"]', 'input[name="basePrice"]', 'input[type="number"]']) { const e = mp.locator(s).first(); if (await e.isVisible().catch(() => false)) { await e.clear().catch(() => {}); await e.fill(CONFIG.product.price); break; } }
-    for (const s of ['textarea']) { const e = mp.locator(s).first(); if (await e.isVisible().catch(() => false)) { await e.fill(CONFIG.product.description); break; } }
-    for (const s of ['button[type="submit"]', 'button:has-text("Sauvegarder")', 'button:has-text("Enregistrer")']) { const b = mp.locator(s).first(); if (await b.isVisible().catch(() => false)) { await b.click(); break; } }
+    for (const s of ['input[name="name"]', 'input[placeholder*="nom" i]']) { const e = mp.locator(s).first(); if (await isPresentAndVisible(e)) { await e.fill(CONFIG.product.name); break; } }
+    for (const s of ['input[name="price"]', 'input[name="basePrice"]', 'input[type="number"]']) { const e = mp.locator(s).first(); if (await isPresentAndVisible(e)) { await e.clear().catch(() => {}); await e.fill(CONFIG.product.price); break; } }
+    for (const s of ['textarea']) { const e = mp.locator(s).first(); if (await isPresentAndVisible(e)) { await e.fill(CONFIG.product.description); break; } }
+    for (const s of ['button[type="submit"]', 'button:has-text("Sauvegarder")', 'button:has-text("Enregistrer")']) { const b = mp.locator(s).first(); if (await isPresentAndVisible(b)) { await b.click(); break; } }
     await waitStable(mp, 5000); await snap(mp, 'A6-created');
     log('A6', 'INFO', `URL: ${mp.url()}`);
   });
@@ -329,7 +341,16 @@ test.describe.serial('PARTIE E - API', () => {
   let token = '';
   async function api(method: string, p: string, body?: Record<string, unknown>, t?: string) {
     const h: Record<string, string> = { 'Content-Type': 'application/json' }; if (t) h['Authorization'] = `Bearer ${t}`;
-    try { const r = await fetch(`${CONFIG.apiUrl}${p}`, { method, headers: h, body: body ? JSON.stringify(body) : undefined }); const d = await r.json().catch(() => null); return { status: r.status, data: d }; }
+    try {
+      const r = await fetch(`${CONFIG.apiUrl}${p}`, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+      let d: unknown = null;
+      try {
+        d = await r.json();
+      } catch {
+        d = null;
+      }
+      return { status: r.status, data: d };
+    }
     catch (e: unknown) { return { status: 0, data: { error: e instanceof Error ? e.message : String(e) } }; }
   }
 

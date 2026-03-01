@@ -108,6 +108,7 @@ const baseEnvSchema = z.object({
   SENDGRID_FROM_NAME: z.string().optional(),
   SENDGRID_FROM_EMAIL: z.string().email().optional().or(z.literal('')),
   SENDGRID_REPLY_TO: z.string().email().optional().or(z.literal('')),
+  SENDGRID_WEBHOOK_PUBLIC_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('smtp.sendgrid.net'),
   SMTP_PORT: z.string().transform(Number).default('587'),
   SMTP_SECURE: z.string().transform(val => val === 'true').default('false'),
@@ -125,6 +126,12 @@ const baseEnvSchema = z.object({
   EMAIL_TEMPLATE_NEWSLETTER: z.string().optional(),
   EMAIL_TEMPLATE_ORDER_CONFIRMATION: z.string().optional(),
   EMAIL_TEMPLATE_PRODUCTION_READY: z.string().optional(),
+  EMAIL_TEMPLATE_CONTACT: z.string().optional(),
+  EMAIL_TEMPLATE_INVOICE_PAID: z.string().optional(),
+  EMAIL_TEMPLATE_PAYMENT_FAILED: z.string().optional(),
+  EMAIL_TEMPLATE_SUBSCRIPTION_UPDATED: z.string().optional(),
+  EMAIL_TEMPLATE_SUBSCRIPTION_CANCELED: z.string().optional(),
+  EMAIL_FORCE_LOCAL_AUTH_TEMPLATES: z.string().transform(val => val === 'true').optional(),
   
   // Monitoring
   SENTRY_DSN: z.string().url().optional().or(z.literal('')),
@@ -584,6 +591,7 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
   sendgridFromName: process.env.SENDGRID_FROM_NAME || 'Luneo',
   sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL || 'no-reply@luneo.app',
   sendgridReplyTo: process.env.SENDGRID_REPLY_TO || 'support@luneo.app',
+  sendgridWebhookPublicKey: process.env.SENDGRID_WEBHOOK_PUBLIC_KEY,
   smtpHost: process.env.SMTP_HOST || 'smtp.sendgrid.net',
   smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
   smtpSecure: process.env.SMTP_SECURE === 'true',
@@ -600,7 +608,13 @@ export const emailDomainConfig = registerAs('emailDomain', () => ({
     emailConfirmation: process.env.EMAIL_TEMPLATE_EMAIL_CONFIRMATION || 'd-email-confirmation-template-id',
     invoice: process.env.EMAIL_TEMPLATE_INVOICE || 'd-invoice-template-id',
     newsletter: process.env.EMAIL_TEMPLATE_NEWSLETTER || 'd-newsletter-template-id',
+    contact: process.env.EMAIL_TEMPLATE_CONTACT || 'd-contact-template-id',
+    invoicePaid: process.env.EMAIL_TEMPLATE_INVOICE_PAID || 'd-invoice-paid-template-id',
+    paymentFailed: process.env.EMAIL_TEMPLATE_PAYMENT_FAILED || 'd-payment-failed-template-id',
+    subscriptionUpdated: process.env.EMAIL_TEMPLATE_SUBSCRIPTION_UPDATED || 'd-subscription-updated-template-id',
+    subscriptionCanceled: process.env.EMAIL_TEMPLATE_SUBSCRIPTION_CANCELED || 'd-subscription-canceled-template-id',
   },
+  forceLocalAuthTemplates: process.env.EMAIL_FORCE_LOCAL_AUTH_TEMPLATES !== 'false',
 }));
 
 // App configuration

@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaOptimizedService } from '@/libs/prisma/prisma-optimized.service';
+import { IdempotencyService } from '@/libs/idempotency/idempotency.service';
 import { OrchestratorService } from '@/modules/orchestrator/orchestrator.service';
 import { EmailService } from '@/modules/email/email.service';
 import { RagSource } from '@/modules/rag/rag.service';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 export interface ParsedEmail {
   from: string;
@@ -20,9 +23,52 @@ export class EmailInboundService {
 
   constructor(
     private readonly prisma: PrismaOptimizedService,
+    private readonly configService: ConfigService,
+    private readonly idempotencyService: IdempotencyService,
     private readonly orchestratorService: OrchestratorService,
     private readonly emailService: EmailService,
   ) {}
+
+  verifyWebhookSignature(
+    rawBody: Record<string, unknown>,
+    headers: Record<string, string | string[] | undefined>,
+  ): boolean {
+    const hmacSecret = this.configService.get<string>('EMAIL_WEBHOOK_SHARED_SECRET');
+    const hmacSignature = this.readHeader(
+      headers,
+      'x-luneo-webhook-signature',
+      'x-email-webhook-signature',
+      'x-sendgrid-signature',
+    );
+    if (hmacSecret && hmacSignature) {
+      const expected = createHmac('sha256', hmacSecret)
+        .update(JSON.stringify(rawBody))
+        .digest('hex');
+      if (this.safeCompare(expected, hmacSignature.replace(/^sha256=/i, ''))) {
+        return true;
+      }
+    }
+
+    const mailgunKey = this.configService.get<string>('MAILGUN_WEBHOOK_SIGNING_KEY');
+    const mailgunSignature =
+      this.readHeader(headers, 'x-mailgun-signature') ??
+      (typeof rawBody.signature === 'string' ? rawBody.signature : undefined);
+    const mailgunTimestamp =
+      this.readHeader(headers, 'x-mailgun-timestamp') ??
+      (typeof rawBody.timestamp === 'string' ? rawBody.timestamp : undefined);
+    const mailgunToken =
+      this.readHeader(headers, 'x-mailgun-token') ??
+      (typeof rawBody.token === 'string' ? rawBody.token : undefined);
+
+    if (mailgunKey && mailgunSignature && mailgunTimestamp && mailgunToken) {
+      const expected = createHmac('sha256', mailgunKey)
+        .update(`${mailgunTimestamp}${mailgunToken}`)
+        .digest('hex');
+      return this.safeCompare(expected, mailgunSignature);
+    }
+
+    return false;
+  }
 
   parseInboundEmail(rawBody: Record<string, unknown>): ParsedEmail {
     // Handle SendGrid Inbound Parse format: from, to, subject, text, html, envelope
@@ -54,8 +100,23 @@ export class EmailInboundService {
     };
   }
 
-  async processInboundEmail(email: ParsedEmail): Promise<void> {
+  async processInboundEmail(
+    email: ParsedEmail,
+    rawPayload?: Record<string, unknown>,
+  ): Promise<void> {
     this.logger.log(`Processing inbound email from ${email.from} to ${email.to}`);
+    const incomingEventId =
+      (typeof rawPayload?.['event-id'] === 'string' ? rawPayload['event-id'] : undefined) ||
+      (typeof rawPayload?.['provider-event-id'] === 'string'
+        ? rawPayload['provider-event-id']
+        : undefined) ||
+      email.messageId;
+    const idempotencyKey = `email-inbound:${email.to}:${incomingEventId}`;
+    const alreadyProcessed = await this.idempotencyService.isProcessed(idempotencyKey);
+    if (alreadyProcessed) {
+      this.logger.warn(`Skipping duplicate inbound email event key=${idempotencyKey}`);
+      return;
+    }
 
     // 1. Find the email channel by the destination address
     const channel = await this.prisma.channel.findFirst({
@@ -167,6 +228,11 @@ export class EmailInboundService {
       await this.emailService.sendEmail(emailOptions);
 
       this.logger.log(`Email reply sent to ${email.from} for conversation ${conversation.id}`);
+      await this.idempotencyService.markAsProcessed(
+        idempotencyKey,
+        { conversationId: conversation.id },
+        60 * 60 * 24 * 30,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to process email for conversation ${conversation.id}`,
@@ -182,6 +248,35 @@ export class EmailInboundService {
           text: channel.agent.fallbackMessage,
         });
       }
+    }
+  }
+
+  private readHeader(
+    headers: Record<string, string | string[] | undefined>,
+    ...keys: string[]
+  ): string | undefined {
+    for (const key of keys) {
+      const value = headers[key] ?? headers[key.toLowerCase()] ?? headers[key.toUpperCase()];
+      if (Array.isArray(value) && value.length > 0) {
+        return value[0];
+      }
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
+  private safeCompare(expected: string, provided: string): boolean {
+    try {
+      const expectedBuffer = Buffer.from(expected);
+      const providedBuffer = Buffer.from(provided);
+      if (expectedBuffer.length !== providedBuffer.length) {
+        return false;
+      }
+      return timingSafeEqual(expectedBuffer, providedBuffer);
+    } catch {
+      return false;
     }
   }
 

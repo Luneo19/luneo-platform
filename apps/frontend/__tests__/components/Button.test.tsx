@@ -4,9 +4,8 @@
  * @task T-001 - Validation de la configuration Vitest
  */
 
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, userEvent } from '../utils/test-utils';
+import { render, screen } from '../utils/test-utils';
 import { Button } from '@/components/ui/button';
 
 describe('Button Component', () => {

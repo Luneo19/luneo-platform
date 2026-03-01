@@ -9,8 +9,10 @@ import {
   Query,
   Param,
   Headers,
+  Req,
   Res,
   BadRequestException,
+  NotFoundException,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -32,6 +34,7 @@ import { Roles } from '@/common/guards/roles.guard';
 import { PlatformRole } from '@prisma/client';
 import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { Throttle } from '@nestjs/throttler';
 import { AddBlacklistedPromptDto, BulkActionCustomersDto } from './dto/admin.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
@@ -291,6 +294,7 @@ export class AdminController {
   }
 
   @Post('billing/:subscriptionId/refund')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiBearerAuth()
   @Roles(PlatformRole.ADMIN)
   @ApiOperation({
@@ -312,11 +316,23 @@ export class AdminController {
 
   @Post('create-admin')
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Create the admin (setup endpoint - secured with secret key)' })
   @ApiHeader({ name: 'X-Setup-Key', description: 'Secret key for admin creation' })
   @ApiResponse({ status: 201, description: 'Admin created successfully' })
   @ApiResponse({ status: 401, description: 'Invalid secret key' })
   async createAdmin(@Headers('x-setup-key') setupKey: string) {
+    const nodeEnv = this.configService.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? 'development';
+    const bootstrapAllowed = this.configService.get<string>('ENABLE_ADMIN_SETUP_ENDPOINT') === 'true';
+    const hasActiveAdmin = await this.adminService.hasActiveAdmin();
+
+    // In production, this endpoint must be explicitly enabled and only before first admin bootstrap.
+    if (nodeEnv === 'production') {
+      if (!bootstrapAllowed || hasActiveAdmin) {
+        throw new NotFoundException('Not Found');
+      }
+    }
+
     const validKey = this.configService.get<string>('SETUP_SECRET_KEY');
     if (!validKey) {
       throw new UnauthorizedException('SETUP_SECRET_KEY environment variable is not configured');
@@ -734,6 +750,653 @@ export class AdminController {
   }
 
   // ========================================
+  // ORION (Admin)
+  // ========================================
+
+  @Get('orion/overview')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion overview dashboard' })
+  @ApiResponse({ status: 200, description: 'Orion overview' })
+  async getOrionOverview() {
+    return this.adminService.getOrionOverview();
+  }
+
+  @Get('orion/insights')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion insights' })
+  async getOrionInsights(@Query('limit') limit?: number, @Query('isRead') isRead?: string) {
+    return this.adminService.getOrionInsights({
+      limit: limit ? Number(limit) : undefined,
+      isRead: isRead == null ? undefined : isRead === 'true',
+    });
+  }
+
+  @Get('orion/actions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion actions' })
+  async getOrionActions(@Query('limit') limit?: number, @Query('status') status?: string) {
+    return this.adminService.getOrionActions({
+      limit: limit ? Number(limit) : undefined,
+      status,
+    });
+  }
+
+  @Post('orion/actions/:id/execute')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Execute Orion action' })
+  async executeOrionAction(@Param('id') id: string) {
+    return this.adminService.executeOrionAction(id);
+  }
+
+  @Get('orion/activity-feed')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion activity feed' })
+  async getOrionActivityFeed(@Query('limit') limit?: number) {
+    return this.adminService.getOrionActivityFeed(limit ? Number(limit) : undefined);
+  }
+
+  @Get('orion/metrics/kpis')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion KPI metrics' })
+  @ApiResponse({ status: 200, description: 'Orion KPI metrics' })
+  async getOrionKpis() {
+    return this.adminService.getOrionKpis();
+  }
+
+  @Get('orion/revenue/overview')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion revenue overview' })
+  async getOrionRevenueOverview() {
+    return this.adminService.getOrionRevenueOverview();
+  }
+
+  @Get('orion/revenue/leads')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion leads metrics' })
+  async getOrionRevenueLeads() {
+    return this.adminService.getOrionRevenueLeads();
+  }
+
+  @Get('orion/revenue/upsell')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion upsell metrics' })
+  async getOrionRevenueUpsell() {
+    return this.adminService.getOrionRevenueUpsell();
+  }
+
+  @Get('orion/retention/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion retention dashboard' })
+  async getOrionRetentionDashboard() {
+    return this.adminService.getOrionRetentionDashboard();
+  }
+
+  @Get('orion/retention/at-risk')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get at-risk users for Orion retention' })
+  async getOrionAtRisk(@Query('limit') limit?: number) {
+    return this.adminService.getOrionAtRiskUsers(limit ? Number(limit) : undefined);
+  }
+
+  @Get('orion/retention/health/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion retention health score for a user' })
+  async getOrionRetentionHealth(@Param('id') id: string) {
+    return this.adminService.getOrionRetentionHealth(id);
+  }
+
+  @Post('orion/retention/calculate/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Recalculate Orion retention health score for a user' })
+  async calculateOrionRetentionHealth(@Param('id') id: string) {
+    return this.adminService.calculateOrionRetentionHealth(id);
+  }
+
+  @Get('orion/retention/win-back')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion retention win-back campaigns' })
+  async getOrionRetentionWinBackCampaigns() {
+    return this.adminService.getOrionRetentionWinBackCampaigns();
+  }
+
+  @Post('orion/retention/win-back/trigger')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Trigger Orion retention win-back campaigns' })
+  async triggerOrionRetentionWinBack(@Body('userIds') userIds: string[]) {
+    return this.adminService.triggerOrionRetentionWinBack(userIds);
+  }
+
+  @Get('orion/agents')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List agents for Orion admin' })
+  async getOrionAgents(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getOrionAgents({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      status,
+    });
+  }
+
+  @Post('orion/seed')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Seed default ORION agents' })
+  async seedOrionAgents() {
+    return this.adminService.seedOrionAgents();
+  }
+
+  @Get('orion/segments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion segments' })
+  async getOrionSegments() {
+    return this.adminService.getOrionSegments();
+  }
+
+  @Post('orion/segments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Orion segment' })
+  async createOrionSegment(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionSegment(body);
+  }
+
+  @Delete('orion/segments/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete Orion segment' })
+  async deleteOrionSegment(@Param('id') id: string) {
+    return this.adminService.deleteOrionSegment(id);
+  }
+
+  @Get('orion/experiments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion experiments' })
+  async getOrionExperiments() {
+    return this.adminService.getOrionExperiments();
+  }
+
+  @Post('orion/experiments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Orion experiment' })
+  async createOrionExperiment(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionExperiment(body);
+  }
+
+  @Get('orion/agents/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion agent details' })
+  async getOrionAgent(@Param('id') id: string) {
+    return this.adminService.getOrionAgent(id);
+  }
+
+  @Patch('orion/agents/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Orion agent' })
+  async updateOrionAgent(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateOrionAgent(id, body);
+  }
+
+  @Get('orion/quick-wins/status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion quick wins status' })
+  async getOrionQuickWinsStatus() {
+    return this.adminService.getOrionQuickWinsStatus();
+  }
+
+  @Post('orion/quick-wins/welcome-setup')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Setup Orion welcome communication quick win' })
+  async setupOrionWelcomeQuickWin() {
+    return this.adminService.setupOrionWelcomeQuickWin();
+  }
+
+  @Get('orion/quick-wins/low-credits')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get low credits organizations/users for Orion quick win' })
+  async getOrionLowCreditsQuickWin() {
+    return this.adminService.getOrionLowCreditsQuickWin();
+  }
+
+  @Get('orion/quick-wins/inactive')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get inactive users for Orion quick win' })
+  async getOrionInactiveQuickWin(@Query('days') days?: number) {
+    return this.adminService.getOrionInactiveQuickWin(days ? Number(days) : undefined);
+  }
+
+  @Get('orion/quick-wins/trial-ending')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get organizations close to trial ending' })
+  async getOrionTrialEndingQuickWin() {
+    return this.adminService.getOrionTrialEndingQuickWin();
+  }
+
+  @Get('orion/communications/templates')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion communication templates' })
+  async getOrionCommunicationTemplates() {
+    return this.adminService.getOrionCommunicationTemplates();
+  }
+
+  @Post('orion/communications/templates')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Orion communication template' })
+  async createOrionCommunicationTemplate(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionCommunicationTemplate(body);
+  }
+
+  @Get('orion/communications/templates/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion communication template' })
+  async getOrionCommunicationTemplate(@Param('id') id: string) {
+    return this.adminService.getOrionCommunicationTemplate(id);
+  }
+
+  @Put('orion/communications/templates/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Orion communication template' })
+  async updateOrionCommunicationTemplate(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateOrionCommunicationTemplate(id, body);
+  }
+
+  @Delete('orion/communications/templates/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete Orion communication template' })
+  async deleteOrionCommunicationTemplate(@Param('id') id: string) {
+    return this.adminService.deleteOrionCommunicationTemplate(id);
+  }
+
+  @Get('orion/communications/logs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion communications logs' })
+  async getOrionCommunicationLogs(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getOrionCommunicationLogs({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('orion/communications/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion communications stats' })
+  async getOrionCommunicationStats() {
+    return this.adminService.getOrionCommunicationStats();
+  }
+
+  @Get('orion/automations')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion automations' })
+  async getOrionAutomations() {
+    return this.adminService.getOrionAutomations();
+  }
+
+  @Post('orion/automations')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create Orion automation' })
+  async createOrionAutomation(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionAutomation(body);
+  }
+
+  @Get('orion/automations/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion automation' })
+  async getOrionAutomation(@Param('id') id: string) {
+    return this.adminService.getOrionAutomation(id);
+  }
+
+  @Put('orion/automations/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Orion automation' })
+  async updateOrionAutomation(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateOrionAutomation(id, body);
+  }
+
+  @Delete('orion/automations/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete Orion automation' })
+  async deleteOrionAutomation(@Param('id') id: string) {
+    return this.adminService.deleteOrionAutomation(id);
+  }
+
+  @Get('orion/analytics/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion analytics dashboard' })
+  async getOrionAnalyticsDashboard() {
+    return this.adminService.getOrionAnalyticsDashboard();
+  }
+
+  @Get('orion/audit-log')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion audit log' })
+  async getOrionAuditLog(
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query('action') action?: string,
+    @Query('userId') userId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.adminService.getOrionAuditLog({
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      action,
+      userId,
+      dateFrom,
+      dateTo,
+    });
+  }
+
+  @Get('orion/notifications')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Orion notifications' })
+  async getOrionNotifications(
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query('type') type?: string,
+    @Query('read') read?: string,
+  ) {
+    return this.adminService.getOrionNotifications({
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      type,
+      read: read != null ? read === 'true' : undefined,
+    });
+  }
+
+  @Get('orion/notifications/count')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Orion unread notifications count' })
+  async getOrionNotificationsCount() {
+    return this.adminService.getOrionNotificationsCount();
+  }
+
+  @Put('orion/notifications/:id/read')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mark Orion notification as read' })
+  async markOrionNotificationRead(@Param('id') id: string) {
+    return this.adminService.markOrionNotificationRead(id);
+  }
+
+  @Put('orion/notifications/read-all')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mark all Orion notifications as read' })
+  async markAllOrionNotificationsRead() {
+    return this.adminService.markAllOrionNotificationsRead();
+  }
+
+  @Get('orion/prometheus/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Prometheus admin stats' })
+  async getOrionPrometheusStats() {
+    return this.adminService.getOrionPrometheusStats();
+  }
+
+  @Get('orion/prometheus/review-queue')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Prometheus review queue' })
+  async getOrionPrometheusReviewQueue(
+    @Query('status') status?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getOrionPrometheusReviewQueue({
+      status,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('orion/zeus/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Zeus dashboard' })
+  async getOrionZeusDashboard() {
+    return this.adminService.getOrionZeusDashboard();
+  }
+
+  @Get('orion/zeus/alerts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Zeus alerts' })
+  async getOrionZeusAlerts() {
+    return this.adminService.getOrionZeusAlerts();
+  }
+
+  @Get('orion/zeus/decisions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Zeus decisions' })
+  async getOrionZeusDecisions() {
+    return this.adminService.getOrionZeusDecisions();
+  }
+
+  @Post('orion/zeus/override/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Override Zeus decision' })
+  async overrideOrionZeusDecision(
+    @Param('id') id: string,
+    @Body() body?: { approved?: boolean },
+  ) {
+    return this.adminService.overrideOrionZeusDecision(id, body?.approved !== false);
+  }
+
+  @Get('orion/athena/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Athena dashboard' })
+  async getOrionAthenaDashboard() {
+    return this.adminService.getOrionAthenaDashboard();
+  }
+
+  @Get('orion/athena/distribution')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Athena distribution' })
+  async getOrionAthenaDistribution() {
+    return this.adminService.getOrionAthenaDistribution();
+  }
+
+  @Get('orion/athena/customer/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Athena customer health' })
+  async getOrionAthenaCustomer(@Param('id') id: string) {
+    return this.adminService.getOrionAthenaCustomerHealth(id);
+  }
+
+  @Post('orion/athena/calculate/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Calculate Athena customer health' })
+  async calculateOrionAthenaCustomer(@Param('id') id: string) {
+    return this.adminService.calculateOrionAthenaHealth(id);
+  }
+
+  @Post('orion/athena/insights/generate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate Athena insights' })
+  async generateOrionAthenaInsights() {
+    return this.adminService.generateOrionAthenaInsights();
+  }
+
+  @Get('orion/apollo/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo dashboard' })
+  async getOrionApolloDashboard() {
+    return this.adminService.getOrionApolloDashboard();
+  }
+
+  @Get('orion/apollo/services')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo services status' })
+  async getOrionApolloServices() {
+    return this.adminService.getOrionApolloServices();
+  }
+
+  @Get('orion/apollo/incidents')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo incidents' })
+  async getOrionApolloIncidents(@Query('status') status?: string) {
+    return this.adminService.getOrionApolloIncidents(status);
+  }
+
+  @Get('orion/apollo/metrics')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Apollo metrics' })
+  async getOrionApolloMetrics(@Query('hours') hours?: number) {
+    return this.adminService.getOrionApolloMetrics(hours ? Number(hours) : undefined);
+  }
+
+  @Get('orion/artemis/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Artemis dashboard' })
+  async getOrionArtemisDashboard() {
+    return this.adminService.getOrionArtemisDashboard();
+  }
+
+  @Get('orion/artemis/threats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Artemis threats' })
+  async getOrionArtemisThreats() {
+    return this.adminService.getOrionArtemisThreats();
+  }
+
+  @Post('orion/artemis/threats/:id/resolve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resolve Artemis threat' })
+  async resolveOrionArtemisThreat(@Param('id') id: string) {
+    return this.adminService.resolveOrionArtemisThreat(id);
+  }
+
+  @Get('orion/artemis/blocked-ips')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Artemis blocked IPs' })
+  async getOrionArtemisBlockedIps() {
+    return this.adminService.getOrionArtemisBlockedIps();
+  }
+
+  @Post('orion/artemis/block-ip')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Block IP in Artemis' })
+  async blockOrionArtemisIp(@Body() body: { ipAddress: string; reason: string; expiresAt?: string }) {
+    return this.adminService.blockOrionArtemisIp(body);
+  }
+
+  @Delete('orion/artemis/blocked-ips/:ipAddress')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unblock IP in Artemis' })
+  async unblockOrionArtemisIp(@Param('ipAddress') ipAddress: string) {
+    return this.adminService.unblockOrionArtemisIp(ipAddress);
+  }
+
+  @Get('orion/artemis/fraud-checks')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Artemis fraud checks' })
+  async getOrionArtemisFraudChecks() {
+    return this.adminService.getOrionArtemisFraudChecks();
+  }
+
+  @Get('orion/hermes/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hermes dashboard' })
+  async getOrionHermesDashboard() {
+    return this.adminService.getOrionHermesDashboard();
+  }
+
+  @Get('orion/hermes/pending')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hermes pending actions' })
+  async getOrionHermesPending() {
+    return this.adminService.getOrionHermesPending();
+  }
+
+  @Get('orion/hermes/campaigns')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hermes campaigns' })
+  async getOrionHermesCampaigns() {
+    return this.adminService.getOrionHermesCampaigns();
+  }
+
+  @Get('orion/hermes/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hermes stats' })
+  async getOrionHermesStats() {
+    return this.adminService.getOrionHermesStats();
+  }
+
+  @Get('orion/hades/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hades dashboard' })
+  async getOrionHadesDashboard() {
+    return this.adminService.getOrionHadesDashboard();
+  }
+
+  @Get('orion/hades/at-risk')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hades at-risk accounts' })
+  async getOrionHadesAtRisk() {
+    return this.adminService.getOrionHadesAtRisk();
+  }
+
+  @Get('orion/hades/win-back')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hades win-back campaigns' })
+  async getOrionHadesWinBack() {
+    return this.adminService.getOrionHadesWinBack();
+  }
+
+  @Get('orion/hades/mrr-at-risk')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Hades MRR at risk' })
+  async getOrionHadesMrrAtRisk() {
+    return this.adminService.getOrionHadesMrrAtRisk();
+  }
+
+  @Get('orion/hades/actions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List Hades actions' })
+  async getOrionHadesActions() {
+    return this.adminService.getOrionHadesActions();
+  }
+
+  @Post('orion/prometheus/review-queue/:id/approve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve Prometheus generated response' })
+  async approveOrionPrometheusResponse(
+    @Param('id') id: string,
+    @Body() body?: { notes?: string; editedContent?: string },
+  ) {
+    return this.adminService.approveOrionPrometheusResponse(id, body);
+  }
+
+  @Post('orion/prometheus/review-queue/:id/reject')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject Prometheus generated response' })
+  async rejectOrionPrometheusResponse(@Param('id') id: string, @Body() body?: { notes?: string }) {
+    return this.adminService.rejectOrionPrometheusResponse(id, body);
+  }
+
+  @Post('orion/prometheus/review-queue/bulk-approve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk approve Prometheus generated responses' })
+  async bulkApproveOrionPrometheusResponses(@Body('responseIds') responseIds: string[]) {
+    return this.adminService.bulkApproveOrionPrometheusResponses(responseIds);
+  }
+
+  @Post('orion/prometheus/tickets/:ticketId/analyze')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Analyze ticket with Prometheus assistant' })
+  async analyzeOrionPrometheusTicket(@Param('ticketId') ticketId: string) {
+    return this.adminService.analyzeOrionPrometheusTicket(ticketId);
+  }
+
+  @Post('orion/prometheus/tickets/:ticketId/generate')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate ticket response with Prometheus assistant' })
+  async generateOrionPrometheusTicketResponse(@Param('ticketId') ticketId: string) {
+    return this.adminService.generateOrionPrometheusTicketResponse(ticketId);
+  }
+
+  // ========================================
   // MARKETING CAMPAIGNS (Admin)
   // ========================================
 
@@ -742,24 +1405,15 @@ export class AdminController {
   @ApiOperation({ summary: 'List marketing campaigns' })
   @ApiResponse({ status: 200, description: 'Campaigns list' })
   async getMarketingCampaigns() {
-    return { campaigns: [], total: 0 };
+    return this.adminService.getMarketingCampaigns();
   }
 
   @Post('marketing/campaigns')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a marketing campaign' })
   @ApiResponse({ status: 201, description: 'Campaign created' })
-  async createMarketingCampaign(
-    @Body() body: { name: string; subject: string; body: string; audience?: string; scheduledAt?: string },
-  ) {
-    return {
-      id: `campaign-${Date.now()}`,
-      name: body.name,
-      subject: body.subject,
-      status: 'draft',
-      recipientCount: 0,
-      createdAt: new Date().toISOString(),
-    };
+  async createMarketingCampaign(@Body() body: Record<string, unknown>) {
+    return this.adminService.createMarketingCampaign(body);
   }
 
   // ========================================
@@ -771,7 +1425,7 @@ export class AdminController {
   @ApiOperation({ summary: 'List marketing automations' })
   @ApiResponse({ status: 200, description: 'Automations list' })
   async getMarketingAutomations() {
-    return { automations: [], total: 0 };
+    return this.adminService.getMarketingAutomations();
   }
 
   @Post('marketing/automations')
@@ -779,24 +1433,101 @@ export class AdminController {
   @ApiOperation({ summary: 'Create a marketing automation' })
   @ApiResponse({ status: 201, description: 'Automation created' })
   async createMarketingAutomation(@Body() body: Record<string, unknown>) {
-    return {
-      id: `automation-${Date.now()}`,
-      ...body,
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-    };
+    return this.adminService.createMarketingAutomation(body);
+  }
+
+  @Get('marketing/automations/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get marketing automation' })
+  async getMarketingAutomation(@Param('id') id: string) {
+    return this.adminService.getMarketingAutomation(id);
+  }
+
+  @Put('marketing/automations/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update marketing automation' })
+  async updateMarketingAutomation(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateMarketingAutomation(id, body);
+  }
+
+  @Delete('marketing/automations/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete marketing automation' })
+  async deleteMarketingAutomation(@Param('id') id: string) {
+    return this.adminService.deleteMarketingAutomation(id);
   }
 
   @Post('marketing/automations/test')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Test a marketing automation' })
   @ApiResponse({ status: 200, description: 'Automation test result' })
-  async testMarketingAutomation(@Body() _body: Record<string, unknown>) {
-    return {
-      success: true,
-      message: 'Automation test executed successfully',
-      testId: `test-${Date.now()}`,
-    };
+  async testMarketingAutomation(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: { id?: string; email?: string } },
+  ) {
+    return this.adminService.testMarketingAutomation(body, {
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+    });
+  }
+
+  // ========================================
+  // MARKETING COMMUNICATIONS (Admin)
+  // ========================================
+
+  @Get('marketing/communications/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get marketing communications stats' })
+  async getMarketingCommunicationStats() {
+    return this.adminService.getOrionCommunicationStats();
+  }
+
+  @Get('marketing/communications/logs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get marketing communications logs' })
+  async getMarketingCommunicationLogs(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getOrionCommunicationLogs({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('marketing/communications/templates')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List marketing communication templates' })
+  async getMarketingCommunicationTemplates() {
+    return this.adminService.getOrionCommunicationTemplates();
+  }
+
+  @Post('marketing/communications/templates')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create marketing communication template' })
+  async createMarketingCommunicationTemplate(@Body() body: Record<string, unknown>) {
+    return this.adminService.createOrionCommunicationTemplate(body);
+  }
+
+  @Get('marketing/communications/templates/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get marketing communication template' })
+  async getMarketingCommunicationTemplate(@Param('id') id: string) {
+    return this.adminService.getOrionCommunicationTemplate(id);
+  }
+
+  @Put('marketing/communications/templates/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update marketing communication template' })
+  async updateMarketingCommunicationTemplate(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.adminService.updateOrionCommunicationTemplate(id, body);
+  }
+
+  @Delete('marketing/communications/templates/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete marketing communication template' })
+  async deleteMarketingCommunicationTemplate(@Param('id') id: string) {
+    return this.adminService.deleteOrionCommunicationTemplate(id);
   }
 
   // ========================================

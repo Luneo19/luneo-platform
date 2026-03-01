@@ -6,24 +6,19 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import NextImage from 'next/image';
 import {
   Sparkles,
   Wand2,
   Image as ImageIcon,
-  Palette,
   Zap,
   Download,
   RefreshCw,
-  Settings,
   Search,
-  Filter,
   Grid3x3,
   List,
   Trash2,
-  Share2,
-  Eye,
   Clock,
   TrendingUp,
 } from 'lucide-react';
@@ -397,7 +392,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <AnimatePresence>
                     {filteredImages.map((img, i) => (
-                      <motion
+                      <Motion
                         key={img.id}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -445,7 +440,7 @@ function AIStudio({ className, onDesignGenerated }: AIStudioProps) {
                             </div>
                           </div>
                         </Card>
-                      </motion>
+                      </Motion>
                     ))}
                   </AnimatePresence>
                 </div>

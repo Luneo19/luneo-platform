@@ -62,7 +62,7 @@ export function AdminSidebar() {
           <div key={groupIndex} className="mb-6">
             {group.title && (
               <div className="px-6 mb-2">
-                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
                   {group.title}
                 </h3>
               </div>
@@ -125,16 +125,16 @@ function NavItemComponent({
           }}
           className={cn(
             'flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-colors',
-            'hover:bg-zinc-800 hover:text-white',
+            'hover:bg-zinc-800 hover:text-[rgb(244,244,245)]',
             isActive || hasActiveChild
-              ? 'bg-zinc-800 text-white border-r-2 border-blue-500'
-              : 'text-zinc-400',
+              ? 'bg-zinc-800 text-[rgb(244,244,245)] border-r-2 border-blue-500'
+              : 'text-zinc-300',
           )}
         >
           <Icon className="w-5 h-5 flex-shrink-0" />
           <span className="flex-1">{item.title}</span>
           {item.badge && (
-            <span className="px-2 py-0.5 text-xs font-semibold bg-blue-500 text-white rounded-full">
+            <span className="px-2 py-0.5 text-xs font-semibold bg-blue-700 text-white rounded-full">
               {item.badge === 'live' ? '●' : item.badge}
             </span>
           )}
@@ -159,10 +159,10 @@ function NavItemComponent({
                     href={child.href}
                     className={cn(
                       'flex items-center gap-3 px-6 py-2 text-sm transition-colors',
-                      'hover:bg-zinc-800 hover:text-white',
+                      'hover:bg-zinc-800 hover:text-[rgb(244,244,245)]',
                       childIsActive
-                        ? 'text-white bg-zinc-800'
-                        : 'text-zinc-500',
+                        ? 'text-[rgb(244,244,245)] bg-zinc-800'
+                        : 'text-zinc-300',
                     )}
                   >
                     <ChildIcon className="w-4 h-4 flex-shrink-0" />

@@ -9,7 +9,6 @@
  */
 
 import { logger } from '@/lib/logger';
-import { cacheService } from '@/lib/cache/CacheService';
 import { api } from '@/lib/api/client';
 
 // ========================================

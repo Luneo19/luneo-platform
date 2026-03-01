@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Filter, Download, Activity } from 'lucide-react';
+import { Search, Download, Activity } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface Event {

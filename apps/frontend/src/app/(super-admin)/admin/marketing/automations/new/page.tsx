@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +28,7 @@ export default function NewAutomationPage() {
   const [trigger, setTrigger] = useState('');
   const [steps, setSteps] = useState<AutomationStep[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [, setIsTesting] = useState(false);
 
   const handleSave = async () => {
     if (!name || !trigger || steps.length === 0) {
@@ -42,7 +42,7 @@ export default function NewAutomationPage() {
 
     setIsSaving(true);
     try {
-      await api.post('/api/v1/admin/marketing/automations', {
+      await api.post('/api/admin/marketing/automations', {
         name,
         trigger,
         steps,
@@ -77,9 +77,7 @@ export default function NewAutomationPage() {
 
     setIsTesting(true);
     try {
-      // Test the automation workflow by simulating a trigger event
-      // This calls the backend to test the automation logic
-      const testResult = await api.post('/api/v1/admin/marketing/automations/test', {
+      const testResult = await api.post('/api/admin/marketing/automations/test', {
         trigger,
         steps,
         testData: {

@@ -9,6 +9,12 @@ import { Request, Response, NextFunction } from 'express';
  */
 @Injectable()
 export class XssSanitizeMiddleware implements NestMiddleware {
+  private static readonly RAW_SIGNATURE_SENSITIVE_PATHS = [
+    '/billing/webhook',
+    '/webhooks/email/inbound',
+    '/webhooks/sendgrid/events',
+  ];
+
   use(req: Request, res: Response, next: NextFunction) {
     // SECURITY FIX: Path traversal protection - reject requests with directory traversal patterns
     const url = req.url || req.originalUrl || '';
@@ -17,10 +23,26 @@ export class XssSanitizeMiddleware implements NestMiddleware {
       return;
     }
 
+    if (this.shouldBypassSanitize(req)) {
+      next();
+      return;
+    }
+
     if (req.body && typeof req.body === 'object') {
       req.body = this.sanitizeObject(req.body);
     }
     next();
+  }
+
+  private shouldBypassSanitize(req: Request): boolean {
+    if (req.method !== 'POST') {
+      return false;
+    }
+
+    const path = req.path || req.url || '';
+    return XssSanitizeMiddleware.RAW_SIGNATURE_SENSITIVE_PATHS.some((sensitivePath) =>
+      path.endsWith(sensitivePath),
+    );
   }
 
   private sanitizeObject(obj: Record<string, unknown>): Record<string, unknown> {

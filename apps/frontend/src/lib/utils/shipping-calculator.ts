@@ -33,7 +33,7 @@ export function calculateShipping(
   options: ShippingOptions = {}
 ): number {
   try {
-    const { country, state, postalCode } = address;
+    const { country, state: _state, postalCode: _postalCode } = address;
     const { weight = 0.5, dimensions, carrier = 'standard' } = options;
 
     // Base shipping rates by country (in EUR)

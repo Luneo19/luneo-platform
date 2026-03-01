@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Loader2, Shield, AlertCircle } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,7 @@ import { endpoints } from '@/lib/api/client';
 interface TwoFactorFormProps {
   tempToken: string;
   email: string;
-  onSuccess: () => void;
+  onSuccess: (user?: { role?: string }) => void;
   onError: (error: string) => void;
 }
 
@@ -32,8 +32,7 @@ export function TwoFactorForm({ tempToken, email, onSuccess, onError }: TwoFacto
       const response = await endpoints.auth.loginWith2FA(tempToken, token);
 
       if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user));
-        onSuccess();
+        onSuccess(response.user as { role?: string });
       } else {
         onError('Réponse invalide du serveur');
       }

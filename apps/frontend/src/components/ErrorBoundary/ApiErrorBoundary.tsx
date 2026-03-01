@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, ReactNode } from 'react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { WifiOff, RefreshCw, AlertCircle, Clock, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -68,12 +68,12 @@ export function ApiErrorBoundary({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <motion
+        <Motion
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
           <RefreshCw className="w-8 h-8 text-blue-400" />
-        </motion>
+        </Motion>
       </div>
     );
   }
@@ -162,7 +162,7 @@ export function ApiErrorBoundary({
 
   return (
     <AnimatePresence mode="wait">
-      <motion
+      <Motion
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
@@ -230,7 +230,7 @@ export function ApiErrorBoundary({
             </div>
           </CardContent>
         </Card>
-      </motion>
+      </Motion>
     </AnimatePresence>
   );
 }

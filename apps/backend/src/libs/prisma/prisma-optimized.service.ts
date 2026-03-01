@@ -2,6 +2,19 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { PrismaClient } from '@prisma/client';
 import { RedisOptimizedService } from '../redis/redis-optimized.service';
 
+function withDefaultPoolParams(rawUrl?: string): string | undefined {
+  if (!rawUrl) return rawUrl;
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.searchParams.has('connection_limit')) parsed.searchParams.set('connection_limit', '5');
+    if (!parsed.searchParams.has('pool_timeout')) parsed.searchParams.set('pool_timeout', '20');
+    if (!parsed.searchParams.has('connect_timeout')) parsed.searchParams.set('connect_timeout', '15');
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 @Injectable()
 export class PrismaOptimizedService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaOptimizedService.name);
@@ -10,7 +23,7 @@ export class PrismaOptimizedService extends PrismaClient implements OnModuleInit
     super({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL,
+          url: withDefaultPoolParams(process.env.DATABASE_URL),
         },
       },
       log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],

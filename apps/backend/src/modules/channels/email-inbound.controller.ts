@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Logger, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Logger,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Public } from '@/common/decorators/public.decorator';
 import { EmailInboundService } from './email-inbound.service';
@@ -18,12 +25,15 @@ export class EmailInboundController {
     @Headers() headers: Record<string, string>,
   ) {
     this.logger.log('Received inbound email webhook');
+    if (!this.emailInboundService.verifyWebhookSignature(body, headers)) {
+      throw new UnauthorizedException('Webhook email signature invalide');
+    }
 
     // Parse email based on provider format
     const parsedEmail = this.emailInboundService.parseInboundEmail(body);
 
     // Process the email (find channel, create conversation, generate reply)
-    await this.emailInboundService.processInboundEmail(parsedEmail);
+    await this.emailInboundService.processInboundEmail(parsedEmail, body);
 
     return { received: true };
   }

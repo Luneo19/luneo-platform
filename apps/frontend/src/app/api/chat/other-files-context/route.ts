@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const file = formData.get('file') as File;
     const contextId = formData.get('contextId') as string | null;
-    const description = formData.get('description') as string | null;
+    const _description = formData.get('description') as string | null;
 
     // Validation du fichier
     if (!file) {
@@ -153,7 +153,6 @@ export async function POST(request: NextRequest) {
 
     const timestamp = Date.now();
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const publicId = `chat-context/${user.id}/${timestamp}-${sanitizedFileName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

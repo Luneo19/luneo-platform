@@ -250,8 +250,8 @@ export class AnalyticsService {
    */
   async getCustomizationStats(
     brandId: string,
-    periodStart?: Date,
-    periodEnd?: Date
+    _periodStart?: Date,
+    _periodEnd?: Date
   ): Promise<CustomizationStats> {
     try {
       type UsageRes = { customizations?: Record<string, unknown>; totalDesigns?: number; totalRenders?: number };
@@ -284,7 +284,6 @@ export class AnalyticsService {
     periodEnd?: Date
   ): Promise<OrderStats> {
     try {
-      const period = this.periodToParam(periodStart, periodEnd);
       const res = await endpoints.analytics.orders({
         startDate: (periodStart ?? new Date()).toISOString(),
         endDate: (periodEnd ?? new Date()).toISOString(),

@@ -7,18 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['Authorization'] = auth;
-  return headers;
-}
 
 async function getWebhookId(params: Promise<{ webhookId: string }> | { webhookId: string }): Promise<string> {
   return params instanceof Promise ? (await params).webhookId : params.webhookId;
@@ -31,7 +22,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     const webhookId = await getWebhookId(params);
-    const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, { headers: forwardHeaders(request) });
+    const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, { headers: buildAdminForwardHeaders(request) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       return NextResponse.json(data.error ?? { error: 'Failed to fetch webhook' }, { status: res.status });
@@ -53,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json();
     const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, {
       method: 'PATCH',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
@@ -76,7 +67,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const webhookId = await getWebhookId(params);
     const res = await fetch(`${API_URL}/api/v1/admin/webhooks/${webhookId}`, {
       method: 'DELETE',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));

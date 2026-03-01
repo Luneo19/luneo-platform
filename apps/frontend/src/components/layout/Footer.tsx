@@ -4,7 +4,6 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
 import {
   Twitter,
   Linkedin,
@@ -12,9 +11,7 @@ import {
   Youtube,
   Mail,
   MapPin,
-  Phone,
   ArrowRight,
-  ChevronRight,
   Globe,
   Shield,
   Heart,

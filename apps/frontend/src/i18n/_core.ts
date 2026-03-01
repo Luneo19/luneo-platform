@@ -5,31 +5,22 @@
 
 import en from './locales/en';
 import { fr } from './locales/fr';
-import de from './locales/de.json';
-import es from './locales/es.json';
-import it from './locales/it.json';
 
-export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it';
+export type Locale = 'fr' | 'en';
 
 // PRODUCTION FIX: Aligned with config.ts - default to 'fr' (primary market is francophone/Swiss)
 export const DEFAULT_LOCALE: Locale = 'fr';
 
-export const SUPPORTED_LOCALES: Locale[] = ['en', 'fr', 'de', 'es', 'it'];
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'fr'];
 
 export const LOCALE_NAMES: Record<Locale, string> = {
   en: 'English',
   fr: 'Français',
-  de: 'Deutsch',
-  es: 'Español',
-  it: 'Italiano',
 };
 
 export const LOCALE_FLAGS: Record<Locale, string> = {
   en: '🇬🇧',
   fr: '🇫🇷',
-  de: '🇩🇪',
-  es: '🇪🇸',
-  it: '🇮🇹',
 };
 
 /** Shape of centralized translations (fr/en); de/es/it JSON cast to this for fallback. */
@@ -38,9 +29,6 @@ type TranslationDict = typeof fr;
 const translations: Record<string, TranslationDict> = {
   en: en as unknown as TranslationDict,
   fr,
-  de: de as unknown as TranslationDict,
-  es: es as unknown as TranslationDict,
-  it: it as unknown as TranslationDict,
 };
 
 /**
@@ -72,6 +60,15 @@ function replaceVariables(text: string, variables?: Record<string, string | numb
   });
 }
 
+function formatMissingKeyFallback(key: string): string {
+  const lastSegment = key.split('.').pop() || key;
+  return lastSegment
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 /**
  * Get translation function for a locale
  */
@@ -90,7 +87,7 @@ export function createTranslator(locale: Locale = DEFAULT_LOCALE) {
       if (defaultValue !== undefined) {
         return replaceVariables(defaultValue, variables);
       }
-      return fallback ?? key;
+      return fallback ?? formatMissingKeyFallback(key);
     }
 
     return replaceVariables(value, variables);

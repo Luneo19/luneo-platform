@@ -51,11 +51,11 @@ echo "=========================================="
 # NEXT_PUBLIC_SUPABASE_URL
 echo ""
 echo "📝 NEXT_PUBLIC_SUPABASE_URL"
-echo "Valeur attendue: https://obrijgptqztacolemsbk.supabase.co"
-echo "Entrez la valeur (ou appuyez sur Entrée pour utiliser la valeur par défaut):"
+echo "Entrez la valeur (obligatoire, ex: https://<project>.supabase.co):"
 read -r supabase_url
 if [ -z "$supabase_url" ]; then
-    supabase_url="https://obrijgptqztacolemsbk.supabase.co"
+    echo "❌ NEXT_PUBLIC_SUPABASE_URL est obligatoire"
+    exit 1
 fi
 vercel env add NEXT_PUBLIC_SUPABASE_URL production <<< "$supabase_url"
 echo "✅ NEXT_PUBLIC_SUPABASE_URL ajouté"
@@ -63,11 +63,11 @@ echo "✅ NEXT_PUBLIC_SUPABASE_URL ajouté"
 # NEXT_PUBLIC_SUPABASE_ANON_KEY
 echo ""
 echo "📝 NEXT_PUBLIC_SUPABASE_ANON_KEY"
-echo "Valeur attendue: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-echo "Entrez la valeur (ou appuyez sur Entrée pour utiliser la valeur par défaut):"
+echo "Entrez la valeur (obligatoire, clé anon Supabase):"
 read -r supabase_anon_key
 if [ -z "$supabase_anon_key" ]; then
-    supabase_anon_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9icmlqZ3B0cXp0YWNvbGVtc2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNjYwMjIsImV4cCI6MjA3Njg0MjAyMn0.0dxttYi1WPLuqdkI52a0Rary81wtYdjnBt4F0q4tYV8"
+    echo "❌ NEXT_PUBLIC_SUPABASE_ANON_KEY est obligatoire"
+    exit 1
 fi
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production <<< "$supabase_anon_key"
 echo "✅ NEXT_PUBLIC_SUPABASE_ANON_KEY ajouté"

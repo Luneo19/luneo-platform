@@ -3,6 +3,7 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { ensureSession } from '@/lib/auth/session-client';
 
 import type { AuthContextType, AuthUser } from './types';
 
@@ -13,6 +14,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // by the browser (no cross-origin cookie issues).
 // The Vercel rewrite in vercel.json proxies /api/* → https://api.luneo.app/api/*
 const AUTH_BASE = '';
+
+const readCsrfTokenFromCookie = (): string | null => {
+  if (typeof document === 'undefined') return null;
+  const raw = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('csrf_token='))
+    ?.split('=')[1];
+  return raw ? decodeURIComponent(raw) : null;
+};
 
 /**
  * Map backend user response to AuthUser
@@ -111,8 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      const csrfToken = readCsrfTokenFromCookie();
       await fetch(`${AUTH_BASE}/api/v1/auth/logout`, {
         method: 'POST',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : undefined,
         credentials: 'include', // ✅ IMPORTANT: Required for httpOnly cookies
       });
       logger.info('User logged out', { userId: user?.id });
@@ -134,7 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const publicPrefixes = [
       '/', '/solutions', '/pricing', '/about', '/contact', '/blog', '/careers',
       '/developers', '/changelog', '/security', '/status', '/legal', '/help',
-      '/features', '/login', '/register', '/forgot-password', '/reset-password',
+      '/features', '/referral', '/templates', '/product', '/integrations',
+      '/testimonials', '/share', '/ref', '/verify-email', '/callback',
+      '/login', '/register', '/forgot-password', '/reset-password',
     ];
 
     const isPublicPage = (): boolean => {
@@ -157,42 +171,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true);
       try {
-        let response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
+        const hasSession = await ensureSession();
         if (!isMounted) return;
-
-        if (response.status === 401) {
-          try {
-            const refreshResp = await fetch(`${AUTH_BASE}/api/v1/auth/refresh`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({}),
-            });
-
-            if (!isMounted) return;
-
-            if (refreshResp.ok) {
-              response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
-                method: 'GET',
-                credentials: 'include',
-              });
-              if (!isMounted) return;
-            }
-          } catch {
-            // Refresh failed silently
-          }
+        if (!hasSession) {
+          setUser(null);
+          return;
         }
 
+        const response = await fetch(`${AUTH_BASE}/api/v1/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (!isMounted) return;
         if (!response.ok) {
-          if (response.status === 401) {
-            setUser(null);
-            return;
-          }
-          throw new Error(`Failed to fetch user: ${response.statusText}`);
+          setUser(null);
+          return;
         }
 
         const data = await response.json();

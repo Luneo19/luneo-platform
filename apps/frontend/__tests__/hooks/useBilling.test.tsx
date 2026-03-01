@@ -3,7 +3,6 @@
  * T-009: Tests pour composants de billing (Checkout, Portal)
  */
 
-import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useBilling } from '@/lib/hooks/useBilling';

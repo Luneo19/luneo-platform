@@ -9,13 +9,16 @@ import {
 } from './llm.interface';
 import { OpenAiProvider } from './providers/openai.provider';
 import { AnthropicProvider } from './providers/anthropic.provider';
+import { GoogleProvider } from './providers/google.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { MistralProvider } from './providers/mistral.provider';
+import { MODEL_CATALOG, LlmModelInfo } from './llm.interface';
 
 const MODEL_ROUTING_RULES: Array<{ pattern: RegExp; provider: LlmProvider }> = [
   { pattern: /^gpt-/, provider: LlmProvider.OPENAI },
   { pattern: /^o[1-9]/, provider: LlmProvider.OPENAI },
   { pattern: /^claude-/, provider: LlmProvider.ANTHROPIC },
+  { pattern: /^gemini-/, provider: LlmProvider.GOOGLE },
   { pattern: /^llama-/, provider: LlmProvider.GROQ },
   { pattern: /^llama3/, provider: LlmProvider.GROQ },
   { pattern: /^mixtral-/, provider: LlmProvider.GROQ },
@@ -33,6 +36,7 @@ export class LlmService implements OnModuleInit {
   constructor(
     private readonly openai: OpenAiProvider,
     private readonly anthropic: AnthropicProvider,
+    private readonly google: GoogleProvider,
     private readonly groq: GroqProvider,
     private readonly mistral: MistralProvider,
   ) {}
@@ -41,6 +45,7 @@ export class LlmService implements OnModuleInit {
     const providers: LlmProviderInterface[] = [
       this.openai,
       this.anthropic,
+      this.google,
       this.groq,
       this.mistral,
     ];
@@ -57,9 +62,14 @@ export class LlmService implements OnModuleInit {
     const provider = this.getProvider(providerEnum);
 
     const fallbacks = options.fallbackProviders ?? [];
+    const retries = Math.max(0, options.retryCount ?? 1);
+    const timeoutMs = Math.max(5000, options.timeoutMs ?? 30000);
 
     try {
-      return await provider.complete(options);
+      return await this.executeWithRetries(
+        () => this.withTimeout(provider.complete(options), timeoutMs),
+        retries,
+      );
     } catch (error) {
       this.logger.error(
         `Provider ${providerEnum} failed for model ${options.model}: ${error.message}`,
@@ -69,7 +79,10 @@ export class LlmService implements OnModuleInit {
         try {
           const fallbackProvider = this.getProvider(fallback);
           this.logger.warn(`Falling back to ${fallback} for model ${options.model}`);
-          return await fallbackProvider.complete(options);
+          return await this.executeWithRetries(
+            () => this.withTimeout(fallbackProvider.complete(options), timeoutMs),
+            retries,
+          );
         } catch (fallbackError) {
           this.logger.error(
             `Fallback provider ${fallback} also failed: ${fallbackError.message}`,
@@ -109,6 +122,20 @@ export class LlmService implements OnModuleInit {
     return this.providerMap.get(provider)?.isAvailable() ?? false;
   }
 
+  getAvailableModels(): LlmModelInfo[] {
+    return MODEL_CATALOG.filter((m) => this.isProviderAvailable(m.provider));
+  }
+
+  getAvailableModelsByProvider(): Record<string, LlmModelInfo[]> {
+    const available = this.getAvailableModels();
+    const grouped: Record<string, LlmModelInfo[]> = {};
+    for (const model of available) {
+      if (!grouped[model.provider]) grouped[model.provider] = [];
+      grouped[model.provider].push(model);
+    }
+    return grouped;
+  }
+
   /**
    * Generate embedding vector for text. Uses OpenAI text-embedding-3-small.
    */
@@ -131,5 +158,37 @@ export class LlmService implements OnModuleInit {
       );
     }
     return instance;
+  }
+
+  private async executeWithRetries<T>(
+    fn: () => Promise<T>,
+    retries: number,
+  ): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          const delayMs = 200 * (attempt + 1);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error(`LLM call timeout after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
+      promise
+        .then((value) => resolve(value))
+        .catch((error) => reject(error))
+        .finally(() => clearTimeout(timeout));
+    });
   }
 }

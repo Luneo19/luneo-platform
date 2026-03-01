@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ReactNode, ComponentProps } from 'react';
 import LoginPage from '../page';
 
 // Mock next/navigation
@@ -46,7 +47,12 @@ vi.mock('@/lib/logger', () => ({
 
 // Mock dynamic motion components
 vi.mock('@/lib/performance/dynamic-motion', () => ({
-  LazyMotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  LazyMotionDiv: ({
+    children,
+    ...props
+  }: {
+    children: ReactNode;
+  } & ComponentProps<'div'>) => <div {...props}>{children}</div>,
 }));
 
 // Mock animation components
@@ -91,7 +97,17 @@ vi.mock('@/i18n/useI18n', () => ({
 
 // Mock TwoFactorForm component
 vi.mock('@/components/auth/TwoFactorForm', () => ({
-  TwoFactorForm: ({ tempToken, email, onSuccess, onError }: any) => (
+  TwoFactorForm: ({
+    tempToken,
+    email,
+    onSuccess: _onSuccess,
+    onError: _onError,
+  }: {
+    tempToken: string;
+    email: string;
+    onSuccess: () => void;
+    onError: (error: string) => void;
+  }) => (
     <div data-testid="two-factor-form">
       <h2>Two Factor Authentication</h2>
       <p>Token: {tempToken}</p>

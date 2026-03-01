@@ -149,11 +149,9 @@ describe('Utility Functions', () => {
         obj: T,
         keys: K[]
       ): Omit<T, K> => {
-        const result = { ...obj };
-        keys.forEach((key) => {
-          delete (result as any)[key];
-        });
-        return result;
+        return Object.fromEntries(
+          Object.entries(obj).filter(([entryKey]) => !keys.includes(entryKey as K))
+        ) as Omit<T, K>;
       };
       
       const obj = { a: 1, b: 2, c: 3 };
@@ -206,12 +204,12 @@ describe('Utility Functions', () => {
 
   describe('Async Utilities', () => {
     it('should debounce function calls', async () => {
-      const debounce = <T extends (...args: any[]) => any>(
-        fn: T,
+      const debounce = <TArgs extends unknown[], TResult>(
+        fn: (...args: TArgs) => TResult,
         delay: number
-      ): ((...args: Parameters<T>) => void) => {
+      ): ((...args: TArgs) => void) => {
         let timeoutId: NodeJS.Timeout;
-        return (...args: Parameters<T>) => {
+        return (...args: TArgs) => {
           clearTimeout(timeoutId);
           timeoutId = setTimeout(() => fn(...args), delay);
         };

@@ -61,22 +61,23 @@ export const serverLogger = {
     // In production, errors should still be logged to a service
     if (isProduction) {
       // Server-side Sentry integration
-      try {
-        const Sentry = require('@sentry/nextjs');
-        if (error instanceof Error) {
-          Sentry.captureException(error, {
-            extra: { message, ...context },
-          });
-        } else {
-          Sentry.captureMessage(message, {
-            level: 'error',
-            extra: { error, ...context },
-          });
-        }
-      } catch {
-        // Sentry not available, log to stderr for container logging
-        console.error(`[SERVER ERROR] ${message}`, error ?? '', context ?? '');
-      }
+      void import('@sentry/nextjs')
+        .then((Sentry) => {
+          if (error instanceof Error) {
+            Sentry.captureException(error, {
+              extra: { message, ...context },
+            });
+          } else {
+            Sentry.captureMessage(message, {
+              level: 'error',
+              extra: { error, ...context },
+            });
+          }
+        })
+        .catch(() => {
+          // Sentry not available, log to stderr for container logging
+          console.error(`[SERVER ERROR] ${message}`, error ?? '', context ?? '');
+        });
     }
   },
 

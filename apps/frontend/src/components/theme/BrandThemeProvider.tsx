@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 // Use relative URLs in production (HTTPS) to go through Vercel proxy and avoid CORS.
 // Only use absolute backend URL in local development.
@@ -26,20 +26,12 @@ interface BrandTheme {
  * Fetches GET /api/v1/white-label/theme-by-domain?domain=hostname and applies CSS variables.
  */
 export function BrandThemeProvider({ children }: { children: React.ReactNode }) {
-  const [applied, setApplied] = useState(false);
-
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      setApplied(true);
-      return;
-    }
+    if (typeof window === 'undefined') return;
     const hostname = window.location.hostname;
     const skipDomains = ['localhost', '127.0.0.1', 'luneo.app', 'www.luneo.app'];
     const isVercelPreview = hostname.endsWith('.vercel.app');
-    if (!hostname || skipDomains.includes(hostname) || isVercelPreview) {
-      setApplied(true);
-      return;
-    }
+    if (!hostname || skipDomains.includes(hostname) || isVercelPreview) return;
     fetch(
       `${API_BASE}/api/v1/white-label/theme-by-domain?domain=${encodeURIComponent(hostname)}`,
       { credentials: 'include' }
@@ -57,9 +49,8 @@ export function BrandThemeProvider({ children }: { children: React.ReactNode }) 
           if (theme.borderRadius) root.style.setProperty('--brand-radius', theme.borderRadius);
           if (theme.logoUrl) root.style.setProperty('--brand-logo-url', `url(${theme.logoUrl})`);
         }
-        setApplied(true);
       })
-      .catch(() => setApplied(true));
+      .catch(() => undefined);
   }, []);
 
   return <>{children}</>;

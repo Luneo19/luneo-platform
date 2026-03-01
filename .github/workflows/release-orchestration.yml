@@ -1,0 +1,42 @@
+name: Release Orchestration
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_rollback_dry_run:
+        description: Run rollback drill in dry-run mode
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  release-quality:
+    name: Release Quality Gates
+    uses: ./.github/workflows/release-gates.yml
+    secrets: inherit
+
+  release-e2e:
+    name: Release E2E Gates
+    needs: [release-quality]
+    uses: ./.github/workflows/e2e-quality-gates.yml
+    secrets: inherit
+
+  release-rollback:
+    name: Release Rollback Drill
+    needs: [release-e2e]
+    uses: ./.github/workflows/rollback-drill.yml
+    with:
+      dry_run: ${{ inputs.run_rollback_dry_run }}
+    secrets: inherit
+
+  release-gono-go:
+    name: Release Go No-Go
+    runs-on: ubuntu-latest
+    needs: [release-quality, release-e2e, release-rollback]
+    steps:
+      - name: Confirm orchestration passed
+        run: |
+          echo "Release orchestration passed: quality + e2e + rollback."

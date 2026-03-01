@@ -6,18 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin/permissions';
 import { serverLogger } from '@/lib/logger-server';
 import { getBackendUrl } from '@/lib/api/server-url';
+import { buildAdminForwardHeaders } from '@/lib/api/admin-forward-headers';
 
 const API_URL = getBackendUrl();
-
-function forwardHeaders(request: NextRequest): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    Cookie: request.headers.get('cookie') || '',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['Authorization'] = auth;
-  return headers;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const res = await fetch(`${API_URL}/api/v1/admin/settings`, {
       method: 'GET',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
     });
 
     const data = await res.json();
@@ -50,7 +41,7 @@ export async function PUT(request: NextRequest) {
 
     const res = await fetch(`${API_URL}/api/v1/admin/settings`, {
       method: 'PUT',
-      headers: forwardHeaders(request),
+      headers: buildAdminForwardHeaders(request),
       body: JSON.stringify(body),
     });
 

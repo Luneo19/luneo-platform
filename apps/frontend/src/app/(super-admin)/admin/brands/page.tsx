@@ -46,6 +46,7 @@ export default function BrandsPage() {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const { brands, pagination, isLoading, isError, filters, updateFilters, goToPage, refresh } = useBrands();
+  const safeBrands = Array.isArray(brands) ? brands : [];
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -54,9 +55,9 @@ export default function BrandsPage() {
 
   // Calculate stats from brands
   const totalBrands = pagination.total;
-  const activeBrands = brands.filter(b => b.status === 'ACTIVE').length;
-  const trialBrands = brands.filter(b => b.subscriptionStatus === 'TRIALING').length;
-  const enterpriseBrands = brands.filter(b => (b.subscriptionPlan || b.plan) === 'enterprise').length;
+  const activeBrands = safeBrands.filter(b => b.status === 'ACTIVE').length;
+  const trialBrands = safeBrands.filter(b => b.subscriptionStatus === 'TRIALING').length;
+  const enterpriseBrands = safeBrands.filter(b => (b.subscriptionPlan || b.plan) === 'enterprise').length;
 
   if (isError) {
     return (
@@ -184,14 +185,14 @@ export default function BrandsPage() {
                   ))}
                 </TableRow>
               ))
-            ) : brands.length === 0 ? (
+            ) : safeBrands.length === 0 ? (
               <TableRow className="border-zinc-700">
                 <TableCell colSpan={7} className="text-center text-zinc-500 py-8">
                   {t('admin.brands.noBrandsFound')}
                 </TableCell>
               </TableRow>
             ) : (
-              brands.map((brand) => {
+              safeBrands.map((brand) => {
                 const plan = brand.subscriptionPlan || brand.plan || 'free';
                 const aiUsagePercent = brand.maxMonthlyGenerations > 0
                   ? Math.round((brand.monthlyGenerations / brand.maxMonthlyGenerations) * 100)

@@ -1,76 +1,93 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { Mail, MessageCircle, Phone, Clock } from 'lucide-react';
+import Link from 'next/link';
+import { Mail, MessageCircle, Clock, ArrowRight } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PageHero, FeatureCard } from '@/components/marketing/shared';
+import { SUPPORT_CONFIG, hasLiveChatConfigured } from '@/lib/support-config';
 
 function SupportPageContent() {
   const supportChannels = useMemo(() => [
     {
       icon: Mail,
-      title: 'Email Support',
-      contact: 'support@luneo.app',
+      title: 'Support email',
+      contact: SUPPORT_CONFIG.email,
       description: 'Réponse sous 24h',
       color: 'text-blue-600'
     },
     {
       icon: MessageCircle,
-      title: 'Live Chat',
+      title: 'Chat en direct',
       contact: 'Chat en direct',
       description: 'Lun-Ven 9h-18h',
       color: 'text-green-600'
-    },
-    {
-      icon: Phone,
-      title: 'Téléphone',
-      contact: '+33 1 XX XX XX XX',
-      description: 'Enterprise uniquement',
-      color: 'text-purple-600'
     }
   ], []);
 
   const hours = useMemo(() => [
-    { service: 'Support Email', schedule: '24/7 - Réponse sous 24h' },
-    { service: 'Live Chat & Téléphone', schedule: 'Lun-Ven 9h-18h CET' }
+    { service: 'Support email', schedule: '24/7 - Réponse sous 24h' },
+    { service: 'Chat en direct', schedule: 'Lun-Ven 9h-18h CET' }
   ], []);
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <section className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <MessageCircle className="w-16 h-16 mx-auto mb-6" />
-          <h1 className="text-5xl font-bold mb-4">Support</h1>
-          <p className="text-xl text-green-100">Notre équipe est là pour vous aider</p>
-        </div>
-      </section>
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
-          {supportChannels.map((channel, index) => {
+    <div className="min-h-screen">
+      <PageHero
+        title="Support"
+        description="Notre équipe vous aide à déployer et opérer vos agents IA."
+        gradient="from-blue-700 via-blue-600 to-indigo-600"
+      />
+
+      <section className="max-w-7xl mx-auto px-4 py-14 sm:py-20">
+        <div className="grid md:grid-cols-2 gap-6">
+          {supportChannels.map((channel) => {
             const Icon = channel.icon;
             return (
-              <div key={index} className="bg-gray-800/50 rounded-xl shadow-lg p-8 text-center border border-gray-700">
-                <Icon className={`w-12 h-12 ${channel.color.replace('600', '400')} mx-auto mb-4`} />
-                <h3 className="font-bold text-xl mb-2 text-white">{channel.title}</h3>
-                <p className="text-gray-300 mb-4">{channel.contact}</p>
-                <p className="text-sm text-gray-400">{channel.description}</p>
-              </div>
+              <FeatureCard
+                key={channel.title}
+                icon={<Icon className={`w-6 h-6 ${channel.color.replace('600', '400')}`} />}
+                title={channel.title}
+                description={`${channel.contact} - ${channel.description}`}
+              />
             );
           })}
         </div>
 
-        <div className="mt-12 bg-gray-800/50 rounded-xl shadow-lg p-8 border border-gray-700">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white">
-            <Clock className="w-8 h-8 text-blue-400" />
-            Heures d'ouverture
-          </h2>
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="mt-8 grid lg:grid-cols-2 gap-6">
+          <Card className="p-6 bg-dark-card/60 border-white/[0.04]">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-white">
+              <Clock className="w-5 h-5 text-blue-400" />
+              Heures d'ouverture
+            </h2>
             {hours.map((item, index) => (
-              <div key={index}>
-                <h3 className="font-semibold mb-2 text-white">{item.service}</h3>
-                <p className="text-gray-300">{item.schedule}</p>
+              <div key={index} className="mb-3 last:mb-0">
+                <h3 className="font-medium text-white">{item.service}</h3>
+                <p className="text-sm text-slate-300">{item.schedule}</p>
               </div>
             ))}
-          </div>
+          </Card>
+
+          <Card className="p-6 bg-dark-card/60 border-white/[0.04]">
+            <h2 className="text-xl font-semibold text-white mb-3">Assistance rapide</h2>
+            <p className="text-sm text-slate-300 mb-4">
+              Ouvrez un ticket, suivez vos demandes ou contactez directement notre équipe par email.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button asChild className="bg-blue-600 hover:bg-blue-500 text-white">
+                <Link href={`mailto:${SUPPORT_CONFIG.email}`}>
+                  Écrire au support
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
+                <Link href={hasLiveChatConfigured() ? SUPPORT_CONFIG.liveChatUrl : SUPPORT_CONFIG.contactPath}>
+                  {hasLiveChatConfigured() ? 'Ouvrir le chat' : 'Ouvrir un ticket'}
+                </Link>
+              </Button>
+            </div>
+          </Card>
         </div>
       </section>
     </div>

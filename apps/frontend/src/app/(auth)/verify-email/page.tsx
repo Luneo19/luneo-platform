@@ -3,9 +3,9 @@
 import React, { memo, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n/useI18n';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { FadeIn, SlideUp } from '@/components/animations';
-import { CheckCircle, Loader2, AlertCircle, Mail, ArrowRight, RefreshCw } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { logger } from '@/lib/logger';
@@ -22,7 +22,6 @@ function VerifyEmailPageContent() {
 
   const token = useMemo(() => searchParams.get('token'), [searchParams]);
   const emailParam = useMemo(() => searchParams.get('email'), [searchParams]);
-  const type = useMemo(() => searchParams.get('type'), [searchParams]);
 
   const verifyEmail = useCallback(async () => {
     if (!token) {
@@ -171,14 +170,14 @@ function VerifyEmailPageContent() {
   }, [status, error, resending, handleResend, t]);
 
   return (
-    <motion
+    <Motion
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className="w-full max-w-md"
     >
       {statusContent}
-    </motion>
+    </Motion>
   );
 }
 

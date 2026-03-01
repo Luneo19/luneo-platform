@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, ReactNode, memo, useCallback } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import React, { useState, useRef, useEffect, ReactNode, memo } from 'react';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface LazySectionProps {
@@ -96,7 +96,7 @@ const LazySectionContent: React.FC<LazySectionProps> = ({
       {!isVisible && fallback ? (
         fallback
       ) : (
-        <motion
+        <Motion
           initial="hidden"
           animate={isVisible ? "visible" : "hidden"}
           variants={animationConfig}
@@ -107,7 +107,7 @@ const LazySectionContent: React.FC<LazySectionProps> = ({
           }}
         >
           {children}
-        </motion>
+        </Motion>
       )}
     </div>
   );
@@ -136,22 +136,22 @@ export const LazyList: React.FC<{
       threshold={threshold}
       stagger={stagger}
     >
-      <motion
+      <Motion
         initial="hidden"
         animate="visible"
         variants={animations[animation]}
         transition={{ staggerChildren: stagger }}
       >
         {items.map((item, index) => (
-          <motion
+          <Motion
             key={index}
             variants={animations[animation]}
             className={itemClassName}
           >
             {item}
-          </motion>
+          </Motion>
         ))}
-      </motion>
+      </Motion>
     </LazySection>
   );
 };

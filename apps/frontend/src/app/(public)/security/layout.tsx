@@ -12,7 +12,6 @@ export const metadata: Metadata = generateSEOMetadata({
   ogType: 'website',
   alternateLocales: [
     { locale: 'fr', url: `${SEO_BASE_URL}/security` },
-    { locale: 'en', url: `${SEO_BASE_URL}/en/security` },
   ],
 });
 

@@ -3,6 +3,7 @@
  */
 export function getRoleBasedRedirect(role?: string): string {
   switch (role) {
+    case 'ADMIN':
     case 'PLATFORM_ADMIN':
       return '/admin';
     default:

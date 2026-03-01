@@ -10,12 +10,13 @@ import { useAgentDetail } from '@/hooks/admin/use-agent-detail';
 import { logger } from '@/lib/logger';
 
 const AGENT_ROUTES: Record<string, string> = {
-  ACQUISITION: '/admin/orion/agents/apollo',
-  ONBOARDING: '/admin/orion/agents/athena',
-  COMMUNICATION: '/admin/orion/agents/hermes',
-  RETENTION: '/admin/orion/agents/artemis',
-  REVENUE: '/admin/orion/agents/hades',
-  ANALYTICS: '/admin/orion/agents/zeus',
+  zeus: '/admin/orion/agents/zeus',
+  athena: '/admin/orion/agents/athena',
+  apollo: '/admin/orion/agents/apollo',
+  artemis: '/admin/orion/agents/artemis',
+  hermes: '/admin/orion/agents/hermes',
+  hades: '/admin/orion/agents/hades',
+  prometheus: '/admin/orion/agents/prometheus',
 };
 
 export default function OrionAgentsPage() {
@@ -28,7 +29,7 @@ export default function OrionAgentsPage() {
       try {
         const newStatus = agent.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
         const res = await fetch(`/api/admin/orion/agents/${agent.id}`, {
-          method: 'PUT',
+          method: 'PATCH',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus }),
@@ -104,7 +105,8 @@ export default function OrionAgentsPage() {
           </Card>
         ) : (
           agents.map((agent) => {
-            const href = AGENT_ROUTES[agent.type] ?? '#';
+            const routeKey = String((agent as { type?: string; name?: string }).type ?? agent.name ?? '').toLowerCase();
+            const href = AGENT_ROUTES[routeKey] ?? '#';
             const isActive = agent.status === 'ACTIVE';
             return (
               <Card key={agent.id} className="bg-zinc-800/50 border-zinc-700 hover:border-zinc-600 transition-colors">

@@ -50,13 +50,18 @@ interface TemplatesFilters {
 }
 
 export function useTemplates(filters: TemplatesFilters = {}) {
+  const templatesModuleEnabled = process.env.NEXT_PUBLIC_ENABLE_TEMPLATES_MODULE === 'true';
   // GET - Liste des templates
   const { data, isLoading, error } = useQuery<TemplatesResponse>({
     queryKey: ['templates', filters],
     queryFn: async () => {
+      if (!templatesModuleEnabled) {
+        return { templates: [], total: 0, limit: 0, offset: 0 };
+      }
       const result = await api.get<TemplatesResponse>('/api/v1/templates', { params: filters });
       return result ?? { templates: [], total: 0, limit: 0, offset: 0 };
     },
+    enabled: templatesModuleEnabled,
   });
 
   return {

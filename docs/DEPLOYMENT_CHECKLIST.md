@@ -1,168 +1,60 @@
-# ✅ Checklist de Déploiement
+# Checklist de Déploiement Production (Railway + Vercel)
 
-**Date:** Décembre 2024  
-**Objectif:** Vérifier que tout est prêt pour le déploiement
+Dernière mise à jour: 2026-03-01
 
----
+## 1) Pré-checks obligatoires
 
-## 📋 Pré-déploiement
+- [ ] Branche à déployer est à jour et poussée
+- [ ] `pnpm run quality:release` vert
+- [ ] Aucune erreur critique ouverte côté incidents
+- [ ] Variables/secrets prod à jour (Railway + Vercel + smoke)
 
-### **1. Installation Dépendances**
-```bash
-# Root
-npm install
+## 2) CI avant déploiement
 
-# Frontend
-cd apps/frontend
-npm install
-```
+- [ ] Workflow `CI` (`.github/workflows/ci.yml`) vert sur le SHA ciblé
+- [ ] Artefact `quality-release-metadata` présent
 
-### **2. Variables d'Environnement**
+## 3) Déploiement officiel
 
-Vérifier que `.env.local` contient:
-- [ ] `NEXT_PUBLIC_APP_URL` (production URL)
-- [ ] `NEXT_PUBLIC_SUPABASE_URL`
-- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [ ] `CLOUDINARY_CLOUD_NAME`
-- [ ] `CLOUDINARY_API_KEY`
-- [ ] `CLOUDINARY_API_SECRET`
-- [ ] `SENDGRID_API_KEY` (si utilisé)
+Le chemin standard est le workflow manuel:
+- [ ] Lancer `Deploy Production` (`.github/workflows/deploy-production.yml`)
+- [ ] Choisir `target` (`all`, `backend`, `frontend`)
+- [ ] Vérifier que l’étape `verify-ci-status` passe
 
-### **3. Build de Production**
-```bash
-cd apps/frontend
-npm run build
-```
+## 4) Vérifications post-deploy immédiates
 
-**Vérifications:**
-- [ ] Build réussi sans erreurs
-- [ ] Pas d'erreurs TypeScript
-- [ ] Pas d'erreurs critiques ESLint
-- [ ] Taille du build acceptable
+- [ ] Frontend: `https://luneo.app` répond `HTTP 200`
+- [ ] Backend readiness: `https://api.luneo.app/health/ready` retourne `status: ready`
+- [ ] Backend health enrichi: `https://api.luneo.app/health` retourne `status: ok|degraded|unavailable` cohérent
+- [ ] Smoke `critical` passe
+- [ ] Smoke `post-login-tunnel` passe (obligatoire, non skippable en release)
 
-### **4. Tests Locaux**
+## 5) Sanity métier (10-15 min)
 
-**Responsive:**
-- [ ] Mobile (375px, 414px)
-- [ ] Tablet (768px, 1024px)
-- [ ] Desktop (1280px, 1920px)
-
-**Fonctionnalités:**
-- [ ] Navigation complète
-- [ ] Toutes les pages chargent
-- [ ] APIs fonctionnelles
-- [ ] Notifications fonctionnent
-- [ ] Infinite scroll fonctionne
-- [ ] Dark theme cohérent
-
----
-
-## 🚀 Déploiement Vercel
-
-### **Option 1: Via Dashboard**
-
-1. Aller sur https://vercel.com
-2. Connecter le repository GitHub
-3. Configurer le projet:
-   - **Root Directory:** `apps/frontend`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `.next`
-4. Ajouter les variables d'environnement
-5. Déployer
-
-### **Option 2: Via CLI**
-
-```bash
-# Installer Vercel CLI
-npm i -g vercel
-
-# Se connecter
-vercel login
-
-# Déployer
-cd apps/frontend
-vercel --prod
-```
-
----
-
-## ✅ Post-déploiement
-
-### **Vérifications Immédiates**
-
-- [ ] Site accessible
-- [ ] Homepage charge correctement
-- [ ] Navigation fonctionne
-- [ ] Login/Register fonctionne
+- [ ] Login utilisateur OK
 - [ ] Dashboard accessible
-- [ ] APIs répondent
+- [ ] Route admin protégée correctement (redirection si non auth)
+- [ ] Envoi/réception notifications de base OK
+- [ ] Endpoints API publics critiques répondent
 
-### **Tests Fonctionnels**
+## 6) Monitoring (30-60 min)
 
-- [ ] Créer un compte
-- [ ] Se connecter
-- [ ] Accéder au dashboard
-- [ ] Voir les notifications
-- [ ] Naviguer entre les pages
-- [ ] Tester responsive mobile
+- [ ] Erreurs 5xx stables
+- [ ] Pas de pic anormal latence API
+- [ ] Pas d’augmentation anormale des jobs failed/DLQ
+- [ ] Pas d’alerte sécurité critique (auth/webhooks/rate-limit)
 
-### **Performance**
+## 7) Critères Go/No-Go
 
-- [ ] Temps de chargement acceptable
-- [ ] Pas d'erreurs console
-- [ ] Images chargent
-- [ ] Lazy loading fonctionne
+**Go** si:
+- CI verte
+- smoke verts
+- health frontend/backend verts
+- aucun incident P0/P1 nouveau
 
-### **Monitoring**
-
-- [ ] Configurer Sentry (si utilisé)
-- [ ] Configurer analytics
-- [ ] Vérifier les logs Vercel
-- [ ] Configurer les alertes
-
----
-
-## 🐛 En Cas de Problème
-
-### **Build Échoue**
-1. Vérifier les erreurs dans les logs
-2. Vérifier les variables d'environnement
-3. Vérifier les dépendances
-4. Vérifier TypeScript errors
-
-### **Site Ne Charge Pas**
-1. Vérifier les variables d'environnement
-2. Vérifier les logs Vercel
-3. Vérifier la configuration Vercel
-4. Vérifier le domaine DNS
-
-### **APIs Ne Fonctionnent Pas**
-1. Vérifier les variables Supabase
-2. Vérifier les permissions
-3. Vérifier les logs backend
-4. Tester les routes API
-
----
-
-## 📊 Métriques à Surveiller
-
-- **Temps de chargement:** < 3s
-- **First Contentful Paint:** < 1.5s
-- **Time to Interactive:** < 3.5s
-- **Erreurs 4xx/5xx:** < 1%
-- **Uptime:** > 99.9%
-
----
-
-## 📝 Notes
-
-- Tester en staging avant production si possible
-- Faire un rollback plan en cas de problème
-- Documenter les changements
-- Communiquer aux utilisateurs si nécessaire
-
----
-
-**Status:** 📋 Checklist créée  
-**Dernière mise à jour:** Décembre 2024
+**No-Go / rollback** si:
+- indisponibilité API ou frontend
+- régression auth/paiement
+- erreurs 5xx massives
+- incident sécurité
 

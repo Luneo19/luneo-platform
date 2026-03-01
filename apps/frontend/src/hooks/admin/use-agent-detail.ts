@@ -33,12 +33,18 @@ export interface AgentDetail {
   updatedAt: string;
 }
 
-type AgentsResponse = AgentDetail[] | { data?: AgentDetail[]; agents?: AgentDetail[] };
+type AgentsResponse = AgentDetail[] | { data?: AgentDetail[]; agents?: AgentDetail[]; items?: AgentDetail[] };
 
 function normalizeAgents(data: AgentsResponse | undefined): AgentDetail[] {
   if (!data) return [];
   if (Array.isArray(data)) return data;
-  return (data as { data?: AgentDetail[] }).data ?? (data as { agents?: AgentDetail[] }).agents ?? [];
+  const fromData = (data as { data?: unknown }).data;
+  if (Array.isArray(fromData)) return fromData as AgentDetail[];
+  const fromAgents = (data as { agents?: unknown }).agents;
+  if (Array.isArray(fromAgents)) return fromAgents as AgentDetail[];
+  const fromItems = (data as { items?: unknown }).items;
+  if (Array.isArray(fromItems)) return fromItems as AgentDetail[];
+  return [];
 }
 
 export function useAgentDetail(agentType: string) {
@@ -49,7 +55,12 @@ export function useAgentDetail(agentType: string) {
   );
 
   const agents = normalizeAgents(raw);
-  const agent = agents.find((a) => a.type === agentType) ?? null;
+  const normalizedType = agentType.toLowerCase();
+  const agent = agents.find((a) => {
+    const byType = String(a.type ?? '').toLowerCase() === normalizedType;
+    const byName = String(a.name ?? '').toLowerCase() === normalizedType;
+    return byType || byName;
+  }) ?? null;
 
   return { agent, agents, isLoading: agentsLoading, error: agentsError, refresh: mutate };
 }

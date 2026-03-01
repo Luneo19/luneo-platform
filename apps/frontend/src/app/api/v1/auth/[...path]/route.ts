@@ -43,14 +43,22 @@ async function proxyAuthRequest(req: NextRequest, method: string) {
   try {
     // Build headers
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      'Content-Type': req.headers.get('content-type') || 'application/json',
     };
 
-    // Forward auth cookies as Authorization / Cookie headers
+    // Forward auth cookies as Authorization / Cookie headers.
+    // Prefer full inbound cookie header to keep csrf_token and any auth cookies in sync.
+    const inboundCookie = req.headers.get('cookie');
     const accessToken = await getAccessToken();
     const refreshToken = await getRefreshToken();
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-    if (refreshToken) headers['Cookie'] = `refreshToken=${refreshToken}`;
+    if (inboundCookie) headers['Cookie'] = inboundCookie;
+    else if (refreshToken) headers['Cookie'] = `refreshToken=${refreshToken}`;
+
+    const csrfHeader = req.headers.get('x-csrf-token');
+    if (csrfHeader) {
+      headers['x-csrf-token'] = csrfHeader;
+    }
 
     // Forward client IP
     const xff = req.headers.get('x-forwarded-for');
@@ -76,18 +84,38 @@ async function proxyAuthRequest(req: NextRequest, method: string) {
       body: bodyStr,
     });
 
-    // Parse JSON body
-    let data: unknown;
-    try {
-      data = JSON.parse(result.body);
-    } catch {
-      serverLogger.error(`${label}: backend returned non-JSON (status ${result.statusCode})`);
-      const res = NextResponse.json({ message: 'Bad gateway' }, { status: 502 });
-      setNoCacheHeaders(res);
-      return res;
+    // Handle OAuth and other redirects safely.
+    const locationHeader = result.headers['location'];
+    const location = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+    if (result.statusCode >= 300 && result.statusCode < 400 && typeof location === 'string' && location.length > 0) {
+      const redirectUrl = location.startsWith('http') ? location : new URL(location, req.nextUrl.origin).toString();
+      const redirectRes = NextResponse.redirect(redirectUrl, { status: result.statusCode });
+      setNoCacheHeaders(redirectRes);
+      if (result.setCookieHeaders.length > 0) {
+        forwardCookiesToResponse(result.setCookieHeaders, redirectRes);
+      }
+      return redirectRes;
     }
 
-    const nextRes = NextResponse.json(data, { status: result.statusCode });
+    const contentTypeHeader = result.headers['content-type'];
+    const contentType = Array.isArray(contentTypeHeader) ? contentTypeHeader[0] : contentTypeHeader;
+    const isJson = typeof contentType === 'string' && contentType.includes('application/json');
+    let nextRes: NextResponse;
+    if (isJson) {
+      try {
+        nextRes = NextResponse.json(JSON.parse(result.body || '{}'), { status: result.statusCode });
+      } catch {
+        serverLogger.error(`${label}: invalid JSON payload from backend (status ${result.statusCode})`);
+        const badGateway = NextResponse.json({ message: 'Bad gateway' }, { status: 502 });
+        setNoCacheHeaders(badGateway);
+        return badGateway;
+      }
+    } else {
+      nextRes = new NextResponse(result.body ?? '', {
+        status: result.statusCode,
+        headers: contentType ? { 'Content-Type': contentType } : undefined,
+      });
+    }
     setNoCacheHeaders(nextRes);
 
     // Forward Set-Cookie headers on success (e.g., login/2fa sets new tokens)
@@ -121,4 +149,8 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   return proxyAuthRequest(req, 'DELETE');
+}
+
+export async function PATCH(req: NextRequest) {
+  return proxyAuthRequest(req, 'PATCH');
 }

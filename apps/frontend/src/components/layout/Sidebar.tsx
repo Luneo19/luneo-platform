@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoutes } from '@/lib/routes';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -40,28 +41,28 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
   const navigationItems = useMemo(() => [
   {
     title: 'Tableau de bord',
-    href: '/overview',
+    href: appRoutes.overview,
     icon: LayoutDashboard,
     badge: null,
     description: 'Vue d\'ensemble de votre activité'
   },
   {
     title: 'AI Studio',
-    href: '/dashboard/ai-studio',
+    href: appRoutes.agents,
     icon: Palette,
     badge: 'Nouveau',
     description: 'Création de designs avec l\'IA'
   },
   {
     title: 'Analytics',
-    href: '/dashboard/analytics',
+    href: appRoutes.analytics,
     icon: BarChart3,
     badge: null,
     description: 'Analyses et performances'
   },
   {
     title: 'Produits',
-    href: '/dashboard/products',
+    href: appRoutes.agents,
     icon: Package,
     badge: null,
     description: 'Gestion de vos designs'
@@ -71,28 +72,28 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
   const businessItems = useMemo(() => [
   {
     title: 'Facturation',
-    href: '/dashboard/billing',
+    href: appRoutes.billing,
     icon: CreditCard,
     badge: null,
     description: 'Gestion des abonnements'
   },
   {
     title: 'Équipe',
-    href: '/dashboard/team',
+    href: appRoutes.team,
     icon: Users,
     badge: null,
     description: 'Collaboration et permissions'
   },
   {
     title: 'Intégrations',
-    href: '/dashboard/integrations-dashboard',
+    href: appRoutes.integrations,
     icon: Globe,
     badge: null,
     description: 'Connexions externes'
   },
   {
     title: 'Sécurité',
-    href: '/dashboard/security',
+    href: appRoutes.settings,
     icon: Shield,
     badge: null,
     description: 'Paramètres de sécurité'
@@ -140,7 +141,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
     const Icon = item.icon;
 
     return (
-      <motion
+      <Motion
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onMouseEnter={() => handleItemHover(item.href)}
@@ -191,22 +192,22 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
 
           {/* Tooltip pour mode collapsed */}
           {isCollapsed && hoveredItem === item.href && (
-            <motion
+            <Motion
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap"
             >
               <div className="font-medium">{item.title}</div>
               <div className="text-xs text-gray-300">{item.description}</div>
-            </motion>
+            </Motion>
           )}
         </Link>
-      </motion>
+      </Motion>
     );
   };
 
   return (
-    <motion
+    <Motion
       initial={false}
       animate={{ width: isCollapsed ? '4rem' : '16rem' }}
       className="bg-white border-r border-gray-200 flex flex-col h-full shadow-sm"
@@ -215,7 +216,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <motion
+            <Motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center space-x-3"
@@ -225,7 +226,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
                 <h1 className="font-bold text-gray-900">Luneo</h1>
                 <p className="text-xs text-gray-500">Enterprise</p>
               </div>
-            </motion>
+            </Motion>
           )}
           
           <Button
@@ -247,7 +248,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Plan Status */}
         {!isCollapsed && user && (
-          <motion
+          <Motion
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200"
@@ -259,11 +260,11 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
               </span>
             </div>
             <p className="text-sm text-gray-600 mb-1">
-              <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+              <Link href={appRoutes.billing} className="text-blue-600 hover:underline">
                 Gérer l&apos;abonnement
               </Link>
             </p>
-          </motion>
+          </Motion>
         )}
 
         {/* Main Navigation */}
@@ -310,7 +311,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
             {/* Settings */}
             <NavItem item={{
               title: 'Paramètres',
-              href: '/settings',
+              href: appRoutes.settings,
               icon: Settings,
               badge: null,
               description: 'Configuration du compte'
@@ -318,7 +319,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
           </div>
         ) : (
           <div className="flex justify-center">
-            <Link href="/settings">
+            <Link href={appRoutes.settings}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <Settings className="h-4 w-4" />
               </Button>
@@ -326,7 +327,7 @@ function SidebarContent({ isCollapsed, onToggle }: SidebarProps) {
           </div>
         )}
       </div>
-    </motion>
+    </Motion>
   );
 }
 

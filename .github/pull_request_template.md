@@ -1,53 +1,45 @@
-## 📋 Description
-<!-- Décrivez brièvement les changements apportés -->
+## Description
+<!-- Résume le pourquoi du changement et le risque principal -->
 
-## 🎯 Phase & Type de changement
-- [ ] 🔴 **Phase 1 - Critique** (Broken imports, responsive critique)
-- [ ] ⚠️ **Phase 2 - Urgent** (Responsive pages, dark theme)
-- [ ] ℹ️ **Phase 3 - Important** (UX/UI, fonctionnalités avancées)
-- [ ] 🧹 **Phase 4 - Finitions** (Cleanup, tests, deploy)
+## Type de changement
+- [ ] `fix`
+- [ ] `feat`
+- [ ] `refactor`
+- [ ] `test`
+- [ ] `docs`
+- [ ] `chore`
 
-**Type de changement:**
-- [ ] `fix` - Correction de bug
-- [ ] `feat` - Nouvelle fonctionnalité
-- [ ] `style` - Amélioration responsive/UI
-- [ ] `refactor` - Optimisation code
-- [ ] `test` - Ajout/modification de tests
-- [ ] `docs` - Documentation
-- [ ] `chore` - Maintenance/cleanup
+## Portée
+- [ ] Backend
+- [ ] Frontend
+- [ ] Infra/CI
+- [ ] Sécurité
+- [ ] Produit/KPI
 
-## ✅ Checklist
-- [ ] Code testé localement
-- [ ] Build réussi (`npm run build`)
-- [ ] Tests passent (si applicable)
-- [ ] Documentation mise à jour (si nécessaire)
-- [ ] Responsive vérifié (mobile/tablet/desktop)
-- [ ] Pas de `console.log` restants
-- [ ] Pas de `localhost` hardcodé
-- [ ] Dark theme cohérent (si page dashboard)
-- [ ] Loading states ajoutés (si async)
-- [ ] Error handling ajouté (si async)
+## Release Gate (obligatoire)
+- [ ] `pnpm run quality:release` passe localement
+- [ ] Aucun secret exposé (logs, code, screenshots)
+- [ ] Rollback défini (commande + condition de déclenchement)
+- [ ] Observabilité vérifiée (logs/metrics/alertes impactées)
 
-## 📸 Screenshots
-<!-- Si changement UI, ajouter des screenshots -->
-<!-- Avant / Après si applicable -->
+## Sécurité (si applicable)
+- [ ] Auth/RBAC/CSRF revus
+- [ ] Validation input + erreurs maîtrisées
+- [ ] Rotation/usage secrets conforme
 
-## 🔗 TODOs liés
-<!-- Référencer les IDs des TODOs complétés -->
-<!-- Exemple: Closes CRIT-001, CRIT-002 -->
+## Tests effectués
+- [ ] Tests unitaires ciblés
+- [ ] Smoke manuel parcours critique
+- [ ] Non-régression des flows sensibles
 
-## 📊 Impact
-<!-- Décrivez l'impact utilisateur et technique -->
+## Plan de rollback
+<!-- Ex: revert commit X, redeploy workflow Y, vérifier endpoint Z -->
 
-**Score avant:** X/100  
-**Score après:** Y/100  
-**Gain:** +Z points
+## Impact produit / business
+<!-- Effet attendu sur conversion, stabilité, coût, support -->
 
-## 🧪 Tests effectués
-<!-- Décrivez les tests manuels effectués -->
-
-## 📝 Notes additionnelles
-<!-- Autres informations pertinentes -->
+## Evidences
+<!-- Logs, captures, liens dashboards, ID run CI -->
 
 
 

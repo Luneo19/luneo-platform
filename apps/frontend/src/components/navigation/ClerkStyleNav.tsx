@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { 
   ChevronDown, 
   ShoppingCart,
@@ -17,13 +17,9 @@ import {
   BookOpen,
   Video,
   Star,
-  Download,
   Menu,
   X,
-  Zap,
-  Users,
-  Globe,
-  CreditCard
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -209,7 +205,7 @@ export function ClerkStyleNav() {
         {activeMenu === menuKey && (
           <>
             {/* Overlay */}
-            <motion
+            <Motion
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -219,7 +215,7 @@ export function ClerkStyleNav() {
               style={{ top: '64px' }}
             />
             {/* Dropdown Menu - Style Clerk */}
-        <motion
+        <Motion
               initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -272,7 +268,7 @@ export function ClerkStyleNav() {
           ))}
                 </div>
               </div>
-        </motion>
+        </Motion>
           </>
       )}
     </AnimatePresence>
@@ -416,7 +412,7 @@ export function ClerkStyleNav() {
       {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion
+          <Motion
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -443,7 +439,7 @@ export function ClerkStyleNav() {
                 </Link>
               </div>
             </div>
-          </motion>
+          </Motion>
         )}
       </AnimatePresence>
     </nav>

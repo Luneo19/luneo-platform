@@ -1,14 +1,22 @@
-import { IsNumber, IsNotEmpty, Min } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
 
 export class BuyCreditsDto {
-  @ApiProperty({
-    description: 'Credit pack size (number of credits to buy)',
+  @ApiPropertyOptional({
+    description: 'Credit pack id (preferred, stable identifier)',
+    example: 'pack_500',
+  })
+  @IsOptional()
+  @IsString()
+  packId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Credit pack size (legacy fallback when packId is not provided)',
     example: 100,
     minimum: 1,
   })
+  @ValidateIf((dto: BuyCreditsDto) => !dto.packId)
   @IsNumber()
-  @IsNotEmpty({ message: 'Pack size is required' })
   @Min(1, { message: 'Pack size must be at least 1' })
-  packSize: number;
+  packSize?: number;
 }

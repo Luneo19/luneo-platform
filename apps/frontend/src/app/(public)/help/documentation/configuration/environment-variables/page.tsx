@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useCallback, useMemo } from 'react';
-import { LazyMotionDiv as motion } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion } from '@/lib/performance/dynamic-motion';
 import { Key, Copy, AlertCircle, CheckCircle, Shield } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
@@ -63,7 +63,7 @@ NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your_analytics_id`, []);
         </div>
 
         {/* Header */}
-        <motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <Motion initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full text-green-300 text-sm mb-4">
             <Key className="w-4 h-4 mr-2" />
             Configuration
@@ -72,7 +72,7 @@ NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your_analytics_id`, []);
           <p className="text-xl text-gray-300 mb-8">
             Configuration complète des variables d'environnement pour Luneo en développement et production.
           </p>
-        </motion>
+        </Motion>
 
         {/* Frontend Variables */}
         <div className="mb-12">

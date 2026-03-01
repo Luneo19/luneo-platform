@@ -26,7 +26,7 @@ interface ChartCardProps {
   height?: number;
 }
 
-function ChartCard({ title, description, data, type = 'line', height = 300 }: ChartCardProps) {
+function ChartCard({ title, description, data, type: _type = 'line', height = 300 }: ChartCardProps) {
   return (
     <Card className="bg-gray-800/50 border-gray-700">
       <CardHeader>

@@ -66,6 +66,52 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.luneo.app"
+        }
+      ],
+      "destination": "https://luneo.app",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.luneo.app"
+        }
+      ],
+      "destination": "https://luneo.app",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.luneo.app"
+        }
+      ],
+      "destination": "https://luneo.app/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.luneo.app"
+        }
+      ],
+      "destination": "https://luneo.app/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/v1/:path*",

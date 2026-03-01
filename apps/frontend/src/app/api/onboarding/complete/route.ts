@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/get-user';
 import { getBackendUrl } from '@/lib/api/server-url';
 import { ApiResponseBuilder } from '@/lib/api-response';
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const {
       brandName,
-      logoUrl,
+      logoUrl: _logoUrl,
       industry,
       objectives,
       firstProduct,

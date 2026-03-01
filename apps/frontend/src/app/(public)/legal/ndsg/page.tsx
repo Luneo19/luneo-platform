@@ -2,7 +2,6 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Eye, Download, Trash2 } from 'lucide-react';
-import { ExportLabel } from '../ExportLabel';
 
 export const metadata: Metadata = {
   title: 'nDSG & Protection des données - Luneo Tech',

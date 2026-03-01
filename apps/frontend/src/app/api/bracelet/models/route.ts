@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { ApiResponseBuilder } from '@/lib/api-response';
 
 /**
@@ -6,7 +6,7 @@ import { ApiResponseBuilder } from '@/lib/api-response';
  * 
  * Liste les modèles de bracelet disponibles
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   return ApiResponseBuilder.handle(async () => {
     const models = [
       {

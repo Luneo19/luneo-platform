@@ -6,14 +6,14 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AutomationNode } from './automation-node';
-import { Plus, Save, Play, ArrowDown, Trash2 } from 'lucide-react';
+import { Save, Play, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AutomationStep } from '@/hooks/admin/use-automations';
 
@@ -40,7 +40,11 @@ export function AutomationBuilder({
 }: AutomationBuilderProps) {
   const [steps, setSteps] = useState<AutomationStep[]>(initialSteps);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
-  const [editingStep, setEditingStep] = useState<AutomationStep | null>(null);
+  const [, setEditingStep] = useState<AutomationStep | null>(null);
+
+  useEffect(() => {
+    setSteps(initialSteps);
+  }, [initialSteps]);
 
   const addStep = useCallback(
     (type: AutomationStep['type']) => {
@@ -127,7 +131,7 @@ export function AutomationBuilder({
               <Button
                 key={node.type}
                 variant="outline"
-                className="w-full justify-start bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
+                className="w-full justify-start bg-zinc-900 border-zinc-700 text-zinc-100 hover:bg-zinc-800"
                 onClick={() => addStep(node.type as AutomationStep['type'])}
               >
                 <span className="mr-2">{node.icon}</span>

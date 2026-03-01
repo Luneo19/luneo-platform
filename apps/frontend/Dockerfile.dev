@@ -2,7 +2,7 @@
 # Alpine could reduce image size but may require extra build deps for native modules.
 FROM node:22-bullseye
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.10.0 --activate
 
 WORKDIR /workspace
 

@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { AutomationsList } from '@/components/admin/marketing/automations-list';
 import { useAutomations } from '@/hooks/admin/use-automations';
@@ -16,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 export default function AutomationsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { automations, isLoading } = useAutomations();
+  const { automations, isLoading, refresh } = useAutomations();
 
   const filteredAutomations = React.useMemo(() => {
     if (statusFilter === 'all') return automations;
@@ -99,7 +98,7 @@ export default function AutomationsPage() {
       </div>
 
       {/* Automations List */}
-      <AutomationsList automations={filteredAutomations} isLoading={isLoading} />
+      <AutomationsList automations={filteredAutomations} isLoading={isLoading} onRefresh={refresh} />
     </div>
   );
 }

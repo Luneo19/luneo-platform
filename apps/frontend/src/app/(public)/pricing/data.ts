@@ -47,6 +47,11 @@ export type Plan = {
 /** Translator function signature */
 type TFn = (key: string, variables?: Record<string, string | number>) => string;
 
+function tr(t: TFn, key: string, fallback: string): string {
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
+
 /**
  * Returns translated PLANS array.
  * Plans aligned with backend source of truth: plan-config.ts
@@ -56,13 +61,13 @@ export function getTranslatedPlans(t: TFn): Plan[] {
   return [
     {
       id: 'free',
-      name: t('pricing.plans.free.name'),
-      description: t('pricing.plans.free.description'),
+      name: tr(t, 'pricing.plans.free.name', 'Gratuit'),
+      description: tr(t, 'pricing.plans.free.description', 'Découvrez Luneo gratuitement'),
       priceMonthly: 0,
       priceYearly: 0,
       priceYearlyMonthly: 0,
       currency: 'EUR',
-      cta: t('pricing.plans.free.cta'),
+      cta: tr(t, 'pricing.plans.free.cta', 'Commencer gratuitement'),
       ctaHref: '/register',
       features: getTranslatedPlanFeatures(t, 'free'),
       limits: {
@@ -75,61 +80,61 @@ export function getTranslatedPlans(t: TFn): Plan[] {
     },
     {
       id: 'pro',
-      name: t('pricing.plans.pro.name'),
-      description: t('pricing.plans.pro.description'),
+      name: tr(t, 'pricing.plans.pro.name', 'Pro'),
+      description: tr(t, 'pricing.plans.pro.description', 'Pour les équipes qui scalent'),
       priceMonthly: PRICING.pro.monthly,
       priceYearly: PRICING.pro.yearly,
       priceYearlyMonthly: PRICING.pro.yearlyMonthly,
       currency: 'EUR',
       popular: true,
-      badge: t('pricing.plans.pro.badge'),
-      cta: t('pricing.plans.pro.cta'),
+      badge: tr(t, 'pricing.plans.pro.badge', 'Le plus populaire'),
+      cta: tr(t, 'pricing.plans.pro.cta', "Démarrer l'essai gratuit"),
       ctaHref: '/register?plan=pro',
       features: getTranslatedPlanFeatures(t, 'pro'),
       limits: {
         agents: 5,
         conversationsPerMonth: 2_000,
         knowledgeBases: 5,
-        documentsPerKB: 50,
+        documentsPerKB: 200,
         storageMB: 10_000,
       },
     },
     {
       id: 'business',
-      name: t('pricing.plans.business.name'),
-      description: t('pricing.plans.business.description'),
+      name: tr(t, 'pricing.plans.business.name', 'Business'),
+      description: tr(t, 'pricing.plans.business.description', 'Pour les entreprises en croissance'),
       priceMonthly: PRICING.business.monthly,
       priceYearly: PRICING.business.yearly,
       priceYearlyMonthly: PRICING.business.yearlyMonthly,
       currency: 'EUR',
-      cta: t('pricing.plans.business.cta'),
+      cta: tr(t, 'pricing.plans.business.cta', "Démarrer l'essai gratuit"),
       ctaHref: '/register?plan=business',
       features: getTranslatedPlanFeatures(t, 'business'),
       limits: {
         agents: 25,
         conversationsPerMonth: 15_000,
         knowledgeBases: 25,
-        documentsPerKB: 200,
+        documentsPerKB: 1_000,
         storageMB: 100_000,
       },
     },
     {
       id: 'enterprise',
-      name: t('pricing.plans.enterprise.name'),
-      description: t('pricing.plans.enterprise.description'),
+      name: tr(t, 'pricing.plans.enterprise.name', 'Enterprise'),
+      description: tr(t, 'pricing.plans.enterprise.description', 'Solutions sur mesure'),
       priceMonthly: null,
       priceYearly: null,
       priceYearlyMonthly: null,
       currency: 'EUR',
-      cta: t('pricing.plans.enterprise.cta'),
+      cta: tr(t, 'pricing.plans.enterprise.cta', 'Contacter les ventes'),
       ctaHref: '/contact?plan=enterprise&source=pricing',
       features: getTranslatedPlanFeatures(t, 'enterprise'),
       limits: {
-        agents: 'Illimité',
-        conversationsPerMonth: 'Illimité',
-        knowledgeBases: 'Illimité',
-        documentsPerKB: 'Illimité',
-        storageMB: 'Illimité',
+        agents: t('pricing.featureValues.unlimited'),
+        conversationsPerMonth: t('pricing.featureValues.unlimited'),
+        knowledgeBases: t('pricing.featureValues.unlimited'),
+        documentsPerKB: t('pricing.featureValues.unlimited'),
+        storageMB: t('pricing.featureValues.unlimited'),
       },
     },
   ];
@@ -245,8 +250,8 @@ export function getTranslatedFeatures(t: TFn): Feature[] {
       description: fd('documents-per-kb'),
       category: 'knowledge',
       free: '10',
-      pro: '50',
-      business: '200',
+      pro: '200',
+      business: '1 000',
       enterprise: t('pricing.featureValues.unlimited'),
     },
     {
@@ -472,7 +477,7 @@ export const PLANS: Plan[] = [
     ctaHref: '/register',
     features: [
       '1 agent IA',
-      '50 conversations/mois',
+      '100 conversations/mois',
       '1 base de connaissances',
       'Widget chat basique',
       'Historique 7 jours',
@@ -504,7 +509,7 @@ export const PLANS: Plan[] = [
       'Historique 30 jours',
       'Support prioritaire',
     ],
-    limits: { agents: 5, conversationsPerMonth: 2_000, knowledgeBases: 5, documentsPerKB: 50, storageMB: 10_000 },
+    limits: { agents: 5, conversationsPerMonth: 2_000, knowledgeBases: 5, documentsPerKB: 200, storageMB: 10_000 },
   },
   {
     id: 'business',
@@ -517,9 +522,9 @@ export const PLANS: Plan[] = [
     cta: "Démarrer l'essai gratuit",
     ctaHref: '/register?plan=business',
     features: [
-      '20 agents IA',
-      '10 000 conversations/mois',
-      '20 bases de connaissances',
+      '25 agents IA',
+      '15 000 conversations/mois',
+      '25 bases de connaissances',
       'Visual Builder avancé',
       'Tous les canaux (Email, Slack, WhatsApp)',
       'Analytics avancés + exports',
@@ -528,7 +533,7 @@ export const PLANS: Plan[] = [
       'Historique illimité',
       'Support dédié',
     ],
-    limits: { agents: 25, conversationsPerMonth: 15_000, knowledgeBases: 25, documentsPerKB: 200, storageMB: 100_000 },
+    limits: { agents: 25, conversationsPerMonth: 15_000, knowledgeBases: 25, documentsPerKB: 1_000, storageMB: 100_000 },
   },
   {
     id: 'enterprise',
@@ -563,7 +568,7 @@ export { PLANS as FEATURES_LEGACY };
 export const FAQS: { question: string; answer: string }[] = [
   { question: 'Puis-je changer de plan à tout moment ?', answer: 'Oui, vous pouvez upgrader ou downgrader votre plan à tout moment. Les changements sont appliqués immédiatement et votre facturation est ajustée au prorata.' },
   { question: 'Que se passe-t-il si je dépasse mes limites de conversations ?', answer: 'Sur le plan Gratuit, les conversations sont bloquées à la limite. Sur les plans Pro et Business, vous recevrez une notification et pourrez acheter des conversations supplémentaires. Sur Enterprise, les limites sont flexibles et négociables.' },
-  { question: 'Y a-t-il un essai gratuit ?', answer: 'Oui, le plan Gratuit est gratuit à vie avec 1 agent IA et 50 conversations/mois. Les plans Pro et Business offrent un essai gratuit de 14 jours sans carte bancaire.' },
+  { question: 'Y a-t-il un essai gratuit ?', answer: 'Oui, le plan Gratuit est gratuit à vie avec 1 agent IA et 100 conversations/mois. Les plans Pro et Business offrent un essai gratuit de 14 jours sans carte bancaire.' },
   { question: 'Les prix incluent-ils la TVA ?', answer: 'Les prix affichés sont hors taxes. La TVA sera ajoutée lors du paiement selon votre localisation (20% en France).' },
   { question: 'Puis-je exporter mes données ?', answer: 'Oui, vous pouvez exporter toutes vos données (historique de conversations, bases de connaissances, configurations d\'agents) à tout moment depuis les paramètres de votre compte.' },
   { question: 'Offrez-vous des remises pour les startups ?', answer: 'Oui, nous offrons des remises spéciales pour les startups éligibles (Y Combinator, Techstars, etc.). Contactez-nous pour plus d\'informations.' },

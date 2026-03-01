@@ -23,40 +23,51 @@ datasource db {
 // ═══════════════════════════════════════════════════════════════════
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  passwordHash     String?
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String?
 
-  firstName        String?
-  lastName         String?
-  avatar           String?
-  phone            String?
-  locale           String    @default("fr")
-  timezone         String    @default("Europe/Paris")
+  firstName String?
+  lastName  String?
+  avatar    String?
+  phone     String?
+  locale    String  @default("fr")
+  timezone  String  @default("Europe/Paris")
 
   emailVerified    Boolean   @default(false)
   emailVerifiedAt  DateTime?
   twoFactorEnabled Boolean   @default(false)
   twoFactorSecret  String?
 
-  role             PlatformRole @default(USER)
-  metadata         Json?
+  role     PlatformRole @default(USER)
+  metadata Json?
 
-  lastLoginAt      DateTime?
-  lastLoginIp      String?
-  loginCount       Int       @default(0)
+  lastLoginAt DateTime?
+  lastLoginIp String?
+  loginCount  Int       @default(0)
 
-  deletedAt        DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  memberships      OrganizationMember[]
-  sessions         Session[]
-  oauthAccounts    OAuthAccount[]
-  sentInvitations  Invitation[]      @relation("InvitedBy")
-  auditLogs        AuditLog[]
-  createdTickets   Ticket[]          @relation("TicketCreator")
-  assignedTickets  Ticket[]          @relation("TicketAssignee")
+  memberships              OrganizationMember[]
+  sessions                 Session[]
+  oauthAccounts            OAuthAccount[]
+  sentInvitations          Invitation[]             @relation("InvitedBy")
+  auditLogs                AuditLog[]
+  createdTickets           Ticket[]                 @relation("TicketCreator")
+  assignedTickets          Ticket[]                 @relation("TicketAssignee")
+  conversationAssignments  ConversationAssignment[] @relation("ConversationAssignmentUser")
+  internalNotes            InternalNote[]           @relation("InternalNoteAuthor")
+  humanTakeovers           Conversation[]           @relation("ConversationHumanAgent")
+  cannedResponses          CannedResponse[]         @relation("CannedResponseAuthor")
+  assignmentRules          AssignmentRule[]         @relation("AssignmentRuleUser")
+  notificationPreferences  NotificationPreference[]
+  notifications            Notification[]
+  deletionRequests         DataDeletionRequest[]    @relation("DataDeletionRequester")
+  createdKnowledgeVersions KnowledgeVersion[]
+  customFieldDefinitions   CustomFieldDefinition[]
+  partners                 Partner[]
 
   @@index([email])
   @@index([role])
@@ -66,22 +77,22 @@ model User {
 }
 
 model OAuthAccount {
-  id               String   @id @default(cuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  provider         String
-  providerId       String
-  providerEmail    String?
+  provider      String
+  providerId    String
+  providerEmail String?
 
-  accessToken      String?  @db.Text
-  refreshToken     String?  @db.Text
-  tokenExpiresAt   DateTime?
-  scope            String?
-  metadata         Json?
+  accessToken    String?   @db.Text
+  refreshToken   String?   @db.Text
+  tokenExpiresAt DateTime?
+  scope          String?
+  metadata       Json?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([provider, providerId])
   @@index([userId])
@@ -90,25 +101,25 @@ model OAuthAccount {
 }
 
 model Session {
-  id               String   @id @default(cuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  token            String   @unique
+  token String @unique
 
-  userAgent        String?  @db.Text
-  ipAddress        String?
-  country          String?
-  city             String?
-  device           String?
-  browser          String?
-  os               String?
+  userAgent String? @db.Text
+  ipAddress String?
+  country   String?
+  city      String?
+  device    String?
+  browser   String?
+  os        String?
 
-  isActive         Boolean  @default(true)
-  lastActivityAt   DateTime @default(now())
+  isActive       Boolean  @default(true)
+  lastActivityAt DateTime @default(now())
 
-  expiresAt        DateTime
-  createdAt        DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([token])
   @@index([userId])
@@ -118,18 +129,18 @@ model Session {
 }
 
 model RefreshToken {
-  id               String   @id @default(cuid())
-  token            String   @unique
-  userId           String
+  id     String @id @default(cuid())
+  token  String @unique
+  userId String
 
-  deviceId         String?
-  deviceName       String?
+  deviceId   String?
+  deviceName String?
 
-  isRevoked        Boolean  @default(false)
-  revokedAt        DateTime?
+  isRevoked Boolean   @default(false)
+  revokedAt DateTime?
 
-  expiresAt        DateTime
-  createdAt        DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([token])
   @@index([userId])
@@ -143,72 +154,97 @@ model RefreshToken {
 // ═══════════════════════════════════════════════════════════════════
 
 model Organization {
-  id               String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  name             String
-  slug             String   @unique
-  logo             String?
-  website          String?
+  name    String
+  slug    String  @unique
+  logo    String?
+  website String?
 
-  industry         Industry?
-  size             CompanySize?
-  country          String?
-  timezone         String   @default("Europe/Paris")
+  industry Industry?
+  size     CompanySize?
+  country  String?
+  timezone String       @default("Europe/Paris")
 
-  supportEmail     String?
-  phone            String?
-  address          Json?
+  supportEmail String?
+  phone        String?
+  address      Json?
 
-  stripeCustomerId     String?  @unique
+  stripeCustomerId     String?   @unique
   stripeSubscriptionId String?
-  plan                 Plan     @default(FREE)
+  plan                 Plan      @default(FREE)
   planPeriodStart      DateTime?
   planPeriodEnd        DateTime?
   billingEmail         String?
   taxId                String?
 
-  conversationsUsed    Int      @default(0)
-  conversationsLimit   Int      @default(50)
-  agentsUsed           Int      @default(0)
-  agentsLimit          Int      @default(1)
-  knowledgeSourcesUsed Int      @default(0)
-  knowledgeSourcesLimit Int     @default(1)
-  teamMembersUsed      Int      @default(1)
-  teamMembersLimit     Int      @default(1)
+  conversationsUsed     Int @default(0)
+  conversationsLimit    Int @default(50)
+  agentsUsed            Int @default(0)
+  agentsLimit           Int @default(1)
+  knowledgeSourcesUsed  Int @default(0)
+  knowledgeSourcesLimit Int @default(1)
+  teamMembersUsed       Int @default(1)
+  teamMembersLimit      Int @default(1)
 
-  currentMonthSpend    Float    @default(0)
-  monthlyBudgetLimit   Float?
+  currentMonthSpend  Float  @default(0)
+  monthlyBudgetLimit Float?
 
-  defaultLanguage      String   @default("fr")
-  defaultTone          AgentTone @default(PROFESSIONAL)
-  allowedDomains       String[]
-  features             Json?
+  defaultLanguage String    @default("fr")
+  defaultTone     AgentTone @default(PROFESSIONAL)
+  allowedDomains  String[]
+  features        Json?
 
-  onboardingCompleted  Boolean  @default(false)
-  onboardingStep       Int      @default(0)
-  onboardingData       Json?
+  onboardingCompleted Boolean           @default(false)
+  onboardingStep      Int               @default(0)
+  onboardingData      Json?
+  verticalTemplateId  String?
+  verticalTemplate    VerticalTemplate? @relation(fields: [verticalTemplateId], references: [id], onDelete: SetNull)
 
-  status               OrgStatus @default(ACTIVE)
-  suspendedAt          DateTime?
-  suspendedReason      String?
+  status          OrgStatus @default(ACTIVE)
+  suspendedAt     DateTime?
+  suspendedReason String?
 
-  deletedAt            DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  members              OrganizationMember[]
-  invitations          Invitation[]
-  agents               Agent[]
-  knowledgeBases       KnowledgeBase[]
-  conversations        Conversation[]
-  integrations         Integration[]
-  apiKeys              ApiKey[]
-  webhooks             Webhook[]
-  invoices             Invoice[]
-  auditLogs            AuditLog[]
-  usageRecords         UsageRecord[]
-  tickets              Ticket[]
-  analyticsEvents      AnalyticsEvent[]
+  members                 OrganizationMember[]
+  invitations             Invitation[]
+  agents                  Agent[]
+  contacts                Contact[]
+  knowledgeBases          KnowledgeBase[]
+  conversations           Conversation[]
+  workflows               Workflow[]
+  workflowExecutions      WorkflowExecution[]
+  integrations            Integration[]
+  apiKeys                 ApiKey[]
+  webhooks                Webhook[]
+  invoices                Invoice[]
+  auditLogs               AuditLog[]
+  usageRecords            UsageRecord[]
+  learningSignals         LearningSignal[]
+  knowledgeGaps           KnowledgeGap[]
+  tickets                 Ticket[]
+  analyticsEvents         AnalyticsEvent[]
+  conversationAssignments ConversationAssignment[]
+  internalNotes           InternalNote[]
+  cannedResponses         CannedResponse[]
+  assignmentRules         AssignmentRule[]
+  slaConfigs              SLAConfig[]
+  slaBreaches             SLABreach[]
+  abTests                 ABTest[]
+  llmUsage                LLMUsage[]
+  consentRecords          ConsentRecord[]
+  dataDeletionRequests    DataDeletionRequest[]
+  notificationPreferences NotificationPreference[]
+  notifications           Notification[]
+  scheduledMessages       ScheduledMessage[]
+  customFieldDefinitions  CustomFieldDefinition[]
+  failedJobs              FailedJob[]
+  whiteLabelConfig        WhiteLabelConfig?
+  partnerReferrals        PartnerReferral[]
+  agentChannels           AgentChannel[]
 
   @@index([slug])
   @@index([plan])
@@ -220,18 +256,18 @@ model Organization {
 }
 
 model OrganizationMember {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId           String
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  role             OrgRole      @default(MEMBER)
+  role              OrgRole @default(MEMBER)
   customPermissions Json?
-  isActive         Boolean      @default(true)
+  isActive          Boolean @default(true)
 
-  joinedAt         DateTime     @default(now())
-  lastActiveAt     DateTime?
+  joinedAt     DateTime  @default(now())
+  lastActiveAt DateTime?
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -241,24 +277,24 @@ model OrganizationMember {
 }
 
 model Invitation {
-  id               String       @id @default(cuid())
-  email            String
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  email          String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  invitedById      String
-  invitedBy        User         @relation("InvitedBy", fields: [invitedById], references: [id])
+  invitedById String
+  invitedBy   User   @relation("InvitedBy", fields: [invitedById], references: [id])
 
-  role             OrgRole      @default(MEMBER)
-  token            String       @unique
-  status           InvitationStatus @default(PENDING)
+  role   OrgRole          @default(MEMBER)
+  token  String           @unique
+  status InvitationStatus @default(PENDING)
 
-  message          String?      @db.Text
-  metadata         Json?
+  message  String? @db.Text
+  metadata Json?
 
-  expiresAt        DateTime
-  acceptedAt       DateTime?
-  createdAt        DateTime     @default(now())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@unique([email, organizationId])
   @@index([token])
@@ -272,60 +308,60 @@ model Invitation {
 // ═══════════════════════════════════════════════════════════════════
 
 model AgentTemplate {
-  id               String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  name             String
-  slug             String   @unique
-  description      String   @db.Text
-  longDescription  String?  @db.Text
+  name            String
+  slug            String  @unique
+  description     String  @db.Text
+  longDescription String? @db.Text
 
-  category         AgentCategory
-  icon             String
-  color            String   @default("#6366F1")
-  coverImage       String?
-  demoUrl          String?
-  videoUrl         String?
+  category   AgentCategory
+  icon       String
+  color      String        @default("#6366F1")
+  coverImage String?
+  demoUrl    String?
+  videoUrl   String?
 
-  defaultModules   Json
-  capabilities     String[]
-  tools            String[]
-  requiredSources  String[]
+  defaultModules     Json
+  capabilities       String[]
+  tools              String[]
+  requiredSources    String[]
   suggestedQuestions String[]
 
-  systemPrompt     String   @db.Text
+  systemPrompt         String @db.Text
   exampleConversations Json?
 
-  defaultModel     String   @default("gpt-4o-mini")
+  defaultModel       String @default("gpt-4o-mini")
   defaultTemperature Float  @default(0.3)
-  maxTokensPerReply Int     @default(1000)
+  maxTokensPerReply  Int    @default(1000)
 
-  targetIndustries Industry[]
+  targetIndustries   Industry[]
   targetCompanySizes CompanySize[]
-  targetUseCases   String[]
+  targetUseCases     String[]
 
-  isPublic         Boolean  @default(true)
-  requiredPlan     Plan     @default(FREE)
-  isFeatured       Boolean  @default(false)
-  sortOrder        Int      @default(0)
+  isPublic     Boolean @default(true)
+  requiredPlan Plan    @default(FREE)
+  isFeatured   Boolean @default(false)
+  sortOrder    Int     @default(0)
 
-  setupSteps       Json
+  setupSteps         Json
   estimatedSetupTime Int?
 
-  usageCount       Int      @default(0)
-  avgRating        Float?
-  ratingsCount     Int      @default(0)
+  usageCount   Int    @default(0)
+  avgRating    Float?
+  ratingsCount Int    @default(0)
 
-  metaTitle        String?
-  metaDescription  String?  @db.Text
+  metaTitle       String?
+  metaDescription String? @db.Text
 
-  version          String   @default("1.0.0")
-  changelog        Json?
-  isActive         Boolean  @default(true)
+  version   String  @default("1.0.0")
+  changelog Json?
+  isActive  Boolean @default(true)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  agents           Agent[]
+  agents Agent[]
 
   @@index([slug])
   @@index([category])
@@ -340,85 +376,90 @@ model AgentTemplate {
 // ═══════════════════════════════════════════════════════════════════
 
 model Agent {
-  id               String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  templateId       String?
-  template         AgentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId String?
+  template   AgentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
-  name             String
-  description      String?      @db.Text
-  avatar           String?
+  name        String
+  description String? @db.Text
+  avatar      String?
 
-  status           AgentStatus  @default(DRAFT)
-  publishedAt      DateTime?
+  status      AgentStatus @default(DRAFT)
+  publishedAt DateTime?
 
-  modules          Json
+  modules Json
 
-  systemPrompt     String?      @db.Text
-  customInstructions String?    @db.Text
-  contextWindow    Int          @default(10)
+  systemPrompt       String? @db.Text
+  customInstructions String? @db.Text
+  contextWindow      Int     @default(10)
 
-  tone             AgentTone    @default(PROFESSIONAL)
-  languages        String[]     @default(["fr"])
-  responseStyle    String?
+  tone          AgentTone @default(PROFESSIONAL)
+  languages     String[]  @default(["fr"])
+  responseStyle String?
 
-  model            String       @default("gpt-4o-mini")
-  temperature      Float        @default(0.3)
-  topP             Float        @default(1.0)
-  frequencyPenalty Float        @default(0.0)
-  presencePenalty  Float        @default(0.0)
-  maxTokensPerReply Int         @default(1000)
+  model             String @default("gpt-4o-mini")
+  temperature       Float  @default(0.3)
+  topP              Float  @default(1.0)
+  frequencyPenalty  Float  @default(0.0)
+  presencePenalty   Float  @default(0.0)
+  maxTokensPerReply Int    @default(1000)
 
-  monthlyBudgetUsd Float?
-  currentMonthSpend Float       @default(0)
-  maxConversationLength Int     @default(50)
+  monthlyBudgetUsd           Float?
+  currentMonthSpend          Float  @default(0)
+  maxConversationLength      Int    @default(50)
   maxConcurrentConversations Int?
 
-  autoEscalate     Boolean      @default(true)
-  confidenceThreshold Float     @default(0.7)
-  escalationEmail  String?
+  autoEscalate           Boolean @default(true)
+  confidenceThreshold    Float   @default(0.7)
+  escalationEmail        String?
   escalationSlackWebhook String?
-  escalationMessage String?     @db.Text
-  escalationConditions Json?
+  escalationMessage      String? @db.Text
+  escalationConditions   Json?
 
-  greeting         String?      @db.Text
-  fallbackMessage  String?      @db.Text
-  closingMessage   String?      @db.Text
-  offlineMessage   String?      @db.Text
+  greeting        String? @db.Text
+  fallbackMessage String? @db.Text
+  closingMessage  String? @db.Text
+  offlineMessage  String? @db.Text
 
   businessHours    Json?
   businessTimezone String?
 
-  enableMemory     Boolean      @default(true)
-  enableSentiment  Boolean      @default(true)
-  enableTopicDetection Boolean  @default(true)
-  enableAutoSummary Boolean     @default(true)
+  enableMemory         Boolean @default(true)
+  enableSentiment      Boolean @default(true)
+  enableTopicDetection Boolean @default(true)
+  enableAutoSummary    Boolean @default(true)
 
-  totalConversations Int        @default(0)
-  totalMessages    Int          @default(0)
-  avgSatisfaction  Float?
-  resolutionRate   Float?
-  avgResponseTime  Int?
+  totalConversations Int    @default(0)
+  totalMessages      Int    @default(0)
+  avgSatisfaction    Float?
+  resolutionRate     Float?
+  avgResponseTime    Int?
 
-  metadata         Json?
-  tags             String[]
+  metadata Json?
+  tags     String[]
+  scope    Json?
+  mode     AgentMode @default(LIVE)
 
-  flowData         Json?
-  flowVersion      Int          @default(0)
+  flowData    Json?
+  flowVersion Int   @default(0)
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  lastActiveAt     DateTime?
-  deletedAt        DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastActiveAt DateTime?
+  deletedAt    DateTime?
 
-  channels         Channel[]
+  channels            Channel[]
   agentKnowledgeBases AgentKnowledgeBase[]
-  conversations    Conversation[]
-  analytics        AgentDailyAnalytics[]
-  corrections      AgentCorrection[]
+  conversations       Conversation[]
+  analytics           AgentDailyAnalytics[]
+  corrections         AgentCorrection[]
+  abTests             ABTest[]
+  llmUsage            LLMUsage[]
+  agentChannels       AgentChannel[]
 
   @@index([organizationId])
   @@index([status])
@@ -433,63 +474,63 @@ model Agent {
 // ═══════════════════════════════════════════════════════════════════
 
 model Channel {
-  id               String   @id @default(cuid())
-  agentId          String
-  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
-  type             ChannelType
-  status           ChannelStatus @default(ACTIVE)
+  type   ChannelType
+  status ChannelStatus @default(ACTIVE)
 
-  widgetId         String?  @unique @default(cuid())
-  widgetColor      String?  @default("#6366F1")
-  widgetSecondaryColor String? @default("#4F46E5")
-  widgetPosition   WidgetPosition @default(BOTTOM_RIGHT)
-  widgetSize       WidgetSize @default(MEDIUM)
-  widgetWelcomeMessage String? @default("Bonjour ! Comment puis-je vous aider ?")
-  widgetPlaceholder String? @default("Ecrivez votre message...")
-  widgetShowOnMobile Boolean @default(true)
-  widgetShowOnDesktop Boolean @default(true)
-  widgetAvatar     String?
-  widgetBrandName  String?
-  widgetTheme      String?  @default("light")
-  widgetLanguage   String?  @default("fr")
-  widgetCustomCSS  String?  @db.Text
+  widgetId             String?        @unique @default(cuid())
+  widgetColor          String?        @default("#6366F1")
+  widgetSecondaryColor String?        @default("#4F46E5")
+  widgetPosition       WidgetPosition @default(BOTTOM_RIGHT)
+  widgetSize           WidgetSize     @default(MEDIUM)
+  widgetWelcomeMessage String?        @default("Bonjour ! Comment puis-je vous aider ?")
+  widgetPlaceholder    String?        @default("Ecrivez votre message...")
+  widgetShowOnMobile   Boolean        @default(true)
+  widgetShowOnDesktop  Boolean        @default(true)
+  widgetAvatar         String?
+  widgetBrandName      String?
+  widgetTheme          String?        @default("light")
+  widgetLanguage       String?        @default("fr")
+  widgetCustomCSS      String?        @db.Text
   widgetAllowedOrigins String[]
 
   emailForwardAddress String?
-  emailFromName    String?
-  emailFromAddress String?
-  emailSignature   String?  @db.Text
-  emailReplyTo     String?
-  emailAutoReply   Boolean  @default(true)
+  emailFromName       String?
+  emailFromAddress    String?
+  emailSignature      String? @db.Text
+  emailReplyTo        String?
+  emailAutoReply      Boolean @default(true)
 
-  slackWorkspaceId String?
-  slackChannelId   String?
-  slackBotToken    String?
-  slackSigningSecret String?
+  slackWorkspaceId        String?
+  slackChannelId          String?
+  slackBotToken           String?
+  slackSigningSecret      String?
   slackNotifyOnEscalation Boolean @default(true)
 
-  whatsappPhoneNumber String?
-  whatsappAccountId String?
-  whatsappAccessToken String?
+  whatsappPhoneNumber   String?
+  whatsappAccountId     String?
+  whatsappAccessToken   String?
   whatsappWebhookSecret String?
 
-  apiWebhookUrl    String?
-  apiSecret        String?
-  apiAuthType      String?
-  apiHeaders       Json?
+  apiWebhookUrl String?
+  apiSecret     String?
+  apiAuthType   String?
+  apiHeaders    Json?
 
   rateLimitPerMinute Int?
-  rateLimitPerHour Int?
+  rateLimitPerHour   Int?
 
-  totalConversations Int   @default(0)
-  totalMessages    Int     @default(0)
+  totalConversations Int @default(0)
+  totalMessages      Int @default(0)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  deletedAt        DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  conversations    Conversation[]
+  conversations Conversation[]
 
   @@unique([agentId, type])
   @@index([widgetId])
@@ -504,40 +545,41 @@ model Channel {
 // ═══════════════════════════════════════════════════════════════════
 
 model KnowledgeBase {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  name             String
-  description      String?      @db.Text
-  icon             String?
-  color            String?      @default("#6366F1")
+  name        String
+  description String? @db.Text
+  icon        String?
+  color       String? @default("#6366F1")
 
-  language         String?      @default("fr")
-  chunkingStrategy String       @default("semantic")
-  chunkSize        Int          @default(512)
-  chunkOverlap     Int          @default(50)
-  embeddingModel   String       @default("text-embedding-3-small")
+  language         String? @default("fr")
+  chunkingStrategy String  @default("semantic")
+  chunkSize        Int     @default(512)
+  chunkOverlap     Int     @default(50)
+  embeddingModel   String  @default("text-embedding-3-small")
 
-  sourcesCount     Int          @default(0)
-  documentsCount   Int          @default(0)
-  chunksCount      Int          @default(0)
-  totalTokens      Int          @default(0)
-  totalSize        BigInt       @default(0)
+  sourcesCount   Int    @default(0)
+  documentsCount Int    @default(0)
+  chunksCount    Int    @default(0)
+  totalTokens    Int    @default(0)
+  totalSize      BigInt @default(0)
 
-  status           KBStatus     @default(READY)
+  status           KBStatus  @default(READY)
   lastSyncAt       DateTime?
   nextSyncAt       DateTime?
   indexingProgress Float?
   indexingStatus   String?
-  indexingError    String?      @db.Text
+  indexingError    String?   @db.Text
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  sources          KnowledgeSource[]
-  agents           AgentKnowledgeBase[]
+  sources  KnowledgeSource[]
+  agents   AgentKnowledgeBase[]
+  versions KnowledgeVersion[]
 
   @@index([organizationId])
   @@index([status])
@@ -546,51 +588,51 @@ model KnowledgeBase {
 }
 
 model KnowledgeSource {
-  id               String        @id @default(cuid())
-  knowledgeBaseId  String
-  knowledgeBase    KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  knowledgeBaseId String
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
 
-  name             String
-  type             KBSourceType
+  name String
+  type KBSourceType
 
-  fileUrl          String?
-  fileName         String?
-  fileSize         Int?
-  mimeType         String?
-  fileHash         String?
+  fileUrl  String?
+  fileName String?
+  fileSize Int?
+  mimeType String?
+  fileHash String?
 
-  websiteUrl       String?
-  crawlDepth       Int?         @default(1)
-  crawlLimit       Int?         @default(100)
+  websiteUrl           String?
+  crawlDepth           Int?     @default(1)
+  crawlLimit           Int?     @default(100)
   crawlIncludePatterns String[]
   crawlExcludePatterns String[]
 
-  textContent      String?      @db.Text
+  textContent String? @db.Text
 
-  apiType          String?
-  apiConfig        Json?
-  apiCredentials   String?
+  apiType        String?
+  apiConfig      Json?
+  apiCredentials String?
 
-  status           KBSourceStatus @default(PENDING)
+  status             KBSourceStatus @default(PENDING)
   processingProgress Float?
-  errorMessage     String?      @db.Text
-  errorCount       Int          @default(0)
-  lastErrorAt      DateTime?
+  errorMessage       String?        @db.Text
+  errorCount         Int            @default(0)
+  lastErrorAt        DateTime?
 
-  lastSyncAt       DateTime?
-  nextSyncAt       DateTime?
-  syncFrequency    SyncFrequency? @default(MANUAL)
-  autoSync         Boolean      @default(false)
+  lastSyncAt    DateTime?
+  nextSyncAt    DateTime?
+  syncFrequency SyncFrequency? @default(MANUAL)
+  autoSync      Boolean        @default(false)
 
-  documentsCount   Int          @default(0)
-  chunksCount      Int          @default(0)
-  tokensCount      Int          @default(0)
+  documentsCount Int @default(0)
+  chunksCount    Int @default(0)
+  tokensCount    Int @default(0)
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  documents        KnowledgeDocument[]
+  documents KnowledgeDocument[]
 
   @@index([knowledgeBaseId])
   @@index([status])
@@ -600,34 +642,34 @@ model KnowledgeSource {
 }
 
 model KnowledgeDocument {
-  id               String            @id @default(cuid())
-  sourceId         String
-  source           KnowledgeSource   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  id       String          @id @default(cuid())
+  sourceId String
+  source   KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
-  externalId       String?
-  title            String
-  content          String?           @db.Text
-  url              String?
+  externalId String?
+  title      String
+  content    String? @db.Text
+  url        String?
 
-  metadata         Json?
-  author           String?
-  publishedAt      DateTime?
-  language         String?
-  contentHash      String?
+  metadata    Json?
+  author      String?
+  publishedAt DateTime?
+  language    String?
+  contentHash String?
 
-  status           DocProcessingStatus @default(PENDING)
-  processedAt      DateTime?
-  processingTime   Int?
-  errorMessage     String?           @db.Text
+  status         DocProcessingStatus @default(PENDING)
+  processedAt    DateTime?
+  processingTime Int?
+  errorMessage   String?             @db.Text
 
-  chunksCount      Int               @default(0)
-  tokensCount      Int               @default(0)
+  chunksCount Int @default(0)
+  tokensCount Int @default(0)
 
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  deletedAt        DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  chunks           KnowledgeChunk[]
+  chunks KnowledgeChunk[]
 
   @@unique([sourceId, externalId])
   @@index([sourceId])
@@ -637,39 +679,57 @@ model KnowledgeDocument {
 }
 
 model KnowledgeChunk {
-  id               String            @id @default(cuid())
-  documentId       String
-  document         KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  documentId String
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
-  content          String            @db.Text
+  content       String @db.Text
   // embedding     Unsupported("vector(1536)")? // Requires pgvector extension
-  embeddingJson    Json?  // Fallback: store as JSON array until pgvector is installed
+  embeddingJson Json? // Fallback: store as JSON array until pgvector is installed
 
-  position         Int
-  tokenCount       Int
-  metadata         Json?
+  position   Int
+  tokenCount Int
+  metadata   Json?
 
-  pineconeId       String?           @unique
+  pineconeId        String? @unique
   pineconeNamespace String?
 
-  createdAt        DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   @@index([documentId])
   @@index([pineconeId])
   @@map("knowledge_chunks")
 }
 
-model AgentKnowledgeBase {
-  agentId          String
-  agent            Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  knowledgeBaseId  String
-  knowledgeBase    KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+model KnowledgeVersion {
+  id              String        @id @default(cuid())
+  knowledgeBaseId String
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  version         Int
+  changeType      String
+  changeDetails   Json?
+  createdById     String?
+  createdBy       User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  isActive        Boolean       @default(false)
 
-  priority         Int           @default(0)
-  maxChunks        Int?
+  @@unique([knowledgeBaseId, version])
+  @@index([knowledgeBaseId])
+  @@index([createdAt])
+  @@map("knowledge_versions")
+}
+
+model AgentKnowledgeBase {
+  agentId         String
+  agent           Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  knowledgeBaseId String
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+
+  priority            Int    @default(0)
+  maxChunks           Int?
   confidenceThreshold Float?
 
-  createdAt        DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@id([agentId, knowledgeBaseId])
   @@index([agentId])
@@ -682,28 +742,30 @@ model AgentKnowledgeBase {
 // ═══════════════════════════════════════════════════════════════════
 
 model Conversation {
-  id               String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  agentId          String
-  agent            Agent        @relation(fields: [agentId], references: [id])
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id])
 
-  channelId        String?
-  channel          Channel?     @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  channelId String?
+  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
 
-  channelType      ChannelType
-  externalId       String?
+  channelType ChannelType
+  externalId  String?
 
   visitorId        String?
+  contactId        String?
+  contact          Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
   visitorEmail     String?
   visitorName      String?
   visitorPhone     String?
   visitorCompany   String?
   visitorMetadata  Json?
   visitorIp        String?
-  visitorUserAgent String?      @db.Text
+  visitorUserAgent String?  @db.Text
   visitorCountry   String?
   visitorCity      String?
   visitorLanguage  String?
@@ -711,62 +773,81 @@ model Conversation {
   visitorDevice    String?
   visitorBrowser   String?
   visitorOs        String?
-  visitorReferrer  String?      @db.Text
+  visitorReferrer  String?  @db.Text
 
-  utmSource        String?
-  utmMedium        String?
-  utmCampaign      String?
-  utmTerm          String?
-  utmContent       String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
 
-  status           ConversationStatus @default(ACTIVE)
-  resolvedBy       ResolvedBy?
-  resolvedAt       DateTime?
-  assignedToId     String?
-  assignedAt       DateTime?
+  status       ConversationStatus @default(ACTIVE)
+  resolvedBy   ResolvedBy?
+  resolvedAt   DateTime?
+  assignedToId String?
+  assignedAt   DateTime?
 
-  messageCount     Int          @default(0)
-  userMessageCount Int          @default(0)
-  agentMessageCount Int         @default(0)
+  messageCount      Int @default(0)
+  userMessageCount  Int @default(0)
+  agentMessageCount Int @default(0)
 
-  totalTokensIn    Int          @default(0)
-  totalTokensOut   Int          @default(0)
-  totalCostUsd     Float        @default(0)
+  totalTokensIn  Int   @default(0)
+  totalTokensOut Int   @default(0)
+  totalCostUsd   Float @default(0)
 
-  avgResponseMs    Int?
-  firstResponseMs  Int?
-  totalDuration    Int?
+  avgResponseMs   Int?
+  firstResponseMs Int?
+  totalDuration   Int?
 
-  satisfactionRating Int?
+  satisfactionRating  Int?
   satisfactionComment String?   @db.Text
   satisfactionAskedAt DateTime?
   satisfactionRatedAt DateTime?
 
-  escalatedAt      DateTime?
-  escalatedTo      String?
-  escalationReason String?      @db.Text
+  escalatedAt        DateTime?
+  escalatedTo        String?
+  escalationReason   String?   @db.Text
   escalationPriority String?
 
-  summary          String?      @db.Text
-  topics           String[]
-  sentiment        String?
-  language         String?
-  intent           String?
+  summary               String?   @db.Text
+  aiSummary             String?   @db.Text
+  keyFacts              Json?
+  topics                String[]
+  sentiment             String?
+  language              String?
+  intent                String?
+  primaryIntent         String?
+  aiConfidence          Float?
+  resolutionTimeSeconds Int?
+  humanTakeoverAt       DateTime?
+  humanAgentId          String?
+  humanAgent            User?     @relation("ConversationHumanAgent", fields: [humanAgentId], references: [id], onDelete: SetNull)
+  tokensUsed            Int       @default(0)
+  estimatedCost         Float     @default(0)
+  abTestId              String?
+  abTest                ABTest?   @relation(fields: [abTestId], references: [id], onDelete: SetNull)
+  abTestVariant         String?
 
-  tags             String[]
-  notes            String?      @db.Text
+  tags  String[]
+  notes String?  @db.Text
 
-  priority         Int          @default(0)
-  isUrgent         Boolean      @default(false)
-  isStarred        Boolean      @default(false)
-  isSpam           Boolean      @default(false)
-  spamScore        Float?
+  priority  Int     @default(0)
+  isUrgent  Boolean @default(false)
+  isStarred Boolean @default(false)
+  isSpam    Boolean @default(false)
+  spamScore Float?
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  messages         Message[]
+  messages          Message[]
+  learningSignals   LearningSignal[]
+  assignments       ConversationAssignment[]
+  internalNotes     InternalNote[]
+  slaBreaches       SLABreach[]
+  scheduledMessages ScheduledMessage[]
+  llmUsage          LLMUsage[]
 
   @@index([organizationId])
   @@index([agentId])
@@ -774,56 +855,69 @@ model Conversation {
   @@index([channelType])
   @@index([createdAt])
   @@index([visitorId])
+  @@index([contactId])
   @@index([visitorEmail])
   @@index([resolvedAt])
   @@index([escalatedAt])
   @@index([assignedToId])
+  @@index([abTestId])
+  @@index([humanAgentId])
   @@index([isUrgent])
   @@index([isSpam])
   @@map("conversations")
 }
 
 model Message {
-  id               String       @id @default(cuid())
-  conversationId   String
-  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  role             MessageRole
-  content          String       @db.Text
-  contentType      String       @default("text")
-  attachments      Json?
+  role        MessageRole
+  content     String      @db.Text
+  contentType String      @default("text")
+  attachments Json?
 
-  model            String?
-  tokensIn         Int?
-  tokensOut        Int?
-  costUsd          Float?
-  latencyMs        Int?
-  confidence       Float?
+  model          String?
+  modelUsed      String?
+  tokensIn       Int?
+  tokensOut      Int?
+  tokensInput    Int?
+  tokensOutput   Int?
+  costUsd        Float?
+  latencyMs      Int?
+  responseTimeMs Int?
+  confidence     Float?
+  intent         String?
+  sentiment      String?
 
-  sourcesUsed      Json?
-  chunksUsed       String[]
-  retrievalScore   Float?
+  sourcesUsed    Json?
+  chunksUsed     String[]
+  ragSourcesUsed Json?
+  retrievalScore Float?
 
-  toolCalls        Json?
-  toolResults      Json?
+  toolCalls    Json?
+  toolResults  Json?
+  actionTaken  String?
+  actionResult Json?
 
-  flagged          Boolean      @default(false)
-  flagReason       String?
-  moderationScore  Float?
+  flagged              Boolean @default(false)
+  flagReason           String?
+  moderationScore      Float?
   moderationCategories Json?
 
-  isEdited         Boolean      @default(false)
-  editedAt         DateTime?
-  originalContent  String?      @db.Text
+  isEdited        Boolean   @default(false)
+  editedAt        DateTime?
+  originalContent String?   @db.Text
 
-  deliveryStatus   String?
-  deliveryError    String?
-  deliveredAt      DateTime?
-  readAt           DateTime?
+  deliveryStatus String?
+  deliveryError  String?
+  deliveredAt    DateTime?
+  readAt         DateTime?
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  learningSignals LearningSignal[]
 
   @@index([conversationId])
   @@index([role])
@@ -832,27 +926,368 @@ model Message {
   @@map("messages")
 }
 
+model VerticalTemplate {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  name                  String
+  description           String?  @db.Text
+  icon                  String?
+  onboardingQuestions   Json?
+  defaultKnowledge      Json?
+  defaultWorkflows      Json?
+  intentCategories      Json?
+  kpiDefinitions        Json?
+  industryVocabulary    Json?
+  commonObjections      Json?
+  qualificationCriteria Json?
+  requiredIntegrations  Json?
+  defaultTone           String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  organizations Organization[]
+  insights      VerticalInsight[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("vertical_templates")
+}
+
+model Contact {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  externalId     String?
+
+  email     String?
+  phone     String?
+  firstName String?
+  lastName  String?
+  avatar    String?
+
+  aiProfile    Json?
+  customFields Json?
+  tags         String[]
+  segments     String[]
+  timezone     String?
+
+  totalConversations  Int        @default(0)
+  totalMessages       Int        @default(0)
+  averageSatisfaction Float?
+  leadScore           Int        @default(0)
+  leadStatus          LeadStatus @default(NEW)
+  churnRisk           ChurnRisk  @default(LOW)
+  firstInteractionAt  DateTime?
+  lastInteractionAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations      Conversation[]
+  workflowExecutions WorkflowExecution[]
+  consentRecords     ConsentRecord[]
+  deletionRequests   DataDeletionRequest[]
+  scheduledMessages  ScheduledMessage[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([phone])
+  @@index([leadStatus])
+  @@index([lastInteractionAt])
+  @@map("contacts")
+}
+
+model LearningSignal {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String?
+  message        Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  signalType  LearningSignalType
+  data        Json?
+  processed   Boolean            @default(false)
+  processedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([organizationId])
+  @@index([conversationId])
+  @@index([messageId])
+  @@index([signalType])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("learning_signals")
+}
+
+model KnowledgeGap {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  question           String             @db.Text
+  normalizedQuestion String?
+  frequency          Int                @default(1)
+  category           String?
+  suggestedAnswer    String?            @db.Text
+  status             KnowledgeGapStatus @default(DETECTED)
+  approvedBy         String?
+  integratedAt       DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([frequency])
+  @@index([createdAt])
+  @@map("knowledge_gaps")
+}
+
+model VerticalInsight {
+  id                 String              @id @default(cuid())
+  verticalTemplateId String
+  verticalTemplate   VerticalTemplate    @relation(fields: [verticalTemplateId], references: [id], onDelete: Cascade)
+  insightType        VerticalInsightType
+  data               Json?
+  distributedAt      DateTime?
+  createdAt          DateTime            @default(now())
+
+  @@index([verticalTemplateId])
+  @@index([insightType])
+  @@index([createdAt])
+  @@map("vertical_insights")
+}
+
+model Workflow {
+  id             String              @id @default(cuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?             @db.Text
+  triggerType    WorkflowTriggerType
+  triggerConfig  Json?
+  steps          Json?
+  isActive       Boolean             @default(true)
+  stats          Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  executions WorkflowExecution[]
+
+  @@index([organizationId])
+  @@index([triggerType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id             String                  @id @default(cuid())
+  workflowId     String
+  workflow       Workflow                @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contactId      String?
+  contact        Contact?                @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  status         WorkflowExecutionStatus @default(RUNNING)
+  currentStep    Int                     @default(0)
+  startedAt      DateTime                @default(now())
+  completedAt    DateTime?
+  error          String?                 @db.Text
+
+  @@index([workflowId])
+  @@index([organizationId])
+  @@index([contactId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("workflow_executions")
+}
+
+model ConversationAssignment {
+  id               String         @id @default(cuid())
+  conversationId   String
+  conversation     Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  organizationId   String
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedToUserId String
+  assignedToUser   User           @relation("ConversationAssignmentUser", fields: [assignedToUserId], references: [id], onDelete: Cascade)
+  assignedAt       DateTime       @default(now())
+  unassignedAt     DateTime?
+  assignedBy       AssignedByType @default(MANUAL)
+
+  @@index([conversationId])
+  @@index([organizationId])
+  @@index([assignedToUserId])
+  @@index([assignedAt])
+  @@map("conversation_assignments")
+}
+
+model InternalNote {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation("InternalNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content        String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([organizationId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("internal_notes")
+}
+
+model CannedResponse {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  content        String       @db.Text
+  category       String?
+  shortcut       String?
+  usageCount     Int          @default(0)
+  createdById    String?
+  createdBy      User?        @relation("CannedResponseAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, shortcut])
+  @@index([organizationId])
+  @@index([category])
+  @@map("canned_responses")
+}
+
+model AssignmentRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  conditions     Json?
+  assignToUserId String?
+  assignToUser   User?        @relation("AssignmentRuleUser", fields: [assignToUserId], references: [id], onDelete: SetNull)
+  assignToTeam   String?
+  priority       Int          @default(100)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([priority])
+  @@map("assignment_rules")
+}
+
+model SLAConfig {
+  id                         String       @id @default(cuid())
+  organizationId             String
+  organization               Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  priority                   SlaPriority
+  channelType                ChannelType?
+  firstResponseTargetSeconds Int
+  resolutionTargetSeconds    Int
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([priority])
+  @@index([channelType])
+  @@map("sla_configs")
+}
+
+model SLABreach {
+  id             String        @id @default(cuid())
+  conversationId String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  breachType     SlaBreachType
+  targetSeconds  Int
+  actualSeconds  Int
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId])
+  @@index([organizationId])
+  @@index([breachType])
+  @@index([createdAt])
+  @@map("sla_breaches")
+}
+
+model ABTest {
+  id             String       @id @default(cuid())
+  agentId        String
+  agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  status         ABTestStatus @default(DRAFT)
+  variants       Json
+  distribution   Json?
+  metrics        Json?
+  winnerVariant  String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  minSampleSize  Int          @default(100)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  conversations Conversation[]
+
+  @@index([agentId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ab_tests")
+}
+
+model LLMUsage {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agentId        String?
+  agent          Agent?        @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  provider       String
+  model          String
+  tokensInput    Int
+  tokensOutput   Int
+  costUsd        Float
+  latencyMs      Int?
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([agentId])
+  @@index([conversationId])
+  @@index([provider, model])
+  @@map("llm_usage")
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // AGENT CORRECTIONS (learning from user feedback)
 // ═══════════════════════════════════════════════════════════════════
 
 model AgentCorrection {
-  id               String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  agentId          String
-  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   messageId        String
   conversationId   String
-  originalContent  String   @db.Text
-  correctedContent String   @db.Text
-  userQuestion     String?  @db.Text
+  originalContent  String  @db.Text
+  correctedContent String  @db.Text
+  userQuestion     String? @db.Text
   correctedBy      String?
 
-  indexedAt         DateTime?
-  priority         String   @default("HIGH")
+  indexedAt DateTime?
+  priority  String    @default("HIGH")
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([agentId])
   @@index([createdAt])
@@ -864,60 +1299,60 @@ model AgentCorrection {
 // ═══════════════════════════════════════════════════════════════════
 
 model AgentDailyAnalytics {
-  id                   String   @id @default(cuid())
-  agentId              String
-  agent                Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  date                 DateTime @db.Date
+  id      String   @id @default(cuid())
+  agentId String
+  agent   Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  date    DateTime @db.Date
 
-  conversations        Int      @default(0)
-  messages             Int      @default(0)
-  uniqueVisitors       Int      @default(0)
+  conversations  Int @default(0)
+  messages       Int @default(0)
+  uniqueVisitors Int @default(0)
 
-  autoResolved         Int      @default(0)
-  humanResolved        Int      @default(0)
-  escalated            Int      @default(0)
-  abandoned            Int      @default(0)
-  spam                 Int      @default(0)
+  autoResolved  Int @default(0)
+  humanResolved Int @default(0)
+  escalated     Int @default(0)
+  abandoned     Int @default(0)
+  spam          Int @default(0)
 
-  avgResponseMs        Int?
-  avgFirstResponseMs   Int?
+  avgResponseMs         Int?
+  avgFirstResponseMs    Int?
   avgConversationLength Int?
-  avgTokensPerMessage  Int?
+  avgTokensPerMessage   Int?
 
-  ratingsCount         Int      @default(0)
-  ratingsSum           Int      @default(0)
-  avgSatisfaction      Float?
-  rating1Count         Int      @default(0)
-  rating2Count         Int      @default(0)
-  rating3Count         Int      @default(0)
-  rating4Count         Int      @default(0)
-  rating5Count         Int      @default(0)
-  npsScore             Int?
+  ratingsCount    Int    @default(0)
+  ratingsSum      Int    @default(0)
+  avgSatisfaction Float?
+  rating1Count    Int    @default(0)
+  rating2Count    Int    @default(0)
+  rating3Count    Int    @default(0)
+  rating4Count    Int    @default(0)
+  rating5Count    Int    @default(0)
+  npsScore        Int?
 
-  totalTokensIn        Int      @default(0)
-  totalTokensOut       Int      @default(0)
-  totalCostUsd         Float    @default(0)
+  totalTokensIn          Int    @default(0)
+  totalTokensOut         Int    @default(0)
+  totalCostUsd           Float  @default(0)
   avgCostPerConversation Float?
 
-  modelsUsage          Json?
+  modelsUsage Json?
 
-  widgetConversations  Int      @default(0)
-  emailConversations   Int      @default(0)
-  slackConversations   Int      @default(0)
-  apiConversations     Int      @default(0)
+  widgetConversations Int @default(0)
+  emailConversations  Int @default(0)
+  slackConversations  Int @default(0)
+  apiConversations    Int @default(0)
 
-  estimatedHoursSaved  Float?
-  estimatedCostSaved   Float?
+  estimatedHoursSaved Float?
+  estimatedCostSaved  Float?
 
-  topTopics            Json?
+  topTopics Json?
 
-  positiveSentiment    Int      @default(0)
-  neutralSentiment     Int      @default(0)
-  negativeSentiment    Int      @default(0)
+  positiveSentiment Int @default(0)
+  neutralSentiment  Int @default(0)
+  negativeSentiment Int @default(0)
 
-  languageBreakdown    Json?
+  languageBreakdown Json?
 
-  createdAt            DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([agentId, date])
   @@index([agentId])
@@ -930,21 +1365,21 @@ model AgentDailyAnalytics {
 // ═══════════════════════════════════════════════════════════════════
 
 model AnalyticsEvent {
-  id               String        @id @default(cuid())
-  eventType        String
-  userId           String?
-  sessionId        String?
-  properties       Json?
-  organizationId   String?
-  organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  page             String?
-  referrer         String?
-  userAgent        String?       @db.Text
-  ipAddress        String?
-  country          String?
-  device           String?
+  id             String        @id @default(cuid())
+  eventType      String
+  userId         String?
+  sessionId      String?
+  properties     Json?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  page           String?
+  referrer       String?
+  userAgent      String?       @db.Text
+  ipAddress      String?
+  country        String?
+  device         String?
 
-  createdAt        DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([eventType])
   @@index([userId])
@@ -955,17 +1390,17 @@ model AnalyticsEvent {
 }
 
 model WebVital {
-  id          String   @id @default(cuid())
-  name        String
-  value       Float
-  rating      String?
-  delta       Float?
-  page        String?
-  userAgent   String?  @db.Text
-  sessionId   String?
-  connection  String?
+  id         String  @id @default(cuid())
+  name       String
+  value      Float
+  rating     String?
+  delta      Float?
+  page       String?
+  userAgent  String? @db.Text
+  sessionId  String?
+  connection String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([name])
   @@index([createdAt])
@@ -977,40 +1412,40 @@ model WebVital {
 // ═══════════════════════════════════════════════════════════════════
 
 model Integration {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  type             IntegrationType
-  status           IntegrationStatus @default(CONNECTED)
+  type   IntegrationType
+  status IntegrationStatus @default(CONNECTED)
 
-  accessToken      String?      @db.Text
-  refreshToken     String?      @db.Text
-  tokenExpiresAt   DateTime?
-  scope            String?
+  accessToken    String?   @db.Text
+  refreshToken   String?   @db.Text
+  tokenExpiresAt DateTime?
+  scope          String?
 
-  shopDomain       String?
-  shopId           String?
-  shopName         String?
-  hubspotPortalId  String?
-  slackTeamId      String?
-  slackTeamName    String?
+  shopDomain      String?
+  shopId          String?
+  shopName        String?
+  hubspotPortalId String?
+  slackTeamId     String?
+  slackTeamName   String?
 
-  config           Json?
+  config Json?
 
-  lastSyncAt       DateTime?
-  lastSyncSuccess  Boolean?
-  lastSyncError    String?      @db.Text
-  syncEnabled      Boolean      @default(true)
-  autoSync         Boolean      @default(false)
-  syncFrequency    String?
+  lastSyncAt      DateTime?
+  lastSyncSuccess Boolean?
+  lastSyncError   String?   @db.Text
+  syncEnabled     Boolean   @default(true)
+  autoSync        Boolean   @default(false)
+  syncFrequency   String?
 
-  webhookSecret    String?
-  webhooksEnabled  Boolean      @default(false)
+  webhookSecret   String?
+  webhooksEnabled Boolean @default(false)
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@unique([organizationId, type])
   @@index([organizationId])
@@ -1024,20 +1459,20 @@ model Integration {
 // ═══════════════════════════════════════════════════════════════════
 
 model UsageRecord {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  type             UsageType
-  quantity         Int
-  agentId          String?
-  conversationId   String?
-  metadata         Json?
+  type           UsageType
+  quantity       Int
+  agentId        String?
+  conversationId String?
+  metadata       Json?
 
-  periodStart      DateTime
-  periodEnd        DateTime
+  periodStart DateTime
+  periodEnd   DateTime
 
-  createdAt        DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([organizationId])
   @@index([type])
@@ -1047,21 +1482,21 @@ model UsageRecord {
 }
 
 model Invoice {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  stripeInvoiceId  String       @unique
+  stripeInvoiceId     String  @unique
   stripePaymentIntent String?
 
-  subtotal         Float
-  tax              Float        @default(0)
-  discount         Float        @default(0)
-  total            Float
-  currency         String       @default("usd")
+  subtotal Float
+  tax      Float  @default(0)
+  discount Float  @default(0)
+  total    Float
+  currency String @default("usd")
 
-  status           InvoiceStatus
-  paidAt           DateTime?
+  status InvoiceStatus
+  paidAt DateTime?
 
   periodStart      DateTime
   periodEnd        DateTime
@@ -1069,10 +1504,10 @@ model Invoice {
   pdfUrl           String?
   hostedUrl        String?
   paymentMethod    String?
-  lastPaymentError String?      @db.Text
+  lastPaymentError String?  @db.Text
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([organizationId])
   @@index([status])
@@ -1086,27 +1521,27 @@ model Invoice {
 // ═══════════════════════════════════════════════════════════════════
 
 model ApiKey {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  name             String
-  keyHash          String       @unique
-  keyPrefix        String
-  permissions      String[]
-  scopes           String[]
+  name        String
+  keyHash     String   @unique
+  keyPrefix   String
+  permissions String[]
+  scopes      String[]
 
-  rateLimit        Int          @default(1000)
-  allowedIps       String[]
+  rateLimit  Int      @default(1000)
+  allowedIps String[]
 
-  lastUsedAt       DateTime?
-  lastUsedIp       String?
-  usageCount       Int          @default(0)
-  expiresAt        DateTime?
-  isActive         Boolean      @default(true)
+  lastUsedAt DateTime?
+  lastUsedIp String?
+  usageCount Int       @default(0)
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
 
-  createdAt        DateTime     @default(now())
-  revokedAt        DateTime?
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
 
   @@index([keyHash])
   @@index([organizationId])
@@ -1115,30 +1550,30 @@ model ApiKey {
 }
 
 model Webhook {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  url              String
-  events           String[]
-  secret           String
-  customHeaders    Json?
+  url           String
+  events        String[]
+  secret        String
+  customHeaders Json?
 
-  maxRetries       Int          @default(3)
-  retryBackoff     String       @default("exponential")
-  status           WebhookStatus @default(ACTIVE)
+  maxRetries   Int           @default(3)
+  retryBackoff String        @default("exponential")
+  status       WebhookStatus @default(ACTIVE)
 
-  lastCalledAt     DateTime?
-  lastStatusCode   Int?
-  lastError        String?      @db.Text
+  lastCalledAt        DateTime?
+  lastStatusCode      Int?
+  lastError           String?   @db.Text
   consecutiveFailures Int       @default(0)
-  totalCalls       Int          @default(0)
-  successfulCalls  Int          @default(0)
+  totalCalls          Int       @default(0)
+  successfulCalls     Int       @default(0)
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  logs             WebhookLog[]
+  logs WebhookLog[]
 
   @@index([organizationId])
   @@index([status])
@@ -1146,20 +1581,20 @@ model Webhook {
 }
 
 model WebhookLog {
-  id               String   @id @default(cuid())
-  webhookId        String
-  webhook          Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  webhookId String
+  webhook   Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
-  event            String
-  payload          Json
-  statusCode       Int?
-  response         String?  @db.Text
-  latencyMs        Int?
-  success          Boolean
-  error            String?  @db.Text
-  retryCount       Int      @default(0)
+  event      String
+  payload    Json
+  statusCode Int?
+  response   String? @db.Text
+  latencyMs  Int?
+  success    Boolean
+  error      String? @db.Text
+  retryCount Int     @default(0)
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([webhookId])
   @@index([createdAt])
@@ -1167,30 +1602,265 @@ model WebhookLog {
   @@map("webhook_logs")
 }
 
+model AgentChannel {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agentId        String
+  agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  channelType    ChannelType
+  isActive       Boolean      @default(true)
+  config         Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([agentId, channelType])
+  @@index([organizationId])
+  @@index([channelType])
+  @@map("agent_channels")
+}
+
+model ConsentRecord {
+  id             String       @id @default(cuid())
+  contactId      String
+  contact        Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  consentType    ConsentType
+  granted        Boolean      @default(false)
+  grantedAt      DateTime?
+  revokedAt      DateTime?
+  ipAddress      String?
+  userAgent      String?      @db.Text
+  policyVersion  String?
+  createdAt      DateTime     @default(now())
+
+  @@index([contactId])
+  @@index([organizationId])
+  @@index([consentType])
+  @@index([createdAt])
+  @@map("consent_records")
+}
+
+model DataDeletionRequest {
+  id                String                  @id @default(cuid())
+  contactId         String
+  contact           Contact                 @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  organizationId    String
+  organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy       DataDeletionRequestedBy
+  requestedByUserId String?
+  requestedByUser   User?                   @relation("DataDeletionRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  status            DataDeletionStatus      @default(PENDING)
+  completedAt       DateTime?
+  error             String?                 @db.Text
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([contactId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("data_deletion_requests")
+}
+
+model NotificationPreference {
+  id               String                @id @default(cuid())
+  organizationId   String
+  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationType String
+  channels         NotificationChannel[]
+  isEnabled        Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([organizationId, userId, notificationType])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+model Notification {
+  id             String                @id @default(cuid())
+  organizationId String
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type           String
+  title          String
+  body           String                @db.Text
+  data           Json?
+  channels       NotificationChannel[]
+  readAt         DateTime?
+  createdAt      DateTime              @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model ScheduledMessage {
+  id             String                    @id @default(cuid())
+  organizationId String
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation?             @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  contactId      String?
+  contact        Contact?                  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  channelType    ChannelType
+  content        String                    @db.Text
+  scheduledAt    DateTime
+  sentAt         DateTime?
+  cancelledAt    DateTime?
+  status         ScheduledMessageStatus    @default(SCHEDULED)
+  createdBy      ScheduledMessageCreatedBy @default(AGENT_AI)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([organizationId])
+  @@index([conversationId])
+  @@index([contactId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("scheduled_messages")
+}
+
+model CustomFieldDefinition {
+  id             String               @id @default(cuid())
+  organizationId String
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  label          String
+  fieldType      CustomFieldType
+  options        Json?
+  isRequired     Boolean              @default(false)
+  appliesTo      CustomFieldAppliesTo
+  displayOrder   Int                  @default(0)
+  createdById    String?
+  createdBy      User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([organizationId, name, appliesTo])
+  @@index([organizationId])
+  @@index([appliesTo])
+  @@map("custom_field_definitions")
+}
+
+model FailedJob {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  queue          String
+  jobId          String
+  data           Json?
+  error          String        @db.Text
+  attempts       Int           @default(0)
+  failedAt       DateTime      @default(now())
+  retriedAt      DateTime?
+  resolvedAt     DateTime?
+
+  @@index([organizationId])
+  @@index([queue, failedAt])
+  @@index([resolvedAt])
+  @@map("failed_jobs")
+}
+
+model WhiteLabelConfig {
+  id                String       @id @default(cuid())
+  organizationId    String       @unique
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customDomain      String?
+  customLogoUrl     String?
+  primaryColor      String?
+  secondaryColor    String?
+  emailSenderDomain String?
+  hidePoweredBy     Boolean      @default(false)
+  customFavicon     String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([customDomain])
+  @@map("white_label_configs")
+}
+
+model Partner {
+  id                    String        @id @default(cuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName           String
+  website               String?
+  status                PartnerStatus @default(PENDING)
+  commissionRate        Float         @default(0)
+  totalReferrals        Int           @default(0)
+  totalCommissionEarned Float         @default(0)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  referrals PartnerReferral[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("partners")
+}
+
+model PartnerReferral {
+  id             String                @id @default(cuid())
+  partnerId      String
+  partner        Partner               @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status         PartnerReferralStatus @default(TRIAL)
+  monthlyValue   Float                 @default(0)
+  commissionPaid Float                 @default(0)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([partnerId, organizationId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("partner_referrals")
+}
+
+model IdempotencyKey {
+  key       String   @id
+  result    String?  @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // AUDIT & SUPPORT
 // ═══════════════════════════════════════════════════════════════════
 
 model AuditLog {
-  id               String       @id @default(cuid())
-  organizationId   String?
-  organization     Organization? @relation(fields: [organizationId], references: [id])
-  userId           String?
-  user             User?        @relation(fields: [userId], references: [id])
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id])
 
-  action           String
-  resource         String
-  resourceId       String?
-  changes          Json?
-  metadata         Json?
-  ipAddress        String?
-  userAgent        String?      @db.Text
-  country          String?
+  action     String
+  resource   String
+  resourceId String?
+  changes    Json?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String? @db.Text
+  country    String?
 
-  success          Boolean      @default(true)
-  error            String?      @db.Text
+  success Boolean @default(true)
+  error   String? @db.Text
 
-  createdAt        DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([organizationId])
   @@index([userId])
@@ -1201,33 +1871,33 @@ model AuditLog {
 }
 
 model Ticket {
-  id               String   @id @default(cuid())
-  organizationId   String?
-  organization     Organization? @relation(fields: [organizationId], references: [id])
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
-  createdById      String?
-  createdBy        User?    @relation("TicketCreator", fields: [createdById], references: [id])
-  assignedToId     String?
-  assignedTo       User?    @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  createdById  String?
+  createdBy    User?   @relation("TicketCreator", fields: [createdById], references: [id])
+  assignedToId String?
+  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
 
-  subject          String
-  description      String   @db.Text
-  category         String?
-  priority         TicketPriority @default(MEDIUM)
-  status           TicketStatus @default(OPEN)
+  subject     String
+  description String         @db.Text
+  category    String?
+  priority    TicketPriority @default(MEDIUM)
+  status      TicketStatus   @default(OPEN)
 
-  dueAt            DateTime?
-  firstResponseAt  DateTime?
-  resolvedAt       DateTime?
-  closedAt         DateTime?
+  dueAt           DateTime?
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
 
-  tags             String[]
-  customFields     Json?
+  tags         String[]
+  customFields Json?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages         TicketMessage[]
+  messages TicketMessage[]
 
   @@index([status])
   @@index([priority])
@@ -1237,37 +1907,37 @@ model Ticket {
 }
 
 model TicketMessage {
-  id               String  @id @default(cuid())
-  ticketId         String
-  ticket           Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  content          String  @db.Text
-  contentType      String  @default("text")
-  isStaff          Boolean @default(false)
-  authorId         String?
-  authorName       String?
-  authorEmail      String?
-  attachments      Json?
+  content     String  @db.Text
+  contentType String  @default("text")
+  isStaff     Boolean @default(false)
+  authorId    String?
+  authorName  String?
+  authorEmail String?
+  attachments Json?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([ticketId])
   @@map("ticket_messages")
 }
 
 model FeatureFlag {
-  id               String  @id @default(cuid())
-  key              String  @unique
-  name             String
-  description      String? @db.Text
+  id          String  @id @default(cuid())
+  key         String  @unique
+  name        String
+  description String? @db.Text
 
-  enabled          Boolean @default(false)
-  rules            Json?
-  rolloutPercentage Int   @default(0)
+  enabled           Boolean @default(false)
+  rules             Json?
+  rolloutPercentage Int     @default(0)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([key])
   @@index([enabled])
@@ -1281,6 +1951,7 @@ model FeatureFlag {
 enum PlatformRole {
   USER
   ADMIN
+
   @@map("platform_role")
 }
 
@@ -1289,6 +1960,7 @@ enum OrgRole {
   ADMIN
   MEMBER
   VIEWER
+
   @@map("org_role")
 }
 
@@ -1297,6 +1969,7 @@ enum OrgStatus {
   SUSPENDED
   TRIAL
   CANCELED
+
   @@map("org_status")
 }
 
@@ -1306,6 +1979,7 @@ enum Plan {
   PRO
   BUSINESS
   ENTERPRISE
+
   @@map("plan")
 }
 
@@ -1327,6 +2001,7 @@ enum Industry {
   NONPROFIT
   GOVERNMENT
   OTHER
+
   @@map("industry")
 }
 
@@ -1336,6 +2011,7 @@ enum CompanySize {
   MEDIUM
   LARGE
   ENTERPRISE
+
   @@map("company_size")
 }
 
@@ -1348,6 +2024,7 @@ enum AgentCategory {
   ANALYTICS
   EMAIL
   CUSTOM
+
   @@map("agent_category")
 }
 
@@ -1356,6 +2033,7 @@ enum AgentStatus {
   ACTIVE
   PAUSED
   ARCHIVED
+
   @@map("agent_status")
 }
 
@@ -1367,6 +2045,7 @@ enum AgentTone {
   EMPATHETIC
   ENTHUSIASTIC
   CUSTOM
+
   @@map("agent_tone")
 }
 
@@ -1380,6 +2059,7 @@ enum ChannelType {
   FACEBOOK
   TELEGRAM
   API
+
   @@map("channel_type")
 }
 
@@ -1387,6 +2067,7 @@ enum ChannelStatus {
   ACTIVE
   PAUSED
   ERROR
+
   @@map("channel_status")
 }
 
@@ -1395,6 +2076,7 @@ enum WidgetPosition {
   BOTTOM_LEFT
   TOP_RIGHT
   TOP_LEFT
+
   @@map("widget_position")
 }
 
@@ -1402,6 +2084,7 @@ enum WidgetSize {
   SMALL
   MEDIUM
   LARGE
+
   @@map("widget_size")
 }
 
@@ -1410,6 +2093,7 @@ enum KBStatus {
   INDEXING
   ERROR
   SYNCING
+
   @@map("kb_status")
 }
 
@@ -1429,6 +2113,7 @@ enum KBSourceType {
   API_ZENDESK
   API_INTERCOM
   API_CUSTOM
+
   @@map("kb_source_type")
 }
 
@@ -1439,6 +2124,7 @@ enum KBSourceStatus {
   ERROR
   SYNCING
   PAUSED
+
   @@map("kb_source_status")
 }
 
@@ -1451,6 +2137,7 @@ enum SyncFrequency {
   DAILY
   WEEKLY
   MONTHLY
+
   @@map("sync_frequency")
 }
 
@@ -1460,6 +2147,7 @@ enum DocProcessingStatus {
   INDEXED
   ERROR
   SKIPPED
+
   @@map("doc_processing_status")
 }
 
@@ -1470,6 +2158,7 @@ enum ConversationStatus {
   CLOSED
   SPAM
   ARCHIVED
+
   @@map("conversation_status")
 }
 
@@ -1479,6 +2168,7 @@ enum ResolvedBy {
   VISITOR
   TIMEOUT
   SYSTEM
+
   @@map("resolved_by")
 }
 
@@ -1488,7 +2178,80 @@ enum MessageRole {
   SYSTEM
   TOOL
   INTERNAL_NOTE
+
   @@map("message_role")
+}
+
+enum LeadStatus {
+  NEW
+  ENGAGED
+  QUALIFIED
+  CONVERTED
+  LOST
+
+  @@map("lead_status")
+}
+
+enum ChurnRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("churn_risk")
+}
+
+enum LearningSignalType {
+  RESOLVED_BY_AI
+  ESCALATED_TO_HUMAN
+  HUMAN_CORRECTION
+  POSITIVE_FEEDBACK
+  NEGATIVE_FEEDBACK
+  KNOWLEDGE_GAP
+  NEW_INTENT_DETECTED
+  HALLUCINATION_CAUGHT
+
+  @@map("learning_signal_type")
+}
+
+enum KnowledgeGapStatus {
+  DETECTED
+  SUGGESTED
+  APPROVED
+  REJECTED
+  INTEGRATED
+
+  @@map("knowledge_gap_status")
+}
+
+enum VerticalInsightType {
+  COMMON_GAP
+  BEST_PRACTICE
+  TREND
+  OPTIMIZATION
+
+  @@map("vertical_insight_type")
+}
+
+enum WorkflowTriggerType {
+  MESSAGE_RECEIVED
+  LEAD_SCORE_THRESHOLD
+  INACTIVITY
+  ECOMMERCE_EVENT
+  SCHEDULE
+  WEBHOOK_RECEIVED
+  MANUAL
+
+  @@map("workflow_trigger_type")
+}
+
+enum WorkflowExecutionStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELED
+
+  @@map("workflow_execution_status")
 }
 
 enum IntegrationType {
@@ -1526,6 +2289,7 @@ enum IntegrationType {
   OUTLOOK_CALENDAR
   STRIPE
   PAYPAL
+
   @@map("integration_type")
 }
 
@@ -1535,6 +2299,7 @@ enum IntegrationStatus {
   ERROR
   EXPIRED
   PENDING
+
   @@map("integration_status")
 }
 
@@ -1545,6 +2310,7 @@ enum UsageType {
   API_CALL
   LLM_TOKENS
   STORAGE
+
   @@map("usage_type")
 }
 
@@ -1554,6 +2320,7 @@ enum InvoiceStatus {
   PAID
   VOID
   UNCOLLECTIBLE
+
   @@map("invoice_status")
 }
 
@@ -1562,6 +2329,7 @@ enum InvitationStatus {
   ACCEPTED
   EXPIRED
   CANCELLED
+
   @@map("invitation_status")
 }
 
@@ -1569,6 +2337,7 @@ enum WebhookStatus {
   ACTIVE
   PAUSED
   FAILED
+
   @@map("webhook_status")
 }
 
@@ -1578,6 +2347,7 @@ enum TicketStatus {
   WAITING
   RESOLVED
   CLOSED
+
   @@map("ticket_status")
 }
 
@@ -1586,5 +2356,132 @@ enum TicketPriority {
   MEDIUM
   HIGH
   URGENT
+
   @@map("ticket_priority")
+}
+
+enum AgentMode {
+  SANDBOX
+  LIVE
+
+  @@map("agent_mode")
+}
+
+enum AssignedByType {
+  AUTO_RULE
+  MANUAL
+  ESCALATION
+
+  @@map("assigned_by_type")
+}
+
+enum SlaPriority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+
+  @@map("sla_priority")
+}
+
+enum SlaBreachType {
+  FIRST_RESPONSE
+  RESOLUTION
+
+  @@map("sla_breach_type")
+}
+
+enum ABTestStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  CANCELLED
+
+  @@map("ab_test_status")
+}
+
+enum ConsentType {
+  DATA_PROCESSING
+  MARKETING
+  ANALYTICS
+
+  @@map("consent_type")
+}
+
+enum DataDeletionRequestedBy {
+  CONTACT
+  ADMIN
+  AUTOMATED
+
+  @@map("data_deletion_requested_by")
+}
+
+enum DataDeletionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("data_deletion_status")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  SMS
+
+  @@map("notification_channel")
+}
+
+enum ScheduledMessageStatus {
+  SCHEDULED
+  SENT
+  CANCELLED
+  FAILED
+
+  @@map("scheduled_message_status")
+}
+
+enum ScheduledMessageCreatedBy {
+  AGENT_AI
+  WORKFLOW
+  HUMAN
+
+  @@map("scheduled_message_created_by")
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  BOOLEAN
+
+  @@map("custom_field_type")
+}
+
+enum CustomFieldAppliesTo {
+  CONTACT
+  CONVERSATION
+
+  @@map("custom_field_applies_to")
+}
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  SUSPENDED
+
+  @@map("partner_status")
+}
+
+enum PartnerReferralStatus {
+  TRIAL
+  PAYING
+  CHURNED
+
+  @@map("partner_referral_status")
 }

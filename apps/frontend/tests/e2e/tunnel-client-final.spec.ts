@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 
 /**
  * Tunnel Client Final — De la personnalisation à l'achat
@@ -9,6 +9,10 @@ test.describe.configure({ mode: 'serial' });
 test.describe('Tunnel Client Final — Personnalisation et achat', () => {
   test.setTimeout(90_000);
   const DEMO_URL = '/demo/customizer';
+
+  async function isPresentAndVisible(locator: Locator): Promise<boolean> {
+    return (await locator.count()) > 0 && (await locator.first().isVisible());
+  }
 
   test('ÉTAPE 1 — Le customizer se charge', async ({ page }) => {
     const response = await page.goto(DEMO_URL, {
@@ -30,10 +34,10 @@ test.describe('Tunnel Client Final — Personnalisation et achat', () => {
       'button:has-text("Texte"), button:has-text("Text"), [data-tool="text"], [aria-label*="text" i]'
     );
 
-    if (await textTool.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await isPresentAndVisible(textTool.first())) {
       await textTool.first().click();
       const textInput = page.locator('input[type="text"], textarea, [contenteditable="true"]');
-      if (await textInput.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isPresentAndVisible(textInput.first())) {
         await textInput.first().fill('Mon texte personnalisé');
       }
     }
@@ -50,7 +54,7 @@ test.describe('Tunnel Client Final — Personnalisation et achat', () => {
       '[data-testid="color-picker"], .color-swatch, [data-tool="color"], button[aria-label*="couleur" i], button[aria-label*="color" i]'
     );
 
-    if (await colorSelector.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await isPresentAndVisible(colorSelector.first())) {
       await colorSelector.first().click();
     }
 
@@ -66,7 +70,7 @@ test.describe('Tunnel Client Final — Personnalisation et achat', () => {
       'button:has-text("Aperçu"), button:has-text("Preview"), button:has-text("Voir"), [data-action="preview"]'
     );
 
-    if (await previewButton.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await isPresentAndVisible(previewButton.first())) {
       await previewButton.first().click();
       await page.waitForTimeout(2000);
     }
@@ -84,7 +88,7 @@ test.describe('Tunnel Client Final — Personnalisation et achat', () => {
   });
 
   test('ÉTAPE 6 — Checkout accessible', async ({ page }) => {
-    const response = await page.goto('/checkout', {
+    await page.goto('/checkout', {
       waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });

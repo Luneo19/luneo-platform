@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { memo } from 'react';
 import {
@@ -55,8 +55,8 @@ function CollaborativeEditorContent({
   resourceType,
   resourceId,
   userId,
-  userName,
-  userAvatar,
+  userName: _userName,
+  userAvatar: _userAvatar,
 }: CollaborativeEditorProps) {
   const { t } = useI18n();
   const [cursors, setCursors] = useState<SharedCursor[]>([]);
@@ -65,18 +65,6 @@ function CollaborativeEditorContent({
   const [newComment, setNewComment] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const cursorColors = useMemo(
-    () => [
-      '#3B82F6',
-      '#10B981',
-      '#F59E0B',
-      '#EF4444',
-      '#8B5CF6',
-      '#EC4899',
-    ],
-    []
-  );
-
   // ========================================
   // EFFECTS
   // ========================================

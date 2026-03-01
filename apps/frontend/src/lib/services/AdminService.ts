@@ -81,8 +81,6 @@ export interface UpdateBrandRequest {
 type RawUserRecord = Record<string, unknown>;
 /** Raw API shape for brand list/item */
 type RawBrandRecord = Record<string, unknown>;
-/** Raw API shape for admin metrics response */
-type RawMetricsRecord = Record<string, unknown>;
 
 // ========================================
 // SERVICE

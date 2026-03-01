@@ -40,6 +40,12 @@ const middlewareConfig = {
     '/admin',
     '/dashboard',
     '/overview',
+    '/agents',
+    '/conversations',
+    '/analytics',
+    '/integrations',
+    '/knowledge',
+    '/support',
     '/settings',
     '/billing',
     '/team',
@@ -71,11 +77,60 @@ const middlewareConfig = {
   ],
 };
 
-const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'es', 'it'] as const;
+const SUPPORTED_LOCALES = ['en', 'fr'] as const;
 const LOCALE_COOKIE = 'luneo_locale';
+
+function parseJwtPayload(token?: string): Record<string, unknown> | null {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Canonicalize malformed paths that can trigger auth/admin redirect loops:
+  // - duplicate slashes (e.g. //Admin)
+  // - case variants for known auth/admin entrypoints (e.g. /Admin)
+  const collapsedPath = pathname.replace(/\/{2,}/g, '/');
+  const lowerCollapsedPath = collapsedPath.toLowerCase();
+  const shouldCanonicalizeKnownPath =
+    lowerCollapsedPath === '/admin' ||
+    lowerCollapsedPath.startsWith('/admin/') ||
+    lowerCollapsedPath === '/login' ||
+    lowerCollapsedPath.startsWith('/login/') ||
+    lowerCollapsedPath === '/register' ||
+    lowerCollapsedPath.startsWith('/register/') ||
+    lowerCollapsedPath === '/forgot-password' ||
+    lowerCollapsedPath.startsWith('/forgot-password/') ||
+    lowerCollapsedPath === '/reset-password' ||
+    lowerCollapsedPath.startsWith('/reset-password/');
+  const canonicalPath = shouldCanonicalizeKnownPath ? lowerCollapsedPath : collapsedPath;
+  if (canonicalPath !== pathname) {
+    const url = request.nextUrl.clone();
+    url.pathname = canonicalPath;
+    return NextResponse.redirect(url, 308);
+  }
+
+  // Canonical host policy in production:
+  // - app.luneo.app -> luneo.app
+  // - www.luneo.app -> luneo.app
+  const requestHost = (request.nextUrl.hostname || request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+  if (process.env.NODE_ENV === 'production' && requestHost) {
+    if (requestHost === 'app.luneo.app' || requestHost === 'www.luneo.app') {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.protocol = 'https:';
+      redirectUrl.host = 'luneo.app';
+      return NextResponse.redirect(redirectUrl, 308);
+    }
+  }
   
   // Ignorer les fichiers statiques et assets pour éviter les 404
   if (
@@ -124,7 +179,7 @@ export async function middleware(request: NextRequest) {
 
   // 4. CSRF Protection for mutations
   if (shouldCheckCSRF(request, pathname)) {
-    const csrfResponse = handleCSRF(request);
+    const csrfResponse = handleCSRF(request, pathname);
     if (csrfResponse) return csrfResponse;
   }
 
@@ -140,8 +195,12 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isProtectedRoute) {
-    const accessToken = request.cookies.get('accessToken')?.value;
-    const refreshToken = request.cookies.get('refreshToken')?.value;
+    const accessToken =
+      request.cookies.get('accessToken')?.value ||
+      request.cookies.get('access_token')?.value;
+    const refreshToken =
+      request.cookies.get('refreshToken')?.value ||
+      request.cookies.get('refresh_token')?.value;
 
     if (!accessToken && !refreshToken) {
       const loginUrl = new URL('/login', request.url);
@@ -152,47 +211,23 @@ export async function middleware(request: NextRequest) {
     // SECURITY FIX P1-5: Check JWT expiration (lightweight, no crypto verification).
     // If both tokens are expired, redirect to login. Backend does full verification.
     if (accessToken) {
-      try {
-        const payload = JSON.parse(
-          Buffer.from(accessToken.split('.')[1], 'base64').toString()
-        );
-        const isExpired = payload.exp && payload.exp * 1000 < Date.now();
-        if (isExpired && !refreshToken) {
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('redirect', pathname);
-          return NextResponse.redirect(loginUrl);
-        }
-      } catch {
+      const payload = parseJwtPayload(accessToken);
+      const exp = typeof payload?.exp === 'number' ? payload.exp : null;
+      if (exp && exp * 1000 <= Date.now() && !refreshToken) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      if (!payload && !refreshToken) {
         // Malformed token — let backend handle it
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
       }
     }
   }
 
-  // 7. Admin role verification
-  // PRODUCTION FIX: Check user role from cookie/JWT for admin routes
-  // This prevents non-admin users from accessing /admin/* pages
-  if (pathname.startsWith('/admin')) {
-    const accessToken = request.cookies.get('accessToken')?.value;
-    if (accessToken) {
-      try {
-        // Decode JWT payload (no verification - that's the backend's job)
-        // This is a lightweight client-side guard; full RBAC is enforced server-side
-        const payload = JSON.parse(
-          Buffer.from(accessToken.split('.')[1], 'base64').toString()
-        );
-        const userRole = payload.role || payload.userRole || '';
-        if (userRole !== 'ADMIN' && userRole !== 'PLATFORM_ADMIN') {
-          // Non-admin user trying to access admin routes - redirect to dashboard
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-      } catch {
-        // If JWT decode fails, let the backend handle it
-        // Don't block - the layout/API will reject unauthorized access
-      }
-    }
-  }
-
-  // 8. Prevent CDN caching for admin routes
+  // 7. Prevent CDN caching for admin routes
   // Admin pages are dynamic (they read cookies and check roles server-side).
   // CDN must NEVER serve a cached redirect for these routes.
   if (pathname.startsWith('/admin')) {
@@ -201,7 +236,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Vercel-CDN-Cache-Control', 'private, no-store');
   }
 
-  // 9. Onboarding check — redirect to /onboarding if not completed
+  // 8. Onboarding check — redirect to /onboarding if not completed
   // This is a lightweight cookie-based check. Full validation is in the dashboard layout.
   const requiresOnboarding = middlewareConfig.onboardingRequiredRoutes.some(
     (route) => pathname.startsWith(route) && !pathname.startsWith('/api/')
@@ -396,8 +431,24 @@ async function handleRateLimit(
 
     return null; // Continue to next middleware
   } catch (error) {
-    // If rate limiting fails, log but allow request (fail open)
+    // If rate limiting fails, protect sensitive auth mutations (fail closed)
     logger.error('Rate limiting error', error instanceof Error ? error : undefined);
+    const failClosedPrefixes = ['/api/v1/auth/', '/api/auth/', '/api/v1/admin/', '/api/v1/billing/', '/api/v1/security/'];
+    const isSensitiveMutationPath = failClosedPrefixes.some((prefix) => pathname.startsWith(prefix));
+    const isMutationMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
+    if (isSensitiveMutationPath && isMutationMethod) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Service Unavailable',
+          message: 'Rate limit service is temporarily unavailable.',
+          code: 'RATE_LIMIT_UNAVAILABLE',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
     return null;
   }
 }
@@ -422,13 +473,41 @@ function shouldCheckCSRF(request: NextRequest, pathname: string): boolean {
     return false;
   }
 
+  // Auth mutation endpoints rely on secure httpOnly cookies and can be called
+  // before a CSRF cookie is available (session bootstrap/refresh flows).
+  const csrfExemptAuthMutations = [
+    '/api/v1/auth/login',
+    '/api/v1/auth/signup',
+    '/api/v1/auth/logout',
+    '/api/v1/auth/refresh',
+    '/api/v1/auth/forgot-password',
+    '/api/v1/auth/reset-password',
+  ];
+  if (csrfExemptAuthMutations.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
+    return false;
+  }
+
+  // Admin API routes are proxied by Next handlers that already forward/repair CSRF
+  // and are enforced again by backend CsrfGuard. Skipping middleware-level CSRF
+  // here avoids false 403 from double validation with out-of-sync tokens.
+  if (pathname.startsWith('/api/admin/')) {
+    return false;
+  }
+
   return pathname.startsWith('/api/');
 }
 
-function handleCSRF(request: NextRequest): NextResponse | null {
+function handleCSRF(request: NextRequest, pathname: string): NextResponse | null {
   const csrfToken = request.headers.get('x-csrf-token');
   // SECURITY FIX: Match backend cookie name (csrf_token, not csrf-token)
   const csrfCookie = request.cookies.get('csrf_token')?.value;
+  const hasSessionCookie =
+    Boolean(request.cookies.get('accessToken')?.value) ||
+    Boolean(request.cookies.get('access_token')?.value) ||
+    Boolean(request.cookies.get('refreshToken')?.value) ||
+    Boolean(request.cookies.get('refresh_token')?.value);
+  const sensitivePrefixes = ['/api/v1/', '/api/admin/', '/api/billing/', '/api/security/'];
+  const isSensitiveMutationPath = sensitivePrefixes.some((prefix) => pathname.startsWith(prefix));
 
   // In development, skip CSRF (but log for awareness)
   if (process.env.NODE_ENV === 'development') {
@@ -440,8 +519,22 @@ function handleCSRF(request: NextRequest): NextResponse | null {
     }
   }
 
-  // Skip if no CSRF cookie is set (first request)
+  // Skip if no CSRF cookie is set and there is no authenticated session context.
   if (!csrfCookie) {
+    // Fail closed on authenticated sensitive mutations.
+    if (hasSessionCookie && isSensitiveMutationPath) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Forbidden',
+          message: 'Missing CSRF cookie for authenticated mutation',
+          code: 'CSRF_COOKIE_MISSING',
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
     return null;
   }
 

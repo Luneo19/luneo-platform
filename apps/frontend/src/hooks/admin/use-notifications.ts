@@ -3,6 +3,7 @@
  * Hook SWR for admin notifications with mark-as-read
  */
 import useSWR from 'swr';
+import { normalizeListResponse } from '@/lib/api/normalize';
 
 class FetcherError extends Error {
   info?: unknown;
@@ -95,9 +96,9 @@ export function useAdminNotifications(options: { page?: number; pageSize?: numbe
   };
 
   return {
-    notifications: data?.items || [],
+    notifications: normalizeListResponse<AdminNotification>((data as Record<string, unknown> | undefined)?.items),
     pagination: data ? { page: data.page, pageSize: data.pageSize, total: data.total, totalPages: data.totalPages } : null,
-    unreadCount: countData?.count || 0,
+    unreadCount: typeof countData?.count === 'number' ? countData.count : 0,
     isLoading,
     isError: !!error,
     error,

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ClipboardCheck, LifeBuoy, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeft, ClipboardCheck, LifeBuoy, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SharedQuotaPayload = {

@@ -3,7 +3,7 @@
  * Tests pour les utilitaires d'optimisation
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   getCloudinaryUrl,
   getResponsiveImage,

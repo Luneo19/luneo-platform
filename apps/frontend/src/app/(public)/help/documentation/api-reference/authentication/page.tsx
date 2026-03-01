@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { Shield, Key, Lock, ArrowRight, ExternalLink } from 'lucide-react';
+import { Key, Lock, ArrowRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DocPageTemplate } from '@/components/docs/DocPageTemplate';

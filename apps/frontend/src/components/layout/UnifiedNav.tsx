@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import { LazyMotionDiv as motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
+import { LazyMotionDiv as Motion, LazyAnimatePresence as AnimatePresence } from '@/lib/performance/dynamic-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Logo } from '@/components/Logo';
 
@@ -83,7 +83,7 @@ function UnifiedNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'product' && (
-                  <motion
+                  <Motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -100,7 +100,7 @@ function UnifiedNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion>
+                  </Motion>
                 )}
               </AnimatePresence>
             </div>
@@ -121,7 +121,7 @@ function UnifiedNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'solutions' && (
-                  <motion
+                  <Motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -138,7 +138,7 @@ function UnifiedNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion>
+                  </Motion>
                 )}
               </AnimatePresence>
             </div>
@@ -159,7 +159,7 @@ function UnifiedNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'resources' && (
-                  <motion
+                  <Motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -176,7 +176,7 @@ function UnifiedNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion>
+                  </Motion>
                 )}
               </AnimatePresence>
             </div>
@@ -197,7 +197,7 @@ function UnifiedNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'pricing' && (
-                  <motion
+                  <Motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -214,7 +214,7 @@ function UnifiedNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion>
+                  </Motion>
                 )}
               </AnimatePresence>
             </div>
@@ -235,7 +235,7 @@ function UnifiedNavContent() {
               
               <AnimatePresence>
                 {activeDropdown === 'company' && (
-                  <motion
+                  <Motion
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -252,7 +252,7 @@ function UnifiedNavContent() {
                         <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                       </Link>
                     ))}
-                  </motion>
+                  </Motion>
                 )}
               </AnimatePresence>
             </div>
@@ -289,7 +289,7 @@ function UnifiedNavContent() {
         {/* Mobile Navigation */}
         <AnimatePresence>
           {isMenuOpen && (
-            <motion
+            <Motion
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -332,7 +332,7 @@ function UnifiedNavContent() {
                   Commencer à construire
                 </Link>
               </div>
-            </motion>
+            </Motion>
           )}
         </AnimatePresence>
       </div>

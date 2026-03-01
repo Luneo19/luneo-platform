@@ -77,6 +77,19 @@ export interface OrionOverview {
   metrics: OrionOverviewMetrics;
 }
 
+interface OrionOverviewRaw {
+  kpis?: {
+    users?: number;
+    organizations?: number;
+    [key: string]: unknown;
+  };
+  retention?: {
+    atRiskCount?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 // --- Revenue (from /api/admin/orion/revenue) — may 404
 export interface OrionRevenue {
   mrr: number;
@@ -129,6 +142,26 @@ const swrConfig = {
   revalidateOnReconnect: true,
 };
 
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeOverview(raw: OrionOverviewRaw | null | undefined, agents: OrionAgentsList | null): OrionOverview {
+  const kpis = raw?.kpis;
+  const retention = raw?.retention;
+  const safeAgents = Array.isArray(agents) ? agents : [];
+  return {
+    agents: safeAgents,
+    metrics: {
+      totalCustomers: asNumber(kpis?.users),
+      activeCustomers: asNumber(kpis?.users),
+      atRiskCustomers: asNumber(retention?.atRiskCount),
+      agentsActive: safeAgents.filter((agent) => String(agent.status).toUpperCase() === 'ACTIVE').length,
+      agentsTotal: safeAgents.length,
+    },
+  };
+}
+
 export interface OrionDashboardData {
   overview: OrionOverview | null;
   revenue: OrionRevenue | null;
@@ -161,7 +194,7 @@ export interface UseOrionDashboardReturn {
 }
 
 function useOrionDashboard(): UseOrionDashboardReturn {
-  const { data: overviewData, error: overviewError, isLoading: isLoadingOverview, mutate: mutateOverview } = useSWR<OrionOverview>(
+  const { data: overviewData, error: overviewError, isLoading: isLoadingOverview, mutate: mutateOverview } = useSWR<OrionOverviewRaw>(
     OVERVIEW_KEY,
     fetcher,
     swrConfig
@@ -199,7 +232,7 @@ function useOrionDashboard(): UseOrionDashboardReturn {
     void mutateKpis();
   };
 
-  const overview = overviewData ?? null;
+  const overview = normalizeOverview(overviewData, agentsData ?? null);
   const revenue = revenueData ?? null;
   const retention = retentionData ?? null;
   const agents = agentsData ?? null;
