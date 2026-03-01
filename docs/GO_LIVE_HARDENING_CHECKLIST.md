@@ -84,3 +84,9 @@ This checklist covers the final hardening pass for waves 8 to 10:
 - Add per-endpoint audit correlation IDs in responses and logs
 - Add signed webhook secret rotation workflow
 - Add runbook for DLQ operational recovery
+
+## Operational Readiness Pack
+
+- `docs/GO_NO_GO_PRODUCTION_MATRIX.md`
+- `docs/HYPERCARE_24_48H.md`
+- `docs/INCIDENT_READY_CHECKLIST.md`

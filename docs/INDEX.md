@@ -9,6 +9,9 @@
 ### **Déploiement Rapide**
 - **[QUICK_START_DEPLOYMENT.md](./QUICK_START_DEPLOYMENT.md)** - Guide rapide pour déployer
 - **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Checklist complète de déploiement
+- **[GO_NO_GO_PRODUCTION_MATRIX.md](./GO_NO_GO_PRODUCTION_MATRIX.md)** - Matrice de décision release exécutable
+- **[HYPERCARE_24_48H.md](./HYPERCARE_24_48H.md)** - Plan de stabilisation post-release
+- **[INCIDENT_READY_CHECKLIST.md](./INCIDENT_READY_CHECKLIST.md)** - Préparation opérationnelle incident
 
 ### **Pull Requests**
 - **[CREATE_PRS_GUIDE.md](./CREATE_PRS_GUIDE.md)** - Guide complet pour créer les 4 Pull Requests
