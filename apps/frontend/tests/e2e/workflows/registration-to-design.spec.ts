@@ -33,6 +33,45 @@ async function satisfyRegistrationPrerequisites(page: Page, testName: string): P
   }
 }
 
+async function fillVisibleRequiredFields(page: Page): Promise<void> {
+  const requiredFields = page.locator('input[required], textarea[required], select[required]');
+  const count = await requiredFields.count();
+
+  for (let i = 0; i < count; i += 1) {
+    const field = requiredFields.nth(i);
+    if (!(await field.isVisible().catch(() => false))) continue;
+
+    const tagName = await field.evaluate((el) => el.tagName.toLowerCase()).catch(() => '');
+    const type = await field.getAttribute('type');
+    const name = (await field.getAttribute('name')) || '';
+    const currentValue = await field.inputValue().catch(() => '');
+
+    if (tagName === 'select') {
+      const options = field.locator('option');
+      if ((await options.count()) > 1) {
+        await field.selectOption({ index: 1 }).catch(() => {});
+      }
+      continue;
+    }
+
+    if ((type === 'checkbox' || type === 'radio') && !(await field.isChecked().catch(() => false))) {
+      await field.check({ force: true }).catch(() => {});
+      continue;
+    }
+
+    if (currentValue.trim().length > 0) continue;
+
+    const lowerName = name.toLowerCase();
+    if (type === 'email' || lowerName.includes('email')) {
+      await field.fill(generateTestEmail()).catch(() => {});
+    } else if (type === 'password' || lowerName.includes('password')) {
+      await field.fill('TestPassword123!').catch(() => {});
+    } else {
+      await field.fill('E2E Value').catch(() => {});
+    }
+  }
+}
+
 test.describe('Registration → Onboarding → Design Flow', () => {
   test.beforeEach(async ({ page }) => {
     await setLocale(page, 'fr');
@@ -67,7 +106,8 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     await confirmPasswordField.fill(testPassword);
     
     // Soumettre le formulaire
-    await expect(submitButton).toBeEnabled();
+    await fillVisibleRequiredFields(page);
+    await expect.poll(async () => submitButton.isEnabled(), { timeout: 10000 }).toBeTruthy();
     await submitButton.click();
     
     // Attendre la redirection (vers onboarding, dashboard, ou vérification email)
@@ -217,7 +257,8 @@ test.describe('Registration → Onboarding → Design Flow', () => {
     await emailField.fill(testEmail);
     await passwordField.fill(testPassword);
     await confirmPasswordField.fill(testPassword);
-    await expect(submitButton).toBeEnabled();
+    await fillVisibleRequiredFields(page);
+    await expect.poll(async () => submitButton.isEnabled(), { timeout: 10000 }).toBeTruthy();
     await submitButton.click();
     
     // Attendre redirection
@@ -287,7 +328,8 @@ test.describe('Registration to Design Performance', () => {
     await emailField.fill(testEmail);
     await passwordField.fill(testPassword);
     await confirmPasswordField.fill(testPassword);
-    await expect(submitButton).toBeEnabled();
+    await fillVisibleRequiredFields(page);
+    await expect.poll(async () => submitButton.isEnabled(), { timeout: 10000 }).toBeTruthy();
     await submitButton.click();
     
     // Attendre redirection

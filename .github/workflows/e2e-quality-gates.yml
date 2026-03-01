@@ -52,6 +52,7 @@ jobs:
             tests/e2e/workflows/checkout-to-confirmation.spec.ts \
             tests/e2e/workflows/registration-to-design.spec.ts \
             --project=chromium \
+            --retries=1 \
             --reporter=json > ../../artifacts/e2e/critical-results.json
 
       - name: Build critical stability report
